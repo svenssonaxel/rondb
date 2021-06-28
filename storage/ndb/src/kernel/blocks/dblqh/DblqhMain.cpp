@@ -5103,6 +5103,7 @@ void Dblqh::earlyKeyReqAbort(Signal* signal,
                      signal, LqhKeyRef::SignalLength);
     }
   }//if
+  reset_curr_ldm();
   return;
 }//Dblqh::earlyKeyReqAbort()
 
@@ -5207,6 +5208,7 @@ void Dblqh::LQHKEY_abort(Signal* signal,
     ndbabort();
   }//switch
   abortErrorLab(signal, tcConnectptr);
+  reset_curr_ldm();
 }//Dblqh::LQHKEY_abort()
 
 void Dblqh::LQHKEY_error(Signal* signal,
@@ -5244,6 +5246,7 @@ void Dblqh::LQHKEY_error(Signal* signal,
                       errortype);
   terrorCode = ZLQHKEY_PROTOCOL_ERROR;
   abortErrorLab(signal, tcConnectptr);
+  reset_curr_ldm();
 }//Dblqh::LQHKEY_error()
 
 void Dblqh::execLQHKEYREF(Signal* signal) 
@@ -5625,10 +5628,8 @@ void
 Dblqh::execREAD_PSEUDO_REQ(Uint32 opPtrI, Uint32 attrId, Uint32* out, Uint32 out_words)
 {
   jamEntryDebug();
-  TcConnectionrecPtr regTcPtr;
-  regTcPtr.i = opPtrI;
-  ndbrequire(tcConnect_pool.getValidPtr(regTcPtr));
-  
+  TcConnectionrecPtr regTcPtr = m_tc_connect_ptr;
+  ndbassert(m_tc_connect_ptr.i == opPtrI);
   switch (attrId)
   {
   case AttributeHeader::RANGE_NO:
@@ -6269,9 +6270,11 @@ int Dblqh::findTransaction(UintR Transid1,
 
   ndbassert(partial_fit_ok == false || is_key_operation == true);
   Uint32 ThashIndex = (Transid1 ^ TcOprec) & (TRANSID_HASH_SIZE - 1);
-  locTcConnectptr.i = ctransidHash[ThashIndex];
+  Uint32 mutexIndex = ThashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
+  NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
+  locTcConnectptr.i = m_curr_lqh->ctransidHash[ThashIndex];
   while (locTcConnectptr.i != RNIL) {
-    ndbrequire(tcConnect_pool.getUncheckedPtrRW(locTcConnectptr));
+    ndbrequire(m_curr_lqh->tcConnect_pool.getUncheckedPtrRW(locTcConnectptr));
     if ((locTcConnectptr.p->transid[0] == Transid1) &&
         (locTcConnectptr.p->transid[1] == Transid2) &&
         (locTcConnectptr.p->tcOprec == TcOprec))
@@ -6288,6 +6291,7 @@ int Dblqh::findTransaction(UintR Transid1,
 /* FIRST PART OF TRANSACTION CORRECT */
 /* SECOND PART ALSO CORRECT */
 /* THE OPERATION RECORD POINTER IN TC WAS ALSO CORRECT */
+          NdbMutex_Unlock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
           jam();
           tcConnectptr = locTcConnectptr;
           ndbrequire(Magic::check_ptr(locTcConnectptr.p));
@@ -6301,9 +6305,38 @@ int Dblqh::findTransaction(UintR Transid1,
     locTcConnectptr.i = locTcConnectptr.p->nextHashRec;
     ndbrequire(Magic::check_ptr(locTcConnectptr.p));
   }//while
+  NdbMutex_Unlock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
 /* WE DID NOT FIND THE TRANSACTION, REPORT NOT FOUND */
   return (int)ZNOT_FOUND;
 }//Dblqh::findTransaction()
+
+bool
+Dblqh::checkTransaction(TcConnectionrecPtr nextPtr,
+                        Uint32 tcHashKeyHi,
+                        TcConnectionrec *regTcPtr,
+                        bool is_key_operation)
+{
+  do
+  {
+    if (nextPtr.p->transid[0] == regTcPtr->transid[0] &&
+        nextPtr.p->transid[1] == regTcPtr->transid[1] &&
+        nextPtr.p->tcOprec == regTcPtr->tcOprec &&
+        nextPtr.p->tcHashKeyHi == tcHashKeyHi)
+    {
+      if (is_key_operation)
+        return nextPtr.p->tcScanRec == RNIL;
+      else
+        return nextPtr.p->tcScanRec != RNIL;
+    }
+    nextPtr.i = nextPtr.p->nextHashRec;
+    if (nextPtr.i == RNIL)
+    {
+      return false;
+    }
+    ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(nextPtr));
+  } while (1);
+  return false;
+}
 
 inline
 static void
@@ -6328,10 +6361,10 @@ prefetch_op_record_4(Uint32 *op_ptr)
 bool
 Dblqh::seize_op_rec(TcConnectionrecPtr& tcConnectptr)
 {
+  /* Cannot use jam here, called from other thread */
   TcConnectionrecPtr opPtr;
   if (unlikely(!tcConnect_pool.seize(opPtr)))
   {
-    jam();
     return false;
   }
   opPtr.p->ptrI = opPtr.i;
@@ -6352,22 +6385,17 @@ Dblqh::seize_op_rec(TcConnectionrecPtr& tcConnectptr)
     goto tup_fail;
   }
   opPtr.p->tcTimer = cLqhTimeOutCount;
-  c_tup->prepare_op_pointer(opPtr.p->tupConnectrec,
-                            opPtr.p->tupConnectPtrP);
   tcConnectptr = opPtr;
-  m_tc_connect_ptr = opPtr;
   ndbrequire(Magic::check_ptr(opPtr.p->accConnectPtrP));
   ndbrequire(Magic::check_ptr(opPtr.p->tupConnectPtrP));
   return true;
 
 tup_fail:
-  jam();
   ndbrequire(Magic::check_ptr(opPtr.p));
   c_acc->release_op_rec(opPtr.p->accConnectrec,
                         opPtr.p->accConnectPtrP);
 
 acc_fail:
-  jam();
   ndbrequire(Magic::check_ptr(opPtr.p));
   tcConnect_pool.release(opPtr);
   checkPoolShrinkNeed(DBLQH_OPERATION_RECORD_TRANSIENT_POOL_INDEX,
@@ -6378,6 +6406,7 @@ acc_fail:
 void
 Dblqh::release_op_rec(TcConnectionrecPtr opPtr)
 {
+  /* Cannot use jam here, called from other thread */
   c_tup->release_op_rec(opPtr.p->tupConnectrec,
                         opPtr.p->tupConnectPtrP);
   c_acc->release_op_rec(opPtr.p->accConnectrec,
@@ -8372,24 +8401,59 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
   }
 
   sig0 = lqhKeyReq->clientConnectPtr;
-  if (likely((ctcNumFree > ZNUM_RESERVED_UTIL_CONNECT_RECORDS &&
-              !ERROR_INSERTED(5031)) ||
-             (ctcNumFree > ZNUM_RESERVED_TC_CONNECT_RECORDS &&
-              LqhKeyReq::getUtilFlag(Treqinfo))))
-  {
-    jamEntryDebug();
-    seizeTcrec(tcConnectptr);
-  }
-  else
+  if (unlikely(ERROR_INSERTED(5031)) ||
+      unlikely(m_is_query_block && !LqhKeyReq::getDirtyFlag(Treqinfo)) ||
+      unlikely(ctcNumFree <= ZNUM_RESERVED_TC_CONNECT_RECORDS) ||
+      unlikely(ctcNumFree <= ZNUM_RESERVED_UTIL_CONNECT_RECORDS &&
+               LqhKeyReq::getUtilFlag(Treqinfo)))
   {
     jamEntry();
-    if (unlikely(ERROR_INSERTED_CLEAR(5031) ||
-                 (!seize_op_rec(tcConnectptr))))
+    Dblqh *lqh = this;
+    bool use_lock = true;
+    if (m_is_query_block)
+    {
+      if (likely(LqhKeyReq::getDirtyFlag(Treqinfo)))
+      {
+        jamDebug();
+        use_lock = false;
+      }
+      else
+      {
+        jam();
+        /**
+         * We are performing a non-dirty operation in a Query thread, this means
+         * that we need to acquire an operation record from the LDM block owning
+         * the fragment.
+         */
+        Uint32 instanceNo =
+          getInstanceNoCanFail(LqhKeyReq::getTableId(lqhKeyReq->tableSchemaVersion),
+                               LqhKeyReq::getFragmentId(lqhKeyReq->fragmentData));
+        if (likely(instanceNo != RNIL))
+        {
+          jamDebug();
+          jamLineDebug(Uint16(instanceNo));
+          lqh = (Dblqh*)globalData.getBlock(DBLQH, instanceNo);
+        }
+        else
+        {
+          jam();
+        }
+        m_curr_lqh = lqh;
+        c_acc->m_curr_acc = lqh->c_acc;
+        c_tup->m_curr_tup = lqh->c_tup;
+        NdbMutex_Lock(&lqh->alloc_operation_mutex);
+      }
+    }
+    else
+    {
+      NdbMutex_Lock(&lqh->alloc_operation_mutex);
+    }
+    bool succ = lqh->seize_op_rec(tcConnectptr);
+    if (use_lock)
+      NdbMutex_Unlock(&lqh->alloc_operation_mutex);
+    if (unlikely(!succ || ERROR_INSERTED_CLEAR(5031)))
     {
       jam();
-/* ------------------------------------------------------------------------- */
-/* NO FREE TC RECORD AVAILABLE, THUS WE CANNOT HANDLE THE REQUEST.           */
-/* ------------------------------------------------------------------------- */
       releaseSections(handle);
       earlyKeyReqAbort(signal,
                        lqhKeyReq,
@@ -8397,13 +8461,20 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
                        tcConnectptr);
       return;
     }
-  }//if
-
+    m_tc_connect_ptr = tcConnectptr;
+    c_tup->prepare_op_pointer(tcConnectptr.p->tupConnectrec,
+                              tcConnectptr.p->tupConnectPtrP);
+  }
+  else
+  {
+    seizeTcrec(tcConnectptr);
+  }
   if(ERROR_INSERTED(5038) && 
      refToNode(signal->getSendersBlockRef()) != getOwnNodeId()){
     jam();
     releaseSections(handle);
     SET_ERROR_INSERT_VALUE(5039);
+    reset_curr_ldm();
     return;
   }
   
@@ -8437,9 +8508,10 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
   regTcPtr->savePointId = sig1;
   regTcPtr->hashValue = sig2;
   const Uint32 schemaVersion = regTcPtr->schemaVersion = LqhKeyReq::getSchemaVersion(sig4);
-  tabptr.i = LqhKeyReq::getTableId(sig4);
   regTcPtr->tcBlockref = sig5;
   regTcPtr->tcHashKeyHi = sig5;
+
+  tabptr.i = LqhKeyReq::getTableId(sig4);
 
   const Uint8 op = LqhKeyReq::getOperation(Treqinfo);
   if (ERROR_INSERTED(5080) ||
@@ -8791,31 +8863,32 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
    */
   if (regTcPtr->dirtyOp == ZFALSE) //Transactional operation
   {
-    jamDebug();
-    /* Check that no equal element exists */
-    ndbrequire(findTransaction(regTcPtr->transid[0],
-                               regTcPtr->transid[1], 
-                               regTcPtr->tcOprec,
-                               regTcPtr->tcHashKeyHi,
-                               true,
-                               false,
-                               tcConnectptr) == ZNOT_FOUND);
-
     TcConnectionrecPtr localNextTcConnectptr;
     Uint32 hashIndex = (regTcPtr->transid[0] ^ regTcPtr->tcOprec) &
                        (TRANSID_HASH_SIZE - 1);
-    localNextTcConnectptr.i = ctransidHash[hashIndex];
-    ctransidHash[hashIndex] = tcConnectptr.i;
+    jamDebug();
+    jamLineDebug(Uint16(hashIndex));
+    Uint32 mutexIndex = hashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
     regTcPtr->prevHashRec = RNIL;
-    regTcPtr->nextHashRec = localNextTcConnectptr.i;
     regTcPtr->hashIndex = hashIndex;
-    if (localNextTcConnectptr.i != RNIL)
+    NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
+    localNextTcConnectptr.i = m_curr_lqh->ctransidHash[hashIndex];
+    m_curr_lqh->ctransidHash[hashIndex] = tcConnectptr.i;
+    if (unlikely(localNextTcConnectptr.i != RNIL))
     {
       jamDebug();
-      ndbrequire(tcConnect_pool.getValidPtr(localNextTcConnectptr));
+      ndbrequire(m_curr_lqh->tcConnect_pool.
+                 getValidPtr(localNextTcConnectptr));
+      /* Check that no equal element exists */
+      ndbrequire(!checkTransaction(localNextTcConnectptr,
+                                   regTcPtr->tcHashKeyHi,
+                                   regTcPtr,
+                                   true));
       ndbassert(localNextTcConnectptr.p->prevHashRec == RNIL);
       localNextTcConnectptr.p->prevHashRec = tcConnectptr.i;
     }//if
+    regTcPtr->nextHashRec = localNextTcConnectptr.i;
+    NdbMutex_Unlock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
   }//if
   /**
    * Up until this point in execLQHKEYREQ all we have done is setting up
@@ -9109,6 +9182,7 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
   case Fragrecord::ACTIVE_CREATION:
     prepareContinueAfterBlockedLab(signal, tcConnectptr);
     release_frag_access(fragptr.p);
+    reset_curr_ldm();
     return;
   case Fragrecord::FREE:
     ndbabort();
@@ -9328,7 +9402,6 @@ Dblqh::exec_acckeyreq(Signal* signal, TcConnectionrecPtr regTcPtr)
   }
   else if (signal->theData[0] == RNIL)
   {
-    ndbassert(!m_is_query_block);
     return;
   }
   else
@@ -9860,7 +9933,7 @@ Dblqh::get_nr_op_info(Nr_op_info* op, Uint32 page_id)
   Ptr<TcConnectionrec> tcPtr;
   tcPtr.i = op->m_ptr_i;
   
-  ndbrequire(tcConnect_pool.getValidPtr(tcPtr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(tcPtr));
   Ptr<Fragrecord> fragPtr;
   c_fragment_pool.getPtr(fragPtr, tcPtr.p->fragmentptr);  
 
@@ -9912,7 +9985,7 @@ Dblqh::nr_delete_complete(Signal* signal, Nr_op_info* op)
   jamEntry();
   Ptr<TcConnectionrec> tcPtr;
   tcPtr.i = op->m_ptr_i;
-  ndbrequire(tcConnect_pool.getValidPtr(tcPtr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(tcPtr));
 
   ndbrequire(tcPtr.p->activeCreat == Fragrecord::AC_NR_COPY);
   ndbrequire(tcPtr.p->m_nr_delete.m_cnt);
@@ -9960,10 +10033,10 @@ Dblqh::nr_delete_complete(Signal* signal, Nr_op_info* op)
 Uint32
 Dblqh::readPrimaryKeys(Uint32 opPtrI, Uint32 * dst, bool xfrm)
 {
+  /* Cannot use jam here, called from other thread */
   TcConnectionrecPtr regTcPtr;  
   Uint64 Tmp[MAX_KEY_SIZE_IN_WORDS >> 1];
 
-  jamEntry();
   regTcPtr.i = opPtrI;
   ndbrequire(tcConnect_pool.getValidPtr(regTcPtr));
 
@@ -9975,7 +10048,6 @@ Dblqh::readPrimaryKeys(Uint32 opPtrI, Uint32 * dst, bool xfrm)
   
   if (xfrm)
   {
-    jam();
     Uint32 keyPartLen[MAX_ATTRIBUTES_IN_INDEX];
     return xfrm_key_hash(tableId, (Uint32*)Tmp, dst, ~0, keyPartLen);
   }
@@ -10073,13 +10145,13 @@ void Dblqh::handleUserUnlockRequest(Signal* signal,
    * On success this sets tcConnectptr.i and .p to the 
    * operation-to-unlock's record.
    */
-  if (unlikely( findTransaction(regTcPtr->transid[0], 
-                                regTcPtr->transid[1], 
-                                tcOpRecIndex,
-                                regTcPtr->tcHashKeyHi,
-                                true,
-                                false,
-                                tcConnectptr) != ZOK))
+  if (unlikely(findTransaction(regTcPtr->transid[0], 
+                               regTcPtr->transid[1], 
+                               tcOpRecIndex,
+                               regTcPtr->tcHashKeyHi,
+                               true,
+                               false,
+                               tcConnectptr) != ZOK))
   {
     jam();
     unlockError(signal, ZBAD_OP_REF, tcConnectptr);
@@ -10143,7 +10215,7 @@ void Dblqh::handleUserUnlockRequest(Signal* signal,
    * as well
    */
   tcConnectptr.i = tcPtrI;
-  ndbrequire(tcConnect_pool.getValidPtr(tcConnectptr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(tcConnectptr));
   
   ndbrequire( regTcPtr == tcConnectptr.p );
   
@@ -10209,22 +10281,14 @@ void Dblqh::handleUserUnlockRequest(Signal* signal,
  * deallocation
  */
 void Dblqh::incrDeallocRefCount(Signal* signal,
-                                Uint32 opPtrI,
+                                TcConnectionrecPtr opPtr,
                                 Uint32 countOpPtrI)
 {
-  jam();
-  ndbrequire(opPtrI != RNIL);
-  ndbrequire(countOpPtrI != RNIL);
-
-  TcConnectionrecPtr opPtr;
-  opPtr.i = opPtrI;
-  ndbrequire(tcConnect_pool.getValidPtr(opPtr));
-
   TcConnectionrecPtr countOpPtr;
   countOpPtr.i = countOpPtrI;
-  ndbrequire(tcConnect_pool.getValidPtr(countOpPtr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(countOpPtr));
 
-  const bool referring_op = (opPtrI != countOpPtrI);
+  const bool referring_op = (opPtr.i != countOpPtrI);
 
   if (referring_op)
   {
@@ -10248,8 +10312,10 @@ void Dblqh::incrDeallocRefCount(Signal* signal,
   }
 
   /* Increment count */
-  ndbrequire(countOpPtr.p->m_dealloc_state == TcConnectionrec::DA_DEALLOC_COUNT ||
-             countOpPtr.p->m_dealloc_state == TcConnectionrec::DA_DEALLOC_COUNT_ZOMBIE);
+  ndbrequire(countOpPtr.p->m_dealloc_state ==
+               TcConnectionrec::DA_DEALLOC_COUNT ||
+             countOpPtr.p->m_dealloc_state ==
+               TcConnectionrec::DA_DEALLOC_COUNT_ZOMBIE);
   ndbrequire(countOpPtr.p->m_dealloc_data.m_dealloc_ref_count != RNIL);
 
   countOpPtr.p->m_dealloc_data.m_dealloc_ref_count++;
@@ -10264,23 +10330,15 @@ void Dblqh::incrDeallocRefCount(Signal* signal,
  * Returns the new count of references on the rowID
  */
 Uint32 Dblqh::decrDeallocRefCount(Signal* signal,
-                                  Uint32 opPtrI)
+                                  TcConnectionrecPtr opPtr)
 {
-  jam();
-  ndbrequire(opPtrI != RNIL);
-
-  TcConnectionrecPtr opPtr;
-  opPtr.i = opPtrI;
-  ndbrequire(tcConnect_pool.getValidPtr(opPtr));
-
   TcConnectionrecPtr countOpPtr = opPtr;
-
   if (opPtr.p->m_dealloc_state == TcConnectionrec::DA_DEALLOC_REFERENCE)
   {
     jam();
     ndbrequire(opPtr.p->m_dealloc_data.m_dealloc_op_id != RNIL);
     countOpPtr.i = opPtr.p->m_dealloc_data.m_dealloc_op_id;
-    ndbrequire(tcConnect_pool.getValidPtr(countOpPtr));
+    ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(countOpPtr));
   }
 
   ndbrequire(countOpPtr.p->m_dealloc_state ==
@@ -10317,7 +10375,8 @@ Uint32 Dblqh::decrDeallocRefCount(Signal* signal,
     c_tup->execTUP_DEALLOCREQ(signal);
 
     bool countOpIsZombie =
-      (countOpPtr.p->m_dealloc_state == TcConnectionrec::DA_DEALLOC_COUNT_ZOMBIE);
+      (countOpPtr.p->m_dealloc_state ==
+         TcConnectionrec::DA_DEALLOC_COUNT_ZOMBIE);
 
     countOpPtr.p->m_dealloc_state = TcConnectionrec::DA_IDLE;
     countOpPtr.p->m_dealloc_data.m_dealloc_ref_count = RNIL;
@@ -10332,7 +10391,6 @@ Uint32 Dblqh::decrDeallocRefCount(Signal* signal,
       releaseTcrec(signal, countOpPtr);
     }
   }
-
   return newCount;
 }
 
@@ -10359,7 +10417,7 @@ void Dblqh::handleDeallocOp(Signal* signal,
     (regTcPtr.p->m_dealloc_state == TcConnectionrec::DA_DEALLOC_REFERENCE);
 
   const Uint32 newCount = decrDeallocRefCount(signal,
-                                              regTcPtr.i);
+                                              regTcPtr);
 
   if (referringOpReleased)
   {
@@ -10418,7 +10476,7 @@ void Dblqh::execTUP_DEALLOCREQ(Signal* signal)
   
   jamEntryDebug();
   regTcPtr.i = signal->theData[4];
-  ndbrequire(tcConnect_pool.getValidPtr(regTcPtr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(regTcPtr));
   
   if (TRACENR_FLAG)
   {
@@ -10439,7 +10497,7 @@ void Dblqh::execTUP_DEALLOCREQ(Signal* signal)
      * Notification of Op involved in deallocation
      */
     incrDeallocRefCount(signal,
-                        signal->theData[4],
+                        regTcPtr,
                         signal->theData[5]);
   }
   else
@@ -10469,7 +10527,7 @@ void Dblqh::execTUP_DEALLOCREQ(Signal* signal)
        * from ACC
        */
       decrDeallocRefCount(signal,
-                          signal->theData[4]);
+                          regTcPtr);
     }
   }
 }//Dblqh::execTUP_DEALLOCREQ()
@@ -10834,7 +10892,6 @@ void Dblqh::tupkeyConfLab(Signal* signal,
     return;
   }//if
 
-  ndbassert(!m_is_in_query_thread);
   regTcPtr->totSendlenAi = writeLen;
   /* We will propagate / log writeLen words
    * Check that that is how many we have available to 
@@ -11924,7 +11981,7 @@ void Dblqh::deleteTransidHash(Signal* signal, TcConnectionrecPtr& tcConnectptr)
    * (It is a non-transactional 'dirtyOp', or the request failed
    *  before it was ever inserted in the hash list.)
    */ 
-  if (regTcPtr->hashIndex == RNIL)
+  if (unlikely(regTcPtr->hashIndex == RNIL))
   {
     jamDebug();
     /* If this operation is 'non-dirty', there should be no duplicates */
@@ -11943,33 +12000,36 @@ void Dblqh::deleteTransidHash(Signal* signal, TcConnectionrecPtr& tcConnectptr)
   nextHashptr.i = regTcPtr->nextHashRec;
   /* prevHashptr and nextHashptr may be RNIL when the bucket has 1 element */
 
-  if (prevHashptr.i != RNIL)
-  {
-    jamDebug();
-    ndbrequire(tcConnect_pool.getValidPtr(prevHashptr));
-    ndbassert(prevHashptr.p->nextHashRec == tcConnectptr.i);
-    prevHashptr.p->nextHashRec = nextHashptr.i;
-  }
-  else
+  Uint32 hashIndex = regTcPtr->hashIndex;
+  Uint32 mutexIndex = hashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
+  NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
+  ndbassert(hashIndex == ((regTcPtr->transid[0] ^ regTcPtr->tcOprec) & 
+                           (TRANSID_HASH_SIZE - 1)));
+  if (likely(prevHashptr.i == RNIL))
   {
     jamDebug();
 /* ------------------------------------------------------------------------- */
 /* THE OPERATION WAS PLACED FIRST IN THE LIST OF THE HASH TABLE. NEED TO SET */
 /* A NEW LEADER OF THE LIST.                                                 */
 /* ------------------------------------------------------------------------- */
-    Uint32 hashIndex = regTcPtr->hashIndex;
-    ndbassert(hashIndex == ((regTcPtr->transid[0] ^ regTcPtr->tcOprec) & 
-                             (TRANSID_HASH_SIZE - 1)));
-    ndbassert(ctransidHash[hashIndex] == tcConnectptr.i);
-    ctransidHash[hashIndex] = nextHashptr.i;
-  }//if
-  if (nextHashptr.i != RNIL)
+    ndbrequire(m_curr_lqh->ctransidHash[hashIndex] == tcConnectptr.i);
+    m_curr_lqh->ctransidHash[hashIndex] = nextHashptr.i;
+  }
+  else
   {
     jamDebug();
-    ndbrequire(tcConnect_pool.getValidPtr(nextHashptr));
+    ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(prevHashptr));
+    ndbassert(prevHashptr.p->nextHashRec == tcConnectptr.i);
+    prevHashptr.p->nextHashRec = nextHashptr.i;
+  }//if
+  if (unlikely(nextHashptr.i != RNIL))
+  {
+    jamDebug();
+    ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(nextHashptr));
     ndbassert(nextHashptr.p->prevHashRec == tcConnectptr.i);
     nextHashptr.p->prevHashRec = prevHashptr.i;
   }//if
+  NdbMutex_Unlock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
   regTcPtr->hashIndex = regTcPtr->prevHashRec = regTcPtr->nextHashRec = RNIL;
 }//Dblqh::deleteTransidHash()
 
@@ -12283,7 +12343,7 @@ Dblqh::check_fire_trig_pass(Uint32 opId, Uint32 pass)
    */
   TcConnectionrecPtr regTcPtr;
   regTcPtr.i= opId;
-  ndbrequire(tcConnect_pool.getValidPtr(regTcPtr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(regTcPtr));
   if (regTcPtr.p->m_fire_trig_pass <= pass)
   {
     regTcPtr.p->m_fire_trig_pass = pass + 1;
@@ -13033,8 +13093,8 @@ void Dblqh::commitContinueAfterBlockedLab(
         /**
          * Commit operation have already been performed, no work for TUP to
          * do and we can simply proceed with the cleanup of this operation.
-         * No locks are required for this part since we will merely clean up
-         * operation records.
+         * We need not exclusive locks, ACC will ensure that the operation
+         * can execute concurrent with other operations in DBACC.
          */
         ndbrequire(ret_code == ZTUP_COMMITTED);
       }
@@ -13361,7 +13421,19 @@ void Dblqh::releaseTcrec(Signal* signal, TcConnectionrecPtr locTcConnectptr)
   else
   {
     jam();
-    release_op_rec(locTcConnectptr);
+    bool use_lock = false;
+    Dblqh *lqh = m_curr_lqh;
+    if (!m_is_query_block ||
+        lqh != this)
+    {
+      use_lock = true;
+      NdbMutex_Lock(&lqh->alloc_operation_mutex);
+    }
+    lqh->release_op_rec(locTcConnectptr);
+    if (use_lock)
+    {
+      NdbMutex_Unlock(&lqh->alloc_operation_mutex);
+    }
   }
 }//Dblqh::releaseTcrec()
 
@@ -13885,7 +13957,7 @@ void Dblqh::abortStateHandlerLab(Signal* signal,
 
 void Dblqh::abortErrorLab(Signal* signal, TcConnectionrecPtr tcConnectptr)
 {
-  ndbrequire(tcConnect_pool.getValidPtr(tcConnectptr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(tcConnectptr));
   TcConnectionrec * const regTcPtr = tcConnectptr.p;
   if (regTcPtr->abortState == TcConnectionrec::ABORT_IDLE) {
     jam();
@@ -14823,7 +14895,7 @@ void Dblqh::exec_next_scan_ref(Signal *signal)
   ndbrequire(c_scanRecordPool.getValidPtr(scanptr));
   TcConnectionrecPtr tcConnectptr;
   tcConnectptr.i = scanptr.p->scanTcrec;
-  ndbrequire(tcConnect_pool.getValidPtr(tcConnectptr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(tcConnectptr));
   tcConnectptr.p->errorCode = ref->errorCode;
 
   /*
@@ -16448,9 +16520,12 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
   }
   else
   {
+    if (!m_is_query_block)
+      NdbMutex_Lock(&alloc_operation_mutex);
     if (unlikely(ERROR_INSERTED_CLEAR(5055) ||
                  (!seize_op_rec(tcConnectptr))))
     {
+      NdbMutex_Unlock(&alloc_operation_mutex);
       jam();
       /* --------------------------------------------------------------------
        *      NO FREE TC RECORD AVAILABLE, THUS WE CANNOT HANDLE THE REQUEST.
@@ -16465,6 +16540,10 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
                         senderBlockRef,
                         ZNO_TC_CONNECT_ERROR);
     }
+    NdbMutex_Unlock(&alloc_operation_mutex);
+    m_tc_connect_ptr = tcConnectptr;
+    c_tup->prepare_op_pointer(tcConnectptr.p->tupConnectrec,
+                              tcConnectptr.p->tupConnectPtrP);
     jamEntry();
   }//if
   jamLineDebug(Uint16(tcConnectptr.i));
@@ -16623,31 +16702,31 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
       goto error_handler2;
     }//if
 
-    /* Check that no equal element already exists */
-    ndbrequire(findTransaction(regTcPtr->transid[0],
-                               regTcPtr->transid[1],
-                               regTcPtr->tcOprec,
-                               senderBlockRef,
-                               false,
-                               false,
-                               tcConnectptr) == ZNOT_FOUND);
     hashIndex = (regTcPtr->transid[0] ^ regTcPtr->tcOprec) &
                  (TRANSID_HASH_SIZE - 1);
-    nextHashptr.i = ctransidHash[hashIndex];
-    ctransidHash[hashIndex] = tcConnectptr.i;
+    Uint32 mutexIndex = hashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
     regTcPtr->prevHashRec = RNIL;
-    regTcPtr->nextHashRec = nextHashptr.i;
     regTcPtr->hashIndex = hashIndex;
-    if (nextHashptr.i != RNIL)
+    NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
+    nextHashptr.i = m_curr_lqh->ctransidHash[hashIndex];
+    m_curr_lqh->ctransidHash[hashIndex] = tcConnectptr.i;
+    if (unlikely(nextHashptr.i != RNIL))
     {
       /* ---------------------------------------------------------------------
        *   ENSURE THAT THE NEXT RECORD HAS SET PREVIOUS TO OUR RECORD 
        *   IF IT EXISTS
        * --------------------------------------------------------------------- */
-      ndbrequire(tcConnect_pool.getValidPtr(nextHashptr));
+      ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(nextHashptr));
+      /* Check that no equal element already exists */
+      ndbrequire(!checkTransaction(nextHashptr,
+                                   senderBlockRef,
+                                   regTcPtr,
+                                   false));
       ndbassert(nextHashptr.p->prevHashRec == RNIL);
       nextHashptr.p->prevHashRec = tcConnectptr.i;
     }//if
+    regTcPtr->nextHashRec = nextHashptr.i;
+    NdbMutex_Unlock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
     continueAfterReceivingAllAiLab(signal, tcConnectptr);
     release_frag_access(prim_tab_fragptr.p);
     return;
@@ -19794,7 +19873,7 @@ void Dblqh::execTRANSID_AI(Signal* signal)
    */
   TcConnectionrecPtr tcConnectptr;
   tcConnectptr.i = signal->theData[0];
-  ndbrequire(tcConnect_pool.getUncheckedPtrRW(tcConnectptr));
+  ndbrequire(m_curr_lqh->tcConnect_pool.getUncheckedPtrRW(tcConnectptr));
   Uint32 length = signal->length() - TransIdAI::HeaderLength;
   TcConnectionrec::TransactionState transState =
     tcConnectptr.p->transactionState;
@@ -36065,7 +36144,8 @@ void Dblqh::execDBINFO_SCANREQ(Signal *signal)
       {
         break;
       }
-
+      Uint32 mutexIndex = bucket & (NUM_TRANSACTION_HASH_MUTEXES - 1);
+      NdbMutex_Lock(&transaction_hash_mutex[mutexIndex]);
       TcConnectionrecPtr tcPtr;
       tcPtr.i = ctransidHash[bucket];
       while (tcPtr.i != RNIL)
@@ -36077,6 +36157,7 @@ void Dblqh::execDBINFO_SCANREQ(Signal *signal)
         ndbinfo_send_row(signal, req, row, rl);
         tcPtr.i = tcPtr.p->nextHashRec;
       }
+      NdbMutex_Unlock(&transaction_hash_mutex[mutexIndex]);
       bucket++;
     }
     break;

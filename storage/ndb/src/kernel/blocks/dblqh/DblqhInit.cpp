@@ -80,6 +80,8 @@ void Dblqh::initData()
   c_master_node_id = RNIL;
 #endif
 
+  m_curr_lqh = this;
+
   c_num_fragments_created_since_restart = 0;
   c_fragments_in_lcp = 0;
 
@@ -165,10 +167,15 @@ void Dblqh::initData()
   m_startup_report_frequency = 0;
 
   c_active_add_frag_ptr_i = RNIL;
-  for (Uint32 i = 0; i < 4096; i++) {
+  for (Uint32 i = 0; i < TRANSID_HASH_SIZE; i++) {
     ctransidHash[i] = RNIL;
   }//for
 
+  for (Uint32 i = 0; i < NUM_TRANSACTION_HASH_MUTEXES; i++)
+  {
+    NdbMutex_Init(&transaction_hash_mutex[i]);
+  }
+  NdbMutex_Init(&alloc_operation_mutex);
   c_last_force_lcp_time = 0;
   c_free_mb_force_lcp_limit = 16;
   c_free_mb_tail_problem_limit = 4;
@@ -810,6 +817,11 @@ Dblqh::Dblqh(Block_context& ctx,
 
 Dblqh::~Dblqh()
 {
+  for (Uint32 i = 0; i < NUM_TRANSACTION_HASH_MUTEXES; i++)
+  {
+    NdbMutex_Deinit(&transaction_hash_mutex[i]);
+  }
+  NdbMutex_Deinit(&alloc_operation_mutex);
   deinit_restart_synch();
   if (!m_is_query_block)
   {

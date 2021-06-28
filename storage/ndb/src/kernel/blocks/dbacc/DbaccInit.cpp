@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -68,6 +69,10 @@ Uint64 Dbacc::getTransactionMemoryNeed(
 
 void Dbacc::initData() 
 {
+#if defined(VM_TRACE) || defined(ERROR_INSERT)
+  m_acc_mutex_locked = RNIL;
+#endif
+  m_curr_acc = this;
   ctablesize = ZTABLESIZE;
   cfragmentsize = ZFRAGMENTSIZE;
 
