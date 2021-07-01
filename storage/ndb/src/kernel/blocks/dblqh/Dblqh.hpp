@@ -4922,6 +4922,23 @@ public:
 #define NUM_TRANSACTION_HASH_MUTEXES 4
   NdbMutex alloc_operation_mutex;
   NdbMutex transaction_hash_mutex[NUM_TRANSACTION_HASH_MUTEXES];
+#if defined VM_TRACE || defined ERROR_INSERT
+  Uint64 trans_hash_mutex_counter[NUM_TRANSACTION_HASH_MUTEXES];
+#endif
+  void lock_alloc_operation()
+  {
+    if (qt_likely(globalData.ndbMtQueryWorkers > 0))
+    {
+      NdbMutex_Lock(&alloc_operation_mutex);
+    }
+  }
+  void unlock_alloc_operation()
+  {
+    if (qt_likely(globalData.ndbMtQueryWorkers > 0))
+    {
+      NdbMutex_Unlock(&alloc_operation_mutex);
+    }
+  }
 #endif
 };
 

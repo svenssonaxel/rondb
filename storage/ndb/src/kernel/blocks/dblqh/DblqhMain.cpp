@@ -5157,6 +5157,7 @@ Dblqh::check_tabstate(Signal * signal,
     if (op == ZREAD || op == ZREAD_EX || op == ZUNLOCK)
     {
       jam();
+      reset_curr_ldm();
       return 0;
     }
     terrorCode = ZTABLE_READ_ONLY;
@@ -6271,9 +6272,12 @@ int Dblqh::findTransaction(UintR Transid1,
   ndbassert(partial_fit_ok == false || is_key_operation == true);
   Uint32 ThashIndex = (Transid1 ^ TcOprec) & (TRANSID_HASH_SIZE - 1);
   Uint32 mutexIndex = ThashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
+  jamDebug();
+  jamLineDebug(Uint16(ThashIndex));
   NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
   locTcConnectptr.i = m_curr_lqh->ctransidHash[ThashIndex];
   while (locTcConnectptr.i != RNIL) {
+    jamDebug();
     ndbrequire(m_curr_lqh->tcConnect_pool.getUncheckedPtrRW(locTcConnectptr));
     if ((locTcConnectptr.p->transid[0] == Transid1) &&
         (locTcConnectptr.p->transid[1] == Transid2) &&
@@ -8441,16 +8445,18 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
         m_curr_lqh = lqh;
         c_acc->m_curr_acc = lqh->c_acc;
         c_tup->m_curr_tup = lqh->c_tup;
-        NdbMutex_Lock(&lqh->alloc_operation_mutex);
+        lqh->lock_alloc_operation();
       }
     }
     else
     {
-      NdbMutex_Lock(&lqh->alloc_operation_mutex);
+      lqh->lock_alloc_operation();
     }
     bool succ = lqh->seize_op_rec(tcConnectptr);
     if (use_lock)
-      NdbMutex_Unlock(&lqh->alloc_operation_mutex);
+    {
+      lqh->unlock_alloc_operation();
+    }
     if (unlikely(!succ || ERROR_INSERTED_CLEAR(5031)))
     {
       jam();
@@ -8868,10 +8874,15 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
                        (TRANSID_HASH_SIZE - 1);
     jamDebug();
     jamLineDebug(Uint16(hashIndex));
+    jamLineDebug(Uint16(m_curr_lqh->instance()));
     Uint32 mutexIndex = hashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
     regTcPtr->prevHashRec = RNIL;
     regTcPtr->hashIndex = hashIndex;
     NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
+#if defined VM_TRACE || defined ERROR_INSERT
+    jamLineDebug(Uint16(m_curr_lqh->trans_hash_mutex_counter[mutexIndex]));
+    m_curr_lqh->trans_hash_mutex_counter[mutexIndex]++;
+#endif
     localNextTcConnectptr.i = m_curr_lqh->ctransidHash[hashIndex];
     m_curr_lqh->ctransidHash[hashIndex] = tcConnectptr.i;
     if (unlikely(localNextTcConnectptr.i != RNIL))
@@ -11995,14 +12006,19 @@ void Dblqh::deleteTransidHash(Signal* signal, TcConnectionrecPtr& tcConnectptr)
                                tcConnectptr) == ZNOT_FOUND);
     return;
   }
-
-  prevHashptr.i = regTcPtr->prevHashRec;
-  nextHashptr.i = regTcPtr->nextHashRec;
-  /* prevHashptr and nextHashptr may be RNIL when the bucket has 1 element */
-
   Uint32 hashIndex = regTcPtr->hashIndex;
   Uint32 mutexIndex = hashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
+  jamDebug();
+  jamLineDebug(Uint16(hashIndex));
+  jamLineDebug(Uint16(m_curr_lqh->instance()));
   NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
+  /* prevHashptr and nextHashptr may be RNIL when the bucket has 1 element */
+  prevHashptr.i = regTcPtr->prevHashRec;
+  nextHashptr.i = regTcPtr->nextHashRec;
+#if defined VM_TRACE || defined ERROR_INSERT
+  jamLineDebug(Uint16(m_curr_lqh->trans_hash_mutex_counter[mutexIndex]));
+  m_curr_lqh->trans_hash_mutex_counter[mutexIndex]++;
+#endif
   ndbassert(hashIndex == ((regTcPtr->transid[0] ^ regTcPtr->tcOprec) & 
                            (TRANSID_HASH_SIZE - 1)));
   if (likely(prevHashptr.i == RNIL))
@@ -13427,12 +13443,12 @@ void Dblqh::releaseTcrec(Signal* signal, TcConnectionrecPtr locTcConnectptr)
         lqh != this)
     {
       use_lock = true;
-      NdbMutex_Lock(&lqh->alloc_operation_mutex);
+      lqh->lock_alloc_operation();
     }
     lqh->release_op_rec(locTcConnectptr);
     if (use_lock)
     {
-      NdbMutex_Unlock(&lqh->alloc_operation_mutex);
+      lqh->unlock_alloc_operation();
     }
   }
 }//Dblqh::releaseTcrec()
@@ -16707,7 +16723,14 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
     Uint32 mutexIndex = hashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
     regTcPtr->prevHashRec = RNIL;
     regTcPtr->hashIndex = hashIndex;
+    jamDebug();
+    jamLineDebug(Uint16(hashIndex));
+    jamLineDebug(Uint16(m_curr_lqh->instance()));
     NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
+#if defined VM_TRACE || defined ERROR_INSERT
+    jamLineDebug(Uint16(m_curr_lqh->trans_hash_mutex_counter[mutexIndex]));
+    m_curr_lqh->trans_hash_mutex_counter[mutexIndex]++;
+#endif
     nextHashptr.i = m_curr_lqh->ctransidHash[hashIndex];
     m_curr_lqh->ctransidHash[hashIndex] = tcConnectptr.i;
     if (unlikely(nextHashptr.i != RNIL))
@@ -36133,19 +36156,20 @@ void Dblqh::execDBINFO_SCANREQ(Signal *signal)
         ndbinfo_send_scan_break(signal, req, rl, bucket);
         return;
       }
-
+      Uint32 mutexIndex = 0;
       for (; bucket < NDB_ARRAY_SIZE(ctransidHash); bucket++)
       {
+        Uint32 mutexIndex = bucket & (NUM_TRANSACTION_HASH_MUTEXES - 1);
+        NdbMutex_Lock(&transaction_hash_mutex[mutexIndex]);
         if (ctransidHash[bucket] != RNIL)
           break;
+        NdbMutex_Unlock(&transaction_hash_mutex[mutexIndex]);
       }
 
       if (bucket == NDB_ARRAY_SIZE(ctransidHash))
       {
         break;
       }
-      Uint32 mutexIndex = bucket & (NUM_TRANSACTION_HASH_MUTEXES - 1);
-      NdbMutex_Lock(&transaction_hash_mutex[mutexIndex]);
       TcConnectionrecPtr tcPtr;
       tcPtr.i = ctransidHash[bucket];
       while (tcPtr.i != RNIL)
