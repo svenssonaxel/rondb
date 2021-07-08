@@ -873,12 +873,22 @@ void Dblqh::execCONTINUEB(Signal* signal)
   Uint32 data2 = signal->theData[3];
   TcConnectionrecPtr tcConnectptr;
   switch (tcase) {
+#ifdef CONNECT_DEBUG
+  case ZPRINT_CONNECT_DEBUG:
+  {
+    jam();
+    print_connect_debug(signal);
+    return;
+  }
+#endif
+#ifdef DEBUG_MUTEX_STATS
   case ZPRINT_MUTEX_STATS:
   {
     jam();
     print_fragment_mutex_stats(signal);
     return;
   }
+#endif
   case ZSTART_SEND_EXEC_CONF:
   {
     jam();
@@ -1580,7 +1590,12 @@ void Dblqh::execSTTOR(Signal* signal)
       write_local_sysfile_restart_complete_done(signal);
       DEB_START_PHASE9(("(%u)Start phase 9 wait completed", instance()));
     }
+#ifdef DEBUG_MUTEX_STATS
     send_print_mutex_stats(signal);
+#endif
+#ifdef CONNECT_DEBUG
+    send_connect_debug(signal);
+#endif
     return;
   default:
     jam();
@@ -1884,6 +1899,7 @@ void Dblqh::startphase2Lab(Signal* signal, Uint32 _dummy)
   tcConnectptr.p->ptrI = tcConnectptr.i;
   ctcConnectReservedCount = 0;
   cfirstfreeTcConrec = RNIL;
+  cfirstfreeTcConrecShared = RNIL;
   moreconnectionsLab(signal, tcConnectptr);
   signal->theData[0] = ZCHECK_SYSTEM_SCANS;
   sendSignalWithDelay(cownref, GSN_CONTINUEB, signal,
@@ -1940,11 +1956,20 @@ void Dblqh::execTUPSEIZECONF(Signal* signal)
   tcConnectptr.p->tupConnectPtrP =
     c_tup->get_operation_ptr(signal->theData[1]);
 /* ------- CHECK IF THERE ARE MORE CONNECTIONS TO BE CONNECTED ------- */
-  Uint32 prevFirst = cfirstfreeTcConrec;
+  Uint32 prevFirst;
+  if (tcConnectptr.i >= ctcConnectReserved)
+  {
+    prevFirst = cfirstfreeTcConrecShared;
+    cfirstfreeTcConrecShared = tcConnectptr.i;
+  }
+  else
+  {
+    prevFirst = cfirstfreeTcConrec;
+    cfirstfreeTcConrec = tcConnectptr.i;
+  }
   tcConnectptr.p->nextTcConnectrec = prevFirst;
-  cfirstfreeTcConrec = tcConnectptr.i;
   ctcConnectReservedCount++;
-  if (ctcConnectReservedCount < ctcConnectReserved)
+  if (ctcConnectReservedCount < ctcConnectReservedShared)
   {
     jam();
     ndbrequire(tcConnect_pool.seize(tcConnectptr));
@@ -6364,12 +6389,41 @@ prefetch_op_record_4(Uint32 *op_ptr)
 }
 
 bool
-Dblqh::seize_op_rec(TcConnectionrecPtr& tcConnectptr)
+Dblqh::seize_op_rec(TcConnectionrecPtr& tcConnectptr,
+                    bool use_lock,
+                    EmulatedJamBuffer *jamBuf)
 {
   /* Cannot use jam here, called from other thread */
   TcConnectionrecPtr opPtr;
+  if (use_lock)
+  {
+    lock_alloc_operation();
+  }
+  if (ctcNumFreeShared > 0)
+  {
+    thrjamDebug(jamBuf);
+#ifdef CONNECT_DEBUG
+    ctcNumUseShared++;
+#endif
+    seizeTcrec(tcConnectptr,
+               ctcNumFreeShared,
+               cfirstfreeTcConrecShared);
+    if (use_lock)
+    {
+      unlock_alloc_operation();
+    }
+    return true;
+  }
+#ifdef CONNECT_DEBUG
+    ctcNumUseTM++;
+#endif
+  thrjamDebug(jamBuf);
   if (unlikely(!tcConnect_pool.seize(opPtr)))
   {
+    if (use_lock)
+    {
+      unlock_alloc_operation();
+    }
     return false;
   }
   opPtr.p->ptrI = opPtr.i;
@@ -6389,6 +6443,10 @@ Dblqh::seize_op_rec(TcConnectionrecPtr& tcConnectptr)
   {
     goto tup_fail;
   }
+  if (use_lock)
+  {
+    unlock_alloc_operation();
+  }
   opPtr.p->tcTimer = cLqhTimeOutCount;
   tcConnectptr = opPtr;
   ndbrequire(Magic::check_ptr(opPtr.p->accConnectPtrP));
@@ -6403,6 +6461,10 @@ tup_fail:
 acc_fail:
   ndbrequire(Magic::check_ptr(opPtr.p));
   tcConnect_pool.release(opPtr);
+  if (use_lock)
+  {
+    unlock_alloc_operation();
+  }
   checkPoolShrinkNeed(DBLQH_OPERATION_RECORD_TRANSIENT_POOL_INDEX,
                       tcConnect_pool);
   return false;
@@ -6426,13 +6488,15 @@ Dblqh::release_op_rec(TcConnectionrecPtr opPtr)
  * 
  *       GETS A NEW TC CONNECT RECORD FROM FREELIST.
  * ========================================================================= */
-void Dblqh::seizeTcrec(TcConnectionrecPtr& tcConnectptr)
+void Dblqh::seizeTcrec(TcConnectionrecPtr& tcConnectptr,
+                       Uint32 & tcNumFree,
+                       Uint32 & tcFirstFree)
 {
   TcConnectionrecPtr locTcConnectptr;
 
-  locTcConnectptr.i = cfirstfreeTcConrec;
+  locTcConnectptr.i = tcFirstFree;
 
-  Uint32 numFree = ctcNumFree;
+  Uint32 numFree = tcNumFree;
   Uint32 timeOutCount = cLqhTimeOutCount;
 
   ndbrequire(tcConnect_pool.getUncheckedPtrRW(locTcConnectptr));
@@ -6460,8 +6524,8 @@ void Dblqh::seizeTcrec(TcConnectionrecPtr& tcConnectptr)
   locTcConnectptr.p->tcScanRec = RNIL;
   ndbrequire(Magic::check_ptr(locTcConnectptr.p));
 
-  ctcNumFree = numFree - 1;
-  cfirstfreeTcConrec = nextTc;
+  tcNumFree = numFree - 1;
+  tcFirstFree = nextTc;
 
   locTcConnectptr.p->tcTimer = timeOutCount;
   locTcConnectptr.p->abortState = TcConnectionrec::ABORT_IDLE;
@@ -6470,11 +6534,8 @@ void Dblqh::seizeTcrec(TcConnectionrecPtr& tcConnectptr)
   locTcConnectptr.p->gci_hi = 0;
   locTcConnectptr.p->gci_lo = 0;
   locTcConnectptr.p->errorCode = 0;
-  c_tup->prepare_op_pointer(locTcConnectptr.p->tupConnectrec,
-                            locTcConnectptr.p->tupConnectPtrP);
 
   tcConnectptr = locTcConnectptr;
-  m_tc_connect_ptr = locTcConnectptr;
   ndbrequire(Magic::check_ptr(locTcConnectptr.p->tupConnectPtrP));
 }//Dblqh::seizeTcrec()
 
@@ -7118,6 +7179,34 @@ static inline Uint32 getProgramWordCount(SegmentedSectionPtr attrInfo)
 #define DEB_PRINT_MUTEX_STATS(arglist) do { g_eventLogger->info arglist ; } while (0)
 #else
 #define DEB_PRINT_MUTEX_STATS(arglist) do { g_eventLogger->debug arglist ; } while (0)
+#endif
+
+#ifdef CONNECT_DEBUG
+void
+Dblqh::print_connect_debug(Signal *signal)
+{
+  Uint64 numUseLocal = ctcNumUseLocal - ctcLastNumUseLocal;
+  Uint64 numUseShared = ctcNumUseShared - ctcLastNumUseShared;
+  Uint64 numUseTM = ctcNumUseTM - ctcLastNumUseTM;
+
+  g_eventLogger->info("(%u,%u): UseLocal: %llu, UseShared: %llu, UseTM: %llu",
+                      m_is_query_block,
+                      instance(),
+                      numUseLocal,
+                      numUseShared,
+                      numUseTM);
+  send_connect_debug(signal);
+}
+
+void
+Dblqh::send_connect_debug(Signal *signal)
+{
+  ctcLastNumUseLocal = ctcNumUseLocal;
+  ctcLastNumUseShared = ctcNumUseShared;
+  ctcLastNumUseTM = ctcNumUseTM;
+  signal->theData[0] = ZPRINT_CONNECT_DEBUG;
+  sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 1000, 1);
+}
 #endif
 
 void
@@ -8446,18 +8535,9 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
         m_curr_lqh = lqh;
         c_acc->m_curr_acc = lqh->c_acc;
         c_tup->m_curr_tup = lqh->c_tup;
-        lqh->lock_alloc_operation();
       }
     }
-    else
-    {
-      lqh->lock_alloc_operation();
-    }
-    bool succ = lqh->seize_op_rec(tcConnectptr);
-    if (use_lock)
-    {
-      lqh->unlock_alloc_operation();
-    }
+    bool succ = lqh->seize_op_rec(tcConnectptr, use_lock, jamBuffer());
     if (unlikely(!succ || ERROR_INSERTED_CLEAR(5031)))
     {
       jam();
@@ -8475,7 +8555,13 @@ void Dblqh::execLQHKEYREQ(Signal* signal)
   }
   else
   {
-    seizeTcrec(tcConnectptr);
+    seizeTcrec(tcConnectptr, ctcNumFree, cfirstfreeTcConrec);
+    c_tup->prepare_op_pointer(tcConnectptr.p->tupConnectrec,
+                              tcConnectptr.p->tupConnectPtrP);
+    m_tc_connect_ptr = tcConnectptr;
+#ifdef CONNECT_DEBUG
+    ctcNumUseLocal++;
+#endif
   }
   if(ERROR_INSERTED(5038) && 
      refToNode(signal->getSendersBlockRef()) != getOwnNodeId()){
@@ -13546,29 +13632,44 @@ void Dblqh::releaseTcrec(Signal* signal, TcConnectionrecPtr locTcConnectptr)
       ndbrequire(pre_usageCountW > 0);
     }
   }
-  if (likely(locTcConnectptr.i < ctcConnectReserved))
+  Dblqh *lqh = m_curr_lqh;
+  if (likely(locTcConnectptr.i < lqh->ctcConnectReserved))
   {
     jamDebug();
-    const Uint32 firstFree = cfirstfreeTcConrec;
-    Uint32 numFree = ctcNumFree;
+    const Uint32 firstFree = lqh->cfirstfreeTcConrec;
+    Uint32 numFree = lqh->ctcNumFree;
     locTcConnectptr.p->tcTimer = 0;
     locTcConnectptr.p->transactionState = TcConnectionrec::TC_NOT_CONNECTED;
     locTcConnectptr.p->nextTcConnectrec = firstFree;
-    cfirstfreeTcConrec = locTcConnectptr.i;
-    ctcNumFree = numFree + 1;
+    lqh->cfirstfreeTcConrec = locTcConnectptr.i;
+    lqh->ctcNumFree = numFree + 1;
   }
   else
   {
     jam();
     bool use_lock = false;
-    Dblqh *lqh = m_curr_lqh;
     if (!m_is_query_block ||
         lqh != this)
     {
       use_lock = true;
       lqh->lock_alloc_operation();
     }
-    lqh->release_op_rec(locTcConnectptr);
+    if (locTcConnectptr.i < lqh->ctcConnectReservedShared)
+    {
+      jamDebug();
+      const Uint32 firstFree = lqh->cfirstfreeTcConrecShared;
+      Uint32 numFree = lqh->ctcNumFreeShared;
+      locTcConnectptr.p->tcTimer = 0;
+      locTcConnectptr.p->transactionState = TcConnectionrec::TC_NOT_CONNECTED;
+      locTcConnectptr.p->nextTcConnectrec = firstFree;
+      lqh->cfirstfreeTcConrecShared = locTcConnectptr.i;
+      lqh->ctcNumFreeShared = numFree + 1;
+    }
+    else
+    {
+      jamDebug();
+      lqh->release_op_rec(locTcConnectptr);
+    }
     if (use_lock)
     {
       lqh->unlock_alloc_operation();
@@ -16680,17 +16781,22 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
      * but available to DBUTIL operations. But LCP and Backup operations
      * still have preference over DBUTIL operations.
      */
-    seizeTcrec(tcConnectptr);
+    seizeTcrec(tcConnectptr, ctcNumFree, cfirstfreeTcConrec);
+    c_tup->prepare_op_pointer(tcConnectptr.p->tupConnectrec,
+                              tcConnectptr.p->tupConnectPtrP);
+    m_tc_connect_ptr = tcConnectptr;
+#ifdef CONNECT_DEBUG
+    ctcNumUseLocal++;
+#endif
     jamEntry();
   }
   else
   {
-    if (!m_is_query_block)
-      NdbMutex_Lock(&alloc_operation_mutex);
     if (unlikely(ERROR_INSERTED_CLEAR(5055) ||
-                 (!seize_op_rec(tcConnectptr))))
+                 (!seize_op_rec(tcConnectptr,
+                                !m_is_query_block,
+                                jamBuffer()))))
     {
-      NdbMutex_Unlock(&alloc_operation_mutex);
       jam();
       /* --------------------------------------------------------------------
        *      NO FREE TC RECORD AVAILABLE, THUS WE CANNOT HANDLE THE REQUEST.
@@ -16705,7 +16811,6 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
                         senderBlockRef,
                         ZNO_TC_CONNECT_ERROR);
     }
-    NdbMutex_Unlock(&alloc_operation_mutex);
     m_tc_connect_ptr = tcConnectptr;
     c_tup->prepare_op_pointer(tcConnectptr.p->tupConnectrec,
                               tcConnectptr.p->tupConnectPtrP);
@@ -19624,7 +19729,10 @@ void Dblqh::execCOPY_FRAGREQ(Signal* signal)
    * resource.
    */
   TcConnectionrecPtr tcConnectptr;
-  seizeTcrec(tcConnectptr);
+  seizeTcrec(tcConnectptr, ctcNumFree, cfirstfreeTcConrec);
+  c_tup->prepare_op_pointer(tcConnectptr.p->tupConnectrec,
+                            tcConnectptr.p->tupConnectPtrP);
+  m_tc_connect_ptr = tcConnectptr;
   tcConnectptr.p->clientBlockref = userRef;
   ndbrequire(Magic::check_ptr(tcConnectptr.p)); 
   /**
@@ -29418,7 +29526,10 @@ void Dblqh::openExecSrStartLab(Signal* signal,
    *     operations during recovery when we are applying the REDO log content.
    * ------------------------------------------------------------------------ */
   TcConnectionrecPtr tcConnectptr;
-  seizeTcrec(tcConnectptr);
+  seizeTcrec(tcConnectptr, ctcNumFree, cfirstfreeTcConrec);
+  c_tup->prepare_op_pointer(tcConnectptr.p->tupConnectrec,
+                            tcConnectptr.p->tupConnectPtrP);
+  m_tc_connect_ptr = tcConnectptr;
   ndbrequire(Magic::check_ptr(tcConnectptr.p)); 
   logPartPtrP->logTcConrec = tcConnectptr.i;
   /* ------------------------------------------------------------------------

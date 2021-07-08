@@ -291,6 +291,7 @@ class FsReadWriteReq;
 #define ZCONTINUE_WRITE_LOG 38
 #define ZSTART_SEND_EXEC_CONF 39
 #define ZPRINT_MUTEX_STATS 40
+#define ZPRINT_CONNECT_DEBUG 41
 
 /* ------------------------------------------------------------------------- */
 /*        NODE STATE DURING SYSTEM RESTART, VARIABLES CNODES_SR_STATE        */
@@ -2871,7 +2872,22 @@ public:
   alignas(NDB_CL) TcConnectionrecPtr m_tc_connect_ptr;
   UintR cfirstfreeTcConrec;
   Uint32 ctcNumFree;
-
+#define CONNECT_DEBUG 1
+#ifdef CONNECT_DEBUG
+  Uint64 ctcNumUseLocal;
+  Uint64 ctcNumUseShared;
+  Uint64 ctcNumUseTM;
+  Uint64 ctcLastNumUseLocal;
+  Uint64 ctcLastNumUseShared;
+  Uint64 ctcLastNumUseTM;
+  void send_connect_debug(Signal*);
+  void print_connect_debug(Signal*);
+#endif
+public:
+  alignas(NDB_CL) Uint32 cfirstfreeTcConrecShared;
+  Uint32 ctcNumFreeShared;
+  Uint32 ctcConnectReservedShared;
+private:
   struct TcNodeFailRecord {
     enum TcFailStatus {
       TC_STATE_TRUE = 0,
@@ -3438,7 +3454,9 @@ private:
 
   void seizeFragmentrec(Signal* signal);
   void seizePageRef(PageRefRecordPtr & pageRefPtr);
-  void seizeTcrec(TcConnectionrecPtr& tcConnectptr);
+  void seizeTcrec(TcConnectionrecPtr& tcConnectptr,
+                  Uint32 & tcNumFree,
+                  Uint32 & tcFirstFree);
   void sendAborted(Signal* signal, TcConnectionrecPtr);
   void sendLqhTransconf(Signal* signal,
                         LqhTransConf::OperationStatus,
@@ -4774,7 +4792,9 @@ public:
   }
   bool check_expand_shrink_ongoing(Uint32, Uint32);
 private:
-  bool seize_op_rec(TcConnectionrecPtr &tcConnectptr);
+  bool seize_op_rec(TcConnectionrecPtr &tcConnectptr,
+                    bool use_lock,
+                    EmulatedJamBuffer *jamBuf);
   void release_op_rec(TcConnectionrecPtr tcConnectptr);
   void send_scan_fragref(Signal*, Uint32, Uint32, Uint32, Uint32, Uint32);
   void init_release_scanrec(ScanRecord*);
