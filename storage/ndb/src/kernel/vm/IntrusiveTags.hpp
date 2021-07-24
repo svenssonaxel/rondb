@@ -87,6 +87,34 @@ template<typename T> static Uint32& getFirst(T& r); \
 template<typename T> static Uint32& getLast(T& r); \
 template<typename T> static Uint32& getCount(T& r); \
 };
+
+enum Intrusive64Tags
+{
+  IA_64List,
+  IA_64Hash,
+  IA_64Cursor,
+  IA_64Stack,
+  IA_64Queue
+};
+
+template<Intrusive64Tags tag> struct Intrusive64Access;
+
+#define INTRUSIVE64_ACCESS(tag) \
+template<> struct Intrusive64Access<IA_64##tag> \
+{ \
+template<typename T> static Uint64& getNext(T& r) { return r.next##tag; } \
+template<typename T> static Uint64& getPrev(T& r) { return r.prev##tag; } \
+template<typename T> static Uint64& getFirst(T& r) { return r.first##tag; } \
+template<typename T> static Uint64& getLast(T& r) { return r.last##tag; } \
+template<typename T> static Uint64& getCount(T& r) { return r.count##tag; } \
+}
+
+INTRUSIVE64_ACCESS(List);
+INTRUSIVE64_ACCESS(Hash);
+INTRUSIVE64_ACCESS(Cursor);
+INTRUSIVE64_ACCESS(Stack);
+INTRUSIVE64_ACCESS(Queue);
+
 #undef JAM_FILE_ID
 
 #endif

@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2004, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -267,6 +268,8 @@
 #define CFG_DB_NUM_CPUS               676
 #define CFG_DB_AUTO_THREAD_CONFIG     677
 
+#define CFG_DB_SCHEMA_MEM             695
+#define CFG_DB_REPLICATION_MEM        696
 #define CFG_DB_UNDO_BUFFER            697
 #define CFG_DB_TOTAL_MEMORY_CONFIG    698
 #define CFG_DB_AUTO_MEMORY_CONFIG     699

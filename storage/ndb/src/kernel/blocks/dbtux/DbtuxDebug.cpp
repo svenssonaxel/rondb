@@ -56,10 +56,10 @@ void Dbtux::execDBINFO_SCANREQ(Signal *signal)
           CFG_DB_NO_UNIQUE_HASH_INDEXES,0 },
         0},
       { "Fragment",
-        c_fragPool.getUsed(),
-        c_fragPool.getSize(),
-        c_fragPool.getEntrySize(),
-        c_fragPool.getUsedHi(),
+        cnoOfAllocatedFragrec,
+        0,
+        sizeof(Frag)/4,
+        cnoOfMaxAllocatedFragrec,
         { CFG_DB_NO_ORDERED_INDEXES,
           CFG_DB_NO_REPLICAS,0,0 },
         0},
@@ -182,20 +182,20 @@ Dbtux::execDUMP_STATE_ORD(Signal* signal)
   }
 #endif
 
+#if defined(VM_TRACE) || defined(ERROR_INSERT)
   if (signal->theData[0] == DumpStateOrd::SchemaResourceSnapshot)
   {
     RSS_AP_SNAPSHOT_SAVE(c_indexPool);
-    RSS_AP_SNAPSHOT_SAVE(c_fragPool);
+    cnoOfSaveAllocatedFragrec = cnoOfAllocatedFragrec;
     RSS_AP_SNAPSHOT_SAVE(c_fragOpPool);
   }
 
   if (signal->theData[0] == DumpStateOrd::SchemaResourceCheckLeak)
   {
     RSS_AP_SNAPSHOT_CHECK(c_indexPool);
-    RSS_AP_SNAPSHOT_CHECK(c_fragPool);
+    ndbrequire(cnoOfAllocatedFragrec == cnoOfSaveAllocatedFragrec);
     RSS_AP_SNAPSHOT_CHECK(c_fragOpPool);
   }
-#if defined(VM_TRACE) || defined(ERROR_INSERT)
   if (signal->theData[0] == DumpStateOrd::TuxSetTransientPoolMaxSize)
   {
     jam();

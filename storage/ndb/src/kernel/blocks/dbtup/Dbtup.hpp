@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2020, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -50,6 +51,7 @@
 #include "../dbacc/Dbacc.hpp"
 #include "../pgman.hpp"
 #include "../tsman.hpp"
+#include "../suma/Suma.hpp"
 #include <EventLogger.hpp>
 #include "../backup/BackupFormat.hpp"
 #include <portlib/ndb_prefetch.h>
@@ -307,14 +309,14 @@ public:
   Pgman* c_pgman;
   Dbacc* c_acc;
   Dbtux* c_tux;
+  Suma* c_suma;
 
   enum CallbackIndex {
     // lgman
     DROP_TABLE_LOG_BUFFER_CALLBACK = 1,
-    DROP_FRAGMENT_FREE_EXTENT_LOG_BUFFER_CALLBACK = 2,
-    NR_DELETE_LOG_BUFFER_CALLBACK = 3,
-    DISK_PAGE_LOG_BUFFER_CALLBACK = 4,
-    COUNT_CALLBACKS = 5
+    NR_DELETE_LOG_BUFFER_CALLBACK = 2,
+    DISK_PAGE_LOG_BUFFER_CALLBACK = 3,
+    COUNT_CALLBACKS = 4
   };
   CallbackEntry m_callbackEntry[COUNT_CALLBACKS];
   CallbackTable m_callbackTable;
@@ -351,11 +353,11 @@ enum State {
 struct Fragoperrec {
   Uint64 minRows;
   Uint64 maxRows;
+  Uint64 fragPointer;
   Uint32 nextFragoprec;
   Uint32 lqhPtrFrag;
   Uint32 fragidFrag;
   Uint32 tableidFrag;
-  Uint32 fragPointer;
   Uint32 attributeCount;
   Uint32 charsetIndex;
   Uint32 m_null_bits[2];
@@ -477,12 +479,12 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
       m_magic(Magic::make(TYPE_ID)),
       m_state(Undef),
       m_bits(0),
+      m_fragPtrI(RNIL64),
       m_last_seen(0),
       m_userPtr(RNIL),
       m_userRef(RNIL),
       m_tableId(RNIL),
       m_fragId(~(Uint32)0),
-      m_fragPtrI(RNIL),
       m_transId1(0),
       m_transId2(0),
       m_savePointId(0),
@@ -500,6 +502,7 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
       Aborting = 7,             // lock wait at scan close
       Invalid = 9               // cannot return REF to LQH currently
     };
+
     Uint16 m_state;
 
     enum Bits {
@@ -515,13 +518,14 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
       SCAN_COPY_FRAG = 0x100       // Copy fragment scan
     };
     Uint16 m_bits;
+
+    Uint64 m_fragPtrI;
     Uint16 m_last_seen;
     
     Uint32 m_userPtr;           // scanptr.i in LQH
     Uint32 m_userRef;
     Uint32 m_tableId;
     Uint32 m_fragId;
-    Uint32 m_fragPtrI;
     Uint32 m_transId1;
     Uint32 m_transId2;
     union {
@@ -593,8 +597,8 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
   struct Page_request 
   {
     Page_request() {}
+    Uint64 m_frag_ptr_i;
     Local_key m_key;
-    Uint32 m_frag_ptr_i;
     Uint32 m_extent_info_ptr;
     Uint16 m_original_estimated_free_space; // in bytes/records
     Uint16 m_list_index;                  // in Disk_alloc_info.m_page_requests
@@ -605,7 +609,7 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
     Uint32 m_magic;
   }; // 32 bytes
   
-  typedef RecordPool<WOPool<Page_request> > Page_request_pool;
+  typedef RecordPool<RWPool<Page_request> > Page_request_pool;
   typedef DLFifoList<Page_request_pool> Page_request_list;
   typedef LocalDLFifoList<Page_request_pool> Local_page_request_list;
 
@@ -736,8 +740,12 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
 
 #define NUM_TUP_FRAGMENT_MUTEXES 4
 struct Fragrecord {
+  Fragrecord() {}
   NdbMutex tup_frag_mutex[NUM_TUP_FRAGMENT_MUTEXES];
   NdbMutex tup_frag_page_map_mutex;
+
+  Uint32 m_magic;
+  Uint32 nextPool;
   // Number of allocated pages for fixed-sized data.
   Uint32 noOfPages;
   // Number of allocated pages for var-sized data.
@@ -773,7 +781,6 @@ struct Fragrecord {
   Uint32 fragTableId;
   Uint32 fragmentId;
   Uint32 partitionId;
-  Uint32 nextfreefrag;
   // +1 is as "full" pages are stored last
   Page_list::Head free_var_page_array[MAX_FREE_LIST+1];
   
@@ -830,9 +837,13 @@ struct Fragrecord {
       return false;
     }
   }
-
 };
-typedef Ptr<Fragrecord> FragrecordPtr;
+  typedef Ptr64<Fragrecord> FragrecordPtr;
+  typedef RecordPool64<RWPool64<Fragrecord> > Fragment_pool;
+  Fragment_pool c_fragment_pool;
+  RSS_OP_COUNTER(cnoOfAllocatedFragrec);
+  RSS_OP_SNAPSHOT(cnoOfAllocatedFragrec);
+  FragrecordPtr prepare_fragptr;
 
   void acquire_frag_page_map_mutex(Fragrecord *fragPtrP)
   {
@@ -915,6 +926,7 @@ struct Operationrec {
 
   Operationrec() :
     m_magic(Magic::make(TYPE_ID)),
+    fragmentPtr(RNIL64),
     prevActiveOp(RNIL),
     nextActiveOp(RNIL),
     fragPageId(RNIL),
@@ -943,6 +955,11 @@ struct Operationrec {
     CommitDoneNotReceived = 6
   };
   /*
+   * From fragment i-value we can find fragment and table record
+   */
+  Uint64 fragmentPtr;
+
+  /*
    * Doubly linked list with anchor on tuple.
    * This is to handle multiple updates on the same tuple
    * by the same transaction.
@@ -962,11 +979,6 @@ struct Operationrec {
   Uint32 m_any_value;
   Uint32 nextPool;
   
-  /*
-   * From fragment i-value we can find fragment and table record
-   */
-  Uint32 fragmentPtr;
-
   /*
    * We need references to both the original tuple and the copy tuple.
    * We keep the page's real i-value and its index and from there we
@@ -1095,7 +1107,8 @@ struct Operationrec {
   /* **************************************** */
 struct TupTriggerData {
   TupTriggerData() {}
-  
+
+  Uint32 m_magic;
   /**
    * Trigger id, used by DICT/TRIX to identify the trigger
    *
@@ -1158,21 +1171,23 @@ struct TupTriggerData {
    * Next ptr (used in pool/list)
    */
   union {
-    Uint32 nextPool;
-    Uint32 nextList;
+    Uint64 nextPool;
+    Uint64 nextList;
   };
   
   /**
    * Prev pointer (used in list)
    */
-  Uint32 prevList;
+  Uint64 prevList;
 
   inline void print(NdbOut & s) const { s << "[TriggerData = " << triggerId << "]"; }
 };
 
-typedef Ptr<TupTriggerData> TriggerPtr;
-typedef ArrayPool<TupTriggerData> TupTriggerData_pool;
-typedef DLFifoList<TupTriggerData_pool> TupTriggerData_list;
+typedef Ptr64<TupTriggerData> TriggerPtr;
+typedef RecordPool64<RWPool64<TupTriggerData> > TupTriggerData_pool;
+typedef DLFifo64List<TupTriggerData_pool> TupTriggerData_list;
+Uint32 cnoOfAllocatedTriggerRec;
+Uint32 cnoOfMaxAllocatedTriggerRec;
 
 /**
  * Pool of trigger data record
@@ -1361,14 +1376,14 @@ TupTriggerData_pool c_triggerPool;
     TupTriggerData_list tuxCustomTriggers;
     
     Uint32 fragid[MAX_FRAG_PER_LQH];
-    Uint32 fragrec[MAX_FRAG_PER_LQH];
+    Uint64 fragrec[MAX_FRAG_PER_LQH];
 
     union {
       struct {
+        Uint64 m_fragPtrI;
         Uint32 tabUserPtr;
         Uint32 tabUserRef;
         Uint32 m_outstanding_ops;
-        Uint32 m_fragPtrI;
         Uint32 m_filePointer;
         Uint16 m_firstFileId;
         Uint16 m_lastFileId;
@@ -1627,8 +1642,14 @@ typedef Ptr<HostBuffer> HostBufferPtr;
   BuildIndexRec_list c_buildIndexList;
   Uint32 c_noOfBuildIndexRec;
 
-  int mt_scan_init(Uint32 tableId, Uint32 fragId, Local_key * pos, Uint32 * fragPtrI);
-  int mt_scan_next(Uint32 tableId, Uint32 fragPtrI, Local_key* pos, bool moveNext);
+  int mt_scan_init(Uint32 tableId,
+                   Uint32 fragId,
+                   Local_key * pos,
+                   Uint64 * fragPtrI);
+  int mt_scan_next(Uint32 tableId,
+                   Uint64 fragPtrI,
+                   Local_key* pos,
+                   bool moveNext);
 
   /**
    * Reference to variable part when a tuple is chained
@@ -2057,9 +2078,9 @@ public:
   ~Dbtup() override;
 
   /*
-   * TUX uses logical tuple address when talking to ACC and LQH.
+   * TUX uses physical tuple address when talking to ACC and LQH.
    */
-  void tuxGetTupAddr(Uint32 fragPtrI, Uint32 pageId, Uint32 pageOffset,
+  void tuxGetTupAddr(Uint32 pageId, Uint32 pageOffset,
                      Uint32& lkey1, Uint32& lkey2);
 
   /*
@@ -2092,7 +2113,7 @@ public:
    * Returns number of words or negative (-terrorCode) on error.
    */
   int tuxReadAttrs(EmulatedJamBuffer*,
-                   Uint32 fragPtrI,
+                   Uint64 fragPtrI,
                    Uint32 pageId,
                    Uint32 pageOffset,
                    Uint32 tupVersion,
@@ -2180,12 +2201,16 @@ public:
                                  Uint32 fragmentId);
   Uint32 get_max_lcp_record_size(Uint32 tableId);
   
-  int nr_read_pk(Uint32 fragPtr, const Local_key*, Uint32* dataOut, bool&copy);
-  int nr_update_gci(Uint32 fragPtr,
+  int nr_read_pk(Uint64 fragPtr, const Local_key*, Uint32* dataOut, bool&copy);
+  int nr_update_gci(Uint64 fragPtr,
                     const Local_key*,
                     Uint32 gci,
                     bool tuple_exists);
-  int nr_delete(Signal*, Uint32, Uint32 fragPtr, const Local_key*, Uint32 gci);
+  int nr_delete(Signal*,
+                Uint32,
+                Uint64 fragPtrI,
+                const Local_key*,
+                Uint32 gci);
 
   void nr_delete_page_callback(Signal*, Uint32 op, Uint32 page);
   void nr_delete_log_buffer_callback(Signal*, Uint32 op, Uint32 page);
@@ -2201,8 +2226,7 @@ public:
   void lcp_frag_watchdog_print(Uint32 tableId, Uint32 fragmentId);
 
   Uint64 get_restore_row_count(Uint32 tableId, Uint32 fragmentId);
-  void set_lcp_start_gci(Uint32 fragPtrI, Uint32 startGci);
-  void get_lcp_frag_stats(Uint32 fragPtrI,
+  void get_lcp_frag_stats(Uint64 fragPtrI,
                           Uint32 startGci,
                           Uint32 & maxPageCount,
                           Uint64 & row_count,
@@ -2242,7 +2266,7 @@ public:
     Uint64 logToPhysMapAllocBytes;
   };
 
-  const FragStats get_frag_stats(Uint32 fragId) const;
+  const FragStats get_frag_stats(Uint64 fragPtrI) const;
 
 private:
   BLOCK_DEFINES(Dbtup);
@@ -2549,10 +2573,10 @@ public:
   void prepare_scan_tux_TUPKEYREQ(Uint32 page_id, Uint32 page_idx);
   void prepare_op_pointer(Uint32 opPtrI,
                           Dbtup::Operationrec *opPtrP);
-  void prepare_tab_pointers(Uint32 fragPtrI);
+  void prepare_tab_pointers(Uint64 fragPtrI);
   void prepare_tab_pointers_acc(Uint32 table_id, Uint32 frag_id);
-  void get_all_tup_ptrs(Uint32 indexFragPtrI,
-                        Uint32 tableFragPtrI,
+  void get_all_tup_ptrs(Uint64 indexFragPtrI,
+                        Uint64 tableFragPtrI,
                         Uint32** index_fragptr,
                         Uint32** index_tabptr,
                         Uint32** real_fragptr,
@@ -2614,7 +2638,7 @@ private:
 //------------------------------------------------------------------
   int handleInsertReq(Signal* signal,
                       Ptr<Operationrec> regOperPtr,
-                      Ptr<Fragrecord>,
+                      FragrecordPtr,
                       Tablerec* regTabPtr,
                       KeyReqStruct* req_struct,
                       Local_key ** accminupdateptr,
@@ -2631,7 +2655,7 @@ private:
 
   int handleRefreshReq(Signal* signal,
                        Ptr<Operationrec>,
-                       Ptr<Fragrecord>,
+                       FragrecordPtr,
                        Tablerec*,
                        KeyReqStruct*,
                        bool disk);
@@ -3358,10 +3382,12 @@ private:
     SumaTriggerBuffer()
     : m_out_of_memory(0),
       m_pageId(RNIL),
+      m_chunkId(RNIL),
       m_freeWords(0),
       m_usedWords(0) {}
     Uint32 m_out_of_memory;
     Uint32 m_pageId;
+    Uint32 m_chunkId;
     Uint32 m_freeWords;
     Uint32 m_usedWords;
   } m_suma_trigger_buffer;
@@ -3470,8 +3496,6 @@ private:
   void send_TUPKEYREF(const KeyReqStruct* req_struct);
   void early_tupkey_error(KeyReqStruct*);
 
-  void printoutTuplePage(Uint32 fragid, Uint32 pageid, Uint32 printLimit);
-
   bool checkUpdateOfPrimaryKey(KeyReqStruct *req_struct,
                                Uint32* updateBuffer,
                                Tablerec* regTabPtr);
@@ -3533,18 +3557,27 @@ private:
                                     Uint32 ind=0);
   void setUpKeyArray(Tablerec* regTabPtr);
   bool addfragtotab(Tablerec* regTabPtr, Uint32 fragId, Uint32 fragIndex);
-  Uint32 get_frag_from_tab(TablerecPtr tabPtr, Uint32 fragId);
+  Uint64 get_frag_from_tab(TablerecPtr tabPtr, Uint32 fragId);
   void remove_frag_from_tab(TablerecPtr tabPtr, Uint32 fragId);
   void deleteFragTab(Tablerec* regTabPtr, Uint32 fragId);
   void abortAddFragOp(Signal* signal);
   void releaseTabDescr(Tablerec* regTabPtr);
-  void getFragmentrec(FragrecordPtr& regFragPtr, Uint32 fragId, Tablerec* regTabPtr);
+  void getFragmentrec(FragrecordPtr& regFragPtr,
+                      Uint32 fragId,
+                      Tablerec* regTabPtr);
+  bool get_fragment_record(TablerecPtr &tabPtr,
+                           FragrecordPtr &fragPtr,
+                           Uint32 tableId,
+                           Uint32 fragId);
 
+public:
+  Uint64 get_fragment(Uint32 tableId, Uint32 fragId);
+
+private:
   void initialiseRecordsLab(Signal* signal, Uint32 switchData, Uint32, Uint32);
   void initializeCheckpointInfoRec();
   void initializeDiskBufferSegmentRecord();
   void initializeFragoperrec();
-  void initializeFragrecord();
   void initializeAlterTabOperation();
   void initializeHostBuffer();
   void initializeLocalLogInfo();
@@ -3577,10 +3610,12 @@ private:
                         Uint32 fragId);
 
   void releaseFragment(Signal*, Uint32, Uint32);
-  void drop_fragment_free_var_pages(Signal*);
-  void drop_fragment_free_pages(Signal*);
+  void drop_fragment_free_var_pages(Signal*, TablerecPtr, FragrecordPtr);
+  void drop_fragment_free_pages(Signal*, TablerecPtr, FragrecordPtr);
   void drop_fragment_free_extent(Signal*, TablerecPtr, FragrecordPtr, Uint32);
-  void drop_fragment_free_extent_log_buffer_callback(Signal*, Uint32, Uint32);
+  void drop_fragment_free_extent_log_buffer_continue(Signal*,
+                                                     TablerecPtr,
+                                                     FragrecordPtr);
   void drop_fragment_unmap_pages(Signal*, TablerecPtr, FragrecordPtr, Uint32);
   void drop_fragment_unmap_page_callback(Signal* signal, Uint32, Uint32);
   void drop_fragment_fsremove_init(Signal*, TablerecPtr, FragrecordPtr);
@@ -3639,7 +3674,7 @@ private:
   void   verifytabdes();
 
   void seizeOpRec(OperationrecPtr& regOperPtr);
-  void seizeFragrecord(FragrecordPtr& regFragPtr);
+  bool seizeFragrecord(FragrecordPtr& regFragPtr);
   void seizeFragoperrec(FragoperrecPtr& fragOperPtr);
   void seizeAlterTabOperation(AlterTabOperationPtr& alterTabOpPtr);
   void releaseFragoperrec(FragoperrecPtr fragOperPtr);
@@ -3825,13 +3860,6 @@ private:
   RSS_OP_SNAPSHOT(cnoOfFreeFragoprec);
 
 public:
-  Fragrecord *fragrecord;
-  Uint32 cfirstfreefrag;
-  Uint32 cnoOfFragrec;
-  RSS_OP_COUNTER(cnoOfFreeFragrec);
-  RSS_OP_SNAPSHOT(cnoOfFreeFragrec);
-  FragrecordPtr prepare_fragptr;
-
   DynArr256Pool *c_page_map_pool_ptr;
 private:
   /*
@@ -4013,7 +4041,7 @@ private:
    *   key.m_page_no  contains disk page
    *   key.m_page_idx contains byte preallocated
    */
-  int disk_page_prealloc(Signal*, Ptr<Fragrecord>, Local_key*, Uint32);
+  int disk_page_prealloc(Signal*, FragrecordPtr, Local_key*, Uint32);
   void disk_page_prealloc_dirty_page(Disk_alloc_info&, 
 				     Ptr<Page>,
                                      Uint32,
@@ -4031,7 +4059,7 @@ private:
   void disk_page_prealloc_initial_callback(Signal*, Uint32, Uint32);
   void disk_page_prealloc_callback_common(Signal*, 
 					  Ptr<Page_request>, 
-					  Ptr<Fragrecord>,
+					  FragrecordPtr,
 					  Ptr<Page>);
   
   void disk_page_alloc(Signal*,
@@ -4090,7 +4118,7 @@ private:
   void drop_table_log_buffer_callback(Signal*, Uint32, Uint32);
 
   void disk_page_set_dirty(Ptr<Page>);
-  void restart_setup_page(Ptr<Fragrecord> fragPtr,
+  void restart_setup_page(FragrecordPtr fragPtr,
                           Disk_alloc_info&,
                           Ptr<Page>,
                           Int32 estimate);
@@ -4151,7 +4179,7 @@ public:
     Uint32 m_data[MAX_UNDO_DATA];
     Uint64 m_lsn;
     Ptr<Tablerec> m_table_ptr;
-    Ptr<Fragrecord> m_fragment_ptr;
+    FragrecordPtr m_fragment_ptr;
     Ptr<Page> m_page_ptr;
     Ptr<Extent_info> m_extent_ptr;
     Local_key m_key;
@@ -4725,8 +4753,8 @@ Dbtup::copy_change_mask_info(const Tablerec* tablePtrP,
 
 inline
 void
-Dbtup::get_all_tup_ptrs(Uint32 indexFragPtrI,
-                        Uint32 tableFragPtrI,
+Dbtup::get_all_tup_ptrs(Uint64 indexFragPtrI,
+                        Uint64 tableFragPtrI,
                         Uint32 **index_fragptr,
                         Uint32 **index_tabptr,
                         Uint32 **real_fragptr,
@@ -4736,7 +4764,7 @@ Dbtup::get_all_tup_ptrs(Uint32 indexFragPtrI,
 {
   FragrecordPtr indexFragPtr;
   indexFragPtr.i= indexFragPtrI;
-  ptrCheckGuard(indexFragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(indexFragPtr);
   TablerecPtr indexTablePtr;
   indexTablePtr.i= indexFragPtr.p->fragTableId;
   ptrCheckGuard(indexTablePtr, cnoOfTablerec, tablerec);
@@ -4751,7 +4779,7 @@ Dbtup::get_all_tup_ptrs(Uint32 indexFragPtrI,
   FragrecordPtr realFragPtr;
   TablerecPtr realTablePtr;
   realFragPtr.i = tableFragPtrI;
-  ptrCheckGuard(realFragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(realFragPtr);
   realTablePtr.i= realFragPtr.p->fragTableId;
   ptrCheckGuard(realTablePtr, cnoOfTablerec, tablerec);
   *real_fragptr = (Uint32*)realFragPtr.p;
@@ -4822,7 +4850,7 @@ Dbtup::getOperationPtrP(Uint32 opPtrI)
 }
 
 inline void
-Dbtup::prepare_tab_pointers(Uint32 frag_id)
+Dbtup::prepare_tab_pointers(Uint64 frag_id)
 {
   /**
    * A real-time break occurred in scanning, we setup the
@@ -4834,12 +4862,9 @@ Dbtup::prepare_tab_pointers(Uint32 frag_id)
   TablerecPtr tabptr;
 
   fragptr.i = frag_id;
-  const Uint32 RnoOfFragrec= cnoOfFragrec;
+  c_fragment_pool.getPtr(fragptr);
   const Uint32 RnoOfTablerec= cnoOfTablerec;
-  Fragrecord * Rfragrecord = fragrecord;
   Tablerec * Rtablerec = tablerec;
-  ndbrequire(fragptr.i < RnoOfFragrec);
-  ptrAss(fragptr, Rfragrecord);
   tabptr.i = fragptr.p->fragTableId;
   ndbrequire(tabptr.i < RnoOfTablerec);
   prepare_fragptr = fragptr;

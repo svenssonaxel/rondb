@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2006, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +30,9 @@
 
 #include <ndb_global.h>
 #include <portlib/NdbMem.h>
+#include <portlib/NdbThread.h>
+#include <portlib/NdbTick.h>
+#include <atomic>
 
 #define JAM_FILE_ID 296
 
@@ -780,7 +784,9 @@ cmp_chunk(const void * chunk_vptr_1, const void * chunk_vptr_2)
 }
 
 bool
-Ndbd_mem_manager::init(Uint32 *watchCounter, Uint32 max_pages , bool alloc_less_memory)
+Ndbd_mem_manager::init(Uint32 *watchCounter,
+                       Uint32 max_pages,
+                       bool alloc_less_memory)
 {
   assert(m_base_page == 0);
   assert(max_pages > 0);
@@ -1348,7 +1354,8 @@ Ndbd_mem_manager::alloc_impl(Uint32 zone,
 	clear(start, start+cnt-1);
       }
       * ret = start;
-      assert(m_resource_limits.get_in_use() + cnt <= m_resource_limits.get_allocated());
+      assert(m_resource_limits.get_in_use() + cnt <=
+             m_resource_limits.get_allocated());
       return;
     }
   }
@@ -1379,7 +1386,8 @@ Ndbd_mem_manager::alloc_impl(Uint32 zone,
 
       * ret = start;
       * pages = sz;
-      assert(m_resource_limits.get_in_use() + sz <= m_resource_limits.get_allocated());
+      assert(m_resource_limits.get_in_use() + sz <=
+             m_resource_limits.get_allocated());
       return;
     }
   }
@@ -1553,7 +1561,8 @@ Ndbd_mem_manager::alloc_page(Uint32 type,
   alloc(zone, i, &cnt, min);
   if (likely(cnt))
   {
-    const Uint32 spare_taken = m_resource_limits.post_alloc_resource_pages(idx, cnt);
+    const Uint32 spare_taken =
+      m_resource_limits.post_alloc_resource_pages(idx, cnt);
     if (spare_taken > 0)
     {
       require(spare_taken == cnt);
@@ -2049,6 +2058,7 @@ Test_mem_manager::~Test_mem_manager()
 #define NDBD_MALLOC_PERF_TEST 0
 static void perf_test(int sz, int run_time);
 static void transfer_test();
+static void ic_ndbd_malloc_test();
 
 int 
 main(int argc, char** argv)
@@ -2078,7 +2088,7 @@ main(int argc, char** argv)
   {
     perf_test(sz, run_time);
   }
-
+  ic_ndbd_malloc_test();
   ndb_end(0);
 }
 
@@ -2308,6 +2318,1943 @@ void perf_test(int sz, int run_time)
     timer[i].print(title[i]);
   }
   mem.dump(false);
+}
+
+/**
+ * iClaustron memory pool
+ * ----------------------
+ * This module implements a malloc/free API that can use the global memory
+ * pools where most of the memory in the NDB data node resides. This makes it
+ * possible to dynamically allocate memory in the data nodes without actually
+ * having to call malloc and free with all the implications that has on
+ * real-time properties, swapping and many other things.
+ *
+ * All the memory in NDB data nodes are allocated at startup, after that we
+ * manage memory internally using global memory pools and a whole range of
+ * data structures such as RWPool, RWPool64, ArrayPool, TransientPool and so
+ * forth.
+ *
+ * This memory module is intended to be used to handle memory areas that are
+ * dynamic in size. E.g. each table has a mapping from fragment id to fragment
+ * pointer. This area should be dynamic in nature, this interface enables this.
+ * There are a few other similar cases.
+ *
+ * Also to handle larger signals and larger requests than 32 kBytes we need
+ * to be able to handle larger memory segments without having to split the
+ * memory and thus requiring the memory to be copied a lot of extra times
+ * when large requests are handled.
+ *
+ * This is a very generic problem to solve in most applications and DBMSs.
+ *
+ * We provide two malloc APIs.
+ * The first one is for long-lived malloc's, this interface is very
+ * simple and use the following methods:
+ *
+ * void *ic_ndbd_pool_malloc(size_t size, Uint32 pool_id, bool clear_flag)
+ *
+ * Thus a normal malloc interface with a clear flag instead of two function
+ * calls. In addition we need a pool id to ensure that we know which memory
+ * area the memory is requested for.
+ *
+ * The free call requires only the pointer we got from the malloc call.
+ * There is no need for a pool id in this call, the memory pointed to
+ * will contain references to the pool id and its memory segments.
+ *
+ * The second interface is designed specifically for handling very short-lived
+ * allocations. The idea is that these allocations happens in the receive
+ * thread and eventually released from a separate thread and when all
+ * parts of a memory segments are released the memory segments is free again.
+ *
+ * This interface thus have two calls to allocate memory. The first allocates
+ * a memory segment using the call:
+ *
+ * void *ic_ndbd_pool_min_malloc(size_t size,
+ *                               size_t *alloc_size,
+ *                               Uint32 pool_id)
+ *
+ * This returns a reference to a memory segment. Thus this memory segment is
+ * not intended to be used. The actual memory used is retrieved using another
+ * call:
+ *
+ * void *ic_ndbd_split_malloc(void *memory_segment,
+ *                            size_t size)
+ *
+ * We provide the memory segment and the size we want to allocate. The memory
+ * returned will be aligned on a 8 byte boundary and will always be a
+ * multiple of 64 bytes. However all details on handling the memory is taken
+ * care of by the memory handler.
+ *
+ * The pool id is mapped to the memory pools in RonDB. Thus at least the
+ * following memory areas:
+ *
+ * TransactionMemory
+ * SchemaMemory
+ * ReplicationMemory
+ * DataMemory
+ *
+ * Not all memory pools are going to provide dynamic memory allocation.
+ * So only those requiring that will have such support.
+ *
+ * Memory is retrieved from the global memory pool in chunks of 1 MByte of
+ * consecutive memory.
+ * Each pool will manage a set of such 1 MByte memory segments. For the
+ * long lived allocations, the basic data structure for this is the
+ * IC_LONG_LIVED_MEMORY_BASE. There is one such data structure for each
+ * pool.
+ *
+ * The 1 MByte memory segments are handled through a data structure called
+ * IC_LONG_LIVED_MEMORY_AREA.
+ *
+ * The IC_LONG_LIVED_MEMORY_BASE is used to find a memory segment that
+ * contains enough consecutive memory for the allocation. This uses an
+ * array of 8 linked list where each linked list contains memory segments
+ * that have a minimum free consecutive area based on its position in the
+ * the array.
+ *
+ * The list[0] has a minimum of 16 bytes
+ * list[1] has a minimum of 64 bytes
+ * list[2] has a minimum of 256 bytes
+ * list[3] has a minimum of 1024 bytes
+ * list[4] has a minimum of 4096 bytes
+ * list[5] has a minimum of 16384 bytes
+ * list[6] has a minimum of 65536 bytes
+ * list[7] has a minimum of 262144 bytes
+ *
+ * Each memory segment also has an array of linked list organised in the
+ * same fashion. In this we handle free memory areas. Thus the linked
+ * list are linked objects of type FREE_AREA_STRUCT.
+ *
+ * Each memory segment that is returned to the requester has 8 bytes of
+ * managed memory before the actual returned memory and 8 bytes right
+ * after the end of the memory.
+ *
+ * Thus each returned memory area has the following layout.
+ *   |----------------------|
+ *   | Size        4B       |
+ *   | Offset      4B       |
+ *   | Memory area          |
+ *   | Magic       4B       |
+ *   | Status info 4B       |
+ *   |----------------------|
+ *
+ * The size parameter is a pointer to the end of the memory area and is
+ * thus required to find the Magic number and the Status information about
+ * the memory area. The status info among other things contains the
+ * Pool id and is thus used to calculate the magic number. If for some
+ * reason we have a memory overrun it is thus quickly possible to verify
+ * that we haven't written in memory areas not allowed.
+ *
+ * The minimum size allocated is a 16B memory area and there is no
+ * specific maximum. However if the requested size is larger than
+ * what is handled by any Memory segments, then the request will simply
+ * be handed off directly to the backend memory allocator.
+ *
+ * ic_mempool_tester
+ * -----------------
+ * This includes a unit memory testing of the memory pool.
+ *
+ * ic_mempool_backend
+ * ------------------
+ * This module provides the request for large memory areas from the
+ * backend allocator, this backend allocator is application specific.
+ *
+ * ic_mempool_mapper
+ * -----------------
+ * This module has a function that takes the pool id and transforms it
+ * into an internal pool id. There is also a function that calculates
+ * a magic number provided the internal pool id.
+ *
+ * Data structure of a long lived memory area:
+ * -------------------------------------------
+ *
+ * At first we have a statically allocated memory that contains for
+ * each pool we support an IC_LONG_LIVED_MEMORY_BASE struct. This
+ * struct contains the mutex protecting this memory structure.
+ * Second it contains an array of lists of free memory segments.
+ *
+ * In this area we have the following memory segments:
+ * [0]: Contains memory segments at least 16 bytes and not 64 bytes.
+ * [1]: From 64 bytes to smaller than 256 bytes.
+ * [2]: From 256 bytes to smaller than 1024 bytes.
+ * [3]: From 1024 bytes to smaller than 4096 bytes.
+ * [4]: From 4096 bytes to smaller than 16384 bytes.
+ * [5]: From 16384 bytes to smaller than 65536 bytes.
+ * [6]: From 65536 bytes to smaller than 262144 bytes.
+ * [7]: From 262144 bytes to smaller than 1 MByte
+ *
+ * When we have found a memory segment that is large enough we
+ * call ic_memseg_malloc to retrieve a memory area from the
+ * memory segment.
+ *
+ * The memory area data structure is the following:
+ * First of all we have a pointer to the IC_LONG_LIVED_MEMORY_BASE
+ * structure from each memory segment.
+ * Second we have the same type of free list as the memory base
+ * have, but here we have memory areas belonging to a specific
+ * memory area.
+ *
+ * Next we have the total memory area size.
+ * Next we have current free area in this memory area.
+ * After that we have some unused space to ensure that we the
+ * start of the first memory area is on a cache line boundary.
+ * The memory area data structure is 128 bytes.
+ */
+
+typedef unsigned int ic_uint32;
+typedef unsigned long long ic_uint64;
+
+typedef ic_uint32 (*IC_MAP_POOL_ID) (ic_uint32);
+typedef ic_uint32 (*IC_MAKE_MAGIC) (ic_uint32);
+typedef void* (*IC_MALLOC_BACKEND) (size_t, ic_uint32);
+typedef void (*IC_FREE_BACKEND) (void*, ic_uint32, ic_uint32);
+typedef void* (*IC_MEMPOOL_MALLOC) (size_t, ic_uint32, ic_uint32);
+typedef void* (*IC_MEMPOOL_MIN_MALLOC) (size_t, ic_uint32*, ic_uint32);
+typedef void (*IC_MEMPOOL_FREE) (void*, ic_uint32);
+
+struct ic_mempool_mapper
+{
+  IC_MAP_POOL_ID ic_map_pool_id;
+  IC_MAKE_MAGIC ic_make_magic;
+};
+
+struct ic_mempool_backend
+{
+  IC_MALLOC_BACKEND ic_malloc_backend;
+  IC_FREE_BACKEND ic_free_backend;
+};
+
+struct free_area_struct;
+typedef struct free_area_struct FREE_AREA_STRUCT;
+struct free_area_struct
+{
+  ic_uint32 size_area;
+  ic_uint32 area_offset;
+  FREE_AREA_STRUCT *m_next_ptr;
+  FREE_AREA_STRUCT *m_prev_ptr;
+};
+
+struct ic_mempool_mapper glob_long_mempool_mapper;
+struct ic_mempool_backend glob_long_mempool_backend;
+ic_uint32 glob_long_num_high_pools;
+
+struct ic_long_lived_memory_area;
+typedef struct ic_long_lived_memory_area IC_LONG_LIVED_MEMORY_AREA;
+struct ic_long_lived_memory_base;
+typedef struct ic_long_lived_memory_base IC_LONG_LIVED_MEMORY_BASE;
+
+#define MAX_LONG_LIVED_POOLS 16
+#define MAX_SHORT_LIVED_POOLS 64
+
+#define MEMORY_SEGMENT_SIZE (1024 * 1024)
+#define MEMORY_SEGMENT_SIZE_IN_WORDS (MEMORY_SEGMENT_SIZE/4)
+#define MALLOC_OVERHEAD 16
+#define MALLOC_OVERHEAD_IN_WORDS 4
+
+#define MIN_LONG_AREA_SIZE 16
+#define MIN_LONG_AREA_SIZE_IN_WORDS 4
+#define MIN_SHORT_AREA_SIZE 64
+#define MIN_SHORT_AREA_SIZE_IN_WORDS 16
+
+#define MAX_FREE_SHORT_AREAS 64
+#define NUM_FREE_AREA_LISTS 9
+#define POS_MEMORY_AREA_EMPTY 255
+#define INFO_BIT_MASK (0xFF)
+#define ALLOC_SIZE_SHIFT 12
+#define ALLOC_BIT_SHIFT 8
+/* Bit 9-11 not used in status_info */
+
+
+struct ic_long_lived_memory_area
+{
+  IC_LONG_LIVED_MEMORY_BASE *m_base_ptr;
+  FREE_AREA_STRUCT *m_first_free[NUM_FREE_AREA_LISTS];
+  IC_LONG_LIVED_MEMORY_AREA *m_next_ptr;
+  IC_LONG_LIVED_MEMORY_AREA *m_prev_ptr;
+  ic_uint32 m_mem_area_size;
+  ic_uint32 m_current_pos;
+  ic_uint32 m_unused_mem_area[8];
+  ic_uint32 m_first_mem_area[0];
+};
+
+#define MAX_MEMORY_ALLOC_SIZE_IN_WORDS \
+  ((MEMORY_SEGMENT_SIZE_IN_WORDS - MALLOC_OVERHEAD_IN_WORDS) - \
+   (sizeof(ic_long_lived_memory_area) / 4))
+struct ic_long_lived_memory_base
+{
+  ic_uint32 m_num_active_global_malloc;
+  IC_LONG_LIVED_MEMORY_AREA *m_first_free[NUM_FREE_AREA_LISTS];
+  NdbMutex m_mutex;
+};
+IC_LONG_LIVED_MEMORY_BASE glob_long_lived_memory_base[MAX_LONG_LIVED_POOLS];
+
+static void*
+ic_mempool_long_lived_pool_malloc(size_t size_in_words,
+                                  ic_uint32 pool_id,
+                                  bool clear_flag);
+static void*
+ic_memseg_malloc(size_t size_in_words,
+                 IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                 ic_uint32 *check_pos);
+static void
+remove_from_base_area(IC_LONG_LIVED_MEMORY_BASE *base_ptr,
+                      ic_uint32 old_pos,
+                      IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr);
+static void
+remove_from_memory_area(IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                        ic_uint32 pos,
+                        FREE_AREA_STRUCT *mem_free_ptr);
+static void
+insert_into_base_area(IC_LONG_LIVED_MEMORY_BASE *base_ptr,
+                      ic_uint32 old_pos,
+                      IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr);
+static void
+insert_into_memory_area(IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                        ic_uint32 pos,
+                        FREE_AREA_STRUCT *mem_ins_ptr);
+static void
+ic_pool_check_memory(void *mem);
+static void
+check_memory_area_pos(IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                      ic_uint32 *check_pos);
+
+static ic_uint32
+get_min_size_given_array_pos(ic_uint32 pos)
+{
+  assert(pos < NUM_FREE_AREA_LISTS);
+  ic_uint32 min_size = MIN_LONG_AREA_SIZE << (2 * pos);
+  return min_size;
+}
+
+static int
+Ndb_fls(Uint32 val)
+{
+  if (val == 0) return 0;
+#if defined(__GNUC__) || defined(__clang__)
+  int num_zeros = __builtin_clz(val);
+  return 31 - num_zeros;
+#else
+  /* Binary search for highest bit set */
+  Uint32 pos  = 16;
+  Uint32 step = pos;
+  do
+  {
+    /* Will always run in 4 loops */
+    step >>= 1; //Divide by 2
+    if (val >> pos)
+     pos += step;
+   else
+     pos -= step;
+  } while (step > 1);
+  if (val >> pos)
+    pos++;
+  return (pos - 1);
+#endif
+}
+
+static ic_uint32
+get_array_pos(ic_uint32 size_in_words)
+{
+  /**
+   * We calculate the size in 16-byte chunks, next we get the most
+   * significant bit position of the number we got. So e.g. if the
+   * number is 127 (should use array pos 1 since it is 64 bytes or
+   * larger and smaller than 128).
+   * 127 / 16 = 7
+   * fls(7) = 3 (bits counted from 1 in fls, 0 returned from fls(0)
+   * We need to add one since we can be in the second part of the
+   * range.
+   * We divide by 2 since we multiply by 4 for each new array pos
+   * and finally we subtract 1 such that we get back to position 0
+   * for the lowest position.
+   * In the example we thus get ((3 + 1) / 2) - 1 = 1
+   */
+  assert(size_in_words > 0);
+  size_in_words--;
+  size_in_words /= MALLOC_OVERHEAD_IN_WORDS;
+  if (size_in_words == 0)
+    return 0;
+  int bit_pos = Ndb_fls(size_in_words);
+  bit_pos = ((bit_pos + 4) / 2) - 1;
+  return (ic_uint32)bit_pos;
+}
+
+static void
+init_memory_area(IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr, ic_uint32 pool_id)
+{
+  /* Set up memory area before inserting it into free lists */
+  IC_LONG_LIVED_MEMORY_BASE *base_ptr =
+    &glob_long_lived_memory_base[pool_id];
+  mem_area_ptr->m_base_ptr = base_ptr;
+  for (ic_uint32 i = 0; i < NUM_FREE_AREA_LISTS; i++)
+  {
+    mem_area_ptr->m_first_free[i] = nullptr;
+  }
+  ic_uint32 size_long_lived_memory_area_header =
+    sizeof(IC_LONG_LIVED_MEMORY_AREA);
+  ic_uint32 free_memory_size = MAX_MEMORY_ALLOC_SIZE_IN_WORDS;
+  mem_area_ptr->m_mem_area_size = free_memory_size;
+  FREE_AREA_STRUCT *mem_free_ptr =
+    (FREE_AREA_STRUCT*)&mem_area_ptr->m_first_mem_area[0];
+  mem_area_ptr->m_first_mem_area[0] = free_memory_size;
+  mem_area_ptr->m_first_mem_area[1] = (size_long_lived_memory_area_header / 4);
+  ic_uint32 magic = glob_long_mempool_mapper.ic_make_magic(pool_id);
+  mem_area_ptr->m_first_mem_area[free_memory_size + 2] = magic;
+  mem_area_ptr->m_first_mem_area[free_memory_size + 3] =
+    (free_memory_size << ALLOC_SIZE_SHIFT) | pool_id;
+  ic_uint32 pos = NUM_FREE_AREA_LISTS - 1;
+  insert_into_memory_area(mem_area_ptr, pos, mem_free_ptr);
+}
+
+/* This method is part of external interface */
+void*
+ic_ndbd_pool_malloc(size_t size, ic_uint32 pool_id, bool clear_flag)
+{
+  if (size > (MAX_MEMORY_ALLOC_SIZE_IN_WORDS * 4) || size == 0)
+    return nullptr;
+  /* Ensure that we allocate a multiple of 16 bytes. */
+  size_t size_in_bytes =
+    ((size + (MIN_LONG_AREA_SIZE - 1)) / MIN_LONG_AREA_SIZE) *
+     MIN_LONG_AREA_SIZE;
+  size_t size_in_words = size_in_bytes / 4;
+  return
+    ic_mempool_long_lived_pool_malloc(size_in_words, pool_id, clear_flag);
+}
+
+static void*
+ic_mempool_long_lived_pool_malloc(size_t size_in_words,
+                                  ic_uint32 pool_id,
+                                  bool clear_flag)
+{
+  bool first = true;
+  /* Map the pool id to the internal pool id */
+  ic_uint32  map_pool_id = glob_long_mempool_mapper.ic_map_pool_id(pool_id);
+  /* Retrieve the memory base for this pool */
+  IC_LONG_LIVED_MEMORY_BASE *base_ptr =
+    &glob_long_lived_memory_base[map_pool_id];
+  /* Lock this memory base during the allocation process */
+  ic_uint32 start_pos = get_array_pos(size_in_words);
+  ic_uint32 start_min_size_in_words = get_min_size_given_array_pos(start_pos);
+  NdbMutex_Lock(&base_ptr->m_mutex);
+  do
+  {
+    ic_uint32 min_size_in_words = start_min_size_in_words;
+    for (Uint32 i = start_pos;
+         i < NUM_FREE_AREA_LISTS;
+         i++, min_size_in_words *= 4)
+    {
+      if (min_size_in_words < size_in_words)
+      {
+        /**
+         * Continue until we reached an index that will have a chance
+         * to contain the area sought for.
+         * Should never happen since we already ensured that we start
+         * from the first possible.
+         */
+        abort();
+      }
+      if (base_ptr->m_first_free[i] == nullptr)
+      {
+        /* No memory segment have so small areas, move to larger areas */
+        continue;
+      }
+      /**
+       * We have found a memory segment that will provide the memory
+       * requested. Now retrieve this memory from the memory area
+       * using the ic_memseg_malloc call.
+       *
+       * This call will return the new position in the array of linked
+       * lists of free memory segments. If required we will move the
+       * memory segment to a new free list of memory areas.
+       */
+      IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr = base_ptr->m_first_free[i];
+      ic_uint32 new_pos = i;
+      ic_uint32 old_pos = new_pos;
+      void *ret_mem = ic_memseg_malloc(size_in_words,
+                                       mem_area_ptr,
+                                       &new_pos);
+      if (ret_mem != nullptr)
+      {
+        if (new_pos != old_pos)
+        {
+          /**
+           * New position, start by removing it from old position
+           * If new position is higher than old position it is
+           * an indication that the memory segment has no more
+           * free areas. Thus it won't be inserted into any
+           * free area. The whole memory area is thus allocated
+           * and the memory area data structure will notice when
+           * such a memory area has memory freed which makes it
+           * necessary to reinsert it into the base area free lists.
+           */
+          remove_from_base_area(base_ptr, old_pos, mem_area_ptr);
+          if (new_pos < old_pos)
+          {
+            insert_into_base_area(base_ptr, new_pos, mem_area_ptr);
+          }
+          mem_area_ptr->m_current_pos = new_pos;
+        }
+      }
+      else
+      {
+        /* Should never happen that we find no memory in this case. */
+        abort();
+        return nullptr;
+      }
+      /**
+       * We have successfully allocated memory, setting up memory before
+       * it is returned requires no mutex. Neither does clearing the
+       * memory before returning it.
+       */
+      NdbMutex_Unlock(&base_ptr->m_mutex);
+      if (clear_flag)
+      {
+        memset(ret_mem, 0, 4 * size_in_words);
+      }
+      return ret_mem;
+    }
+    /**
+     * No memory was found in existing memory segments.
+     * We need to allocate more memory from the global memory pool.
+     * If first is false, we have already allocated memory from
+     * the pool and still failed to allocate memory, this should
+     * never happen.
+     *
+     * What could happen though is that we allocate memory from a different
+     * memory segment than the one we allocated from the global memory
+     * pool. This can happen since we released the lock and thus someone
+     * could have freed memory while we allocated memory from the global
+     * memory pool.
+     */
+    if (!first)
+    {
+      abort();
+    }
+    first = false;
+    /**
+     * Release lock before allocating from global memory pool to avoid
+     * holding two hot mutexes concurrently.
+     *
+     * One problem that comes from releasing the lock before allocating
+     * from global memory pool is that we can have multiple threads
+     * allocating memory from the global memory pool concurrently.
+     * A solution to this could be to use some kind of booking with
+     * a conditional variable waking up the waiter on memory.
+     * If such a scheme is used, then also new arrivals must wait before
+     * they start checking for free memory.
+     *
+     * Another solution that we will use here is to instead only release
+     * the mutex if someone isn't already allocating a memory area, or
+     * that a certain number of allocations are already progressing.
+     * This will give this requester priority before the other requesters,
+     * but will ensure that we don't have hundreds of threads doing
+     * large allocations at the same time and thus wasting a lot of memory
+     * space.
+     */
+    bool locked = true;
+    if (base_ptr->m_num_active_global_malloc == 0)
+    {
+      base_ptr->m_num_active_global_malloc++;
+      NdbMutex_Unlock(&base_ptr->m_mutex);
+      locked = false;
+    }
+    IC_LONG_LIVED_MEMORY_AREA *new_mem_area_ptr = (IC_LONG_LIVED_MEMORY_AREA*)
+      glob_long_mempool_backend.ic_malloc_backend(MEMORY_SEGMENT_SIZE,
+                                                  map_pool_id);
+    if (new_mem_area_ptr != nullptr)
+    {
+      init_memory_area(new_mem_area_ptr, map_pool_id);
+      /* Acquire lock again before inserting it into free list */
+      if (!locked)
+      {
+        NdbMutex_Lock(&base_ptr->m_mutex);
+        assert(base_ptr->m_num_active_global_malloc > 0);
+        base_ptr->m_num_active_global_malloc--;
+      }
+      //printf("Allocating memory segment, mem_area_ptr: %p\n", new_mem_area_ptr);
+      new_mem_area_ptr->m_current_pos = NUM_FREE_AREA_LISTS - 1;
+      insert_into_base_area(base_ptr,
+                            new_mem_area_ptr->m_current_pos,
+                            new_mem_area_ptr);
+    }
+    else
+    {
+      if (locked)
+      {
+        NdbMutex_Unlock(&base_ptr->m_mutex);
+      }
+      return (void*) nullptr;
+    }
+  } while (true);
+  assert(false);
+  return nullptr; //Should never arrive here
+}
+
+static void
+insert_into_base_area(IC_LONG_LIVED_MEMORY_BASE *mem_base_ptr,
+                      ic_uint32 pos,
+                      IC_LONG_LIVED_MEMORY_AREA *mem_ins_ptr)
+{
+  IC_LONG_LIVED_MEMORY_AREA *first_free_ptr = mem_base_ptr->m_first_free[pos];
+  mem_ins_ptr->m_prev_ptr = nullptr;
+  mem_ins_ptr->m_next_ptr = first_free_ptr;
+  if (first_free_ptr != nullptr)
+  {
+    first_free_ptr->m_prev_ptr = mem_ins_ptr;
+  }
+  mem_base_ptr->m_first_free[pos] = mem_ins_ptr;
+}
+
+static void
+insert_into_memory_area(IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                        ic_uint32 pos,
+                        FREE_AREA_STRUCT *mem_ins_ptr)
+{
+  FREE_AREA_STRUCT *first_free_ptr =
+    (FREE_AREA_STRUCT*)mem_area_ptr->m_first_free[pos];
+  mem_ins_ptr->m_prev_ptr = nullptr;
+  mem_ins_ptr->m_next_ptr = first_free_ptr;
+  if (first_free_ptr != nullptr)
+  {
+    first_free_ptr->m_prev_ptr = mem_ins_ptr;
+  }
+  mem_area_ptr->m_first_free[pos] = mem_ins_ptr;
+}
+
+static void
+remove_from_base_area(IC_LONG_LIVED_MEMORY_BASE *mem_base_ptr,
+                      ic_uint32 pos,
+                      IC_LONG_LIVED_MEMORY_AREA *mem_free_ptr)
+{
+  IC_LONG_LIVED_MEMORY_AREA *first_free_ptr = mem_base_ptr->m_first_free[pos];
+  if (first_free_ptr == mem_free_ptr)
+  {
+    if (first_free_ptr->m_next_ptr != nullptr)
+    {
+      first_free_ptr->m_next_ptr->m_prev_ptr = nullptr;
+    }
+    mem_base_ptr->m_first_free[pos] = mem_free_ptr->m_next_ptr;
+  }
+  else
+  {
+    if (mem_free_ptr->m_next_ptr != nullptr)
+    {
+      mem_free_ptr->m_next_ptr->m_prev_ptr = mem_free_ptr->m_prev_ptr;
+    }
+    mem_free_ptr->m_prev_ptr->m_next_ptr = mem_free_ptr->m_next_ptr;
+  }
+  mem_free_ptr->m_next_ptr = nullptr;
+  mem_free_ptr->m_prev_ptr = nullptr;
+}
+
+static void
+remove_from_memory_area(IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                        ic_uint32 pos,
+                        FREE_AREA_STRUCT *mem_free_ptr)
+{
+  FREE_AREA_STRUCT *first_free_ptr =
+    (FREE_AREA_STRUCT*)mem_area_ptr->m_first_free[pos];
+  if (first_free_ptr == mem_free_ptr)
+  {
+    if (first_free_ptr->m_next_ptr != nullptr)
+    {
+      first_free_ptr->m_next_ptr->m_prev_ptr = nullptr;
+    }
+    mem_area_ptr->m_first_free[pos] = mem_free_ptr->m_next_ptr;
+  }
+  else
+  {
+    if (mem_free_ptr->m_next_ptr != nullptr)
+    {
+      mem_free_ptr->m_next_ptr->m_prev_ptr = mem_free_ptr->m_prev_ptr;
+    }
+    mem_free_ptr->m_prev_ptr->m_next_ptr = mem_free_ptr->m_next_ptr;
+  }
+  mem_free_ptr->m_next_ptr = nullptr;
+  mem_free_ptr->m_prev_ptr = nullptr;
+}
+
+static void*
+ic_split_malloc_spec(void *mem,
+                     size_t size_in_words,
+                     ic_uint32 *remaining_area,
+                     ic_uint32 area_size_in_words)
+{
+  /**
+   * We come here with a memory region, the total size of this area is
+   * size + min_size. We want to split off min_size from this (min_size
+   * includes the 16 byte overhead plus the actual allocated space. The
+   * actual allocated space is always a multiple of area_size). area_size
+   * is 16 bytes for the long lived memory allocations and 64 bytes for
+   * the short lived parts.
+   *
+   * The part that we return for allocation is the last part, this ensures
+   * that the we can retain the position in the linked list of free parts
+   * for the long lived allocations if we still have enough free memory
+   * to retain our position in the linked list we currently belong to.
+
+   Below is an image of the area as it looks when we enter this method.
+   S = Size of the Free Memory Area
+   O = Offset from the beginning of the Memory Area to the start of
+       the Free Memory Area
+   M = Magic number
+   I = Status information, including a pool id
+   ---------------------------------------------------------------------
+   | S | O |  Free memory area                                 | M | I |
+   ---------------------------------------------------------------------
+
+   This routine creates an area at the end of Free Memory Area which it
+   sets up as an Alloc area with the same header information. The old
+   Free Memory Area decreases in size.
+   ---------------------------------------------------------------------
+   | S | O |  Free memory area   | M | I | S | O | Alloc area  | M | I |
+   ---------------------------------------------------------------------
+   */
+  ic_uint32 alloc_size_in_words =
+    (size_in_words + MALLOC_OVERHEAD_IN_WORDS + (area_size_in_words - 1)) /
+     area_size_in_words;
+  alloc_size_in_words *= area_size_in_words;
+
+  ic_uint32 *uint32_mem = (ic_uint32*)mem;
+  ic_uint32 mem_size_in_words = uint32_mem[-2];
+  ic_uint32 mem_offset_in_words = uint32_mem[-1];
+  ic_uint32 status_info = uint32_mem[mem_size_in_words + 1];
+  ic_uint32 magic = uint32_mem[mem_size_in_words];
+  ic_uint32 pool_id = status_info & INFO_BIT_MASK;
+  ic_uint32 expected_magic = glob_long_mempool_mapper.ic_make_magic(pool_id);
+  if (unlikely(magic != expected_magic))
+  {
+    abort();
+  }
+  if (unlikely(mem_size_in_words < alloc_size_in_words))
+  {
+    *remaining_area = mem_size_in_words;
+    return nullptr;
+  }
+  ic_uint32 new_mem_size_in_words = mem_size_in_words - alloc_size_in_words;
+  ic_uint32 *ret_mem =
+    &uint32_mem[new_mem_size_in_words+MALLOC_OVERHEAD_IN_WORDS];
+  ic_uint32 alloc_bit = ((status_info >> ALLOC_BIT_SHIFT) & 1);
+  if (unlikely(alloc_bit))
+  {
+    abort();
+  }
+  if (unlikely(new_mem_size_in_words <= MALLOC_OVERHEAD_IN_WORDS))
+  {
+    /**
+     * We need to allocate the full memory area, there is not enough space
+     * to split the area. This ensures that we don't overwrite the
+     * Free Memory Area which is part of a FREE_AREA_STRUCT when we arrive
+     * here from the long lived memory allocation.
+     * We must however set the Alloc bit in the status info before we return.
+     */
+    *remaining_area = 0;
+    status_info |= (1 << ALLOC_BIT_SHIFT);
+    uint32_mem[mem_size_in_words + 1] = status_info;
+    return mem;
+  }
+  /* Split the Free Memory Area */
+  ic_uint32 free_status_info = (status_info & INFO_BIT_MASK);
+  free_status_info |= (new_mem_size_in_words << ALLOC_SIZE_SHIFT);
+  /* Alloc bit isn't set, so no need to do anything with it. */
+  uint32_mem[-2] = new_mem_size_in_words;
+  uint32_mem[-1] = mem_offset_in_words;
+  uint32_mem[new_mem_size_in_words] = magic;
+  uint32_mem[new_mem_size_in_words + 1] = free_status_info;
+
+  ic_uint32 new_offset_in_words =
+    mem_offset_in_words +
+    new_mem_size_in_words +
+    MALLOC_OVERHEAD_IN_WORDS;
+  ic_uint32 real_alloc_size_in_words =
+    alloc_size_in_words - MALLOC_OVERHEAD_IN_WORDS;
+  ic_uint32 alloc_status_info = (status_info & INFO_BIT_MASK);
+  alloc_status_info |= (real_alloc_size_in_words << ALLOC_SIZE_SHIFT);
+  alloc_status_info |= (1 << ALLOC_BIT_SHIFT);
+  ret_mem[-2] = real_alloc_size_in_words;
+  ret_mem[-1] = new_offset_in_words;
+  ret_mem[real_alloc_size_in_words] = magic;
+  ret_mem[real_alloc_size_in_words + 1] = alloc_status_info;
+  *remaining_area = new_mem_size_in_words;
+  return (void*)ret_mem;
+}
+
+static void*
+ic_memseg_malloc(size_t size_in_words,
+                 IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                 ic_uint32 *check_pos)
+{
+  ic_uint32 min_size_in_words = get_min_size_given_array_pos(*check_pos);
+  ic_uint32 i = *check_pos;
+  if (unlikely(min_size_in_words < size_in_words ||
+               mem_area_ptr->m_first_free[i] == nullptr))
+  {
+    /* Size of free parts too small, should never happen */
+    /* No free parts in this linked list, should never happen */
+    abort();
+  }
+  /**
+   * Found a linked list with free elements that are large enough
+   * Every part in the linked list should be large enough, so
+   * simply grab the first one and return this.
+   *
+   * In addition we need to split the memory into the part that
+   * we allocate and the part that goes back into the free list.
+   */
+  ic_uint32 *mem_ptr = (ic_uint32*)mem_area_ptr->m_first_free[i];
+  ic_uint32 pos = i;
+  ic_uint32 remaining_area = 0;
+  void *ret_mem = ic_split_malloc_spec(&mem_ptr[2],
+                                       size_in_words,
+                                       &remaining_area,
+                                       MIN_LONG_AREA_SIZE_IN_WORDS);
+  if (unlikely(ret_mem == nullptr))
+  {
+    abort();
+  }
+  if (likely(remaining_area > 0))
+  {
+    ic_uint32 new_pos = get_array_pos(remaining_area);
+    if (new_pos != pos)
+    {
+      /**
+       * There is still memory available in the memory we retrieved
+       * memory from, check if it needs to move to another position
+       * in the free area array.
+       */
+      remove_from_memory_area(mem_area_ptr,
+                              pos,
+                              (FREE_AREA_STRUCT*)mem_ptr);
+      insert_into_memory_area(mem_area_ptr,
+                              new_pos,
+                              (FREE_AREA_STRUCT*)mem_ptr);
+    }
+    else
+    {
+      /* Position haven't changed, return immediately */
+      return ret_mem;
+    }
+  }
+  else
+  {
+    /**
+     * There is no free space left in the memory area, remove the
+     * memory from the free array pool and since it is now fully
+     * used, there is no place to insert it into.
+     *
+     * We also flag the memory area as not any longer containing any
+     * free area. This ensures that we know what to do when memory
+     * is free'd from this memory area.
+     */
+    remove_from_memory_area(mem_area_ptr,
+                            pos,
+                            (FREE_AREA_STRUCT*)mem_ptr);
+  }
+  check_memory_area_pos(mem_area_ptr, check_pos);
+  return ret_mem;
+}
+
+static void
+check_memory_area_pos(IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                      ic_uint32 *check_pos)
+{
+  for (ic_uint32 i = (*check_pos) + 1; i > 0; i--)
+  {
+    if (mem_area_ptr->m_first_free[i - 1] != nullptr)
+    {
+      if (i != (*check_pos) + 1)
+      {
+        *check_pos = i - 1;
+        return;
+      }
+    }
+  }
+  *check_pos = POS_MEMORY_AREA_EMPTY;
+}
+
+static void
+ic_mempool_long_lived_pool_free(ic_uint32 *mem,
+                                IC_LONG_LIVED_MEMORY_BASE *base_ptr,
+                                IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                                ic_uint32 mem_size_in_words,
+                                ic_uint32 offset_in_words,
+                                ic_uint32 pool_id);
+static ic_uint32*
+ic_merge_free(ic_uint32 *left_mem,
+              ic_uint32 *right_mem,
+              ic_uint32 left_size_in_words,
+              ic_uint32 right_size_in_words,
+              ic_uint32 pool_id);
+
+/* This method is part of external interface */
+void
+ic_ndbd_pool_free(void *mem)
+{
+  ic_uint32 *uint32_mem = (ic_uint32*)mem;
+  ic_uint32 mem_size_in_words = uint32_mem[-2];
+  ic_pool_check_memory(mem);
+  ic_uint32 status_info = uint32_mem[mem_size_in_words + 1];
+  ic_uint32 magic = uint32_mem[mem_size_in_words];
+  ic_uint32 pool_id = (status_info & INFO_BIT_MASK);
+  ic_uint32 mem_offset_in_words = uint32_mem[-1];
+  IC_LONG_LIVED_MEMORY_BASE *base_ptr =
+    &glob_long_lived_memory_base[pool_id];
+  IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr = (IC_LONG_LIVED_MEMORY_AREA*)
+    &uint32_mem[-int(mem_offset_in_words + 2)];
+  ic_uint32 check_magic = glob_long_mempool_mapper.ic_make_magic(pool_id);
+#ifdef VM_TRACE
+  IC_LONG_LIVED_MEMORY_BASE *base_ptr_check = mem_area_ptr->m_base_ptr;
+  if (unlikely(base_ptr_check != base_ptr))
+  {
+    abort();
+  }
+#endif
+  if (unlikely(magic != check_magic))
+  {
+    abort();
+  }
+  ic_mempool_long_lived_pool_free(uint32_mem,
+                                  base_ptr,
+                                  mem_area_ptr,
+                                  mem_size_in_words,
+                                  mem_offset_in_words,
+                                  pool_id);
+}
+
+static void
+ic_mempool_long_lived_pool_free(ic_uint32 *mem,
+                                IC_LONG_LIVED_MEMORY_BASE *base_ptr,
+                                IC_LONG_LIVED_MEMORY_AREA *mem_area_ptr,
+                                ic_uint32 mem_size_in_words,
+                                ic_uint32 offset_in_words,
+                                ic_uint32 pool_id)
+{
+  ic_uint32 size_long_lived_memory_area_header_in_words =
+    sizeof(IC_LONG_LIVED_MEMORY_AREA) / 4;
+  bool check_left = true;
+  if (unlikely(offset_in_words <=
+               size_long_lived_memory_area_header_in_words))
+  {
+    if (offset_in_words < size_long_lived_memory_area_header_in_words)
+    {
+      abort();
+    }
+    check_left = false;
+  }
+  ic_uint32 right_limit_in_words = MEMORY_SEGMENT_SIZE / 4;
+  ic_uint32 right_index =
+    offset_in_words + mem_size_in_words + MALLOC_OVERHEAD_IN_WORDS;
+  bool check_right = true;
+  if (right_index >= right_limit_in_words)
+  {
+    if (unlikely(right_index > right_limit_in_words))
+    {
+      abort();
+    }
+    check_right = false;
+  }
+  NdbMutex_Lock(&base_ptr->m_mutex);
+  if (check_left)
+  {
+    /* Read status info from left neighbour */
+    ic_uint32 left_status_info = mem[-3];
+    ic_uint32 is_left_allocated = (left_status_info >> ALLOC_BIT_SHIFT) & 1;
+    if (is_left_allocated == 0)
+    {
+      ic_uint32 left_len_in_words = left_status_info >> ALLOC_SIZE_SHIFT;
+      ic_uint32 left_pos = get_array_pos(left_len_in_words);
+      ic_uint32 *left_mem =
+        &mem[-int(left_len_in_words + MALLOC_OVERHEAD_IN_WORDS)];
+      remove_from_memory_area(mem_area_ptr,
+        left_pos,
+        (FREE_AREA_STRUCT*)&left_mem[-2]);
+      mem =
+        ic_merge_free(left_mem,
+                      mem,
+                      left_len_in_words,
+                      mem_size_in_words,
+                      pool_id);
+      mem_size_in_words = mem[-2];
+    }
+  }
+  if (check_right)
+  {
+    ic_uint32 *right_mem = &mem[mem_size_in_words + MALLOC_OVERHEAD_IN_WORDS];
+    ic_uint32 right_len_in_words = right_mem[-2];
+    ic_uint32 right_status_info = right_mem[right_len_in_words + 1];
+    ic_uint32 is_right_allocated = (right_status_info >> ALLOC_BIT_SHIFT) & 1;
+    if (is_right_allocated == 0)
+    {
+      ic_uint32 right_pos = get_array_pos(right_len_in_words);
+      remove_from_memory_area(mem_area_ptr,
+        right_pos,
+        (FREE_AREA_STRUCT*)&right_mem[-2]);
+      mem = ic_merge_free(mem,
+                          right_mem,
+                          mem_size_in_words,
+                          right_len_in_words,
+                          pool_id);
+    }
+  }
+  FREE_AREA_STRUCT *mem_free_ptr = (FREE_AREA_STRUCT*)&mem[-2];
+  ic_uint32 len_in_words = mem[-2];
+  ic_uint32 pos = get_array_pos(len_in_words);
+  insert_into_memory_area(mem_area_ptr, pos, mem_free_ptr);
+  if (unlikely(len_in_words >= MAX_MEMORY_ALLOC_SIZE_IN_WORDS))
+  {
+    if (len_in_words > MAX_MEMORY_ALLOC_SIZE_IN_WORDS)
+    {
+      abort();
+    }
+    /**
+     * All the memory of the memory area released, it is possible to
+     * release the entire memory area if so is desired.
+     */
+    if (mem_area_ptr->m_current_pos != POS_MEMORY_AREA_EMPTY)
+    {
+      remove_from_base_area(base_ptr,
+                            mem_area_ptr->m_current_pos,
+                            mem_area_ptr);
+    }
+    //printf("Release memory segment, mem_area_ptr: %p\n", mem_area_ptr);
+    NdbMutex_Unlock(&base_ptr->m_mutex);
+    glob_long_mempool_backend.ic_free_backend(mem_area_ptr,
+                                              pool_id,
+                                              MEMORY_SEGMENT_SIZE);
+    return;
+  }
+  if (pos > mem_area_ptr->m_current_pos)
+  {
+    remove_from_base_area(base_ptr, mem_area_ptr->m_current_pos, mem_area_ptr);
+    insert_into_base_area(base_ptr, pos, mem_area_ptr);
+    mem_area_ptr->m_current_pos = pos;
+  }
+  else if (mem_area_ptr->m_current_pos == POS_MEMORY_AREA_EMPTY)
+  {
+    insert_into_base_area(base_ptr, pos, mem_area_ptr);
+    mem_area_ptr->m_current_pos = pos;
+  }
+  //printf("free memory len_in_words: %u, mem_area_ptr: %p\n", len_in_words, mem_area_ptr);
+  ic_uint32 status_info = ((len_in_words) << ALLOC_SIZE_SHIFT);
+  status_info |= pool_id;
+  mem[len_in_words+1] = status_info;
+  NdbMutex_Unlock(&base_ptr->m_mutex);
+}
+
+static ic_uint32*
+ic_merge_free(ic_uint32 *left_mem,
+              ic_uint32 *right_mem,
+              ic_uint32 left_size_in_words,
+              ic_uint32 right_size_in_words,
+              ic_uint32 pool_id)
+{
+  ic_uint32 new_size_in_words = left_size_in_words +
+                                right_size_in_words +
+                                MALLOC_OVERHEAD_IN_WORDS;
+  left_mem[-2] = new_size_in_words;
+  ic_uint32 status_info = ((new_size_in_words) << ALLOC_SIZE_SHIFT);
+  status_info |= pool_id;
+  left_mem[new_size_in_words + 1] = status_info;
+  return left_mem;
+}
+
+static void
+ic_pool_check_memory(void *mem)
+{
+  ic_uint32 *uint32_mem = (ic_uint32*)mem;
+  ic_uint32 mem_size_in_words = uint32_mem[-2];
+  ic_uint32 stored_magic = uint32_mem[mem_size_in_words];
+  ic_uint32 status_info = uint32_mem[mem_size_in_words + 1];
+  ic_uint32 pool_id = status_info & INFO_BIT_MASK;
+  ic_uint32 alloc_bit = (status_info >> ALLOC_BIT_SHIFT) & 1;
+  ic_uint32 size_in_words = (status_info >> ALLOC_SIZE_SHIFT);
+  ic_uint32 calc_magic = glob_long_mempool_mapper.ic_make_magic(pool_id);
+  if (stored_magic != calc_magic ||
+      (!alloc_bit) ||
+      size_in_words != mem_size_in_words)
+  {
+    abort();
+  }
+}
+
+static ic_uint32
+default_make_magic(ic_uint32 pool_id)
+{
+  ic_uint32 magic = 0xfdb97530 + pool_id;
+  return magic;
+}
+
+static ic_uint32
+default_map_pool_id(ic_uint32 in)
+{
+  return in;
+}
+
+static void*
+default_malloc_backend(size_t size, ic_uint32 pool_id)
+{
+  (void)pool_id;
+  return malloc(size);
+}
+
+static void
+default_free_backend(void *mem,
+                     ic_uint32 pool_id,
+                     ic_uint32 size)
+{
+  (void)pool_id;
+  free(mem);
+}
+
+static
+void ic_init_long_lived_memory_pool(IC_MAP_POOL_ID map_pool_id,
+                                    IC_MAKE_MAGIC make_magic,
+                                    IC_MALLOC_BACKEND malloc_backend,
+                                    IC_FREE_BACKEND free_backend)
+{
+  if (make_magic == nullptr)
+    glob_long_mempool_mapper.ic_make_magic = default_make_magic;
+  else
+    glob_long_mempool_mapper.ic_make_magic = make_magic;
+  if (map_pool_id == nullptr)
+    glob_long_mempool_mapper.ic_map_pool_id = default_map_pool_id;
+  else
+    glob_long_mempool_mapper.ic_make_magic = map_pool_id;
+
+  if (malloc_backend == nullptr)
+    glob_long_mempool_backend.ic_malloc_backend = default_malloc_backend;
+  else
+    glob_long_mempool_backend.ic_malloc_backend = malloc_backend;
+  if (free_backend == nullptr)
+    glob_long_mempool_backend.ic_free_backend = default_free_backend;
+  else
+    glob_long_mempool_backend.ic_free_backend = free_backend;
+
+  for (ic_uint32 pool_id = 0; pool_id < MAX_LONG_LIVED_POOLS; pool_id++)
+  {
+    for (ic_uint32 i = 0; i < NUM_FREE_AREA_LISTS; i++)
+    {
+      glob_long_lived_memory_base[pool_id].m_first_free[i] = nullptr;
+    }
+    glob_long_lived_memory_base[pool_id].m_num_active_global_malloc = 0;
+    NdbMutex_Init(&glob_long_lived_memory_base[pool_id].m_mutex);
+  }
+}
+
+/**
+ * iClaustron short lived memory handler
+ *
+ * This malloc/free implementation is based on the use case where the memory
+ * is used to handle short-lived messages that pass through in a matter of
+ * a few microseconds or at most a few milliseconds.
+ *
+ * Thus the use case here is a flow of messages arriving from somewhere,
+ * most likely from the network. These memory areas are used to store those
+ * incoming messages. Later they are passed to an execution thread and after
+ * execution the memory is freed.
+ *
+ * This particular model makes it possible to implement malloc/free using a
+ * very simple approach where a large memory area is allocated at first,
+ * each time this area is used for a message the part used by the message
+ * one calls ic_split_malloc to divide the large memory into a two parts,
+ * one with the prescribed size and the rest using the remainder of the
+ * memory.
+ *
+ * For efficiency purpose each of those memory segments will be at least
+ * 64 bytes or a multiple of 64 bytes to ensure that different messages
+ * do not share CPU cache lines if possible.
+ *
+ * When freeing the memory one simply decreases an atomic counter and
+ * when this reaches zero one knows that all memory areas have been
+ * free'd and it is time to return the full memory area to the free list.
+ */
+
+
+ic_uint32 glob_short_num_high_pools;
+ic_uint32 glob_short_available_words;
+
+struct ic_short_lived_memory_area
+{
+  ic_uint32 m_start[0];
+  bool m_is_memory_available;
+  struct ic_short_lived_memory_area *m_next_area;
+  ic_uint32 m_mem_area_total;
+  std::atomic<unsigned int> m_mem_area_used;
+};
+typedef struct ic_short_lived_memory_area IC_SHORT_LIVED_MEMORY_AREA;
+
+struct ic_short_lived_memory_base
+{
+  IC_SHORT_LIVED_MEMORY_AREA *m_first_free;
+  ic_uint32 m_num_free_areas;
+  NdbMutex m_mutex;
+};
+typedef struct ic_short_lived_memory_base IC_SHORT_LIVED_MEMORY_BASE;
+IC_SHORT_LIVED_MEMORY_BASE glob_short_lived_memory_base[MAX_SHORT_LIVED_POOLS];
+
+struct ic_mempool_mapper glob_short_mempool_mapper;
+struct ic_mempool_backend glob_short_mempool_backend;
+
+static IC_SHORT_LIVED_MEMORY_AREA*
+ic_pool_short_lived_malloc(Uint32 pool_id)
+{
+  ic_uint32 *alloc_uint32;
+  ic_uint32 available_area = MEMORY_SEGMENT_SIZE_IN_WORDS -
+                             MIN_SHORT_AREA_SIZE_IN_WORDS;
+  ic_uint32 mem_size_in_words = available_area - MALLOC_OVERHEAD_IN_WORDS;
+  IC_SHORT_LIVED_MEMORY_BASE *base_ptr =
+    &glob_short_lived_memory_base[pool_id];
+  IC_SHORT_LIVED_MEMORY_AREA *mem_area_ptr = nullptr;
+  if (unlikely(base_ptr->m_first_free == nullptr))
+  {
+    ic_uint32 map_pool_id = glob_short_mempool_mapper.ic_map_pool_id(pool_id);
+    void *alloc_mem =
+      glob_short_mempool_backend.ic_malloc_backend(
+        MEMORY_SEGMENT_SIZE, map_pool_id);
+    if (unlikely(alloc_mem == nullptr))
+    {
+      return nullptr;
+    }
+    mem_area_ptr = (IC_SHORT_LIVED_MEMORY_AREA*)alloc_mem;
+    alloc_uint32 = (ic_uint32*)alloc_mem;
+  }
+  else
+  {
+    mem_area_ptr = (IC_SHORT_LIVED_MEMORY_AREA*)base_ptr->m_first_free;
+    alloc_uint32 = (ic_uint32*)base_ptr->m_first_free;
+    base_ptr->m_first_free = mem_area_ptr->m_next_area;
+    if (unlikely(base_ptr->m_num_free_areas == 0))
+    {
+      abort();
+    }
+    base_ptr->m_num_free_areas--;
+  }
+  mem_area_ptr->m_mem_area_used = mem_size_in_words;
+  mem_area_ptr->m_mem_area_total = mem_size_in_words;
+  mem_area_ptr->m_next_area = nullptr;
+  mem_area_ptr->m_is_memory_available = true;
+  ic_uint32 *mem_area = &alloc_uint32[MIN_SHORT_AREA_SIZE_IN_WORDS];
+  mem_area[0] = mem_size_in_words;
+  mem_area[1] = MIN_SHORT_AREA_SIZE_IN_WORDS;
+  ic_uint32 map_pool_id = glob_short_mempool_mapper.ic_map_pool_id(pool_id);
+  ic_uint32 magic = glob_short_mempool_mapper.ic_make_magic(map_pool_id);
+  ic_uint32 status_info = map_pool_id & INFO_BIT_MASK;
+  status_info |= (mem_size_in_words << ALLOC_SIZE_SHIFT);
+  mem_area[available_area - 2] = magic;
+  mem_area[available_area - 1] = status_info;
+  return mem_area_ptr;
+}
+
+static void
+release_memory_area(IC_SHORT_LIVED_MEMORY_BASE *base_ptr,
+                    IC_SHORT_LIVED_MEMORY_AREA *mem_area_ptr,
+                    ic_uint32 map_pool_id)
+{
+  unsigned int new_remaining =
+    mem_area_ptr->m_mem_area_used.load();
+  if (mem_area_ptr->m_is_memory_available || new_remaining)
+  {
+    /**
+     * We are still allocating from it, too early to return
+     */
+    NdbMutex_Unlock(&base_ptr->m_mutex);
+    return;
+  }
+  if (base_ptr->m_num_free_areas < MAX_FREE_SHORT_AREAS)
+  {
+    mem_area_ptr->m_next_area = base_ptr->m_first_free;
+    base_ptr->m_first_free = mem_area_ptr;
+    base_ptr->m_num_free_areas++;
+    NdbMutex_Unlock(&base_ptr->m_mutex);
+    return;
+  }
+  NdbMutex_Unlock(&base_ptr->m_mutex);
+  glob_short_mempool_backend.ic_free_backend((void*)mem_area_ptr,
+                                             map_pool_id,
+                                             MEMORY_SEGMENT_SIZE);
+}
+
+/* This method is part of external interface */
+void
+ic_ndbd_pool_split_free(void *mem)
+{
+  ic_pool_check_memory(mem);
+  ic_uint32 *uint32_mem = (ic_uint32*)mem;
+  ic_uint32 mem_size_in_words = uint32_mem[-2];
+  ic_uint32 mem_offset_in_words = uint32_mem[-1];
+  IC_SHORT_LIVED_MEMORY_AREA *mem_area_ptr =
+    (IC_SHORT_LIVED_MEMORY_AREA*)&uint32_mem[-int(mem_offset_in_words + 2)];
+  ic_uint32 size_in_words = mem_size_in_words + MALLOC_OVERHEAD_IN_WORDS;
+  unsigned int remaining =
+    mem_area_ptr->m_mem_area_used.fetch_sub(size_in_words);
+  if (unlikely(remaining > mem_area_ptr->m_mem_area_total))
+  {
+    abort();
+  }
+  if (likely(remaining > 0))
+  {
+    return;
+  }
+  ic_uint32 status_info = uint32_mem[mem_size_in_words + 1];
+  ic_uint32 pool_id = status_info & INFO_BIT_MASK;
+  ic_uint32 map_pool_id = glob_short_mempool_mapper.ic_map_pool_id(pool_id);
+  if (unlikely(map_pool_id >= MAX_SHORT_LIVED_POOLS))
+  {
+    abort();
+  }
+  IC_SHORT_LIVED_MEMORY_BASE *base_ptr =
+    &glob_short_lived_memory_base[map_pool_id];
+  NdbMutex_Lock(&base_ptr->m_mutex);
+  release_memory_area(base_ptr, mem_area_ptr, map_pool_id);
+}
+
+static void*
+ic_ndbd_pool_min_malloc(ic_uint32 map_pool_id)
+{
+  IC_SHORT_LIVED_MEMORY_BASE *base_ptr =
+    &glob_short_lived_memory_base[map_pool_id];
+  NdbMutex_Lock(&base_ptr->m_mutex);
+  void *ret_mem = (void*)ic_pool_short_lived_malloc(map_pool_id);
+  NdbMutex_Unlock(&base_ptr->m_mutex);
+  return ret_mem;
+}
+
+/* This method is part of external interface */
+void*
+ic_ndbd_split_malloc(unsigned int _pool_id, void **mem, size_t size)
+{
+  ic_uint32 pool_id = (ic_uint32)_pool_id;
+  ic_uint32 map_pool_id = glob_short_mempool_mapper.ic_map_pool_id(pool_id);
+  void *mem_area = *mem;
+  bool first = true;
+
+  if (unlikely(size > MEMORY_SEGMENT_SIZE || size == 0))
+    return nullptr;
+
+  do
+  {
+    if (unlikely(mem_area == nullptr))
+    {
+      mem_area = ic_ndbd_pool_min_malloc(map_pool_id);
+      if (unlikely(mem_area == nullptr))
+        return nullptr;
+      *mem = mem_area;
+    }
+    IC_SHORT_LIVED_MEMORY_AREA *mem_area_ptr =
+      (IC_SHORT_LIVED_MEMORY_AREA*)mem_area;
+    ic_uint32 *mem_start_ptr = (ic_uint32*)mem_area;
+    mem_start_ptr = &mem_start_ptr[MIN_SHORT_AREA_SIZE_IN_WORDS + 2];
+    if (likely(mem_area_ptr->m_is_memory_available))
+    {
+      ic_uint32 remaining_area = 0;
+      void *ret_mem = ic_split_malloc_spec(mem_start_ptr,
+                                           size,
+                                           &remaining_area,
+                                           MIN_SHORT_AREA_SIZE);
+      if (likely(ret_mem != nullptr))
+      {
+        ic_pool_check_memory((ic_uint32*)ret_mem);
+        if (unlikely(remaining_area == 0))
+        {
+          IC_SHORT_LIVED_MEMORY_BASE *base_ptr =
+            &glob_short_lived_memory_base[map_pool_id];
+          NdbMutex_Lock(&base_ptr->m_mutex);
+          mem_area_ptr->m_is_memory_available = false;
+          NdbMutex_Unlock(&base_ptr->m_mutex);
+          *mem = nullptr;
+        }
+        return ret_mem;
+      }
+      else
+      {
+        mem_area_ptr->m_mem_area_used.fetch_sub(remaining_area);
+        IC_SHORT_LIVED_MEMORY_BASE *base_ptr =
+          &glob_short_lived_memory_base[map_pool_id];
+        NdbMutex_Lock(&base_ptr->m_mutex);
+        mem_area_ptr->m_is_memory_available = false;
+        release_memory_area(base_ptr, mem_area_ptr, map_pool_id);
+        *mem = nullptr;
+      }
+    }
+    if (unlikely(!first))
+      abort();
+    mem_area = nullptr;
+    first = false;
+  } while (true);
+  return nullptr; 
+}
+
+static
+void ic_init_short_lived_memory_pool(IC_MAP_POOL_ID map_pool_id,
+                                     IC_MAKE_MAGIC make_magic,
+                                     IC_MALLOC_BACKEND malloc_backend,
+                                     IC_FREE_BACKEND free_backend)
+{
+  if (make_magic == nullptr)
+    glob_short_mempool_mapper.ic_make_magic = default_make_magic;
+  else
+    glob_short_mempool_mapper.ic_make_magic = make_magic;
+  if (map_pool_id == nullptr)
+    glob_short_mempool_mapper.ic_map_pool_id = default_map_pool_id;
+  else
+    glob_short_mempool_mapper.ic_make_magic = map_pool_id;
+  if (malloc_backend == nullptr)
+    glob_short_mempool_backend.ic_malloc_backend = default_malloc_backend;
+  else
+    glob_short_mempool_backend.ic_malloc_backend = malloc_backend;
+  if (free_backend == nullptr)
+    glob_short_mempool_backend.ic_free_backend = default_free_backend;
+  else
+    glob_short_mempool_backend.ic_free_backend = free_backend;
+
+  for (ic_uint32 pool_id = 0; pool_id < MAX_SHORT_LIVED_POOLS; pool_id++)
+  {
+    glob_short_lived_memory_base[pool_id].m_first_free = nullptr;
+    glob_short_lived_memory_base[pool_id].m_num_free_areas = 0;
+    NdbMutex_Init(&glob_short_lived_memory_base[pool_id].m_mutex);
+  }
+}
+
+/* This method is part of external interface */
+void
+init_ic_ndbd_memory_pool()
+{
+  ic_init_short_lived_memory_pool(nullptr, nullptr, nullptr, nullptr);
+  ic_init_long_lived_memory_pool(nullptr, nullptr, nullptr, nullptr);
+}
+
+/**
+ * Test program
+ */
+#define NUM_ROUNDS 64000000
+#define NUM_THREADS 8
+
+static ic_uint32
+get_random(ic_uint32 max)
+{
+  long rand_number = random();
+  ic_uint64 rand_max = ic_uint64(1 << 31);
+  ic_uint64 rand_calc = rand_number * ic_uint64(max);
+  rand_calc /= rand_max;
+  return ic_uint32(rand_calc);
+}
+
+static size_t
+get_malloc_size()
+{
+  return size_t(32 + get_random(136));
+}
+
+static void
+swap_ptrs(void **ptrs, ic_uint32 source, ic_uint32 dest)
+{
+  void *source_ptr = ptrs[source];
+  void *dest_ptr = ptrs[dest];
+  ptrs[dest] = source_ptr;
+  ptrs[source] = dest_ptr;
+}
+
+static void
+simple_single_thread_short_test()
+{
+  ic_uint32 num_rounds = 128;
+  void *ptrs[128];
+  ic_uint32 malloc_size = 32768;
+  printf("Simple Single-threaded short malloc test\n");
+  void *mem_area = nullptr;
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ptrs[i] = ic_ndbd_split_malloc(0, &mem_area, malloc_size);
+    if (ptrs[i] == nullptr)
+    {
+      abort();
+    }
+  }
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    for (ic_uint32 j = i + 1; j < num_rounds; j++)
+    {
+      if (ptrs[i] == ptrs[j])
+      {
+        abort();
+      }
+    }
+  }
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_ndbd_pool_split_free(ptrs[i]);
+  }
+}
+
+static void
+simple_single_thread_short_test_random()
+{
+  ic_uint32 num_rounds = 128;
+  void *ptrs[128];
+  ic_uint32 malloc_size = 32768;
+  printf("Simple Single-threaded short malloc random test\n");
+  void *mem_area = nullptr;
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ptrs[i] = ic_ndbd_split_malloc(0, &mem_area, malloc_size);
+    if (ptrs[i] == nullptr)
+    {
+      abort();
+    }
+  }
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    for (ic_uint32 j = i + 1; j < num_rounds; j++)
+    {
+      if (ptrs[i] == ptrs[j])
+      {
+        abort();
+      }
+    }
+  }
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_ndbd_pool_split_free(ptrs[i]);
+  }
+}
+
+static void
+many_single_thread_short_test()
+{
+  ic_uint32 num_rounds = NUM_ROUNDS;
+  void **ptrs;
+  ptrs = (void**)malloc(sizeof(void*) * num_rounds);
+  printf("Many Single-threaded short malloc test\n");
+  void *mem_area = nullptr;
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    size_t malloc_size = get_malloc_size();
+    ptrs[i] = ic_ndbd_split_malloc(0, &mem_area, malloc_size);
+    if (ptrs[i] == nullptr)
+    {
+      abort();
+    }
+  }
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_ndbd_pool_split_free(ptrs[i]);
+  }
+  free(ptrs);
+}
+
+static void
+many_single_thread_short_test_random()
+{
+  ic_uint32 num_rounds = NUM_ROUNDS;
+  void **ptrs;
+  ptrs = (void**)malloc(sizeof(void*) * num_rounds);
+  printf("Many Single-threaded short malloc random test\n");
+  void *mem_area = nullptr;
+
+  NDB_TICKS start = NdbTick_getCurrentTicks();
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    size_t malloc_size = get_malloc_size();
+    ptrs[i] = ic_ndbd_split_malloc(0, &mem_area, malloc_size);
+    if (ptrs[i] == nullptr)
+    {
+      abort();
+    }
+  }
+  NDB_TICKS end_malloc = NdbTick_getCurrentTicks();
+  Uint64 micros = NdbTick_Elapsed(start, end_malloc).microSec();
+  printf("Allocation took %llu microseconds\n", micros);
+
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_uint32 source = get_random(num_rounds);
+    ic_uint32 dest = get_random(num_rounds);
+    swap_ptrs(ptrs, source, dest);
+  }
+  start = NdbTick_getCurrentTicks();
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_ndbd_pool_split_free(ptrs[i]);
+  }
+  NDB_TICKS end_free = NdbTick_getCurrentTicks();
+  micros = NdbTick_Elapsed(start, end_free).microSec();
+  printf("Free took %llu microseconds\n", micros);
+  free(ptrs);
+}
+
+static void **glob_ptrs;
+
+extern "C"
+void*
+release_split_malloc(void* arg)
+{
+  ic_uint64 thread_id = (ic_uint64)arg;
+  ic_uint64 num_frees = NUM_ROUNDS / NUM_THREADS;
+  ic_uint64 first_free = thread_id * num_frees;
+  for (ic_uint64 i = first_free; i < (first_free + num_frees); i++)
+  {
+    ic_ndbd_pool_split_free(glob_ptrs[i]);
+  }
+  return nullptr;
+}
+
+extern "C"
+void*
+alloc_split_malloc(void* arg)
+{
+  ic_uint64 thread_id = (ic_uint64)arg;
+  ic_uint64 num_frees = NUM_ROUNDS / NUM_THREADS;
+  ic_uint64 first_free = thread_id * num_frees;
+  void *mem_area = nullptr;
+  for (ic_uint64 i = first_free; i < (first_free + num_frees); i++)
+  {
+    size_t malloc_size = get_malloc_size();
+    glob_ptrs[i] = ic_ndbd_split_malloc(0, &mem_area, malloc_size);
+    if (glob_ptrs[i] == nullptr)
+    {
+      abort();
+    }
+  }
+  return nullptr;
+}
+
+static void
+many_multi_thread_short_test_random()
+{
+  ic_uint32 num_rounds = NUM_ROUNDS;
+  glob_ptrs = (void**)malloc(sizeof(void*) * num_rounds);
+  printf("Many multi-threaded short malloc random test\n");
+
+  NDB_TICKS start = NdbTick_getCurrentTicks();
+  NdbThread *alloc_thr_ptrs[NUM_THREADS];
+  for (ic_uint64 i = 0; i < NUM_THREADS; i++)
+  {
+    struct NdbThread *thr_ptr =
+      NdbThread_Create(alloc_split_malloc,
+                       (void**)i,
+                       64 * 1024,
+                       "alloc_split_malloc",
+                       NDB_THREAD_PRIO_MEAN);
+    alloc_thr_ptrs[i] = thr_ptr;
+  }
+
+  for (ic_uint32 i = 0; i < NUM_THREADS; i++)
+  {
+    void *dummy;
+    NdbThread_WaitFor(alloc_thr_ptrs[i], &dummy);
+  }
+  NDB_TICKS end_malloc = NdbTick_getCurrentTicks();
+  Uint64 micros = NdbTick_Elapsed(start, end_malloc).microSec();
+  printf("Allocation took %llu microseconds\n", micros);
+  for (ic_uint32 i = 0; i < NUM_THREADS; i++)
+  {
+    NdbThread_Destroy(&alloc_thr_ptrs[i]);
+  }
+
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_uint32 source = get_random(num_rounds);
+    ic_uint32 dest = get_random(num_rounds);
+    swap_ptrs(glob_ptrs, source, dest);
+  }
+
+  start = NdbTick_getCurrentTicks();
+  NdbThread *release_thr_ptrs[NUM_THREADS];
+  for (ic_uint64 i = 0; i < NUM_THREADS; i++)
+  {
+    struct NdbThread *thr_ptr =
+      NdbThread_Create(release_split_malloc,
+                       (void**)i,
+                       64 * 1024,
+                       "release_split_malloc",
+                       NDB_THREAD_PRIO_MEAN);
+    release_thr_ptrs[i] = thr_ptr;
+  }
+  for (ic_uint32 i = 0; i < NUM_THREADS; i++)
+  {
+    void *dummy;
+    NdbThread_WaitFor(release_thr_ptrs[i], &dummy);
+    NdbThread_Destroy(&release_thr_ptrs[i]);
+  }
+  NDB_TICKS end_free = NdbTick_getCurrentTicks();
+  micros = NdbTick_Elapsed(start, end_free).microSec();
+  printf("Allocation took %llu microseconds\n", micros);
+  free(glob_ptrs);
+}
+
+static void
+simple_single_thread_long_test()
+{
+  ic_uint32 num_rounds = 16;
+  void *ptrs[16];
+  printf("Simple Single-threaded long malloc test\n");
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ptrs[i] = ic_ndbd_pool_malloc(1 << (i+1), 0, 1);
+  }
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    for (ic_uint32 j = i + 1; j < num_rounds; j++)
+    {
+      if (ptrs[i] == ptrs[j])
+      {
+        abort();
+      }
+    }
+  }
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_ndbd_pool_free(ptrs[i]);
+  }
+}
+
+static void
+many_malloc_single_thread_long_test()
+{
+  ic_uint32 num_rounds = NUM_ROUNDS;
+  void **ptrs;
+  printf("Many malloc's Single-threaded long malloc test\n");
+
+  ptrs = (void**)malloc(sizeof(void*) * num_rounds);
+  
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    size_t malloc_size = get_malloc_size();
+    ptrs[i] = ic_ndbd_pool_malloc(malloc_size, 0, 1);
+  }
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_ndbd_pool_free(ptrs[i]);
+  }
+  free(ptrs);
+}
+
+static void
+many_malloc_single_thread_long_test_random()
+{
+  ic_uint32 num_rounds = NUM_ROUNDS;
+  void **ptrs;
+  printf("Many malloc's Single-threaded long malloc random test\n");
+
+  ptrs = (void**)malloc(sizeof(void*) * num_rounds);
+  
+  NDB_TICKS start = NdbTick_getCurrentTicks();
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    size_t malloc_size = get_malloc_size();
+    ptrs[i] = ic_ndbd_pool_malloc(malloc_size, 0, 1);
+  }
+  NDB_TICKS end_malloc = NdbTick_getCurrentTicks();
+  Uint64 micros = NdbTick_Elapsed(start, end_malloc).microSec();
+  printf("Allocation took %llu microseconds\n", micros);
+
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_uint32 source = get_random(num_rounds);
+    ic_uint32 dest = get_random(num_rounds);
+    swap_ptrs(ptrs, source, dest);
+  }
+  start = NdbTick_getCurrentTicks();
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_ndbd_pool_free(ptrs[i]);
+  }
+  NDB_TICKS end_free = NdbTick_getCurrentTicks();
+  micros = NdbTick_Elapsed(start, end_free).microSec();
+  printf("Free took %llu microseconds\n", micros);
+  free(ptrs);
+}
+
+extern "C"
+void*
+release_pool_malloc(void* arg)
+{
+  ic_uint32 thread_id = (ic_uint64)arg;
+  ic_uint32 num_frees = NUM_ROUNDS / NUM_THREADS;
+  ic_uint32 first_free = thread_id * num_frees;
+  for (ic_uint32 i = first_free; i < (first_free + num_frees); i++)
+  {
+    ic_ndbd_pool_free(glob_ptrs[i]);
+  }
+  return nullptr;
+}
+
+extern "C"
+void*
+alloc_pool_malloc(void* arg)
+{
+  ic_uint32 thread_id = (ic_uint64)arg;
+  ic_uint32 num_frees = NUM_ROUNDS / NUM_THREADS;
+  ic_uint32 first_free = thread_id * num_frees;
+  for (ic_uint32 i = first_free; i < (first_free + num_frees); i++)
+  {
+    size_t malloc_size = get_malloc_size();
+    glob_ptrs[i] = ic_ndbd_pool_malloc(malloc_size, 0, 1);
+    if (glob_ptrs[i] == nullptr)
+    {
+      abort();
+    }
+  }
+  return nullptr;
+}
+
+static void
+many_malloc_multi_thread_long_test_random()
+{
+  ic_uint32 num_rounds = NUM_ROUNDS;
+  glob_ptrs = (void**)malloc(sizeof(void*) * num_rounds);
+  printf("Many multi-threaded long malloc random test\n");
+
+  NDB_TICKS start = NdbTick_getCurrentTicks();
+  NdbThread *alloc_thr_ptrs[NUM_THREADS];
+  for (ic_uint64 i = 0; i < NUM_THREADS; i++)
+  {
+    struct NdbThread *thr_ptr =
+      NdbThread_Create(alloc_pool_malloc,
+                       (void**)i,
+                       64 * 1024,
+                       "alloc_pool_malloc",
+                       NDB_THREAD_PRIO_MEAN);
+    alloc_thr_ptrs[i] = thr_ptr;
+  }
+  for (ic_uint32 i = 0; i < NUM_THREADS; i++)
+  {
+    void *dummy;
+    NdbThread_WaitFor(alloc_thr_ptrs[i], &dummy);
+    NdbThread_Destroy(&alloc_thr_ptrs[i]);
+  }
+  NDB_TICKS end_malloc = NdbTick_getCurrentTicks();
+  Uint64 micros = NdbTick_Elapsed(start, end_malloc).microSec();
+  printf("Allocation took %llu microseconds\n", micros);
+  for (ic_uint32 i = 0; i < num_rounds; i++)
+  {
+    ic_uint32 source = get_random(num_rounds);
+    ic_uint32 dest = get_random(num_rounds);
+    swap_ptrs(glob_ptrs, source, dest);
+  }
+
+  start = NdbTick_getCurrentTicks();
+  NdbThread *release_thr_ptrs[NUM_THREADS];
+  for (ic_uint64 i = 0; i < NUM_THREADS; i++)
+  {
+    struct NdbThread *thr_ptr =
+      NdbThread_Create(release_pool_malloc,
+                       (void**)i,
+                       64 * 1024,
+                       "release_pool_malloc",
+                       NDB_THREAD_PRIO_MEAN);
+    release_thr_ptrs[i] = thr_ptr;
+  }
+  for (ic_uint32 i = 0; i < NUM_THREADS; i++)
+  {
+    void *dummy;
+    NdbThread_WaitFor(release_thr_ptrs[i], &dummy);
+    NdbThread_Destroy(&release_thr_ptrs[i]);
+  }
+  NDB_TICKS end_free = NdbTick_getCurrentTicks();
+  micros = NdbTick_Elapsed(start, end_free).microSec();
+  printf("Free took %llu microseconds\n", micros);
+  free(glob_ptrs);
+}
+
+static void
+test_get_array_pos()
+{
+  printf("Test iClaustron get_array_pos\n");
+  size_t size_array[27];
+  ic_uint32 pos_array[27];
+  ic_uint32 i = 0;
+  size_array[0] = 1;
+  pos_array[0] = 0;
+  size_array[++i] = 3;
+  pos_array[i] = 0;
+  size_array[++i] = 4;
+  pos_array[i] = 0;
+  size_array[++i] = 5;
+  pos_array[i] = 1;
+  size_array[++i] = 15;
+  pos_array[i] = 1;
+  size_array[++i] = 16;
+  pos_array[i] = 1;
+  size_array[++i] = 17;
+  pos_array[i] = 2;
+  size_array[++i] = 63;
+  pos_array[i] = 2;
+  size_array[++i] = 64;
+  pos_array[i] = 2;
+  size_array[++i] = 65;
+  pos_array[i] = 3;
+  size_array[++i] = 255;
+  pos_array[i] = 3;
+  size_array[++i] = 256;
+  pos_array[i] = 3;
+  size_array[++i] = 257;
+  pos_array[i] = 4;
+  size_array[++i] = 1023;
+  pos_array[i] = 4;
+  size_array[++i] = 1024;
+  pos_array[i] = 4;
+  size_array[++i] = 1025;
+  pos_array[i] = 5;
+  size_array[++i] = 4095;
+  pos_array[i] = 5;
+  size_array[++i] = 4096;
+  pos_array[i] = 5;
+  size_array[++i] = 4097;
+  pos_array[i] = 6;
+  size_array[++i] = 16383;
+  pos_array[i] = 6;
+  size_array[++i] = 16384;
+  pos_array[i] = 6;
+  size_array[++i] = 16385;
+  pos_array[i] = 7;
+  size_array[++i] = 65535;
+  pos_array[i] = 7;
+  size_array[++i] = 65536;
+  pos_array[i] = 7;
+  size_array[++i] = 65537;
+  pos_array[i] = 8;
+  size_array[++i] = 262143;
+  pos_array[i] = 8;
+  size_array[++i] = 262144;
+  pos_array[i] = 8;
+  assert(i == 26);
+  ic_uint32 pos;
+  ic_uint32 error = 0;
+  for (ic_uint32 i = 0; i < 27; i++)
+  {
+    pos = get_array_pos(size_array[i]);
+    if (pos != pos_array[i])
+    {
+      error = i;
+      break;
+    }
+  }
+  if (error)
+  {
+    abort();
+  }
+}
+
+static void
+ic_ndbd_malloc_test()
+{
+  /* Testing iClaustron memory pool for ndbmtd */
+  printf("Test iClaustron memory pool for ndbmtd\n");
+  init_ic_ndbd_memory_pool();
+  test_get_array_pos();
+  simple_single_thread_short_test();
+  simple_single_thread_short_test_random();
+  many_single_thread_short_test();
+  many_single_thread_short_test_random();
+  many_multi_thread_short_test_random();
+  many_single_thread_short_test();
+  many_single_thread_short_test_random();
+  many_multi_thread_short_test_random();
+  simple_single_thread_long_test();
+  many_malloc_single_thread_long_test();
+  many_malloc_single_thread_long_test_random();
+  many_malloc_multi_thread_long_test_random();
+  printf("Successful Test of iClaustron memory pool for ndbmtd\n");
 }
 
 template class Vector<Chunk>;

@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1489,7 +1490,7 @@ Dbtup::exec_prepare_tup_commit(Uint32 regOperPtrI)
        */
       FragrecordPtr fragPtr;
       fragPtr.i = regOperPtr.p->fragmentPtr;
-      ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+      c_fragment_pool.getPtr(fragPtr);
       finalize_commit(regOperPtr.p, fragPtr.p);
       return ZTUP_COMMITTED;
     }
@@ -1574,7 +1575,7 @@ Dbtup::continue_report_commit_performed(Signal *signal, Uint32 firstOperPtrI)
   ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(firstOperPtr));
   c_lqh->setup_key_pointers(firstOperPtr.p->userpointer, false);
   regFragPtr.i = firstOperPtr.p->fragmentPtr;
-  ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(regFragPtr);
   report_commit_performed(signal, firstOperPtr, MAX_COMMITS, regFragPtr.p);
 }
 
@@ -1758,7 +1759,7 @@ Dbtup::exec_tup_commit(Signal *signal)
   KeyReqStruct req_struct(this, KRS_COMMIT);
   TransState trans_state;
   Ptr<GlobalPage> diskPagePtr;
-  Uint32 no_of_fragrec, no_of_tablerec;
+  Uint32 no_of_tablerec;
 
   TupCommitReq tupCommitReq= *(TupCommitReq *)signal->getDataPtr();
 
@@ -1772,7 +1773,6 @@ Dbtup::exec_tup_commit(Signal *signal)
 
   diskPagePtr.i = tupCommitReq.diskpage;
   regFragPtr.i= regOperPtr.p->fragmentPtr;
-  no_of_fragrec= cnoOfFragrec;
   no_of_tablerec= cnoOfTablerec;
 
   req_struct.signal= signal;
@@ -1783,7 +1783,7 @@ Dbtup::exec_tup_commit(Signal *signal)
   trans_state= get_trans_state(regOperPtr.p);
 
   ndbrequire(trans_state == TRANS_STARTED);
-  ptrCheckGuard(regFragPtr, no_of_fragrec, fragrecord);
+  c_fragment_pool.getPtr(regFragPtr);
 
   regTabPtr.i= regFragPtr.p->fragTableId;
 

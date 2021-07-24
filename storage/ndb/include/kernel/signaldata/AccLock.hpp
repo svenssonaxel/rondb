@@ -67,7 +67,6 @@ private:
   Uint32 userRef;
   Uint32 tableId;
   Uint32 fragId;
-  Uint32 fragPtrI;
   Uint32 hashValue;
   Uint32 page_id;
   Uint32 page_idx;

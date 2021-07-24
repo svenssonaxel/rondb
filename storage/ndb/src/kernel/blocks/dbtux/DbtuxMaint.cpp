@@ -73,7 +73,7 @@ Dbtux::execTUX_MAINT_REQ(Signal* signal)
   // get the fragment
   FragPtr fragPtr;
   findFrag(jamBuffer(), *indexPtr.p, fragId, fragPtr);
-  ndbrequire(fragPtr.i != RNIL);
+  ndbrequire(fragPtr.i != RNIL64);
   Frag& frag = *fragPtr.p;
   prepare_build_ctx(c_ctx, fragPtr);
   // set up search entry

@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -759,12 +760,7 @@ void Dbtup::execTUPFRAGREQ(Signal* signal)
     goto sendref;
   }
 
-  if (cfirstfreefrag != RNIL)
-  {
-    jam();
-    seizeFragrecord(regFragPtr);
-  }
-  else
+  if (!seizeFragrecord(regFragPtr))
   {
     jam();
     terrorCode= ZFULL_FRAGRECORD_ERROR;
@@ -979,10 +975,39 @@ bool Dbtup::addfragtotab(Tablerec* const regTabPtr,
   return false;
 }
 
-Uint32
+bool Dbtup::get_fragment_record(TablerecPtr & tabPtr,
+                                FragrecordPtr & fragPtr,
+                                Uint32 tableId,
+                                Uint32 fragId)
+{
+  tabPtr.i = tableId;
+  ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
+  fragPtr.i = get_frag_from_tab(tabPtr, fragId);
+  if (fragPtr.i != RNIL64)
+  {
+    jam();
+    c_fragment_pool.getPtr(fragPtr);
+    return true;
+  }
+  else
+  {
+    jam();
+    return false;
+  }
+}
+
+Uint64 Dbtup::get_fragment(Uint32 tableId, Uint32 fragId)
+{
+  TablerecPtr regTabPtr;
+  regTabPtr.i = tableId;
+  ptrCheckGuard(regTabPtr, cnoOfTablerec, tablerec);
+  return get_frag_from_tab(regTabPtr, fragId);
+}
+
+Uint64
 Dbtup::get_frag_from_tab(TablerecPtr tabPtr, Uint32 fragId)
 {
-  Uint32 fragIndex = RNIL;
+  Uint64 fragIndex = RNIL64;
   for (Uint32 i = 0; i < NDB_ARRAY_SIZE(tabPtr.p->fragid); i++)
   {
     jam();
@@ -1006,7 +1031,7 @@ Dbtup::remove_frag_from_tab(TablerecPtr tabPtr, Uint32 fragId)
     {
       jam();
       tabPtr.p->fragid[i] = RNIL;
-      tabPtr.p->fragrec[i] = RNIL;
+      tabPtr.p->fragrec[i] = RNIL64;
       return;
     }
   }
@@ -1026,7 +1051,7 @@ void Dbtup::getFragmentrec(FragrecordPtr& regFragPtr,
     if (regTabPtr->fragid[i] == fragId) {
       thrjamDebug(jamBuf);
       regFragPtr.i= regTabPtr->fragrec[i];
-      ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
+      c_fragment_pool.getPtr(regFragPtr);
       return;
     }
   }
@@ -1034,13 +1059,15 @@ void Dbtup::getFragmentrec(FragrecordPtr& regFragPtr,
   ptrNull(regFragPtr);
 }
 
-void Dbtup::seizeFragrecord(FragrecordPtr& regFragPtr)
+bool Dbtup::seizeFragrecord(FragrecordPtr& regFragPtr)
 {
-  regFragPtr.i= cfirstfreefrag;
-  ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
-  cfirstfreefrag= regFragPtr.p->nextfreefrag;
-  regFragPtr.p->nextfreefrag= RNIL;
-  RSS_OP_ALLOC(cnoOfFreeFragrec);
+  bool ret_code = c_fragment_pool.seize(regFragPtr);
+  if (ret_code)
+  {
+    RSS_OP_ALLOC(cnoOfAllocatedFragrec);
+    regFragPtr.p = new (regFragPtr.p) Fragrecord();
+  }
+  return ret_code;
 }
 
 void Dbtup::seizeFragoperrec(FragoperrecPtr& fragOperPtr)
@@ -1116,7 +1143,7 @@ Dbtup::execALTER_TAB_REQ(Signal *signal)
       if ((regFragPtr.i = regTabPtr.p->fragrec[i]) != RNIL)
       {
         jam();
-        ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
+        c_fragment_pool.getPtr(regFragPtr);
         switch(regFragPtr.p->fragStatus){
         case Fragrecord::FS_REORG_COMMIT_NEW:
           jam();
@@ -1146,7 +1173,7 @@ Dbtup::execALTER_TAB_REQ(Signal *signal)
       if ((regFragPtr.i = regTabPtr.p->fragrec[i]) != RNIL)
       {
         jam();
-        ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
+        c_fragment_pool.getPtr(regFragPtr);
         switch(regFragPtr.p->fragStatus){
         case Fragrecord::FS_REORG_COMMIT:
           jam();
@@ -1427,7 +1454,7 @@ Dbtup::handleAlterTableCommit(Signal *signal,
       if ((regFragPtr.i = regTabPtr->fragrec[i]) != RNIL)
       {
         jam();
-        ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
+        c_fragment_pool.getPtr(regFragPtr);
         switch(regFragPtr.p->fragStatus){
         case Fragrecord::FS_ONLINE:
           jam();
@@ -1472,7 +1499,7 @@ Dbtup::handleAlterTableComplete(Signal *signal,
       if ((regFragPtr.i = regTabPtr->fragrec[i]) != RNIL)
       {
         jam();
-        ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
+        c_fragment_pool.getPtr(regFragPtr);
         switch(regFragPtr.p->fragStatus){
         case Fragrecord::FS_REORG_COMPLETE:
           jam();
@@ -2092,24 +2119,22 @@ void Dbtup::releaseFragment(Signal* signal, Uint32 tableId,
   TablerecPtr tabPtr;
   tabPtr.i= tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-  Uint32 fragIndex = RNIL;
   Uint32 fragId = RNIL;
   Uint32 i = 0;
   for (i = 0; i < NDB_ARRAY_SIZE(tabPtr.p->fragid); i++) {
     jam();
     if (tabPtr.p->fragid[i] != RNIL) {
       jam();
-      fragIndex= tabPtr.p->fragrec[i];
       fragId= tabPtr.p->fragid[i];
       break;
     }
   }
-  if (fragIndex != RNIL) {
+  if (fragId != RNIL) {
     jam();
     
     signal->theData[0] = ZUNMAP_PAGES;
     signal->theData[1] = tabPtr.i;
-    signal->theData[2] = fragIndex;
+    signal->theData[2] = fragId;
     signal->theData[3] = 0;
     sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);  
     return;
@@ -2179,12 +2204,13 @@ Dbtup::drop_fragment_unmap_pages(Signal *signal,
       jam();
       signal->theData[0] = ZUNMAP_PAGES;
       signal->theData[1] = tabPtr.i;
-      signal->theData[2] = fragPtr.i;
+      signal->theData[2] = fragPtr.p->fragmentId;
       signal->theData[3] = pos;
       sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);  
       return;
     }
-    while(alloc_info.m_dirty_pages[pos].isEmpty() && pos < EXTENT_SEARCH_MATRIX_COLS)
+    while(alloc_info.m_dirty_pages[pos].isEmpty() &&
+          pos < EXTENT_SEARCH_MATRIX_COLS)
       pos++;
     
     if (pos == EXTENT_SEARCH_MATRIX_COLS)
@@ -2273,7 +2299,7 @@ Dbtup::drop_fragment_unmap_page_callback(Signal* signal,
   
   signal->theData[0] = ZUNMAP_PAGES;
   signal->theData[1] = tabPtr.i;
-  signal->theData[2] = fragPtr.i;
+  signal->theData[2] = fragPtr.p->fragmentId;
   signal->theData[3] = pos;
   sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);  
 }
@@ -2294,10 +2320,9 @@ Dbtup::drop_fragment_free_extent(Signal *signal,
       if(!alloc_info.m_free_extents[pos].isEmpty())
       {
 	jam();
-        CallbackPtr cb;
-	cb.m_callbackData= fragPtr.i;
-	cb.m_callbackIndex = DROP_FRAGMENT_FREE_EXTENT_LOG_BUFFER_CALLBACK;
-	execute(signal, cb, fragPtr.p->m_logfile_group_id);	
+        drop_fragment_free_extent_log_buffer_continue(signal,
+                                                      tabPtr,
+                                                      fragPtr);
 	return;
       }
     }
@@ -2312,7 +2337,7 @@ Dbtup::drop_fragment_free_extent(Signal *signal,
   
   signal->theData[0] = ZFREE_VAR_PAGES;
   signal->theData[1] = tabPtr.i;
-  signal->theData[2] = fragPtr.i;
+  signal->theData[2] = fragPtr.p->fragmentId;
   sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);  
 }
 
@@ -2392,25 +2417,19 @@ Dbtup::drop_table_logsync_callback(Signal* signal,
              signal, DropTabConf::SignalLength, JBB);
   
   releaseTabDescr(tabPtr.p);
-  free_var_part(DefaultValuesFragment.p, tabPtr.p, &tabPtr.p->m_default_value_location);
+  free_var_part(DefaultValuesFragment.p,
+                tabPtr.p,
+                &tabPtr.p->m_default_value_location);
   tabPtr.p->m_default_value_location.setNull();
   initTab(tabPtr.p);
 }
 
 void
-Dbtup::drop_fragment_free_extent_log_buffer_callback(Signal* signal,
-						     Uint32 fragPtrI,
-						     Uint32 unused)
+Dbtup::drop_fragment_free_extent_log_buffer_continue(Signal* signal,
+                                                     TablerecPtr tabPtr,
+                                                     FragrecordPtr fragPtr)
 {
   jam();
-  FragrecordPtr fragPtr;
-  fragPtr.i = fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
-
-  TablerecPtr tabPtr;
-  tabPtr.i = fragPtr.p->fragTableId;
-  ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-
   ndbrequire(tabPtr.p->m_no_of_disk_attributes);
   Disk_alloc_info& alloc_info= fragPtr.p->m_disk_alloc_info;  
 
@@ -2439,7 +2458,7 @@ Dbtup::drop_fragment_free_extent_log_buffer_callback(Signal* signal,
       
       signal->theData[0] = ZFREE_EXTENT;
       signal->theData[1] = tabPtr.i;
-      signal->theData[2] = fragPtr.i;
+      signal->theData[2] = fragPtr.p->fragmentId;
       signal->theData[3] = pos;
       sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);  
       return;
@@ -2449,20 +2468,11 @@ Dbtup::drop_fragment_free_extent_log_buffer_callback(Signal* signal,
 }
 
 void
-Dbtup::drop_fragment_free_var_pages(Signal* signal)
+Dbtup::drop_fragment_free_var_pages(Signal* signal,
+                                    TablerecPtr tabPtr,
+                                    FragrecordPtr fragPtr)
 {
   jam();
-  Uint32 tableId = signal->theData[1];
-  Uint32 fragPtrI = signal->theData[2];
-  
-  TablerecPtr tabPtr;
-  tabPtr.i= tableId;
-  ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-  
-  FragrecordPtr fragPtr;
-  fragPtr.i = fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
-  
   PagePtr pagePtr;
   for (Uint32 i = 0; i<MAX_FREE_LIST+1; i++)
   {
@@ -2477,7 +2487,7 @@ Dbtup::drop_fragment_free_var_pages(Signal* signal)
     
       signal->theData[0] = ZFREE_VAR_PAGES;
       signal->theData[1] = tabPtr.i;
-      signal->theData[2] = fragPtr.i;
+      signal->theData[2] = fragPtr.p->fragmentId;
       sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);  
       return;
     }
@@ -2488,25 +2498,20 @@ Dbtup::drop_fragment_free_var_pages(Signal* signal)
   map.init(iter);
   signal->theData[0] = ZFREE_PAGES;
   signal->theData[1] = tabPtr.i;
-  signal->theData[2] = fragPtrI;
+  signal->theData[2] = fragPtr.p->fragmentId;
   memcpy(signal->theData+3, &iter, sizeof(iter));
   sendSignal(reference(), GSN_CONTINUEB, signal, 3 + sizeof(iter)/4, JBB);
 }
 
 void
-Dbtup::drop_fragment_free_pages(Signal* signal)
+Dbtup::drop_fragment_free_pages(Signal* signal,
+                                TablerecPtr tabPtr,
+                                FragrecordPtr fragPtr)
 {
   jam();
   Uint32 i;
-  Uint32 tableId = signal->theData[1];
-  Uint32 fragPtrI = signal->theData[2];
   DynArr256::ReleaseIterator iter;
   memcpy(&iter, signal->theData+3, sizeof(iter));
-
-  FragrecordPtr fragPtr;
-  fragPtr.i = fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
-  
   DynArr256 map(c_page_map_pool_ptr, fragPtr.p->m_page_map);
   Uint32 realpid;
   for (i = 0; i<16; i++)
@@ -2537,8 +2542,8 @@ Dbtup::drop_fragment_free_pages(Signal* signal)
   }
   
   signal->theData[0] = ZFREE_PAGES;
-  signal->theData[1] = tableId;
-  signal->theData[2] = fragPtrI;
+  signal->theData[1] = tabPtr.i;
+  signal->theData[2] = fragPtr.p->fragmentId;
   memcpy(signal->theData+3, &iter, sizeof(iter));
   sendSignal(reference(), GSN_CONTINUEB, signal, 3 + sizeof(iter)/4, JBB);
   return;
@@ -2554,10 +2559,6 @@ done:
   /**
    * Finish
    */
-  TablerecPtr tabPtr;
-  tabPtr.i= tableId;
-  ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-
   DEB_DISK(("(%u)Drop table(%u) done, pg_count: %u",
              instance(),
              tableId,
@@ -2682,7 +2683,7 @@ Dbtup::execFSOPENREF(Signal *signal)
   tabPtr.i = ref->userPointer;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   fragPtr.i = tabPtr.p->m_dropTable.m_fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
 
   if (tabPtr.p->m_dropTable.m_lcpno == 0)
   {
@@ -2709,7 +2710,7 @@ Dbtup::execFSOPENCONF(Signal *signal)
   tabPtr.i = conf->userPointer;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   fragPtr.i = tabPtr.p->m_dropTable.m_fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
   tabPtr.p->m_dropTable.m_filePointer = conf->filePointer;
 
   lcp_read_ctl_file(signal,
@@ -2763,7 +2764,7 @@ Dbtup::execFSREADCONF(Signal *signal)
   tabPtr.i = conf->userPointer;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   fragPtr.i = tabPtr.p->m_dropTable.m_fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
 
   const Uint32 bytesRead = conf->bytes_read;
   if (bytesRead != 0)
@@ -2833,7 +2834,7 @@ Dbtup::execFSCLOSECONF(Signal *signal)
   tabPtr.i = conf->userPointer;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   fragPtr.i = tabPtr.p->m_dropTable.m_fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
 
   if (tabPtr.p->m_dropTable.m_lcpno == 0)
   {
@@ -3095,7 +3096,7 @@ Dbtup::execFSREMOVEREF(Signal* signal)
   FragrecordPtr fragPtr;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   fragPtr.i = tabPtr.p->m_dropTable.m_fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
   Uint32 fragId = fragPtr.p->fragmentId;
   Uint32 tableId = fragPtr.p->fragTableId;
 
@@ -3126,7 +3127,7 @@ Dbtup::execFSREMOVECONF(Signal* signal)
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
 
   fragPtr.i = tabPtr.p->m_dropTable.m_fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
 
   ndbrequire(tabPtr.p->m_dropTable.m_outstanding_ops > 0);
   tabPtr.p->m_dropTable.m_outstanding_ops--;
@@ -3265,7 +3266,7 @@ Dbtup::complete_restore_fragment(Signal* signal,
   fragOpPtr.p->m_restoredLcpId = restoredLcpId;
   fragOpPtr.p->m_restoredLocalLcpId = restoredLocalLcpId;
   fragOpPtr.p->m_maxGciCompleted = maxGciCompleted;
-  Ptr<Fragrecord> fragPtr;
+  FragrecordPtr fragPtr;
   TablerecPtr tabPtr;
   tabPtr.i= tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
@@ -3307,7 +3308,7 @@ Dbtup::complete_restore_fragment(Signal* signal,
   }
   fragPtr.p->m_lcp_changed_rows = 0;
   fragPtr.p->m_prev_row_count = fragPtr.p->m_row_count;
-  set_lcp_start_gci(fragPtr.i, lcp_start_gci);
+  fragPtr.p->m_lcp_start_gci = lcp_start_gci;
 
   fragOpPtr.p->fragPointer = fragPtr.i;
   fragPtr.p->m_free_page_id_list = FREE_PAGE_RNIL;
@@ -3338,24 +3339,13 @@ Dbtup::get_frag_info(Uint32 tableId, Uint32 fragId, Uint32* maxPage)
   return true;
 }
 
-void
-Dbtup::set_lcp_start_gci(Uint32 fragPtrI,
-                         Uint32 startGci)
+const Dbtup::FragStats
+Dbtup::get_frag_stats(Uint64 fragPtrI) const
 {
   FragrecordPtr fragptr;
-  fragptr.i = fragPtrI;
-  ptrCheckGuard(fragptr, cnoOfFragrec, fragrecord);
-  fragptr.p->m_lcp_start_gci = startGci;
-}
-
-const Dbtup::FragStats
-Dbtup::get_frag_stats(Uint32 fragId) const
-{
-  Ptr<Fragrecord> fragptr;
   jam();
-  ndbrequire(fragId < cnoOfFragrec);
-  fragptr.i = fragId;
-  ptrAss(fragptr, fragrecord);
+  fragptr.i = fragPtrI;
+  c_fragment_pool.getPtr(fragptr);
   TablerecPtr tabPtr;
   tabPtr.i = fragptr.p->fragTableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
@@ -3391,7 +3381,7 @@ Uint64
 Dbtup::get_restore_row_count(Uint32 tableId, Uint32 fragId)
 {
   TablerecPtr tabPtr;
-  Ptr<Fragrecord> fragPtr;
+  FragrecordPtr fragPtr;
   tabPtr.i= tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   getFragmentrec(fragPtr, fragId, tabPtr.p);
@@ -3399,7 +3389,7 @@ Dbtup::get_restore_row_count(Uint32 tableId, Uint32 fragId)
 }
 
 void
-Dbtup::get_lcp_frag_stats(Uint32 fragPtrI,
+Dbtup::get_lcp_frag_stats(Uint64 fragPtrI,
                           Uint32 startGci,
                           Uint32 & maxPageCount,
                           Uint64 & row_count,
@@ -3476,7 +3466,7 @@ Dbtup::get_lcp_frag_stats(Uint32 fragPtrI,
    */
   FragrecordPtr fragptr;
   fragptr.i = fragPtrI;
-  ptrCheckGuard(fragptr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragptr);
   row_count = fragptr.p->m_row_count;
   prev_row_count = fragptr.p->m_prev_row_count;
   row_change_count = fragptr.p->m_lcp_changed_rows;
@@ -3553,14 +3543,15 @@ Dbtup::execDROP_FRAG_REQ(Signal* signal)
   tabPtr.p->m_dropTable.tabUserRef = req->senderRef;
   tabPtr.p->m_dropTable.tabUserPtr = req->senderData;
 
-  Uint32 fragIndex = get_frag_from_tab(tabPtr, req->fragId);
-  if (fragIndex != RNIL)
+  FragrecordPtr fragPtr;
+
+  if (get_fragment_record(tabPtr, fragPtr, req->tableId, req->fragId))
   {
     jam();
 
     signal->theData[0] = ZUNMAP_PAGES;
     signal->theData[1] = tabPtr.i;
-    signal->theData[2] = fragIndex;
+    signal->theData[2] = fragPtr.p->fragmentId;
     signal->theData[3] = 0;
     sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);
     return;
@@ -3573,4 +3564,3 @@ Dbtup::execDROP_FRAG_REQ(Signal* signal)
   sendSignal(tabPtr.p->m_dropTable.tabUserRef, GSN_DROP_FRAG_CONF,
              signal, DropFragConf::SignalLength, JBB);
 }
-

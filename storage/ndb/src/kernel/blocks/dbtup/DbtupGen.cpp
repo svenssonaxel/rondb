@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2020, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -67,7 +68,6 @@ void Dbtup::initData()
   cownNodeId = getOwnNodeId();
   TablerecPtr tablePtr;
   (void)tablePtr; // hide unused warning
-  cnoOfFragrec = NDB_ARRAY_SIZE(tablePtr.p->fragrec);
   cnoOfFragoprec = NDB_ARRAY_SIZE(tablePtr.p->fragrec);
   cnoOfAlterTabOps = NDB_ARRAY_SIZE(tablePtr.p->fragrec);
   c_maxTriggersPerTable = ZDEFAULT_MAX_NO_TRIGGERS_PER_TABLE;
@@ -96,6 +96,7 @@ Dbtup::Dbtup(Block_context& ctx,
     c_pgman(0),
     c_acc(0),
     c_tux(0),
+    c_suma(0),
     c_extent_hash(c_extent_pool),
     c_storedProcPool(),
     c_buildIndexList(c_buildIndexPool),
@@ -205,7 +206,6 @@ Dbtup::Dbtup(Block_context& ctx,
     addRecSignal(GSN_READ_CONFIG_REQ, &Dbtup::execREAD_CONFIG_REQ, true);
   }
   fragoperrec = 0;
-  fragrecord = 0;
   alterTabOperRec = 0;
   hostBuffer = 0;
   tablerec = 0;
@@ -215,7 +215,7 @@ Dbtup::Dbtup(Block_context& ctx,
   CLEAR_ERROR_INSERT_VALUE;
 
   RSS_OP_COUNTER_INIT(cnoOfFreeFragoprec);
-  RSS_OP_COUNTER_INIT(cnoOfFreeFragrec);
+  RSS_OP_COUNTER_INIT(cnoOfAllocatedFragrec);
   RSS_OP_COUNTER_INIT(cnoOfFreeTabDescrRec);
   c_storedProcCountNonAPI = 0;
 
@@ -230,18 +230,11 @@ Dbtup::Dbtup(Block_context& ctx,
     ce.m_flags = 0;
   }
   { // 2
-    CallbackEntry& ce =
-      m_callbackEntry[DROP_FRAGMENT_FREE_EXTENT_LOG_BUFFER_CALLBACK];
-    ce.m_function = safe_cast(
-      &Dbtup::drop_fragment_free_extent_log_buffer_callback);
-    ce.m_flags = 0;
-  }
-  { // 3
     CallbackEntry& ce = m_callbackEntry[NR_DELETE_LOG_BUFFER_CALLBACK];
     ce.m_function = safe_cast(&Dbtup::nr_delete_log_buffer_callback);
     ce.m_flags = 0;
   }
-  { // 4
+  { // 3
     CallbackEntry& ce = m_callbackEntry[DISK_PAGE_LOG_BUFFER_CALLBACK];
     ce.m_function = safe_cast(&Dbtup::disk_page_log_buffer_callback);
     ce.m_flags = CALLBACK_ACK;
@@ -276,10 +269,6 @@ Dbtup::~Dbtup()
 		sizeof(Fragoperrec),
 		cnoOfFragoprec);
   
-  deallocRecord((void **)&fragrecord,"Fragrecord",
-		sizeof(Fragrecord), 
-		cnoOfFragrec);
-
   deallocRecord((void **)&alterTabOperRec,"AlterTabOperRec",
                 sizeof(alterTabOperRec),
                 cnoOfAlterTabOps);
@@ -430,11 +419,11 @@ void Dbtup::execCONTINUEB(Signal* signal)
   {
     jam();
     TablerecPtr tabPtr;
-    tabPtr.i= dataPtr;
     FragrecordPtr fragPtr;
-    fragPtr.i= signal->theData[2];
-    ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-    ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+    ndbrequire(get_fragment_record(tabPtr,
+                                   fragPtr,
+                                   dataPtr,
+                                   signal->theData[2]));
     drop_fragment_free_extent(signal, tabPtr, fragPtr, signal->theData[3]);
     return;
   }
@@ -442,24 +431,36 @@ void Dbtup::execCONTINUEB(Signal* signal)
   {
     jam();
     TablerecPtr tabPtr;
-    tabPtr.i= dataPtr;
     FragrecordPtr fragPtr;
-    fragPtr.i= signal->theData[2];
-    ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-    ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+    ndbrequire(get_fragment_record(tabPtr,
+                                   fragPtr,
+                                   dataPtr,
+                                   signal->theData[2]));
     drop_fragment_unmap_pages(signal, tabPtr, fragPtr, signal->theData[3]);
     return;
   }
   case ZFREE_VAR_PAGES:
   {
     jam();
-    drop_fragment_free_var_pages(signal);
+    TablerecPtr tabPtr;
+    FragrecordPtr fragPtr;
+    ndbrequire(get_fragment_record(tabPtr,
+                                   fragPtr,
+                                   dataPtr,
+                                   signal->theData[2]));
+    drop_fragment_free_var_pages(signal, tabPtr, fragPtr);
     return;
   }
   case ZFREE_PAGES:
   {
     jam();
-    drop_fragment_free_pages(signal);
+    TablerecPtr tabPtr;
+    FragrecordPtr fragPtr;
+    ndbrequire(get_fragment_record(tabPtr,
+                                   fragPtr,
+                                   dataPtr,
+                                   signal->theData[2]));
+    drop_fragment_free_pages(signal, tabPtr, fragPtr);
     return;
   }
   case ZREBUILD_FREE_PAGE_LIST:
@@ -535,6 +536,7 @@ void Dbtup::execSTTOR(Signal* signal)
       ndbrequire((c_backup =
         (Backup*)globalData.getBlock(BACKUP, instance())) != 0);
     }
+    ndbrequire((c_suma = (Suma*)globalData.getBlock(SUMA)) != 0);
     ndbrequire((c_tsman = (Tsman*)globalData.getBlock(TSMAN)) != 0);
     ndbrequire((c_lgman = (Lgman*)globalData.getBlock(LGMAN)) != 0);
     ndbrequire((c_pgman =
@@ -603,16 +605,9 @@ void Dbtup::execREAD_CONFIG_REQ(Signal* signal)
     m_ctx.m_config.getOwnConfigIterator();
   ndbrequire(p != 0);
   
-  ndbrequire(!ndb_mgm_get_int_parameter(p, CFG_TUP_FRAG, &cnoOfFragrec));
-  
-  Uint32 noOfTriggers= 0;
   Uint32 noOfAttribs = globalData.theMaxNoOfAttributes;
   
   ndbrequire(!ndb_mgm_get_int_parameter(p, CFG_TUP_TABLE, &cnoOfTablerec));
-
-  ndbrequire(!ndb_mgm_get_int_parameter(p, CFG_TUP_NO_TRIGGERS, 
-					&noOfTriggers));
-
 
   {
     Uint32 keyDesc = noOfAttribs;
@@ -645,17 +640,18 @@ void Dbtup::execREAD_CONFIG_REQ(Signal* signal)
   {
     jam();
     c_noOfBuildIndexRec = 0;
-    noOfTriggers = 0;
   }
   c_buildIndexPool.setSize(c_noOfBuildIndexRec);
-  c_triggerPool.setSize(noOfTriggers, false, true, true, CFG_TUP_NO_TRIGGERS);
 
-  c_extent_hash.setSize(1024); // 4k
+  c_extent_hash.setSize(8192); // 4k
 
   c_pending_undo_page_hash.setSize(MAX_PENDING_UNDO_RECORDS);
   
   Pool_context pc;
   pc.m_block = this;
+  c_triggerPool.init(RT_DBTUP_TRIGGER_DATA, pc);
+  cnoOfAllocatedTriggerRec = 0;
+  cnoOfMaxAllocatedTriggerRec = 0;
   c_page_request_pool.wo_pool_init(RT_DBTUP_PAGE_REQUEST, pc);
   c_apply_undo_pool.init(RT_DBTUP_UNDO, pc);
   c_pending_undo_page_pool.init(RT_DBTUP_UNDO, pc);
@@ -671,7 +667,9 @@ void Dbtup::execREAD_CONFIG_REQ(Signal* signal)
   {
     c_page_map_pool_ptr = 0;
   }
-  
+
+  c_fragment_pool.init(RT_DBTUP_FRAGMENT, pc);
+
   /* read ahead for disk scan can not be more that disk page buffer */
   {
     Uint64 page_cache_size = globalData.theDiskPageBufferMemory;
@@ -772,7 +770,6 @@ void Dbtup::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
   if (m_is_query_block)
   {
     cnoOfFragoprec = 1;
-    cnoOfFragrec = 0;
     cnoOfAlterTabOps = 0;
     cnoOfTabDescrRec = 0;
     cnoOfTablerec = 0;
@@ -781,10 +778,6 @@ void Dbtup::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
 					  sizeof(Fragoperrec),
 					  cnoOfFragoprec);
 
-  fragrecord = (Fragrecord*)allocRecord("Fragrecord",
-					sizeof(Fragrecord), 
-					cnoOfFragrec);
-  
   alterTabOperRec = (AlterTabOperation*)allocRecord("AlterTabOperation",
                                                     sizeof(AlterTabOperation),
                                                     cnoOfAlterTabOps);
@@ -898,7 +891,6 @@ void Dbtup::initialiseRecordsLab(Signal* signal, Uint32 switchData,
     break;
   case 3:
     jam();
-    initializeFragrecord();
     break;
   case 4:
     jam();
@@ -971,7 +963,7 @@ void Dbtup::initializeDefaultValuesFrag()
   /* Grab and initialize a fragment record for storing default
    * values for the table fragments held by this TUP instance
    */
-  seizeFragrecord(DefaultValuesFragment);
+  ndbrequire(seizeFragrecord(DefaultValuesFragment));
   DefaultValuesFragment.p->fragStatus = Fragrecord::FS_ONLINE;
   DefaultValuesFragment.p->m_undo_complete= 0;
   DefaultValuesFragment.p->m_lcp_scan_op = RNIL;
@@ -1002,27 +994,6 @@ void Dbtup::initializeFragoperrec()
   fragoperPtr.p->nextFragoprec = RNIL;
   cfirstfreeFragopr = 0;
 }//Dbtup::initializeFragoperrec()
-
-void Dbtup::initializeFragrecord() 
-{
-  if (m_is_query_block)
-  {
-    cfirstfreefrag = RNIL;
-    return;
-  }
-  FragrecordPtr regFragPtr;
-  for (regFragPtr.i = 0; regFragPtr.i < cnoOfFragrec; regFragPtr.i++) {
-    refresh_watch_dog();
-    ptrAss(regFragPtr, fragrecord);
-    new (regFragPtr.p) Fragrecord();
-    regFragPtr.p->nextfreefrag = regFragPtr.i + 1;
-    regFragPtr.p->fragStatus = Fragrecord::FS_FREE;
-  }//for
-  regFragPtr.i = cnoOfFragrec - 1;
-  ptrAss(regFragPtr, fragrecord);
-  regFragPtr.p->nextfreefrag = RNIL;
-  cfirstfreefrag = 0;
-}//Dbtup::initializeFragrecord()
 
 void Dbtup::initializeAlterTabOperation()
 {
@@ -1207,9 +1178,8 @@ void Dbtup::releaseFragrec(FragrecordPtr regFragPtr)
     NdbMutex_Deinit(&regFragPtr.p->tup_frag_mutex[i]);
   }
   NdbMutex_Deinit(&regFragPtr.p->tup_frag_page_map_mutex);
-  regFragPtr.p->nextfreefrag = cfirstfreefrag;
-  cfirstfreefrag = regFragPtr.i;
-  RSS_OP_FREE(cnoOfFreeFragrec);
+  RSS_OP_FREE(cnoOfAllocatedFragrec);
+  c_fragment_pool.release(regFragPtr);
 }//Dbtup::releaseFragrec()
 
 

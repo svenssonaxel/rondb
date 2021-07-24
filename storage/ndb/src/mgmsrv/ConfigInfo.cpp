@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1032,6 +1033,33 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     "0",
     "0",
     "65536G" },
+
+  {
+    CFG_DB_SCHEMA_MEM,
+    "SchemaMemory",
+    DB_TOKEN,
+    "Number bytes on each " DB_TOKEN_PRINT " node allocated for schema"
+    " objects",
+    ConfigInfo::CI_USED,
+    false,
+    ConfigInfo::CI_INT64,
+    "16M",
+    "0",
+    "16384G" },
+
+  {
+    CFG_DB_REPLICATION_MEM,
+    "ReplicationMemory",
+    DB_TOKEN,
+    "Number bytes on each " DB_TOKEN_PRINT " node allocated for replication"
+    " events"
+    " objects",
+    ConfigInfo::CI_USED,
+    false,
+    ConfigInfo::CI_INT64,
+    "8M",
+    "0",
+    "16384G" },
 
   {
     CFG_DB_UNDO_INDEX_BUFFER,

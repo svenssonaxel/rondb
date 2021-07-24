@@ -30,7 +30,6 @@
 #include "Pool.hpp"
 #include "RWPool.hpp"
 #include "test_context.hpp"
-#include "WOPool.hpp"
 
 #define JAM_FILE_ID 304
 
@@ -40,7 +39,6 @@ struct record
 };
 
 template class CountingPool<RecordPool<RWPool<record> > >;
-template class CountingPool<RecordPool<WOPool<record> > >;
 
 TAPTEST(CountingPool)
 {

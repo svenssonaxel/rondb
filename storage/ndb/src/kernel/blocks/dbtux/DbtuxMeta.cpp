@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -318,18 +319,22 @@ Dbtux::execTUXFRAGREQ(Signal* signal)
 
     FragPtr fragPtr;
     c_fragPool.seize(fragPtr);
-    if (fragPtr.i == RNIL) {
+    if (fragPtr.i == RNIL64) {
       jam();
       errorCode = TuxFragRef::NoFreeFragment;
       break;
     }
     new (fragPtr.p) Frag(c_scanOpPool);
+    cnoOfAllocatedFragrec++;
+    cnoOfMaxAllocatedFragrec = MAX(cnoOfMaxAllocatedFragrec,
+                                   cnoOfAllocatedFragrec);
     fragPtr.p->m_tableId = req->primaryTableId;
     fragPtr.p->m_indexId = req->tableId;
     fragPtr.p->m_fragId = req->fragId;
-    fragPtr.p->m_tupIndexFragPtrI = req->tupIndexFragPtrI;
-    fragPtr.p->m_tupTableFragPtrI = req->tupTableFragPtrI;
-    fragPtr.p->m_accTableFragPtrI = req->accTableFragPtrI;
+    c_lqh->getIndexTupFragPtrI(req->tableId,
+                               req->fragId,
+                               fragPtr.p->m_tupIndexFragPtrI,
+                               fragPtr.p->m_tupTableFragPtrI);
     // add the fragment to the index
     const Uint32 fragNo = indexPtr.p->m_numFrags;
     indexPtr.p->m_fragId[indexPtr.p->m_numFrags] = req->fragId;
@@ -537,7 +542,10 @@ Dbtux::execDROP_TAB_REQ(Signal* signal)
 }
 
 void
-Dbtux::dropIndex(Signal* signal, IndexPtr indexPtr, Uint32 senderRef, Uint32 senderData)
+Dbtux::dropIndex(Signal* signal,
+                 IndexPtr indexPtr,
+                 Uint32 senderRef,
+                 Uint32 senderData)
 {
   jam();
   /*
@@ -552,6 +560,8 @@ Dbtux::dropIndex(Signal* signal, IndexPtr indexPtr, Uint32 senderRef, Uint32 sen
     FragPtr fragPtr;
     c_fragPool.getPtr(fragPtr, indexPtr.p->m_fragPtrI[i]);
     c_fragPool.release(fragPtr);
+    ndbrequire(cnoOfAllocatedFragrec > 0);
+    cnoOfAllocatedFragrec--;
   }
   // drop attributes
   if (indexPtr.p->m_descPage != RNIL) {
@@ -677,6 +687,8 @@ Dbtux::execDROP_FRAG_REQ(Signal* signal)
       FragPtr fragPtr;
       c_fragPool.getPtr(fragPtr, indexPtr.p->m_fragPtrI[i]);
       c_fragPool.release(fragPtr);
+      ndbrequire(cnoOfAllocatedFragrec > 0);
+      cnoOfAllocatedFragrec--;
 
       for (i++; i < indexPtr.p->m_numFrags; i++)
       {

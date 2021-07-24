@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -54,8 +55,7 @@
 // methods used by ordered index
 
 void
-Dbtup::tuxGetTupAddr(Uint32 fragPtrI,
-                     Uint32 pageId,
+Dbtup::tuxGetTupAddr(Uint32 pageId,
                      Uint32 pageIndex,
                      Uint32& lkey1,
                      Uint32& lkey2)
@@ -539,7 +539,7 @@ Dbtup::tuxQueryTh(Uint32 opPtrI,
  */
 int
 Dbtup::tuxReadAttrs(EmulatedJamBuffer * jamBuf,
-                    Uint32 fragPtrI,
+                    Uint64 fragPtrI,
                     Uint32 pageId,
                     Uint32 pageIndex,
                     Uint32 tupVersion,
@@ -552,7 +552,7 @@ Dbtup::tuxReadAttrs(EmulatedJamBuffer * jamBuf,
   // use own variables instead of globals
   FragrecordPtr fragPtr;
   fragPtr.i= fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
   TablerecPtr tablePtr;
   tablePtr.i= fragPtr.p->fragTableId;
   ptrCheckGuard(tablePtr, cnoOfTablerec, tablerec);
@@ -641,14 +641,14 @@ Dbtup::execBUILD_INDX_IMPL_REQ(Signal* signal)
 
       TriggerPtr triggerPtr;
       triggerList.first(triggerPtr);
-      while (triggerPtr.i != RNIL) {
+      while (triggerPtr.i != RNIL64) {
 	if (triggerPtr.p->indexId == buildReq->indexId) {
 	  jam();
 	  break;
 	}
 	triggerList.next(triggerPtr);
       }
-      if (triggerPtr.i == RNIL) {
+      if (triggerPtr.i == RNIL64) {
 	jam();
 	// trigger was not created
         ndbassert(false);
@@ -739,7 +739,7 @@ Dbtup::buildIndex(Signal* signal, Uint32 buildPtrI)
       buildPtr.p->m_tupleNo= firstTupleNo;
       break;
     }
-    ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+    c_fragment_pool.getPtr(fragPtr);
     // get page
     PagePtr pagePtr;
     if (buildPtr.p->m_pageId >= fragPtr.p->m_max_page_cnt)
@@ -1027,7 +1027,7 @@ Dbtup::buildIndexOffline_table_readonly(Signal* signal, Uint32 buildPtrI)
       jam();
       continue;
     }
-    ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+    c_fragment_pool.getPtr(fragPtr);
     mt_BuildIndxReq req;
     std::memset(&req, 0, sizeof(req));
     req.senderRef = reference();
@@ -1088,14 +1088,14 @@ Dbtup::buildIndexOffline_table_readonly(Signal* signal, Uint32 buildPtrI)
 
 int
 Dbtup::mt_scan_init(Uint32 tableId, Uint32 fragId,
-                    Local_key* pos, Uint32 * fragPtrI)
+                    Local_key* pos, Uint64 * fragPtrI)
 {
   TablerecPtr tablePtr;
   tablePtr.i = tableId;
   ptrCheckGuard(tablePtr, cnoOfTablerec, tablerec);
 
   FragrecordPtr fragPtr;
-  fragPtr.i = RNIL;
+  fragPtr.i = RNIL64;
   for (Uint32 i = 0; i<NDB_ARRAY_SIZE(tablePtr.p->fragid); i++)
   {
     if (tablePtr.p->fragid[i] == fragId)
@@ -1105,10 +1105,9 @@ Dbtup::mt_scan_init(Uint32 tableId, Uint32 fragId,
     }
   }
 
-  if (fragPtr.i == RNIL)
+  if (fragPtr.i == RNIL64)
     return -1;
-
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
 
   Uint32 fragPageId = 0;
   while (fragPageId < fragPtr.p->m_max_page_cnt)
@@ -1151,7 +1150,7 @@ Dbtup::mt_scan_init(Uint32 tableId, Uint32 fragId,
 }
 
 int
-Dbtup::mt_scan_next(Uint32 tableId, Uint32 fragPtrI,
+Dbtup::mt_scan_next(Uint32 tableId, Uint64 fragPtrI,
                     Local_key* pos, bool moveNext)
 {
   TablerecPtr tablePtr;
@@ -1160,7 +1159,7 @@ Dbtup::mt_scan_next(Uint32 tableId, Uint32 fragPtrI,
 
   FragrecordPtr fragPtr;
   fragPtr.i = fragPtrI;
-  ptrCheckGuard(fragPtr, cnoOfFragrec, fragrecord);
+  c_fragment_pool.getPtr(fragPtr);
 
   Uint32 tupheadsize = tablePtr.p->m_offsets[MM].m_fix_header_size;
   if (moveNext)

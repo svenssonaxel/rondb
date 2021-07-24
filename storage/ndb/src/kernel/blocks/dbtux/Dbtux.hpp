@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +35,7 @@
 #include <DataBuffer.hpp>
 #include <IntrusiveList.hpp>
 #include <md5_hash.hpp>
+#include <RWPool64.hpp>
 
 // big brother
 #include <dbtup/Dbtup.hpp>
@@ -387,6 +389,7 @@ private:
       Aborting = 8
     };
     Uint32 m_errorCode;
+    Uint64 m_fragPtrI;
     Uint32 m_lockwait;
     Uint32 m_state;
     Uint32 m_userPtr;           // scanptr.i in LQH
@@ -394,7 +397,6 @@ private:
     Uint32 m_tableId;
     Uint32 m_indexId;
     Uint32 m_fragId;
-    Uint32 m_fragPtrI;
     Uint32 m_transId1;
     Uint32 m_transId2;
     Uint32 m_savePointId;
@@ -448,14 +450,14 @@ private:
     Uint16 unused;
     Uint16 m_numFrags;
     Uint32 m_fragId[MaxIndexFragments];
-    Uint32 m_fragPtrI[MaxIndexFragments];
+    Uint64 m_fragPtrI[MaxIndexFragments];
     Uint32 m_descPage;          // descriptor page
     Uint16 m_descOff;           // offset within the page
     Uint16 m_numAttrs;
     Uint16 m_prefAttrs;         // attributes in min prefix
     Uint16 m_prefBytes;         // max bytes in min prefix
     KeySpec m_keySpec;
-    Uint32 m_statFragPtrI;      // fragment to monitor if not RNIL
+    Uint64 m_statFragPtrI;      // fragment to monitor if not RNIL
     Uint32 m_statLoadTime;      // load time of index stats
     union {
     bool m_storeNullKey;
@@ -479,29 +481,32 @@ private:
   struct Frag;
   friend struct Frag;
   struct Frag {
+    Uint32 m_magic;
     Uint32 m_tableId;           // copy from index level
     Uint32 m_indexId;
     Uint16 unused;
     Uint16 m_fragId;
     TreeHead m_tree;
     TupLoc m_freeLoc;           // one free node for next op
-    Uint32 m_tupIndexFragPtrI;
-    Uint32 m_tupTableFragPtrI;
-    Uint32 m_accTableFragPtrI;
+    Uint64 m_tupIndexFragPtrI;
+    Uint64 m_tupTableFragPtrI;
     Uint64 m_entryCount;        // current entries
     Uint64 m_entryBytes;        // sum of index key sizes
     Uint64 m_entryOps;          // ops since last index stats update
     union {
     Uint32 nextPool;
     };
+    Frag();
     Frag(ScanOp_pool& scanOpPool);
   };
-  typedef Ptr<Frag> FragPtr;
-  typedef ArrayPool<Frag> Frag_pool;
+  typedef Ptr64<Frag> FragPtr;
+  typedef RecordPool64<RWPool64<Frag> > Frag_pool;
 
 public:
   Frag_pool c_fragPool;
-  RSS_AP_SNAPSHOT(c_fragPool);
+  Uint32 cnoOfAllocatedFragrec;
+  Uint32 cnoOfMaxAllocatedFragrec;
+  Uint32 cnoOfSaveAllocatedFragrec;
 private:
   /*
    * Fragment metadata operation.
@@ -511,7 +516,7 @@ private:
     Uint32 m_userRef;
     Uint32 m_indexId;
     Uint32 m_fragId;
-    Uint32 m_fragPtrI;
+    Uint64 m_fragPtrI;
     Uint32 m_fragNo;            // fragment number starting at zero
     Uint32 m_numAttrsRecvd;
     union {
@@ -993,7 +998,7 @@ private:
   AttributeHeader* getKeyAttrs(DescHead& descHead);
   const AttributeHeader* getKeyAttrs(const DescHead& descHead);
   //
-  void getTupAddr(const Frag& frag, TreeEnt ent, Uint32& lkey1, Uint32& lkey2);
+  void getTupAddr(TreeEnt ent, Uint32& lkey1, Uint32& lkey2);
   static unsigned min(unsigned x, unsigned y);
   static unsigned max(unsigned x, unsigned y);
 
@@ -1064,6 +1069,7 @@ public:
   {
     return sizeof(struct Index);
   }
+  Uint64 get_fragment_ptr_i(Uint32 tableId, Uint32 fragId);
 };
 
 inline bool Dbtux::check_freeScanLock(ScanOp& scan)
@@ -1311,8 +1317,8 @@ inline
 Dbtux::ScanOp::ScanOp() :
   m_magic(Magic::make(ScanOp::TYPE_ID)),
   m_errorCode(0),
+  m_fragPtrI(RNIL64),
   m_lockwait(false),
-  m_fragPtrI(RNIL),
   m_accLockOp(RNIL),
   m_accLockOps(),
   m_scanBound(),
@@ -1339,13 +1345,13 @@ Dbtux::Index::Index() :
   m_prefAttrs(0),
   m_prefBytes(0),
   m_keySpec(),
-  m_statFragPtrI(RNIL),
+  m_statFragPtrI(RNIL64),
   m_statLoadTime(0),
   m_storeNullKey(false)
 {
   for (unsigned i = 0; i < MaxIndexFragments; i++) {
     m_fragId[i] = ZNIL;
-    m_fragPtrI[i] = RNIL;
+    m_fragPtrI[i] = RNIL64;
   };
 }
 
@@ -1358,9 +1364,23 @@ Dbtux::Frag::Frag(ScanOp_pool& scanOpPool) :
   m_fragId(ZNIL),
   m_tree(),
   m_freeLoc(),
-  m_tupIndexFragPtrI(RNIL),
-  m_tupTableFragPtrI(RNIL),
-  m_accTableFragPtrI(RNIL),
+  m_tupIndexFragPtrI(RNIL64),
+  m_tupTableFragPtrI(RNIL64),
+  m_entryCount(0),
+  m_entryBytes(0),
+  m_entryOps(0)
+{
+}
+
+inline
+Dbtux::Frag::Frag() :
+  m_tableId(RNIL),
+  m_indexId(RNIL),
+  m_fragId(ZNIL),
+  m_tree(),
+  m_freeLoc(),
+  m_tupIndexFragPtrI(RNIL64),
+  m_tupTableFragPtrI(RNIL64),
   m_entryCount(0),
   m_entryBytes(0),
   m_entryOps(0)
@@ -1375,7 +1395,7 @@ Dbtux::FragOp::FragOp() :
   m_userRef(RNIL),
   m_indexId(RNIL),
   m_fragId(ZNIL),
-  m_fragPtrI(RNIL),
+  m_fragPtrI(RNIL64),
   m_fragNo(ZNIL),
   m_numAttrsRecvd(ZNIL)
 {
@@ -1679,11 +1699,10 @@ Dbtux::getKeyAttrs(const DescHead& descHead)
 
 inline
 void
-Dbtux::getTupAddr(const Frag& frag, TreeEnt ent, Uint32& lkey1, Uint32& lkey2)
+Dbtux::getTupAddr(TreeEnt ent, Uint32& lkey1, Uint32& lkey2)
 {
-  const Uint32 tableFragPtrI = frag.m_tupTableFragPtrI;
   const TupLoc tupLoc = ent.m_tupLoc;
-  c_tup->tuxGetTupAddr(tableFragPtrI, tupLoc.getPageId(),tupLoc.getPageOffset(),
+  c_tup->tuxGetTupAddr(tupLoc.getPageId(),tupLoc.getPageOffset(),
                        lkey1, lkey2);
   jamEntryDebug();
 }

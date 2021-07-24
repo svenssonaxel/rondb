@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -656,6 +657,41 @@ void Dbdict::execCONTINUEB(Signal* signal)
 {
   jamEntry();
   switch (signal->theData[0]) {
+  case ZDICT_SHRINK_TRANSIENT_POOLS:
+  {
+    jam();
+    Uint32 pool_index = signal->theData[1];
+    ndbassert(signal->getLength() == 2);
+    shrinkTransientPools(pool_index);
+    return;
+  }
+#if (defined(VM_TRACE) || \
+     defined(ERROR_INSERT)) && \
+    defined(DO_TRANSIENT_POOL_STAT)
+
+  case ZDICT_TRANSIENT_POOL_STAT:
+  {
+    for (Uint32 pool_index = 0;
+         pool_index < c_transient_pool_count;
+         pool_index++)
+    {
+      g_eventLogger->info(
+        "SUMA %u: Transient slot pool %u %p: Entry size %u:"
+       " Free %u: Used %u: Used high %u: Size %u: For shrink %u",
+       instance(),
+       pool_index,
+       c_transient_pools[pool_index],
+       c_transient_pools[pool_index]->getEntrySize(),
+       c_transient_pools[pool_index]->getNoOfFree(),
+       c_transient_pools[pool_index]->getUsed(),
+       c_transient_pools[pool_index]->getUsedHi(),
+       c_transient_pools[pool_index]->getSize(),
+       c_transient_pools_shrinking.get(pool_index));
+    }
+    sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 1);
+    break;
+  }
+#endif
   case ZPACK_TABLE_INTO_PAGES :
     jam();
     if (ERROR_INSERTED(6800))
@@ -1108,7 +1144,7 @@ Dbdict::packTableIntoPages(SimpleProperties::Writer & w,
 
   AttributeRecordPtr attrPtr;
   LocalAttributeRecord_list list(c_attributeRecordPool,
-				    tablePtr.p->m_attributes);
+                                 tablePtr.p->m_attributes);
   for(list.first(attrPtr); !attrPtr.isNull(); list.next(attrPtr)){
     jam();
 
@@ -2567,6 +2603,15 @@ Dbdict::Dbdict(Block_context& ctx):
   addRecSignal(GSN_DROP_FK_REQ, &Dbdict::execDROP_FK_REQ);
   addRecSignal(GSN_DROP_FK_IMPL_REF, &Dbdict::execDROP_FK_IMPL_REF);
   addRecSignal(GSN_DROP_FK_IMPL_CONF, &Dbdict::execDROP_FK_IMPL_CONF);
+
+  c_transient_pools[DBDICT_OBJECT_RECORD_TRANSIENT_POOL_INDEX] =
+    &c_obj_pool;
+  c_transient_pools[DBDICT_TRIGGER_RECORD_TRANSIENT_POOL_INDEX] =
+    &c_triggerRecordPool_;
+  c_transient_pools[DBDICT_TABLE_RECORD_TRANSIENT_POOL_INDEX] =
+    &c_tableRecordPool_;
+  c_transient_pools[DBDICT_ATTRIBUTE_RECORD_TRANSIENT_POOL_INDEX] =
+    &c_attributeRecordPool;
 }//Dbdict::Dbdict()
 
 Dbdict::~Dbdict()
@@ -3054,6 +3099,14 @@ void Dbdict::execSTTOR(Signal* signal)
                c_restartType == NodeState::ST_SYSTEM_RESTART ||
                c_restartType == NodeState::ST_INITIAL_NODE_RESTART ||
                c_restartType == NodeState::ST_NODE_RESTART);
+#if (defined(VM_TRACE) || \
+     defined(ERROR_INSERT)) && \
+    defined(DO_TRANSIENT_POOL_STAT)
+
+    /* Start reporting statistics for transient pools */
+    signal->theData[0] = ZDICT_TRANSIENT_POOL_STAT;
+    sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
+#endif
     break;
   case 7:
     /*
@@ -3126,29 +3179,70 @@ void Dbdict::execREAD_CONFIG_REQ(Signal* signal)
     and bigger than CreateIndexRec (784 bytes)
   */
 
-  c_attributeRecordPool.setSize(attributesize);
-  c_attributeRecordHash.setSize(64);
   c_fsConnectRecordPool.setSize(ZFS_CONNECT_SIZE);
   c_nodes.setSize(MAX_NDB_NODES);
   c_pageRecordArray.setSize(ZNUMBER_OF_PAGES);
   c_schemaPageRecordArray.setSize(2 * NDB_SF_MAX_PAGES);
-  c_tableRecordPool_.setSize(c_noOfMetaTables);
   g_key_descriptor_pool.setSize(c_noOfMetaTables);
-  c_triggerRecordPool_.setSize(c_maxNoOfTriggers);
+
+  c_attributeRecordPool.init(
+    AttributeRecord::TYPE_ID,
+    pc,
+    attributesize,
+    UINT32_MAX);
+
+  while (c_attributeRecordPool.startup())
+  {
+    refresh_watch_dog();
+  }
+  c_attributeRecordHash.setSize(512);
+
+  c_tableRecordPool_.init(
+    TriggerRecord::TYPE_ID,
+    pc,
+    c_noOfMetaTables,
+    UINT32_MAX);
+
+  while (c_tableRecordPool_.startup())
+  {
+    refresh_watch_dog();
+  }
+
+  c_triggerRecordPool_.init(
+    TriggerRecord::TYPE_ID,
+    pc,
+    c_maxNoOfTriggers,
+    UINT32_MAX);
+
+  while (c_triggerRecordPool_.startup())
+  {
+    refresh_watch_dog();
+  }
 
   Record_info ri;
   OpSectionBuffer::createRecordInfo(ri, RT_DBDICT_OP_SECTION_BUFFER);
   c_opSectionBufferPool.init(&c_arenaAllocator, ri, pc);
 
   c_schemaOpHash.setSize(MAX_SCHEMA_OPERATIONS);
-  c_schemaTransPool.arena_pool_init(&c_arenaAllocator, RT_DBDICT_SCHEMA_TRANSACTION, pc);
+  c_schemaTransPool.arena_pool_init(&c_arenaAllocator,
+                                    RT_DBDICT_SCHEMA_TRANSACTION, pc);
   c_schemaTransHash.setSize(2);
   c_txHandlePool.setSize(2);
   c_txHandleHash.setSize(2);
 
-  c_obj_pool.setSize(c_noOfMetaTables+c_maxNoOfTriggers);
-  c_obj_name_hash.setSize((c_noOfMetaTables+c_maxNoOfTriggers+1)/2);
-  c_obj_id_hash.setSize((c_noOfMetaTables+c_maxNoOfTriggers+1)/2);
+  c_obj_pool.init(
+    DictObject::TYPE_ID,
+    pc,
+    c_noOfMetaTables+c_maxNoOfTriggers,
+    UINT32_MAX);
+
+  while (c_obj_pool.startup())
+  {
+    refresh_watch_dog();
+  }
+
+  c_obj_name_hash.setSize(c_noOfMetaTables+c_maxNoOfTriggers);
+  c_obj_id_hash.setSize(c_noOfMetaTables+c_maxNoOfTriggers);
   m_dict_lock_pool.setSize(MAX_NDB_NODES);
 
   c_file_pool.init(RT_DBDICT_FILE, pc);
@@ -3251,7 +3345,7 @@ void Dbdict::execREAD_CONFIG_REQ(Signal* signal)
   conf->senderData = senderData;
   sendSignal(ref, GSN_READ_CONFIG_CONF, signal,
 	     ReadConfigConf::SignalLength, JBB);
-
+/*
   {
     DictObjectPtr ptr;
     DictObject_list objs(c_obj_pool);
@@ -3259,7 +3353,7 @@ void Dbdict::execREAD_CONFIG_REQ(Signal* signal)
       new (ptr.p) DictObject();
     while (objs.releaseFirst());
   }
-
+*/
   bool use_get_env = false;
 #ifdef NDB_USE_GET_ENV
   use_get_env = true;
@@ -3548,7 +3642,8 @@ Dbdict::activateIndex_fromBeginTrans(Signal* signal, Uint32 tx_key, Uint32 ret)
   c_tableRecordPool_.getPtr(indexPtr, tx_ptr.p->m_userData);
   ndbrequire(!indexPtr.isNull());
   DictObjectPtr index_obj_ptr;
-  c_obj_pool.getPtr(index_obj_ptr, indexPtr.p->m_obj_ptr_i);
+  index_obj_ptr.i = indexPtr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(index_obj_ptr));
 
   AlterIndxReq* req = (AlterIndxReq*)signal->getDataPtrSend();
 
@@ -3614,7 +3709,8 @@ Dbdict::activateIndex_fromEndTrans(Signal* signal, Uint32 tx_key, Uint32 ret)
   TableRecordPtr indexPtr;
   c_tableRecordPool_.getPtr(indexPtr, tx_ptr.p->m_userData);
   DictObjectPtr index_obj_ptr;
-  c_obj_pool.getPtr(index_obj_ptr, indexPtr.p->m_obj_ptr_i);
+  index_obj_ptr.i = indexPtr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(index_obj_ptr));
 
   char indexName[MAX_TAB_NAME_SIZE];
   {
@@ -3704,7 +3800,8 @@ Dbdict::rebuildIndex_fromBeginTrans(Signal* signal, Uint32 tx_key, Uint32 ret)
   TableRecordPtr indexPtr;
   c_tableRecordPool_.getPtr(indexPtr, tx_ptr.p->m_userData);
   DictObjectPtr index_obj_ptr;
-  c_obj_pool.getPtr(index_obj_ptr,indexPtr.p->m_obj_ptr_i);
+  index_obj_ptr.i = indexPtr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(index_obj_ptr));
 
   BuildIndxReq* req = (BuildIndxReq*)signal->getDataPtrSend();
 
@@ -3782,7 +3879,8 @@ Dbdict::rebuildIndex_fromEndTrans(Signal* signal, Uint32 tx_key, Uint32 ret)
   }
 
   DictObjectPtr obj_ptr;
-  c_obj_pool.getPtr(obj_ptr, indexPtr.p->m_obj_ptr_i);
+  obj_ptr.i = indexPtr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(obj_ptr));
 
   char indexName[MAX_TAB_NAME_SIZE];
   {
@@ -4071,7 +4169,8 @@ Dbdict::enableFK_fromBeginTrans(Signal* signal, Uint32 tx_key, Uint32 ret)
   c_fk_pool.getPtr(fk_ptr, tx_ptr.p->m_userData);
   ndbrequire(!fk_ptr.isNull());
   DictObjectPtr fk_obj_ptr;
-  c_obj_pool.getPtr(fk_obj_ptr, fk_ptr.p->m_obj_ptr_i);
+  fk_obj_ptr.i = fk_ptr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(fk_obj_ptr));
 
   CreateFKReq* req = (CreateFKReq*)signal->getDataPtrSend();
 
@@ -4141,7 +4240,8 @@ Dbdict::enableFK_fromEndTrans(Signal* signal, Uint32 tx_key, Uint32 ret)
   Ptr<ForeignKeyRec> fk_ptr;
   c_fk_pool.getPtr(fk_ptr, tx_ptr.p->m_userData);
   DictObjectPtr fk_obj_ptr;
-  c_obj_pool.getPtr(fk_obj_ptr, fk_ptr.p->m_obj_ptr_i);
+  fk_obj_ptr.i = fk_ptr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(fk_obj_ptr));
 
   char fk_name[MAX_TAB_NAME_SIZE];
   {
@@ -5704,21 +5804,27 @@ Dbdict::release_object(Uint32 obj_ptr_i, DictObject* obj_ptr_p){
   jam();
   c_obj_pool.release(ptr);
   jam();
+  checkPoolShrinkNeed(DBDICT_OBJECT_RECORD_TRANSIENT_POOL_INDEX,
+                      c_obj_pool);
 }
 
 void
 Dbdict::increase_ref_count(Uint32 obj_ptr_i)
 {
-  DictObject* ptr = c_obj_pool.getPtr(obj_ptr_i);
-  ptr->m_ref_count++;
+  DictObjectPtr ptr;
+  ptr.i = obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(ptr));
+  ptr.p->m_ref_count++;
 }
 
 void
 Dbdict::decrease_ref_count(Uint32 obj_ptr_i)
 {
-  DictObject* ptr = c_obj_pool.getPtr(obj_ptr_i);
-  ndbrequire(ptr->m_ref_count);
-  ptr->m_ref_count--;
+  DictObjectPtr ptr;
+  ptr.i = obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(ptr));
+  ndbrequire(ptr.p->m_ref_count);
+  ptr.p->m_ref_count--;
 }
 
 /* TabInfoLongData provides temporary storage to unpack the data
@@ -6358,7 +6464,8 @@ Dbdict::upgrade_seizeTrigger(TableRecordPtr tabPtr,
   ndbrequire(deleteTriggerId == RNIL || deleteTriggerId < size);
 
   DictObjectPtr tab_obj_ptr;
-  c_obj_pool.getPtr(tab_obj_ptr, tabPtr.p->m_obj_ptr_i);
+  tab_obj_ptr.i = tabPtr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(tab_obj_ptr));
 
   TriggerRecordPtr triggerPtr;
   if (updateTriggerId != RNIL)
@@ -6468,7 +6575,7 @@ void Dbdict::handleTabInfo(SimpleProperties::Reader & it,
   c_attributeRecordHash.removeAll();
 
   LocalAttributeRecord_list list(c_attributeRecordPool,
-					tablePtr.p->m_attributes);
+                                 tablePtr.p->m_attributes);
 
   Uint32 counts[] = {0,0,0,0,0};
 
@@ -7653,7 +7760,7 @@ Dbdict::createTab_local(Signal* signal,
     Uint32 key = 0;
     AttributeRecordPtr attrPtr;
     LocalAttributeRecord_list list(c_attributeRecordPool,
-                                          tabPtr.p->m_attributes);
+                                   tabPtr.p->m_attributes);
     for(list.first(attrPtr); !attrPtr.isNull(); list.next(attrPtr))
     {
       AttributeRecord* aRec = attrPtr.p;
@@ -8727,7 +8834,7 @@ void Dbdict::releaseTableObject(Uint32 table_ptr_i, bool removeFromHash)
   }
 
   LocalAttributeRecord_list list(c_attributeRecordPool,
-					tablePtr.p->m_attributes);
+                                 tablePtr.p->m_attributes);
   AttributeRecordPtr attrPtr;
   for(list.first(attrPtr); !attrPtr.isNull(); list.next(attrPtr)){
     LocalRope name(c_rope_pool, attrPtr.p->attributeName);
@@ -8774,6 +8881,12 @@ void Dbdict::releaseTableObject(Uint32 table_ptr_i, bool removeFromHash)
     }
   }
   c_tableRecordPool_.release(tablePtr);
+  checkPoolShrinkNeed(DBDICT_TRIGGER_RECORD_TRANSIENT_POOL_INDEX,
+                      c_triggerRecordPool_);
+  checkPoolShrinkNeed(DBDICT_TABLE_RECORD_TRANSIENT_POOL_INDEX,
+                      c_tableRecordPool_);
+  checkPoolShrinkNeed(DBDICT_ATTRIBUTE_RECORD_TRANSIENT_POOL_INDEX,
+                      c_attributeRecordPool);
 }//releaseTableObject()
 
 // CreateTable: END
@@ -11549,7 +11662,8 @@ Dbdict::alterTable_commit(Signal* signal, SchemaOpPtr op_ptr)
         << " new=" << copyRope<sz>(newTablePtr.p->tableName));
 
       DictObjectPtr obj_ptr;
-      c_obj_pool.getPtr(obj_ptr, tablePtr.p->m_obj_ptr_i);
+      obj_ptr.i = tablePtr.p->m_obj_ptr_i;
+      ndbrequire(c_obj_pool.getValidPtr(obj_ptr));
 
       // remove old name from hash
       c_obj_name_hash.remove(obj_ptr);
@@ -13634,7 +13748,7 @@ Dbdict::createIndex_toCreateTable(Signal* signal, SchemaOpPtr op_ptr)
     Uint32 key_type = NDB_ARRAYTYPE_FIXED;
     AttributeRecordPtr attrPtr;
     LocalAttributeRecord_list list(c_attributeRecordPool,
-                                          tablePtr.p->m_attributes);
+                                   tablePtr.p->m_attributes);
     // XXX move to parse
     for (list.first(attrPtr); !attrPtr.isNull(); list.next(attrPtr))
     {
@@ -14771,7 +14885,8 @@ Dbdict::set_index_stat_frag(Signal* signal, TableRecordPtr indexPtr)
 {
   jam();
   DictObjectPtr index_obj_ptr;
-  c_obj_pool.getPtr(index_obj_ptr, indexPtr.p->m_obj_ptr_i);
+  index_obj_ptr.i = indexPtr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(index_obj_ptr));
   const Uint32 indexId = index_obj_ptr.p->m_id;
   Uint32 err = get_fragmentation(signal, indexId);
   ndbrequire(err == 0);
@@ -17494,7 +17609,7 @@ Dbdict::copyData_prepare(Signal* signal, SchemaOpPtr op_ptr)
   ndbrequire(ok);
   {
     LocalAttributeRecord_list alist(c_attributeRecordPool,
-                                           tabPtr.p->m_attributes);
+                                    tabPtr.p->m_attributes);
     AttributeRecordPtr attrPtr;
     for (alist.first(attrPtr); !attrPtr.isNull(); alist.next(attrPtr))
     {
@@ -17600,7 +17715,7 @@ Dbdict::copyData_complete(Signal* signal, SchemaOpPtr op_ptr)
   ndbrequire(ok);
   {
     LocalAttributeRecord_list alist(c_attributeRecordPool,
-                                           tabPtr.p->m_attributes);
+                                    tabPtr.p->m_attributes);
     AttributeRecordPtr attrPtr;
     for (alist.first(attrPtr); !attrPtr.isNull(); alist.next(attrPtr))
     {
@@ -21154,6 +21269,8 @@ Dbdict::createTrigger_abortParse(Signal* signal, SchemaOpPtr op_ptr)
       }
 
       c_triggerRecordPool_.release(triggerPtr);
+      checkPoolShrinkNeed(DBDICT_TRIGGER_RECORD_TRANSIENT_POOL_INDEX,
+                          c_triggerRecordPool_);
     }
 
     // ignore Feedback for now (referencing object will be dropped too)
@@ -21836,6 +21953,8 @@ Dbdict::dropTrigger_commit(Signal* signal, SchemaOpPtr op_ptr)
 
     // remove trigger
     c_triggerRecordPool_.release(triggerPtr);
+    checkPoolShrinkNeed(DBDICT_TRIGGER_RECORD_TRANSIENT_POOL_INDEX,
+                        c_triggerRecordPool_);
     releaseDictObject(op_ptr);
 
     sendTransConf(signal, op_ptr);
@@ -21992,7 +22111,7 @@ Dbdict::getTableKeyList(TableRecordPtr tablePtr,
   list.sz = 0;
   list.id[list.sz++] = AttributeHeader::FRAGMENT;
   LocalAttributeRecord_list alist(c_attributeRecordPool,
-                                         tablePtr.p->m_attributes);
+                                  tablePtr.p->m_attributes);
   AttributeRecordPtr attrPtr;
   for (alist.first(attrPtr); !attrPtr.isNull(); alist.next(attrPtr)) {
     if (attrPtr.p->tupleKey) {
@@ -22023,7 +22142,7 @@ Dbdict::getIndexAttr(TableRecordPtr indexPtr, Uint32 itAttr, Uint32* id)
     len = tmp.size();
   }
   LocalAttributeRecord_list alist(c_attributeRecordPool,
-					 tablePtr.p->m_attributes);
+                                  tablePtr.p->m_attributes);
   for (alist.first(attrPtr); !attrPtr.isNull(); alist.next(attrPtr)){
     ConstRope tmp(c_rope_pool, attrPtr.p->attributeName);
     if(tmp.compare(name, len) == 0){
@@ -22092,7 +22211,7 @@ Dbdict::getIndexAttrMask(TableRecordPtr indexPtr, AttributeMask& mask)
 
   AttributeRecordPtr attrPtr, currPtr;
   LocalAttributeRecord_list alist(c_attributeRecordPool,
-					 indexPtr.p->m_attributes);
+                                  indexPtr.p->m_attributes);
 
 
   for (alist.first(attrPtr); currPtr = attrPtr, alist.next(attrPtr); ){
@@ -25539,7 +25658,10 @@ Dbdict::dropFilegroup_parse(Signal* signal, bool master,
     return;
   }
 
-  DictObject * obj = c_obj_pool.getPtr(fg_ptr.p->m_obj_ptr_i);
+  DictObjectPtr obj_ptr;
+  obj_ptr.i = fg_ptr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(obj_ptr));
+  DictObject *obj = obj_ptr.p;
   if (obj->m_ref_count)
   {
     jam();
@@ -25659,7 +25781,8 @@ Dbdict::dropFilegroup_prepare(Signal* signal, SchemaOpPtr op_ptr)
       jam();
 
       DictObjectPtr objPtr;
-      c_obj_pool.getPtr(objPtr, filePtr.p->m_obj_ptr_i);
+      objPtr.i = filePtr.p->m_obj_ptr_i;
+      ndbrequire(c_obj_pool.getValidPtr(objPtr));
       SchemaFile::TableEntry * entry = getTableEntry(xsf, objPtr.p->m_id);
       entry->m_tableState = SchemaFile::SF_DROP;
       entry->m_transId = trans_ptr.p->m_transId;
@@ -25697,7 +25820,8 @@ Dbdict::dropFilegroup_abortPrepare(Signal* signal, SchemaOpPtr op_ptr)
       jam();
 
       DictObjectPtr objPtr;
-      c_obj_pool.getPtr(objPtr, filePtr.p->m_obj_ptr_i);
+      objPtr.i = filePtr.p->m_obj_ptr_i;
+      ndbrequire(c_obj_pool.getValidPtr(objPtr));
       SchemaFile::TableEntry * entry = getTableEntry(xsf, objPtr.p->m_id);
       entry->m_tableState = SchemaFile::SF_IN_USE;
       entry->m_transId = 0;
@@ -25741,7 +25865,8 @@ Dbdict::dropFilegroup_commit(Signal* signal, SchemaOpPtr op_ptr)
       jam();
 
       DictObjectPtr objPtr;
-      c_obj_pool.getPtr(objPtr, filePtr.p->m_obj_ptr_i);
+      objPtr.i = filePtr.p->m_obj_ptr_i;
+      ndbrequire(c_obj_pool.getValidPtr(objPtr));
       SchemaFile::TableEntry * entry = getTableEntry(xsf, objPtr.p->m_id);
       entry->m_tableState = SchemaFile::SF_UNUSED;
       entry->m_transId = 0;
@@ -29601,7 +29726,8 @@ Dbdict::getDictObject(SchemaOpPtr op_ptr, DictObjectPtr& obj_ptr)
 {
   OpRecPtr oprec_ptr = op_ptr.p->m_oprec_ptr;
   ndbrequire(oprec_ptr.p->m_obj_ptr_i != RNIL);
-  c_obj_pool.getPtr(obj_ptr, oprec_ptr.p->m_obj_ptr_i);
+  obj_ptr.i = oprec_ptr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(obj_ptr));
 }
 
 // create link from schema op to dict object
@@ -29643,7 +29769,8 @@ Dbdict::unlinkDictObject(SchemaOpPtr op_ptr)
   DictObjectPtr obj_ptr;
   OpRecPtr oprec_ptr = op_ptr.p->m_oprec_ptr;
   ndbrequire(oprec_ptr.p->m_obj_ptr_i != RNIL);
-  c_obj_pool.getPtr(obj_ptr, oprec_ptr.p->m_obj_ptr_i);
+  obj_ptr.i = oprec_ptr.p->m_obj_ptr_i;
+  ndbrequire(c_obj_pool.getValidPtr(obj_ptr));
 
   D("unlinkDictObject" << V(op_ptr.p->op_key) << V(obj_ptr.i));
 
@@ -29702,7 +29829,8 @@ Dbdict::findDictObject(SchemaOpPtr op_ptr,
   D("findDictObject" << *op_ptr.p << V(obj_ptr.i));
   if (obj_ptr_i != RNIL) {
     jam();
-    c_obj_pool.getPtr(obj_ptr, obj_ptr_i);
+    obj_ptr.i = obj_ptr_i;
+    ndbrequire(c_obj_pool.getValidPtr(obj_ptr));
     linkDictObject(op_ptr, obj_ptr);
     return true;
   }
@@ -34744,7 +34872,7 @@ Dbdict::check_consistency_table(TableRecordPtr tablePtr)
   DictObjectPtr obj_ptr;
   obj_ptr.i = tablePtr.p->m_obj_ptr_i;
   ndbrequire(obj_ptr.i != RNIL);
-  c_obj_pool.getPtr(obj_ptr);
+  ndbrequire(c_obj_pool.getValidPtr(obj_ptr));
   check_consistency_object(obj_ptr);
 
   ndbrequire(obj_ptr.p->m_id == tablePtr.p->tableId);
@@ -34800,7 +34928,7 @@ Dbdict::check_consistency_index(TableRecordPtr indexPtr)
   DictObjectPtr obj_ptr;
   obj_ptr.i = triggerPtr.p->m_obj_ptr_i;
   ndbrequire(obj_ptr.i != RNIL);
-  c_obj_pool.getPtr(obj_ptr);
+  ndbrequire(c_obj_pool.getValidPtr(obj_ptr));
   check_consistency_object(obj_ptr);
 
   ndbrequire(obj_ptr.p->m_id == triggerPtr.p->triggerId);
@@ -34982,5 +35110,34 @@ Dbdict::startNextGetTabInfoReq(Signal* signal)
       sendSignal(reference(), GSN_CONTINUEB, signal,
                  1, JBB);
     }
+  }
+}
+
+void
+Dbdict::sendPoolShrink(const Uint32 pool_index)
+{
+  const bool need_send = c_transient_pools_shrinking.get(pool_index) == 0;
+  c_transient_pools_shrinking.set(pool_index);
+  if (need_send)
+  {
+    Signal25 signal[1];
+    signal->theData[0] = ZDICT_SHRINK_TRANSIENT_POOLS;
+    signal->theData[1] = pool_index;
+    sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
+  }
+}
+
+void
+Dbdict::shrinkTransientPools(Uint32 pool_index)
+{
+  ndbrequire(pool_index < c_transient_pool_count);
+  ndbrequire(c_transient_pools_shrinking.get(pool_index));
+  if (c_transient_pools[pool_index]->rearrange_free_list_and_shrink(1))
+  {
+    sendPoolShrink(pool_index);
+  }
+  else
+  {
+    c_transient_pools_shrinking.clear(pool_index);
   }
 }

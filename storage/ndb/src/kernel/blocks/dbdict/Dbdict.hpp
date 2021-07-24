@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -102,8 +103,12 @@
 #include <signaldata/DropFKImpl.hpp>
 
 #include <EventLogger.hpp>
+#include "TransientPool.hpp"
+#include "TransientSlotPool.hpp"
 
 #define JAM_FILE_ID 464
+
+#define DO_TRANSIENT_POOL_STAT 1
 
 #ifdef DBDICT_C
 
@@ -119,6 +124,8 @@
 #define ZINDEX_STAT_BG_PROCESS 7
 #define ZGET_TABINFO_RETRY 8
 #define ZNEXT_GET_TAB_REQ 9
+#define ZDICT_SHRINK_TRANSIENT_POOLS 10
+#define ZDICT_TRANSIENT_POOL_STAT 11
 
 /*--------------------------------------------------------------*/
 // Other constants in alphabetical order
@@ -195,7 +202,11 @@ public:
    * attributes.  This is wrong but convenient.
    */
   struct AttributeRecord {
-    AttributeRecord(){}
+    static constexpr Uint32 TYPE_ID = RT_DBDICT_ATTRIBUTE_RECORD;
+    AttributeRecord() :
+      m_magic(Magic::make(TYPE_ID))
+    {}
+    Uint32 m_magic;
 
     /* attribute id */
     Uint16 attributeId;
@@ -244,8 +255,9 @@ public:
       return false;
     }
   };
+  static constexpr Uint32 DBDICT_ATTRIBUTE_RECORD_TRANSIENT_POOL_INDEX = 3;
   typedef Ptr<AttributeRecord> AttributeRecordPtr;
-  typedef ArrayPool<AttributeRecord> AttributeRecord_pool;
+  typedef TransientPool<AttributeRecord> AttributeRecord_pool;
   typedef DLMHashTable<AttributeRecord_pool> AttributeRecord_hash;
   typedef DLFifoList<AttributeRecord_pool> AttributeRecord_list;
   typedef LocalDLFifoList<AttributeRecord_pool> LocalAttributeRecord_list;
@@ -260,16 +272,19 @@ public:
    */
   struct TableRecord;
   typedef Ptr<TableRecord> TableRecordPtr;
-  typedef ArrayPool<TableRecord> TableRecord_pool;
-  typedef DLFifoList<TableRecord_pool> TableRecord_list;
-  typedef LocalDLFifoList<TableRecord_pool> LocalTableRecord_list;
-
+  typedef ArrayPool<TableRecord> IndexRecord_pool;
+  typedef DLFifoList<IndexRecord_pool> IndexRecord_list;
   struct TableRecord {
-    TableRecord(){
+    static constexpr Uint32 TYPE_ID = RT_DBDICT_TABLE_RECORD;
+    Uint32 m_magic;
+    TableRecord() :
+      m_magic(Magic::make(TYPE_ID))
+    {
       m_upgrade_trigger_handling.m_upgrade = false;
       fullyReplicatedTriggerId = RNIL;
     }
-    static bool isCompatible(Uint32 type) { return DictTabInfo::isTable(type) || DictTabInfo::isIndex(type); }
+    static bool isCompatible(Uint32 type)
+    { return DictTabInfo::isTable(type) || DictTabInfo::isIndex(type); }
 
     Uint32 maxRowsLow;
     Uint32 maxRowsHigh;
@@ -441,7 +456,7 @@ public:
     Uint32 m_tablespace_id;
 
     /** List of indexes attached to table */
-    TableRecord_list::Head m_indexes;
+    IndexRecord_list::Head m_indexes;
     Uint32 nextList, prevList;
 
     /*
@@ -461,7 +476,10 @@ public:
     // pending background request (IndexStatRep::RequestType)
     Uint32 indexStatBgRequest;
   };
-
+  typedef TransientPool<TableRecord> TableRecord_pool;
+  typedef DLFifoList<TableRecord_pool> TableRecord_list;
+  typedef LocalDLFifoList<TableRecord_pool> LocalTableRecord_list;
+  static constexpr Uint32 DBDICT_TABLE_RECORD_TRANSIENT_POOL_INDEX = 2;
   TableRecord_pool c_tableRecordPool_;
   RSS_AP_SNAPSHOT(c_tableRecordPool_);
   TableRecord_pool& get_pool(TableRecordPtr) { return c_tableRecordPool_; }
@@ -483,8 +501,14 @@ public:
    * trigger online creates the trigger in TC (if index) and LQH-TUP.
    */
   struct TriggerRecord {
-    TriggerRecord() {}
-    static bool isCompatible(Uint32 type) { return DictTabInfo::isTrigger(type); }
+    static constexpr Uint32 TYPE_ID = RT_DBDICT_TRIGGER_RECORD;
+    Uint32 m_magic;
+
+    TriggerRecord() :
+      m_magic(Magic::make(TYPE_ID))
+    {}
+    static bool isCompatible(Uint32 type)
+    { return DictTabInfo::isTrigger(type); }
 
     /** Trigger state */
     enum TriggerState {
@@ -526,13 +550,14 @@ public:
     /** Pointer to the next attribute used by ArrayPool */
     Uint32 nextPool;
   };
-
+  static constexpr Uint32 DBDICT_TRIGGER_RECORD_TRANSIENT_POOL_INDEX = 1;
   typedef Ptr<TriggerRecord> TriggerRecordPtr;
-  typedef ArrayPool<TriggerRecord> TriggerRecord_pool;
+  typedef TransientPool<TriggerRecord> TriggerRecord_pool;
 
   Uint32 c_maxNoOfTriggers;
   TriggerRecord_pool c_triggerRecordPool_;
-  TriggerRecord_pool& get_pool(TriggerRecordPtr) { return c_triggerRecordPool_;}
+  TriggerRecord_pool& get_pool(TriggerRecordPtr)
+  { return c_triggerRecordPool_;}
   RSS_AP_SNAPSHOT(c_triggerRecordPool_);
 
   /**
@@ -714,10 +739,16 @@ public:
   };
 
   struct DictObject {
-    DictObject() {
+    static constexpr Uint32 TYPE_ID = RT_DBDICT_OBJECT_RECORD;
+    Uint32 m_magic;
+
+    DictObject() :
+      m_magic(Magic::make(TYPE_ID))
+    {
       m_trans_key = 0;
       m_op_ref_count = 0;
     }
+
     Uint32 m_id;
     Uint32 m_type;
     Uint32 m_object_ptr_i;
@@ -764,9 +795,9 @@ public:
     void print(NdbOut&) const;
 #endif
   };
-
+  static constexpr Uint32 DBDICT_OBJECT_RECORD_TRANSIENT_POOL_INDEX = 0;
   typedef Ptr<DictObject> DictObjectPtr;
-  typedef ArrayPool<DictObject> DictObject_pool;
+  typedef TransientPool<DictObject> DictObject_pool;
   typedef DLMHashTable<DictObject_pool, HashedByName<DictObject> > DictObjectName_hash;
   typedef DLMHashTable<DictObject_pool, HashedById<DictObject> > DictObjectId_hash;
   typedef SLList<DictObject_pool> DictObject_list;
@@ -4868,7 +4899,8 @@ public:
 
     Uint64 rps = 0;  // Roughly calculate rope pool size:
     rps += num_tables * (MAX_TAB_NAME_SIZE + ROPE_COPY_BUFFER_SIZE);
-    rps += (num_attributes * (MAX_ATTR_NAME_SIZE + MAX_ATTR_DEFAULT_VALUE_SIZE) / Uint64(10));
+    rps += (num_attributes *
+            (MAX_ATTR_NAME_SIZE + MAX_ATTR_DEFAULT_VALUE_SIZE) / Uint64(10));
     rps += num_triggers * MAX_TAB_NAME_SIZE;
     rps += (10 + 10) * MAX_TAB_NAME_SIZE;
     if (percent64 <= 100)
@@ -4882,6 +4914,16 @@ public:
     rps += safety;
     return rps;
   }
+
+private:
+  void checkPoolShrinkNeed(Uint32 pool_index,
+                           const TransientFastSlotPool& pool);
+  void sendPoolShrink(Uint32 pool_index);
+  void shrinkTransientPools(Uint32 pool_index);
+
+  static const Uint32 c_transient_pool_count = 4;
+  TransientFastSlotPool* c_transient_pools[c_transient_pool_count];
+  Bitmask<1> c_transient_pools_shrinking;
 };
 
 inline bool
@@ -4919,6 +4961,20 @@ Dbdict::TableRecord::isOrderedIndex() const
 {
   return DictTabInfo::isOrderedIndex(tableType);
 }
+
+inline void Dbdict::checkPoolShrinkNeed(const Uint32 pool_index,
+                                        const TransientFastSlotPool& pool)
+{
+#if defined(VM_TRACE) || defined(ERROR_INSERT)
+  ndbrequire(pool_index < c_transient_pool_count);
+  ndbrequire(c_transient_pools[pool_index] == &pool);
+#endif
+  if (pool.may_shrink())
+  {
+    sendPoolShrink(pool_index);
+  }
+}
+
 
 // quilt keeper
 

@@ -1,6 +1,7 @@
 /*
    Copyright (c) 2003, 2021, Oracle and/or its affiliates.
    Copyright (c) 2021, 2021, Logical Clocks AB and/or its affiliates.
+   Copyright (c) 2021, 2021, iClaustron AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +29,8 @@
 
 #include "ndb_version.h"  // Limits might depend on NDB version
 
-#define RNIL    0xffffff00
+#define RNIL    Uint32(0xffffff00)
+#define RNIL64  Uint64(0xffffffffffffff00)
 #define MBYTE64 Uint64(1024 * 1024)
 #define MBYTE32 Uint32(1024 * 1024)
 
@@ -403,7 +405,7 @@
 
 #define MAX_UNDO_DATA            20 + MAX_TUPLE_SIZE_IN_WORDS
 // Max. number of pending undo records allowed per LDM
-#define MAX_PENDING_UNDO_RECORDS 100
+#define MAX_PENDING_UNDO_RECORDS 1000
 
 // Maximum handling of DROP_TRIG_REQs in parallel by LocalProxy
 #define NDB_MAX_PROXY_DROP_TRIG_IMPL_REQ 21
