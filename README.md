@@ -31,7 +31,7 @@ License information can be found [here](https://github.com/logicalclocks/rondb/b
 
 ## Who is behind RondDB?
 
-RonDB is brought to you by the RonDB team at [Logical Clocks AB](https://www.logicalclocks.com/).
+RonDB is brought to you by the RonDB team at [Logical Clocks](https://www.logicalclocks.com/).
 
 ## More information
 
