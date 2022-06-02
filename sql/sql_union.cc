@@ -277,7 +277,7 @@ class Query_result_union_direct final : public Query_result_union {
     abort();
   }
   bool flush() override { return false; }
-  bool check_simple_select() const override {
+  bool check_supports_cursor() const override {
     // Only called for top-level Query_results, usually Query_result_send
     DBUG_ASSERT(false); /* purecov: inspected */
     return false;       /* purecov: inspected */

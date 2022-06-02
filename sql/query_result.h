@@ -43,6 +43,8 @@ class Item;
 class Item_subselect;
 class PT_select_var;
 class SELECT_LEX_UNIT;
+class Query_term_set_op;
+class Server_side_cursor;
 class THD;
 struct CHARSET_INFO;
 struct TABLE_LIST;
@@ -134,13 +136,11 @@ class Query_result {
   }
   virtual bool send_eof(THD *thd) = 0;
   /**
-    Check if this query returns a result set and therefore is allowed in
-    cursors and set an error message if it is not the case.
+    Check if this query result set supports cursors
 
-    @retval false     success
-    @retval true      error, an error message is set
+    @returns false if success, true if error
   */
-  virtual bool check_simple_select() const {
+  virtual bool check_supports_cursor() const {
     my_error(ER_SP_BAD_CURSOR_QUERY, MYF(0));
     return true;
   }
@@ -151,7 +151,7 @@ class Query_result {
     @returns true if error
   */
   virtual bool reset() {
-    DBUG_ASSERT(0);
+    DBUG_ASSERT(false);
     return false;
   }
   /**
@@ -188,6 +188,12 @@ class Query_result {
     DBUG_ASSERT(false);
     return false;
   }
+
+  /// @returns server side cursor, if associated with query result
+  virtual Server_side_cursor *cursor() const {
+    assert(false);
+    return nullptr;
+  }
 };
 
 /*
@@ -221,7 +227,7 @@ class Query_result_send : public Query_result {
                                 uint flags) override;
   bool send_data(THD *thd, const mem_root_deque<Item *> &items) override;
   bool send_eof(THD *thd) override;
-  bool check_simple_select() const override { return false; }
+  bool check_supports_cursor() const override { return false; }
   void abort_result_set(THD *thd) override;
   void cleanup(THD *) override { is_result_set_started = false; }
 };
@@ -246,6 +252,8 @@ class Query_result_to_file : public Query_result_interceptor {
   bool needs_file_privilege() const override { return true; }
 
   void send_error(THD *thd, uint errcode, const char *err) override;
+
+  bool check_supports_cursor() const override;
   bool send_eof(THD *thd) override;
   void cleanup(THD *thd) override;
 };
@@ -311,7 +319,7 @@ class Query_dumpvar final : public Query_result_interceptor {
                SELECT_LEX_UNIT *u) override;
   bool send_data(THD *thd, const mem_root_deque<Item *> &items) override;
   bool send_eof(THD *thd) override;
-  bool check_simple_select() const override;
+  bool check_supports_cursor() const override;
   void cleanup(THD *) override { row_count = 0; }
 };
 

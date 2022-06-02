@@ -2763,10 +2763,10 @@ static bool parse_query_bind_params(
       }
       enum enum_field_types type =
           has_new_types ? params[i].type
-                        : stmt_data->param_array[i]->data_type_actual();
+                        : stmt_data->m_param_array[i]->data_type_actual();
       if (type == MYSQL_TYPE_BOOL)
         return true;  // unsupported in this version of the Server
-      if (stmt_data && stmt_data->param_array[i]->param_state() ==
+      if (stmt_data && stmt_data->m_param_array[i]->param_state() ==
                            Item_param::LONG_DATA_VALUE) {
         DBUG_PRINT("info", ("long data"));
         if (!((type >= MYSQL_TYPE_TINY_BLOB) && (type <= MYSQL_TYPE_STRING)))
@@ -2870,9 +2870,9 @@ bool Protocol_classic::parse_packet(union COM_DATA *data,
         If no statement found there's no need to generate error.
         It will be generated in sql_parse.cc which will check again for the id.
       */
-      if (!stmt || stmt->param_count < 1) break;
+      if (!stmt || stmt->m_param_count == 0) break;
       if (parse_query_bind_params(
-              m_thd, stmt->param_count, &data->com_stmt_execute.parameters,
+              m_thd, stmt->m_param_count, &data->com_stmt_execute.parameters,
               &data->com_stmt_execute.has_new_types,
               &data->com_stmt_execute.parameter_count, stmt, &read_pos,
               &packet_left,

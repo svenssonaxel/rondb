@@ -154,6 +154,11 @@ void Query_result_to_file::send_error(THD *, uint errcode, const char *err) {
   }
 }
 
+bool Query_result_to_file::check_supports_cursor() const {
+  my_error(ER_SP_BAD_CURSOR_SELECT, MYF(0));
+  return true;
+}
+
 bool Query_result_to_file::send_eof(THD *thd) {
   bool error = (end_io_cache(&cache) != 0);
   if (mysql_file_close(file, MYF(MY_WME)) || thd->is_error()) error = true;
@@ -704,7 +709,7 @@ bool Query_dumpvar::prepare(THD *, const mem_root_deque<Item *> &list,
   return false;
 }
 
-bool Query_dumpvar::check_simple_select() const {
+bool Query_dumpvar::check_supports_cursor() const {
   my_error(ER_SP_BAD_CURSOR_SELECT, MYF(0));
   return true;
 }
