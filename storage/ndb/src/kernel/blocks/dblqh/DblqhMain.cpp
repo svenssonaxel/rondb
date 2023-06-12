@@ -20004,10 +20004,12 @@ Uint32 Dblqh::initScanrec(const ScanFragReq* scanFragReq,
   ExecFunction f;
   if (accScan)
   {
+    // ACC Scan no longer supported. Use TUP scan instead.
     blockRef = ctupBlockref;
     block = c_tup;
     f = c_tup->getExecuteFunction(GSN_NEXT_SCANREQ);
     tupScan = 1;
+    scanPtr->tupScan = tupScan;
   }
   else if (! tupScan)
   {
