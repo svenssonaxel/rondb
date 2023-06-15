@@ -35833,6 +35833,7 @@ void Dblqh::readLogData(LogPageRecordPtr & logPagePtr,
     for (Uint32 i = 0; i < noOfWords; i++)
     {
       /* Todo : Consider reading > 1 word at a time */
+      // ASDF SIMD?
       Uint32 word= readLogwordExec(logPagePtr, logPartPtrP);
       bool ok= appendToSection(sectionIVal,
                                &word,
