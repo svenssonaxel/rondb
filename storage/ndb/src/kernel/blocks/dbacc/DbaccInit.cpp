@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2023, 2023, Hopsworks AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -204,7 +204,6 @@ Dbacc::Dbacc(Block_context& ctx,
     addRecSignal(GSN_DUMP_STATE_ORD, &Dbacc::execDUMP_STATE_ORD);
     addRecSignal(GSN_DEBUG_SIG, &Dbacc::execDEBUG_SIG);
     addRecSignal(GSN_CONTINUEB, &Dbacc::execCONTINUEB);
-    addRecSignal(GSN_ACC_CHECK_SCAN, &Dbacc::execACC_CHECK_SCAN);
     addRecSignal(GSN_EXPANDCHECK2, &Dbacc::execEXPANDCHECK2);
     addRecSignal(GSN_SHRINKCHECK2, &Dbacc::execSHRINKCHECK2);
 
@@ -212,8 +211,6 @@ Dbacc::Dbacc(Block_context& ctx,
     addRecSignal(GSN_STTOR, &Dbacc::execSTTOR);
     addRecSignal(GSN_ACCSEIZEREQ, &Dbacc::execACCSEIZEREQ);
     addRecSignal(GSN_ACCFRAGREQ, &Dbacc::execACCFRAGREQ);
-    addRecSignal(GSN_NEXT_SCANREQ, &Dbacc::execNEXT_SCANREQ);
-    addRecSignal(GSN_ACC_SCANREQ, &Dbacc::execACC_SCANREQ);
     addRecSignal(GSN_ACC_TO_REQ, &Dbacc::execACC_TO_REQ);
     addRecSignal(GSN_ACC_LOCKREQ, &Dbacc::execACC_LOCKREQ);
     addRecSignal(GSN_NDB_STTOR, &Dbacc::execNDB_STTOR);
@@ -239,10 +236,8 @@ Dbacc::Dbacc(Block_context& ctx,
     addRecSignal(GSN_SHRINKCHECK2, &Dbacc::execSHRINKCHECK2);
     addRecSignal(GSN_ACCSEIZEREQ, &Dbacc::execACCSEIZEREQ);
     addRecSignal(GSN_READ_CONFIG_REQ, &Dbacc::execREAD_CONFIG_REQ, true);
-    addRecSignal(GSN_NEXT_SCANREQ, &Dbacc::execNEXT_SCANREQ);
     addRecSignal(GSN_CONTINUEB, &Dbacc::execCONTINUEB);
     addRecSignal(GSN_DUMP_STATE_ORD, &Dbacc::execDUMP_STATE_ORD);
-    addRecSignal(GSN_ACC_CHECK_SCAN, &Dbacc::execACC_CHECK_SCAN);
   }
   initData();
 

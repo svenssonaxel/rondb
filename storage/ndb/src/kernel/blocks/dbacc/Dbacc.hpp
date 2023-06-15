@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Logical Clocks and/or its affiliates.
+   Copyright (c) 2021, 2023, Hopsworks AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -264,7 +264,6 @@ public:
   bool m_is_in_query_thread;
   Uint32 m_lqh_block;
   Dbacc *m_ldm_instance_used;
-  void prepare_scan_ctx(Uint32 scanPtrI) override;
 
 // State values
 enum State {
@@ -937,7 +936,6 @@ private:
   // Transit signals
   void execDEBUG_SIG(Signal* signal);
   void execCONTINUEB(Signal* signal);
-  void execACC_CHECK_SCAN(Signal* signal);
   void execEXPANDCHECK2(Signal* signal);
   void execSHRINKCHECK2(Signal* signal);
   void execACC_OVER_REC(Signal* signal);
@@ -947,8 +945,6 @@ private:
   void execSTTOR(Signal* signal);
   void execACCSEIZEREQ(Signal* signal);
   void execACCFRAGREQ(Signal* signal);
-  void execNEXT_SCANREQ(Signal* signal);
-  void execACC_SCANREQ(Signal* signal);
   void execACC_TO_REQ(Signal* signal);
   void execNDB_STTOR(Signal* signal);
   void execDROP_TAB_REQ(Signal* signal);
@@ -1036,7 +1032,6 @@ private:
                        Uint32 conptr,
                        bool isforward,
                        Uint32 conlen);
-  void releaseAndCommitActiveOps(Signal* signal);
   void releaseAndCommitQueuedOps(Signal* signal);
   void releaseAndAbortLockedOps(Signal* signal);
   void getContainerIndex(Uint32 pointer, Uint32& index, bool& isforward) const;
@@ -1057,7 +1052,6 @@ private:
                          ContainerHeader containerhead,
                          Uint32& nextConidx,
                          bool& nextIsforward) const;
-  void putActiveScanOp() const;
   void putOpScanLockQue() const;
   void putReadyScanQueue(Uint32 scanRecIndex) const;
   void releaseScanBucket(Page8Ptr pageptr,
@@ -1076,9 +1070,7 @@ private:
                            Uint32 conlen,
                            Uint32& elemptr,
                            Uint32& islocked) const;
-  void sendNextScanConf(Signal* signal);
   void setlock(Page8Ptr pageptr, Uint32 elemptr) const;
-  void takeOutActiveScanOp() const;
   void takeOutScanLockQueue(Uint32 scanRecIndex) const;
   void takeOutReadyScanQueue() const;
   void insertElement(Element elem,
@@ -1207,7 +1199,6 @@ private:
                           Uint32 hash);
   void releaseScanLab(Signal* signal);
   void initialiseRecordsLab(Signal* signal, Uint32, Uint32, Uint32);
-  void checkNextBucketLab(Signal* signal);
   void storeDataPageInDirectoryLab(Signal* signal) const;
 
   void zpagesize_error(const char* where);

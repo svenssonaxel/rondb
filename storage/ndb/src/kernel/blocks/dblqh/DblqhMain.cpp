@@ -17575,7 +17575,7 @@ void Dblqh::scanReleaseLocksLab(Signal* signal,
     signal->theData[1] = sig1;
     signal->theData[2] = NextScanReq::ZSCAN_COMMIT;
     signal->theData[0] = sig0;
-    /* EXECUTE_DIRECT optimised to NEXT_SCANREQ in TUP/ACC/TUX */
+    /* EXECUTE_DIRECT optimised to NEXT_SCANREQ in TUP/TUX */
 
     /**
      * DESIGN PATTERN DESCRIPTION:
@@ -18137,8 +18137,8 @@ Dblqh::set_acc_ptr_in_scan_record(ScanRecord* scanP,
  *
  *  To restart the scan again after any type of temporary stop one sends
  *  the signal ACC_CHECK_SCAN either as direct or as an asynchronous signal
- *  to DBACC/DBTUP/DBTUX. This signal is sent from many different places in
- *  DBLQH, DBACC, DBTUP and DBTUX. It is always sent as part of NEXT_SCANREQ
+ *  to DBTUP/DBTUX. This signal is sent from many different places in
+ *  DBLQH, DBACC todoas will Dbacc ever send ACC_CHECK_SCAN?, DBTUP and DBTUX. It is always sent as part of NEXT_SCANREQ
  *  processing.
  *
  *  When executing ACC_CHECK_SCAN one can flag to DBACC/DBTUP/DBTUX that one
@@ -35833,7 +35833,7 @@ void Dblqh::readLogData(LogPageRecordPtr & logPagePtr,
     for (Uint32 i = 0; i < noOfWords; i++)
     {
       /* Todo : Consider reading > 1 word at a time */
-      // ASDF SIMD?
+      // todoas SIMD?
       Uint32 word= readLogwordExec(logPagePtr, logPartPtrP);
       bool ok= appendToSection(sectionIVal,
                                &word,
