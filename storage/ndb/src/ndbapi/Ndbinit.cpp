@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2023, 2023, Hopsworks AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +42,7 @@
 #ifdef VM_TRACE
 static bool g_first_create_ndb = true;
 static bool g_force_short_signals = false;
-static bool g_force_acc_table_scans = false;
+static bool g_force_acc_table_scans = false; // Always false. ACC scans are no longer supported.
 #endif
 
 Ndb::Ndb( Ndb_cluster_connection *ndb_cluster_connection,
@@ -265,6 +266,7 @@ NdbImpl::NdbImpl(Ndb_cluster_connection *ndb_cluster_connection,
     if (f != nullptr && *f != 0 && *f != '0' && *f != 'n' && *f != 'N')
     {
       g_force_acc_table_scans = true;
+      ndbabort(); // ACC scans are not supported
     }
   }
   forceAccTableScans = g_force_acc_table_scans;

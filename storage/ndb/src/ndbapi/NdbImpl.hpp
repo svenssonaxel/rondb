@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2023, Hopsworks AB and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -230,7 +230,7 @@ public:
   }
 
   bool forceShortRequests;
-  bool forceAccTableScans;
+  bool forceAccTableScans; // Always false. ACC scans are no longer supported.
 
   static inline void setForceShortRequests(Ndb* ndb, bool val)
   {
