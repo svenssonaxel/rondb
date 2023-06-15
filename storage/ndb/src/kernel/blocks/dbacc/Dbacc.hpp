@@ -1050,8 +1050,6 @@ private:
                          ContainerHeader containerhead,
                          Uint32& nextConidx,
                          bool& nextIsforward) const;
-  void putOpScanLockQue() const;
-  void putReadyScanQueue(Uint32 scanRecIndex) const;
   void releaseScanBucket(Page8Ptr pageptr,
                          Uint32 conidx,
                          Uint16 scanMask) const;
@@ -1192,7 +1190,6 @@ private:
   void insertExistElemLab(Signal* signal,
                           OperationrecPtr lockOwnerPtr,
                           Uint32 hash);
-  void releaseScanLab(Signal* signal);
   void initialiseRecordsLab(Signal* signal, Uint32, Uint32, Uint32);
   void storeDataPageInDirectoryLab(Signal* signal) const;
 

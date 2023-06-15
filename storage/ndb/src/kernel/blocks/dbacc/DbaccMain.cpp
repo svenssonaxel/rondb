@@ -5256,7 +5256,7 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
             scanPtr.i = fragrecptr.p->scan[i];
             ndbrequire(scanRec_pool.getValidPtr(scanPtr));
             scanPtr.p->leaveContainer(lastPageptr.i, tlastContainerptr);
-            lastPageptr.p->clearScanContainer(scanbit, tlastContainerptr);
+            // lastPageptr.p->clearScanContainer(scanbit, tlastContainerptr); // todoas rm
           }
         }
         /**
@@ -8305,79 +8305,6 @@ void Dbacc::initScanFragmentPart()
   fragrecptr.p->activeScanMask |= scanPtr.p->scanMask;
 }//Dbacc::initScanFragmentPart()
 
-/* -------------------------------------------------------------------------
- * FLAG = 6 = ZCOPY_CLOSE THE SCAN PROCESS IS READY OR ABORTED. 
- * ALL OPERATION IN THE ACTIVE OR WAIT QUEUE ARE RELEASED, 
- * SCAN FLAG OF ROOT FRAG IS RESET AND THE SCAN RECORD IS RELEASED.
- * ------------------------------------------------------------------------ */
-void Dbacc::releaseScanLab(Signal* signal)
-{
-  ndbabort(); //ACC scan no longer used
-  // releaseAndCommitActiveOps(signal); // todoas rm
-  // releaseAndCommitQueuedOps(signal); // todoas rm
-  // releaseAndAbortLockedOps(signal); // todoas rm
-
-  fragrecptr.i = scanPtr.p->activeLocalFrag;
-  ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-  ndbassert(fragrecptr.p->activeScanMask & scanPtr.p->scanMask);
-
-  /**
-   * Dont leave partial scanned bucket as partial scanned.
-   * Elements scanbits must match containers scanbits.
-   */
-  if ((scanPtr.p->scanBucketState ==  ScanRec::FIRST_LAP &&
-       scanPtr.p->nextBucketIndex <= fragrecptr.p->level.getTop()) ||
-      (scanPtr.p->scanBucketState ==  ScanRec::SECOND_LAP &&
-       scanPtr.p->nextBucketIndex <= scanPtr.p->maxBucketIndexToRescan))
-  {
-    jam();
-    Uint32 conidx = fragrecptr.p->getPageIndex(scanPtr.p->nextBucketIndex);
-    Uint32 pagei = fragrecptr.p->getPageNumber(scanPtr.p->nextBucketIndex);
-    Page8Ptr pageptr;
-    pageptr.i = getPagePtr(fragrecptr.p->directory, pagei);
-    c_page8_pool.getPtr(pageptr);
-
-    Uint32 inPageI;
-    Uint32 inConptr;
-    if(scanPtr.p->getContainer(inPageI, inConptr))
-    {
-      Page8Ptr page;
-      page.i = inPageI;
-      c_page8_pool.getPtr(page);
-      ContainerHeader conhead(page.p->word32[inConptr]);
-      scanPtr.p->leaveContainer(inPageI, inConptr);
-      page.p->clearScanContainer(scanPtr.p->scanMask, inConptr);
-      if (!page.p->checkScanContainer(inConptr))
-      {
-        conhead.clearScanInProgress();
-        page.p->word32[inConptr] = Uint32(conhead);
-      }
-    }
-    releaseScanBucket(pageptr, conidx, scanPtr.p->scanMask);
-  }
-
-#if MAX_PARALLEL_SCANS_PER_FRAG > 0
-  for (Uint32 i = 0; i < MAX_PARALLEL_SCANS_PER_FRAG; i++) {
-    jam();
-    if (fragrecptr.p->scan[i] == scanPtr.i)
-    {
-      jam();
-      fragrecptr.p->scan[i] = RNIL;
-    }//if
-  }//for
-#endif
-  // Stops the heartbeat
-  NextScanConf* const conf = (NextScanConf*)signal->getDataPtrSend();
-  conf->scanPtr = scanPtr.p->scanUserptr;
-  conf->accOperationPtr = RNIL;
-  conf->fragId = RNIL;
-  fragrecptr.p->activeScanMask &= ~scanPtr.p->scanMask;
-  releaseScanRec();
-  signal->setLength(NextScanConf::SignalLengthNoTuple);
-  c_lqh->exec_next_scan_conf(signal);
-  return;
-}//Dbacc::releaseScanLab()
-
 /* ******************---------------------------------------------------- */
 /* ACC_TO_REQ                                       PERFORM A TAKE OVER   */
 /* ******************-------------------+                                 */
@@ -8642,64 +8569,6 @@ void Dbacc::nextcontainerinfo(Page8Ptr& pageptr,
     c_page8_pool.getPtr(pageptr);
   }//if
 }//Dbacc::nextcontainerinfo()
-
-/**
- * putOpScanLockQueue
- *
- * Description: Put an operation in the doubly linked 
- * lock list on a scan record. The list is used to 
- * keep track of which operations belonging
- * to the scan are put in serial lock list of another 
- * operation
- *
- */
-void Dbacc::putOpScanLockQue() const
-{
-  OperationrecPtr pslOperationRecPtr;
-  ScanRec theScanRec;
-  theScanRec = *scanPtr.p;
-
-  pslOperationRecPtr.i = scanPtr.p->scanLastLockedOp;
-  operationRecPtr.p->prevOp = pslOperationRecPtr.i;
-  operationRecPtr.p->nextOp = RNIL;
-  if (pslOperationRecPtr.i != RNIL) {
-    jam();
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(pslOperationRecPtr));
-    pslOperationRecPtr.p->nextOp = operationRecPtr.i;
-  } else {
-    jam();
-    scanPtr.p->scanFirstLockedOp = operationRecPtr.i;
-  }//if
-  scanPtr.p->scanLastLockedOp = operationRecPtr.i;
-  scanPtr.p->scanLockHeld++;
-  scanPtr.p->scanLockCount++;
-
-}//Dbacc::putOpScanLockQue()
-
-/* --------------------------------------------------------------------------------- */
-/* PUT_READY_SCAN_QUEUE                                                              */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::putReadyScanQueue(Uint32 scanRecIndex) const
-{
-  OperationrecPtr prsOperationRecPtr;
-  ScanRecPtr TscanPtr;
-
-  TscanPtr.i = scanRecIndex;
-  ndbrequire(scanRec_pool.getValidPtr(TscanPtr));
-
-  prsOperationRecPtr.i = TscanPtr.p->scanLastQueuedOp;
-  operationRecPtr.p->prevOp = prsOperationRecPtr.i;
-  operationRecPtr.p->nextOp = RNIL;
-  TscanPtr.p->scanLastQueuedOp = operationRecPtr.i;
-  if (prsOperationRecPtr.i != RNIL) {
-    jam();
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(prsOperationRecPtr));
-    prsOperationRecPtr.p->nextOp = operationRecPtr.i;
-  } else {
-    jam();
-    TscanPtr.p->scanFirstQueuedOp = operationRecPtr.i;
-  }//if
-}//Dbacc::putReadyScanQueue()
 
 /** ---------------------------------------------------------------------------
  * Reset scan bit for all elements within a bucket.
