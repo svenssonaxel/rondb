@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Logical Clocks and/or its affiliates.
+   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -75,7 +75,6 @@
 #define ZOPRECSIZE 740
 #define ZPAGESIZE 128
 #define ZPARALLEL_QUEUE 1
-#define ZSCAN_MAX_LOCK 4
 #define ZSERIAL_QUEUE 2
 #define ZSPH1 1
 #define ZSPH2 2
@@ -264,7 +263,6 @@ public:
   bool m_is_in_query_thread;
   Uint32 m_lqh_block;
   Dbacc *m_ldm_instance_used;
-  void prepare_scan_ctx(Uint32 scanPtrI) override;
 
 // State values
 enum State {
@@ -321,15 +319,8 @@ struct Page8 {
     CHECKSUM = 7,
     NEXT_PAGE = 8,
     PREV_PAGE = 9,
-    SCAN_CON_0_3 = 10,
-    SCAN_CON_4_7 = 11,
-    SCAN_CON_8_11 = 12,
   };
   Uint8 getContainerShortIndex(Uint32 pointer) const;
-  void setScanContainer(Uint16 scanbit, Uint32 conptr);
-  void clearScanContainer(Uint16 scanbit, Uint32 conptr);
-  bool checkScanContainer(Uint32 conptr) const;
-  Uint16 checkScans(Uint16 scanmask, Uint32 conptr) const;
 }; /* p2c: size = 8192 bytes */
   typedef Ptr<Page8> Page8Ptr;
 
@@ -406,8 +397,6 @@ struct Fragmentrec {
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
   Uint32 acc_frag_mutex_count[NUM_ACC_FRAGMENT_MUTEXES];
 #endif
-  Uint32 scan[0];
-  Uint16 activeScanMask;
   union {
     Uint32 mytabptr;
     Uint32 myTableId;
@@ -779,7 +768,6 @@ struct Operationrec {
     Uint32 prevSerialQue;
     Uint32 m_lo_last_serial_op_ptr_i;
   };
-  Uint32 scanRecPtr;
   Uint32 transId1;
   Uint32 transId2;
   Uint32 userptr;
@@ -788,7 +776,6 @@ struct Operationrec {
   Uint32 m_scanOpDeleteCountOpRef;
   Uint32 userblockref;
   bool m_reserved;
-  enum { ANY_SCANBITS = Uint16(0xffff) };
   LHBits16 reducedHashValue;
   NDB_TICKS m_lockTime;
 
@@ -801,94 +788,12 @@ struct Operationrec {
   typedef Ptr<Operationrec> OperationrecPtr;
   typedef TransientPool<Operationrec> Operationrec_pool;
   typedef DLList<Operationrec_pool> Operationrec_list;
-  static constexpr Uint32 DBACC_OPERATION_RECORD_TRANSIENT_POOL_INDEX = 1;
+  static constexpr Uint32 DBACC_OPERATION_RECORD_TRANSIENT_POOL_INDEX = 0;
   Operationrec_pool oprec_pool;
   Operationrec_list m_reserved_copy_frag_lock;
   OperationrecPtr operationRecPtr;
   OperationrecPtr queOperPtr;
   Uint32 cfreeopRec;
-
-struct ScanRec {
-  static constexpr Uint32 TYPE_ID = RT_DBACC_SCAN;
-  Uint32 m_magic;
-
-  enum ScanState {
-    WAIT_NEXT = 0,
-    SCAN_DISCONNECT = 1
-  };
-  enum ScanBucketState {
-    FIRST_LAP = 0,
-    SECOND_LAP = 1,
-    SCAN_COMPLETED = 2
-  };
-
-  ScanRec() :
-    m_magic(Magic::make(TYPE_ID)),
-    activeLocalFrag(RNIL64),
-    nextBucketIndex(0),
-    scanFirstActiveOp(RNIL),
-    scanFirstLockedOp(RNIL),
-    scanLastLockedOp(RNIL),
-    scanFirstQueuedOp(RNIL),
-    scanLastQueuedOp(RNIL),
-    scanOpsAllocated(0),
-    scanLockCount(0),
-    scanLockHeld(0),
-    inPageI(RNIL),
-    inConptr(0),
-    elemScanned(0)
-  {
-  }
-
-  Uint64 activeLocalFrag;
-  Uint32 nextBucketIndex;
-  /**
-   * Next ptr (used in list)
-   */
-  Uint32 nextList;
-
-  Uint32 scanFirstActiveOp;
-  Uint32 scanFirstLockedOp;
-  Uint32 scanLastLockedOp;
-  Uint32 scanFirstQueuedOp;
-  Uint32 scanLastQueuedOp;
-  Uint32 scanUserptr;
-  Uint32 scanTrid1;
-  Uint32 scanTrid2;
-  Uint32 startNoOfBuckets;
-  Uint32 minBucketIndexToRescan;
-  Uint32 maxBucketIndexToRescan;
-  Uint32 scanOpsAllocated;
-  Uint32 scanLockCount;
-  ScanBucketState scanBucketState;
-  ScanState scanState;
-  Uint16 scanLockHeld;
-  Uint16 scan_lastSeen;
-  Uint32 scanUserblockref;
-  Uint32 scanMask;
-  Uint8 scanLockMode;
-  Uint8 scanReadCommittedFlag;
-private:
-  Uint32 inPageI;
-  Uint32 inConptr;
-  Uint32 elemScanned;
-  enum { ELEM_SCANNED_BITS = sizeof(Uint32) * 8 };
-public:
-  bool isInContainer() const;
-  bool getContainer(Uint32& pagei, Uint32& conptr) const;
-  void enterContainer(Uint32 pagei, Uint32 conptr);
-  void leaveContainer(Uint32 pagei, Uint32 conptr);
-  bool isScanned(Uint32 elemptr) const;
-  void setScanned(Uint32 elemptr);
-  void clearScanned(Uint32 elemptr);
-  void moveScanBit(Uint32 toptr, Uint32 fromptr);
-};
-  typedef Ptr<ScanRec> ScanRecPtr;
-  typedef TransientPool<ScanRec> ScanRec_pool;
-  static constexpr Uint32 DBACC_SCAN_RECORD_TRANSIENT_POOL_INDEX = 0;
-  ScanRec_pool scanRec_pool;
-  ScanRecPtr scanPtr;
-
 
 struct Tabrec {
   Uint32 tabUserPtr;
@@ -937,7 +842,6 @@ private:
   // Transit signals
   void execDEBUG_SIG(Signal* signal);
   void execCONTINUEB(Signal* signal);
-  void execACC_CHECK_SCAN(Signal* signal);
   void execEXPANDCHECK2(Signal* signal);
   void execSHRINKCHECK2(Signal* signal);
   void execACC_OVER_REC(Signal* signal);
@@ -947,8 +851,6 @@ private:
   void execSTTOR(Signal* signal);
   void execACCSEIZEREQ(Signal* signal);
   void execACCFRAGREQ(Signal* signal);
-  void execNEXT_SCANREQ(Signal* signal);
-  void execACC_SCANREQ(Signal* signal);
   void execACC_TO_REQ(Signal* signal);
   void execNDB_STTOR(Signal* signal);
   void execDROP_TAB_REQ(Signal* signal);
@@ -982,9 +884,6 @@ private:
                                  Uint32 startIndex,
                                  Uint32 directoryIndex) const;
   void releaseFragRecord(FragmentrecPtr regFragPtr);
-  void initScanFragmentPart();
-  Uint32 checkScanExpand(Uint32 splitBucket);
-  Uint32 checkScanShrink(Uint32 sourceBucket, Uint32 destBucket);
   void initialiseFsConnectionRec(Signal* signal) const;
   void initialiseFsOpRec(Signal* signal) const;
   void initialisePageRec();
@@ -1036,58 +935,22 @@ private:
                        Uint32 conptr,
                        bool isforward,
                        Uint32 conlen);
-  void releaseAndCommitActiveOps(Signal* signal);
-  void releaseAndCommitQueuedOps(Signal* signal);
-  void releaseAndAbortLockedOps(Signal* signal);
   void getContainerIndex(Uint32 pointer, Uint32& index, bool& isforward) const;
   Uint32 getContainerPtr(Uint32 index, bool isforward) const;
   Uint32 getForwardContainerPtr(Uint32 index) const;
   Uint32 getBackwardContainerPtr(Uint32 index) const;
-  bool getScanElement(Page8Ptr& pageptr,
-                      Uint32& conidx,
-                      Uint32& conptr,
-                      bool& isforward,
-                      Uint32& elemptr,
-                      Uint32& islocked) const;
-  void initScanOpRec(Page8Ptr pageptr,
-                     Uint32 conptr,
-                     Uint32 elemptr) const;
   void nextcontainerinfo(Page8Ptr& pageptr,
                          Uint32 conptr,
                          ContainerHeader containerhead,
                          Uint32& nextConidx,
                          bool& nextIsforward) const;
-  void putActiveScanOp() const;
-  void putOpScanLockQue() const;
-  void putReadyScanQueue(Uint32 scanRecIndex) const;
-  void releaseScanBucket(Page8Ptr pageptr,
-                         Uint32 conidx,
-                         Uint16 scanMask) const;
-  void releaseScanContainer(Page8Ptr pageptr,
-                            Uint32 conptr,
-                            bool isforward,
-                            Uint32 conlen,
-                            Uint16 scanMask,
-                            Uint16 allScanned) const;
-  void releaseScanRec();
-  bool searchScanContainer(Page8Ptr pageptr,
-                           Uint32 conptr,
-                           bool isforward,
-                           Uint32 conlen,
-                           Uint32& elemptr,
-                           Uint32& islocked) const;
-  void sendNextScanConf(Signal* signal);
   void setlock(Page8Ptr pageptr, Uint32 elemptr) const;
-  void takeOutActiveScanOp() const;
-  void takeOutScanLockQueue(Uint32 scanRecIndex) const;
-  void takeOutReadyScanQueue() const;
   void insertElement(Element elem,
                      OperationrecPtr oprecptr,
                      Page8Ptr& pageptr,
                      Uint32& conidx,
                      bool& isforward,
                      Uint32& conptr,
-                     Uint16 conScanMask,
                      bool newBucket);
   void insertContainer(Element elem,
                        OperationrecPtr  oprecptr,
@@ -1096,7 +959,6 @@ private:
                        bool isforward,
                        Uint32& conptr,
                        ContainerHeader& containerhead,
-                       Uint16 conScanMask,
                        bool newContainer,
                        Uint32& result);
   void addnewcontainer(Page8Ptr pageptr, Uint32 conptr,
@@ -1186,7 +1048,6 @@ private:
   Uint32 seizePage_lock(Page8Ptr& spPageptr, int sub_page_id);
   bool get_lock_information(Dbacc **acc_block, Dblqh** lqh_block);
   void seizeRootfragrec(Signal* signal) const;
-  void seizeScanRec();
   void sendSystemerror(int line) const;
 
   void addFragRefuse(Signal* signal, Uint32 errorCode) const;
@@ -1195,7 +1056,6 @@ private:
                         Page8Ptr bucketPageptr,
                         Uint32 bucketConidx,
                         Uint32 hash);
-  void checkNextFragmentLab(Signal* signal);
   void endofexpLab(Signal* signal);
   void endofshrinkbucketLab(Signal* signal);
   void sendholdconfsignalLab(Signal* signal) const;
@@ -1205,9 +1065,7 @@ private:
   void insertExistElemLab(Signal* signal,
                           OperationrecPtr lockOwnerPtr,
                           Uint32 hash);
-  void releaseScanLab(Signal* signal);
   void initialiseRecordsLab(Signal* signal, Uint32, Uint32, Uint32);
-  void checkNextBucketLab(Signal* signal);
   void storeDataPageInDirectoryLab(Signal* signal) const;
 
   void zpagesize_error(const char* where);
@@ -1266,12 +1124,11 @@ private:
   void sendPoolShrink(Uint32 pool_index);
   void shrinkTransientPools(Uint32 pool_index);
 
-  bool getNextScanRec(Uint32 &next, ScanRecPtr &loc_scanptr);
   bool getNextOpRec(Uint32 &next,
                     OperationrecPtr &loc_opptr,
                     Uint32 max_loops);
 
-  static const Uint32 c_transient_pool_count = 2;
+  static const Uint32 c_transient_pool_count = 1;
   TransientFastSlotPool* c_transient_pools[c_transient_pool_count];
   Bitmask<1> c_transient_pools_shrinking;
 
@@ -1485,51 +1342,6 @@ inline Uint8 Dbacc::Page8::getContainerShortIndex(Uint32 pointer) const
   return ((pointer - ZHEAD_SIZE) + (ZBUF_SIZE / 2)) / (ZBUF_SIZE / 2);
 }
 
-inline void Dbacc::Page8::setScanContainer(Uint16 scanbit, Uint32 conptr)
-{
-  assert(scanbit != 0);
-  assert(scanbit < (1U << 0));
-  Uint8* p = reinterpret_cast<Uint8*>(&word32[SCAN_CON_0_3]);
-  int i = BitmaskImpl::ffs(scanbit);
-  assert(p[i] == 0);
-  p[i] = getContainerShortIndex(conptr);
-}
-
-#ifdef NDEBUG
-inline void Dbacc::Page8::clearScanContainer(Uint16 scanbit, Uint32)
-#else
-inline void Dbacc::Page8::clearScanContainer(Uint16 scanbit, Uint32 conptr)
-#endif
-{
-  assert(scanbit != 0);
-  assert(scanbit < (1U << 0));
-  Uint8* p = reinterpret_cast<Uint8*>(&word32[SCAN_CON_0_3]);
-  int i = BitmaskImpl::ffs(scanbit);
-  assert(p[i] == getContainerShortIndex(conptr));
-  p[i] = 0;
-}
-
-inline bool Dbacc::Page8::checkScanContainer(Uint32 conptr) const
-{
-  const Uint8* p = reinterpret_cast<const Uint8*>(&word32[SCAN_CON_0_3]);
-  return memchr(p, getContainerShortIndex(conptr), 0);
-}
-
-inline Uint16 Dbacc::Page8::checkScans(Uint16 scanmask, Uint32 conptr) const
-{
-  const Uint8* p = reinterpret_cast<const Uint8*>(&word32[SCAN_CON_0_3]);
-  Uint16 scanbit = 1U;
-  Uint8 i = getContainerShortIndex(conptr);
-  for(int j = 0; scanbit <= scanmask; ++j, scanbit <<= 1U)
-  {
-    if((scanbit & scanmask) && p[j] != i)
-    {
-      scanmask &= ~scanbit;
-    }
-  }
-  return scanmask;
-}
-
 inline Uint32 Dbacc::Fragmentrec::getPageNumber(Uint32 bucket_number) const
 {
   assert(bucket_number < RNIL);
@@ -1547,115 +1359,6 @@ inline bool Dbacc::Fragmentrec::enough_valid_bits(LHBits16 const& reduced_hash_v
   // Forte C 5.0 needs use of intermediate constant
   int const bits = MIN_HASH_COMPARE_BITS;
   return level.getNeededValidBits(bits) <= reduced_hash_value.valid_bits();
-}
-
-inline bool Dbacc::ScanRec::isInContainer() const
-{
-  if (inPageI == RNIL)
-  {
-    assert(inConptr == 0);
-    assert(elemScanned == 0);
-    return false;
-  }
-  else
-  {
-    assert(inConptr != 0);
-    return true;
-  }
-}
-
-inline bool Dbacc::ScanRec::getContainer(Uint32& pagei, Uint32& conptr) const
-{
-  if (inPageI == RNIL)
-  {
-    assert(inConptr == 0);
-    assert(elemScanned == 0);
-    return false;
-  }
-  else
-  {
-    assert(inConptr!=0);
-    pagei = inPageI;
-    conptr = inConptr;
-    return true;
-  }
-}
-
-inline void Dbacc::ScanRec::enterContainer(Uint32 pagei, Uint32 conptr)
-{
-  assert(elemScanned == 0);
-  assert(inPageI == RNIL);
-  assert(inConptr == 0);
-  inPageI = pagei;
-  inConptr = conptr;
-}
-
-inline void Dbacc::ScanRec::leaveContainer(Uint32 pagei, Uint32 conptr)
-{
-  assert(inPageI == pagei);
-  assert(inConptr == conptr);
-  inPageI = RNIL;
-  inConptr = 0;
-  elemScanned = 0;
-}
-
-inline bool Dbacc::ScanRec::isScanned(Uint32 elemptr) const
-{
-  /**
-   * Since element pointers within a container can not differ with more than
-   * the buffer size (ZBUF_SIZE) we can use the pointer value modulo the
-   * number of available bits in elemScanned to get an unique bit index for
-   * each element.
-   */
-  static_assert(ZBUF_SIZE <= ELEM_SCANNED_BITS);
-  return (elemScanned >> (elemptr % ELEM_SCANNED_BITS)) & 1;
-}
-
-inline void Dbacc::ScanRec::setScanned(Uint32 elemptr)
-{
-  assert(((elemScanned >> (elemptr % ELEM_SCANNED_BITS)) & 1) == 0);
-  elemScanned |= (1 << (elemptr % ELEM_SCANNED_BITS));
-}
-
-inline void Dbacc::ScanRec::clearScanned(Uint32 elemptr)
-{
-  assert(((elemScanned >> (elemptr % ELEM_SCANNED_BITS)) & 1) == 1);
-  elemScanned &= ~(1 << (elemptr % ELEM_SCANNED_BITS));
-}
-
-/**
- * moveScanBit are used when one moves an element within a container.
- *
- * This is done on delete there it can happen that the last element
- * in container is moved into the deleted elements place, this method
- * moves the elements scan bit accordingly.
- *
- * In case it is the last element in container that is deleted the
- * toptr and fromptr will be same, in that case the elements scan bit
- * must be cleared.
- */
-inline void Dbacc::ScanRec::moveScanBit(Uint32 toptr, Uint32 fromptr)
-{
-  if (likely(toptr != fromptr))
-  {
-    /**
-     * Move last elements scan bit to deleted elements place.
-     * The scan bit at last elements place are cleared.
-     */
-    elemScanned = (elemScanned &
-                   ~((1 << (toptr % ELEM_SCANNED_BITS)) |
-                     (1 << (fromptr % ELEM_SCANNED_BITS)))) |
-                  (isScanned(fromptr) << (toptr % ELEM_SCANNED_BITS));
-  }
-  else
-  {
-    /**
-     * Clear the deleted elements scan bit since it is the last element
-     * that is deleted.
-     */
-    elemScanned = (elemScanned &
-                   ~(1 << (toptr % ELEM_SCANNED_BITS)));
-  }
 }
 
 inline void Dbacc::Page8_pool::getPtr(Ptr<Page8>& page) const

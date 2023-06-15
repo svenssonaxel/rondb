@@ -162,9 +162,6 @@ public:
 
     TupDumpOneScanRec = 2380,
 
-    AccDumpOneScanRec = 2400,
-    AccDumpAllScanRec = 2401,
-    AccDumpAllActiveScanRec = 2402,
     AccDumpOneOperationRec = 2403,
     AccDumpNumOpRecs = 2404,
     AccDumpFreeOpRecs = 2405,

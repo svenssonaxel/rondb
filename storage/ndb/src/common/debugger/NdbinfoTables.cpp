@@ -89,7 +89,7 @@ DECLARE_NDBINFO_TABLE(POOLS,14) =
         (6  * c.threads.ldm)   +   // BACKUP
         (15 * c.instances.tc)  +   // TC
         (3  * c.instances.lqh) +   // LQH
-        (5  * c.instances.lqh) +   // ACC
+        (4  * c.instances.lqh) +   // ACC
         (9  * c.instances.lqh) +   // TUP
         (7  * c.instances.lqh) +   // TUX
         8 + 2 + 2 + 7 + 8);        // DICT + CMVMI + TRIX + UTIL + SUMA

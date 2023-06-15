@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -85,7 +86,6 @@ ClusterConfiguration::calcSizeAlteration()
   if (noOfDBNodes > 15) {
     noOfDBNodes = 15;
   }//if
-  Uint32 noOfLocalScanRecords = (noOfDBNodes * size->noOfScanRecords) + 1;
   Uint32 noOfTCScanRecords = size->noOfScanRecords;
   {
     /**
@@ -115,7 +115,6 @@ ClusterConfiguration::calcSizeAlteration()
     /*-----------------------------------------------------------------------*/
     setValue(acc, AccSizeAltReq::IND_OP_RECS,
 	     size->noOfReplicas*((16 * size->noOfOperations) / 10 + 50) + 
-             (noOfLocalScanRecords * MAX_PARALLEL_SCANS_PER_FRAG) +
              NODE_RECOVERY_SCAN_OP_RECORDS);
 
     setValue(acc, AccSizeAltReq::IND_OVERFLOW_RECS,
@@ -130,9 +129,6 @@ ClusterConfiguration::calcSizeAlteration()
     
     setValue(acc, AccSizeAltReq::IND_TABLE, 
 	     size->noOfTables);
-    
-    setValue(acc, AccSizeAltReq::IND_SCAN, 
-	     noOfLocalScanRecords);
   }
   
   {
@@ -330,7 +326,7 @@ void ClusterConfiguration::init(const Properties & p, const Properties & db){
   
   struct AttribStorage { const char * attrib; Uint32 * storage; };
   AttribStorage tmp[] = {
-    {"MaxNoOfConcurrentScans", &cd.SizeAltData.noOfScanRecords },
+    {"MaxNoOfConcurrentScans", &cd.SizeAltData.noOfScanRecords }, // todoas is this duplicated and what is it?
     {"MaxNoOfTables", &cd.SizeAltData.noOfTables },
     {"MaxNoOfIndexes", &cd.SizeAltData.noOfIndexes },
     {"NoOfReplicas", &cd.SizeAltData.noOfReplicas },

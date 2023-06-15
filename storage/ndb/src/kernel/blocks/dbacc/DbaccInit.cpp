@@ -38,15 +38,10 @@ Uint64 Dbacc::getTransactionMemoryNeed(
     const Uint32 ldm_instance_count,
     const ndb_mgm_configuration_iterator * mgm_cfg)
 {
-  Uint32 acc_scan_recs = 0;
   Uint32 acc_op_reserved_recs = 0;
   Uint32 acc_op_recs = 0;
 
   {
-    require(!ndb_mgm_get_int_parameter(mgm_cfg,
-                                       CFG_ACC_RESERVED_SCAN_RECORDS,
-                                       &acc_scan_recs));
-    acc_scan_recs += (500 * globalData.ndbMtQueryWorkers);
     require(!ndb_mgm_get_int_parameter(mgm_cfg,
                                        CFG_LDM_RESERVED_OPERATIONS,
                                        &acc_op_reserved_recs));
@@ -56,14 +51,11 @@ Uint64 Dbacc::getTransactionMemoryNeed(
     acc_op_recs += acc_op_reserved_recs;
     acc_op_recs += (1000 * globalData.ndbMtQueryWorkers);
   }
-  Uint64 scan_byte_count = 0;
-  scan_byte_count += ScanRec_pool::getMemoryNeed(acc_scan_recs);
-  scan_byte_count *= ldm_instance_count;
 
   Uint64 op_byte_count = 0;
   op_byte_count += Operationrec_pool::getMemoryNeed(acc_op_recs);
   op_byte_count *= ldm_instance_count;
-  return (scan_byte_count + op_byte_count);
+  return op_byte_count;
 }
 
 void Dbacc::initData()
@@ -112,7 +104,6 @@ void Dbacc::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
     void* tmp[] = { &fragrecptr,
                     &operationRecPtr,
                     &queOperPtr,
-                    &scanPtr,
                     &tabptr
     };
     init_global_ptrs(tmp, sizeof(tmp)/sizeof(tmp[0]));
@@ -138,23 +129,6 @@ void Dbacc::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
 
   Pool_context pc;
   pc.m_block = this;
-
-  Uint32 reserveScanRecs = 0;
-  ndbrequire(!ndb_mgm_get_int_parameter(mgm_cfg,
-            CFG_ACC_RESERVED_SCAN_RECORDS, &reserveScanRecs));
-  if (m_is_query_block)
-  {
-    reserveScanRecs = 500;
-  }
-  scanRec_pool.init(
-    ScanRec::TYPE_ID,
-    pc,
-    reserveScanRecs,
-    UINT32_MAX);
-  while (scanRec_pool.startup())
-  {
-    refresh_watch_dog();
-  }
 
   Uint32 reserveOpRecs = 1;
   Uint32 local_acc_operations = 1;
@@ -204,7 +178,6 @@ Dbacc::Dbacc(Block_context& ctx,
     addRecSignal(GSN_DUMP_STATE_ORD, &Dbacc::execDUMP_STATE_ORD);
     addRecSignal(GSN_DEBUG_SIG, &Dbacc::execDEBUG_SIG);
     addRecSignal(GSN_CONTINUEB, &Dbacc::execCONTINUEB);
-    addRecSignal(GSN_ACC_CHECK_SCAN, &Dbacc::execACC_CHECK_SCAN);
     addRecSignal(GSN_EXPANDCHECK2, &Dbacc::execEXPANDCHECK2);
     addRecSignal(GSN_SHRINKCHECK2, &Dbacc::execSHRINKCHECK2);
 
@@ -212,8 +185,6 @@ Dbacc::Dbacc(Block_context& ctx,
     addRecSignal(GSN_STTOR, &Dbacc::execSTTOR);
     addRecSignal(GSN_ACCSEIZEREQ, &Dbacc::execACCSEIZEREQ);
     addRecSignal(GSN_ACCFRAGREQ, &Dbacc::execACCFRAGREQ);
-    addRecSignal(GSN_NEXT_SCANREQ, &Dbacc::execNEXT_SCANREQ);
-    addRecSignal(GSN_ACC_SCANREQ, &Dbacc::execACC_SCANREQ);
     addRecSignal(GSN_ACC_TO_REQ, &Dbacc::execACC_TO_REQ);
     addRecSignal(GSN_ACC_LOCKREQ, &Dbacc::execACC_LOCKREQ);
     addRecSignal(GSN_NDB_STTOR, &Dbacc::execNDB_STTOR);
@@ -239,18 +210,14 @@ Dbacc::Dbacc(Block_context& ctx,
     addRecSignal(GSN_SHRINKCHECK2, &Dbacc::execSHRINKCHECK2);
     addRecSignal(GSN_ACCSEIZEREQ, &Dbacc::execACCSEIZEREQ);
     addRecSignal(GSN_READ_CONFIG_REQ, &Dbacc::execREAD_CONFIG_REQ, true);
-    addRecSignal(GSN_NEXT_SCANREQ, &Dbacc::execNEXT_SCANREQ);
     addRecSignal(GSN_CONTINUEB, &Dbacc::execCONTINUEB);
     addRecSignal(GSN_DUMP_STATE_ORD, &Dbacc::execDUMP_STATE_ORD);
-    addRecSignal(GSN_ACC_CHECK_SCAN, &Dbacc::execACC_CHECK_SCAN);
   }
   initData();
 
-  c_transient_pools[DBACC_SCAN_RECORD_TRANSIENT_POOL_INDEX] =
-    &scanRec_pool;
   c_transient_pools[DBACC_OPERATION_RECORD_TRANSIENT_POOL_INDEX] =
     &oprec_pool;
-  static_assert(c_transient_pool_count == 2);
+  static_assert(c_transient_pool_count == 1);
   c_transient_pools_shrinking.clear();
 }//Dbacc::Dbacc()
 
