@@ -3601,8 +3601,8 @@ NdbQueryImpl::doSend(int nodeId, bool lastFlag)
 #if defined(VM_TRACE)
     if (ndb.theImpl->forceAccTableScans)
     {
-      tupScan = false;
-      ndbabort(); // ACC scans are not supported
+      // ACC scans are not supported
+      // tupScan = false;
     }
 #endif
 

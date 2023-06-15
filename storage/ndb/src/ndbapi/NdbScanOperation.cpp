@@ -1394,8 +1394,8 @@ NdbScanOperation::processTableScanDefs(NdbScanOperation::LockMode lm,
 #if defined(VM_TRACE)
   if (theNdb->theImpl->forceAccTableScans)
   {
-    tupScan = false;
-    ndbabort(); // ACC scans are not supported
+    // ACC scans are not supported
+    // tupScan = false;
   }
 #endif
 

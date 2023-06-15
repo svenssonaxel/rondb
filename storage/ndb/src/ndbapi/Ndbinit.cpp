@@ -265,8 +265,8 @@ NdbImpl::NdbImpl(Ndb_cluster_connection *ndb_cluster_connection,
     f= NdbEnv_GetEnv("NDB_FORCE_ACC_TABLE_SCANS", (char*)nullptr, 0);
     if (f != nullptr && *f != 0 && *f != '0' && *f != 'n' && *f != 'N')
     {
-      g_force_acc_table_scans = true;
-      ndbabort(); // ACC scans are not supported
+      // ACC scans are not supported
+      // g_force_acc_table_scans = true;
     }
   }
   forceAccTableScans = g_force_acc_table_scans;
