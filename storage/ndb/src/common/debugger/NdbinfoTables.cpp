@@ -1396,8 +1396,3 @@ const Ndbinfo::Table& Ndbinfo::getTable(Uint32 i)
 {
   return getTable((int)i);
 }
-
-/** 
- * #undef is needed since this file is included by NdbInfoTables.cpp
- */
-#undef JAM_FILE_ID
