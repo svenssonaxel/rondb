@@ -230,7 +230,6 @@ public:
   }
 
   bool forceShortRequests;
-  bool forceAccTableScans;
 
   static inline void setForceShortRequests(Ndb* ndb, bool val)
   {

@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +42,6 @@
 #ifdef VM_TRACE
 static bool g_first_create_ndb = true;
 static bool g_force_short_signals = false;
-static bool g_force_acc_table_scans = false;
 #endif
 
 Ndb::Ndb( Ndb_cluster_connection *ndb_cluster_connection,
@@ -264,10 +264,9 @@ NdbImpl::NdbImpl(Ndb_cluster_connection *ndb_cluster_connection,
     f= NdbEnv_GetEnv("NDB_FORCE_ACC_TABLE_SCANS", (char*)nullptr, 0);
     if (f != nullptr && *f != 0 && *f != '0' && *f != 'n' && *f != 'N')
     {
-      g_force_acc_table_scans = true;
+      g_eventLogger->warning("NDB_FORCE_ACC_TABLE_SCANS is deprecated, and has no effect since ACC scans are no longer supported");
     }
   }
-  forceAccTableScans = g_force_acc_table_scans;
   forceShortRequests = g_force_short_signals;
 #endif
 
