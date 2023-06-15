@@ -16886,13 +16886,14 @@ void Dblqh::setup_key_pointers(Uint32 tcIndex, bool acquire_lock)
  * in TUP greatly. Avoiding to copy this for each row we scan saves a lot of
  * computations.
  *
- * The method prepare_scan_ctx calls a method in ACC, TUP or TUX. This method
- * sets up the scan context for the block where the scan is performed. ACC is
- * used for full table scans. TUP is used for LCP scans and Node Restart
- * scans. TUP can also be called for full table scans from the NDB API
- * (but not from SQL). TUX is used for all range scans and represents the
- * majority of the scans performed. These methods describe what context they
- * setup. TUX scan context setup is described in DbtuxScan.cpp.
+ * The method prepare_scan_ctx calls a method in TUP or TUX. This method sets
+ * up the scan context for the block where the scan is performed. ACC was used
+ * for full table scans but isn't anymore, and TUP is used instead. TUP is used
+ * for LCP scans and Node Restart scans. TUP can also be called for full table
+ * scans from the NDB API (but not from SQL (except now it does when used in
+ * place of ACC)). TUX is used for all range scans and represents the majority
+ * of the scans performed. These methods describe what context they setup. TUX
+ * scan context setup is described in DbtuxScan.cpp.
  *
  * Additional TUP variables to setup before calling execTUPKEYREQ
  * --------------------------------------------------------------
