@@ -1032,8 +1032,6 @@ private:
                        Uint32 conptr,
                        bool isforward,
                        Uint32 conlen);
-  void releaseAndCommitQueuedOps(Signal* signal);
-  void releaseAndAbortLockedOps(Signal* signal);
   void getContainerIndex(Uint32 pointer, Uint32& index, bool& isforward) const;
   Uint32 getContainerPtr(Uint32 index, bool isforward) const;
   Uint32 getForwardContainerPtr(Uint32 index) const;
@@ -1071,8 +1069,6 @@ private:
                            Uint32& elemptr,
                            Uint32& islocked) const;
   void setlock(Page8Ptr pageptr, Uint32 elemptr) const;
-  void takeOutScanLockQueue(Uint32 scanRecIndex) const;
-  void takeOutReadyScanQueue() const;
   void insertElement(Element elem,
                      OperationrecPtr oprecptr,
                      Page8Ptr& pageptr,
@@ -1187,7 +1183,6 @@ private:
                         Page8Ptr bucketPageptr,
                         Uint32 bucketConidx,
                         Uint32 hash);
-  void checkNextFragmentLab(Signal* signal);
   void endofexpLab(Signal* signal);
   void endofshrinkbucketLab(Signal* signal);
   void sendholdconfsignalLab(Signal* signal) const;

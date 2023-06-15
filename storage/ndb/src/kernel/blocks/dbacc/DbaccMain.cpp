@@ -2018,8 +2018,6 @@ conf:
   {
     jam();
     ndbabort();
-    takeOutScanLockQueue(nextOp.p->scanRecPtr);
-    putReadyScanQueue(nextOp.p->scanRecPtr);
   }
   else
   {
@@ -2045,9 +2043,6 @@ ref:
   {
     jam();
     ndbabort();
-    nextOp.p->m_op_bits |= Operationrec::OP_ELEMENT_DISAPPEARED;
-    takeOutScanLockQueue(nextOp.p->scanRecPtr);
-    putReadyScanQueue(nextOp.p->scanRecPtr);
   }
   else
   {
@@ -6509,7 +6504,7 @@ Dbacc::startNew(Signal* signal, OperationrecPtr newOwner, Uint32 hash)
   opbits |= Operationrec::OP_STATE_RUNNING;
   
   if (unlikely(op == ZSCAN_OP && (opbits & Operationrec::OP_LOCK_REQ) == 0))
-    goto scan;
+    ndbabort(); // ACC does not support scans.
 
   /* Waiting op now runnable... */
   {
@@ -6559,17 +6554,6 @@ conf:
   sendAcckeyconf(signal);
   sendSignal(newOwner.p->userblockref, GSN_ACCKEYCONF, 
 	     signal, 6, JBB);
-
-  operationRecPtr = save;
-  return;
-  
-scan:
-  jam();
-  ndbabort();
-  newOwner.p->m_op_bits = opbits;
-  
-  takeOutScanLockQueue(newOwner.p->scanRecPtr);
-  putReadyScanQueue(newOwner.p->scanRecPtr);
 
   operationRecPtr = save;
   return;
@@ -8293,19 +8277,6 @@ void Dbacc::initFragGeneral(FragmentrecPtr regFragPtr)const
   regFragPtr.p->m_lockStats.init();
 }//Dbacc::initFragGeneral()
 
-void Dbacc::checkNextFragmentLab(Signal* signal)
-{
-  scanPtr.p->scanBucketState =  ScanRec::SCAN_COMPLETED;
-  // The scan is completed. ACC_CHECK_SCAN will perform all the necessary 
-  // checks to see
-  // what the next step is.
-  releaseFreeOpRec();
-  signal->theData[0] = scanPtr.i;
-  signal->theData[1] = AccCheckScan::ZCHECK_LCP_STOP;
-  execACC_CHECK_SCAN(signal);
-  return;
-}//Dbacc::checkNextFragmentLab()
-
 void Dbacc::initScanFragmentPart()
 {
   Page8Ptr cnfPageidptr;
@@ -8343,8 +8314,8 @@ void Dbacc::releaseScanLab(Signal* signal)
 {
   ndbabort(); //ACC scan no longer used
   // releaseAndCommitActiveOps(signal); // todoas rm
-  releaseAndCommitQueuedOps(signal);
-  releaseAndAbortLockedOps(signal);
+  // releaseAndCommitQueuedOps(signal); // todoas rm
+  // releaseAndAbortLockedOps(signal); // todoas rm
 
   fragrecptr.i = scanPtr.p->activeLocalFrag;
   ndbrequire(c_fragment_pool.getPtr(fragrecptr));
@@ -8406,239 +8377,6 @@ void Dbacc::releaseScanLab(Signal* signal)
   c_lqh->exec_next_scan_conf(signal);
   return;
 }//Dbacc::releaseScanLab()
-
-void Dbacc::releaseAndCommitQueuedOps(Signal* signal)
-{
-  ndbabort();
-  OperationrecPtr trsoOperPtr;
-  operationRecPtr.i = scanPtr.p->scanFirstQueuedOp;
-  while (operationRecPtr.i != RNIL) {
-    jam();
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(operationRecPtr));
-    trsoOperPtr.i = operationRecPtr.p->nextOp;
-    fragrecptr.i = operationRecPtr.p->fragptr;
-    ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-    if (!scanPtr.p->scanReadCommittedFlag) {
-      jam();
-      if ((operationRecPtr.p->m_op_bits & Operationrec::OP_STATE_MASK) ==
-	  Operationrec::OP_STATE_EXECUTED)
-      {
-	commitOperation(signal);
-      }
-      else
-      {
-        Uint32 hash = 0;
-        acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
-	abortOperation(signal, hash);
-      }
-    }//if
-    operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
-    takeOutReadyScanQueue();
-    releaseOpRec();
-    scanPtr.p->scanOpsAllocated--;
-    operationRecPtr.i = trsoOperPtr.i;
-  }//if
-}//Dbacc::releaseAndCommitQueuedOps()
-
-void Dbacc::releaseAndAbortLockedOps(Signal* signal) {
-  ndbabort();
-  OperationrecPtr trsoOperPtr;
-  operationRecPtr.i = scanPtr.p->scanFirstLockedOp;
-  while (operationRecPtr.i != RNIL) {
-    jam();
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(operationRecPtr));
-    trsoOperPtr.i = operationRecPtr.p->nextOp;
-    fragrecptr.i = operationRecPtr.p->fragptr;
-    ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-    if (!scanPtr.p->scanReadCommittedFlag) {
-      jam();
-      Uint32 hash = 0;
-      acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
-      abortOperation(signal, hash);
-    }//if
-    takeOutScanLockQueue(scanPtr.i);
-    operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
-    releaseOpRec();
-    scanPtr.p->scanOpsAllocated--;
-    operationRecPtr.i = trsoOperPtr.i;
-  }//if
-}//Dbacc::releaseAndAbortLockedOps()
-
-/* 3.18.3  ACC_CHECK_SCAN */
-/* ******************--------------------------------------------------------------- */
-/* ACC_CHECK_SCAN                                                                    */
-/*          ENTER ACC_CHECK_SCAN WITH                                                */
-/*                    SCAN_PTR                                                       */
-/* ******************--------------------------------------------------------------- */
-/* ******************--------------------------------------------------------------- */
-/* ACC_CHECK_SCAN                                                                    */
-/* ******************------------------------------+                                 */
-void Dbacc::execACC_CHECK_SCAN(Signal* signal) 
-{
-  Uint32 TcheckLcpStop;
-  jamEntryDebug();
-  ndbabort();
-  scanPtr.i = signal->theData[0];
-  ndbrequire(scanRec_pool.getUncheckedPtrRW(scanPtr));
-  TcheckLcpStop = signal->theData[1];
-  Uint32 firstQueuedOp = scanPtr.p->scanFirstQueuedOp;
-  ndbrequire(Magic::check_ptr(scanPtr.p));
-  while (firstQueuedOp != RNIL)
-  {
-    jamDebug();
-    //---------------------------------------------------------------------
-    // An operation has been released from the lock queue. 
-    // We are in the parallel queue of this tuple. We are 
-    // ready to report the tuple now.
-    //------------------------------------------------------------------------
-    operationRecPtr.i = scanPtr.p->scanFirstQueuedOp;
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(operationRecPtr));
-    takeOutReadyScanQueue();
-    fragrecptr.i = operationRecPtr.p->fragptr;
-    ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-
-    /* Scan op that had to wait for a lock is now runnable */
-    fragrecptr.p->m_lockStats.wait_ok(scanPtr.p->scanLockMode != ZREADLOCK,
-                                      operationRecPtr.p->m_lockTime,
-                                      getHighResTimer());
-    if (operationRecPtr.p->m_op_bits & Operationrec::OP_ELEMENT_DISAPPEARED) 
-    {
-      jam();
-      /**
-       * Despite aborting, this is an 'ok' wait.
-       * This op is waking up to find the entity it locked has gone.
-       * As a 'QueuedOp', we are in the parallel queue of the element, so 
-       * at the abort below we don't double-count abort as a failure.
-       */
-      Uint32 hash = 0;
-      acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
-      abortOperation(signal, hash);
-      operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
-      releaseOpRec();
-      scanPtr.p->scanOpsAllocated--;
-      firstQueuedOp = scanPtr.p->scanFirstQueuedOp;
-      continue;
-    }//if
-    scanPtr.p->scan_lastSeen = __LINE__;
-    // putActiveScanOp(); todoas RM
-    // sendNextScanConf(signal); todoas rm
-    return;
-  }//while
-
-
-  if ((scanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED) &&
-      (scanPtr.p->scanLockHeld == 0)) {
-    jam();
-    //----------------------------------------------------------------------------
-    // The scan is now completed and there are no more locks outstanding. Thus we
-    // we will report the scan as completed to LQH.
-    //----------------------------------------------------------------------------
-    scanPtr.p->scan_lastSeen = __LINE__;
-    releaseFreeOpRec();
-    NextScanConf* const conf = (NextScanConf*)signal->getDataPtrSend();
-    conf->scanPtr = scanPtr.p->scanUserptr;
-    conf->accOperationPtr = RNIL;
-    conf->fragId = RNIL;
-    signal->setLength(NextScanConf::SignalLengthNoTuple);
-    c_lqh->exec_next_scan_conf(signal);
-    return;
-  }//if
-  if (TcheckLcpStop == AccCheckScan::ZCHECK_LCP_STOP) {
-  //---------------------------------------------------------------------------
-  // To ensure that the block of the fragment occurring at the start of a local
-  // checkpoint is not held for too long we insert a release and reacquiring of
-  // that lock here. This is performed in LQH. If we are blocked or if we have
-  // requested a sleep then we will receive RNIL in the returning signal word.
-  //---------------------------------------------------------------------------
-    signal->theData[0] = scanPtr.p->scanUserptr;
-    signal->theData[1] =
-      (((scanPtr.p->scanLockHeld >= ZSCAN_MAX_LOCK) ||
-        (scanPtr.p->scanBucketState ==  ScanRec::SCAN_COMPLETED)) ?
-       CheckLcpStop::ZSCAN_RESOURCE_WAIT:
-       CheckLcpStop::ZSCAN_RUNNABLE);
-
-    c_lqh->execCHECK_LCP_STOP(signal);
-    jamEntryDebug();
-    if (signal->theData[0] == CheckLcpStop::ZTAKE_A_BREAK) {
-      jamDebug();
-      scanPtr.p->scan_lastSeen = __LINE__;
-      /* WE ARE ENTERING A REAL-TIME BREAK FOR A SCAN HERE */
-      return;
-    }//if
-  }//if
-  /**
-   * If we have more than max locks held OR
-   * scan is completed AND at least one lock held
-   *  - Inform LQH about this condition
-   * Also when no free operation records to handle lock
-   * operations.
-   */
-  if (cfreeopRec == RNIL)
-  {
-    /**
-     * If a query thread is to scan with locked reads, this must
-     * allocate from owning LDM thread.
-     */
-    OperationrecPtr opPtr;
-    if (oprec_pool.seize(opPtr))
-    {
-      jam();
-      cfreeopRec = opPtr.i;
-    }
-    else
-    {
-      signal->theData[0] = scanPtr.p->scanUserptr;
-      signal->theData[1] = CheckLcpStop::ZSCAN_RESOURCE_WAIT_STOPPABLE;
-      c_lqh->execCHECK_LCP_STOP(signal);
-      if (signal->theData[0] == CheckLcpStop::ZTAKE_A_BREAK)
-      {
-        jamEntryDebug();
-        scanPtr.p->scan_lastSeen = __LINE__;
-        /* WE ARE ENTERING A REAL-TIME BREAK FOR A SCAN HERE */
-        return;
-      }
-      jamEntryDebug();
-      ndbrequire(signal->theData[0] == CheckLcpStop::ZABORT_SCAN);
-      /*
-       * Fall through, cfreeOpRec == RNIL will lead to NEXT_SCANCONF
-       * CHECK_LCP_STOP has already prepared LQH by setting complete
-       * status to true.
-       */
-    }
-  }
-  if ((scanPtr.p->scanLockHeld >= ZSCAN_MAX_LOCK) ||
-      (cfreeopRec == RNIL) ||
-      ((scanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED) &&
-       (scanPtr.p->scanLockHeld > 0))) {
-    jam();
-    scanPtr.p->scan_lastSeen = __LINE__;
-    NextScanConf* const conf = (NextScanConf*)signal->getDataPtrSend();
-    conf->scanPtr = scanPtr.p->scanUserptr;
-    conf->accOperationPtr = RNIL;
-    conf->fragId = 512; // MASV
-    /* WE ARE ENTERING A REAL-TIME BREAK FOR A SCAN HERE */
-    sendSignal(scanPtr.p->scanUserblockref,
-               GSN_NEXT_SCANCONF,
-               signal,
-               NextScanConf::SignalLengthNoTuple,
-               JBB);
-    return;
-  }
-  if (scanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED) {
-    jam();
-    releaseFreeOpRec();
-    signal->theData[0] = scanPtr.i;
-    signal->theData[1] = AccCheckScan::ZCHECK_LCP_STOP;
-    execACC_CHECK_SCAN(signal);
-    return;
-  }//if
-
-  fragrecptr.i = scanPtr.p->activeLocalFrag;
-  ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-  ndbassert(fragrecptr.p->activeScanMask & scanPtr.p->scanMask);
-  // checkNextBucketLab(signal); todoas rm
-  return;
-}//Dbacc::execACC_CHECK_SCAN()
 
 /* ******************---------------------------------------------------- */
 /* ACC_TO_REQ                                       PERFORM A TAKE OVER   */
@@ -8914,9 +8652,6 @@ void Dbacc::nextcontainerinfo(Page8Ptr& pageptr,
  * to the scan are put in serial lock list of another 
  * operation
  *
- * @note Use takeOutScanLockQueue to remove an operation
- *       from the list
- *
  */
 void Dbacc::putOpScanLockQue() const
 {
@@ -9191,76 +8926,6 @@ void Dbacc::setlock(Page8Ptr pageptr, Uint32 elemptr) const
   tselTmp1 = ElementHeader::setLocked(operationRecPtr.i);
   pageptr.p->word32[elemptr] = tselTmp1;
 }//Dbacc::setlock()
-
-/**
- * takeOutScanLockQueue
- *
- * Description: Take out an operation from the doubly linked 
- * lock list on a scan record.
- *
- * @note Use putOpScanLockQue to insert a operation in 
- *       the list
- *
- */
-void Dbacc::takeOutScanLockQueue(Uint32 scanRecIndex) const
-{
-  OperationrecPtr tslOperationRecPtr;
-  ScanRecPtr TscanPtr;
-
-  TscanPtr.i = scanRecIndex;
-  ndbrequire(scanRec_pool.getValidPtr(TscanPtr));
-
-  if (operationRecPtr.p->prevOp != RNIL) {
-    jam();
-    tslOperationRecPtr.i = operationRecPtr.p->prevOp;
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(tslOperationRecPtr));
-    tslOperationRecPtr.p->nextOp = operationRecPtr.p->nextOp;
-  } else {
-    jam();
-    // Check that first are pointing at operation to take out
-    ndbrequire(TscanPtr.p->scanFirstLockedOp==operationRecPtr.i);
-    TscanPtr.p->scanFirstLockedOp = operationRecPtr.p->nextOp;
-  }//if
-  if (operationRecPtr.p->nextOp != RNIL) {
-    jam();
-    tslOperationRecPtr.i = operationRecPtr.p->nextOp;
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(tslOperationRecPtr));
-    tslOperationRecPtr.p->prevOp = operationRecPtr.p->prevOp;
-  } else {
-    jam();
-    // Check that last are pointing at operation to take out
-    ndbrequire(TscanPtr.p->scanLastLockedOp==operationRecPtr.i);
-    TscanPtr.p->scanLastLockedOp = operationRecPtr.p->prevOp;
-  }//if
-  TscanPtr.p->scanLockHeld--;
-}//Dbacc::takeOutScanLockQueue()
-
-/* --------------------------------------------------------------------------------- */
-/* TAKE_OUT_READY_SCAN_QUEUE                                                         */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::takeOutReadyScanQueue() const
-{
-  OperationrecPtr trsOperationRecPtr;
-
-  if (operationRecPtr.p->prevOp != RNIL) {
-    jam();
-    trsOperationRecPtr.i = operationRecPtr.p->prevOp;
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(trsOperationRecPtr));
-    trsOperationRecPtr.p->nextOp = operationRecPtr.p->nextOp;
-  } else {
-    jam();
-    scanPtr.p->scanFirstQueuedOp = operationRecPtr.p->nextOp;
-  }//if
-  if (operationRecPtr.p->nextOp != RNIL) {
-    jam();
-    trsOperationRecPtr.i = operationRecPtr.p->nextOp;
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(trsOperationRecPtr));
-    trsOperationRecPtr.p->prevOp = operationRecPtr.p->prevOp;
-  } else {
-    jam();
-    scanPtr.p->scanLastQueuedOp = operationRecPtr.p->nextOp;
-  }//if
-}//Dbacc::takeOutReadyScanQueue()
 
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
