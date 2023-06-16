@@ -144,7 +144,6 @@ public:
   Header& clearNext();
   Header& copyScanBits(Uint32 scanmask);
   Header& setScanBits(Uint32 scanmask);
-  Header& clearScanBits(Uint32 scanmask);
   Header& setScanInProgress();
   Header& clearScanInProgress();
 private:
@@ -396,21 +395,9 @@ Container::Header& Container::Header::setScanBits(Uint32 scanmask)
 }
 
 inline
-Container::Header& Container::Header::clearScanBits(Uint32 scanmask)
-{
-  assert(isInUse());
-  assert((getScanBits() & scanmask) == scanmask);
-  assert(CHECKBITS(SCAN_BITS, scanmask));
-  scanmask = getScanBits() & ~scanmask;
-  m_header = SETBITS(SCAN_BITS, m_header, scanmask);
-  return *this;
-}
-
-inline
 Container::Header& Container::Header::setScanInProgress()
 {
   assert(isInUse());
-  assert(!isScanInProgress());
   m_header = SETBITS(SCAN_IN_PROGRESS, m_header, 1);
   return *this;
 }
@@ -419,7 +406,6 @@ inline
 Container::Header& Container::Header::clearScanInProgress()
 {
   assert(isInUse());
-  assert(isScanInProgress());
   m_header = SETBITS(SCAN_IN_PROGRESS, m_header, 0);
   return *this;
 }

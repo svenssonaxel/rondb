@@ -978,9 +978,6 @@ private:
                                  Uint32 startIndex,
                                  Uint32 directoryIndex) const;
   void releaseFragRecord(FragmentrecPtr regFragPtr);
-  void initScanFragmentPart();
-  Uint32 checkScanExpand(Uint32 splitBucket);
-  Uint32 checkScanShrink(Uint32 sourceBucket, Uint32 destBucket);
   void initialiseFsConnectionRec(Signal* signal) const;
   void initialiseFsOpRec(Signal* signal) const;
   void initialisePageRec();
@@ -1036,12 +1033,6 @@ private:
   Uint32 getContainerPtr(Uint32 index, bool isforward) const;
   Uint32 getForwardContainerPtr(Uint32 index) const;
   Uint32 getBackwardContainerPtr(Uint32 index) const;
-  bool getScanElement(Page8Ptr& pageptr,
-                      Uint32& conidx,
-                      Uint32& conptr,
-                      bool& isforward,
-                      Uint32& elemptr,
-                      Uint32& islocked) const;
   void initScanOpRec(Page8Ptr pageptr,
                      Uint32 conptr,
                      Uint32 elemptr) const;
@@ -1050,22 +1041,7 @@ private:
                          ContainerHeader containerhead,
                          Uint32& nextConidx,
                          bool& nextIsforward) const;
-  void releaseScanBucket(Page8Ptr pageptr,
-                         Uint32 conidx,
-                         Uint16 scanMask) const;
-  void releaseScanContainer(Page8Ptr pageptr,
-                            Uint32 conptr,
-                            bool isforward,
-                            Uint32 conlen,
-                            Uint16 scanMask,
-                            Uint16 allScanned) const;
   void releaseScanRec();
-  bool searchScanContainer(Page8Ptr pageptr,
-                           Uint32 conptr,
-                           bool isforward,
-                           Uint32 conlen,
-                           Uint32& elemptr,
-                           Uint32& islocked) const;
   void setlock(Page8Ptr pageptr, Uint32 elemptr) const;
   void insertElement(Element elem,
                      OperationrecPtr oprecptr,

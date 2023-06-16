@@ -85,7 +85,6 @@ ClusterConfiguration::calcSizeAlteration()
   if (noOfDBNodes > 15) {
     noOfDBNodes = 15;
   }//if
-  Uint32 noOfLocalScanRecords = (noOfDBNodes * size->noOfScanRecords) + 1;
   Uint32 noOfTCScanRecords = size->noOfScanRecords;
   {
     /**
@@ -115,7 +114,6 @@ ClusterConfiguration::calcSizeAlteration()
     /*-----------------------------------------------------------------------*/
     setValue(acc, AccSizeAltReq::IND_OP_RECS,
 	     size->noOfReplicas*((16 * size->noOfOperations) / 10 + 50) + 
-             (noOfLocalScanRecords * MAX_PARALLEL_SCANS_PER_FRAG) +
              NODE_RECOVERY_SCAN_OP_RECORDS);
 
     setValue(acc, AccSizeAltReq::IND_OVERFLOW_RECS,
@@ -130,9 +128,6 @@ ClusterConfiguration::calcSizeAlteration()
     
     setValue(acc, AccSizeAltReq::IND_TABLE, 
 	     size->noOfTables);
-    
-    setValue(acc, AccSizeAltReq::IND_SCAN, 
-	     noOfLocalScanRecords);
   }
   
   {
