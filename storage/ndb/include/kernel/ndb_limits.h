@@ -203,10 +203,6 @@
 * This parameter is configurable, this is the default value.
 */
 #define MAX_SCAN_BATCH_SIZE 262144
-/*
- * Maximum number of Parallel Scan queries on one hash index fragment
- */
-#define MAX_PARALLEL_SCANS_PER_FRAG 0
 
 /**
  * Computed defines

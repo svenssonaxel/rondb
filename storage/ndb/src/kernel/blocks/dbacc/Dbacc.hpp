@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks AB and/or its affiliates.
+   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -325,9 +325,6 @@ struct Page8 {
     SCAN_CON_8_11 = 12,
   };
   Uint8 getContainerShortIndex(Uint32 pointer) const;
-  void setScanContainer(Uint16 scanbit, Uint32 conptr);
-  void clearScanContainer(Uint16 scanbit, Uint32 conptr);
-  bool checkScanContainer(Uint32 conptr) const;
   Uint16 checkScans(Uint16 scanmask, Uint32 conptr) const;
 }; /* p2c: size = 8192 bytes */
   typedef Ptr<Page8> Page8Ptr;
@@ -405,8 +402,6 @@ struct Fragmentrec {
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
   Uint32 acc_frag_mutex_count[NUM_ACC_FRAGMENT_MUTEXES];
 #endif
-  Uint32 scan[0];
-  Uint16 activeScanMask;
   union {
     Uint32 mytabptr;
     Uint32 myTableId;
@@ -787,7 +782,6 @@ struct Operationrec {
   Uint32 m_scanOpDeleteCountOpRef;
   Uint32 userblockref;
   bool m_reserved;
-  enum { ANY_SCANBITS = Uint16(0xffff) };
   LHBits16 reducedHashValue;
   NDB_TICKS m_lockTime;
 
@@ -1033,15 +1027,11 @@ private:
   Uint32 getContainerPtr(Uint32 index, bool isforward) const;
   Uint32 getForwardContainerPtr(Uint32 index) const;
   Uint32 getBackwardContainerPtr(Uint32 index) const;
-  void initScanOpRec(Page8Ptr pageptr,
-                     Uint32 conptr,
-                     Uint32 elemptr) const;
   void nextcontainerinfo(Page8Ptr& pageptr,
                          Uint32 conptr,
                          ContainerHeader containerhead,
                          Uint32& nextConidx,
                          bool& nextIsforward) const;
-  void releaseScanRec();
   void setlock(Page8Ptr pageptr, Uint32 elemptr) const;
   void insertElement(Element elem,
                      OperationrecPtr oprecptr,
@@ -1049,7 +1039,6 @@ private:
                      Uint32& conidx,
                      bool& isforward,
                      Uint32& conptr,
-                     Uint16 conScanMask,
                      bool newBucket);
   void insertContainer(Element elem,
                        OperationrecPtr  oprecptr,
@@ -1058,7 +1047,6 @@ private:
                        bool isforward,
                        Uint32& conptr,
                        ContainerHeader& containerhead,
-                       Uint16 conScanMask,
                        bool newContainer,
                        Uint32& result);
   void addnewcontainer(Page8Ptr pageptr, Uint32 conptr,
@@ -1442,51 +1430,6 @@ inline void Dbacc::checkPoolShrinkNeed(const Uint32 pool_index,
 inline Uint8 Dbacc::Page8::getContainerShortIndex(Uint32 pointer) const
 {
   return ((pointer - ZHEAD_SIZE) + (ZBUF_SIZE / 2)) / (ZBUF_SIZE / 2);
-}
-
-inline void Dbacc::Page8::setScanContainer(Uint16 scanbit, Uint32 conptr)
-{
-  assert(scanbit != 0);
-  assert(scanbit < (1U << 0));
-  Uint8* p = reinterpret_cast<Uint8*>(&word32[SCAN_CON_0_3]);
-  int i = BitmaskImpl::ffs(scanbit);
-  assert(p[i] == 0);
-  p[i] = getContainerShortIndex(conptr);
-}
-
-#ifdef NDEBUG
-inline void Dbacc::Page8::clearScanContainer(Uint16 scanbit, Uint32)
-#else
-inline void Dbacc::Page8::clearScanContainer(Uint16 scanbit, Uint32 conptr)
-#endif
-{
-  assert(scanbit != 0);
-  assert(scanbit < (1U << 0));
-  Uint8* p = reinterpret_cast<Uint8*>(&word32[SCAN_CON_0_3]);
-  int i = BitmaskImpl::ffs(scanbit);
-  assert(p[i] == getContainerShortIndex(conptr));
-  p[i] = 0;
-}
-
-inline bool Dbacc::Page8::checkScanContainer(Uint32 conptr) const
-{
-  const Uint8* p = reinterpret_cast<const Uint8*>(&word32[SCAN_CON_0_3]);
-  return memchr(p, getContainerShortIndex(conptr), 0);
-}
-
-inline Uint16 Dbacc::Page8::checkScans(Uint16 scanmask, Uint32 conptr) const
-{
-  const Uint8* p = reinterpret_cast<const Uint8*>(&word32[SCAN_CON_0_3]);
-  Uint16 scanbit = 1U;
-  Uint8 i = getContainerShortIndex(conptr);
-  for(int j = 0; scanbit <= scanmask; ++j, scanbit <<= 1U)
-  {
-    if((scanbit & scanmask) && p[j] != i)
-    {
-      scanmask &= ~scanbit;
-    }
-  }
-  return scanmask;
 }
 
 inline Uint32 Dbacc::Fragmentrec::getPageNumber(Uint32 bucket_number) const

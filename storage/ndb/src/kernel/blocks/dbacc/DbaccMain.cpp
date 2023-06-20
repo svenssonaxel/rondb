@@ -1,5 +1,5 @@
 /* Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks AB and/or its affiliates.
+   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1036,8 +1036,7 @@ void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
 
     /**
      * A lock req has SCAN_OP, it can't delete a row,
-     *   so OP_COMMIT_DELETE_CHECK is set like for SCAN
-     *   see initScanOpRec
+     *   so OP_COMMIT_DELETE_CHECK is set
      */
     opbits |= Operationrec::OP_COMMIT_DELETE_CHECK;
 
@@ -2257,7 +2256,6 @@ void Dbacc::insertelementLab(Signal* signal,
                 tidrPageindex,
                 isforward,
                 conptr,
-                Operationrec::ANY_SCANBITS,
                 false);
 
 #ifdef DEB_LOCK_TRANS
@@ -3774,9 +3772,6 @@ void Dbacc::execACC_LOCKREQ(Signal* signal)
 /*               FRAGRECPTR                                                          */
 /*               IDR_OPERATION_REC_PTR                                               */
 /*               TIDR_KEY_LEN                                                        */
-/*               conScanMask - ANY_SCANBITS or scan bits container must              */
-/*                 have. Note elements inserted are never more scanned than          */
-/*                 container.                                                        */
 /*                                                                                   */
 /*       OUTPUT:                                                                     */
 /*               TIDR_PAGEINDEX (PAGE INDEX OF INSERTED ELEMENT)                     */
@@ -3790,12 +3785,10 @@ void Dbacc::insertElement(const Element   elem,
                           Uint32&         conidx,
                           bool&           isforward,
                           Uint32&         conptr,
-                          Uint16          conScanMask,
                           const bool      newBucket)
 {
   Page8Ptr inrNewPageptr;
   Uint32 tidrResult;
-  Uint16 scanmask;
   bool newContainer = newBucket;
 
   ContainerHeader containerhead;
@@ -3807,7 +3800,6 @@ void Dbacc::insertElement(const Element   elem,
                     isforward,
                     conptr,
                     containerhead,
-                    conScanMask,
                     newContainer,
                     tidrResult);
     if (tidrResult != ZFALSE)
@@ -3837,7 +3829,6 @@ void Dbacc::insertElement(const Element   elem,
       }//if
       ndbrequire(conidx <= Container::MAX_CONTAINER_INDEX);
     } else {
-      scanmask = containerhead.getScanBits();
       break;
     }//if
     // Only first container can be a new container
@@ -3904,18 +3895,6 @@ void Dbacc::insertElement(const Element   elem,
     newBuftype, nextOnSamePage, inrNewPageptr.i);
   pageptr = inrNewPageptr;
   conidx = newPageindex;
-  if (conScanMask == Operationrec::ANY_SCANBITS)
-  {
-    /**
-     * ANY_SCANBITS indicates that this is an insert of a new element, not
-     * an insert from expand or shrink.  In that case the inserted element
-     * and the new container will inherit scan bits from previous container.
-     * This makes the element look as scanned as possible still preserving
-     * the invariant that containers and element towards the end of bucket
-     * has less scan bits set than those towards the beginning.
-     */
-    conScanMask = scanmask;
-  }
   insertContainer(elem,
                   oprecptr,
                   pageptr,
@@ -3923,24 +3902,15 @@ void Dbacc::insertElement(const Element   elem,
                   isforward,
                   conptr,
                   containerhead,
-                  conScanMask,
                   true,
                   tidrResult);
   ndbrequire(tidrResult == ZTRUE);
 }//Dbacc::insertElement()
 
 /**
- * insertContainer puts an element into a container if it has free space and
- * the requested scan bits match.
+ * insertContainer puts an element into a container if it has free space.
  *
- * If it is a new element inserted the requested scan bits given by
- * conScanMask can be ANY_SCANBITS or a valid set of bits.  If it is
- * ANY_SCANBITS the containers scan bits are not checked.  If it is set to
- * valid scan bits the container is a newly created empty container.
- *
- * The buckets header container may never be removed.  Nor should any scan
- * bit of it be cleared, unless for expand there the first inserted element
- * determines the bucket header containers scan bits.  newContainer indicates
+ * The buckets header container may never be removed.  newContainer indicates
  * that that current insert is part of populating a new bucket with expand.
  *
  * In case the container is empty it is either the bucket header container
@@ -3953,7 +3923,6 @@ void Dbacc::insertContainer(const Element          elem,
                             const bool             isforward,
                             Uint32&                conptr,
                             ContainerHeader&       containerhead,
-                            Uint16                 conScanMask,
                             const bool             newContainer,
                             Uint32&                result)
 {
@@ -3986,28 +3955,12 @@ void Dbacc::insertContainer(const Element          elem,
     tidrIndex = (conptr - tidrContainerlen) +
                 (Container::HEADER_SIZE - fragrecptr.p->elementLength);
   }//if
-  const Uint16 activeScanMask = fragrecptr.p->activeScanMask;
-  const Uint16 conscanmask = containerhead.getScanBits();
-  if(tidrContainerlen > Container::HEADER_SIZE || !newContainer)
-  {
-    if (conScanMask != Operationrec::ANY_SCANBITS &&
-        ((conscanmask & ~conScanMask) & activeScanMask) != 0)
-    {
-      /* Container have more scan bits set than requested */
-      /* Continue to next container. */
-      return;
-    }
-  }
   if (tidrContainerlen == Container::HEADER_SIZE && newContainer)
   {
     /**
      * Only the first header container in a bucket or a newly created bucket
      * in insertElement can be empty.
-     *
-     * Set container scan bits as requested.
      */
-    ndbrequire(conScanMask != Operationrec::ANY_SCANBITS);
-    containerhead.copyScanBits(conScanMask & activeScanMask);
     pageptr.p->word32[conptr] = containerhead;
   }
   if (tidrContainerlen >= (ZBUF_SIZE - fragrecptr.p->elementLength))
@@ -4893,7 +4846,6 @@ void Dbacc::commitdelete(Signal* signal)
      */
 #if defined (VM_TRACE) || defined(ERROR_INSERT)
     ContainerHeader conhead(lastPageptr.p->word32[tlastContainerptr]);
-    ndbassert(!conhead.isInUse() || !conhead.isScanInProgress()); // todoas wut
     conhead = ContainerHeader(delPageptr.p->word32[delConptr]);
 #else
     ContainerHeader conhead(delPageptr.p->word32[delConptr]);
@@ -6733,8 +6685,6 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
   Uint32 splitBucket;
   Uint32 receiveBucket;
 
-  bool doSplit = fragrecptr.p->level.getSplitBucket(splitBucket,receiveBucket);
-
   c_tup->prepare_tab_pointers_acc(fragrecptr.p->myTableId,
                                   fragrecptr.p->myfid);
   acquire_frag_mutex_bucket(fragrecptr.p, splitBucket);
@@ -7099,7 +7049,6 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
                   tidrPageindex,
                   tidrIsforward,
                   tidrContainerptr,
-                  containerhead.getScanBits(),
                   newBucket);
     fragrecptr.p->expReceiveIndex = tidrPageindex;
     fragrecptr.p->expReceivePageptr = idrPageptr.i;
@@ -7213,7 +7162,6 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
                     tidrPageindex,
                     tidrIsforward,
                     tidrContainerptr,
-                    containerhead.getScanBits(),
                     newBucket);
       fragrecptr.p->expReceiveIndex = tidrPageindex;
       fragrecptr.p->expReceivePageptr = idrPageptr.i;
@@ -7744,7 +7692,6 @@ void Dbacc::shrinkcontainer(Page8Ptr pageptr,
                   tidrPageindex,
                   tidrIsforward,
                   tidrContainerptr,
-                  ContainerHeader(pageptr.p->word32[conptr]).getScanBits(),
                   false);
     /* --------------------------------------------------------------- */
     /*       TAKE CARE OF RESULT FROM INSERT_ELEMENT.                  */
@@ -7900,65 +7847,6 @@ void Dbacc::execACC_TO_REQ(Signal* signal)
   return;
 }//Dbacc::execACC_TO_REQ()
 
-/* --------------------------------------------------------------------------------- */
-/*  INIT_SCAN_OP_REC                                                                 */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::initScanOpRec(Page8Ptr pageptr,
-                          Uint32 conptr,
-                          Uint32 elemptr) const
-{
-  Uint32 tisoLocalPtr;
-  Uint32 localkeylen = fragrecptr.p->localkeylen;
-
-  scanPtr.p->scanOpsAllocated++;
-
-  Uint32 opbits = 0;
-  opbits |= ZSCAN_OP;
-  opbits |= scanPtr.p->scanLockMode ? (Uint32) Operationrec::OP_LOCK_MODE : 0;
-  opbits |= scanPtr.p->scanLockMode ? (Uint32) Operationrec::OP_ACC_LOCK_MODE : 0;
-  opbits |= (scanPtr.p->scanReadCommittedFlag ? 
-             (Uint32) Operationrec::OP_EXECUTED_DIRTY_READ : 0);
-  opbits |= Operationrec::OP_COMMIT_DELETE_CHECK;
-  operationRecPtr.p->userptr = RNIL;
-  operationRecPtr.p->scanRecPtr = scanPtr.i;
-  operationRecPtr.p->fid = fragrecptr.p->myfid;
-  operationRecPtr.p->fragptr = fragrecptr.i;
-  operationRecPtr.p->nextParallelQue = RNIL;
-  operationRecPtr.p->prevParallelQue = RNIL;
-  operationRecPtr.p->nextSerialQue = RNIL;
-  operationRecPtr.p->prevSerialQue = RNIL;
-  operationRecPtr.p->transId1 = scanPtr.p->scanTrid1;
-  operationRecPtr.p->transId2 = scanPtr.p->scanTrid2;
-  operationRecPtr.p->elementContainer = conptr;
-  operationRecPtr.p->elementPointer = elemptr;
-  operationRecPtr.p->elementPage = pageptr.i;
-  operationRecPtr.p->m_op_bits = opbits;
-  tisoLocalPtr = elemptr + 1;
-
-  arrGuard(tisoLocalPtr, 2048);
-  if(ElementHeader::getUnlocked(pageptr.p->word32[elemptr]))
-  {
-    Local_key key;
-    key.m_page_no = pageptr.p->word32[tisoLocalPtr];
-    key.m_page_idx = ElementHeader::getPageIdx(pageptr.p->word32[elemptr]);
-    operationRecPtr.p->localdata = key;
-  }
-  else
-  {
-    OperationrecPtr oprec;
-    oprec.i = ElementHeader::getOpPtrI(pageptr.p->word32[elemptr]);
-    ndbrequire(m_curr_acc->oprec_pool.getValidPtr(oprec));
-    ndbassert(oprec.p->localdata.m_page_no == pageptr.p->word32[tisoLocalPtr]);
-    operationRecPtr.p->localdata = oprec.p->localdata;
-  }
-  tisoLocalPtr = tisoLocalPtr + 1;
-  ndbrequire(localkeylen == 1)
-  operationRecPtr.p->hashValue.clear();
-  operationRecPtr.p->tupkeylen = fragrecptr.p->keyLength;
-  operationRecPtr.p->m_scanOpDeleteCountOpRef = RNIL;
-  NdbTick_Invalidate(&operationRecPtr.p->m_lockTime);
-}//Dbacc::initScanOpRec()
-
 /* ----------------------------------------------------------------------------
  * Get information of next container.
  *
@@ -8001,36 +7889,6 @@ void Dbacc::nextcontainerinfo(Page8Ptr& pageptr,
     c_page8_pool.getPtr(pageptr);
   }//if
 }//Dbacc::nextcontainerinfo()
-
-/* --------------------------------------------------------------------------------- */
-/* RELEASE_SCAN_REC                                                                  */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::releaseScanRec()
-{  
-  // Check that all ops this scan has allocated have been 
-  // released
-  ndbrequire(scanPtr.p->scanOpsAllocated==0);
-
-  // Check that all locks this scan might have acquired
-  // have been properly released
-  ndbrequire(scanPtr.p->scanLockHeld == 0);
-  ndbrequire(scanPtr.p->scanFirstLockedOp == RNIL);
-  ndbrequire(scanPtr.p->scanLastLockedOp == RNIL);
-
-  // Check that all active operations have been 
-  // properly released
-  ndbrequire(scanPtr.p->scanFirstActiveOp == RNIL);
-
-  // Check that all queued operations have been 
-  // properly released
-  ndbrequire(scanPtr.p->scanFirstQueuedOp == RNIL);
-  ndbrequire(scanPtr.p->scanLastQueuedOp == RNIL);
-
-  // Put scan record in free list
-  scanRec_pool.release(scanPtr);
-  checkPoolShrinkNeed(DBACC_SCAN_RECORD_TRANSIENT_POOL_INDEX,
-                      scanRec_pool);
-}//Dbacc::releaseScanRec()
 
 /** ---------------------------------------------------------------------------
  * Sets lock on an element.

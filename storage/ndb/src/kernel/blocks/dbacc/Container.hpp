@@ -3,6 +3,7 @@
 
 /*
    Copyright (c) 2013, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -135,17 +136,11 @@ public:
   Uint32 getNextEnd() const;
   Uint32 getNextIndexNumber() const;
   bool isUsingBothEnds() const;
-  Uint32 getScanBits() const;
-  bool isScanInProgress() const;
   Header& clearUsingBothEnds();
   Header& setUsingBothEnds();
   bool isNextOnSamePage() const;
   Header& setNext(Uint32 end, Uint32 index, bool onsamepage);
   Header& clearNext();
-  Header& copyScanBits(Uint32 scanmask);
-  Header& setScanBits(Uint32 scanmask);
-  Header& setScanInProgress();
-  Header& clearScanInProgress();
 private:
   bool isHeader() const;
   Header& setHeader();
@@ -162,8 +157,6 @@ private:
    */
   enum { BITSENUMS(LENGTH, 26, 6) };
   enum { BITSENUMS(HEADER, 25, 1) };
-  enum { BITSENUMS(SCAN_IN_PROGRESS, 24, 1) };
-  enum { BITSENUMS(SCAN_BITS, 12, 12) };
   enum { BITSENUMS(USING_BOTH_ENDS, 10, 1) };
   enum { BITSENUMS(NEXT_ON_SAME_PAGE, 9, 1) };
   enum { BITSENUMS(NEXT_END, 7, 2) };
@@ -289,20 +282,6 @@ bool Container::Header::isNextOnSamePage() const
 }
 
 inline
-Uint32 Container::Header::getScanBits() const
-{
-  assert(isInUse());
-  return GETBITS(SCAN_BITS, m_header);
-}
-
-inline
-bool Container::Header::isScanInProgress() const
-{
-  assert(isInUse());
-  return GETBITS(SCAN_IN_PROGRESS, m_header);
-}
-
-inline
 Container::Header& Container::Header::clearUsingBothEnds()
 {
   assert(isInUse());
@@ -372,42 +351,6 @@ bool Container::Header::haveNextFree() const
 {
   assert(isFree());
   return getNextFree() <= MAX_CONTAINER_INDEX;
-}
-
-inline
-Container::Header& Container::Header::copyScanBits(Uint32 scanmask)
-{
-  assert(isInUse());
-  assert(CHECKBITS(SCAN_BITS, scanmask));
-  m_header = SETBITS(SCAN_BITS, m_header, scanmask);
-  return *this;
-}
-
-inline
-Container::Header& Container::Header::setScanBits(Uint32 scanmask)
-{
-  assert(isInUse());
-  assert((getScanBits() & scanmask) == 0);
-  assert(CHECKBITS(SCAN_BITS, scanmask));
-  scanmask |= getScanBits();
-  m_header = SETBITS(SCAN_BITS, m_header, scanmask);
-  return *this;
-}
-
-inline
-Container::Header& Container::Header::setScanInProgress()
-{
-  assert(isInUse());
-  m_header = SETBITS(SCAN_IN_PROGRESS, m_header, 1);
-  return *this;
-}
-
-inline
-Container::Header& Container::Header::clearScanInProgress()
-{
-  assert(isInUse());
-  m_header = SETBITS(SCAN_IN_PROGRESS, m_header, 0);
-  return *this;
 }
 
 #undef JAM_FILE_ID
