@@ -81,7 +81,7 @@ class Container::Header
  *
  * nnnnnnn - index of next free end
  *
- * llllllhP SSSSSSSS SSSS.bse ennnnnnn
+ * llllllh. ........ .....bse ennnnnnn
  * 33222222 22221111 111111
  * 10987654 32109876 54321098 76543210
  *
@@ -99,11 +99,6 @@ class Container::Header
  *        01 - left end
  *        10 - right end
  *        11 - illegal value
- *
- * P - scan in progress, if 1 elements scanbits may have more bits set
- * SSSSSSSSSSSS - scan bits
- *        One bit per scan.  The bit is set if all elements in
- *        container are scanned.
  *
  * nnnnnnn - index of next container
  *

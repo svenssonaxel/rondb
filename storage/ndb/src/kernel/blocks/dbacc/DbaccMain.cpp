@@ -119,8 +119,7 @@ extern EventLogger* g_eventLogger;
  *    2) For inserts the local key is provided later with a ACCMINUPDATE
  *       signal.
  *    3) The locks can be taken over by another operation, this operation
- *       can be initiated both through the ACCKEYREQ service or through
- *       the scan service todoas I can't find the call to ACC_TO_REQ, how does the scan service initiate it? Perhaps it's also built on top of ACCKEYREQ?
+ *       can be initiated through the ACCKEYREQ service.
  *       The takeover is initiated by a ACCKEYREQ call
  *       that has the take over flag set and that calls ACC_TO_REQ.
  *    4) Operations can be committed through ACC_COMMITREQ and they can
@@ -1055,7 +1054,6 @@ void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
   operationRecPtr.p->nextSerialQue = RNIL;
   operationRecPtr.p->prevSerialQue = RNIL;
   operationRecPtr.p->elementPage = RNIL;
-  operationRecPtr.p->scanRecPtr = RNIL;
   operationRecPtr.p->m_op_bits = opbits;
   NdbTick_Invalidate(&operationRecPtr.p->m_lockTime);
 
@@ -3371,7 +3369,6 @@ void Dbacc::execACC_LOCKREQ(Signal* signal)
       // init as in ACCSEIZEREQ
       operationRecPtr.p->userptr = req->userPtr;
       operationRecPtr.p->userblockref = req->userRef;
-      operationRecPtr.p->scanRecPtr = RNIL;
       // do read with lock via ACCKEYREQ
       Uint32 lockMode = (lockOp == AccLockReq::LockShared) ? 0 : 1;
       Uint32 opCode = ZSCAN_OP;
@@ -7709,15 +7706,6 @@ void Dbacc::setlock(Page8Ptr pageptr, Uint32 elemptr) const
   pageptr.p->word32[elemptr] = tselTmp1;
 }//Dbacc::setlock()
 
-/* ------------------------------------------------------------------------- */
-/* ------------------------------------------------------------------------- */
-/* ------------------------------------------------------------------------- */
-/*                                                                           */
-/*       END OF SCAN MODULE                                                  */
-/*                                                                           */
-/* ------------------------------------------------------------------------- */
-/* ------------------------------------------------------------------------- */
-
 void Dbacc::getFragPtr(FragmentrecPtr &rootPtr,
                        Uint32 tableId,
                        Uint32 fragId,
@@ -8469,8 +8457,8 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
               0,
 #endif
               tmpOpPtr.p->nextParallelQue);
-    infoEvent("prevSerialQue=%d, scanRecPtr=%d",
-	      tmpOpPtr.p->prevSerialQue, tmpOpPtr.p->scanRecPtr);
+    infoEvent("prevSerialQue=%d",
+	      tmpOpPtr.p->prevSerialQue);
     infoEvent("m_op_bits=0x%x, reducedHashValue=%x ",
               tmpOpPtr.p->m_op_bits, tmpOpPtr.p->reducedHashValue.pack());
     return;

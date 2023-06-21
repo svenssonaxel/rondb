@@ -75,7 +75,6 @@
 #define ZOPRECSIZE 740
 #define ZPAGESIZE 128
 #define ZPARALLEL_QUEUE 1
-#define ZSCAN_MAX_LOCK 4
 #define ZSERIAL_QUEUE 2
 #define ZSPH1 1
 #define ZSPH2 2
@@ -320,9 +319,6 @@ struct Page8 {
     CHECKSUM = 7,
     NEXT_PAGE = 8,
     PREV_PAGE = 9,
-    SCAN_CON_0_3 = 10,
-    SCAN_CON_4_7 = 11,
-    SCAN_CON_8_11 = 12,
   };
   Uint8 getContainerShortIndex(Uint32 pointer) const;
 }; /* p2c: size = 8192 bytes */
@@ -772,7 +768,6 @@ struct Operationrec {
     Uint32 prevSerialQue;
     Uint32 m_lo_last_serial_op_ptr_i;
   };
-  Uint32 scanRecPtr;
   Uint32 transId1;
   Uint32 transId2;
   Uint32 userptr;
