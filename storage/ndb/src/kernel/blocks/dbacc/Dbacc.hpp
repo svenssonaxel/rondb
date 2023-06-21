@@ -325,7 +325,6 @@ struct Page8 {
     SCAN_CON_8_11 = 12,
   };
   Uint8 getContainerShortIndex(Uint32 pointer) const;
-  Uint16 checkScans(Uint16 scanmask, Uint32 conptr) const;
 }; /* p2c: size = 8192 bytes */
   typedef Ptr<Page8> Page8Ptr;
 
@@ -794,94 +793,12 @@ struct Operationrec {
   typedef Ptr<Operationrec> OperationrecPtr;
   typedef TransientPool<Operationrec> Operationrec_pool;
   typedef DLList<Operationrec_pool> Operationrec_list;
-  static constexpr Uint32 DBACC_OPERATION_RECORD_TRANSIENT_POOL_INDEX = 1;
+  static constexpr Uint32 DBACC_OPERATION_RECORD_TRANSIENT_POOL_INDEX = 0;
   Operationrec_pool oprec_pool;
   Operationrec_list m_reserved_copy_frag_lock;
   OperationrecPtr operationRecPtr;
   OperationrecPtr queOperPtr;
   Uint32 cfreeopRec;
-
-struct ScanRec {
-  static constexpr Uint32 TYPE_ID = RT_DBACC_SCAN;
-  Uint32 m_magic;
-
-  enum ScanState {
-    WAIT_NEXT = 0,
-    SCAN_DISCONNECT = 1
-  };
-  enum ScanBucketState {
-    FIRST_LAP = 0,
-    SECOND_LAP = 1,
-    SCAN_COMPLETED = 2
-  };
-
-  ScanRec() :
-    m_magic(Magic::make(TYPE_ID)),
-    activeLocalFrag(RNIL64),
-    nextBucketIndex(0),
-    scanFirstActiveOp(RNIL),
-    scanFirstLockedOp(RNIL),
-    scanLastLockedOp(RNIL),
-    scanFirstQueuedOp(RNIL),
-    scanLastQueuedOp(RNIL),
-    scanOpsAllocated(0),
-    scanLockCount(0),
-    scanLockHeld(0),
-    inPageI(RNIL),
-    inConptr(0),
-    elemScanned(0)
-  {
-  }
-
-  Uint64 activeLocalFrag;
-  Uint32 nextBucketIndex;
-  /**
-   * Next ptr (used in list)
-   */
-  Uint32 nextList;
-
-  Uint32 scanFirstActiveOp;
-  Uint32 scanFirstLockedOp;
-  Uint32 scanLastLockedOp;
-  Uint32 scanFirstQueuedOp;
-  Uint32 scanLastQueuedOp;
-  Uint32 scanUserptr;
-  Uint32 scanTrid1;
-  Uint32 scanTrid2;
-  Uint32 startNoOfBuckets;
-  Uint32 minBucketIndexToRescan;
-  Uint32 maxBucketIndexToRescan;
-  Uint32 scanOpsAllocated;
-  Uint32 scanLockCount;
-  ScanBucketState scanBucketState;
-  ScanState scanState;
-  Uint16 scanLockHeld;
-  Uint16 scan_lastSeen;
-  Uint32 scanUserblockref;
-  Uint32 scanMask;
-  Uint8 scanLockMode;
-  Uint8 scanReadCommittedFlag;
-private:
-  Uint32 inPageI;
-  Uint32 inConptr;
-  Uint32 elemScanned;
-  enum { ELEM_SCANNED_BITS = sizeof(Uint32) * 8 };
-public:
-  bool isInContainer() const;
-  bool getContainer(Uint32& pagei, Uint32& conptr) const;
-  void enterContainer(Uint32 pagei, Uint32 conptr);
-  void leaveContainer(Uint32 pagei, Uint32 conptr);
-  bool isScanned(Uint32 elemptr) const;
-  void setScanned(Uint32 elemptr);
-  void clearScanned(Uint32 elemptr);
-  void moveScanBit(Uint32 toptr, Uint32 fromptr);
-};
-  typedef Ptr<ScanRec> ScanRecPtr;
-  typedef TransientPool<ScanRec> ScanRec_pool;
-  static constexpr Uint32 DBACC_SCAN_RECORD_TRANSIENT_POOL_INDEX = 0;
-  ScanRec_pool scanRec_pool;
-  ScanRecPtr scanPtr;
-
 
 struct Tabrec {
   Uint32 tabUserPtr;
@@ -1136,7 +1053,6 @@ private:
   Uint32 seizePage_lock(Page8Ptr& spPageptr, int sub_page_id);
   bool get_lock_information(Dbacc **acc_block, Dblqh** lqh_block);
   void seizeRootfragrec(Signal* signal) const;
-  void seizeScanRec();
   void sendSystemerror(int line) const;
 
   void addFragRefuse(Signal* signal, Uint32 errorCode) const;
@@ -1213,12 +1129,11 @@ private:
   void sendPoolShrink(Uint32 pool_index);
   void shrinkTransientPools(Uint32 pool_index);
 
-  bool getNextScanRec(Uint32 &next, ScanRecPtr &loc_scanptr);
   bool getNextOpRec(Uint32 &next,
                     OperationrecPtr &loc_opptr,
                     Uint32 max_loops);
 
-  static const Uint32 c_transient_pool_count = 2;
+  static const Uint32 c_transient_pool_count = 1;
   TransientFastSlotPool* c_transient_pools[c_transient_pool_count];
   Bitmask<1> c_transient_pools_shrinking;
 
@@ -1449,115 +1364,6 @@ inline bool Dbacc::Fragmentrec::enough_valid_bits(LHBits16 const& reduced_hash_v
   // Forte C 5.0 needs use of intermediate constant
   int const bits = MIN_HASH_COMPARE_BITS;
   return level.getNeededValidBits(bits) <= reduced_hash_value.valid_bits();
-}
-
-inline bool Dbacc::ScanRec::isInContainer() const
-{
-  if (inPageI == RNIL)
-  {
-    assert(inConptr == 0);
-    assert(elemScanned == 0);
-    return false;
-  }
-  else
-  {
-    assert(inConptr != 0);
-    return true;
-  }
-}
-
-inline bool Dbacc::ScanRec::getContainer(Uint32& pagei, Uint32& conptr) const
-{
-  if (inPageI == RNIL)
-  {
-    assert(inConptr == 0);
-    assert(elemScanned == 0);
-    return false;
-  }
-  else
-  {
-    assert(inConptr!=0);
-    pagei = inPageI;
-    conptr = inConptr;
-    return true;
-  }
-}
-
-inline void Dbacc::ScanRec::enterContainer(Uint32 pagei, Uint32 conptr)
-{
-  assert(elemScanned == 0);
-  assert(inPageI == RNIL);
-  assert(inConptr == 0);
-  inPageI = pagei;
-  inConptr = conptr;
-}
-
-inline void Dbacc::ScanRec::leaveContainer(Uint32 pagei, Uint32 conptr)
-{
-  assert(inPageI == pagei);
-  assert(inConptr == conptr);
-  inPageI = RNIL;
-  inConptr = 0;
-  elemScanned = 0;
-}
-
-inline bool Dbacc::ScanRec::isScanned(Uint32 elemptr) const
-{
-  /**
-   * Since element pointers within a container can not differ with more than
-   * the buffer size (ZBUF_SIZE) we can use the pointer value modulo the
-   * number of available bits in elemScanned to get an unique bit index for
-   * each element.
-   */
-  static_assert(ZBUF_SIZE <= ELEM_SCANNED_BITS);
-  return (elemScanned >> (elemptr % ELEM_SCANNED_BITS)) & 1;
-}
-
-inline void Dbacc::ScanRec::setScanned(Uint32 elemptr)
-{
-  assert(((elemScanned >> (elemptr % ELEM_SCANNED_BITS)) & 1) == 0);
-  elemScanned |= (1 << (elemptr % ELEM_SCANNED_BITS));
-}
-
-inline void Dbacc::ScanRec::clearScanned(Uint32 elemptr)
-{
-  assert(((elemScanned >> (elemptr % ELEM_SCANNED_BITS)) & 1) == 1);
-  elemScanned &= ~(1 << (elemptr % ELEM_SCANNED_BITS));
-}
-
-/**
- * moveScanBit are used when one moves an element within a container.
- *
- * This is done on delete there it can happen that the last element
- * in container is moved into the deleted elements place, this method
- * moves the elements scan bit accordingly.
- *
- * In case it is the last element in container that is deleted the
- * toptr and fromptr will be same, in that case the elements scan bit
- * must be cleared.
- */
-inline void Dbacc::ScanRec::moveScanBit(Uint32 toptr, Uint32 fromptr)
-{
-  if (likely(toptr != fromptr))
-  {
-    /**
-     * Move last elements scan bit to deleted elements place.
-     * The scan bit at last elements place are cleared.
-     */
-    elemScanned = (elemScanned &
-                   ~((1 << (toptr % ELEM_SCANNED_BITS)) |
-                     (1 << (fromptr % ELEM_SCANNED_BITS)))) |
-                  (isScanned(fromptr) << (toptr % ELEM_SCANNED_BITS));
-  }
-  else
-  {
-    /**
-     * Clear the deleted elements scan bit since it is the last element
-     * that is deleted.
-     */
-    elemScanned = (elemScanned &
-                   ~(1 << (toptr % ELEM_SCANNED_BITS)));
-  }
 }
 
 inline void Dbacc::Page8_pool::getPtr(Ptr<Page8>& page) const

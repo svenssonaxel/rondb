@@ -41,17 +41,12 @@ Uint64 Dbqacc::getTransactionMemoryNeed()
   Uint32 query_instance_count =
     globalData.ndbMtQueryWorkers +
     globalData.ndbMtRecoverThreads;
-  Uint32 acc_scan_recs = 1;
   Uint32 acc_op_recs = 1;
-
-  Uint64 scan_byte_count = 0;
-  scan_byte_count += ScanRec_pool::getMemoryNeed(acc_scan_recs);
-  scan_byte_count *= query_instance_count;
 
   Uint64 op_byte_count = 0;
   op_byte_count += Operationrec_pool::getMemoryNeed(acc_op_recs);
   op_byte_count *= query_instance_count;
-  return (scan_byte_count + op_byte_count);
+  return op_byte_count;
 }
 
 

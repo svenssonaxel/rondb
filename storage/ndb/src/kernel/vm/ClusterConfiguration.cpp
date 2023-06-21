@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -325,7 +326,7 @@ void ClusterConfiguration::init(const Properties & p, const Properties & db){
   
   struct AttribStorage { const char * attrib; Uint32 * storage; };
   AttribStorage tmp[] = {
-    {"MaxNoOfConcurrentScans", &cd.SizeAltData.noOfScanRecords },
+    {"MaxNoOfConcurrentScans", &cd.SizeAltData.noOfScanRecords }, // todoas is this duplicated and what is it?
     {"MaxNoOfTables", &cd.SizeAltData.noOfTables },
     {"MaxNoOfIndexes", &cd.SizeAltData.noOfIndexes },
     {"NoOfReplicas", &cd.SizeAltData.noOfReplicas },

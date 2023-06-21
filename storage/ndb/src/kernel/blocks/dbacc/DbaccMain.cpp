@@ -3497,114 +3497,6 @@ void Dbacc::execACC_LOCKREQ(Signal* signal)
  * [] lookup one element
  * [] expand by splitting one bucket creating a new top bucket
  * [] shrink by merge top bucket data into a merge bucket
- * [] scan
- *
- * SCANS INTERACTION WITH EXPAND AND SHRINK
- *
- * Since expanding and shrinking can occur during the scan, and elements
- * move around one need to take extra care so that elements are scanned
- * exactly once.  Elements deleted or inserted during scan should be
- * scanned at most once, there reinserted data always counts as a different
- * element.
- *
- * Scans are done in one or two laps.  The first lap scans buckets from
- * bottom (bucket 0) to top.  During this lap expanding and shrinking may
- * occur.  In the second lap one rescan buckets that got merged after they
- * was scanned in lap one, and now expanding and shrinking are not allowed.
- *
- * Neither is a expand or shrink involving the currently scanned bucket
- * allowed.
- *
- * During lap one the table can be seen consisting of five kinds of buckets:
- *
- * [] unscanned, note that these have no defined scan bits, since the scan
- *    bits are left overs from earlier scans.
- * [] current, exactly one bucket
- * [] scanned, all buckets below current
- * [] expanded, these buckets have not been scanned in lap one, but may
- *    contain scanned elements.  Anyway they always have well defined scan
- *    bits also for unscanned elements.
- * [] merged and scanned, these are buckets scanned in lap one but have
- *    been merged after they got scanned, and may contain unscanned
- *    elements.  These buckets must be rescanned during lap two of scan.
- *    Note that we only keep track of a first and last bucket to rescan
- *    even if there are some buckets in between that have not been merged.
- *
- * The diagram below show the possible regions of buckets.  The names to
- * the right are the data members that describes the limits of the regions.
- *
- *  +--------------------------+
- *  | Expanded buckets.  May   | Fragmentrec::level.getTop()
- *  | contain both scanned and |
- *  | unscanned data.          |
- *  |                          |
- *  +--------------------------+
- *  | Unscanned data with      | ScanRec::startNoOfBuckets
- *  | undefined scan bits.     |
- *  |                          | ScanRec::nextBucketIndex + 1
- *  +--------------------------+
- *  | Currently scanned data.  | ScanRec::nextBucketIndex
- *  +--------------------------+
- *  | Scanned buckets.         |
- *  |                          |
- *  +--------------------------+
- *  | Merged buckets after     | ScanRec::maxBucketIndexToRescan
- *  | scan start - need rescan.|
- *  |                          | ScanRec::minBucketIndexToRescan
- *  +--------------------------+
- *  |                          |
- *  | Scanned buckets.         | 0
- *  +--------------------------+
- *
- * When scan starts, all buckets are unscanned and have undefined scan bits.
- * On start scanning of an unscanned bucket with undefined scan bits all
- * scan bits for the bucket are cleared.  ScanRec::startNoOfBuckets keeps
- * track of the last bucket with undefined scan bits, note that
- * startNoOfBuckets may decrease if table shrinks below it.
- *
- * During the second lap the buckets from minBucketIndexToRescan to
- * maxBucketIndexToRescan inclusive, are scanned, and no bucket need to have
- * its scan bits cleared prior to scan.
- *
- * SCAN AND EXPAND
- *
- * After expand, the new top bucket will always have defined scan bits.
- *
- * If the split bucket have undefined scan bits the buckets scan bits are
- * cleared before split.
- *
- * The expanded bucket may only contain scanned elements if the split
- * bucket was a scanned bucket below the current bucket.  This fact comes
- * from noting that once the split bucket are below current bucket, the
- * following expand can not have a split bucket above current bucket, since
- * next split bucket is either the next bucket, or the bottom bucket due to
- * how the linear hash table grow.  And since expand are not allowed when
- * split bucket would be the current bucket all expand bucket with scanned
- * elements must come from buckets below current bucket.
- *
- * SCAN AND SHRINK
- *
- * Shrink merge back the top bucket into the bucket it was split from in
- * the corresponding expand.  This implies that we will never merge back a
- * bucket with scanned elements into an unscanned bucket, with or without
- * defined scan bits.
- *
- * If the top bucket have undefined scan bits they are cleared before merge,
- * even if it is into another bucket with undefined scan bits.  This is to
- * ensure that an element is not inserted in a bucket that have scan bits
- * set that are not allowed in bucket, for details why see under BUCKET
- * INVARIANTS.
- *
- * Whenever top bucket have undefined scan bits one need to decrease
- * startNoOfBuckets that indicates the last bucket with undefined scan
- * bits.  If the top bucket reappear by expand it will have defined
- * scan bits which possibly indicate scan elements, these must not be
- * cleared prior scan.
- *
- * If merge destination are below current bucket, it must be added for
- * rescan.  Note that we only keep track of lowest and highest bucket
- * number to rescan even if some buckets in between are not merged and do
- * not need rescan.
  *
  * CONTAINERS
  *
@@ -3629,101 +3521,6 @@ void Dbacc::execACC_LOCKREQ(Signal* signal)
  * Otherwise one look for an overflow container on an overflow page.  New
  * overflow pages are allocated if needed.
  *
- * SCAN BITS
- *
- * To keep track of which elements have been scanned several means are used.
- * Every container header have scan bits, if a scan bit is set it means that
- * all elements in that container have been scanned by the corresponding
- * scan.
- *
- * If a container is currently scanned, that is some elements are scanned
- * and some not, each element in the container have a scan bit in the scan
- * record (ScanRec::elemScanned).  The next scanned element is looked for
- * in the current container, if none found, the next container is used, and
- * then the next bucket.
- *
- * A scan may only scan one container at a time.
- *
- * BUCKETS INVARIANTS
- *
- * To be able to guarantee that only one container at a time are currently
- * scanned, there is an important invariant:
- *
- * [] No container may have a scan bit set that preceding container have
- *    not set.  That is, container are scanned in order within bucket, and
- *    no inserted element may be put in such that the invariant breaks.
- *
- * Also a condition that all operations on buckets must satisfy is:
- *
- * [] It is not allowed to insert an element with more scan bits set than
- *    the buckets head container have (unless it is for a new top bucket).
- *
- *    This is too avoid extra complexity that would arise if such an
- *    element was inserted.  A new container can not be inserted preceding
- *    the bucket head container since it has an fixed logical address.  The
- *    alternative would be to create a new bucket after the bucket head
- *    container and move every element from head container to the new
- *    container.
- *
- * How the condition is fulfilled are:
- *
- * [] Shrink, where top bucket have undefined scan bits.
- *
- *    Top buckets scan bits are first cleared prior to merge.
- *
- * [] Shrink, where destination bucket have undefined scan bits.
- *
- *    In this case top bucket must also have undefined scan bits (see SCAN
- *    AND SHRINK above) and both top and destination bucket have their scan
- *    bits cleared before merge.
- *
- * [] Shrink, where destination bucket is scanned, below current.
- *
- *    The only way the top bucket can have scanned elements is that it is
- *    expanded from a scanned bucket, below current.  Since that must be the
- *    shrink destination bucket, no element can have more scan bits set than
- *    the destination buckets head container.
- *
- * [] Expand.
- *
- *    The new top bucket is always a new bucket and head containers scan bits
- *    are taken from split source bucket.
- *
- * [] Insert.
- *
- *    A new element may be inserted in any container with free space, and it
- *    inherits the containers scan bits.  If a new container is needed it is
- *    put last with container scan bits copied from preceding container.
- *
- * [] Delete.
- *
- *    Deleting an element, replaces the deleted element with the last
- *    element with same scan bits as the deleted element.  If a container
- *    becomes empty it is unlinked, unless it is the head container which
- *    always must remain.
- *
- *    Since the first containers in a bucket are more likely to be on the
- *    same (normal) page, it is better to unlink a container towards the
- *    end of bucket.  If the deleted element is the last one in its
- *    container, but not the head container, and there are no other element
- *    in bucket with same scan bits that can replace the deleted element.
- *    It is allowed to use another element with fewer bits as replacement
- *    and clear scan bits of the container accordingly.
- *
- *    The reason the bucket head container may not have some of its scan
- *    bits cleared, is that it could later result in a need to insert back
- *    an element with more scan bits set.  The scenario for that is:
- *
- *    1) Split a merged bucket, A, into a new bucket B, moving some
- *       elements with some scan bits set.
- *
- *    2) Delete some elements in bucket A, leaving only elements with no
- *       scan bits set.
- *
- *    3) Shrink table and merge back bucket B into bucket A, if we have
- *       cleared the head container of bucket A, this would result in
- *       inserting elements with more scan bits set then bucket A head
- *       container.
  *
  */
 
@@ -8352,13 +8149,6 @@ void Dbacc::execDBINFO_SCANREQ(Signal *signal)
         oprec_pool.getUsedHi(),
         { 0, 0, 0, 0},
         RT_DBACC_OPERATION},
-      { "ACC Scan Record",
-        scanRec_pool.getUsed(),
-        scanRec_pool.getSize(),
-        scanRec_pool.getEntrySize(),
-        scanRec_pool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBACC_SCAN},
       { "Index memory",
         cnoOfAllocatedPages,
         cpageCount,
@@ -8610,23 +8400,6 @@ void Dbacc::execDBINFO_SCANREQ(Signal *signal)
 }
 
 bool
-Dbacc::getNextScanRec(Uint32 &next, ScanRecPtr &loc_scanptr)
-{
-  Uint32 found = 0;
-  Uint32 loop_count = 0;
-
-  while (found == 0 && next != RNIL && loop_count < 10)
-  {
-    found = scanRec_pool.getUncheckedPtrs(&next, &loc_scanptr, 1);
-    if (found > 0 &&
-        !Magic::check_ptr(loc_scanptr.p))
-      found = 0;
-    loop_count++;
-  }
-  return (found > 0);
-}
-
-bool
 Dbacc::getNextOpRec(Uint32 &next,
                     OperationrecPtr &loc_opptr,
                     Uint32 max_loops)
@@ -8649,87 +8422,6 @@ void
 Dbacc::execDUMP_STATE_ORD(Signal* signal)
 {
   DumpStateOrd * const dumpState = (DumpStateOrd *)&signal->theData[0];
-  if (dumpState->args[0] == DumpStateOrd::AccDumpOneScanRec)
-  {
-    ScanRecPtr scanPtr;
-    Uint32 recordNo = RNIL;
-    if (signal->length() == 2)
-    {
-      jam();
-      recordNo = dumpState->args[1];
-    }
-    else
-    {
-      jam();
-      return;
-    }
-    scanPtr.i = recordNo;
-    if (!scanRec_pool.getValidPtr(scanPtr))
-    {
-      jam();
-      return;
-    }
-    jam();
-    
-    g_eventLogger->info("Dbacc::ScanRec[%d]: state=%d, transid(0x%x, 0x%x)",
-	      scanPtr.i, scanPtr.p->scanState,scanPtr.p->scanTrid1,
-	      scanPtr.p->scanTrid2);
-    g_eventLogger->info("activeLocalFrag=%lld, nextBucketIndex=%d",
-	      scanPtr.p->activeLocalFrag,
-	      scanPtr.p->nextBucketIndex);
-    g_eventLogger->info("firstActOp=%d firstLockedOp=%d",
-	      scanPtr.p->scanFirstActiveOp,
-	      scanPtr.p->scanFirstLockedOp);
-    g_eventLogger->info("scanLastLockedOp=%d firstQOp=%d lastQOp=%d",
-	      scanPtr.p->scanLastLockedOp,
-	      scanPtr.p->scanFirstQueuedOp,
-	      scanPtr.p->scanLastQueuedOp);
-    g_eventLogger->info("scanUserP=%d, startNoBuck=%d,"
-                        " minBucketIndexToRescan=%d",
-	      scanPtr.p->scanUserptr,
-	      scanPtr.p->startNoOfBuckets,
-	      scanPtr.p->minBucketIndexToRescan);
-    g_eventLogger->info("maxBucketIndexToRescan=%d, scan_lastSeen = %d, ",
-	      scanPtr.p->maxBucketIndexToRescan,
-              scanPtr.p->scan_lastSeen);
-    g_eventLogger->info("scanBucketState=%d, scanLockHeld=%d, userBlockRef=%d",
-	      scanPtr.p->scanBucketState,
-	      scanPtr.p->scanLockHeld,
-	      scanPtr.p->scanUserblockref);
-    g_eventLogger->info("scanMask=%d scanLockMode=%d, scanLockCount=%d",
-	      scanPtr.p->scanMask,
-	      scanPtr.p->scanLockMode,
-              scanPtr.p->scanLockCount);
-    return;
-  }
-
-  // Dump all ScanRec(ords)
-  if (dumpState->args[0] == DumpStateOrd::AccDumpAllScanRec ||
-      dumpState->args[0] == DumpStateOrd::AccDumpAllActiveScanRec)
-  {
-    Uint32 recordNo = 0;
-    if (signal->length() == 1)
-      infoEvent("ACC: Dump all active ScanRec");
-    else if (signal->length() == 2)
-      recordNo = dumpState->args[1];
-    else
-      return;
-    ScanRecPtr loc_scanptr;
-    bool found = getNextScanRec(recordNo, loc_scanptr);
-    if (found)
-    {
-      dumpState->args[0] = DumpStateOrd::AccDumpOneScanRec;
-      dumpState->args[1] = loc_scanptr.i;
-      execDUMP_STATE_ORD(signal);
-    }
-    if (recordNo != RNIL)
-    {
-      dumpState->args[0] = DumpStateOrd::AccDumpAllScanRec;
-      dumpState->args[1] = recordNo;
-      sendSignal(reference(), GSN_DUMP_STATE_ORD, signal, 2, JBB);
-    }
-    return;
-  }
 
   if(dumpState->args[0] == DumpStateOrd::EnableUndoDelayDataWrite){
     ndbout << "Dbacc:: delay write of datapages for table = " 

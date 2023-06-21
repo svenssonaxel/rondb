@@ -2427,8 +2427,6 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
 
     cfg.put(CFG_ACC_TABLE, noOfAccTables);
     
-    cfg.put(CFG_ACC_RESERVED_SCAN_RECORDS,
-            reservedLocalScanRecords / ldmInstances);
     cfg.put(CFG_TUP_RESERVED_SCAN_RECORDS,
             reservedLocalScanRecords / ldmInstances);
     cfg.put(CFG_TUX_RESERVED_SCAN_RECORDS,
