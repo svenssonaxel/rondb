@@ -6479,6 +6479,8 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
   Uint32 splitBucket;
   Uint32 receiveBucket;
 
+  fragrecptr.p->level.getSplitBucket(splitBucket,receiveBucket);
+
   c_tup->prepare_tab_pointers_acc(fragrecptr.p->myTableId,
                                   fragrecptr.p->myfid);
   acquire_frag_mutex_bucket(fragrecptr.p, splitBucket);
