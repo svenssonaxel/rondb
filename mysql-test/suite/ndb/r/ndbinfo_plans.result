@@ -1,4 +1,5 @@
 result_format: 2
+## Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
 use ndbinfo;
 ## Look for "Extra: Select tables optimized away" in the following
 ## ``EXPLAIN SELECT COUNT(*)'' from compiled-in ndbinfo tables
@@ -88,7 +89,7 @@ ndb$membership	2	88
 ndb$nodes	2	24
 ndb$operations	10	48
 ndb$pgman_time_track_stats	200	48
-ndb$pools	384	84
+ndb$pools	376	84
 ndb$processes	34	68
 ndb$resources	26	28
 ndb$restart_info	2	100

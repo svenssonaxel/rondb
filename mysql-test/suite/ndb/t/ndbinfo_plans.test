@@ -3,6 +3,7 @@
 
 --vertical_results
 --result_format 2
+## Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
 
 use ndbinfo;
 ## Look for "Extra: Select tables optimized away" in the following
