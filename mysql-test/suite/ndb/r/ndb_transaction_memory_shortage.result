@@ -987,14 +987,14 @@ Sending dump signal with data:
 0x000004bf 0x00000000 
 
 delete from t0;
-set @pool = 2;
+set @pool = 1;
 set @pool = @pool - 1;
 insert into t0 (c) values (1),(2),(3),(4);
-=== Make DBACC pool 1 out of memory ===
+=== Make DBACC pool 0 out of memory ===
 Sending dump signal with data:
-0x00000967 0x00000001 0x00000000 
+0x00000967 0x00000000 0x00000000 
 Sending dump signal with data:
-0x00000967 0x00000001 0x00000000 
+0x00000967 0x00000000 0x00000000 
 
 insert into t1 select x1.n+x2.n*10+x3.n*100, 1, 1+(x1.n+x2.n+x3.n) MOD 3, 1+x1.n+x2.n*10+x3.n*100 from num as x1, num as x2, num as x3;
 mysql_errno 0
@@ -1041,12 +1041,11 @@ Warning	1297	Got temporary error 1217 'Out of operation records in local data ma
 Error	1297	Got temporary error 1217 'Out of operation records in local data manager (increase SharedGlobalMemory)' from NDBCLUSTER
 mysql_errno 0
 Sending dump signal with data:
-0x00000968 0x00000001 
+0x00000968 0x00000000 
 Sending dump signal with data:
-0x00000968 0x00000001 
+0x00000968 0x00000000 
 
 delete from t0;
-set @pool = @pool - 1;
 set @pool = 3;
 set @pool = @pool - 1;
 insert into t0 (c) values (1),(2),(3),(4);
