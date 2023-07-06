@@ -322,7 +322,6 @@ struct Page8 {
   };
   Uint8 getContainerShortIndex(Uint32 pointer) const;
 }; /* p2c: size = 8192 bytes */
-  typedef Ptr<Page8> Page8Ptr;
 
 struct Page32
 {
