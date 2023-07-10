@@ -173,7 +173,7 @@ Dbacc::Dbacc(Block_context& ctx,
   BLOCK_CONSTRUCTOR(Dbacc);
 
   // Transit signals
-  if (blockNo == DBACC)
+  if (blockNo == DBACC) // todoas When do we contruct a Dbacc object that isn't a DBACC block?
   {
     addRecSignal(GSN_DUMP_STATE_ORD, &Dbacc::execDUMP_STATE_ORD);
     addRecSignal(GSN_DEBUG_SIG, &Dbacc::execDEBUG_SIG);
