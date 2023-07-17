@@ -246,6 +246,7 @@ typedef Container::Header ContainerHeader;
 
 class Dbacc: public SimulatedBlock {
   friend class DbaccProxy;
+  friend class Hast;
 
 public:
   /**
