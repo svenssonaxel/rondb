@@ -26,42 +26,32 @@
 #define DBHAST_H
 
 #include <pc.hpp>
-#include "Dbacc.hpp"
+#include "Emulator.hpp"
+#include <ndbd_malloc.hpp>
+
+class Dbacc;
 
 class Hast {
+
+  // Utility types
 public:
-  explicit Hast(Dbacc* dbacc);
+  typedef Uint32 Hash;
+  typedef Uint64 Value;
+  typedef Dbacc* B;
   class Cursor {
     friend class Hast;
-    bool isEntryCursor() const;
-    bool isInsertCursor() const;
   private:
-    Uint32 hash;
+    Hash hash;
     Uint32 bucketNumber;
     Uint32 indexInBucket;
-    Uint32* elemptr;
+    Value* valueptr;
   };
-  // Given a key, return a cursor pointing to the first element for that key if
-  // such exists, otherwise an insert cursor for that key.
-  Cursor getCursor(Uint32 hash);
-  // Given a cursor pointing to an element, make it point to the next element
-  // for the same key if such exists, otherwise make it an insert cursor for
-  // that key.
-  void getNextCursor(Cursor& cursor);
-  // Given a cursor pointing to an element, get the element.
-  Uint32 getElement(Cursor& cursor);
-  // Given a cursor pointing to an element, set the element.
-  void setElement(Cursor& cursor, Uint32 element);
-  // Given an insert cursor, insert an element.
-  void insertElement(Cursor& cursor, Uint32 element);
-  // Given a cursor pointing to an element, delete that element.
-  void deleteElement(Cursor& cursor);
 private:
   class Entry {
     friend class Hast;
   private:
-    Uint32 hash;
-    Uint32 element;
+    Hash hash;
+    Value value;
   };
   class Bucket {
     friend class Hast;
@@ -69,20 +59,64 @@ private:
     Uint32 numberOfEntries;
     Entry* entries;
   };
-  void progError(int line, int err_code, const char* extra, const char* check) const;
-  Uint32 computeBucketNumber(Uint32 hash) const;
-  void insertElementIntoBucket(Bucket& bucket, Uint32 hash, Uint32 element);
-  void* malloc(size_t size);
+
+  // Public interface
+public:
+  Hast();
+  void initialize(B b);
+  void release(B b);
+  bool isEntryCursor(B b, Cursor& cursor) const;
+  bool isInsertCursor(B b, Cursor& cursor) const;
+  // Given a hash, return a cursor pointing to the first entry for that hash if
+  // such exists, otherwise an insert cursor for that hash.
+  // A cursor is valid for as long as the lock is held and there is no call to
+  // insertEntry or deleteEntry.
+  Cursor getCursorFirst(B b, Hash hash) const;
+  // Given a cursor pointing to an entry, make it point to the next entry for
+  // the same hash if such exists, otherwise make it an insert cursor for
+  // that hash.
+  void cursorNext(B b, Cursor& cursor) const;
+  // Given a cursor pointing to an entry, get the value of that entry.
+  Value getValue(B b, Cursor& cursor) const;
+  // Given a cursor pointing to an entry, set the value of that entry.
+  void setValue(B b, Cursor& cursor, Value value);
+  // Given an insert cursor, insert an entry with the given value.
+  void insertEntry(B b, Cursor& cursor, Value value);
+  // Given a cursor pointing to an entry, delete that entry.
+  void deleteEntry(B b, Cursor& cursor);
+
+  // Internals
+private:
+  void insertEntryIntoBucket(B b, Bucket& bucket, Hash hash, Value value);
+  Uint32 computeBucketNumber(Hash hash, Uint32 numberOfBuckets) const;
+  void* malloc(B b, size_t size);
   void free(void* ptr);
+  // todoas expose growing/shrinking and make async
   bool shouldGrow() const;
   bool shouldShrink() const;
-  void grow();
-  void shrink();
+  void grow(B b);
+  void shrink(B b);
+  static constexpr size_t max_number_of_buckets =
+      (NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES / sizeof(Bucket));
+  static constexpr Uint64 high_number_of_entries_per_bucket = 18;
+  static constexpr Uint64 low_number_of_entries_per_bucket = 14;
 
+  // Validation & debugging
+  void validateAll(B b) const;
+  void validateHastRoot(B b) const;
+  void validateB(B b) const;
+  void validateValue(B b, Value value) const;
+  void validateCursor(B b, Cursor& cursor) const;
+  void validateBucket(B b, Bucket& bucket, Uint32 bucketIndex) const;
+  void progError(int line, int err_code, const char* extra, const char* check) const;
+  EmulatedJamBuffer* jamBuffer() const;
+
+  // Data
   Uint32 numberOfBuckets;
   Bucket* buckets;
-  Uint64 numberOfElements;
-  Dbacc* dbacc;
+  Uint64 numberOfEntries;
+  B bptr;
+  Uint32 threadId;
 };
 
 #endif

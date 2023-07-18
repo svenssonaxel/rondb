@@ -567,6 +567,7 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
   }//if
   initFragGeneral(fragrecptr);
   initFragAdd(signal, fragrecptr);
+  fragrecptr.p->hastTable.initialize(this);
 
   if (!addfragtotab(fragrecptr.i, req->fragId)) {
     jam();
@@ -778,6 +779,7 @@ void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
     Uint32 tab = regFragPtr.p->mytabptr;
     Uint32 fragId = regFragPtr.p->fragmentid;
     drop_fragment_from_table(tab, fragId);
+    regFragPtr.p->hastTable.release(this); // todoas: Make iterative
     releaseFragRecord(regFragPtr);
     signal->theData[0] = ZREL_ROOT_FRAG;
     signal->theData[1] = tab;

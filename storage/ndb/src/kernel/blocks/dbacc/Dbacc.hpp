@@ -44,6 +44,7 @@
 #include <Intrusive64List.hpp>
 #include <RWPool64.hpp>
 #include <atomic>
+#include "Dbhast.hpp"
 
 #include <EventLogger.hpp>
 
@@ -391,6 +392,7 @@ typedef LocalDLCFifoList<Page8_pool, IA_Page8> LocalContainerPageList;
 #define NUM_ACC_FRAGMENT_MUTEXES 4
 struct Fragmentrec {
   Fragmentrec() {}
+  Hast hastTable;
   Uint64 tupFragptr;
   Uint32 m_magic;
   Uint32 nextPool;
