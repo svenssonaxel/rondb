@@ -981,6 +981,9 @@ private:
                     Page8Ptr& elemPageptr,
                     Uint32& elemConptr,
                     Uint32& elemptr);
+  Hast::Cursor hastGetElement(const AccKeyReq* signal,
+                              OperationrecPtr& lockOwnerPtr,
+                              Local_key& localkey);
   LHBits32 getElementHash(OperationrecPtr& oprec);
   LHBits32 getElementHash(Uint32 const* element);
   LHBits32 getElementHash(Uint32 const* element, OperationrecPtr& oprec);

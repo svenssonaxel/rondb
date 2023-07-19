@@ -1421,6 +1421,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   Uint32 hash = 0;
   c_tup->acquire_frag_page_map_mutex_read(jamBuffer());
   acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
+  // getElement will write to arguments and operationRecPtr.p->localdata
   const Uint32 found = getElement(req,
                                   lockOwnerPtr,
                                   bucketPageptr,
@@ -1428,6 +1429,15 @@ void Dbacc::execACCKEYREQ(Signal* signal,
                                   elemPageptr,
                                   elemConptr,
                                   elemptr);
+
+  // Hast version of getElement, for comparison.
+  // hastGetElement will write to arguments only.
+  // hastLocalkey is written to instead of operationRecPtr.p->localdata
+  OperationrecPtr hastLockOwnerPtr;
+  Local_key hastLocalkey;
+  Hast::Cursor hastCursor = hastGetElement(req, hastLockOwnerPtr, hastLocalkey);
+  const Hast& hast = fragrecptr.p->hastTable;
+
   c_tup->release_frag_page_map_mutex_read(jamBuffer());
 
   Uint32 opbits = operationRecPtr.p->m_op_bits;
@@ -1469,6 +1479,11 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   Uint32 op = opbits & Operationrec::OP_MASK;
   if (found == ZTRUE) 
   {
+    ndbassert(hast.isEntryCursor(this, hastCursor));
+    ndbassert(hastLockOwnerPtr.i == lockOwnerPtr.i);
+    ndbassert(hastLockOwnerPtr.p == lockOwnerPtr.p);
+    ndbassert(hastLocalkey.m_page_no == operationRecPtr.p->localdata.m_page_no);
+    ndbassert(hastLocalkey.m_page_idx == operationRecPtr.p->localdata.m_page_idx);
     switch (op) {
     case ZREAD:
     case ZUPDATE:
@@ -1577,6 +1592,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   }
   else if (found == ZFALSE)
   {
+    ndbassert(hast.isInsertCursor(this, hastCursor));
     switch (op){
     case ZWRITE:
       jamDebug();
@@ -4431,6 +4447,122 @@ Dbacc::getElement(const AccKeyReq* signal,
   } while (1);
   return ZFALSE;
 }//Dbacc::getElement()
+
+/** ---------------------------------------------------------------------------
+ * Find element.
+ *
+ * Use hashValue from operationRecPtr and primary key given in signal to search
+ * for element.  If found, make cursor point to the element, otherwise make it
+ * an insert cursor.
+ *
+ * @param[in]   signal         Signal containing primary key to look for.
+ * @param[out]  lockOwnerPtr   Lock owner if any of found element.
+ * @param[out]  localkey       The found local key.
+ * @return      cursor         A Hast cursor pointing to the element if found,
+ *                             otherwise an insert cursor.
+ * ------------------------------------------------------------------------- */
+Hast::Cursor
+Dbacc::hastGetElement(const AccKeyReq* signal,
+                      OperationrecPtr& lockOwnerPtr,
+                      Local_key& localkey)
+{
+  ndbrequire(fragrecptr.p->localkeylen == 1);
+  const Hast& hast = fragrecptr.p->hastTable;
+  const Uint32 hash = operationRecPtr.p->hashValue.pack();
+  const Uint32 *Tkeydata = signal->keyInfo; /* or localKey if keyLen == 0 */
+  // Use the Hast implementation to get a cursor to the first entry with
+  // matching hash if such exists.
+  Hast::Cursor cursor = hast.getCursorFirst(this, hash);
+  /*
+   * The value searched is
+   * - table key for ACCKEYREQ, stored in TUP
+   * - local key (1 word) for ACC_LOCKREQ and UNDO, stored in ACC
+   */
+  const bool searchLocalKey = operationRecPtr.p->tupkeylen == 0;
+  // todoas static assert that Hast::Value is Uint64 and require that fragrecptr.p->elementLength == 2
+  union {
+    Uint32 keys[2048];
+    Uint64 keys_align;
+  };
+  (void)keys_align;
+  while(hast.isEntryCursor(this, cursor))
+  {
+    Uint64 value = hast.getValue(this, cursor);
+    Uint32 elementHeader = Uint32(value);
+    Uint32 elementBody = Uint32(value >> 32);
+    lockOwnerPtr.i = RNIL;
+    lockOwnerPtr.p = NULL;
+    if (ElementHeader::getLocked(elementHeader))
+    {
+      jamDebug();
+      lockOwnerPtr.i = ElementHeader::getOpPtrI(elementHeader);
+      /**
+       * We need to get the operation record of the lock owner.
+       * Since we can be the query thread we cannot access it directly
+       * since we don't share the operation records with the owning
+       * LDM thread. We will get the operation record from the
+       * owning LDM thread.
+       */
+      lockOwnerPtr.p =
+        m_ldm_instance_used->getOperationPtrP(lockOwnerPtr.i);
+      localkey = lockOwnerPtr.p->localdata;
+    }
+    else
+    {
+      jamDebug();
+      localkey.m_page_no = elementBody;
+      localkey.m_page_idx = ElementHeader::getPageIdx(elementHeader);
+    }
+    bool found;
+    if (! searchLocalKey)
+    {
+      const bool xfrm = false;
+      Uint32 len = readTablePk(localkey.m_page_no,
+                               localkey.m_page_idx,
+                               elementHeader,
+                               lockOwnerPtr,
+                               &keys[0],
+                               xfrm);
+      if (unlikely(len == 0))
+      {
+        jamDebug();
+        found = false;
+      }
+      else
+      {
+        if (fragrecptr.p->hasCharAttr)  //Need to consult charset library
+        {
+          jamDebug();
+          const Uint32 table = fragrecptr.p->myTableId;
+          found = (cmp_key(table, Tkeydata, &keys[0]) == 0);
+        }
+        else
+        {
+          jamDebug();
+          found = (len == operationRecPtr.p->tupkeylen) &&
+                  (memcmp(Tkeydata, &keys[0], len << 2) == 0);
+        }
+      }
+    }
+    else
+    {
+      jam();
+      found = (localkey.m_page_no == Tkeydata[0] &&
+               Uint32(localkey.m_page_idx) == Tkeydata[1]);
+    }
+    if (found)
+    {
+      jamDebug();
+      // todoas rm? operationRecPtr.p->localdata = localkey;
+      return cursor; // Return an entry cursor
+    }
+    // Not found, so ask for the next entry if such exists
+    hast.cursorNext(this, cursor);
+  }
+  // We found no matching entry, so return an insert cursor.
+  // todoas do we want to lockOwnerPtr.i = RNIL; lockOwnerPtr.p = NULL; ?
+  return cursor;
+}//Dbacc::hastGetElement()
 
 /**
  * report_pending_dealloc
