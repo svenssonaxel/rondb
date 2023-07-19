@@ -2770,7 +2770,6 @@ struct lc_long_lived_memory_area
 #define MAX_FREE_MEMORY_SIZE_IN_WORDS \
   ((MEMORY_SEGMENT_SIZE_IN_WORDS - MALLOC_OVERHEAD_IN_WORDS) - \
    (sizeof(lc_long_lived_memory_area) / 4))
-#define MAX_MEMORY_ALLOC_SIZE_IN_WORDS (1024 * 1024)
 
 struct lc_long_lived_memory_base
 {
@@ -2967,7 +2966,7 @@ lc_ndbd_pool_malloc(size_t size,
     ((size + (MIN_LONG_AREA_SIZE - 1)) / MIN_LONG_AREA_SIZE) *
      MIN_LONG_AREA_SIZE;
   size_t size_in_words = size_in_bytes / 4;
-  if (unlikely(size_in_words > MAX_MEMORY_ALLOC_SIZE_IN_WORDS ||
+  if (unlikely(size_in_words > NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_WORDS ||
                size_in_words == 0))
     return nullptr;
   return

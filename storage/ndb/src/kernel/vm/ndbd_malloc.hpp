@@ -32,6 +32,9 @@
 
 #define JAM_FILE_ID 234
 
+#define NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES (size_t(4 * 1024 * 1024))
+#define NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_WORDS (NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES / 4)
+
 /**
  * common memory allocation function for ndbd kernel
  */
