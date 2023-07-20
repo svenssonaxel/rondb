@@ -82,15 +82,15 @@ bool Hast::isInsertCursor(B b, Cursor& cursor) const {
   return cursor.valueptr == nullptr;
 }
 
-Uint32 Hast::computeBucketNumber(Uint32 hash, Uint32 numberOfBuckets) const {
+Uint32 Hast::computeBucketIndex(Uint32 hash, Uint32 numberOfBuckets) const {
   Uint32 mask = 0xffffffff;
   while ((mask & hash) >= numberOfBuckets) {
     mask >>= 1;
   }
   ndbassert(mask != 0);
-  Uint32 bucketNumber = hash & mask;
-  ndbassert(bucketNumber < numberOfBuckets);
-  return bucketNumber;
+  Uint32 bucketIndex = hash & mask;
+  ndbassert(bucketIndex < numberOfBuckets);
+  return bucketIndex;
 }
 
 Hast::Cursor Hast::getCursorFirst(B b, Uint32 hash) const {
@@ -98,16 +98,16 @@ Hast::Cursor Hast::getCursorFirst(B b, Uint32 hash) const {
   jamDebug();
   Cursor cursor = Cursor();
   cursor.hash = hash;
-  cursor.bucketNumber = computeBucketNumber(hash, numberOfBuckets);
-  cursor.indexInBucket = 0;
+  cursor.bucketIndex = computeBucketIndex(hash, numberOfBuckets);
+  cursor.entryIndex = 0;
   cursor.valueptr = nullptr;
-  Bucket& bucket = buckets[cursor.bucketNumber];
-  while (cursor.indexInBucket < bucket.numberOfEntries) {
-    if (bucket.entries[cursor.indexInBucket].hash == hash) {
-      cursor.valueptr = &bucket.entries[cursor.indexInBucket].value;
+  Bucket& bucket = buckets[cursor.bucketIndex];
+  while (cursor.entryIndex < bucket.numberOfEntries) {
+    if (bucket.entries[cursor.entryIndex].hash == hash) {
+      cursor.valueptr = &bucket.entries[cursor.entryIndex].value;
       break;
     }
-    cursor.indexInBucket++;
+    cursor.entryIndex++;
   }
   return cursor;
 }
@@ -116,15 +116,15 @@ void Hast::cursorNext(B b, Cursor& cursor) const {
   validateB(b);
   jamDebug();
   ndbrequire(isEntryCursor(b, cursor));
-  Bucket& bucket = buckets[cursor.bucketNumber];
-  cursor.indexInBucket++;
+  Bucket& bucket = buckets[cursor.bucketIndex];
+  cursor.entryIndex++;
   cursor.valueptr = nullptr;
-  while (cursor.indexInBucket < bucket.numberOfEntries) {
-    if (bucket.entries[cursor.indexInBucket].hash == cursor.hash) {
-      cursor.valueptr = &bucket.entries[cursor.indexInBucket].value;
+  while (cursor.entryIndex < bucket.numberOfEntries) {
+    if (bucket.entries[cursor.entryIndex].hash == cursor.hash) {
+      cursor.valueptr = &bucket.entries[cursor.entryIndex].value;
       break;
     }
-    cursor.indexInBucket++;
+    cursor.entryIndex++;
   }
 }
 
@@ -143,7 +143,7 @@ void Hast::setValue(B b, Cursor& cursor, Value value) {
 void Hast::insertEntry(B b, Cursor& cursor, Value value) {
   ndbassert(isInsertCursor(b, cursor));
   jamDebug();
-  insertEntryIntoBucket(b, buckets[cursor.bucketNumber], cursor.hash, value);
+  insertEntryIntoBucket(b, buckets[cursor.bucketIndex], cursor.hash, value);
   if(shouldGrow()) {
     jamDebug();
     grow(b);
@@ -153,16 +153,16 @@ void Hast::insertEntry(B b, Cursor& cursor, Value value) {
 void Hast::deleteEntry(B b, Cursor& cursor) {
   ndbassert(isEntryCursor(b, cursor));
   jamDebug();
-  Bucket& bucket = buckets[cursor.bucketNumber];
+  Bucket& bucket = buckets[cursor.bucketIndex];
   Entry* newEntries = nullptr;
   if(bucket.numberOfEntries > 1) {
     newEntries = (Entry*)malloc(b, (bucket.numberOfEntries - 1) * sizeof(Entry));
-    if(cursor.indexInBucket > 0) {
-      memcpy(newEntries, bucket.entries, cursor.indexInBucket * sizeof(Entry));
+    if(cursor.entryIndex > 0) {
+      memcpy(newEntries, bucket.entries, cursor.entryIndex * sizeof(Entry));
     }
-    if(cursor.indexInBucket < bucket.numberOfEntries - 1) {
-      memcpy(newEntries + cursor.indexInBucket, bucket.entries + cursor.indexInBucket + 1,
-             (bucket.numberOfEntries - cursor.indexInBucket - 1) * sizeof(Entry));
+    if(cursor.entryIndex < bucket.numberOfEntries - 1) {
+      memcpy(newEntries + cursor.entryIndex, bucket.entries + cursor.entryIndex + 1,
+             (bucket.numberOfEntries - cursor.entryIndex - 1) * sizeof(Entry));
     }
   }
   if (bucket.entries != nullptr) {
@@ -226,30 +226,30 @@ void Hast::grow(B b) {
   memcpy(newBuckets, buckets, numberOfBuckets * sizeof(Bucket));
   free(buckets);
   buckets = newBuckets;
-  Uint32 newBucketNumber = numberOfBuckets;
-  Uint32 oldBucketNumber = computeBucketNumber(newBucketNumber, numberOfBuckets);
+  Uint32 newBucketIndex = numberOfBuckets;
+  Uint32 oldBucketIndex = computeBucketIndex(newBucketIndex, numberOfBuckets);
   numberOfBuckets++;
-  Bucket splitBucket = buckets[oldBucketNumber];
+  Bucket splitBucket = buckets[oldBucketIndex];
   Uint32 entriesToMove = splitBucket.numberOfEntries;
-  buckets[oldBucketNumber].numberOfEntries = 0;
-  buckets[oldBucketNumber].entries = nullptr;
-  buckets[newBucketNumber].numberOfEntries = 0;
-  buckets[newBucketNumber].entries = nullptr;
+  buckets[oldBucketIndex].numberOfEntries = 0;
+  buckets[oldBucketIndex].entries = nullptr;
+  buckets[newBucketIndex].numberOfEntries = 0;
+  buckets[newBucketIndex].entries = nullptr;
   for (Uint32 i = 0; i < splitBucket.numberOfEntries; i++) {
     Entry &entry = splitBucket.entries[i];
-    Uint32 bucketNumber = computeBucketNumber(entry.hash, numberOfBuckets);
-    ndbassert(bucketNumber == oldBucketNumber || bucketNumber == newBucketNumber);
-    insertEntryIntoBucket(b, buckets[bucketNumber], entry.hash, entry.value);
+    Uint32 bucketIndex = computeBucketIndex(entry.hash, numberOfBuckets);
+    ndbassert(bucketIndex == oldBucketIndex || bucketIndex == newBucketIndex);
+    insertEntryIntoBucket(b, buckets[bucketIndex], entry.hash, entry.value);
   }
   if (splitBucket.entries != nullptr) {
     free(splitBucket.entries);
   }
   splitBucket.numberOfEntries = 0;
   splitBucket.entries = nullptr;
-  validateBucket(b, splitBucket, oldBucketNumber);
-  validateBucket(b, buckets[oldBucketNumber], oldBucketNumber);
-  validateBucket(b, buckets[newBucketNumber], newBucketNumber);
-  ndbassert(buckets[oldBucketNumber].numberOfEntries + buckets[newBucketNumber].numberOfEntries == entriesToMove);
+  validateBucket(b, splitBucket, oldBucketIndex);
+  validateBucket(b, buckets[oldBucketIndex], oldBucketIndex);
+  validateBucket(b, buckets[newBucketIndex], newBucketIndex);
+  ndbassert(buckets[oldBucketIndex].numberOfEntries + buckets[newBucketIndex].numberOfEntries == entriesToMove);
 }
 
 void Hast::shrink(B b) {
@@ -257,13 +257,13 @@ void Hast::shrink(B b) {
   jamDebug();
   Bucket* newBuckets = (Bucket*)malloc(b, (numberOfBuckets - 1) * sizeof(Bucket));
   memcpy(newBuckets, buckets, (numberOfBuckets - 1) * sizeof(Bucket));
-  Uint32 oldBucketNumber = numberOfBuckets - 1;
-  Bucket oldBucket = buckets[oldBucketNumber];
+  Uint32 oldBucketIndex = numberOfBuckets - 1;
+  Bucket oldBucket = buckets[oldBucketIndex];
   numberOfBuckets--;
-  Uint32 newBucketNumber = computeBucketNumber(oldBucketNumber, numberOfBuckets);
+  Uint32 newBucketIndex = computeBucketIndex(oldBucketIndex, numberOfBuckets);
   free(buckets);
   buckets = newBuckets;
-  Bucket& newBucket = buckets[newBucketNumber];
+  Bucket& newBucket = buckets[newBucketIndex];
   if(oldBucket.numberOfEntries > 0) {
     Entry* newEntries = (Entry*)malloc(b, (oldBucket.numberOfEntries + newBucket.numberOfEntries) * sizeof(Entry));
     if(newBucket.numberOfEntries > 0) {
@@ -276,8 +276,8 @@ void Hast::shrink(B b) {
     newBucket.numberOfEntries += oldBucket.numberOfEntries;
     oldBucket.numberOfEntries = 0;
   }
-  validateBucket(b, oldBucket, oldBucketNumber);
-  validateBucket(b, newBucket, newBucketNumber);
+  validateBucket(b, oldBucket, oldBucketIndex);
+  validateBucket(b, newBucket, newBucketIndex);
 }
 
 /*
@@ -315,18 +315,18 @@ void Hast::validateValue(B b, Value value) const {
 }
 
 void Hast::validateCursor(B b, Cursor& cursor) const {
-  ndbassert(cursor.bucketNumber < numberOfBuckets);
-  Bucket& bucket = buckets[cursor.bucketNumber];
+  ndbassert(cursor.bucketIndex < numberOfBuckets);
+  Bucket& bucket = buckets[cursor.bucketIndex];
   // todoas validate hash and bucket number
   if(cursor.valueptr != nullptr) {
-    ndbassert(cursor.indexInBucket < bucket.numberOfEntries);
-    Entry& entry = bucket.entries[cursor.indexInBucket];
+    ndbassert(cursor.entryIndex < bucket.numberOfEntries);
+    Entry& entry = bucket.entries[cursor.entryIndex];
     ndbassert(cursor.hash == entry.hash);
     ndbassert(cursor.valueptr == &entry.value);
     validateValue(b, entry.value);
   }
   else {
-    ndbassert(cursor.indexInBucket == bucket.numberOfEntries);
+    ndbassert(cursor.entryIndex == bucket.numberOfEntries);
   }
 }
 
@@ -340,7 +340,7 @@ void Hast::validateBucket(B b, Bucket& bucket, Uint32 bucketIndex) const {
   for (Uint32 i = 0; i < bucket.numberOfEntries; i++) {
     Entry& entry = bucket.entries[i];
     Uint32 hash = entry.hash;
-    ndbassert(computeBucketNumber(hash, numberOfBuckets) == bucketIndex);
+    ndbassert(computeBucketIndex(hash, numberOfBuckets) == bucketIndex);
     validateValue(b, entry.value);
   }
   #endif

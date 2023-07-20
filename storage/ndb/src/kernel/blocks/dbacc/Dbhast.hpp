@@ -42,8 +42,8 @@ public:
     friend class Hast;
   private:
     Hash hash;
-    Uint32 bucketNumber;
-    Uint32 indexInBucket;
+    Uint32 bucketIndex;
+    Uint32 entryIndex;
     Value* valueptr;
   };
 private:
@@ -88,7 +88,7 @@ public:
   // Internals
 private:
   void insertEntryIntoBucket(B b, Bucket& bucket, Hash hash, Value value);
-  Uint32 computeBucketNumber(Hash hash, Uint32 numberOfBuckets) const;
+  Uint32 computeBucketIndex(Hash hash, Uint32 numberOfBuckets) const;
   void* malloc(B b, size_t size);
   void free(void* ptr);
   // todoas expose growing/shrinking and make async
