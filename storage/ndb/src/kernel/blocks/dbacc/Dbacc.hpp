@@ -390,6 +390,18 @@ typedef LocalDLCFifoList<Page8_pool, IA_Page8> LocalContainerPageList;
 /*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC FRAGMENT    */
 /* --------------------------------------------------------------------------------- */
 #define NUM_ACC_FRAGMENT_MUTEXES 4
+// Hast only stores an opaque Hast::Value, how to use it is up to us.
+static_assert(std::is_same<Hast::Value, Uint64>::value,
+              "False assumption that Hast::Value is Uint64");
+struct HastValueInterpretation {
+  union {
+    Hast::Value hastValue;
+    struct {
+      Uint32 elementHeader;
+      Uint32 elementBody;
+    };
+  };
+};
 struct Fragmentrec {
   Fragmentrec() {}
   Hast hastTable;

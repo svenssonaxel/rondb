@@ -4487,15 +4487,14 @@ Dbacc::hastGetElement(const AccKeyReq* signal,
   (void)keys_align;
   while(hast.isEntryCursor(this, cursor))
   {
-    Uint64 value = hast.getValue(this, cursor);
-    Uint32 elementHeader = Uint32(value);
-    Uint32 elementBody = Uint32(value >> 32);
+    HastValueInterpretation hvi;
+    hvi.hastValue = hast.getValue(this, cursor);
     lockOwnerPtr.i = RNIL;
     lockOwnerPtr.p = NULL;
-    if (ElementHeader::getLocked(elementHeader))
+    if (ElementHeader::getLocked(hvi.elementHeader))
     {
       jamDebug();
-      lockOwnerPtr.i = ElementHeader::getOpPtrI(elementHeader);
+      lockOwnerPtr.i = ElementHeader::getOpPtrI(hvi.elementHeader);
       /**
        * We need to get the operation record of the lock owner.
        * Since we can be the query thread we cannot access it directly
@@ -4510,8 +4509,8 @@ Dbacc::hastGetElement(const AccKeyReq* signal,
     else
     {
       jamDebug();
-      localkey.m_page_no = elementBody;
-      localkey.m_page_idx = ElementHeader::getPageIdx(elementHeader);
+      localkey.m_page_no = hvi.elementBody;
+      localkey.m_page_idx = ElementHeader::getPageIdx(hvi.elementHeader);
     }
     bool found;
     if (! searchLocalKey)
@@ -4519,7 +4518,7 @@ Dbacc::hastGetElement(const AccKeyReq* signal,
       const bool xfrm = false;
       Uint32 len = readTablePk(localkey.m_page_no,
                                localkey.m_page_idx,
-                               elementHeader,
+                               hvi.elementHeader,
                                lockOwnerPtr,
                                &keys[0],
                                xfrm);
