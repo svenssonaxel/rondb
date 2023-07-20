@@ -311,13 +311,13 @@ void Hast::validateB(B b) const {
 }
 
 void Hast::validateValue(B b, Value value) const {
-  ndbassert(value == (value | 0x000000ffffffffffUL)); // todoas: How many bits are used for the value?
+  ndbassert(value == (value | 0xffffffffffffffffUL)); // todoas: How many bits are used for the value?
 }
 
 void Hast::validateCursor(B b, Cursor& cursor) const {
   ndbassert(cursor.bucketIndex < numberOfBuckets);
   Bucket& bucket = buckets[cursor.bucketIndex];
-  // todoas validate hash and bucket number
+  ndbassert(computeBucketIndex(cursor.hash, numberOfBuckets) == cursor.bucketIndex);
   if(cursor.valueptr != nullptr) {
     ndbassert(cursor.entryIndex < bucket.numberOfEntries);
     Entry& entry = bucket.entries[cursor.entryIndex];
