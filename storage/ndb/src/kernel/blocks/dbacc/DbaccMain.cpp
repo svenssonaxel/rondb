@@ -1434,12 +1434,12 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   // Hast version of getElement, for comparison.
   // hastGetElement will write to arguments only.
   // hastLocalkey is written to instead of operationRecPtr.p->localdata
-  const Hast& hast = fragrecptr.p->hastTable;
+  Hast& hast = fragrecptr.p->hastTable;
   OperationrecPtr hastLockOwnerPtr;
   Local_key hastLocalkey;
   Hast::Cursor hastCursor = hastGetElement(hast,
                                            req->keyInfo,
-                                           fragrecptr.p,
+                                           *fragrecptr.p,
                                            hastLockOwnerPtr,
                                            hastLocalkey);
 
@@ -1517,7 +1517,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
 
           // Compare to hast version
           HastValueInterpretation hvi;
-          hvi.hastValue = hast.getValue(this, cursor);
+          hvi.hastValue = hast.getValue(this, hastCursor);
           ndbassert(hvi.elementHeader == eh);
 
           operationRecPtr.p->reducedHashValue =
@@ -1540,7 +1540,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
            */
           elemPageptr.p->word32[elemptr] = eh;
           hvi.elementHeader = eh;
-          hast.setValue(this, cursor, hvi.hastValue);
+          hast.setValue(this, hastCursor, hvi.hastValue);
 #ifdef DEB_LOCK_TRANS
           Uint32 tcOprec;
           Uint32 tcBlockref;
@@ -2232,7 +2232,7 @@ void Dbacc::insertelementLab(Signal* signal,
                              Page8Ptr bucketPageptr,
                              Uint32 bucketConidx,
                              Uint32 hash,
-                             Hast::Cursor hastCursor)
+                             Hast::Cursor& hastCursor)
 {
   if (unlikely(fragrecptr.p->dirRangeFull))
   {
