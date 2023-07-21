@@ -1433,10 +1433,14 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   // Hast version of getElement, for comparison.
   // hastGetElement will write to arguments only.
   // hastLocalkey is written to instead of operationRecPtr.p->localdata
+  const Hast& hast = fragrecptr.p->hastTable;
   OperationrecPtr hastLockOwnerPtr;
   Local_key hastLocalkey;
-  Hast::Cursor hastCursor = hastGetElement(req, hastLockOwnerPtr, hastLocalkey);
-  const Hast& hast = fragrecptr.p->hastTable;
+  Hast::Cursor hastCursor = hastGetElement(hast,
+                                           req->keyInfo,
+                                           fragrecptr.p,
+                                           hastLockOwnerPtr,
+                                           hastLocalkey);
 
   c_tup->release_frag_page_map_mutex_read(jamBuffer());
 
@@ -4449,27 +4453,29 @@ Dbacc::getElement(const AccKeyReq* signal,
 }//Dbacc::getElement()
 
 /** ---------------------------------------------------------------------------
- * Find element.
+ * Find entry.
  *
  * Use hashValue from operationRecPtr and primary key given in signal to search
- * for element.  If found, make cursor point to the element, otherwise make it
- * an insert cursor.
+ * for entry.  If found, make cursor point to the entry, otherwise make it an
+ * insert cursor.
  *
- * @param[in]   signal         Signal containing primary key to look for.
- * @param[out]  lockOwnerPtr   Lock owner if any of found element.
+ * @param[in]   hast           Hast table to search in.
+ * @param[in]   keydata        Primary key or local key to search for.
+ * @param[in]   fragrec        Fragment record.
+ * @param[out]  lockOwnerPtr   Lock owner if any of found entry.
  * @param[out]  localkey       The found local key.
- * @return      cursor         A Hast cursor pointing to the element if found,
+ * @return      cursor         A Hast cursor pointing to the entry if found,
  *                             otherwise an insert cursor.
  * ------------------------------------------------------------------------- */
 Hast::Cursor
-Dbacc::hastGetElement(const AccKeyReq* signal,
+Dbacc::hastGetElement(const Hast& hast,
+                      const Uint32 *keydata, /* or localKey if keyLen == 0 */
+                      const Fragmentrec& fragrec,
                       OperationrecPtr& lockOwnerPtr,
                       Local_key& localkey)
 {
-  ndbrequire(fragrecptr.p->localkeylen == 1);
-  const Hast& hast = fragrecptr.p->hastTable;
+  ndbrequire(fragrec.localkeylen == 1);
   const Uint32 hash = operationRecPtr.p->hashValue.pack();
-  const Uint32 *Tkeydata = signal->keyInfo; /* or localKey if keyLen == 0 */
   // Use the Hast implementation to get a cursor to the first entry with
   // matching hash if such exists.
   Hast::Cursor cursor = hast.getCursorFirst(this, hash);
@@ -4529,25 +4535,25 @@ Dbacc::hastGetElement(const AccKeyReq* signal,
       }
       else
       {
-        if (fragrecptr.p->hasCharAttr)  //Need to consult charset library
+        if (fragrec.hasCharAttr)  //Need to consult charset library
         {
           jamDebug();
-          const Uint32 table = fragrecptr.p->myTableId;
-          found = (cmp_key(table, Tkeydata, &keys[0]) == 0);
+          const Uint32 table = fragrec.myTableId;
+          found = (cmp_key(table, keydata, &keys[0]) == 0);
         }
         else
         {
           jamDebug();
           found = (len == operationRecPtr.p->tupkeylen) &&
-                  (memcmp(Tkeydata, &keys[0], len << 2) == 0);
+                  (memcmp(keydata, &keys[0], len << 2) == 0);
         }
       }
     }
     else
     {
       jam();
-      found = (localkey.m_page_no == Tkeydata[0] &&
-               Uint32(localkey.m_page_idx) == Tkeydata[1]);
+      found = (localkey.m_page_no == keydata[0] &&
+               Uint32(localkey.m_page_idx) == keydata[1]);
     }
     if (found)
     {

@@ -993,7 +993,9 @@ private:
                     Page8Ptr& elemPageptr,
                     Uint32& elemConptr,
                     Uint32& elemptr);
-  Hast::Cursor hastGetElement(const AccKeyReq* signal,
+  Hast::Cursor hastGetElement(const Hast& hast,
+                              const Uint32 *keydata,
+                              const Fragmentrec& fragrec,
                               OperationrecPtr& lockOwnerPtr,
                               Local_key& localkey);
   LHBits32 getElementHash(OperationrecPtr& oprec);
