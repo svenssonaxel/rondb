@@ -36,8 +36,8 @@ class Hast {
   // Utility types
 public:
   typedef Uint32 Hash;
-  typedef Uint64 Value;
-  typedef Dbacc* B;
+  typedef Uint64 Value; // todoas 32 for page id + 13 bits for page idx, + 1 bit for locked status, so perhaps only guarantee 46 or 48 bits. Some implementation might want to pack it in 6 bytes and use 1 bit for presence tracking, so 47 bits.
+  typedef Dbacc* B; // todoas no single-letter variables
   class Cursor {
     friend class Hast;
   private:
@@ -57,7 +57,7 @@ private:
     friend class Hast;
   private:
     Uint32 numberOfEntries;
-    Entry* entries;
+    Entry* entries; // todoas not correct since this could potentially become larger than 1MB. Use a nextBucket pointer.
   };
 
   // Public interface
@@ -112,8 +112,9 @@ private:
   EmulatedJamBuffer* jamBuffer() const;
 
   // Data
+  // todoas m_ prefix for member variables. c_ prefix is for class variables.
   Uint32 numberOfBuckets;
-  Bucket* buckets;
+  Bucket* buckets; // todoas Eventually, use some kind of dynamic array
   Uint64 numberOfEntries;
   B bptr;
   Uint32 threadId;

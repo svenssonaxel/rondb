@@ -46,7 +46,7 @@ void Hast::initialize(B b) {
   jam();
   threadId = bptr->getThreadId();
   ndbrequire(threadId != 0);
-  numberOfBuckets = 1;
+  numberOfBuckets = 1; // todoas make this 0
   numberOfEntries = 0;
   buckets = (Bucket*)malloc(b, sizeof(Bucket));
   buckets[0].numberOfEntries = 0;
@@ -146,7 +146,7 @@ void Hast::insertEntry(B b, Cursor& cursor, Value value) {
   insertEntryIntoBucket(b, buckets[cursor.bucketIndex], cursor.hash, value);
   if(shouldGrow()) {
     jamDebug();
-    grow(b);
+    grow(b); //todoas rename to expand
   }
 }
 
@@ -196,6 +196,8 @@ void Hast::insertEntryIntoBucket(B b, Bucket& bucket, Uint32 hash, Value value) 
   numberOfEntries++;
 }
 
+// todoas rename
+// todoas do not crash on OOM. Also, we must always be able to delete.
 void* Hast::malloc(B b, size_t size) {
   validateB(b);
   // todoas Do I really need getThreadId() here, or can I use 0?
@@ -204,6 +206,7 @@ void* Hast::malloc(B b, size_t size) {
   return ret;
 }
 
+// todoas rename
 void Hast::free(void *ptr) {
   ndbrequire(ptr != nullptr);
   lc_ndbd_pool_free(ptr);
