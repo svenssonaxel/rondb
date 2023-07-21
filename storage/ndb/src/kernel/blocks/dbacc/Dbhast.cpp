@@ -48,7 +48,7 @@ void Hast::initialize(Block acc) {
   ndbrequire(m_threadId != 0);
   m_numberOfBuckets = 1; // todoas make this 0
   m_numberOfEntries = 0;
-  m_buckets = (Bucket*)malloc(acc, sizeof(Bucket));
+  m_buckets = (Bucket*)seize_mem(acc, sizeof(Bucket));
   m_buckets[0].m_numberOfEntries = 0;
   m_buckets[0].m_entries = nullptr;
   validateAll(acc);
@@ -61,10 +61,10 @@ void Hast::release(Block acc) {
   for (Uint32 i = 0; i < m_numberOfBuckets; i++) {
     Bucket& bucket = m_buckets[i];
     if (bucket.m_entries != nullptr) {
-      free(bucket.m_entries);
+      release_mem(bucket.m_entries);
     }
   }
-  free(m_buckets);
+  release_mem(m_buckets);
   jamDebug();
 }
 
@@ -144,9 +144,9 @@ void Hast::insertEntry(Block acc, Cursor& cursor, Value value) {
   ndbassert(isInsertCursor(acc, cursor));
   jamDebug();
   insertEntryIntoBucket(acc, m_buckets[cursor.m_bucketIndex], cursor.m_hash, value);
-  if(shouldGrow()) {
+  if(shouldExpand()) {
     jamDebug();
-    grow(acc); //todoas rename to expand
+    expand(acc);
   }
 }
 
@@ -156,7 +156,7 @@ void Hast::deleteEntry(Block acc, Cursor& cursor) {
   Bucket& bucket = m_buckets[cursor.m_bucketIndex];
   Entry* newEntries = nullptr;
   if(bucket.m_numberOfEntries > 1) {
-    newEntries = (Entry*)malloc(acc, (bucket.m_numberOfEntries - 1) * sizeof(Entry));
+    newEntries = (Entry*)seize_mem(acc, (bucket.m_numberOfEntries - 1) * sizeof(Entry));
     if(cursor.m_entryIndex > 0) {
       memcpy(newEntries, bucket.m_entries, cursor.m_entryIndex * sizeof(Entry));
     }
@@ -166,7 +166,7 @@ void Hast::deleteEntry(Block acc, Cursor& cursor) {
     }
   }
   if (bucket.m_entries != nullptr) {
-    free(bucket.m_entries);
+    release_mem(bucket.m_entries);
   }
   bucket.m_entries = newEntries;
   bucket.m_numberOfEntries--;
@@ -183,11 +183,11 @@ void Hast::deleteEntry(Block acc, Cursor& cursor) {
 
 void Hast::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value) {
   jamDebug();
-  Entry* newEntries = (Entry*)malloc(acc, (bucket.m_numberOfEntries + 1) * sizeof(Entry));
+  Entry* newEntries = (Entry*)seize_mem(acc, (bucket.m_numberOfEntries + 1) * sizeof(Entry));
   if (bucket.m_numberOfEntries > 0) {
     jamDebug();
     memcpy(newEntries, bucket.m_entries, bucket.m_numberOfEntries * sizeof(Entry));
-    free(bucket.m_entries);
+    release_mem(bucket.m_entries);
   }
   newEntries[bucket.m_numberOfEntries].m_hash = hash;
   newEntries[bucket.m_numberOfEntries].m_value = value;
@@ -196,9 +196,8 @@ void Hast::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value v
   m_numberOfEntries++;
 }
 
-// todoas rename
 // todoas do not crash on OOM. Also, we must always be able to delete.
-void* Hast::malloc(Block acc, size_t size) {
+void* Hast::seize_mem(Block acc, size_t size) {
   validateB(acc);
   // todoas Do I really need getThreadId() here, or can I use 0?
   void* ret = lc_ndbd_pool_malloc(size, RG_DATAMEM, acc->getThreadId(), false);
@@ -206,13 +205,12 @@ void* Hast::malloc(Block acc, size_t size) {
   return ret;
 }
 
-// todoas rename
-void Hast::free(void *ptr) {
+void Hast::release_mem(void *ptr) {
   ndbrequire(ptr != nullptr);
   lc_ndbd_pool_free(ptr);
 }
 
-bool Hast::shouldGrow() const {
+bool Hast::shouldExpand() const {
   return m_numberOfBuckets < MAX_NUMBER_OF_BUCKETS &&
                            m_numberOfEntries > Uint64(m_numberOfBuckets) * HIGH_NUMBER_OF_ENTRIES_PER_BUCKET;
 }
@@ -221,13 +219,13 @@ bool Hast::shouldShrink() const {
     m_numberOfEntries < Uint64(m_numberOfBuckets) * LOW_NUMBER_OF_ENTRIES_PER_BUCKET;
 }
 
-void Hast::grow(Block acc) {
+void Hast::expand(Block acc) {
   validateB(acc);
-  ndbassert(shouldGrow());
+  ndbassert(shouldExpand());
   jamDebug();
-  Bucket* newBuckets = (Bucket*)malloc(acc, (m_numberOfBuckets + 1) * sizeof(Bucket));
+  Bucket* newBuckets = (Bucket*)seize_mem(acc, (m_numberOfBuckets + 1) * sizeof(Bucket));
   memcpy(newBuckets, m_buckets, m_numberOfBuckets * sizeof(Bucket));
-  free(m_buckets);
+  release_mem(m_buckets);
   m_buckets = newBuckets;
   Uint32 newBucketIndex = m_numberOfBuckets;
   Uint32 oldBucketIndex = computeBucketIndex(newBucketIndex, m_numberOfBuckets);
@@ -245,7 +243,7 @@ void Hast::grow(Block acc) {
     insertEntryIntoBucket(acc, m_buckets[bucketIndex], entry.m_hash, entry.m_value);
   }
   if (splitBucket.m_entries != nullptr) {
-    free(splitBucket.m_entries);
+    release_mem(splitBucket.m_entries);
   }
   splitBucket.m_numberOfEntries = 0;
   splitBucket.m_entries = nullptr;
@@ -258,23 +256,23 @@ void Hast::grow(Block acc) {
 void Hast::shrink(Block acc) {
   ndbassert(shouldShrink());
   jamDebug();
-  Bucket* newBuckets = (Bucket*)malloc(acc, (m_numberOfBuckets - 1) * sizeof(Bucket));
+  Bucket* newBuckets = (Bucket*)seize_mem(acc, (m_numberOfBuckets - 1) * sizeof(Bucket));
   memcpy(newBuckets, m_buckets, (m_numberOfBuckets - 1) * sizeof(Bucket));
   Uint32 oldBucketIndex = m_numberOfBuckets - 1;
   Bucket oldBucket = m_buckets[oldBucketIndex];
   m_numberOfBuckets--;
   Uint32 newBucketIndex = computeBucketIndex(oldBucketIndex, m_numberOfBuckets);
-  free(m_buckets);
+  release_mem(m_buckets);
   m_buckets = newBuckets;
   Bucket& newBucket = m_buckets[newBucketIndex];
   if(oldBucket.m_numberOfEntries > 0) {
-    Entry* newEntries = (Entry*)malloc(acc, (oldBucket.m_numberOfEntries + newBucket.m_numberOfEntries) * sizeof(Entry));
+    Entry* newEntries = (Entry*)seize_mem(acc, (oldBucket.m_numberOfEntries + newBucket.m_numberOfEntries) * sizeof(Entry));
     if(newBucket.m_numberOfEntries > 0) {
       memcpy(newEntries, newBucket.m_entries, newBucket.m_numberOfEntries * sizeof(Entry));
-      free(newBucket.m_entries);
+      release_mem(newBucket.m_entries);
     }
     memcpy(newEntries + newBucket.m_numberOfEntries, oldBucket.m_entries, oldBucket.m_numberOfEntries * sizeof(Entry));
-    free(oldBucket.m_entries);
+    release_mem(oldBucket.m_entries);
     oldBucket.m_entries = nullptr;
     newBucket.m_numberOfEntries += oldBucket.m_numberOfEntries;
     oldBucket.m_numberOfEntries = 0;

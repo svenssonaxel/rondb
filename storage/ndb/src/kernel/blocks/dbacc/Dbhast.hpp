@@ -89,12 +89,12 @@ public:
 private:
   void insertEntryIntoBucket(Block acc, Bucket& bucket, Hash hash, Value value);
   Uint32 computeBucketIndex(Hash hash, Uint32 numberOfBuckets) const;
-  void* malloc(Block acc, size_t size);
-  void free(void* ptr);
-  // todoas expose growing/shrinking and make async
-  bool shouldGrow() const;
+  void* seize_mem(Block acc, size_t size);
+  void release_mem(void* ptr);
+  // todoas expose expanding/shrinking and make async
+  bool shouldExpand() const;
   bool shouldShrink() const;
-  void grow(Block acc);
+  void expand(Block acc);
   void shrink(Block acc);
   static constexpr size_t MAX_NUMBER_OF_BUCKETS =
       (NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES / sizeof(Bucket));
