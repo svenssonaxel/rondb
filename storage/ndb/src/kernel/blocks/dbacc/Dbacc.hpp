@@ -1075,7 +1075,8 @@ private:
   void insertelementLab(Signal* signal,
                         Page8Ptr bucketPageptr,
                         Uint32 bucketConidx,
-                        Uint32 hash);
+                        Uint32 hash,
+                        Hast::Cursor& hastCursor);
   void endofexpLab(Signal* signal);
   void endofshrinkbucketLab(Signal* signal);
   void sendholdconfsignalLab(Signal* signal) const;

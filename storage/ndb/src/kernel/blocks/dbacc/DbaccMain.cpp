@@ -1367,6 +1367,7 @@ void Dbacc::sendAcckeyconf(Signal* signal) const
 /*               TKEYLEN,                    LENGTH OF THE PRIMARY KEYS      */
 /*               KEY,                        PRIMARY KEY                     */
 /* ******************------------------------------------------------------- */
+//✓hast
 void Dbacc::execACCKEYREQ(Signal* signal,
                           Uint32 opPtrI,
                           Dbacc::Operationrec *opPtrP)
@@ -1513,6 +1514,12 @@ void Dbacc::execACCKEYREQ(Signal* signal,
 	  /*---------------------------------------------------------------*/
           jamDebug();
           Uint32 eh = elemPageptr.p->word32[elemptr];
+
+          // Compare to hast version
+          HastValueInterpretation hvi;
+          hvi.hastValue = hast.getValue(this, cursor);
+          ndbassert(hvi.elementHeader == eh);
+
           operationRecPtr.p->reducedHashValue =
             ElementHeader::getReducedHashValue(eh);
           operationRecPtr.p->elementPage = elemPageptr.i;
@@ -1532,6 +1539,8 @@ void Dbacc::execACCKEYREQ(Signal* signal,
            * using query threads.
            */
           elemPageptr.p->word32[elemptr] = eh;
+          hvi.elementHeader = eh;
+          hast.setValue(this, cursor, hvi.hastValue);
 #ifdef DEB_LOCK_TRANS
           Uint32 tcOprec;
           Uint32 tcBlockref;
@@ -1610,7 +1619,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
       opbits |= Operationrec::OP_STATE_RUNNING;
       opbits |= Operationrec::OP_RUN_QUEUE;
       operationRecPtr.p->m_op_bits = opbits;
-      insertelementLab(signal, bucketPageptr, bucketConidx, hash);
+      insertelementLab(signal, bucketPageptr, bucketConidx, hash, hastCursor);
       return;
     case ZREAD:
     case ZUPDATE:
@@ -2076,6 +2085,7 @@ ref:
   return;
 }
 
+//✓hast
 void 
 Dbacc::accIsLockedLab(Signal* signal,
                       OperationrecPtr lockOwnerPtr,
@@ -2199,6 +2209,7 @@ Dbacc::accIsLockedLab(Signal* signal,
 /* ------------------------------------------------------------------------ */
 /*        I N S E R T      E X I S T      E L E M E N T                     */
 /* ------------------------------------------------------------------------ */
+//✓hast
 void Dbacc::insertExistElemLab(Signal* signal,
                                OperationrecPtr lockOwnerPtr,
                                Uint32 hash)
@@ -2216,10 +2227,12 @@ void Dbacc::insertExistElemLab(Signal* signal,
 /* --------------------------------------------------------------------------------- */
 /* INSERTELEMENT                                                                     */
 /* --------------------------------------------------------------------------------- */
+// todoas hast continue here
 void Dbacc::insertelementLab(Signal* signal,
                              Page8Ptr bucketPageptr,
                              Uint32 bucketConidx,
-                             Uint32 hash)
+                             Uint32 hash,
+                             Hast::Cursor hastCursor)
 {
   if (unlikely(fragrecptr.p->dirRangeFull))
   {
@@ -3086,6 +3099,7 @@ void Dbacc::placeSerialQueue(OperationrecPtr lockOwnerPtr,
 /* ------------------------------------------------------------------------- */
 /* ACC KEYREQ END                                                            */
 /* ------------------------------------------------------------------------- */
+//✓hast
 void Dbacc::acckeyref1Lab(Signal* signal, Uint32 result_code) const
 {
   operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
@@ -4485,7 +4499,6 @@ Dbacc::hastGetElement(const Hast& hast,
    * - local key (1 word) for ACC_LOCKREQ and UNDO, stored in ACC
    */
   const bool searchLocalKey = operationRecPtr.p->tupkeylen == 0;
-  // todoas static assert that Hast::Value is Uint64 and require that fragrecptr.p->elementLength == 2
   union {
     Uint32 keys[2048];
     Uint64 keys_align;
