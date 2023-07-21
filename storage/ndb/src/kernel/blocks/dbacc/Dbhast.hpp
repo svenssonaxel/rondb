@@ -41,23 +41,23 @@ public:
   class Cursor {
     friend class Hast;
   private:
-    Hash hash;
-    Uint32 bucketIndex;
-    Uint32 entryIndex;
-    Value* valueptr;
+    Hash m_hash;
+    Uint32 m_bucketIndex;
+    Uint32 m_entryIndex;
+    Value* m_valueptr;
   };
 private:
   class Entry {
     friend class Hast;
   private:
-    Hash hash;
-    Value value;
+    Hash m_hash;
+    Value m_value;
   };
   class Bucket {
     friend class Hast;
   private:
-    Uint32 numberOfEntries;
-    Entry* entries; // todoas not correct since this could potentially become larger than 1MB. Use a nextBucket pointer.
+    Uint32 m_numberOfEntries;
+    Entry* m_entries; // todoas not correct since this could potentially become larger than 1MB. Use a nextBucket pointer.
   };
 
   // Public interface
@@ -96,10 +96,10 @@ private:
   bool shouldShrink() const;
   void grow(Block acc);
   void shrink(Block acc);
-  static constexpr size_t max_number_of_buckets =
+  static constexpr size_t MAX_NUMBER_OF_BUCKETS =
       (NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES / sizeof(Bucket));
-  static constexpr Uint64 high_number_of_entries_per_bucket = 18;
-  static constexpr Uint64 low_number_of_entries_per_bucket = 14;
+  static constexpr Uint64 HIGH_NUMBER_OF_ENTRIES_PER_BUCKET = 18;
+  static constexpr Uint64 LOW_NUMBER_OF_ENTRIES_PER_BUCKET = 14;
 
   // Validation & debugging
   void validateAll(Block acc) const;
@@ -112,12 +112,11 @@ private:
   EmulatedJamBuffer* jamBuffer() const;
 
   // Data
-  // todoas m_ prefix for member variables. c_ prefix is for class variables.
-  Uint32 numberOfBuckets;
-  Bucket* buckets; // todoas Eventually, use some kind of dynamic array
-  Uint64 numberOfEntries;
-  Block bptr;
-  Uint32 threadId;
+  Uint32 m_numberOfBuckets;
+  Bucket* m_buckets; // todoas Eventually, use some kind of dynamic array
+  Uint64 m_numberOfEntries;
+  Block m_bptr;
+  Uint32 m_threadId;
 };
 
 #endif

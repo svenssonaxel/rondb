@@ -32,25 +32,25 @@
  */
 
 Hast::Hast():
-  numberOfBuckets(0),
-  buckets(nullptr),
-  numberOfEntries(0),
-  bptr(nullptr),
-  threadId(0)
+  m_numberOfBuckets(0),
+  m_buckets(nullptr),
+  m_numberOfEntries(0),
+  m_bptr(nullptr),
+  m_threadId(0)
 {}
 
 void Hast::initialize(Block acc) {
-  ndbrequire(bptr == nullptr);
+  ndbrequire(m_bptr == nullptr);
   ndbrequire(acc != nullptr);
-  bptr = acc;
+  m_bptr = acc;
   jam();
-  threadId = bptr->getThreadId();
-  ndbrequire(threadId != 0);
-  numberOfBuckets = 1; // todoas make this 0
-  numberOfEntries = 0;
-  buckets = (Bucket*)malloc(acc, sizeof(Bucket));
-  buckets[0].numberOfEntries = 0;
-  buckets[0].entries = nullptr;
+  m_threadId = m_bptr->getThreadId();
+  ndbrequire(m_threadId != 0);
+  m_numberOfBuckets = 1; // todoas make this 0
+  m_numberOfEntries = 0;
+  m_buckets = (Bucket*)malloc(acc, sizeof(Bucket));
+  m_buckets[0].m_numberOfEntries = 0;
+  m_buckets[0].m_entries = nullptr;
   validateAll(acc);
   jamDebug();
 }
@@ -58,13 +58,13 @@ void Hast::initialize(Block acc) {
 void Hast::release(Block acc) {
   validateAll(acc);
   jamDebug();
-  for (Uint32 i = 0; i < numberOfBuckets; i++) {
-    Bucket& bucket = buckets[i];
-    if (bucket.entries != nullptr) {
-      free(bucket.entries);
+  for (Uint32 i = 0; i < m_numberOfBuckets; i++) {
+    Bucket& bucket = m_buckets[i];
+    if (bucket.m_entries != nullptr) {
+      free(bucket.m_entries);
     }
   }
-  free(buckets);
+  free(m_buckets);
   jamDebug();
 }
 
@@ -72,24 +72,24 @@ bool Hast::isEntryCursor(Block acc, Cursor& cursor) const {
   validateB(acc);
   validateCursor(acc, cursor);
   jamDebug();
-  return cursor.valueptr != nullptr;
+  return cursor.m_valueptr != nullptr;
 }
 
 bool Hast::isInsertCursor(Block acc, Cursor& cursor) const {
   validateB(acc);
   validateCursor(acc, cursor);
   jamDebug();
-  return cursor.valueptr == nullptr;
+  return cursor.m_valueptr == nullptr;
 }
 
-Uint32 Hast::computeBucketIndex(Uint32 hash, Uint32 numberOfBuckets) const {
+Uint32 Hast::computeBucketIndex(Uint32 hash, Uint32 m_numberOfBuckets) const {
   Uint32 mask = 0xffffffff;
-  while ((mask & hash) >= numberOfBuckets) {
+  while ((mask & hash) >= m_numberOfBuckets) {
     mask >>= 1;
   }
   ndbassert(mask != 0);
   Uint32 bucketIndex = hash & mask;
-  ndbassert(bucketIndex < numberOfBuckets);
+  ndbassert(bucketIndex < m_numberOfBuckets);
   return bucketIndex;
 }
 
@@ -97,17 +97,17 @@ Hast::Cursor Hast::getCursorFirst(Block acc, Uint32 hash) const {
   validateB(acc);
   jamDebug();
   Cursor cursor = Cursor();
-  cursor.hash = hash;
-  cursor.bucketIndex = computeBucketIndex(hash, numberOfBuckets);
-  cursor.entryIndex = 0;
-  cursor.valueptr = nullptr;
-  Bucket& bucket = buckets[cursor.bucketIndex];
-  while (cursor.entryIndex < bucket.numberOfEntries) {
-    if (bucket.entries[cursor.entryIndex].hash == hash) {
-      cursor.valueptr = &bucket.entries[cursor.entryIndex].value;
+  cursor.m_hash = hash;
+  cursor.m_bucketIndex = computeBucketIndex(hash, m_numberOfBuckets);
+  cursor.m_entryIndex = 0;
+  cursor.m_valueptr = nullptr;
+  Bucket& bucket = m_buckets[cursor.m_bucketIndex];
+  while (cursor.m_entryIndex < bucket.m_numberOfEntries) {
+    if (bucket.m_entries[cursor.m_entryIndex].m_hash == hash) {
+      cursor.m_valueptr = &bucket.m_entries[cursor.m_entryIndex].m_value;
       break;
     }
-    cursor.entryIndex++;
+    cursor.m_entryIndex++;
   }
   return cursor;
 }
@@ -116,34 +116,34 @@ void Hast::cursorNext(Block acc, Cursor& cursor) const {
   validateB(acc);
   jamDebug();
   ndbrequire(isEntryCursor(acc, cursor));
-  Bucket& bucket = buckets[cursor.bucketIndex];
-  cursor.entryIndex++;
-  cursor.valueptr = nullptr;
-  while (cursor.entryIndex < bucket.numberOfEntries) {
-    if (bucket.entries[cursor.entryIndex].hash == cursor.hash) {
-      cursor.valueptr = &bucket.entries[cursor.entryIndex].value;
+  Bucket& bucket = m_buckets[cursor.m_bucketIndex];
+  cursor.m_entryIndex++;
+  cursor.m_valueptr = nullptr;
+  while (cursor.m_entryIndex < bucket.m_numberOfEntries) {
+    if (bucket.m_entries[cursor.m_entryIndex].m_hash == cursor.m_hash) {
+      cursor.m_valueptr = &bucket.m_entries[cursor.m_entryIndex].m_value;
       break;
     }
-    cursor.entryIndex++;
+    cursor.m_entryIndex++;
   }
 }
 
 Hast::Value Hast::getValue(Block acc, Cursor& cursor) const {
   ndbassert(isEntryCursor(acc, cursor));
   jamDebug();
-  return *cursor.valueptr;
+  return *cursor.m_valueptr;
 }
 
 void Hast::setValue(Block acc, Cursor& cursor, Value value) {
   ndbassert(isEntryCursor(acc, cursor));
   jamDebug();
-  *cursor.valueptr = value;
+  *cursor.m_valueptr = value;
 }
 
 void Hast::insertEntry(Block acc, Cursor& cursor, Value value) {
   ndbassert(isInsertCursor(acc, cursor));
   jamDebug();
-  insertEntryIntoBucket(acc, buckets[cursor.bucketIndex], cursor.hash, value);
+  insertEntryIntoBucket(acc, m_buckets[cursor.m_bucketIndex], cursor.m_hash, value);
   if(shouldGrow()) {
     jamDebug();
     grow(acc); //todoas rename to expand
@@ -153,24 +153,24 @@ void Hast::insertEntry(Block acc, Cursor& cursor, Value value) {
 void Hast::deleteEntry(Block acc, Cursor& cursor) {
   ndbassert(isEntryCursor(acc, cursor));
   jamDebug();
-  Bucket& bucket = buckets[cursor.bucketIndex];
+  Bucket& bucket = m_buckets[cursor.m_bucketIndex];
   Entry* newEntries = nullptr;
-  if(bucket.numberOfEntries > 1) {
-    newEntries = (Entry*)malloc(acc, (bucket.numberOfEntries - 1) * sizeof(Entry));
-    if(cursor.entryIndex > 0) {
-      memcpy(newEntries, bucket.entries, cursor.entryIndex * sizeof(Entry));
+  if(bucket.m_numberOfEntries > 1) {
+    newEntries = (Entry*)malloc(acc, (bucket.m_numberOfEntries - 1) * sizeof(Entry));
+    if(cursor.m_entryIndex > 0) {
+      memcpy(newEntries, bucket.m_entries, cursor.m_entryIndex * sizeof(Entry));
     }
-    if(cursor.entryIndex < bucket.numberOfEntries - 1) {
-      memcpy(newEntries + cursor.entryIndex, bucket.entries + cursor.entryIndex + 1,
-             (bucket.numberOfEntries - cursor.entryIndex - 1) * sizeof(Entry));
+    if(cursor.m_entryIndex < bucket.m_numberOfEntries - 1) {
+      memcpy(newEntries + cursor.m_entryIndex, bucket.m_entries + cursor.m_entryIndex + 1,
+             (bucket.m_numberOfEntries - cursor.m_entryIndex - 1) * sizeof(Entry));
     }
   }
-  if (bucket.entries != nullptr) {
-    free(bucket.entries);
+  if (bucket.m_entries != nullptr) {
+    free(bucket.m_entries);
   }
-  bucket.entries = newEntries;
-  bucket.numberOfEntries--;
-  numberOfEntries--;
+  bucket.m_entries = newEntries;
+  bucket.m_numberOfEntries--;
+  m_numberOfEntries--;
   if(shouldShrink()) {
     jamDebug();
     shrink(acc);
@@ -183,17 +183,17 @@ void Hast::deleteEntry(Block acc, Cursor& cursor) {
 
 void Hast::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value) {
   jamDebug();
-  Entry* newEntries = (Entry*)malloc(acc, (bucket.numberOfEntries + 1) * sizeof(Entry));
-  if (bucket.numberOfEntries > 0) {
+  Entry* newEntries = (Entry*)malloc(acc, (bucket.m_numberOfEntries + 1) * sizeof(Entry));
+  if (bucket.m_numberOfEntries > 0) {
     jamDebug();
-    memcpy(newEntries, bucket.entries, bucket.numberOfEntries * sizeof(Entry));
-    free(bucket.entries);
+    memcpy(newEntries, bucket.m_entries, bucket.m_numberOfEntries * sizeof(Entry));
+    free(bucket.m_entries);
   }
-  newEntries[bucket.numberOfEntries].hash = hash;
-  newEntries[bucket.numberOfEntries].value = value;
-  bucket.entries = newEntries;
-  bucket.numberOfEntries++;
-  numberOfEntries++;
+  newEntries[bucket.m_numberOfEntries].m_hash = hash;
+  newEntries[bucket.m_numberOfEntries].m_value = value;
+  bucket.m_entries = newEntries;
+  bucket.m_numberOfEntries++;
+  m_numberOfEntries++;
 }
 
 // todoas rename
@@ -213,71 +213,71 @@ void Hast::free(void *ptr) {
 }
 
 bool Hast::shouldGrow() const {
-  return numberOfBuckets < Hast::max_number_of_buckets &&
-                           numberOfEntries > Uint64(numberOfBuckets) * high_number_of_entries_per_bucket;
+  return m_numberOfBuckets < MAX_NUMBER_OF_BUCKETS &&
+                           m_numberOfEntries > Uint64(m_numberOfBuckets) * HIGH_NUMBER_OF_ENTRIES_PER_BUCKET;
 }
 bool Hast::shouldShrink() const {
-  return numberOfBuckets > 1 &&
-    numberOfEntries < Uint64(numberOfBuckets) * Hast::low_number_of_entries_per_bucket;
+  return m_numberOfBuckets > 1 &&
+    m_numberOfEntries < Uint64(m_numberOfBuckets) * LOW_NUMBER_OF_ENTRIES_PER_BUCKET;
 }
 
 void Hast::grow(Block acc) {
   validateB(acc);
   ndbassert(shouldGrow());
   jamDebug();
-  Bucket* newBuckets = (Bucket*)malloc(acc, (numberOfBuckets + 1) * sizeof(Bucket));
-  memcpy(newBuckets, buckets, numberOfBuckets * sizeof(Bucket));
-  free(buckets);
-  buckets = newBuckets;
-  Uint32 newBucketIndex = numberOfBuckets;
-  Uint32 oldBucketIndex = computeBucketIndex(newBucketIndex, numberOfBuckets);
-  numberOfBuckets++;
-  Bucket splitBucket = buckets[oldBucketIndex];
-  Uint32 entriesToMove = splitBucket.numberOfEntries;
-  buckets[oldBucketIndex].numberOfEntries = 0;
-  buckets[oldBucketIndex].entries = nullptr;
-  buckets[newBucketIndex].numberOfEntries = 0;
-  buckets[newBucketIndex].entries = nullptr;
-  for (Uint32 i = 0; i < splitBucket.numberOfEntries; i++) {
-    Entry &entry = splitBucket.entries[i];
-    Uint32 bucketIndex = computeBucketIndex(entry.hash, numberOfBuckets);
+  Bucket* newBuckets = (Bucket*)malloc(acc, (m_numberOfBuckets + 1) * sizeof(Bucket));
+  memcpy(newBuckets, m_buckets, m_numberOfBuckets * sizeof(Bucket));
+  free(m_buckets);
+  m_buckets = newBuckets;
+  Uint32 newBucketIndex = m_numberOfBuckets;
+  Uint32 oldBucketIndex = computeBucketIndex(newBucketIndex, m_numberOfBuckets);
+  m_numberOfBuckets++;
+  Bucket splitBucket = m_buckets[oldBucketIndex];
+  Uint32 m_entriesToMove = splitBucket.m_numberOfEntries;
+  m_buckets[oldBucketIndex].m_numberOfEntries = 0;
+  m_buckets[oldBucketIndex].m_entries = nullptr;
+  m_buckets[newBucketIndex].m_numberOfEntries = 0;
+  m_buckets[newBucketIndex].m_entries = nullptr;
+  for (Uint32 i = 0; i < splitBucket.m_numberOfEntries; i++) {
+    Entry &entry = splitBucket.m_entries[i];
+    Uint32 bucketIndex = computeBucketIndex(entry.m_hash, m_numberOfBuckets);
     ndbassert(bucketIndex == oldBucketIndex || bucketIndex == newBucketIndex);
-    insertEntryIntoBucket(acc, buckets[bucketIndex], entry.hash, entry.value);
+    insertEntryIntoBucket(acc, m_buckets[bucketIndex], entry.m_hash, entry.m_value);
   }
-  if (splitBucket.entries != nullptr) {
-    free(splitBucket.entries);
+  if (splitBucket.m_entries != nullptr) {
+    free(splitBucket.m_entries);
   }
-  splitBucket.numberOfEntries = 0;
-  splitBucket.entries = nullptr;
+  splitBucket.m_numberOfEntries = 0;
+  splitBucket.m_entries = nullptr;
   validateBucket(acc, splitBucket, oldBucketIndex);
-  validateBucket(acc, buckets[oldBucketIndex], oldBucketIndex);
-  validateBucket(acc, buckets[newBucketIndex], newBucketIndex);
-  ndbassert(buckets[oldBucketIndex].numberOfEntries + buckets[newBucketIndex].numberOfEntries == entriesToMove);
+  validateBucket(acc, m_buckets[oldBucketIndex], oldBucketIndex);
+  validateBucket(acc, m_buckets[newBucketIndex], newBucketIndex);
+  ndbassert(m_buckets[oldBucketIndex].m_numberOfEntries + m_buckets[newBucketIndex].m_numberOfEntries == m_entriesToMove);
 }
 
 void Hast::shrink(Block acc) {
   ndbassert(shouldShrink());
   jamDebug();
-  Bucket* newBuckets = (Bucket*)malloc(acc, (numberOfBuckets - 1) * sizeof(Bucket));
-  memcpy(newBuckets, buckets, (numberOfBuckets - 1) * sizeof(Bucket));
-  Uint32 oldBucketIndex = numberOfBuckets - 1;
-  Bucket oldBucket = buckets[oldBucketIndex];
-  numberOfBuckets--;
-  Uint32 newBucketIndex = computeBucketIndex(oldBucketIndex, numberOfBuckets);
-  free(buckets);
-  buckets = newBuckets;
-  Bucket& newBucket = buckets[newBucketIndex];
-  if(oldBucket.numberOfEntries > 0) {
-    Entry* newEntries = (Entry*)malloc(acc, (oldBucket.numberOfEntries + newBucket.numberOfEntries) * sizeof(Entry));
-    if(newBucket.numberOfEntries > 0) {
-      memcpy(newEntries, newBucket.entries, newBucket.numberOfEntries * sizeof(Entry));
-      free(newBucket.entries);
+  Bucket* newBuckets = (Bucket*)malloc(acc, (m_numberOfBuckets - 1) * sizeof(Bucket));
+  memcpy(newBuckets, m_buckets, (m_numberOfBuckets - 1) * sizeof(Bucket));
+  Uint32 oldBucketIndex = m_numberOfBuckets - 1;
+  Bucket oldBucket = m_buckets[oldBucketIndex];
+  m_numberOfBuckets--;
+  Uint32 newBucketIndex = computeBucketIndex(oldBucketIndex, m_numberOfBuckets);
+  free(m_buckets);
+  m_buckets = newBuckets;
+  Bucket& newBucket = m_buckets[newBucketIndex];
+  if(oldBucket.m_numberOfEntries > 0) {
+    Entry* newEntries = (Entry*)malloc(acc, (oldBucket.m_numberOfEntries + newBucket.m_numberOfEntries) * sizeof(Entry));
+    if(newBucket.m_numberOfEntries > 0) {
+      memcpy(newEntries, newBucket.m_entries, newBucket.m_numberOfEntries * sizeof(Entry));
+      free(newBucket.m_entries);
     }
-    memcpy(newEntries + newBucket.numberOfEntries, oldBucket.entries, oldBucket.numberOfEntries * sizeof(Entry));
-    free(oldBucket.entries);
-    oldBucket.entries = nullptr;
-    newBucket.numberOfEntries += oldBucket.numberOfEntries;
-    oldBucket.numberOfEntries = 0;
+    memcpy(newEntries + newBucket.m_numberOfEntries, oldBucket.m_entries, oldBucket.m_numberOfEntries * sizeof(Entry));
+    free(oldBucket.m_entries);
+    oldBucket.m_entries = nullptr;
+    newBucket.m_numberOfEntries += oldBucket.m_numberOfEntries;
+    oldBucket.m_numberOfEntries = 0;
   }
   validateBucket(acc, oldBucket, oldBucketIndex);
   validateBucket(acc, newBucket, newBucketIndex);
@@ -290,27 +290,27 @@ void Hast::shrink(Block acc) {
 void Hast::validateAll(Block acc) const {
   validateHastRoot(acc);
   Uint64 totalNumberOfEntries = 0;
-  for (Uint32 i = 0; i < numberOfBuckets; i++) {
-    validateBucket(acc, buckets[i], i);
-    totalNumberOfEntries += buckets[i].numberOfEntries;
+  for (Uint32 i = 0; i < m_numberOfBuckets; i++) {
+    validateBucket(acc, m_buckets[i], i);
+    totalNumberOfEntries += m_buckets[i].m_numberOfEntries;
   }
-  ndbassert(totalNumberOfEntries == numberOfEntries);
+  ndbassert(totalNumberOfEntries == m_numberOfEntries);
 }
 
 void Hast::validateHastRoot(Block acc) const {
   validateB(acc);
-  ndbassert(numberOfBuckets > 0);
-  ndbassert(buckets != nullptr);
+  ndbassert(m_numberOfBuckets > 0);
+  ndbassert(m_buckets != nullptr);
 }
 
 void Hast::validateB(Block acc) const {
-  ndbassert(acc == bptr);
-  ndbassert(bptr != nullptr);
-  ndbassert(threadId == acc->getThreadId());
-  // todoas: validate bptr->fragrecptr
-  //ndbassert(bptr->c_fragment_pool.getPtr(bptr->fragrecptr));
-  //ndbassert(bptr->fragrecptr.p != nullptr);
-  //ndbassert(Magic::match(bptr->fragrecptr.p->m_magic, Dbacc::Fragmentrec::TYPE_ID));
+  ndbassert(acc == m_bptr);
+  ndbassert(m_bptr != nullptr);
+  ndbassert(m_threadId == acc->getThreadId());
+  // todoas: validate m_bptr->fragrecptr
+  //ndbassert(m_bptr->c_fragment_pool.getPtr(m_bptr->fragrecptr));
+  //ndbassert(m_bptr->fragrecptr.p != nullptr);
+  //ndbassert(Magic::match(m_bptr->fragrecptr.p->m_magic, Dbacc::Fragmentrec::TYPE_ID));
 }
 
 void Hast::validateValue(Block acc, Value value) const {
@@ -318,40 +318,40 @@ void Hast::validateValue(Block acc, Value value) const {
 }
 
 void Hast::validateCursor(Block acc, Cursor& cursor) const {
-  ndbassert(cursor.bucketIndex < numberOfBuckets);
-  Bucket& bucket = buckets[cursor.bucketIndex];
-  ndbassert(computeBucketIndex(cursor.hash, numberOfBuckets) == cursor.bucketIndex);
-  if(cursor.valueptr != nullptr) {
-    ndbassert(cursor.entryIndex < bucket.numberOfEntries);
-    Entry& entry = bucket.entries[cursor.entryIndex];
-    ndbassert(cursor.hash == entry.hash);
-    ndbassert(cursor.valueptr == &entry.value);
-    validateValue(acc, entry.value);
+  ndbassert(cursor.m_bucketIndex < m_numberOfBuckets);
+  Bucket& bucket = m_buckets[cursor.m_bucketIndex];
+  ndbassert(computeBucketIndex(cursor.m_hash, m_numberOfBuckets) == cursor.m_bucketIndex);
+  if(cursor.m_valueptr != nullptr) {
+    ndbassert(cursor.m_entryIndex < bucket.m_numberOfEntries);
+    Entry& entry = bucket.m_entries[cursor.m_entryIndex];
+    ndbassert(cursor.m_hash == entry.m_hash);
+    ndbassert(cursor.m_valueptr == &entry.m_value);
+    validateValue(acc, entry.m_value);
   }
   else {
-    ndbassert(cursor.entryIndex == bucket.numberOfEntries);
+    ndbassert(cursor.m_entryIndex == bucket.m_numberOfEntries);
   }
 }
 
 void Hast::validateBucket(Block acc, Bucket& bucket, Uint32 bucketIndex) const {
-  if(bucket.numberOfEntries == 0) {
-    ndbrequire(bucket.entries == nullptr);
+  if(bucket.m_numberOfEntries == 0) {
+    ndbrequire(bucket.m_entries == nullptr);
     return;
   }
-  ndbrequire(bucket.entries != nullptr);
+  ndbrequire(bucket.m_entries != nullptr);
   #if defined(VM_TRACE) || defined(ERROR_INSERT)
-  for (Uint32 i = 0; i < bucket.numberOfEntries; i++) {
-    Entry& entry = bucket.entries[i];
-    Uint32 hash = entry.hash;
-    ndbassert(computeBucketIndex(hash, numberOfBuckets) == bucketIndex);
-    validateValue(acc, entry.value);
+  for (Uint32 i = 0; i < bucket.m_numberOfEntries; i++) {
+    Entry& entry = bucket.m_entries[i];
+    Uint32 hash = entry.m_hash;
+    ndbassert(computeBucketIndex(hash, m_numberOfBuckets) == bucketIndex);
+    validateValue(acc, entry.m_value);
   }
   #endif
 }
 
 void Hast::progError(int line, int err_code, const char* extra, const char* check) const {
-  if(bptr != nullptr) {
-    bptr->progError(line, err_code, extra, check);
+  if(m_bptr != nullptr) {
+    m_bptr->progError(line, err_code, extra, check);
     return;
   }
   globalData.theStopFlag = true;
@@ -375,8 +375,8 @@ void Hast::progError(int line, int err_code, const char* extra, const char* chec
 }
 
 EmulatedJamBuffer* Hast::jamBuffer() const {
-  ndbassert(bptr != nullptr);
-  EmulatedJamBuffer* jamBuffer = bptr->jamBuffer();
+  ndbassert(m_bptr != nullptr);
+  EmulatedJamBuffer* jamBuffer = m_bptr->jamBuffer();
   ndbassert(jamBuffer != nullptr);
   return jamBuffer;
 }
