@@ -1055,7 +1055,7 @@ void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
   operationRecPtr.p->prevParallelQue = RNIL;
   operationRecPtr.p->nextSerialQue = RNIL;
   operationRecPtr.p->prevSerialQue = RNIL;
-  operationRecPtr.p->elementPage = RNIL;
+  operationRecPtr.p->elementPage = RNIL;//✗hast
   operationRecPtr.p->m_op_bits = opbits;
   NdbTick_Invalidate(&operationRecPtr.p->m_lockTime);
 
@@ -1515,14 +1515,15 @@ void Dbacc::execACCKEYREQ(Signal* signal,
           jamDebug();
           Uint32 eh = elemPageptr.p->word32[elemptr];
 
-          // Compare to hast version
+          // Hast
           HastValueInterpretation hvi;
           hvi.hastValue = hast.getValue(this, hastCursor);
           ndbassert(hvi.elementHeader == eh);
+          operationRecPtr.p->m_hastCursor = hastCursor;
 
           operationRecPtr.p->reducedHashValue =
             ElementHeader::getReducedHashValue(eh);
-          operationRecPtr.p->elementPage = elemPageptr.i;
+          operationRecPtr.p->elementPage = elemPageptr.i; //✓hast
           operationRecPtr.p->elementContainer = elemConptr;
           operationRecPtr.p->elementPointer = elemptr;
 
@@ -1540,7 +1541,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
            */
           elemPageptr.p->word32[elemptr] = eh;
           hvi.elementHeader = eh;
-          hast.setValue(this, hastCursor, hvi.hastValue);
+          hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
 #ifdef DEB_LOCK_TRANS
           Uint32 tcOprec;
           Uint32 tcBlockref;
@@ -2291,6 +2292,13 @@ void Dbacc::insertelementLab(Signal* signal,
                 conptr,
                 false);
 
+  // Insert into hast
+  HastValueInterpretation hvi;
+  hvi.elementHeader = tidrElemhead;
+  hvi.elementBody = localKey.m_page_no;
+  Hast& hast = fragrecptr.p->hastTable;
+  hast.insertEntry(this, hastCursor, hvi.hastValue);
+
 #ifdef DEB_LOCK_TRANS
   Uint32 tcOprec;
   Uint32 tcBlockref;
@@ -2432,6 +2440,7 @@ Dbacc::validate_parallel_queue(OperationrecPtr opPtr, Uint32 ownerPtrI) const
   return (opPtr.i == ownerPtrI);
 }
 
+//✓hast
 bool
 Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
 {
@@ -2487,12 +2496,18 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
   // 1 Validate page pointer
   {
     Page8Ptr pagePtr;
-    pagePtr.i = loPtr.p->elementPage;
+    pagePtr.i = loPtr.p->elementPage; //✓hast
     c_page8_pool.getPtr(pagePtr);
     arrGuard(loPtr.p->elementPointer, 2048);
     Uint32 eh = pagePtr.p->word32[loPtr.p->elementPointer];
     vlqrequire(ElementHeader::getLocked(eh));
     vlqrequire(ElementHeader::getOpPtrI(eh) == loPtr.i);
+
+    // Validate element header in Hast
+    Hast& hast = fragrecptr.p->hastTable;
+    HastValueInterpretation hvi;
+    hvi.hastValue = hast.getValue(this, loPtr.p->m_hastCursor);
+    vlqrequire(hvi.elementHeader == eh);
   }
 
   // 2 Lock owner should always have same LOCK_MODE and ACC_LOCK_MODE
@@ -3120,6 +3135,7 @@ void Dbacc::acckeyref1Lab(Signal* signal, Uint32 result_code) const
 /*                    CLOCALKEY(0),         LOCAL KEY 1                    */
 /*                    CLOCALKEY(1)          LOCAL KEY 2                    */
 /* ******************----------------------------------------------------- */
+//✓hast
 void Dbacc::execACCMINUPDATE(Signal* signal,
                              Uint32 opPtrI,
                              Dbacc::Operationrec *opPtrP,
@@ -3137,7 +3153,7 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
   localkey.m_page_idx = page_idx;
   Uint32 opbits = operationRecPtr.p->m_op_bits;
   fragrecptr.i = operationRecPtr.p->fragptr;
-  ulkPageidptr.i = operationRecPtr.p->elementPage;
+  ulkPageidptr.i = operationRecPtr.p->elementPage;//✓hast
   tulkLocalPtr = operationRecPtr.p->elementPointer + 1;
   ndbrequire(Magic::check_ptr(operationRecPtr.p));
 
@@ -3158,6 +3174,14 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
     operationRecPtr.p->localdata = localkey;
     ndbrequire(fragrecptr.p->localkeylen == 1);
     ulkPageidptr.p->word32[tulkLocalPtr] = localkey.m_page_no;
+
+    // Update in hast
+    Hast& hast = fragrecptr.p->hastTable;
+    HastValueInterpretation hvi;
+    hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
+    hvi.elementBody = localkey.m_page_no;
+    hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
+
     release_frag_mutex_hash(fragrecptr.p, hash);
     return;
   }//if
@@ -3230,7 +3254,7 @@ void Dbacc::execACC_COMMITREQ(Signal* signal,
                   operationRecPtr.i,
                   opbits));
 
-  commitOperation(signal);
+  commitOperation(signal); // todoas continue here 1
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
   ndbrequire(m_acc_mutex_locked == RNIL);
 #endif
@@ -3609,6 +3633,7 @@ void Dbacc::execACC_LOCKREQ(Signal* signal)
 /*               TIDR_FORWARD   (CONTAINER DIRECTION OF INSERTED ELEMENT)            */
 /*               NONE                                                                */
 /* --------------------------------------------------------------------------------- */
+//✗hast Insertion is done after rather than in insertElement.
 void Dbacc::insertElement(const Element   elem,
                           OperationrecPtr oprecptr,
                           Page8Ptr&       pageptr,
@@ -3746,6 +3771,7 @@ void Dbacc::insertElement(const Element   elem,
  * In case the container is empty it is either the bucket header container
  * or a new container created by caller (insertElement).
  */
+//✗hast only called from insertElement
 void Dbacc::insertContainer(const Element          elem,
                             const OperationrecPtr  oprecptr,
                             const Page8Ptr         pageptr,
@@ -3865,7 +3891,7 @@ void Dbacc::insertContainer(const Element          elem,
   {
     jam();
     ndbrequire(ElementHeader::getLocked(elemhead));
-    oprecptr.p->elementPage = pageptr.i;
+    oprecptr.p->elementPage = pageptr.i; //✗hast
     oprecptr.p->elementContainer = conptr;
     oprecptr.p->elementPointer = tidrIndex;
   }
@@ -4712,6 +4738,7 @@ Dbacc::trigger_dealloc(Signal* signal, const Operationrec* opPtrP)
   }
 }
 
+//✓hast calls made after every invocation of commitdelete.
 void Dbacc::commitdelete(Signal* signal)
 {
   Page8Ptr lastPageptr;
@@ -4738,7 +4765,7 @@ void Dbacc::commitdelete(Signal* signal)
    * Position last on delete container before call to getLastAndRemove.
    */
   Page8Ptr delPageptr;
-  delPageptr.i = operationRecPtr.p->elementPage;
+  delPageptr.i = operationRecPtr.p->elementPage;//✗hast
   c_page8_pool.getPtr(delPageptr);
   const Uint32 delConptr = operationRecPtr.p->elementContainer;
 
@@ -4797,7 +4824,7 @@ void Dbacc::commitdelete(Signal* signal)
     ContainerHeader conhead(delPageptr.p->word32[delConptr]);
 #endif
   }
-  if (operationRecPtr.p->elementPage == lastPageptr.i &&
+  if (operationRecPtr.p->elementPage == lastPageptr.i &&//✗hast
       operationRecPtr.p->elementPointer == tlastElementptr) {
     jam();
     /* --------------------------------------------------------------------------------- */
@@ -4868,6 +4895,7 @@ void Dbacc::commitdelete(Signal* signal)
  * @param[in]  lastPageptr  Pointer to page of last element.
  * @param[in]  lastElemptr  Pointer within page to last element.
  * ------------------------------------------------------------------------- */
+//✗hast A subroutine called from commitdelete and reorganize. This actually deletes the element and updates the oprec of a moved element. Hast should do the same, but called separately.
 void Dbacc::deleteElement(Page8Ptr delPageptr,
                           Uint32 delConptr,
                           Uint32 delElemptr,
@@ -4893,7 +4921,7 @@ void Dbacc::deleteElement(Page8Ptr delPageptr,
       /* --------------------------------------------------------------------------------- */
       deOperationRecPtr.i = ElementHeader::getOpPtrI(tdeElemhead);
       ndbrequire(m_curr_acc->oprec_pool.getValidPtr(deOperationRecPtr));
-      deOperationRecPtr.p->elementPage = delPageptr.i;
+      deOperationRecPtr.p->elementPage = delPageptr.i; //✗hast
       deOperationRecPtr.p->elementContainer = delConptr;
       deOperationRecPtr.p->elementPointer = delElemptr;
       /*  Writing an invalid value only for sanity, the value should never be read.  */
@@ -5634,6 +5662,7 @@ Dbacc::abortSerieQueueOperation(Signal* signal,
 
 
 /* ACC Fragment mutex must be acquired before call */
+//✓hast
 void Dbacc::abortOperation(Signal* signal, Uint32 hash)
 {
   Uint32 opbits = operationRecPtr.p->m_op_bits;
@@ -5696,7 +5725,7 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
 	Uint32 tmp2Olq;
 
         taboElementptr = operationRecPtr.p->elementPointer;
-        aboPageidptr.i = operationRecPtr.p->elementPage;
+        aboPageidptr.i = operationRecPtr.p->elementPage; //✓hast
         ndbassert(!operationRecPtr.p->localdata.isInvalid());
         tmp2Olq = ElementHeader::setUnlocked(
                       operationRecPtr.p->localdata.m_page_idx,
@@ -5704,6 +5733,15 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
         c_page8_pool.getPtr(aboPageidptr);
         arrGuard(taboElementptr, 2048);
         aboPageidptr.p->word32[taboElementptr] = tmp2Olq;
+
+        // Hast
+        Hast& hast = fragrecptr.p->hastTable;
+        HastValueInterpretation hvi;
+        hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
+        hvi.elementHeader = tmp2Olq;
+        hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
+        // Todoas these 4-5 lines for setting something through a cursor should probbably be one function call. Expand the cursor interface with functions for getting and setting the fields, at least individually.
+
         release_frag_mutex_hash(fragrecptr.p, hash);
         jam();
         return;
@@ -5711,6 +5749,7 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
       else 
       {
         commitdelete(signal);
+        fragrecptr.p->hastTable.deleteEntry(this, operationRecPtr.p->m_hastCursor);
         release_frag_mutex_hash(fragrecptr.p, hash);
         jam();
         trigger_dealloc(signal, operationRecPtr.p);
@@ -5730,6 +5769,7 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
   }
 }
 
+//✗hast
 void
 Dbacc::commitDeleteCheck(Signal* signal)
 {
@@ -5820,6 +5860,7 @@ Dbacc::commitDeleteCheck(Signal* signal)
 /* DESCRIPTION: THE OPERATION RECORD WILL BE TAKE OUT OF ANY LOCK QUEUE.     */
 /*         IF IT OWNS THE ELEMENT LOCK. HEAD OF THE ELEMENT WILL BE UPDATED. */
 /* ------------------------------------------------------------------------- */
+//✓hast
 void Dbacc::commitOperation(Signal* signal)
 {
   Uint32 hash = 0;
@@ -5875,7 +5916,7 @@ void Dbacc::commitOperation(Signal* signal)
       Uint32 tcoElementptr;
       Uint32 tmp2Olq;
       
-      coPageidptr.i = operationRecPtr.p->elementPage;
+      coPageidptr.i = operationRecPtr.p->elementPage; //✓hast
       tcoElementptr = operationRecPtr.p->elementPointer;
       ndbassert(!operationRecPtr.p->localdata.isInvalid());
       tmp2Olq = ElementHeader::setUnlocked(
@@ -5884,6 +5925,14 @@ void Dbacc::commitOperation(Signal* signal)
       c_page8_pool.getPtr(coPageidptr);
       arrGuard(tcoElementptr, 2048);
       coPageidptr.p->word32[tcoElementptr] = tmp2Olq;
+
+      // Update in hast
+      Hast& hast = fragrecptr.p->hastTable;
+      HastValueInterpretation hvi;
+      hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
+      hvi.elementHeader = tmp2Olq;
+      hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
+
       release_frag_mutex_hash(fragrecptr.p, hash);
       jam();
       return;
@@ -5896,7 +5945,7 @@ void Dbacc::commitOperation(Signal* signal)
        */
       bool trigger_dealloc_op = false;
       /* This function is responsible to release ACC fragment mutex */
-      release_lockowner(signal,
+      release_lockowner(signal, // todoas continue here 2
                         operationRecPtr,
                         true,
                         trigger_dealloc_op,
@@ -5916,6 +5965,7 @@ void Dbacc::commitOperation(Signal* signal)
        * We perform the actual delete operation.
        */
       commitdelete(signal);
+      fragrecptr.p->hastTable.deleteEntry(this, operationRecPtr.p->m_hastCursor);
       release_frag_mutex_hash(fragrecptr.p, hash);
       jam();
       trigger_dealloc(signal, operationRecPtr.p);
@@ -6016,6 +6066,7 @@ void Dbacc::commitOperation(Signal* signal)
   }
 }//Dbacc::commitOperation()
 
+//✓hast
 void 
 Dbacc::release_lockowner(Signal* signal,
                          OperationrecPtr opPtr,
@@ -6215,7 +6266,7 @@ Dbacc::release_lockowner(Signal* signal,
    */
   {
     newOwner.p->m_op_bits |= Operationrec::OP_LOCK_OWNER;
-    newOwner.p->elementPage = opPtr.p->elementPage;
+    newOwner.p->elementPage = opPtr.p->elementPage; //✓hast
     newOwner.p->elementPointer = opPtr.p->elementPointer;
     newOwner.p->elementContainer = opPtr.p->elementContainer;
     newOwner.p->reducedHashValue = opPtr.p->reducedHashValue;
@@ -6230,17 +6281,29 @@ Dbacc::release_lockowner(Signal* signal,
       // value initialised if they are
       // to successfully commit the delete.
       /* ------------------------------------------------------------------- */
+      // todoas So... we might not have a hash value to search for. Fantastic. So we really need cursors in oprec that are updated by hast during reorganize.
       jam();
       newOwner.p->hashValue = opPtr.p->hashValue;
     }//if
 
-    Page8Ptr pagePtr;
-    pagePtr.i = newOwner.p->elementPage;
+    // Copy Hast information
+    newOwner.p->m_hastCursor = opPtr.p->m_hastCursor;
+
+    Page8Ptr pagePtr; // todoas continue here 3
+    pagePtr.i = newOwner.p->elementPage; //✓hast
     c_page8_pool.getPtr(pagePtr);
     const Uint32 tmp = ElementHeader::setLocked(newOwner.i);
     arrGuard(newOwner.p->elementPointer, 2048);
     pagePtr.p->word32[newOwner.p->elementPointer] = tmp;
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
+
+    // Update Hast
+    Hast& hast = fragrecptr.p->hastTable;
+    HastValueInterpretation hvi;
+    hvi.hastValue = hast.getValue(this, newOwner.p->m_hastCursor);
+    hvi.elementHeader = tmp;
+    hast.setValue(this, newOwner.p->m_hastCursor, hvi.hastValue);
+
     /**
      * Invalidate page number in elements second word for test in initScanOp
      */
@@ -6248,11 +6311,18 @@ Dbacc::release_lockowner(Signal* signal,
     {
       pagePtr.p->word32[newOwner.p->elementPointer + 1] =
         newOwner.p->localdata.m_page_no;
+
+      // Hast
+      hvi.elementBody = newOwner.p->localdata.m_page_no;
+      hast.setValue(this, newOwner.p->m_hastCursor, hvi.hastValue);
     }
     else
     {
       ndbrequire(newOwner.p->localdata.m_page_no ==
                    pagePtr.p->word32[newOwner.p->elementPointer+1]);
+
+      // Hast
+      ndbrequire(newOwner.p->localdata.m_page_no == hvi.elementBody);
     }
 #endif
   }
@@ -8588,7 +8658,7 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
 	      tmpOpPtr.i, tmpOpPtr.p->transId1,
 	      tmpOpPtr.p->transId2);
     infoEvent("elementPage=%d, elementPointer=%d ",
-	      tmpOpPtr.p->elementPage, 
+	      tmpOpPtr.p->elementPage, //✗hast
 	      tmpOpPtr.p->elementPointer);
     infoEvent("fid=%d, fragptr=%lld ",
               tmpOpPtr.p->fid, tmpOpPtr.p->fragptr);

@@ -68,14 +68,14 @@ void Hast::release(Block acc) {
   jamDebug();
 }
 
-bool Hast::isEntryCursor(Block acc, Cursor& cursor) const {
+bool Hast::isEntryCursor(CBlock acc, Cursor& cursor) const {
   validateB(acc);
   validateCursor(acc, cursor);
   jamDebug();
   return cursor.m_valueptr != nullptr;
 }
 
-bool Hast::isInsertCursor(Block acc, Cursor& cursor) const {
+bool Hast::isInsertCursor(CBlock acc, Cursor& cursor) const {
   validateB(acc);
   validateCursor(acc, cursor);
   jamDebug();
@@ -87,7 +87,6 @@ Uint32 Hast::computeBucketIndex(Uint32 hash, Uint32 m_numberOfBuckets) const {
   while ((mask & hash) >= m_numberOfBuckets) {
     mask >>= 1;
   }
-  ndbassert(mask != 0);
   Uint32 bucketIndex = hash & mask;
   ndbassert(bucketIndex < m_numberOfBuckets);
   return bucketIndex;
@@ -128,7 +127,7 @@ void Hast::cursorNext(Block acc, Cursor& cursor) const {
   }
 }
 
-Hast::Value Hast::getValue(Block acc, Cursor& cursor) const {
+Hast::Value Hast::getValue(CBlock acc, Cursor& cursor) const {
   ndbassert(isEntryCursor(acc, cursor));
   jamDebug();
   return *cursor.m_valueptr;
@@ -250,6 +249,8 @@ void Hast::expand(Block acc) {
   validateBucket(acc, splitBucket, oldBucketIndex);
   validateBucket(acc, m_buckets[oldBucketIndex], oldBucketIndex);
   validateBucket(acc, m_buckets[newBucketIndex], newBucketIndex);
+  updateOperationRecords(m_buckets[oldBucketIndex]);
+  updateOperationRecords(m_buckets[newBucketIndex]);
   ndbassert(m_buckets[oldBucketIndex].m_numberOfEntries + m_buckets[newBucketIndex].m_numberOfEntries == m_entriesToMove);
 }
 
@@ -277,8 +278,13 @@ void Hast::shrink(Block acc) {
     newBucket.m_numberOfEntries += oldBucket.m_numberOfEntries;
     oldBucket.m_numberOfEntries = 0;
   }
+  updateOperationRecords(newBucket);
   validateBucket(acc, oldBucket, oldBucketIndex);
   validateBucket(acc, newBucket, newBucketIndex);
+}
+
+void Hast::updateOperationRecords(Bucket& bucket) {
+  // todoas: update operation record if locked.
 }
 
 /*
@@ -301,7 +307,7 @@ void Hast::validateHastRoot(Block acc) const {
   ndbassert(m_buckets != nullptr);
 }
 
-void Hast::validateB(Block acc) const {
+void Hast::validateB(CBlock acc) const {
   ndbassert(acc == m_bptr);
   ndbassert(m_bptr != nullptr);
   ndbassert(m_threadId == acc->getThreadId());
@@ -311,11 +317,11 @@ void Hast::validateB(Block acc) const {
   //ndbassert(Magic::match(m_bptr->fragrecptr.p->m_magic, Dbacc::Fragmentrec::TYPE_ID));
 }
 
-void Hast::validateValue(Block acc, Value value) const {
-  ndbassert(value == (value | 0xffffffffffffffffUL)); // todoas: How many bits are used for the value?
+void Hast::validateValue(CBlock acc, Value value) const {
+  ndbassert(value == (value & 0xffffffffffffffffULL)); // todoas: How many bits are used for the value?
 }
 
-void Hast::validateCursor(Block acc, Cursor& cursor) const {
+void Hast::validateCursor(CBlock acc, Cursor& cursor) const {
   ndbassert(cursor.m_bucketIndex < m_numberOfBuckets);
   Bucket& bucket = m_buckets[cursor.m_bucketIndex];
   ndbassert(computeBucketIndex(cursor.m_hash, m_numberOfBuckets) == cursor.m_bucketIndex);

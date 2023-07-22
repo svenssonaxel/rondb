@@ -794,6 +794,9 @@ struct Operationrec {
   LHBits16 reducedHashValue;
   NDB_TICKS m_lockTime;
 
+  // todoas maybe: We put the Hast cursor last since it might differ in size between implementation.
+  Hast::Cursor m_hastCursor;
+
   bool is_same_trans(const Operationrec* op) const {
     return 
       transId1 == op->transId1 && transId2 == op->transId2;

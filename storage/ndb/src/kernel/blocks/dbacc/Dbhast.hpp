@@ -38,6 +38,7 @@ public:
   typedef Uint32 Hash;
   typedef Uint64 Value; // todoas 32 for page id + 13 bits for page idx, + 1 bit for locked status, so perhaps only guarantee 46 or 48 bits. Some implementation might want to pack it in 6 bytes and use 1 bit for presence tracking, so 47 bits.
   typedef Dbacc* Block;
+  typedef const Dbacc* CBlock;
   class Cursor {
     friend class Hast;
   private:
@@ -65,8 +66,8 @@ public:
   Hast();
   void initialize(Block acc);
   void release(Block acc);
-  bool isEntryCursor(Block acc, Cursor& cursor) const;
-  bool isInsertCursor(Block acc, Cursor& cursor) const;
+  bool isEntryCursor(CBlock acc, Cursor& cursor) const;
+  bool isInsertCursor(CBlock acc, Cursor& cursor) const;
   // Given a hash, return a cursor pointing to the first entry for that hash if
   // such exists, otherwise an insert cursor for that hash.
   // A cursor is valid for as long as the lock is held and there is no call to
@@ -77,7 +78,7 @@ public:
   // that hash.
   void cursorNext(Block acc, Cursor& cursor) const;
   // Given a cursor pointing to an entry, get the value of that entry.
-  Value getValue(Block acc, Cursor& cursor) const;
+  Value getValue(CBlock acc, Cursor& cursor) const;
   // Given a cursor pointing to an entry, set the value of that entry.
   void setValue(Block acc, Cursor& cursor, Value value);
   // Given an insert cursor, insert an entry with the given value.
@@ -96,6 +97,7 @@ private:
   bool shouldShrink() const;
   void expand(Block acc);
   void shrink(Block acc);
+  void updateOperationRecords(Bucket& bucket);
   static constexpr size_t MAX_NUMBER_OF_BUCKETS =
       (NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES / sizeof(Bucket));
   static constexpr Uint64 HIGH_NUMBER_OF_ENTRIES_PER_BUCKET = 18;
@@ -104,9 +106,9 @@ private:
   // Validation & debugging
   void validateAll(Block acc) const;
   void validateHastRoot(Block acc) const;
-  void validateB(Block acc) const;
-  void validateValue(Block acc, Value value) const;
-  void validateCursor(Block acc, Cursor& cursor) const;
+  void validateB(CBlock acc) const;
+  void validateValue(CBlock acc, Value value) const;
+  void validateCursor(CBlock acc, Cursor& cursor) const;
   void validateBucket(Block acc, Bucket& bucket, Uint32 bucketIndex) const;
   void progError(int line, int err_code, const char* extra, const char* check) const;
   EmulatedJamBuffer* jamBuffer() const;
