@@ -97,7 +97,7 @@ private:
   bool shouldShrink() const;
   void expand(Block acc);
   void shrink(Block acc);
-  void updateOperationRecords(Bucket& bucket);
+  void updateOperationRecords(Bucket &bucket, Uint32 bucketIndex);
   static constexpr size_t MAX_NUMBER_OF_BUCKETS =
       (NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES / sizeof(Bucket));
   static constexpr Uint64 HIGH_NUMBER_OF_ENTRIES_PER_BUCKET = 18;

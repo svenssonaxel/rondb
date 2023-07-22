@@ -249,8 +249,8 @@ void Hast::expand(Block acc) {
   validateBucket(acc, splitBucket, oldBucketIndex);
   validateBucket(acc, m_buckets[oldBucketIndex], oldBucketIndex);
   validateBucket(acc, m_buckets[newBucketIndex], newBucketIndex);
-  updateOperationRecords(m_buckets[oldBucketIndex]);
-  updateOperationRecords(m_buckets[newBucketIndex]);
+  updateOperationRecords(m_buckets[oldBucketIndex], oldBucketIndex);
+  updateOperationRecords(m_buckets[newBucketIndex], newBucketIndex);
   ndbassert(m_buckets[oldBucketIndex].m_numberOfEntries + m_buckets[newBucketIndex].m_numberOfEntries == m_entriesToMove);
 }
 
@@ -278,13 +278,25 @@ void Hast::shrink(Block acc) {
     newBucket.m_numberOfEntries += oldBucket.m_numberOfEntries;
     oldBucket.m_numberOfEntries = 0;
   }
-  updateOperationRecords(newBucket);
+  updateOperationRecords(newBucket, newBucketIndex);
   validateBucket(acc, oldBucket, oldBucketIndex);
   validateBucket(acc, newBucket, newBucketIndex);
 }
 
-void Hast::updateOperationRecords(Bucket& bucket) {
-  // todoas: update operation record if locked.
+void Hast::updateOperationRecords(Bucket& bucket, Uint32 bucketIndex) {
+  for (Uint32 i = 0; i < bucket.m_numberOfEntries; i++) {
+    Entry& entry = bucket.m_entries[i];
+    Uint32 locked = entry.m_value & 1;
+    if(locked) {
+      Uint32 operation_rec_i = (entry.m_value >> 1) & 0x7fffffff;
+      Dbacc::Operationrec* oprec = m_bptr->get_operation_ptr(operation_rec_i);
+      Cursor& cursor = oprec->m_hastCursor;
+      ndbassert(cursor.m_hash == entry.m_hash);
+      cursor.m_bucketIndex = bucketIndex;
+      cursor.m_entryIndex = i;
+      cursor.m_valueptr = &entry.m_value;
+    }
+  }
 }
 
 /*
