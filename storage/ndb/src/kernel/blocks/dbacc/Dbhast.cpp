@@ -34,7 +34,7 @@ static_assert(NUM_ACC_FRAGMENT_MUTEXES == 4);
  * Public interface
  */
 
-Hast::Hast():
+Hast::Root::Root():
   m_numberOfBuckets(0),
   m_buckets(nullptr),
   m_numberOfEntries(0),
@@ -43,25 +43,32 @@ Hast::Hast():
 {}
 
 void Hast::initialize(Block acc) {
+  for (Uint32 inx = 0; inx < 4; inx++) {
+    m_roots[inx].initialize(acc);
+  }
+}
+void Hast::Root::initialize(Block acc) {
   ndbrequire(m_bptr == nullptr);
   ndbrequire(acc != nullptr);
   m_bptr = acc;
   jam();
   m_threadId = m_bptr->getThreadId();
   ndbrequire(m_threadId != 0);
-  m_numberOfBuckets = 4; // We need a minimum of 4 buckets since we have 4 fragment mutexes.
+  m_numberOfBuckets = 1;
   m_numberOfEntries = 0;
-  m_buckets = (Bucket*)seize_mem(acc, sizeof(Bucket) * 4);
-  for (Uint32 i = 0; i < m_numberOfBuckets; i++) {
-    Bucket& bucket = m_buckets[i];
-    bucket.m_numberOfEntries = 0;
-    bucket.m_entries = nullptr;
-  }
+  m_buckets = (Bucket*)seize_mem(acc, sizeof(Bucket));
+  m_buckets[0].m_numberOfEntries = 0;
+  m_buckets[0].m_entries = nullptr;
   validateAll(acc);
   jamDebug();
 }
 
 void Hast::release(Block acc) {
+  for (Uint32 inx = 0; inx < 4; inx++) {
+    m_roots[inx].release(acc);
+  }
+}
+void Hast::Root::release(Block acc) {
   jamDebug();
   validateAll(acc);
   for (Uint32 i = 0; i < m_numberOfBuckets; i++) {
@@ -75,6 +82,9 @@ void Hast::release(Block acc) {
 }
 
 bool Hast::isEntryCursor(CBlock acc, Cursor& cursor) const {
+  return getRoot(cursor).isEntryCursor(acc, cursor);
+}
+bool Hast::Root::isEntryCursor(CBlock acc, Cursor& cursor) const {
   jamDebug();
   validateB(acc);
   validateCursor(acc, cursor);
@@ -82,13 +92,16 @@ bool Hast::isEntryCursor(CBlock acc, Cursor& cursor) const {
 }
 
 bool Hast::isInsertCursor(CBlock acc, Cursor& cursor) const {
+  return getRoot(cursor).isInsertCursor(acc, cursor);
+}
+bool Hast::Root::isInsertCursor(CBlock acc, Cursor& cursor) const {
   jamDebug();
   validateB(acc);
   validateCursor(acc, cursor);
   return cursor.m_valueptr == nullptr;
 }
 
-Uint32 Hast::computeBucketIndex(Uint32 hash, Uint32 m_numberOfBuckets) const {
+Uint32 Hast::Root::computeBucketIndex(Uint32 hash, Uint32 m_numberOfBuckets) const {
   jamDebug();
   Uint32 mask = 0xffffffff;
   while ((mask & hash) >= m_numberOfBuckets) {
@@ -100,6 +113,9 @@ Uint32 Hast::computeBucketIndex(Uint32 hash, Uint32 m_numberOfBuckets) const {
 }
 
 Hast::Cursor Hast::getCursorFirst(Block acc, Uint32 hash) const {
+  return getRoot(hash).getCursorFirst(acc, hash);
+}
+Hast::Cursor Hast::Root::getCursorFirst(Block acc, Uint32 hash) const {
   jamDebug();
   validateB(acc);
   Cursor cursor = Cursor();
@@ -120,6 +136,9 @@ Hast::Cursor Hast::getCursorFirst(Block acc, Uint32 hash) const {
 }
 
 void Hast::cursorNext(Block acc, Cursor& cursor) const {
+  getRoot(cursor).cursorNext(acc, cursor);
+}
+void Hast::Root::cursorNext(Block acc, Cursor& cursor) const {
   jamDebug();
   validateB(acc);
   ndbrequire(isEntryCursor(acc, cursor));
@@ -136,12 +155,18 @@ void Hast::cursorNext(Block acc, Cursor& cursor) const {
 }
 
 Hast::Value Hast::getValue(CBlock acc, Cursor& cursor) const {
+  return getRoot(cursor).getValue(acc, cursor);
+}
+Hast::Value Hast::Root::getValue(CBlock acc, Cursor& cursor) const {
   jamDebug();
   ndbassert(isEntryCursor(acc, cursor));
   return *cursor.m_valueptr;
 }
 
 void Hast::setValue(Block acc, Cursor& cursor, Value value) {
+  getRoot(cursor).setValue(acc, cursor, value);
+}
+void Hast::Root::setValue(Block acc, Cursor& cursor, Value value) {
   jamDebug();
   ndbassert(isEntryCursor(acc, cursor));
   jamDebug();
@@ -155,6 +180,9 @@ void Hast::setValue(Block acc, Cursor& cursor, Value value) {
 }
 
 void Hast::insertEntry(Block acc, Cursor& cursor, Value value) {
+  getRoot(cursor).insertEntry(acc, cursor, value);
+}
+void Hast::Root::insertEntry(Block acc, Cursor& cursor, Value value) {
   jamDebug();
   ndbassert(isInsertCursor(acc, cursor));
   jamDebug();
@@ -176,6 +204,9 @@ void Hast::insertEntry(Block acc, Cursor& cursor, Value value) {
 }
 
 void Hast::deleteEntry(Block acc, Cursor& cursor) {
+  getRoot(cursor).deleteEntry(acc, cursor);
+}
+void Hast::Root::deleteEntry(Block acc, Cursor& cursor) {
   jamDebug();
   ndbassert(isEntryCursor(acc, cursor));
   Uint32 bucketIndex = cursor.m_bucketIndex;
@@ -211,7 +242,7 @@ void Hast::deleteEntry(Block acc, Cursor& cursor) {
  * Internals
  */
 
-void Hast::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value) {
+void Hast::Root::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value) {
   jamDebug();
   Entry* newEntries = (Entry*)seize_mem(acc, (bucket.m_numberOfEntries + 1) * sizeof(Entry));
   if (bucket.m_numberOfEntries > 0) {
@@ -227,7 +258,7 @@ void Hast::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value v
 }
 
 // todoas do not crash on OOM. Also, we must always be able to delete.
-void* Hast::seize_mem(Block acc, size_t size) {
+void* Hast::Root::seize_mem(Block acc, size_t size) {
   validateB(acc);
   // todoas Do I really need getThreadId() here, or can I use 0?
   void* ret = lc_ndbd_pool_malloc(size, RG_DATAMEM, acc->getThreadId(), false);
@@ -235,21 +266,21 @@ void* Hast::seize_mem(Block acc, size_t size) {
   return ret;
 }
 
-void Hast::release_mem(void *ptr) {
+void Hast::Root::release_mem(void *ptr) {
   ndbrequire(ptr != nullptr);
   lc_ndbd_pool_free(ptr);
 }
 
-bool Hast::shouldExpand() const {
+bool Hast::Root::shouldExpand() const {
   return m_numberOfBuckets < MAX_NUMBER_OF_BUCKETS &&
                            m_numberOfEntries > Uint64(m_numberOfBuckets) * HIGH_NUMBER_OF_ENTRIES_PER_BUCKET;
 }
-bool Hast::shouldShrink() const {
-  return m_numberOfBuckets > 4 &&
+bool Hast::Root::shouldShrink() const {
+  return m_numberOfBuckets > 1 &&
     m_numberOfEntries < Uint64(m_numberOfBuckets) * LOW_NUMBER_OF_ENTRIES_PER_BUCKET;
 }
 
-void Hast::expand(Block acc) {
+void Hast::Root::expand(Block acc) {
   jamDebug();
   validateB(acc);
   ndbassert(shouldExpand());
@@ -287,7 +318,7 @@ void Hast::expand(Block acc) {
   ndbassert(m_buckets[oldBucketIndex].m_numberOfEntries + m_buckets[newBucketIndex].m_numberOfEntries == m_entriesToMove);
 }
 
-void Hast::shrink(Block acc) {
+void Hast::Root::shrink(Block acc) {
   jamDebug();
   ndbassert(shouldShrink());
   // todoas have four bucket arrays instead since we have four locks.
@@ -319,7 +350,7 @@ void Hast::shrink(Block acc) {
   validateBucket(acc, newBucket, newBucketIndex);
 }
 
-void Hast::updateOperationRecords(Bucket& bucket, Uint32 bucketIndex) {
+void Hast::Root::updateOperationRecords(Bucket& bucket, Uint32 bucketIndex) {
   jamDebug();
   jamDataDebug(bucket.m_numberOfEntries);
   jamDataDebug(bucket.m_numberOfEntries>>16);
@@ -365,7 +396,7 @@ void Hast::updateOperationRecords(Bucket& bucket, Uint32 bucketIndex) {
  * Validation
  */
 
-void Hast::validateAll(Block acc) const {
+void Hast::Root::validateAll(Block acc) const {
   validateHastRoot(acc);
   Uint64 totalNumberOfEntries = 0;
   for (Uint32 i = 0; i < m_numberOfBuckets; i++) {
@@ -375,13 +406,13 @@ void Hast::validateAll(Block acc) const {
   ndbassert(totalNumberOfEntries == m_numberOfEntries);
 }
 
-void Hast::validateHastRoot(Block acc) const {
+void Hast::Root::validateHastRoot(Block acc) const {
   validateB(acc);
-  ndbassert(m_numberOfBuckets >= 4);
+  ndbassert(m_numberOfBuckets >= 1);
   ndbassert(m_buckets != nullptr);
 }
 
-void Hast::validateB(CBlock acc) const {
+void Hast::Root::validateB(CBlock acc) const {
   ndbassert(acc == m_bptr);
   ndbassert(m_bptr != nullptr);
   ndbassert(m_threadId == acc->getThreadId());
@@ -391,13 +422,13 @@ void Hast::validateB(CBlock acc) const {
   //ndbassert(Magic::match(m_bptr->fragrecptr.p->m_magic, Dbacc::Fragmentrec::TYPE_ID));
 }
 
-void Hast::validateValue(CBlock acc, Value value) const {
+void Hast::Root::validateValue(CBlock acc, Value value) const {
   if ((value & 1) == 0) {
   ndbassert((value & 0x000000000000c000ULL) == 0);
   }
 }
 
-void Hast::validateCursor(CBlock acc, Cursor& cursor) const {
+void Hast::Root::validateCursor(CBlock acc, Cursor& cursor) const {
   jamDebug();
   ndbassert(cursor.m_valid == Hast::Cursor::VALID);
   jamDataDebug(cursor.m_bucketIndex);
@@ -419,7 +450,7 @@ void Hast::validateCursor(CBlock acc, Cursor& cursor) const {
   }
 }
 
-void Hast::validateBucket(Block acc, Bucket& bucket, Uint32 bucketIndex) const {
+void Hast::Root::validateBucket(Block acc, Bucket& bucket, Uint32 bucketIndex) const {
   if(bucket.m_numberOfEntries == 0) {
     ndbrequire(bucket.m_entries == nullptr);
     return;
@@ -435,7 +466,7 @@ void Hast::validateBucket(Block acc, Bucket& bucket, Uint32 bucketIndex) const {
   #endif
 }
 
-void Hast::progError(int line, int err_code, const char* extra, const char* check) const {
+void Hast::Root::progError(int line, int err_code, const char* extra, const char* check) const {
   if(m_bptr != nullptr) {
     m_bptr->progError(line, err_code, extra, check);
     return;
@@ -460,11 +491,27 @@ void Hast::progError(int line, int err_code, const char* extra, const char* chec
   ErrorReporter::handleError(err_code, extra, buf);
 }
 
-EmulatedJamBuffer* Hast::jamBuffer() const {
+EmulatedJamBuffer* Hast::Root::jamBuffer() const {
   ndbassert(m_bptr != nullptr);
   EmulatedJamBuffer* jamBuffer = m_bptr->jamBuffer();
   ndbassert(jamBuffer != nullptr);
   return jamBuffer;
+}
+
+Hast::Root& Hast::getRoot(Hash hash) {
+  return m_roots[hash & 3];
+}
+
+const Hast::Root& Hast::getRoot(Hash hash) const {
+  return m_roots[hash & 3];
+}
+
+Hast::Root& Hast::getRoot(Cursor& cursor) {
+  return m_roots[cursor.m_hash & 3];
+}
+
+const Hast::Root& Hast::getRoot(Cursor& cursor) const {
+  return m_roots[cursor.m_hash & 3];
 }
 
 #undef JAM_FILE_ID
