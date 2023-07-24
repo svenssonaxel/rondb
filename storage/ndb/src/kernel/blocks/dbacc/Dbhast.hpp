@@ -76,6 +76,7 @@ private:
     void release(Block acc);
     void insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value);
     Uint32 computeBucketIndex(Hash hash, Uint32 numberOfBuckets) const;
+    Uint32 siblingBucketIndex(Uint32 bucketIndex) const;
     // todoas expose expanding/shrinking and make async
     bool shouldExpand() const;
     bool shouldShrink() const;

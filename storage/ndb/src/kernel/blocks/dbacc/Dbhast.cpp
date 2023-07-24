@@ -160,15 +160,28 @@ bool Hast::Root::isInsertCursor(CBlock acc, Cursor& cursor) const {
   return cursor.m_valueptr == nullptr;
 }
 
-Uint32 Hast::Root::computeBucketIndex(Uint32 hash, Uint32 m_numberOfBuckets) const {
+Uint32 Hast::Root::computeBucketIndex(Uint32 hash, Uint32 numberOfBuckets) const {
   jamDebug();
-  Uint32 mask = 0xffffffff;
-  while ((mask & hash) >= m_numberOfBuckets) {
+  Uint32 usableHash = hash >> 2; // The 2 least significant bits are used to designate fragment mutex and select the root.
+  Uint32 mask = 0x3fffffff;
+  while ((mask & usableHash) >= numberOfBuckets) {
     mask >>= 1;
   }
-  Uint32 bucketIndex = hash & mask;
-  ndbassert(bucketIndex < m_numberOfBuckets);
+  Uint32 bucketIndex = usableHash & mask;
+  ndbassert(bucketIndex < numberOfBuckets);
+  DEB_HAST("computeBucketIndex(hash=%08x, numberOfBuckets=%04x) -> %04x", hash, numberOfBuckets, bucketIndex);
   return bucketIndex;
+}
+
+Uint32 Hast::Root::siblingBucketIndex(Uint32 bucketIndex) const {
+  jamDebug();
+  Uint32 mask = 0xffffffff;
+  while ((mask & bucketIndex) == bucketIndex) {
+    mask >>= 1;
+  }
+  Uint32 siblingbucketIndex = bucketIndex & mask;
+  DEB_HAST("siblingBucketIndex(bucketIndex=%04x) -> %04x", bucketIndex, siblingbucketIndex);
+  return siblingbucketIndex;
 }
 
 Hast::Cursor Hast::getCursorFirst(Block acc, Uint32 hash) const {
@@ -359,7 +372,7 @@ void Hast::Root::expand(Block acc) {
   release_mem(m_buckets);
   m_buckets = newBuckets;
   Uint32 newBucketIndex = m_numberOfBuckets;
-  Uint32 oldBucketIndex = computeBucketIndex(newBucketIndex, m_numberOfBuckets);
+  Uint32 oldBucketIndex = siblingBucketIndex(newBucketIndex);
   m_numberOfBuckets++;
   Bucket splitBucket = m_buckets[oldBucketIndex];
   Uint32 m_entriesToMove = splitBucket.m_numberOfEntries;
@@ -367,6 +380,7 @@ void Hast::Root::expand(Block acc) {
   m_buckets[oldBucketIndex].m_entries = nullptr;
   m_buckets[newBucketIndex].m_numberOfEntries = 0;
   m_buckets[newBucketIndex].m_entries = nullptr;
+  m_numberOfEntries -= m_entriesToMove;
   for (Uint32 i = 0; i < splitBucket.m_numberOfEntries; i++) {
     Entry &entry = splitBucket.m_entries[i];
     Uint32 bucketIndex = computeBucketIndex(entry.m_hash, m_numberOfBuckets);
@@ -401,7 +415,7 @@ void Hast::Root::shrink(Block acc) {
   Uint32 oldBucketIndex = m_numberOfBuckets - 1;
   Bucket oldBucket = m_buckets[oldBucketIndex];
   m_numberOfBuckets--;
-  Uint32 newBucketIndex = computeBucketIndex(oldBucketIndex, m_numberOfBuckets);
+  Uint32 newBucketIndex = siblingBucketIndex(oldBucketIndex);
   release_mem(m_buckets);
   m_buckets = newBuckets;
   Bucket& newBucket = m_buckets[newBucketIndex];
