@@ -46,6 +46,10 @@ public:
     Uint32 m_bucketIndex;
     Uint32 m_entryIndex;
     Value* m_valueptr;
+    Uint32 m_valid;
+    enum { VALID = 0x7d5be15d,
+           INVALID = 0x37f93878
+    };
   };
 private:
   class Entry {

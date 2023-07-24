@@ -296,6 +296,7 @@ void Dbacc::execCONTINUEB(Signal* signal)
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
+//✗hast
 void Dbacc::execNDB_STTOR(Signal* signal) 
 {
   jamEntry();
@@ -532,6 +533,7 @@ void Dbacc::set_tup_fragptr(Uint64 fragptr, Uint64 tup_fragptr)
 /*                                                                                   */
 /* --------------------------------------------------------------------------------- */
 /* --------------------------------------------------------------------------------- */
+//✓hast
 void Dbacc::execACCFRAGREQ(Signal* signal) 
 {
   const AccFragReq * const req = (AccFragReq*)&signal->theData[0];
@@ -567,6 +569,8 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
   }//if
   initFragGeneral(fragrecptr);
   initFragAdd(signal, fragrecptr);
+
+  // Initialize hast
   fragrecptr.p->hastTable.initialize(this);
 
   if (!addfragtotab(fragrecptr.i, req->fragId)) {
@@ -1437,11 +1441,12 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   Hast& hast = fragrecptr.p->hastTable;
   OperationrecPtr hastLockOwnerPtr;
   Local_key hastLocalkey;
-  Hast::Cursor hastCursor = hastGetElement(hast,
-                                           req->keyInfo,
-                                           *fragrecptr.p,
-                                           hastLockOwnerPtr,
-                                           hastLocalkey);
+  hastGetElement(hast,
+                 req->keyInfo,
+                 *fragrecptr.p,
+                 operationRecPtr.p->m_hastCursor,
+                 hastLockOwnerPtr,
+                 hastLocalkey);
 
   c_tup->release_frag_page_map_mutex_read(jamBuffer());
 
@@ -1484,7 +1489,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   Uint32 op = opbits & Operationrec::OP_MASK;
   if (found == ZTRUE) 
   {
-    ndbassert(hast.isEntryCursor(this, hastCursor));
+    ndbassert(hast.isEntryCursor(this, operationRecPtr.p->m_hastCursor));
     ndbassert(hastLockOwnerPtr.i == lockOwnerPtr.i);
     ndbassert(hastLockOwnerPtr.p == lockOwnerPtr.p);
     ndbassert(hastLocalkey.m_page_no == operationRecPtr.p->localdata.m_page_no);
@@ -1517,9 +1522,9 @@ void Dbacc::execACCKEYREQ(Signal* signal,
 
           // Hast
           HastValueInterpretation hvi;
-          hvi.hastValue = hast.getValue(this, hastCursor);
+          jamDebug();
+          hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
           ndbassert(hvi.elementHeader == eh);
-          operationRecPtr.p->m_hastCursor = hastCursor;
 
           operationRecPtr.p->reducedHashValue =
             ElementHeader::getReducedHashValue(eh);
@@ -1606,7 +1611,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   }
   else if (found == ZFALSE)
   {
-    ndbassert(hast.isInsertCursor(this, hastCursor));
+    ndbassert(hast.isInsertCursor(this, operationRecPtr.p->m_hastCursor));
     switch (op){
     case ZWRITE:
       jamDebug();
@@ -1620,7 +1625,11 @@ void Dbacc::execACCKEYREQ(Signal* signal,
       opbits |= Operationrec::OP_STATE_RUNNING;
       opbits |= Operationrec::OP_RUN_QUEUE;
       operationRecPtr.p->m_op_bits = opbits;
-      insertelementLab(signal, bucketPageptr, bucketConidx, hash, hastCursor);
+      insertelementLab(signal,
+                       bucketPageptr,
+                       bucketConidx,
+                       hash,
+                       operationRecPtr.p->m_hastCursor);
       return;
     case ZREAD:
     case ZUPDATE:
@@ -1791,6 +1800,7 @@ Dbacc::execACCKEY_ORD(Signal* signal,
   } 
 }
 
+//✗hast
 void
 Dbacc::startNext(Signal* signal, OperationrecPtr lastOp, Uint32 hash)
 {
@@ -2228,7 +2238,7 @@ void Dbacc::insertExistElemLab(Signal* signal,
 /* --------------------------------------------------------------------------------- */
 /* INSERTELEMENT                                                                     */
 /* --------------------------------------------------------------------------------- */
-// todoas hast continue here
+//✗hast
 void Dbacc::insertelementLab(Signal* signal,
                              Page8Ptr bucketPageptr,
                              Uint32 bucketConidx,
@@ -2297,6 +2307,14 @@ void Dbacc::insertelementLab(Signal* signal,
   hvi.elementHeader = tidrElemhead;
   hvi.elementBody = localKey.m_page_no;
   Hast& hast = fragrecptr.p->hastTable;
+  jamDebug();
+  jamDataDebug(operationRecPtr.i);
+  jamDataDebug(operationRecPtr.i>>16);
+  jamDataDebug(hvi.elementHeader);
+  jamDataDebug(hvi.elementHeader>>16);
+  jamDataDebug(hvi.elementBody);
+  jamDataDebug(hvi.elementBody>>16);
+  jamDataDebug(hvi.hastValue);
   hast.insertEntry(this, hastCursor, hvi.hastValue);
 
 #ifdef DEB_LOCK_TRANS
@@ -2360,7 +2378,6 @@ void Dbacc::insertelementLab(Signal* signal,
   sendAcckeyconf(signal);
   return;
 }//Dbacc::insertelementLab()
-
 
 /* ------------------------------------------------------------------------ */
 /* GET_NO_PARALLEL_TRANSACTION                                              */
@@ -2506,6 +2523,7 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
     // Validate element header in Hast
     Hast& hast = fragrecptr.p->hastTable;
     HastValueInterpretation hvi;
+    jamDebug();
     hvi.hastValue = hast.getValue(this, loPtr.p->m_hastCursor);
     vlqrequire(hvi.elementHeader == eh);
   }
@@ -3178,6 +3196,7 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
     // Update in hast
     Hast& hast = fragrecptr.p->hastTable;
     HastValueInterpretation hvi;
+    jamDebug();
     hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
     hvi.elementBody = localkey.m_page_no;
     hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
@@ -3225,6 +3244,7 @@ Dbacc::removerow(Uint32 opPtrI, const Local_key* key)
 /*                                                     SENDER: LQH,    LEVEL B       */
 /*       INPUT:  OPERATION_REC_PTR ,                                                 */
 /* ******************--------------------------------------------------------------- */
+//✓hast
 void Dbacc::execACC_COMMITREQ(Signal* signal,
                               Uint32 opPtrI,
                               Dbacc::Operationrec *opPtrP)
@@ -3254,7 +3274,7 @@ void Dbacc::execACC_COMMITREQ(Signal* signal,
                   operationRecPtr.i,
                   opbits));
 
-  commitOperation(signal); // todoas continue here 1
+  commitOperation(signal);
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
   ndbrequire(m_acc_mutex_locked == RNIL);
 #endif
@@ -4502,15 +4522,16 @@ Dbacc::getElement(const AccKeyReq* signal,
  * @param[in]   hast           Hast table to search in.
  * @param[in]   keydata        Primary key or local key to search for.
  * @param[in]   fragrec        Fragment record.
+ * @param[out]  cursor         A Hast cursor pointing to the entry if found,
+ *                             otherwise an insert cursor.
  * @param[out]  lockOwnerPtr   Lock owner if any of found entry.
  * @param[out]  localkey       The found local key.
- * @return      cursor         A Hast cursor pointing to the entry if found,
- *                             otherwise an insert cursor.
  * ------------------------------------------------------------------------- */
-Hast::Cursor
+void
 Dbacc::hastGetElement(const Hast& hast,
                       const Uint32 *keydata, /* or localKey if keyLen == 0 */
                       const Fragmentrec& fragrec,
+                      Hast::Cursor& cursor,
                       OperationrecPtr& lockOwnerPtr,
                       Local_key& localkey)
 {
@@ -4518,7 +4539,7 @@ Dbacc::hastGetElement(const Hast& hast,
   const Uint32 hash = operationRecPtr.p->hashValue.pack();
   // Use the Hast implementation to get a cursor to the first entry with
   // matching hash if such exists.
-  Hast::Cursor cursor = hast.getCursorFirst(this, hash);
+  cursor = hast.getCursorFirst(this, hash);
   /*
    * The value searched is
    * - table key for ACCKEYREQ, stored in TUP
@@ -4533,6 +4554,7 @@ Dbacc::hastGetElement(const Hast& hast,
   while(hast.isEntryCursor(this, cursor))
   {
     HastValueInterpretation hvi;
+    jamDebug();
     hvi.hastValue = hast.getValue(this, cursor);
     lockOwnerPtr.i = RNIL;
     lockOwnerPtr.p = NULL;
@@ -4598,14 +4620,15 @@ Dbacc::hastGetElement(const Hast& hast,
     {
       jamDebug();
       // todoas rm? operationRecPtr.p->localdata = localkey;
-      return cursor; // Return an entry cursor
+      // cursor contains an entry cursor
+      return;
     }
     // Not found, so ask for the next entry if such exists
     hast.cursorNext(this, cursor);
   }
-  // We found no matching entry, so return an insert cursor.
+  // We found no matching entry, so cursor contains an insert cursor.
   // todoas do we want to lockOwnerPtr.i = RNIL; lockOwnerPtr.p = NULL; ?
-  return cursor;
+  return;
 }//Dbacc::hastGetElement()
 
 /**
@@ -4680,6 +4703,7 @@ Dbacc::report_pending_dealloc(Signal* signal,
  * exclusive access while holding the ACC fragment mutex. This
  * makes it possible to introduce a deadlock.
  */
+//✗hast
 void
 Dbacc::trigger_dealloc(Signal* signal, const Operationrec* opPtrP)
 {
@@ -5737,6 +5761,7 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
         // Hast
         Hast& hast = fragrecptr.p->hastTable;
         HastValueInterpretation hvi;
+        jamDebug();
         hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
         hvi.elementHeader = tmp2Olq;
         hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
@@ -5929,6 +5954,7 @@ void Dbacc::commitOperation(Signal* signal)
       // Update in hast
       Hast& hast = fragrecptr.p->hastTable;
       HastValueInterpretation hvi;
+      jamDebug();
       hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
       hvi.elementHeader = tmp2Olq;
       hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
@@ -5945,7 +5971,7 @@ void Dbacc::commitOperation(Signal* signal)
        */
       bool trigger_dealloc_op = false;
       /* This function is responsible to release ACC fragment mutex */
-      release_lockowner(signal, // todoas continue here 2
+      release_lockowner(signal,
                         operationRecPtr,
                         true,
                         trigger_dealloc_op,
@@ -6289,21 +6315,22 @@ Dbacc::release_lockowner(Signal* signal,
     // Copy Hast information
     newOwner.p->m_hastCursor = opPtr.p->m_hastCursor;
 
-    Page8Ptr pagePtr; // todoas continue here 3
+    Page8Ptr pagePtr;
     pagePtr.i = newOwner.p->elementPage; //✓hast
     c_page8_pool.getPtr(pagePtr);
     const Uint32 tmp = ElementHeader::setLocked(newOwner.i);
     arrGuard(newOwner.p->elementPointer, 2048);
     pagePtr.p->word32[newOwner.p->elementPointer] = tmp;
-#if defined(VM_TRACE) || defined(ERROR_INSERT)
 
     // Update Hast
     Hast& hast = fragrecptr.p->hastTable;
     HastValueInterpretation hvi;
+    jamDebug();
     hvi.hastValue = hast.getValue(this, newOwner.p->m_hastCursor);
     hvi.elementHeader = tmp;
     hast.setValue(this, newOwner.p->m_hastCursor, hvi.hastValue);
 
+#if defined(VM_TRACE) || defined(ERROR_INSERT)
     /**
      * Invalidate page number in elements second word for test in initScanOp
      */
@@ -6498,6 +6525,7 @@ void Dbacc::takeOutLockOwnersList(OperationrecPtr& outOperPtr)
  * list on the fragment.
  *
  */
+//✗hast
 void Dbacc::insertLockOwnersList(OperationrecPtr& insOperPtr)
 {
   LHBits32 hashVal = getElementHash(insOperPtr);
@@ -6823,6 +6851,7 @@ void Dbacc::execDEBUG_SIG(Signal* signal)
   return;
 }//Dbacc::execDEBUG_SIG()
 
+//✗hast
 LHBits32 Dbacc::getElementHash(OperationrecPtr& oprec)
 {
   ndbassert(!oprec.isNull());

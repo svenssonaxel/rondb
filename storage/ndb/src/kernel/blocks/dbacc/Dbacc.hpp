@@ -996,11 +996,12 @@ private:
                     Page8Ptr& elemPageptr,
                     Uint32& elemConptr,
                     Uint32& elemptr);
-  Hast::Cursor hastGetElement(const Hast& hast,
-                              const Uint32 *keydata,
-                              const Fragmentrec& fragrec,
-                              OperationrecPtr& lockOwnerPtr,
-                              Local_key& localkey);
+  void hastGetElement(const Hast& hast,
+                      const Uint32 *keydata,
+                      const Fragmentrec& fragrec,
+                      Hast::Cursor& cursor,
+                      OperationrecPtr& lockOwnerPtr,
+                      Local_key& localkey);
   LHBits32 getElementHash(OperationrecPtr& oprec);
   LHBits32 getElementHash(Uint32 const* element);
   LHBits32 getElementHash(Uint32 const* element, OperationrecPtr& oprec);
@@ -1205,6 +1206,7 @@ public:
   bool check_expand_shrink_ongoing(Uint64 fragPtrI);
   Operationrec* getOperationPtrP(Uint32 opPtrI);
 
+  //todoas read and make sure we obey this, for example, the bucket numbers aren't the same between ACC and hast, and we need to take the hash mutex to grow and shrink.
   bool acquire_frag_mutex_hash(Fragmentrec *fragPtrP,
                                OperationrecPtr opPtr,
                                Uint32 & inx)
