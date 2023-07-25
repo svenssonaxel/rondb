@@ -41,7 +41,7 @@ static_assert(NUM_ACC_FRAGMENT_MUTEXES == 4);
         m_dbg_tableId, \
         m_dbg_fragId, \
         m_dbg_inx, \
-        m_threadId, \
+        acc->getThreadId(), \
         ##__VA_ARGS__); \
   } while (0)
 #define DEB_HASTC(cursor, msg, ...) do {         \
@@ -52,7 +52,7 @@ static_assert(NUM_ACC_FRAGMENT_MUTEXES == 4);
         m_dbg_tableId, \
         m_dbg_fragId, \
         m_dbg_inx, \
-        m_threadId, \
+        acc->getThreadId(), \
         cursor.m_bucketIndex, \
         cursor.m_entryIndex, \
         cursor.m_hash, \
@@ -62,13 +62,13 @@ static_assert(NUM_ACC_FRAGMENT_MUTEXES == 4);
         cursor.m_valueptr, \
         ##__VA_ARGS__); \
   } while (0)
-void Hast::Root::debug_dump_root() const {
+void Hast::Root::debug_dump_root(CBlock acc) const {
   DEB_HAST("Dumping Root %u: m_numberOfBuckets=%u, m_numberOfEntries=%llu", m_dbg_inx, m_numberOfBuckets, m_numberOfEntries);
   for(Uint32 i = 0; i < m_numberOfBuckets; i++) {
-    debug_dump_bucket(m_buckets[i], i, "- ", "  - ");
+    debug_dump_bucket(acc, m_buckets[i], i, "- ", "  - ");
   }
 }
-void Hast::Root::debug_dump_bucket(Hast::Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const {
+void Hast::Root::debug_dump_bucket(CBlock acc, Hast::Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const {
   DEB_HAST("%sBucket %u (%u entries):", bucketPrefix, bucketIndex, bucket.m_numberOfEntries);
   for(Uint32 i = 0; i < bucket.m_numberOfEntries; i++) {
     DEB_HAST("%sEntry %u: m_hash=%08x, m_value=%016llx, &m_value=%p", entryPrefix, i, bucket.m_entries[i].m_hash, bucket.m_entries[i].m_value, &bucket.m_entries[i].m_value);
@@ -78,8 +78,8 @@ void Hast::Root::debug_dump_bucket(Hast::Bucket& bucket, Uint32 bucketIndex, con
 #define hastJamDebug() do { } while (0)
 #define DEB_HAST(msg, ...) do { } while (0)
 #define DEB_HASTC(cursor, msg, ...) do { } while (0)
-void Hast::Root::debug_dump_root() const {}
-void Hast::Root::debug_dump_bucket(Hast::Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const {}
+void Hast::Root::debug_dump_root(CBlock acc) const {}
+void Hast::Root::debug_dump_bucket(CBlock acc, Hast::Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const {}
 #endif
 
 /*
@@ -442,7 +442,7 @@ void Hast::Root::shrink(Block acc) {
 void Hast::Root::updateOperationRecords(Block acc, Bucket& bucket, Uint32 bucketIndex) {
   hastJamDebug();
   DEB_HAST("Begin updateOperationRecords(bucketIndex=%u): m_numberOfBuckets=%u, m_numberOfEntries=%llu", bucketIndex, m_numberOfBuckets, m_numberOfEntries);
-  debug_dump_bucket(bucket, bucketIndex, "Before update Operation Records: ", "- ");
+  debug_dump_bucket(acc, bucket, bucketIndex, "Before update Operation Records: ", "- ");
   for (Uint32 i = 0; i < bucket.m_numberOfEntries; i++) {
     hastJamDebug();
     Entry& entry = bucket.m_entries[i];
@@ -464,7 +464,7 @@ void Hast::Root::updateOperationRecords(Block acc, Bucket& bucket, Uint32 bucket
       DEB_HASTC(cursor, ", updateOperationRecords(bucketIndex=%u): m_entries[%u], operation_rec_i=%08x, after cursor update", bucketIndex, i, operation_rec_i);
     }
   }
-  debug_dump_bucket(bucket, bucketIndex, "After update Operation Records: ", "- ");
+  debug_dump_bucket(acc, bucket, bucketIndex, "After update Operation Records: ", "- ");
   DEB_HAST("End updateOperationRecords(bucketIndex=%u)", bucketIndex);
 }
 
@@ -514,7 +514,7 @@ void Hast::Root::validateCursor(CBlock acc, Cursor& cursor) const {
   Uint32 tmp_bucket_indx = computeBucketIndex(acc, cursor.m_hash, m_numberOfBuckets);
   if(tmp_bucket_indx != cursor.m_bucketIndex) {
     DEB_HASTC(cursor, ": FAILED CHECK in validateCursor(): m_numberOfBuckets=%u, bucket.m_numberOfEntries=%u", m_numberOfBuckets, bucket.m_numberOfEntries);
-    debug_dump_root();
+    debug_dump_root(acc);
   }
   ndbassert(tmp_bucket_indx == cursor.m_bucketIndex);
   if(cursor.m_valueptr != nullptr) {

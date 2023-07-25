@@ -105,8 +105,12 @@ private:
     void validateCursor(CBlock acc, Cursor& cursor) const;
     void validateBucket(CBlock acc, Bucket& bucket, Uint32 bucketIndex) const;
     void progError(int line, int err_code, const char* extra, const char* check) const;
-    void debug_dump_root() const;
-    void debug_dump_bucket(Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const;
+    void debug_dump_root(CBlock acc) const;
+    void debug_dump_bucket(CBlock acc,
+                           Bucket& bucket,
+                           Uint32 bucketIndex,
+                           const char* bucketPrefix,
+                           const char* entryPrefix) const;
 
     // Data
     Uint32 m_numberOfBuckets;
