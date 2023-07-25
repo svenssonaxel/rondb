@@ -571,7 +571,7 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
   initFragAdd(signal, fragrecptr);
 
   // Initialize hast
-  fragrecptr.p->hastTable.initialize(this);
+  fragrecptr.p->hastTable.initialize(this, req->tableId, req->fragId);
 
   if (!addfragtotab(fragrecptr.i, req->fragId)) {
     jam();
@@ -3197,6 +3197,9 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
     Hast& hast = fragrecptr.p->hastTable;
     HastValueInterpretation hvi;
     jamDebug();
+
+    g_eventLogger->info("execACCMINUPDATE: Before hast.getValue(this, operationRecPtr.p->m_hastCursor); operation-recPtr.i=%d", operationRecPtr.i);
+
     hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
     hvi.elementBody = localkey.m_page_no;
     hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);

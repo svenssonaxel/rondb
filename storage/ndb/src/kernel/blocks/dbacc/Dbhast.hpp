@@ -29,6 +29,8 @@
 #include "Emulator.hpp"
 #include <ndbd_malloc.hpp>
 
+//#define DEBUG_HAST 1
+
 class Dbacc;
 
 class Hast {
@@ -70,7 +72,7 @@ private:
     Root();
     void* seize_mem(Block acc, size_t size);
     void release_mem(void* ptr);
-    void initialize(Block acc);
+    void initialize(Block acc, Uint32 dbg_tableId, Uint32 dbg_threadId, Uint32 dbg_inx);
     void release(Block acc);
     void insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value);
     Uint32 computeBucketIndex(Hash hash, Uint32 numberOfBuckets) const;
@@ -96,14 +98,16 @@ private:
     void deleteEntry(Block acc, Cursor& cursor);
 
     // Validation & debugging
-    void validateAll(Block acc) const;
-    void validateHastRoot(Block acc) const;
+    void validateAll(CBlock acc) const;
+    void validateHastRoot(CBlock acc) const;
     void validateB(CBlock acc) const;
     void validateValue(CBlock acc, Value value) const;
     void validateCursor(CBlock acc, Cursor& cursor) const;
-    void validateBucket(Block acc, Bucket& bucket, Uint32 bucketIndex) const;
+    void validateBucket(CBlock acc, Bucket& bucket, Uint32 bucketIndex) const;
     void progError(int line, int err_code, const char* extra, const char* check) const;
     EmulatedJamBuffer* jamBuffer() const;
+    void debug_dump_root() const;
+    void debug_dump_bucket(Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const;
 
     // Data
     Uint32 m_numberOfBuckets;
@@ -111,11 +115,14 @@ private:
     Uint64 m_numberOfEntries;
     Block m_bptr;
     Uint32 m_threadId;
+    Uint32 m_dbg_tableId;
+    Uint32 m_dbg_fragId;
+    Uint32 m_dbg_inx;
   };
 
   // Public interface
 public:
-  void initialize(Block acc);
+  void initialize(Block acc, Uint32 dbg_tableId, Uint32 dbg_threadId);
   void release(Block acc);
   bool isEntryCursor(CBlock acc, Cursor& cursor) const;
   bool isInsertCursor(CBlock acc, Cursor& cursor) const;
