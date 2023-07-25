@@ -32,6 +32,7 @@ static_assert(NUM_ACC_FRAGMENT_MUTEXES == 4);
 
 // Debug logging
 #ifdef DEBUG_HAST
+#define hastJamDebug() jamBlock(acc)
 #define DEB_HAST(msg, ...) do { \
     g_eventLogger->info \
       ( \
@@ -74,6 +75,7 @@ void Hast::Root::debug_dump_bucket(Hast::Bucket& bucket, Uint32 bucketIndex, con
   }
 }
 #else
+#define hastJamDebug() do { } while (0)
 #define DEB_HAST(msg, ...) do { } while (0)
 #define DEB_HASTC(cursor, msg, ...) do { } while (0)
 void Hast::Root::debug_dump_root() const {}
@@ -87,9 +89,7 @@ void Hast::Root::debug_dump_bucket(Hast::Bucket& bucket, Uint32 bucketIndex, con
 Hast::Root::Root():
   m_numberOfBuckets(0),
   m_buckets(nullptr),
-  m_numberOfEntries(0),
-  m_bptr(nullptr),
-  m_threadId(0)
+  m_numberOfEntries(0)
 {}
 
 void Hast::initialize(Block acc, Uint32 dbg_tableId, Uint32 dbg_fragId) {
@@ -101,12 +101,8 @@ void Hast::Root::initialize(Block acc,
                             Uint32 dbg_tableId,
                             Uint32 dbg_fragId,
                             Uint32 dbg_inx) {
-  ndbrequire(m_bptr == nullptr);
   ndbrequire(acc != nullptr);
-  m_bptr = acc;
-  jam();
-  m_threadId = m_bptr->getThreadId();
-  ndbrequire(m_threadId != 0);
+  jamBlock(acc);
   m_numberOfBuckets = 1;
   m_numberOfEntries = 0;
   m_buckets = (Bucket*)seize_mem(acc, sizeof(Bucket));
@@ -115,7 +111,7 @@ void Hast::Root::initialize(Block acc,
   m_dbg_tableId = dbg_tableId;
   m_dbg_fragId = dbg_fragId;
   m_dbg_inx = dbg_inx;
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   DEB_HAST("initialize() done");
 }
@@ -126,7 +122,7 @@ void Hast::release(Block acc) {
   }
 }
 void Hast::Root::release(Block acc) {
-  jamDebug();
+  hastJamDebug();
   DEB_HAST("release()");
   validateAll(acc);
   for (Uint32 i = 0; i < m_numberOfBuckets; i++) {
@@ -136,7 +132,7 @@ void Hast::Root::release(Block acc) {
     }
   }
   release_mem(m_buckets);
-  jamDebug();
+  hastJamDebug();
   DEB_HAST("release() done");
 }
 
@@ -144,7 +140,7 @@ bool Hast::isEntryCursor(CBlock acc, Cursor& cursor) const {
   return getRoot(cursor).isEntryCursor(acc, cursor);
 }
 bool Hast::Root::isEntryCursor(CBlock acc, Cursor& cursor) const {
-  jamDebug();
+  hastJamDebug();
   validateCursor(acc, cursor);
   validateAll(acc);
   return cursor.m_valueptr != nullptr;
@@ -154,14 +150,14 @@ bool Hast::isInsertCursor(CBlock acc, Cursor& cursor) const {
   return getRoot(cursor).isInsertCursor(acc, cursor);
 }
 bool Hast::Root::isInsertCursor(CBlock acc, Cursor& cursor) const {
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   validateCursor(acc, cursor);
   return cursor.m_valueptr == nullptr;
 }
 
-Uint32 Hast::Root::computeBucketIndex(Uint32 hash, Uint32 numberOfBuckets) const {
-  jamDebug();
+Uint32 Hast::Root::computeBucketIndex(CBlock acc, Uint32 hash, Uint32 numberOfBuckets) const {
+  hastJamDebug();
   Uint32 usableHash = hash >> 2; // The 2 least significant bits are used to designate fragment mutex and select the root.
   Uint32 mask = 0x3fffffff;
   while ((mask & usableHash) >= numberOfBuckets) {
@@ -173,8 +169,8 @@ Uint32 Hast::Root::computeBucketIndex(Uint32 hash, Uint32 numberOfBuckets) const
   return bucketIndex;
 }
 
-Uint32 Hast::Root::siblingBucketIndex(Uint32 bucketIndex) const {
-  jamDebug();
+Uint32 Hast::Root::siblingBucketIndex(Block acc, Uint32 bucketIndex) const {
+  hastJamDebug();
   Uint32 mask = 0xffffffff;
   while ((mask & bucketIndex) == bucketIndex) {
     mask >>= 1;
@@ -188,11 +184,11 @@ Hast::Cursor Hast::getCursorFirst(Block acc, Uint32 hash) const {
   return getRoot(hash).getCursorFirst(acc, hash);
 }
 Hast::Cursor Hast::Root::getCursorFirst(Block acc, Uint32 hash) const {
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   Cursor cursor = Cursor();
   cursor.m_hash = hash;
-  cursor.m_bucketIndex = computeBucketIndex(hash, m_numberOfBuckets);
+  cursor.m_bucketIndex = computeBucketIndex(acc, hash, m_numberOfBuckets);
   cursor.m_entryIndex = 0;
   cursor.m_valueptr = nullptr;
   Bucket& bucket = m_buckets[cursor.m_bucketIndex];
@@ -212,7 +208,7 @@ void Hast::cursorNext(Block acc, Cursor& cursor) const {
   getRoot(cursor).cursorNext(acc, cursor);
 }
 void Hast::Root::cursorNext(Block acc, Cursor& cursor) const {
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   ndbrequire(isEntryCursor(acc, cursor));
   DEB_HASTC(cursor, ": Begin cursorNext()");
@@ -233,7 +229,7 @@ Hast::Value Hast::getValue(CBlock acc, Cursor& cursor) const {
   return getRoot(cursor).getValue(acc, cursor);
 }
 Hast::Value Hast::Root::getValue(CBlock acc, Cursor& cursor) const {
-  jamDebug();
+  hastJamDebug();
   ndbassert(isEntryCursor(acc, cursor));
   Hast::Value value = *cursor.m_valueptr;
   DEB_HASTC(cursor, ": getValue() -> %016llx", value);
@@ -244,7 +240,7 @@ void Hast::setValue(Block acc, Cursor& cursor, Value value) {
   getRoot(cursor).setValue(acc, cursor, value);
 }
 void Hast::Root::setValue(Block acc, Cursor& cursor, Value value) {
-  jamDebug();
+  hastJamDebug();
   ndbassert(isEntryCursor(acc, cursor));
   DEB_HASTC(cursor, ": setValue(value=%016llx)", value);
   *cursor.m_valueptr = value;
@@ -255,7 +251,7 @@ void Hast::insertEntry(Block acc, Cursor& cursor, Value value) {
   getRoot(cursor).insertEntry(acc, cursor, value);
 }
 void Hast::Root::insertEntry(Block acc, Cursor& cursor, Value value) {
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   ndbassert(isInsertCursor(acc, cursor));
   DEB_HASTC(cursor, ": insertEntry(value=%016llx)", value);
@@ -264,13 +260,13 @@ void Hast::Root::insertEntry(Block acc, Cursor& cursor, Value value) {
   DEB_HASTC(cursor, ": insertEntry(value=%016llx): after insertEntryIntoBucket", value);
   cursor.m_valueptr = &bucket.m_entries[cursor.m_entryIndex].m_value;
   DEB_HASTC(cursor, ": insertEntry(value=%016llx): after set m_valueptr", value);
-  jamDebug();
-  updateOperationRecords(bucket, cursor.m_bucketIndex);
+  hastJamDebug();
+  updateOperationRecords(acc, bucket, cursor.m_bucketIndex);
   DEB_HASTC(cursor, ": insertEntry(value=%016llx): after updateOperationRecords", value);
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   if(shouldExpand()) {
-    jamDebug();
+    hastJamDebug();
     expand(acc);
     DEB_HASTC(cursor, ": insertEntry(value=%016llx): after expand", value);
   }
@@ -280,7 +276,7 @@ void Hast::deleteEntry(Block acc, Cursor& cursor) {
   getRoot(cursor).deleteEntry(acc, cursor);
 }
 void Hast::Root::deleteEntry(Block acc, Cursor& cursor) {
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   ndbassert(isEntryCursor(acc, cursor));
   DEB_HASTC(cursor, ": deleteEntry()");
@@ -305,12 +301,12 @@ void Hast::Root::deleteEntry(Block acc, Cursor& cursor) {
   m_numberOfEntries--;
   cursor.m_valueptr = nullptr;
   cursor.m_valid = Hast::Cursor::INVALID;
-  updateOperationRecords(bucket, bucketIndex);
+  updateOperationRecords(acc, bucket, bucketIndex);
   DEB_HASTC(cursor, ": deleteEntry() after updateOperationRecords");
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   if(shouldShrink()) {
-    jamDebug();
+    hastJamDebug();
     shrink(acc);
     DEB_HASTC(cursor, ": deleteEntry() after shrink");
   }
@@ -321,12 +317,12 @@ void Hast::Root::deleteEntry(Block acc, Cursor& cursor) {
  */
 
 void Hast::Root::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value) {
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   DEB_HAST("insertEntryIntoBucket(bucket=%p, hash=%08x, value=%016llx)", &bucket, hash, value);
   Entry* newEntries = (Entry*)seize_mem(acc, (bucket.m_numberOfEntries + 1) * sizeof(Entry));
   if (bucket.m_numberOfEntries > 0) {
-    jamDebug();
+    hastJamDebug();
     memcpy(newEntries, bucket.m_entries, bucket.m_numberOfEntries * sizeof(Entry));
     release_mem(bucket.m_entries);
   }
@@ -335,14 +331,14 @@ void Hast::Root::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, V
   bucket.m_entries = newEntries;
   bucket.m_numberOfEntries++;
   m_numberOfEntries++;
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   DEB_HAST("After insertEntryIntoBucket, entry hash=%08x, value=%016llx, valueptr=%p", newEntries[bucket.m_numberOfEntries - 1].m_hash, newEntries[bucket.m_numberOfEntries - 1].m_value, &newEntries[bucket.m_numberOfEntries - 1].m_value);
 }
 
 // todoas do not crash on OOM. Also, we must always be able to delete.
 void* Hast::Root::seize_mem(Block acc, size_t size) {
-  jamDebug();
+  hastJamDebug();
   validateB(acc);
   // todoas Do I really need getThreadId() here, or can I use 0?
   void* ret = lc_ndbd_pool_malloc(size, RG_DATAMEM, acc->getThreadId(), false);
@@ -365,7 +361,7 @@ bool Hast::Root::shouldShrink() const {
 }
 
 void Hast::Root::expand(Block acc) {
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   ndbassert(shouldExpand());
   DEB_HAST("Begin expand(), m_numberOfBuckets=%u, m_numberOfEntries=%llu", m_numberOfBuckets, m_numberOfEntries);
@@ -374,7 +370,7 @@ void Hast::Root::expand(Block acc) {
   release_mem(m_buckets);
   m_buckets = newBuckets;
   Uint32 newBucketIndex = m_numberOfBuckets;
-  Uint32 oldBucketIndex = siblingBucketIndex(newBucketIndex);
+  Uint32 oldBucketIndex = siblingBucketIndex(acc, newBucketIndex);
   m_numberOfBuckets++;
   Bucket splitBucket = m_buckets[oldBucketIndex];
   Uint32 m_entriesToMove = splitBucket.m_numberOfEntries;
@@ -385,7 +381,7 @@ void Hast::Root::expand(Block acc) {
   m_numberOfEntries -= m_entriesToMove;
   for (Uint32 i = 0; i < splitBucket.m_numberOfEntries; i++) {
     Entry &entry = splitBucket.m_entries[i];
-    Uint32 bucketIndex = computeBucketIndex(entry.m_hash, m_numberOfBuckets);
+    Uint32 bucketIndex = computeBucketIndex(acc, entry.m_hash, m_numberOfBuckets);
     ndbassert(bucketIndex == oldBucketIndex || bucketIndex == newBucketIndex);
     insertEntryIntoBucket(acc, m_buckets[bucketIndex], entry.m_hash, entry.m_value);
   }
@@ -394,21 +390,21 @@ void Hast::Root::expand(Block acc) {
   }
   splitBucket.m_numberOfEntries = 0;
   splitBucket.m_entries = nullptr;
-  jamDebug();
-  updateOperationRecords(m_buckets[oldBucketIndex], oldBucketIndex);
-  jamDebug();
-  updateOperationRecords(m_buckets[newBucketIndex], newBucketIndex);
+  hastJamDebug();
+  updateOperationRecords(acc, m_buckets[oldBucketIndex], oldBucketIndex);
+  hastJamDebug();
+  updateOperationRecords(acc, m_buckets[newBucketIndex], newBucketIndex);
   validateBucket(acc, splitBucket, oldBucketIndex);
   validateBucket(acc, m_buckets[oldBucketIndex], oldBucketIndex);
   validateBucket(acc, m_buckets[newBucketIndex], newBucketIndex);
   DEB_HAST("End expand(), m_numberOfBuckets=%u, m_numberOfEntries=%llu", m_numberOfBuckets, m_numberOfEntries);
   ndbassert(m_buckets[oldBucketIndex].m_numberOfEntries + m_buckets[newBucketIndex].m_numberOfEntries == m_entriesToMove);
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
 }
 
 void Hast::Root::shrink(Block acc) {
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
   ndbassert(shouldShrink());
   DEB_HAST("Begin shrink(), m_numberOfBuckets=%u, m_numberOfEntries=%llu", m_numberOfBuckets, m_numberOfEntries);
@@ -417,7 +413,7 @@ void Hast::Root::shrink(Block acc) {
   Uint32 oldBucketIndex = m_numberOfBuckets - 1;
   Bucket oldBucket = m_buckets[oldBucketIndex];
   m_numberOfBuckets--;
-  Uint32 newBucketIndex = siblingBucketIndex(oldBucketIndex);
+  Uint32 newBucketIndex = siblingBucketIndex(acc, oldBucketIndex);
   release_mem(m_buckets);
   m_buckets = newBuckets;
   Bucket& newBucket = m_buckets[newBucketIndex];
@@ -434,34 +430,34 @@ void Hast::Root::shrink(Block acc) {
     oldBucket.m_entries = nullptr;
     oldBucket.m_numberOfEntries = 0;
   }
-  jamDebug();
-  updateOperationRecords(newBucket, newBucketIndex);
+  hastJamDebug();
+  updateOperationRecords(acc, newBucket, newBucketIndex);
   validateBucket(acc, oldBucket, oldBucketIndex);
   validateBucket(acc, newBucket, newBucketIndex);
   DEB_HAST("End shrink(), m_numberOfBuckets=%u, m_numberOfEntries=%llu", m_numberOfBuckets, m_numberOfEntries);
-  jamDebug();
+  hastJamDebug();
   validateAll(acc);
 }
 
-void Hast::Root::updateOperationRecords(Bucket& bucket, Uint32 bucketIndex) {
-  jamDebug();
+void Hast::Root::updateOperationRecords(Block acc, Bucket& bucket, Uint32 bucketIndex) {
+  hastJamDebug();
   DEB_HAST("Begin updateOperationRecords(bucketIndex=%u): m_numberOfBuckets=%u, m_numberOfEntries=%llu", bucketIndex, m_numberOfBuckets, m_numberOfEntries);
   debug_dump_bucket(bucket, bucketIndex, "Before update Operation Records: ", "- ");
   for (Uint32 i = 0; i < bucket.m_numberOfEntries; i++) {
-    jamDebug();
+    hastJamDebug();
     Entry& entry = bucket.m_entries[i];
     DEB_HAST("updateOperationRecords(bucketIndex=%u): m_entries[%u]=Entry(m_hash=%08x, m_value=%016llx)", bucketIndex, i, entry.m_hash, entry.m_value);
     Uint32 locked = entry.m_value & 1;
     if(locked) {
-      jamDebug();
+      hastJamDebug();
       Uint32 operation_rec_i = (entry.m_value >> 1) & 0x7fffffff;
-      Dbacc::Operationrec* oprec = m_bptr->get_operation_ptr(operation_rec_i);
+      Dbacc::Operationrec* oprec = acc->get_operation_ptr(operation_rec_i);
       Cursor &cursor = oprec->m_hastCursor;
-      jamDebug();
+      hastJamDebug();
       DEB_HASTC(cursor, ", updateOperationRecords(bucketIndex=%u): m_entries[%u], operation_rec_i=%08x, will update cursor", bucketIndex, i, operation_rec_i);
       ndbassert(cursor.m_valueptr != nullptr); // Valid or invalid entry cursor
       ndbassert(cursor.m_hash == entry.m_hash);
-      jamDebug();
+      hastJamDebug();
       cursor.m_bucketIndex = bucketIndex;
       cursor.m_entryIndex = i;
       cursor.m_valueptr = &entry.m_value;
@@ -496,9 +492,8 @@ void Hast::Root::validateHastRoot(CBlock acc) const {
 }
 
 void Hast::Root::validateB(CBlock acc) const {
-  ndbassert(acc == m_bptr);
-  ndbassert(m_bptr != nullptr);
-  ndbassert(m_threadId == acc->getThreadId());
+  ndbassert(acc != nullptr);
+  ndbassert(acc->getThreadId() != 0);
   // todoas: validate m_bptr->fragrecptr
   //ndbassert(m_bptr->c_fragment_pool.getPtr(m_bptr->fragrecptr));
   //ndbassert(m_bptr->fragrecptr.p != nullptr);
@@ -512,11 +507,11 @@ void Hast::Root::validateValue(CBlock acc, Value value) const {
 }
 
 void Hast::Root::validateCursor(CBlock acc, Cursor& cursor) const {
-  jamDebug();
+  hastJamDebug();
   ndbassert(cursor.m_valid == Hast::Cursor::VALID);
   ndbassert(cursor.m_bucketIndex < m_numberOfBuckets);
   Bucket& bucket = m_buckets[cursor.m_bucketIndex];
-  Uint32 tmp_bucket_indx = computeBucketIndex(cursor.m_hash, m_numberOfBuckets);
+  Uint32 tmp_bucket_indx = computeBucketIndex(acc, cursor.m_hash, m_numberOfBuckets);
   if(tmp_bucket_indx != cursor.m_bucketIndex) {
     DEB_HASTC(cursor, ": FAILED CHECK in validateCursor(): m_numberOfBuckets=%u, bucket.m_numberOfEntries=%u", m_numberOfBuckets, bucket.m_numberOfEntries);
     debug_dump_root();
@@ -544,17 +539,13 @@ void Hast::Root::validateBucket(CBlock acc, Bucket& bucket, Uint32 bucketIndex) 
   for (Uint32 i = 0; i < bucket.m_numberOfEntries; i++) {
     Entry& entry = bucket.m_entries[i];
     Uint32 hash = entry.m_hash;
-    ndbassert(computeBucketIndex(hash, m_numberOfBuckets) == bucketIndex);
+    ndbassert(computeBucketIndex(acc, hash, m_numberOfBuckets) == bucketIndex);
     validateValue(acc, entry.m_value);
   }
   #endif
 }
 
 void Hast::Root::progError(int line, int err_code, const char* extra, const char* check) const {
-  if(m_bptr != nullptr) {
-    m_bptr->progError(line, err_code, extra, check);
-    return;
-  }
   globalData.theStopFlag = true;
   mb();
   jamNoBlock();
@@ -573,13 +564,6 @@ void Hast::Root::progError(int line, int err_code, const char* extra, const char
       "b/Dbhast.cpp (Line: %d) Check %.400s failed",
       line, check);
   ErrorReporter::handleError(err_code, extra, buf);
-}
-
-EmulatedJamBuffer* Hast::Root::jamBuffer() const {
-  ndbassert(m_bptr != nullptr);
-  EmulatedJamBuffer* jamBuffer = m_bptr->jamBuffer();
-  ndbassert(jamBuffer != nullptr);
-  return jamBuffer;
 }
 
 // Hast private

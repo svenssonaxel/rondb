@@ -26,7 +26,6 @@
 #define DBHAST_H
 
 #include <pc.hpp>
-#include "Emulator.hpp"
 #include <ndbd_malloc.hpp>
 
 //#define DEBUG_HAST 1
@@ -75,14 +74,14 @@ private:
     void initialize(Block acc, Uint32 dbg_tableId, Uint32 dbg_threadId, Uint32 dbg_inx);
     void release(Block acc);
     void insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value);
-    Uint32 computeBucketIndex(Hash hash, Uint32 numberOfBuckets) const;
-    Uint32 siblingBucketIndex(Uint32 bucketIndex) const;
+    Uint32 computeBucketIndex(CBlock acc, Hash hash, Uint32 numberOfBuckets) const;
+    Uint32 siblingBucketIndex(Block acc, Uint32 bucketIndex) const;
     // todoas expose expanding/shrinking and make async
     bool shouldExpand() const;
     bool shouldShrink() const;
     void expand(Block acc);
     void shrink(Block acc);
-    void updateOperationRecords(Bucket &bucket, Uint32 bucketIndex);
+    void updateOperationRecords(Block acc, Bucket &bucket, Uint32 bucketIndex);
     static constexpr size_t MAX_NUMBER_OF_BUCKETS =
         (NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES / sizeof(Bucket));
     static constexpr Uint64 HIGH_NUMBER_OF_ENTRIES_PER_BUCKET = 18;
@@ -106,7 +105,6 @@ private:
     void validateCursor(CBlock acc, Cursor& cursor) const;
     void validateBucket(CBlock acc, Bucket& bucket, Uint32 bucketIndex) const;
     void progError(int line, int err_code, const char* extra, const char* check) const;
-    EmulatedJamBuffer* jamBuffer() const;
     void debug_dump_root() const;
     void debug_dump_bucket(Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const;
 
@@ -114,8 +112,6 @@ private:
     Uint32 m_numberOfBuckets;
     Bucket* m_buckets; // todoas Eventually, use some kind of dynamic array
     Uint64 m_numberOfEntries;
-    Block m_bptr;
-    Uint32 m_threadId;
     Uint32 m_dbg_tableId;
     Uint32 m_dbg_fragId;
     Uint32 m_dbg_inx;
