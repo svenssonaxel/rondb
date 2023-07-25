@@ -115,8 +115,8 @@ void Hast::Root::initialize(Block acc,
   m_dbg_tableId = dbg_tableId;
   m_dbg_fragId = dbg_fragId;
   m_dbg_inx = dbg_inx;
-  validateAll(acc);
   jamDebug();
+  validateAll(acc);
   DEB_HAST("initialize() done");
 }
 
@@ -335,12 +335,14 @@ void Hast::Root::insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, V
   bucket.m_entries = newEntries;
   bucket.m_numberOfEntries++;
   m_numberOfEntries++;
+  jamDebug();
   validateAll(acc);
   DEB_HAST("After insertEntryIntoBucket, entry hash=%08x, value=%016llx, valueptr=%p", newEntries[bucket.m_numberOfEntries - 1].m_hash, newEntries[bucket.m_numberOfEntries - 1].m_value, &newEntries[bucket.m_numberOfEntries - 1].m_value);
 }
 
 // todoas do not crash on OOM. Also, we must always be able to delete.
 void* Hast::Root::seize_mem(Block acc, size_t size) {
+  jamDebug();
   validateB(acc);
   // todoas Do I really need getThreadId() here, or can I use 0?
   void* ret = lc_ndbd_pool_malloc(size, RG_DATAMEM, acc->getThreadId(), false);
