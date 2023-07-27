@@ -1524,6 +1524,10 @@ void Dbacc::execACCKEYREQ(Signal* signal,
           HastValueInterpretation hvi;
           jamDebug();
           hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
+          if(hvi.elementHeader != eh) {
+            g_eventLogger->info("FAILED CHECK: hvi.elementHeader=%08x but eh=%08x",
+                                hvi.elementHeader, eh);
+          }
           ndbassert(hvi.elementHeader == eh);
 
           operationRecPtr.p->reducedHashValue =
@@ -3198,7 +3202,9 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
     HastValueInterpretation hvi;
     jamDebug();
 
+    #ifdef DEBUG_HAST
     g_eventLogger->info("execACCMINUPDATE: Before hast.getValue(this, operationRecPtr.p->m_hastCursor); operation-recPtr.i=%d", operationRecPtr.i);
+    #endif
 
     hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
     hvi.elementBody = localkey.m_page_no;

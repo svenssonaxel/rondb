@@ -165,7 +165,6 @@ Uint32 Hast::Root::computeBucketIndex(CBlock acc, Uint32 hash, Uint32 numberOfBu
   }
   Uint32 bucketIndex = usableHash & mask;
   ndbassert(bucketIndex < numberOfBuckets);
-  DEB_HAST("computeBucketIndex(hash=%08x, numberOfBuckets=%04x) -> %04x", hash, numberOfBuckets, bucketIndex);
   return bucketIndex;
 }
 
