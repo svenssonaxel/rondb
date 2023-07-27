@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -81,12 +82,6 @@ struct Local_key
   bool isInvalid() const
   {
     return m_page_no == INVALID_PAGE_NO;
-  }
-  /**
-   * Can the local key be saved in one Uint32
-   */
-  static bool isShort(Uint32 pageId) {
-    return pageId < (1 << (32 - MAX_TUPLES_BITS));
   }
 };
 
