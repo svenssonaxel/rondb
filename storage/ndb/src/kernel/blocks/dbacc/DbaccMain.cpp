@@ -1438,13 +1438,14 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   // Hast version of getElement, for comparison.
   // hastGetElement will write to arguments only.
   // hastLocalkey is written to instead of operationRecPtr.p->localdata
+  Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
   Hast& hast = fragrecptr.p->hastTable;
   OperationrecPtr hastLockOwnerPtr;
   Local_key hastLocalkey;
   hastGetElement(hast,
                  req->keyInfo,
                  *fragrecptr.p,
-                 operationRecPtr.p->m_hastCursor,
+                 hastCursor,
                  hastLockOwnerPtr,
                  hastLocalkey);
 
@@ -1489,7 +1490,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   Uint32 op = opbits & Operationrec::OP_MASK;
   if (found == ZTRUE) 
   {
-    ndbassert(hast.isEntryCursor(this, operationRecPtr.p->m_hastCursor));
+    ndbassert(hastCursor.isEntryCursor(this));
     ndbassert(hastLockOwnerPtr.i == lockOwnerPtr.i);
     ndbassert(hastLockOwnerPtr.p == lockOwnerPtr.p);
     ndbassert(hastLocalkey.m_page_no == operationRecPtr.p->localdata.m_page_no);
@@ -1521,14 +1522,16 @@ void Dbacc::execACCKEYREQ(Signal* signal,
           Uint32 eh = elemPageptr.p->word32[elemptr];
 
           // Hast
-          HastValueInterpretation hvi;
           jamDebug();
-          hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
-          if(hvi.elementHeader != eh) {
-            g_eventLogger->info("FAILED CHECK: hvi.elementHeader=%08x but eh=%08x",
-                                hvi.elementHeader, eh);
+          ndbassert(hastCursor.getLocked(this) == ElementHeader::getLocked(eh));
+          if(hastCursor.getLocked(this))
+          {
+            ndbassert(hastCursor.getOpptriWhenLocked(this) == ElementHeader::getOpPtrI(eh));
           }
-          ndbassert(hvi.elementHeader == eh);
+          else
+          {
+            ndbassert(hastCursor.getPageidxWhenUnlocked(this) == ElementHeader::getPageIdx(eh));
+          }
 
           operationRecPtr.p->reducedHashValue =
             ElementHeader::getReducedHashValue(eh);
@@ -1549,8 +1552,10 @@ void Dbacc::execACCKEYREQ(Signal* signal,
            * using query threads.
            */
           elemPageptr.p->word32[elemptr] = eh;
-          hvi.elementHeader = eh;
-          hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
+
+          // Hast
+          hastCursor.setLockedOpptriWhenUnlocked(this, operationRecPtr.i);
+
 #ifdef DEB_LOCK_TRANS
           Uint32 tcOprec;
           Uint32 tcBlockref;
@@ -1615,7 +1620,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   }
   else if (found == ZFALSE)
   {
-    ndbassert(hast.isInsertCursor(this, operationRecPtr.p->m_hastCursor));
+    ndbassert(hastCursor.isInsertCursor(this));
     switch (op){
     case ZWRITE:
       jamDebug();
@@ -1633,7 +1638,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
                        bucketPageptr,
                        bucketConidx,
                        hash,
-                       operationRecPtr.p->m_hastCursor);
+                       hastCursor);
       return;
     case ZREAD:
     case ZUPDATE:
@@ -2307,19 +2312,11 @@ void Dbacc::insertelementLab(Signal* signal,
                 false);
 
   // Insert into hast
-  HastValueInterpretation hvi;
-  hvi.elementHeader = tidrElemhead;
-  hvi.elementBody = localKey.m_page_no;
-  Hast& hast = fragrecptr.p->hastTable;
   jamDebug();
-  jamDataDebug(operationRecPtr.i);
-  jamDataDebug(operationRecPtr.i>>16);
-  jamDataDebug(hvi.elementHeader);
-  jamDataDebug(hvi.elementHeader>>16);
-  jamDataDebug(hvi.elementBody);
-  jamDataDebug(hvi.elementBody>>16);
-  jamDataDebug(hvi.hastValue);
-  hast.insertEntry(this, hastCursor, hvi.hastValue);
+  hastCursor.insertLockedOpptriPagenoPageidx(this,
+                                             operationRecPtr.i,
+                                             localKey.m_page_no,
+                                             localKey.m_page_idx);
 
 #ifdef DEB_LOCK_TRANS
   Uint32 tcOprec;
@@ -2525,11 +2522,10 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
     vlqrequire(ElementHeader::getOpPtrI(eh) == loPtr.i);
 
     // Validate element header in Hast
-    Hast& hast = fragrecptr.p->hastTable;
-    HastValueInterpretation hvi;
     jamDebug();
-    hvi.hastValue = hast.getValue(this, loPtr.p->m_hastCursor);
-    vlqrequire(hvi.elementHeader == eh);
+    Hast::Cursor& hastCursor = loPtr.p->m_hastCursor;
+    vlqrequire(hastCursor.getLocked(this));
+    vlqrequire(hastCursor.getOpptriWhenLocked(this) == loPtr.i);
   }
 
   // 2 Lock owner should always have same LOCK_MODE and ACC_LOCK_MODE
@@ -3198,17 +3194,15 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
     ulkPageidptr.p->word32[tulkLocalPtr] = localkey.m_page_no;
 
     // Update in hast
-    Hast& hast = fragrecptr.p->hastTable;
-    HastValueInterpretation hvi;
     jamDebug();
-
-    #ifdef DEBUG_HAST
-    g_eventLogger->info("execACCMINUPDATE: Before hast.getValue(this, operationRecPtr.p->m_hastCursor); operation-recPtr.i=%d", operationRecPtr.i);
-    #endif
-
-    hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
-    hvi.elementBody = localkey.m_page_no;
-    hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
+    Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
+    hastCursor.setPageidxPagenoWhenLocked(this, localkey.m_page_idx, localkey.m_page_no);
+    Uint32 dbg_eh = ulkPageidptr.p->word32[operationRecPtr.p->elementPointer];
+    //
+    ndbassert(ElementHeader::getLocked(dbg_eh));
+    ndbassert(hastCursor.getOpptriWhenLocked(this) == opPtrI);
+    ndbassert(hastCursor.getPageidxWhenLocked(this) == localkey.m_page_idx);
+    ndbassert(hastCursor.getPagenoWhenLocked(this) == localkey.m_page_no);
 
     release_frag_mutex_hash(fragrecptr.p, hash);
     return;
@@ -4221,7 +4215,7 @@ Dbacc::find_key_operation(Ptr<Operationrec> opPtr, bool invalid_local_key)
 Uint32
 Dbacc::readTablePk(Uint32 localkey1,
                    Uint32 localkey2,
-                   Uint32 eh,
+                   bool isLocked,
                    Ptr<Operationrec> opPtr,
                    Uint32 *keys,
                    bool xfrm)
@@ -4285,7 +4279,7 @@ Dbacc::readTablePk(Uint32 localkey1,
      * keyInfoIVal is not released before the ACC operation is removed. Thus
      * it is safe to check the keyInfoIVal also for query threads from here.
      */
-    ndbrequire(ElementHeader::getLocked(eh));
+    ndbrequire(isLocked);
     Uint32 lqhOpPtr = find_key_operation(opPtr, invalid_local_key);
     if (lqhOpPtr == RNIL)
     {
@@ -4454,7 +4448,7 @@ Dbacc::getElement(const AccKeyReq* signal,
             const bool xfrm = false;
             Uint32 len = readTablePk(localkey.m_page_no,
                                      localkey.m_page_idx,
-                                     tgeElementHeader,
+                                     ElementHeader::getLocked(tgeElementHeader),
                                      lockOwnerPtr,
                                      &keys[0],
                                      xfrm);
@@ -4537,7 +4531,7 @@ Dbacc::getElement(const AccKeyReq* signal,
  * @param[out]  localkey       The found local key.
  * ------------------------------------------------------------------------- */
 void
-Dbacc::hastGetElement(const Hast& hast,
+Dbacc::hastGetElement(Hast& hast,
                       const Uint32 *keydata, /* or localKey if keyLen == 0 */
                       const Fragmentrec& fragrec,
                       Hast::Cursor& cursor,
@@ -4545,7 +4539,7 @@ Dbacc::hastGetElement(const Hast& hast,
                       Local_key& localkey)
 {
   ndbrequire(fragrec.localkeylen == 1);
-  const Uint32 hash = operationRecPtr.p->hashValue.pack();
+  Uint32 hash = operationRecPtr.p->hashValue.pack();
   // Use the Hast implementation to get a cursor to the first entry with
   // matching hash if such exists.
   cursor = hast.getCursorFirst(this, hash);
@@ -4560,17 +4554,15 @@ Dbacc::hastGetElement(const Hast& hast,
     Uint64 keys_align;
   };
   (void)keys_align;
-  while(hast.isEntryCursor(this, cursor))
+  while(cursor.isEntryCursor(this))
   {
-    HastValueInterpretation hvi;
     jamDebug();
-    hvi.hastValue = hast.getValue(this, cursor);
     lockOwnerPtr.i = RNIL;
     lockOwnerPtr.p = NULL;
-    if (ElementHeader::getLocked(hvi.elementHeader))
+    if (cursor.getLocked(this))
     {
       jamDebug();
-      lockOwnerPtr.i = ElementHeader::getOpPtrI(hvi.elementHeader);
+      lockOwnerPtr.i = cursor.getOpptriWhenLocked(this);
       /**
        * We need to get the operation record of the lock owner.
        * Since we can be the query thread we cannot access it directly
@@ -4585,8 +4577,8 @@ Dbacc::hastGetElement(const Hast& hast,
     else
     {
       jamDebug();
-      localkey.m_page_no = hvi.elementBody;
-      localkey.m_page_idx = ElementHeader::getPageIdx(hvi.elementHeader);
+      localkey.m_page_no = cursor.getPagenoWhenUnlocked(this);
+      localkey.m_page_idx = cursor.getPageidxWhenUnlocked(this);
     }
     bool found;
     if (! searchLocalKey)
@@ -4594,7 +4586,7 @@ Dbacc::hastGetElement(const Hast& hast,
       const bool xfrm = false;
       Uint32 len = readTablePk(localkey.m_page_no,
                                localkey.m_page_idx,
-                               hvi.elementHeader,
+                               cursor.getLocked(this),
                                lockOwnerPtr,
                                &keys[0],
                                xfrm);
@@ -4633,7 +4625,7 @@ Dbacc::hastGetElement(const Hast& hast,
       return;
     }
     // Not found, so ask for the next entry if such exists
-    hast.cursorNext(this, cursor);
+    cursor.next(this);
   }
   // We found no matching entry, so cursor contains an insert cursor.
   // todoas do we want to lockOwnerPtr.i = RNIL; lockOwnerPtr.p = NULL; ?
@@ -5768,13 +5760,14 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
         aboPageidptr.p->word32[taboElementptr] = tmp2Olq;
 
         // Hast
-        Hast& hast = fragrecptr.p->hastTable;
-        HastValueInterpretation hvi;
         jamDebug();
-        hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
-        hvi.elementHeader = tmp2Olq;
-        hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
-        // Todoas these 4-5 lines for setting something through a cursor should probbably be one function call. Expand the cursor interface with functions for getting and setting the fields, at least individually.
+        Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
+        hastCursor.setUnlocked(this);
+        ndbassert(!ElementHeader::getLocked(aboPageidptr.p->word32[taboElementptr]));
+        ndbassert(hastCursor.getPageidxWhenUnlocked(this) ==
+                  ElementHeader::getPageIdx(aboPageidptr.p->word32[taboElementptr]));
+        ndbassert(hastCursor.getPagenoWhenUnlocked(this) ==
+                  aboPageidptr.p->word32[taboElementptr + 1]);
 
         release_frag_mutex_hash(fragrecptr.p, hash);
         jam();
@@ -5783,7 +5776,7 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
       else 
       {
         commitdelete(signal);
-        fragrecptr.p->hastTable.deleteEntry(this, operationRecPtr.p->m_hastCursor);
+        operationRecPtr.p->m_hastCursor.deleteEntry(this);
         release_frag_mutex_hash(fragrecptr.p, hash);
         jam();
         trigger_dealloc(signal, operationRecPtr.p);
@@ -5960,13 +5953,15 @@ void Dbacc::commitOperation(Signal* signal)
       arrGuard(tcoElementptr, 2048);
       coPageidptr.p->word32[tcoElementptr] = tmp2Olq;
 
-      // Update in hast
-      Hast& hast = fragrecptr.p->hastTable;
-      HastValueInterpretation hvi;
+      // Hast
       jamDebug();
-      hvi.hastValue = hast.getValue(this, operationRecPtr.p->m_hastCursor);
-      hvi.elementHeader = tmp2Olq;
-      hast.setValue(this, operationRecPtr.p->m_hastCursor, hvi.hastValue);
+      Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
+      hastCursor.setUnlocked(this);
+      ndbassert(!ElementHeader::getLocked(coPageidptr.p->word32[tcoElementptr]));
+      ndbassert(hastCursor.getPageidxWhenUnlocked(this) ==
+                ElementHeader::getPageIdx(coPageidptr.p->word32[tcoElementptr]));
+      ndbassert(hastCursor.getPagenoWhenUnlocked(this) ==
+                coPageidptr.p->word32[tcoElementptr + 1]);
 
       release_frag_mutex_hash(fragrecptr.p, hash);
       jam();
@@ -6000,7 +5995,7 @@ void Dbacc::commitOperation(Signal* signal)
        * We perform the actual delete operation.
        */
       commitdelete(signal);
-      fragrecptr.p->hastTable.deleteEntry(this, operationRecPtr.p->m_hastCursor);
+      operationRecPtr.p->m_hastCursor.deleteEntry(this);
       release_frag_mutex_hash(fragrecptr.p, hash);
       jam();
       trigger_dealloc(signal, operationRecPtr.p);
@@ -6332,12 +6327,11 @@ Dbacc::release_lockowner(Signal* signal,
     pagePtr.p->word32[newOwner.p->elementPointer] = tmp;
 
     // Update Hast
-    Hast& hast = fragrecptr.p->hastTable;
-    HastValueInterpretation hvi;
     jamDebug();
-    hvi.hastValue = hast.getValue(this, newOwner.p->m_hastCursor);
-    hvi.elementHeader = tmp;
-    hast.setValue(this, newOwner.p->m_hastCursor, hvi.hastValue);
+    Hast::Cursor& newOwnerHastCursor = newOwner.p->m_hastCursor;
+    newOwnerHastCursor.setOpptriWhenLocked(this, newOwner.i);
+    ndbassert(newOwnerHastCursor.getOpptriWhenLocked(this) ==
+              ElementHeader::getOpPtrI(pagePtr.p->word32[newOwner.p->elementPointer]));
 
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
     /**
@@ -6349,8 +6343,7 @@ Dbacc::release_lockowner(Signal* signal,
         newOwner.p->localdata.m_page_no;
 
       // Hast
-      hvi.elementBody = newOwner.p->localdata.m_page_no;
-      hast.setValue(this, newOwner.p->m_hastCursor, hvi.hastValue);
+      newOwner.p->m_hastCursor.setPagenoWhenLocked(this, newOwner.p->localdata.m_page_no);
     }
     else
     {
@@ -6358,7 +6351,8 @@ Dbacc::release_lockowner(Signal* signal,
                    pagePtr.p->word32[newOwner.p->elementPointer+1]);
 
       // Hast
-      ndbrequire(newOwner.p->localdata.m_page_no == hvi.elementBody);
+      ndbrequire(newOwner.p->localdata.m_page_no ==
+                 newOwner.p->m_hastCursor.getPagenoWhenLocked(this));
     }
 #endif
   }

@@ -35,18 +35,87 @@ class Dbacc;
 class Hast {
 
   // Utility types
+private:
+  class Value {
+    friend class Hast;
+  private:
+    // 31 bit Operation Pointer I-value
+    Uint32 m_opptri;
+    // 13 bit Dbtup page index
+    Uint16 m_pageidx;
+    // 32 bit Dbtup page number
+    Uint32 m_pageno;
+    // 1 bit locked status
+    bool m_locked;
+  };
+  class Root;
 public:
   typedef Uint32 Hash;
-  typedef Uint64 Value; // todoas 32 for page id + 13 bits for page idx, + 1 bit for locked status, so perhaps only guarantee 46 or 48 bits. Some implementation might want to pack it in 6 bytes and use 1 bit for presence tracking, so 47 bits.
   typedef Dbacc* Block;
   typedef const Dbacc* CBlock;
   class Cursor {
     friend class Hast;
+  public:
+    // A cursor can be
+    // - Insert cursor: Not pointing to any entry but usable for inserting one
+    // - Entry cursor: Pointing to an entry
+    //   - Unlocked cursor: Pointing to an entry that is not locked
+    //   - Locked cursor: Pointing to an entry that is locked
+
+    // Return true if the cursor is an insert cursor.
+    bool isInsertCursor(CBlock acc) const;
+    // Return true if the cursor is an entry cursor.
+    bool isEntryCursor(CBlock acc) const;
+
+    /*
+     * Methods for insert cursors:
+     */
+    void insertLockedOpptriPagenoPageidx(Block acc,
+                                         Uint32 opptri,
+                                         Uint32 pageno,
+                                         Uint32 pageidx);
+
+    /*
+     * Methods for entry cursors:
+     */
+    // Given an entry cursor, make it point to the next entry for the same hash
+    // if such exists, otherwise make it an insert cursor for that hash.
+    void next(CBlock acc);
+    // Return true if the entry is locked.
+    bool getLocked(CBlock acc) const;
+    // Delete the entry and invalidate the cursor.
+    void deleteEntry(Block acc);
+
+    /*
+     * Methods for unlocked cursors:
+     */
+    Uint16 getPageidxWhenUnlocked(CBlock acc) const;
+    Uint32 getPagenoWhenUnlocked(CBlock acc) const;
+    void setLockedOpptriWhenUnlocked(CBlock acc, Uint32 opptri);
+    void setPagenoWhenUnlocked(CBlock acc, Uint32 pageno);
+    /*
+     * Methods for locked cursors:
+     */
+    Uint32 getOpptriWhenLocked(CBlock acc) const;
+    Uint16 getPageidxWhenLocked(CBlock acc) const;
+    Uint32 getPagenoWhenLocked(CBlock acc) const;
+    void setOpptriWhenLocked(CBlock acc, Uint32 opptri);
+    void setPagenoWhenLocked(CBlock acc, Uint32 pageno);
+    void setPageidxPagenoWhenLocked(CBlock acc, Uint16 pageidx, Uint32 pageno);
+    void setUnlocked(CBlock acc);
   private:
+    void validateCursor(CBlock acc) const;
+    void validateInsertCursor(CBlock acc) const;
+    void validateEntryCursor(CBlock acc) const;
+    void validateLockedCursor(CBlock acc) const;
+    void validateUnlockedCursor(CBlock acc) const;
+    static void progError(int line, int err_code, const char* extra, const char* check);
     Hash m_hash;
+    Root* m_root;
     Uint32 m_bucketIndex;
     Uint32 m_entryIndex;
     Value* m_valueptr;
+    Value m_dbg_value; // Used for validation
     Uint32 m_valid;
     enum { VALID = 0x7d5be15d,
            INVALID = 0x37f93878
@@ -69,11 +138,9 @@ private:
     friend class Hast;
   private:
     Root();
-    void* seize_mem(Block acc, size_t size);
-    void release_mem(void* ptr);
     void initialize(Block acc, Uint32 dbg_tableId, Uint32 dbg_threadId, Uint32 dbg_inx);
     void release(Block acc);
-    void insertEntryIntoBucket(Block acc, Bucket& bucket, Uint32 hash, Value value);
+    void insertEntryIntoBucket(CBlock acc, Bucket& bucket, Uint32 hash, Value value);
     Uint32 computeBucketIndex(CBlock acc, Hash hash, Uint32 numberOfBuckets) const;
     Uint32 siblingBucketIndex(Block acc, Uint32 bucketIndex) const;
     // todoas expose expanding/shrinking and make async
@@ -82,29 +149,19 @@ private:
     void expand(Block acc);
     void shrink(Block acc);
     void updateOperationRecords(Block acc, Bucket &bucket, Uint32 bucketIndex);
+    static void progError(int line, int err_code, const char* extra, const char* check);
     static constexpr size_t MAX_NUMBER_OF_BUCKETS =
         (NDBD_MALLOC_MAX_MEMORY_ALLOC_SIZE_IN_BYTES / sizeof(Bucket));
     static constexpr Uint64 HIGH_NUMBER_OF_ENTRIES_PER_BUCKET = 18;
     static constexpr Uint64 LOW_NUMBER_OF_ENTRIES_PER_BUCKET = 14;
 
     // Proxied from public interface
-    bool isEntryCursor(CBlock acc, Cursor& cursor) const;
-    bool isInsertCursor(CBlock acc, Cursor& cursor) const;
-    Cursor getCursorFirst(Block acc, Hash hash) const;
-    void cursorNext(Block acc, Cursor& cursor) const;
-    Value getValue(CBlock acc, Cursor& cursor) const;
-    void setValue(Block acc, Cursor& cursor, Value value);
-    void insertEntry(Block acc, Cursor& cursor, Value value);
-    void deleteEntry(Block acc, Cursor& cursor);
+    Cursor getCursorFirst(Block acc, Hash hash);
 
     // Validation & debugging
-    void validateAll(CBlock acc) const;
-    void validateHastRoot(CBlock acc) const;
+    void validateRoot(CBlock acc) const;
     void validateB(CBlock acc) const;
-    void validateValue(CBlock acc, Value value) const;
-    void validateCursor(CBlock acc, Cursor& cursor) const;
     void validateBucket(CBlock acc, Bucket& bucket, Uint32 bucketIndex) const;
-    void progError(int line, int err_code, const char* extra, const char* check) const;
     void debug_dump_root(CBlock acc) const;
     void debug_dump_bucket(CBlock acc,
                            Bucket& bucket,
@@ -125,25 +182,9 @@ private:
 public:
   void initialize(Block acc, Uint32 dbg_tableId, Uint32 dbg_threadId);
   void release(Block acc);
-  bool isEntryCursor(CBlock acc, Cursor& cursor) const;
-  bool isInsertCursor(CBlock acc, Cursor& cursor) const;
   // Given a hash, return a cursor pointing to the first entry for that hash if
   // such exists, otherwise an insert cursor for that hash.
-  // A cursor is valid for as long as the lock is held and there is no call to
-  // insertEntry or deleteEntry.
-  Cursor getCursorFirst(Block acc, Hash hash) const;
-  // Given a cursor pointing to an entry, make it point to the next entry for
-  // the same hash if such exists, otherwise make it an insert cursor for
-  // that hash.
-  void cursorNext(Block acc, Cursor& cursor) const;
-  // Given a cursor pointing to an entry, get the value of that entry.
-  Value getValue(CBlock acc, Cursor& cursor) const;
-  // Given a cursor pointing to an entry, set the value of that entry.
-  void setValue(Block acc, Cursor& cursor, Value value);
-  // Given an insert cursor, insert an entry with the given value.
-  void insertEntry(Block acc, Cursor& cursor, Value value);
-  // Given a cursor pointing to an entry, delete that entry.
-  void deleteEntry(Block acc, Cursor& cursor);
+  Cursor getCursorFirst(Block acc, Hash hash);
 
   // Internals
 private:
@@ -151,6 +192,11 @@ private:
   const Root& getRoot(Hash hash) const;
   Root& getRoot(Cursor& cursor);
   const Root& getRoot(Cursor& cursor) const;
+  static void* seize_mem(CBlock acc, size_t size);
+  static void release_mem(void* ptr);
+  static void progError(int line, int err_code, const char* extra, const char* check);
+  void validateAll(CBlock acc) const;
+  static void validateValue(CBlock acc, const Value& value);
 
   // Data
   Root m_roots[4];
