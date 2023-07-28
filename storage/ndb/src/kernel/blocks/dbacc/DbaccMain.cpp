@@ -3166,6 +3166,7 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
   jamEntry();
   localkey.m_page_no = page_no;
   localkey.m_page_idx = page_idx;
+  localkey.m_file_no = 0;
   Uint32 opbits = operationRecPtr.p->m_op_bits;
   fragrecptr.i = operationRecPtr.p->fragptr;
   ulkPageidptr.i = operationRecPtr.p->elementPage;//✓hast
