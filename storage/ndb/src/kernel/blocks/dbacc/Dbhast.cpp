@@ -177,18 +177,16 @@ Uint32 Hast::Root::siblingBucketIndex(Block acc, Uint32 bucketIndex) const {
 }
 
 Hast::Cursor Hast::getCursorFirst(Block acc, Uint32 hash) {
-  return getRoot(hash).getCursorFirst(acc, hash);
-}
-Hast::Cursor Hast::Root::getCursorFirst(Block acc, Uint32 hash) {
   hastJamDebug();
-  validateRoot(acc);
+  Root* root = &m_roots[hash & 3];
+  root->validateRoot(acc);
   Cursor cursor = Cursor();
   cursor.m_hash = hash;
-  cursor.m_root = this;
-  cursor.m_bucketIndex = computeBucketIndex(acc, hash, m_numberOfBuckets);
+  cursor.m_root = root;
+  cursor.m_bucketIndex = root->computeBucketIndex(acc, hash, root->m_numberOfBuckets);
   cursor.m_entryIndex = 0;
   cursor.m_valueptr = nullptr;
-  Bucket& bucket = m_buckets[cursor.m_bucketIndex];
+  Bucket& bucket = root->m_buckets[cursor.m_bucketIndex];
   while (cursor.m_entryIndex < bucket.m_numberOfEntries) {
     if (bucket.m_entries[cursor.m_entryIndex].m_hash == hash) {
       cursor.m_valueptr = &bucket.m_entries[cursor.m_entryIndex].m_value;
@@ -198,6 +196,14 @@ Hast::Cursor Hast::Root::getCursorFirst(Block acc, Uint32 hash) {
   }
   cursor.m_valid = Hast::Cursor::VALID;
   DEB_HASTC("<- getCursorFirst(hash=%08x)", hash);
+  if (cursor.m_entryIndex < bucket.m_numberOfEntries)
+  {
+    Entry& entry = bucket.m_entries[cursor.m_entryIndex];
+    if (entry.m_value.m_locked)
+    {
+      cursor.m_dbg_value = entry.m_value;
+    }
+  }
   return cursor;
 }
 
@@ -216,12 +222,21 @@ void Hast::Cursor::next(CBlock acc) {
     }
     m_entryIndex++;
   }
+  m_dbg_value = Value();
+  if (m_entryIndex < bucket.m_numberOfEntries)
+  {
+    Entry& entry = bucket.m_entries[m_entryIndex];
+    if (entry.m_value.m_locked)
+    {
+      m_dbg_value = entry.m_value;
+    }
+  }
   DEB_HASTC(": End cursorNext()");
 }
 
 bool Hast::Cursor::getLocked(CBlock acc) const {
   hastJamDebug();
-  validateLockedCursor(acc);
+  validateEntryCursor(acc);
   return m_valueptr->m_locked;
 }
 Uint32 Hast::Cursor::getOpptriWhenLocked(CBlock acc) const {
@@ -319,6 +334,7 @@ void Hast::Cursor::insertLockedOpptriPagenoPageidx(Block acc,
   Hast::validateValue(acc, value);
   m_root->insertEntryIntoBucket(acc, bucket, m_hash, value);
   DEB_HASTC(": insertEntry(opptri=%08x, pageno=%08x, pageidx=%04x): after insertEntryIntoBucket", opptri, pageno, pageidx);
+  m_dbg_value = value;
   m_valueptr = &bucket.m_entries[m_entryIndex].m_value;
   hastJamDebug();
   m_root->updateOperationRecords(acc, bucket, m_bucketIndex);
@@ -552,9 +568,17 @@ void Hast::Root::validateB(CBlock acc) const {
 
 void Hast::validateValue(CBlock acc, const Value& value) {
   ndbassert((value.m_opptri & 0x7fffffff) == value.m_opptri);
-  ndbassert((value.m_pageidx & 0x00001fff) == value.m_pageidx);
-  if(!value.m_locked) {
+  if(!value.m_locked)
+  {
     ndbassert(value.m_opptri == 0);
+  }
+  if(value.m_pageno != Local_key::INVALID_PAGE_NO)
+  {
+    ndbassert((value.m_pageidx & 0x00001fff) == value.m_pageidx);
+  }
+  else
+  {
+    ndbassert(value.m_pageidx == Local_key::INVALID_PAGE_IDX);
   }
 }
 
@@ -674,24 +698,6 @@ void Hast::Root::progError(int line, int err_code, const char* extra, const char
 }
 void Hast::Cursor::progError(int line, int err_code, const char* extra, const char* check) {
   hast_progError(line, err_code, extra, check);
-}
-
-// Hast private
-
-Hast::Root& Hast::getRoot(Hash hash) {
-  return m_roots[hash & 3];
-}
-
-const Hast::Root& Hast::getRoot(Hash hash) const {
-  return m_roots[hash & 3];
-}
-
-Hast::Root& Hast::getRoot(Cursor& cursor) {
-  return m_roots[cursor.m_hash & 3];
-}
-
-const Hast::Root& Hast::getRoot(Cursor& cursor) const {
-  return m_roots[cursor.m_hash & 3];
 }
 
 #undef JAM_FILE_ID

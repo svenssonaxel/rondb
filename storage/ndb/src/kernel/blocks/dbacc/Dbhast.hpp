@@ -155,9 +155,6 @@ private:
     static constexpr Uint64 HIGH_NUMBER_OF_ENTRIES_PER_BUCKET = 18;
     static constexpr Uint64 LOW_NUMBER_OF_ENTRIES_PER_BUCKET = 14;
 
-    // Proxied from public interface
-    Cursor getCursorFirst(Block acc, Hash hash);
-
     // Validation & debugging
     void validateRoot(CBlock acc) const;
     void validateB(CBlock acc) const;
@@ -188,10 +185,6 @@ public:
 
   // Internals
 private:
-  Root& getRoot(Hash hash);
-  const Root& getRoot(Hash hash) const;
-  Root& getRoot(Cursor& cursor);
-  const Root& getRoot(Cursor& cursor) const;
   static void* seize_mem(CBlock acc, size_t size);
   static void release_mem(void* ptr);
   static void progError(int line, int err_code, const char* extra, const char* check);
