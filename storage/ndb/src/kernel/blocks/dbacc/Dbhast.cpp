@@ -190,20 +190,13 @@ Hast::Cursor Hast::getCursorFirst(Block acc, Uint32 hash) {
   while (cursor.m_entryIndex < bucket.m_numberOfEntries) {
     if (bucket.m_entries[cursor.m_entryIndex].m_hash == hash) {
       cursor.m_valueptr = &bucket.m_entries[cursor.m_entryIndex].m_value;
+      cursor.m_dbg_value = *cursor.m_valueptr;
       break;
     }
     cursor.m_entryIndex++;
   }
   cursor.m_valid = Hast::Cursor::VALID;
   DEB_HASTC("<- getCursorFirst(hash=%08x)", hash);
-  if (cursor.m_entryIndex < bucket.m_numberOfEntries)
-  {
-    Entry& entry = bucket.m_entries[cursor.m_entryIndex];
-    if (entry.m_value.m_locked)
-    {
-      cursor.m_dbg_value = entry.m_value;
-    }
-  }
   return cursor;
 }
 
@@ -215,21 +208,14 @@ void Hast::Cursor::next(CBlock acc) {
   Bucket& bucket = m_root->m_buckets[m_bucketIndex];
   m_entryIndex++;
   m_valueptr = nullptr;
+  m_dbg_value = Value();
   while (m_entryIndex < bucket.m_numberOfEntries) {
     if (bucket.m_entries[m_entryIndex].m_hash == m_hash) {
       m_valueptr = &bucket.m_entries[m_entryIndex].m_value;
+      m_dbg_value = *m_valueptr;
       break;
     }
     m_entryIndex++;
-  }
-  m_dbg_value = Value();
-  if (m_entryIndex < bucket.m_numberOfEntries)
-  {
-    Entry& entry = bucket.m_entries[m_entryIndex];
-    if (entry.m_value.m_locked)
-    {
-      m_dbg_value = entry.m_value;
-    }
   }
   DEB_HASTC(": End cursorNext()");
 }
@@ -271,14 +257,13 @@ void Hast::Cursor::setLockedOpptriWhenUnlocked(CBlock acc, Uint32 opptri) {
   m_dbg_value.m_locked = true;
   m_valueptr->m_opptri = opptri;
   m_dbg_value.m_opptri = opptri;
-  m_dbg_value.m_pageidx = m_valueptr->m_pageidx;
-  m_dbg_value.m_pageno = m_valueptr->m_pageno;
   validateLockedCursor(acc);
 }
 void Hast::Cursor::setPagenoWhenUnlocked(CBlock acc, Uint32 pageno) {
   hastJamDebug();
   validateUnlockedCursor(acc);
   m_valueptr->m_pageno = pageno;
+  m_dbg_value.m_pageno = pageno;
   validateUnlockedCursor(acc);
 }
 void Hast::Cursor::setUnlocked(CBlock acc) {
@@ -288,8 +273,6 @@ void Hast::Cursor::setUnlocked(CBlock acc) {
   m_dbg_value.m_locked = false;
   m_valueptr->m_opptri = 0;
   m_dbg_value.m_opptri = 0;
-  m_dbg_value.m_pageidx = 0;
-  m_dbg_value.m_pageno = 0;
   validateUnlockedCursor(acc);
 }
 void Hast::Cursor::setPagenoWhenLocked(CBlock acc, Uint32 pageno) {
@@ -599,13 +582,6 @@ void Hast::Cursor::validateInsertCursor(CBlock acc) const {
   ndbassert(m_valueptr == nullptr);
 }
 void Hast::Cursor::validateCursor(CBlock acc) const {
-  //    ✓Hash m_hash;
-  //    ✓Root* m_root;
-  //    ✓Uint32 m_bucketIndex;
-  //    ✓Uint32 m_entryIndex;
-  //    Value* m_valueptr;
-  //    Value m_dbg_value;// Used for validation
-  //    ✓Uint32 m_valid;
   hastJamDebug();
   ndbassert(m_valid == Hast::Cursor::VALID);
   ndbassert(m_root != nullptr);
@@ -637,19 +613,9 @@ void Hast::Cursor::validateCursor(CBlock acc) const {
     ndbassert(m_valueptr == &entry.m_value);
     validateValue(acc, entry.m_value);
     ndbassert(m_dbg_value.m_locked == entry.m_value.m_locked);
-    if(entry.m_value.m_locked)
-    {
-      // Locked entry
-      ndbassert(m_dbg_value.m_opptri == entry.m_value.m_opptri);
-      ndbassert(m_dbg_value.m_pageidx == entry.m_value.m_pageidx);
-      ndbassert(m_dbg_value.m_pageno == entry.m_value.m_pageno);
-    }
-    else
-    {
-      ndbassert(m_dbg_value.m_opptri == 0);
-      ndbassert(m_dbg_value.m_pageidx == 0);
-      ndbassert(m_dbg_value.m_pageno == 0);
-    }
+    ndbassert(m_dbg_value.m_opptri == entry.m_value.m_opptri);
+    ndbassert(m_dbg_value.m_pageidx == entry.m_value.m_pageidx);
+    ndbassert(m_dbg_value.m_pageno == entry.m_value.m_pageno);
   }
 }
 
