@@ -408,7 +408,6 @@ struct Fragmentrec {
     Uint32 fragmentid;
     Uint32 myfid;
   };
-  Uint32 roothashcheck;
   Uint32 m_commit_count;
   State rootState;
   

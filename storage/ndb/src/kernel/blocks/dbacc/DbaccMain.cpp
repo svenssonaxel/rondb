@@ -620,7 +620,6 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
   conf->fragId[1] = RNIL;
   conf->fragPtr[0] = RNIL;
   conf->fragPtr[1] = RNIL;
-  conf->rootHashCheck = fragrecptr.p->roothashcheck;
   sendSignal(retRef, GSN_ACCFRAGCONF, signal, AccFragConf::SignalLength, JBB);
 }//Dbacc::execACCFRAGREQ()
 
@@ -7804,7 +7803,6 @@ void Dbacc::initFragAdd(Signal* signal,
   Uint32 Tmp2 = regFragPtr.p->maxloadfactor - regFragPtr.p->minloadfactor;
   regFragPtr.p->slackCheck = Int64(Tmp1) * Tmp2;
   regFragPtr.p->mytabptr = req->tableId;
-  regFragPtr.p->roothashcheck = req->kValue + req->lhFragBits;
   regFragPtr.p->m_commit_count = 0; // stable results
   
   Uint32 hasCharAttr = g_key_descriptor_pool.getPtr(req->tableId)->hasCharAttr;
