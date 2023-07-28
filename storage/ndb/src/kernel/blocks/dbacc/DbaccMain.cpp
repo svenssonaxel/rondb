@@ -1530,7 +1530,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
           }
           else
           {
-            ndbassert(hastCursor.getPageidxWhenUnlocked(this) == ElementHeader::getPageIdx(eh));
+            ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_idx == ElementHeader::getPageIdx(eh));
           }
 
           operationRecPtr.p->reducedHashValue =
@@ -2313,10 +2313,7 @@ void Dbacc::insertelementLab(Signal* signal,
 
   // Insert into hast
   jamDebug();
-  hastCursor.insertLockedOpptriPagenoPageidx(this,
-                                             operationRecPtr.i,
-                                             localKey.m_page_no,
-                                             localKey.m_page_idx);
+  hastCursor.insertLockedOpptriLk(this, operationRecPtr.i, localKey);
 
 #ifdef DEB_LOCK_TRANS
   Uint32 tcOprec;
@@ -3196,13 +3193,13 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
     // Update in hast
     jamDebug();
     Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
-    hastCursor.setPageidxPagenoWhenLocked(this, localkey.m_page_idx, localkey.m_page_no);
+    hastCursor.setLkWhenLocked(this, localkey);
     Uint32 dbg_eh = ulkPageidptr.p->word32[operationRecPtr.p->elementPointer];
     //
     ndbassert(ElementHeader::getLocked(dbg_eh));
     ndbassert(hastCursor.getOpptriWhenLocked(this) == opPtrI);
-    ndbassert(hastCursor.getPageidxWhenLocked(this) == localkey.m_page_idx);
-    ndbassert(hastCursor.getPagenoWhenLocked(this) == localkey.m_page_no);
+    ndbassert(hastCursor.getLkWhenLocked(this).m_page_no == localkey.m_page_no);
+    ndbassert(hastCursor.getLkWhenLocked(this).m_page_idx == localkey.m_page_idx);
 
     release_frag_mutex_hash(fragrecptr.p, hash);
     return;
@@ -4577,8 +4574,7 @@ Dbacc::hastGetElement(Hast& hast,
     else
     {
       jamDebug();
-      localkey.m_page_no = cursor.getPagenoWhenUnlocked(this);
-      localkey.m_page_idx = cursor.getPageidxWhenUnlocked(this);
+      localkey = cursor.getLkWhenUnlocked(this);
     }
     bool found;
     if (! searchLocalKey)
@@ -5764,9 +5760,9 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
         Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
         hastCursor.setUnlocked(this);
         ndbassert(!ElementHeader::getLocked(aboPageidptr.p->word32[taboElementptr]));
-        ndbassert(hastCursor.getPageidxWhenUnlocked(this) ==
+        ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_idx ==
                   ElementHeader::getPageIdx(aboPageidptr.p->word32[taboElementptr]));
-        ndbassert(hastCursor.getPagenoWhenUnlocked(this) ==
+        ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_no ==
                   aboPageidptr.p->word32[taboElementptr + 1]);
 
         release_frag_mutex_hash(fragrecptr.p, hash);
@@ -5958,9 +5954,9 @@ void Dbacc::commitOperation(Signal* signal)
       Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
       hastCursor.setUnlocked(this);
       ndbassert(!ElementHeader::getLocked(coPageidptr.p->word32[tcoElementptr]));
-      ndbassert(hastCursor.getPageidxWhenUnlocked(this) ==
+      ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_idx ==
                 ElementHeader::getPageIdx(coPageidptr.p->word32[tcoElementptr]));
-      ndbassert(hastCursor.getPagenoWhenUnlocked(this) ==
+      ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_no ==
                 coPageidptr.p->word32[tcoElementptr + 1]);
 
       release_frag_mutex_hash(fragrecptr.p, hash);
@@ -6343,7 +6339,7 @@ Dbacc::release_lockowner(Signal* signal,
         newOwner.p->localdata.m_page_no;
 
       // Hast
-      newOwner.p->m_hastCursor.setPagenoWhenLocked(this, newOwner.p->localdata.m_page_no);
+      newOwner.p->m_hastCursor.setLkWhenLocked(this, newOwner.p->localdata);
     }
     else
     {
@@ -6352,7 +6348,7 @@ Dbacc::release_lockowner(Signal* signal,
 
       // Hast
       ndbrequire(newOwner.p->localdata.m_page_no ==
-                 newOwner.p->m_hastCursor.getPagenoWhenLocked(this));
+                 newOwner.p->m_hastCursor.getLkWhenLocked(this).m_page_no);
     }
 #endif
   }

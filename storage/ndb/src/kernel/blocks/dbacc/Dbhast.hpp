@@ -41,10 +41,10 @@ private:
   private:
     // 31 bit Operation Pointer I-value
     Uint32 m_opptri;
-    // 13 bit Dbtup page index
-    Uint16 m_pageidx;
-    // 32 bit Dbtup page number
-    Uint32 m_pageno;
+    // Local key from kernel_types, from which we use
+    // - 13 bit Dbtup page index (m_page_idx)
+    // - 32 bit Dbtup page number (m_page_no)
+    Local_key m_lk;
     // 1 bit locked status
     bool m_locked;
   };
@@ -70,10 +70,7 @@ public:
     /*
      * Methods for insert cursors:
      */
-    void insertLockedOpptriPagenoPageidx(Block acc,
-                                         Uint32 opptri,
-                                         Uint32 pageno,
-                                         Uint32 pageidx);
+    void insertLockedOpptriLk(Block acc, Uint32 opptri, Local_key lk);
 
     /*
      * Methods for entry cursors:
@@ -89,19 +86,16 @@ public:
     /*
      * Methods for unlocked cursors:
      */
-    Uint16 getPageidxWhenUnlocked(CBlock acc) const;
-    Uint32 getPagenoWhenUnlocked(CBlock acc) const;
+    Local_key getLkWhenUnlocked(CBlock acc) const;
     void setLockedOpptriWhenUnlocked(CBlock acc, Uint32 opptri);
-    void setPagenoWhenUnlocked(CBlock acc, Uint32 pageno);
+    void setLkWhenUnlocked(CBlock acc, Local_key lk);
     /*
      * Methods for locked cursors:
      */
     Uint32 getOpptriWhenLocked(CBlock acc) const;
-    Uint16 getPageidxWhenLocked(CBlock acc) const;
-    Uint32 getPagenoWhenLocked(CBlock acc) const;
+    Local_key getLkWhenLocked(CBlock acc) const;
     void setOpptriWhenLocked(CBlock acc, Uint32 opptri);
-    void setPagenoWhenLocked(CBlock acc, Uint32 pageno);
-    void setPageidxPagenoWhenLocked(CBlock acc, Uint16 pageidx, Uint32 pageno);
+    void setLkWhenLocked(CBlock acc, Local_key lk);
     void setUnlocked(CBlock acc);
   private:
     void validateCursor(CBlock acc) const;
