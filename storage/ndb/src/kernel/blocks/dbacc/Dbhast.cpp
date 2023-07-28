@@ -44,23 +44,24 @@ static_assert(NUM_ACC_FRAGMENT_MUTEXES == 4);
         acc->getThreadId(), \
         ##__VA_ARGS__); \
   } while (0)
-#define DEB_HASTC(msg, ...) do { \
+#define DEB_HASTC(msg, ...) DEB_HASTCA(this, msg, ##__VA_ARGS__)
+#define DEB_HASTCA(cursor, msg, ...) do { \
     g_eventLogger->info \
       ( \
         "DEBUG Dbhast.cpp:%3d Table %04x, Fragment %04x, Root %x, Thread %u, Cursor(m_bucketIndex=%04x, m_entryIndex=%04x, m_hash=%08x, m_valid=%s %08x, m_valueptr=%p)" msg, \
         __LINE__, \
-        m_dbg_tableId, \
-        m_dbg_fragId, \
-        m_dbg_inx, \
+        cursor->m_root->m_dbg_tableId, \
+        cursor->m_root->m_dbg_fragId, \
+        cursor->m_root->m_dbg_inx, \
         acc->getThreadId(), \
-        m_bucketIndex, \
-        m_entryIndex, \
-        m_hash, \
-        (m_valid == Cursor::VALID ? "YES" : \
-         (m_valid == Cursor::INVALID ? "NO!" : "???")),  \
-        m_valid, \
-        m_valueptr, \
-        ##__VA_ARGS__); \
+        cursor->m_bucketIndex, \
+        cursor->m_entryIndex, \
+        cursor->m_hash, \
+        (cursor->m_valid == Cursor::VALID ? "YES" : \
+         (cursor->m_valid == Cursor::INVALID ? "NO!" : "???")),  \
+        cursor->m_valid, \
+        cursor->m_valueptr, \
+        ##__VA_ARGS__ ); \
   } while (0)
 void Hast::Root::debug_dump_root(CBlock acc) const {
   DEB_HAST("Dumping Root %u: m_numberOfBuckets=%u, m_numberOfEntries=%llu", m_dbg_inx, m_numberOfBuckets, m_numberOfEntries);
@@ -71,13 +72,22 @@ void Hast::Root::debug_dump_root(CBlock acc) const {
 void Hast::Root::debug_dump_bucket(CBlock acc, Hast::Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const {
   DEB_HAST("%sBucket %u (%u entries):", bucketPrefix, bucketIndex, bucket.m_numberOfEntries);
   for(Uint32 i = 0; i < bucket.m_numberOfEntries; i++) {
-    DEB_HAST("%sEntry %u: m_hash=%08x, m_value=%016llx, &m_value=%p", entryPrefix, i, bucket.m_entries[i].m_hash, bucket.m_entries[i].m_value, &bucket.m_entries[i].m_value);
+    const Hast::Entry& entry = bucket.m_entries[i];
+    const Value& value = entry.m_value;
+    DEB_HAST("%sEntry %u: m_hash=%08x, m_value=Value(m_locked=%d, m_opptri=%08x, m_lk=Local_key(m_page_no=%08x, m_page_idx=%04x)), &m_value=%p",
+             entryPrefix, i, entry.m_hash,
+             value.m_locked,
+             value.m_opptri,
+             value.m_lk.m_page_no,
+             value.m_lk.m_page_idx,
+             &entry.m_value);
   }
 }
 #else
 #define hastJamDebug() do { } while (0)
 #define DEB_HAST(msg, ...) do { } while (0)
 #define DEB_HASTC(msg, ...) do { } while (0)
+#define DEB_HASTCA(cursor, msg, ...) do { } while (0)
 void Hast::Root::debug_dump_root(CBlock acc) const {}
 void Hast::Root::debug_dump_bucket(CBlock acc, Hast::Bucket& bucket, Uint32 bucketIndex, const char* bucketPrefix, const char* entryPrefix) const {}
 #endif
@@ -196,7 +206,7 @@ Hast::Cursor Hast::getCursorFirst(Block acc, Uint32 hash) {
     cursor.m_entryIndex++;
   }
   cursor.m_valid = Hast::Cursor::VALID;
-  DEB_HASTC("<- getCursorFirst(hash=%08x)", hash);
+  DEB_HASTCA((&cursor), "<- getCursorFirst(hash=%08x)", hash);
   return cursor;
 }
 
@@ -286,7 +296,10 @@ void Hast::Cursor::insertLockedOpptriLk(Block acc, Uint32 opptri, Local_key lk)
   hastJamDebug();
   m_root->validateRoot(acc);
   ndbassert(isInsertCursor(acc));
-  DEB_HASTC(": insertEntry(opptri=%08x, pageno=%08x, pageidx=%04x)", opptri, pageno, pageidx);
+  DEB_HASTC(": insertLockedOpptriLk(opptri=%08x, lk=Local_key(m_page_no=%08x, m_page_idx=%04x))",
+            opptri,
+            lk.m_page_no,
+            lk.m_page_idx);
   Bucket& bucket = m_root->m_buckets[m_bucketIndex];
   Value value;
   value.m_locked = true;
@@ -294,18 +307,15 @@ void Hast::Cursor::insertLockedOpptriLk(Block acc, Uint32 opptri, Local_key lk)
   value.m_lk = lk;
   Hast::validateValue(acc, value);
   m_root->insertEntryIntoBucket(acc, bucket, m_hash, value);
-  DEB_HASTC(": insertEntry(opptri=%08x, pageno=%08x, pageidx=%04x): after insertEntryIntoBucket", opptri, pageno, pageidx);
   m_dbg_value = value;
   m_valueptr = &bucket.m_entries[m_entryIndex].m_value;
   hastJamDebug();
   m_root->updateOperationRecords(acc, bucket, m_bucketIndex);
-  DEB_HASTC(": insertEntry(value=%016llx): after updateOperationRecords", value);
   hastJamDebug();
   m_root->validateRoot(acc);
   if(m_root->shouldExpand()) {
     hastJamDebug();
     m_root->expand(acc);
-    DEB_HASTC(": insertEntry(value=%016llx): after expand", value);
   }
 }
 
@@ -360,7 +370,13 @@ bool Hast::Value::equals(const Value& other) const {
 void Hast::Root::insertEntryIntoBucket(CBlock acc, Bucket& bucket, Uint32 hash, Value value) {
   hastJamDebug();
   validateRoot(acc);
-  DEB_HAST("insertEntryIntoBucket(bucket=%p, hash=%08x, value=%016llx)", &bucket, hash, value);
+  DEB_HAST("insertEntryIntoBucket(bucket=%p, hash=%08x, value=Value(m_locked=%d, m_opptri=%08x, m_lk=Local_key(m_page_no=%08x, m_page_idx=%04x)))",
+            &bucket,
+            hash,
+            value.m_locked,
+            value.m_opptri,
+            value.m_lk.m_page_no,
+            value.m_lk.m_page_idx);
   Entry* newEntries = (Entry*)seize_mem(acc, (bucket.m_numberOfEntries + 1) * sizeof(Entry));
   if (bucket.m_numberOfEntries > 0) {
     hastJamDebug();
@@ -374,7 +390,7 @@ void Hast::Root::insertEntryIntoBucket(CBlock acc, Bucket& bucket, Uint32 hash, 
   m_numberOfEntries++;
   hastJamDebug();
   validateRoot(acc);
-  DEB_HAST("After insertEntryIntoBucket, entry hash=%08x, value=%016llx, valueptr=%p", newEntries[bucket.m_numberOfEntries - 1].m_hash, newEntries[bucket.m_numberOfEntries - 1].m_value, &newEntries[bucket.m_numberOfEntries - 1].m_value);
+  DEB_HAST("After insertEntryIntoBucket, hash=%08x, valueptr=%p", newEntries[bucket.m_numberOfEntries - 1].m_hash, &newEntries[bucket.m_numberOfEntries - 1].m_value);
 }
 
 // todoas do not crash on OOM. Also, we must always be able to delete.
@@ -486,21 +502,29 @@ void Hast::Root::updateOperationRecords(Block acc, Bucket& bucket, Uint32 bucket
   for (Uint32 i = 0; i < bucket.m_numberOfEntries; i++) {
     hastJamDebug();
     Entry& entry = bucket.m_entries[i];
-    DEB_HAST("updateOperationRecords(bucketIndex=%u): m_entries[%u]=Entry(m_hash=%08x, m_value=%016llx)", bucketIndex, i, entry.m_hash, entry.m_value);
+    DEB_HAST("updateOperationRecords(bucketIndex=%u): m_entries[%u]=Entry(m_hash=%08x, m_value=Value(m_locked=%u, m_opptri=%08x, m_lk=Local_key(m_page_no=%08x, m_page_idx=%04x)), &m_value=%p)",
+             bucketIndex,
+             i,
+             entry.m_hash,
+             entry.m_value.m_locked,
+             entry.m_value.m_opptri,
+             entry.m_value.m_lk.m_page_no,
+             entry.m_value.m_lk.m_page_idx,
+             &entry.m_value);
     if(entry.m_value.m_locked) {
       hastJamDebug();
       Uint32 operation_rec_i = entry.m_value.m_opptri;
       Dbacc::Operationrec* oprec = acc->get_operation_ptr(operation_rec_i);
-      Cursor &cursor = oprec->m_hastCursor;
+      Cursor* cursor = &oprec->m_hastCursor;
       hastJamDebug();
-      DEB_HASTC(", updateOperationRecords(bucketIndex=%u): m_entries[%u], operation_rec_i=%08x, will update cursor", bucketIndex, i, operation_rec_i);
-      ndbassert(cursor.m_valueptr != nullptr); // Entry cursor or invalid cursor that otherwise looks like an entry cursor
-      ndbassert(cursor.m_hash == entry.m_hash);
+      DEB_HASTCA(cursor, ", updateOperationRecords(bucketIndex=%u): m_entries[%u], operation_rec_i=%08x, will update cursor", bucketIndex, i, operation_rec_i);
+      ndbassert(cursor->m_valueptr != nullptr); // Entry cursor or invalid cursor that otherwise looks like an entry cursor
+      ndbassert(cursor->m_hash == entry.m_hash);
       hastJamDebug();
-      cursor.m_bucketIndex = bucketIndex;
-      cursor.m_entryIndex = i;
-      cursor.m_valueptr = &entry.m_value;
-      DEB_HASTC(", updateOperationRecords(bucketIndex=%u): m_entries[%u], operation_rec_i=%08x, after cursor update", bucketIndex, i, operation_rec_i);
+      cursor->m_bucketIndex = bucketIndex;
+      cursor->m_entryIndex = i;
+      cursor->m_valueptr = &entry.m_value;
+      DEB_HASTCA(cursor, ", updateOperationRecords(bucketIndex=%u): m_entries[%u], operation_rec_i=%08x, after cursor update", bucketIndex, i, operation_rec_i);
     }
   }
   debug_dump_bucket(acc, bucket, bucketIndex, "After update Operation Records: ", "- ");

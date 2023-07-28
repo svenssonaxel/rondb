@@ -28,6 +28,7 @@
 #include <pc.hpp>
 #include <ndbd_malloc.hpp>
 
+// Used to activate Hast-related debug logging.
 //#define DEBUG_HAST 1
 
 class Dbacc;
