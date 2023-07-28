@@ -47,6 +47,7 @@ private:
     Local_key m_lk;
     // 1 bit locked status
     bool m_locked;
+    bool equals(const Value& other) const;
   };
   class Root;
 public:

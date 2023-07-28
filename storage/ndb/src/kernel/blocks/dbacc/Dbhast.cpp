@@ -349,6 +349,14 @@ void Hast::Cursor::deleteEntry(Block acc) {
  * Internals
  */
 
+bool Hast::Value::equals(const Value& other) const {
+  return m_opptri == other.m_opptri
+    && m_lk.m_page_no == other.m_lk.m_page_no
+    && m_lk.m_page_idx == other.m_lk.m_page_idx
+    && m_lk.m_file_no == other.m_lk.m_file_no
+    && m_locked == other.m_locked;
+}
+
 void Hast::Root::insertEntryIntoBucket(CBlock acc, Bucket& bucket, Uint32 hash, Value value) {
   hastJamDebug();
   validateRoot(acc);
@@ -574,15 +582,12 @@ void Hast::Cursor::validateCursor(CBlock acc) const {
   ndbassert(m_bucketIndex ==expected_bucket_index);
   Bucket& bucket = root.m_buckets[m_bucketIndex];
   root.validateBucket(acc, bucket, m_bucketIndex);
+  validateValue(acc, m_dbg_value);
   if(m_valueptr == nullptr)
   {
     // Insert cursor
     ndbassert(m_entryIndex == bucket.m_numberOfEntries);
-    ndbassert(m_dbg_value.m_opptri == 0);
-    ndbassert(m_dbg_value.m_lk.m_page_no == 0);
-    ndbassert(m_dbg_value.m_lk.m_page_idx == 0);
-    ndbassert(m_dbg_value.m_lk.m_file_no == 0);
-    ndbassert(m_dbg_value.m_locked == false);
+    ndbassert(m_dbg_value.equals(Value()));
   }
   else
   {
@@ -591,11 +596,7 @@ void Hast::Cursor::validateCursor(CBlock acc) const {
     Entry& entry = bucket.m_entries[m_entryIndex];
     ndbassert(m_hash == entry.m_hash);
     ndbassert(m_valueptr == &entry.m_value);
-    validateValue(acc, entry.m_value);
-    ndbassert(m_dbg_value.m_locked == entry.m_value.m_locked);
-    ndbassert(m_dbg_value.m_opptri == entry.m_value.m_opptri);
-    ndbassert(m_dbg_value.m_lk.m_page_no == entry.m_value.m_lk.m_page_no);
-    ndbassert(m_dbg_value.m_lk.m_page_idx == entry.m_value.m_lk.m_page_idx);
+    ndbassert(m_dbg_value.equals(entry.m_value));
   }
 }
 
