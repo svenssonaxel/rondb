@@ -874,20 +874,13 @@ private:
   void trigger_dealloc(Signal* signal, const Operationrec* opPtrP);
 
   typedef void * RootfragmentrecPtr;
-  void initRootFragPageZero(FragmentrecPtr, Page8Ptr) const;
   void initFragAdd(Signal*, FragmentrecPtr) const;
-  void initFragPageZero(FragmentrecPtr, Page8Ptr) const;
   void initFragGeneral(FragmentrecPtr) const;
   void verifyFragCorrect(FragmentrecPtr regFragPtr) const;
   void releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId);
   void releaseRootFragRecord(Signal* signal, RootfragmentrecPtr rootPtr) const;
   void releaseRootFragResources(Signal* signal, Uint32 tableId);
   void releaseDirResources(Signal* signal);
-  void releaseDirectoryResources(Signal* signal,
-                                 Uint32 fragIndex,
-                                 Uint32 dirIndex,
-                                 Uint32 startIndex,
-                                 Uint32 directoryIndex) const;
   void releaseFragRecord(FragmentrecPtr regFragPtr);
   void initialiseFsConnectionRec(Signal* signal) const;
   void initialiseFsOpRec(Signal* signal) const;
@@ -1032,13 +1025,10 @@ private:
   void takeOutLockOwnersList(OperationrecPtr&);
 #endif
 
-  void initFsOpRec(Signal* signal) const;
   void initOverpage(Page8Ptr);
   void initPage(Page8Ptr, Uint32);
   void initRootfragrec(Signal* signal) const;
   void putOpInFragWaitQue(Signal* signal) const;
-  void releaseFsConnRec(Signal* signal) const;
-  void releaseFsOpRec(Signal* signal) const;
   void releaseOpRec();
   void releaseFreeOpRec();
   void releaseOverpage(Page8Ptr ropPageptr);
@@ -1048,8 +1038,6 @@ private:
   void releasePage_lock(Page8Ptr rpPageptr);
   void seizeDirectory(Signal* signal) const;
   bool seizeFragrec();
-  void seizeFsConnectRec(Signal* signal) const;
-  void seizeFsOpRec(Signal* signal) const;
   Uint32 seizePage(Page8Ptr& spPageptr,
                    int sub_page_id,
                    bool allow_use_of_spare_pages,
@@ -1070,7 +1058,6 @@ private:
                         Hast::Cursor& hastCursor);
   void endofexpLab(Signal* signal);
   void endofshrinkbucketLab(Signal* signal);
-  void sendholdconfsignalLab(Signal* signal) const;
   void accIsLockedLab(Signal* signal,
                       OperationrecPtr lockOwnerPtr,
                       Uint32 hash);
@@ -1078,7 +1065,6 @@ private:
                           OperationrecPtr lockOwnerPtr,
                           Uint32 hash);
   void initialiseRecordsLab(Signal* signal, Uint32, Uint32, Uint32);
-  void storeDataPageInDirectoryLab(Signal* signal) const;
 
   void zpagesize_error(const char* where);
 
