@@ -536,6 +536,7 @@ void Hast::Root::updateOperationRecords(Block acc, Bucket& bucket, Uint32 bucket
  */
 
 void Hast::Root::validateRoot(CBlock acc) const {
+#ifdef VALIDATE_HAST
   validateB(acc);
   ndbassert(m_numberOfBuckets >= 1);
   ndbassert(m_buckets != nullptr);
@@ -548,18 +549,22 @@ void Hast::Root::validateRoot(CBlock acc) const {
     DEB_HAST("validateRoot(): FAILED CHECK: totalNumberOfEntries=%llu != m_numberOfEntries=%llu", totalNumberOfEntries, m_numberOfEntries);
   }
   ndbassert(totalNumberOfEntries == m_numberOfEntries);
+#endif//VALIDATE_HAST
 }
 
 void Hast::Root::validateB(CBlock acc) const {
+#ifdef VALIDATE_HAST
   ndbassert(acc != nullptr);
   ndbassert(acc->getThreadId() != 0);
   // todoas: validate m_bptr->fragrecptr
   //ndbassert(m_bptr->c_fragment_pool.getPtr(m_bptr->fragrecptr));
   //ndbassert(m_bptr->fragrecptr.p != nullptr);
   //ndbassert(Magic::match(m_bptr->fragrecptr.p->m_magic, Dbacc::Fragmentrec::TYPE_ID));
+#endif//VALIDATE_HAST
 }
 
 void Hast::validateValue(CBlock acc, const Value& value) {
+#ifdef VALIDATE_HAST
   ndbassert((value.m_opptri & 0x7fffffff) == value.m_opptri);
   if(!value.m_locked)
   {
@@ -574,25 +579,35 @@ void Hast::validateValue(CBlock acc, const Value& value) {
     ndbassert(value.m_lk.m_page_idx == Local_key::INVALID_PAGE_IDX);
   }
   ndbassert(value.m_lk.m_file_no == 0);
+#endif//VALIDATE_HAST
 }
 
 void Hast::Cursor::validateLockedCursor(CBlock acc) const {
+#ifdef VALIDATE_HAST
   validateEntryCursor(acc);
   ndbassert(m_dbg_value.m_locked);
+#endif//VALIDATE_HAST
 }
 void Hast::Cursor::validateUnlockedCursor(CBlock acc) const {
+#ifdef VALIDATE_HAST
   validateEntryCursor(acc);
   ndbassert(!m_dbg_value.m_locked);
+#endif//VALIDATE_HAST
 }
 void Hast::Cursor::validateEntryCursor(CBlock acc) const {
+#ifdef VALIDATE_HAST
   validateCursor(acc);
   ndbassert(m_valueptr != nullptr);
+#endif//VALIDATE_HAST
 }
 void Hast::Cursor::validateInsertCursor(CBlock acc) const {
+#ifdef VALIDATE_HAST
   validateCursor(acc);
   ndbassert(m_valueptr == nullptr);
+#endif//VALIDATE_HAST
 }
 void Hast::Cursor::validateCursor(CBlock acc) const {
+#ifdef VALIDATE_HAST
   hastJamDebug();
   ndbassert(m_valid == Hast::Cursor::VALID);
   ndbassert(m_root != nullptr);
@@ -622,9 +637,11 @@ void Hast::Cursor::validateCursor(CBlock acc) const {
     ndbassert(m_valueptr == &entry.m_value);
     ndbassert(m_dbg_value.equals(entry.m_value));
   }
+#endif//VALIDATE_HAST
 }
 
 void Hast::Root::validateBucket(CBlock acc, Bucket& bucket, Uint32 bucketIndex) const {
+#ifdef VALIDATE_HAST
   if(bucket.m_numberOfEntries == 0) {
     ndbrequire(bucket.m_entries == nullptr);
     return;
@@ -639,6 +656,7 @@ void Hast::Root::validateBucket(CBlock acc, Bucket& bucket, Uint32 bucketIndex) 
     validateValue(acc, entry.m_value);
   }
   #endif
+#endif//VALIDATE_HAST
 }
 
 void hast_progError(int line, int err_code, const char* extra, const char* check) {
