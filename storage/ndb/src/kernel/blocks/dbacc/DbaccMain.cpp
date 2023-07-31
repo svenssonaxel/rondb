@@ -22,6 +22,7 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
+#include "kernel_types.h"
 #include "util/require.h"
 #include <cstdint>
 #include <cstring>
@@ -232,12 +233,14 @@ void Dbacc::execCONTINUEB(Signal* signal)
       releaseFragResources(signal, tableId, fragId);
       break;
     }
+#ifdef ACC_OLD
   case ZREL_DIR:
     {
       jam();
       releaseDirResources(signal);
       break;
     }
+#endif//ACC_OLD
   case ZACC_SHRINK_TRANSIENT_POOLS:
   {
     jam();
@@ -360,11 +363,13 @@ void Dbacc::execSTTOR(Signal* signal)
 #endif
     jam();
     break;
+#ifdef ACC_OLD
   case 8:
   {
     c_restart_allow_use_spare = false;
     break;
   }
+#endif//ACC_OLD
   }
   Uint32 signalkey = signal->theData[6];
   if (m_is_query_block)
@@ -426,7 +431,9 @@ void Dbacc::initialiseRecordsLab(Signal* signal,
     break;
   case 8:
     jam();
+#ifdef ACC_OLD
     initialisePageRec();
+#endif//ACC_OLD
     break;
   case 9:
     jam();
@@ -476,6 +483,7 @@ void Dbacc::execREAD_CONFIG_REQ(Signal* signal)
   return;
 }
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* INITIALISE_PAGE_REC                                                               */
 /*              INITIALATES THE PAGE RECORDS.                                        */
@@ -485,6 +493,7 @@ void Dbacc::initialisePageRec()
   cnoOfAllocatedPages = 0;
   cnoOfAllocatedPagesMax = 0;
 }//Dbacc::initialisePageRec()
+#endif//ACC_OLD
 
 
 /* --------------------------------------------------------------------------------- */
@@ -572,6 +581,7 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
 
   // Initialize hast
   fragrecptr.p->hastTable.initialize(this, req->tableId, req->fragId);
+  // todoas Where exactly do we need to fragrecptr.p->hastTable.release(this);
 
   if (!addfragtotab(fragrecptr.i, req->fragId)) {
     jam();
@@ -579,6 +589,7 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
     addFragRefuse(signal, ZFULL_FRAGRECORD_ERROR);
     return;
   }//if
+#ifdef ACC_OLD
   Page8Ptr spPageptr;
   ndbassert(!m_is_query_block);
   bool use_spare = false;
@@ -608,6 +619,7 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
   }
 
   initPage(spPageptr, 0);
+#endif//ACC_OLD
 
   Uint32 userPtr = req->userPtr;
   BlockReference retRef = req->userRef;
@@ -733,6 +745,7 @@ void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
 
   if (regFragPtr.p->expandOrShrinkQueued)
   {
+#ifdef ACC_OLD
     regFragPtr.p->level.clear();
 
     // slack > 0 ensures EXPANDCHECK2 will do nothing.
@@ -740,6 +753,7 @@ void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
 
     // slack <= slackCheck ensures SHRINKCHECK2 will do nothing.
     regFragPtr.p->slackCheck = regFragPtr.p->slack;
+#endif//ACC_OLD
 
     /**
      * Wait out pending expand or shrink.
@@ -752,6 +766,7 @@ void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
     return;
   }
 
+#ifdef ACC_OLD
   if (!regFragPtr.p->directory.isEmpty()) {
     jam();
     DynArr256::ReleaseIterator iter;
@@ -778,16 +793,19 @@ void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
       ndbassert(pages.getCount() == cfreepages.getCount() + cnoOfAllocatedPages);
       ndbassert(pages.getCount() <= cpageCount);
     }
+#endif//ACC_OLD
     jam();
     Uint32 tab = regFragPtr.p->mytabptr;
-    Uint32 fragId = regFragPtr.p->fragmentid;
-    drop_fragment_from_table(tab, fragId);
+    Uint32 fragmentId = regFragPtr.p->fragmentid;
+    drop_fragment_from_table(tab, fragmentId);
     regFragPtr.p->hastTable.release(this); // todoas: Make iterative
     releaseFragRecord(regFragPtr);
     signal->theData[0] = ZREL_ROOT_FRAG;
     signal->theData[1] = tab;
     sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
+#ifdef ACC_OLD
   }//if
+#endif//ACC_OLD
   //ndbassert(validatePageCount());
 }//Dbacc::releaseFragResources()
 
@@ -805,6 +823,7 @@ void Dbacc::verifyFragCorrect(FragmentrecPtr regFragPtr)const
   }
 }//Dbacc::verifyFragCorrect()
 
+#ifdef ACC_OLD
 void Dbacc::releaseDirResources(Signal* signal)
 {
   jam();
@@ -876,6 +895,7 @@ void Dbacc::releaseDirResources(Signal* signal)
     sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
   }
 }//Dbacc::releaseDirResources()
+#endif//ACC_OLD
 
 void Dbacc::releaseFragRecord(FragmentrecPtr regFragPtr)
 {
@@ -1014,7 +1034,10 @@ void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
 
   Treqinfo = signal->requestInfo;
 
+#ifdef ACC_OLD
   operationRecPtr.p->hashValue = LHBits32(signal->hashValue);
+#endif//ACC_OLD
+  operationRecPtr.p->completeHashValue = signal->hashValue;
   operationRecPtr.p->tupkeylen = signal->keyLen;
   operationRecPtr.p->m_scanOpDeleteCountOpRef = RNIL;
   operationRecPtr.p->transId1 = signal->transId1;
@@ -1058,7 +1081,9 @@ void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
   operationRecPtr.p->prevParallelQue = RNIL;
   operationRecPtr.p->nextSerialQue = RNIL;
   operationRecPtr.p->prevSerialQue = RNIL;
+#ifdef ACC_OLD
   operationRecPtr.p->elementPage = RNIL;//✗hast
+#endif//ACC_OLD
   operationRecPtr.p->m_op_bits = opbits;
   NdbTick_Invalidate(&operationRecPtr.p->m_lockTime);
 
@@ -1391,11 +1416,13 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   /*       THE ITEM AFTER NOT FINDING THE ITEM.                    */
   /*---------------------------------------------------------------*/
   OperationrecPtr lockOwnerPtr;
+#ifdef ACC_OLD
   Page8Ptr bucketPageptr;
   Uint32 bucketConidx;
   Page8Ptr elemPageptr;
   Uint32 elemConptr;
   Uint32 elemptr;
+#endif//ACC_OLD
 
   /**
    * The below two mutexes are required to acquire for query threads.
@@ -1425,28 +1452,45 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   Uint32 hash = 0;
   c_tup->acquire_frag_page_map_mutex_read(jamBuffer());
   acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
+
+  // Hast version of getElement, for comparison.
+  // hastGetElement will write to arguments only.
+  Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
+  Hast& hast = fragrecptr.p->hastTable;
+  hastGetElement(hast,
+                 req->keyInfo,
+                 *fragrecptr.p,
+                 hastCursor,
+                 lockOwnerPtr,
+                 operationRecPtr.p->localdata);
+
+#ifdef ACC_OLD
   // getElement will write to arguments and operationRecPtr.p->localdata
+  // We will keep a backup of operationRecPtr.p->localdata in order to assert
+  // equality.
+  OperationrecPtr accOldLockOwnerPtr;
+  Local_key backupLocalkey = operationRecPtr.p->localdata;
   const Uint32 found = getElement(req,
-                                  lockOwnerPtr,
+                                  accOldLockOwnerPtr,
                                   bucketPageptr,
                                   bucketConidx,
                                   elemPageptr,
                                   elemConptr,
                                   elemptr);
-
-  // Hast version of getElement, for comparison.
-  // hastGetElement will write to arguments only.
-  // hastLocalkey is written to instead of operationRecPtr.p->localdata
-  Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
-  Hast& hast = fragrecptr.p->hastTable;
-  OperationrecPtr hastLockOwnerPtr;
-  Local_key hastLocalkey;
-  hastGetElement(hast,
-                 req->keyInfo,
-                 *fragrecptr.p,
-                 hastCursor,
-                 hastLockOwnerPtr,
-                 hastLocalkey);
+  if(found == ZTRUE)
+  {
+    ndbassert(hastCursor.isEntryCursor(this));
+    ndbassert(accOldLockOwnerPtr.i == lockOwnerPtr.i);
+    ndbassert(accOldLockOwnerPtr.p == lockOwnerPtr.p);
+    ndbassert(backupLocalkey.m_page_no == operationRecPtr.p->localdata.m_page_no);
+    ndbassert(backupLocalkey.m_page_idx == operationRecPtr.p->localdata.m_page_idx);
+  }
+  else
+  {
+    ndbassert(found == ZFALSE);
+    ndbassert(hastCursor.isInsertCursor(this));
+  }
+#endif//ACC_OLD
 
   c_tup->release_frag_page_map_mutex_read(jamBuffer());
 
@@ -1487,13 +1531,8 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   }
 
   Uint32 op = opbits & Operationrec::OP_MASK;
-  if (found == ZTRUE) 
+  if (hastCursor.isEntryCursor(this))
   {
-    ndbassert(hastCursor.isEntryCursor(this));
-    ndbassert(hastLockOwnerPtr.i == lockOwnerPtr.i);
-    ndbassert(hastLockOwnerPtr.p == lockOwnerPtr.p);
-    ndbassert(hastLocalkey.m_page_no == operationRecPtr.p->localdata.m_page_no);
-    ndbassert(hastLocalkey.m_page_idx == operationRecPtr.p->localdata.m_page_idx);
     switch (op) {
     case ZREAD:
     case ZUPDATE:
@@ -1517,11 +1556,11 @@ void Dbacc::execACCKEYREQ(Signal* signal,
 	  // It is not a dirty read. We proceed by locking and continue with
 	  // the operation.
 	  /*---------------------------------------------------------------*/
-          jamDebug();
-          Uint32 eh = elemPageptr.p->word32[elemptr];
 
           // Hast
           jamDebug();
+#ifdef ACC_OLD
+          Uint32 eh = elemPageptr.p->word32[elemptr];
           ndbassert(hastCursor.getLocked(this) == ElementHeader::getLocked(eh));
           if(hastCursor.getLocked(this))
           {
@@ -1539,6 +1578,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
           operationRecPtr.p->elementPointer = elemptr;
 
 	  eh = ElementHeader::setLocked(operationRecPtr.i);
+#endif//ACC_OLD
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
 	  insertLockOwnersList(operationRecPtr);
 #endif
@@ -1546,12 +1586,13 @@ void Dbacc::execACCKEYREQ(Signal* signal,
 	  opbits |= Operationrec::OP_LOCK_OWNER;
           operationRecPtr.p->m_op_bits = opbits;
           /**
-           * Ensure that any thread that reads element header also can see
+           * Ensure that any thread that reads element also can see
            * the updates to the operation record. Only required when we are
            * using query threads.
            */
+#ifdef ACC_OLD
           elemPageptr.p->word32[elemptr] = eh;
-
+#endif//ACC_OLD
           // Hast
           hastCursor.setLockedOpptriWhenUnlocked(this, operationRecPtr.i);
 
@@ -1617,9 +1658,8 @@ void Dbacc::execACCKEYREQ(Signal* signal,
       ndbabort();
     }//switch
   }
-  else if (found == ZFALSE)
+  else if (hastCursor.isInsertCursor(this))
   {
-    ndbassert(hastCursor.isInsertCursor(this));
     switch (op){
     case ZWRITE:
       jamDebug();
@@ -1634,8 +1674,10 @@ void Dbacc::execACCKEYREQ(Signal* signal,
       opbits |= Operationrec::OP_RUN_QUEUE;
       operationRecPtr.p->m_op_bits = opbits;
       insertelementLab(signal,
+#ifdef ACC_OLD
                        bucketPageptr,
                        bucketConidx,
+#endif//ACC_OLD
                        hash,
                        hastCursor);
       return;
@@ -1656,7 +1698,10 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   {
     release_frag_mutex_hash(fragrecptr.p, hash);
     jam();
+#ifdef ACC_OLD
     acckeyref1Lab(signal, found);
+#endif//ACC_OLD
+    ndbabort();
   }//if
   return;
 }//Dbacc::execACCKEYREQ()
@@ -2246,13 +2291,16 @@ void Dbacc::insertExistElemLab(Signal* signal,
 /* --------------------------------------------------------------------------------- */
 /* INSERTELEMENT                                                                     */
 /* --------------------------------------------------------------------------------- */
-//✗hast
+//✓hast
 void Dbacc::insertelementLab(Signal* signal,
+#ifdef ACC_OLD
                              Page8Ptr bucketPageptr,
                              Uint32 bucketConidx,
+#endif//ACC_OLD
                              Uint32 hash,
                              Hast::Cursor& hastCursor)
 {
+#ifdef ACC_OLD
   if (unlikely(fragrecptr.p->dirRangeFull))
   {
     jam();
@@ -2271,6 +2319,7 @@ void Dbacc::insertelementLab(Signal* signal,
       return;
     }//if
   }//if
+#endif//ACC_OLD
   ndbassert(operationRecPtr.p->tupkeylen <= fragrecptr.p->keyLength);
   ndbassert(!(operationRecPtr.p->m_op_bits & Operationrec::OP_LOCK_REQ));
 
@@ -2287,6 +2336,7 @@ void Dbacc::insertelementLab(Signal* signal,
   operationRecPtr.p->m_op_bits |= Operationrec::OP_LOCK_OWNER;
   fragrecptr.p->lockCount[hash]++;
 
+#ifdef ACC_OLD
   operationRecPtr.p->reducedHashValue =
     fragrecptr.p->level.reduce(operationRecPtr.p->hashValue);
   const Uint32 tidrElemhead = ElementHeader::setLocked(operationRecPtr.i);
@@ -2295,12 +2345,14 @@ void Dbacc::insertelementLab(Signal* signal,
   Uint32 tidrPageindex = bucketConidx;
   bool isforward = true;
   ndbassert(fragrecptr.p->localkeylen == 1);
+#endif//ACC_OLD
   /* ----------------------------------------------------------------------- */
   /* WE SET THE LOCAL KEY TO MINUS ONE TO INDICATE IT IS NOT YET VALID.      */
   /* ----------------------------------------------------------------------- */
   Local_key localKey;
   localKey.setInvalid();
   operationRecPtr.p->localdata = localKey;
+#ifdef ACC_OLD
   Uint32 conptr;
   insertElement(Element(tidrElemhead, localKey.m_page_no),
                 operationRecPtr,
@@ -2309,6 +2361,7 @@ void Dbacc::insertelementLab(Signal* signal,
                 isforward,
                 conptr,
                 false);
+#endif//ACC_OLD
 
   // Insert into hast
   jamDebug();
@@ -2343,6 +2396,7 @@ void Dbacc::insertelementLab(Signal* signal,
                           localKey.m_page_idx,
                           fragrecptr.p->tupFragptr);
 
+#ifdef ACC_OLD
   fragrecptr.p->slack -= fragrecptr.p->elementLength;
   // EXPAND the structures if required:
 #ifdef ERROR_INSERT
@@ -2372,6 +2426,7 @@ void Dbacc::insertelementLab(Signal* signal,
       sendSignal(reference(), GSN_EXPANDCHECK2, signal, 2, JBB);
     }//if
   }//if
+#endif//ACC_OLD
   sendAcckeyconf(signal);
   return;
 }//Dbacc::insertelementLab()
@@ -2509,6 +2564,7 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
 
   // 1 Validate page pointer
   {
+#ifdef ACC_OLD
     Page8Ptr pagePtr;
     pagePtr.i = loPtr.p->elementPage; //✓hast
     c_page8_pool.getPtr(pagePtr);
@@ -2516,6 +2572,7 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
     Uint32 eh = pagePtr.p->word32[loPtr.p->elementPointer];
     vlqrequire(ElementHeader::getLocked(eh));
     vlqrequire(ElementHeader::getOpPtrI(eh) == loPtr.i);
+#endif//ACC_OLD
 
     // Validate element header in Hast
     jamDebug();
@@ -3156,8 +3213,10 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
                              Uint32 page_no,
                              Uint32 page_idx)
 {
+#ifdef ACC_OLD
   Page8Ptr ulkPageidptr;
   Uint32 tulkLocalPtr;
+#endif//ACC_OLD
   Local_key localkey;
 
   operationRecPtr.i = opPtrI;
@@ -3168,15 +3227,19 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
   localkey.m_file_no = 0;
   Uint32 opbits = operationRecPtr.p->m_op_bits;
   fragrecptr.i = operationRecPtr.p->fragptr;
+#ifdef ACC_OLD
   ulkPageidptr.i = operationRecPtr.p->elementPage;//✓hast
   tulkLocalPtr = operationRecPtr.p->elementPointer + 1;
+#endif//ACC_OLD
   ndbrequire(Magic::check_ptr(operationRecPtr.p));
 
   if ((opbits & Operationrec::OP_STATE_MASK) == Operationrec::OP_STATE_RUNNING)
   {
     ndbrequire(c_fragment_pool.getPtr(fragrecptr));
+#ifdef ACC_OLD
     c_page8_pool.getPtr(ulkPageidptr);
     arrGuard(tulkLocalPtr, 2048);
+#endif//ACC_OLD
     /**
      * We lock the fragment to ensure that now readers can see the new
      * row version since it is both inserted into the hash index AND
@@ -3187,19 +3250,23 @@ void Dbacc::execACCMINUPDATE(Signal* signal,
     Uint32 hash = 0;
     acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
     operationRecPtr.p->localdata = localkey;
+#ifdef ACC_OLD
     ndbrequire(fragrecptr.p->localkeylen == 1);
     ulkPageidptr.p->word32[tulkLocalPtr] = localkey.m_page_no;
+#endif//ACC_OLD
 
     // Update in hast
     jamDebug();
     Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
     hastCursor.setLkWhenLocked(this, localkey);
+#ifdef ACC_OLD
     Uint32 dbg_eh = ulkPageidptr.p->word32[operationRecPtr.p->elementPointer];
     //
     ndbassert(ElementHeader::getLocked(dbg_eh));
     ndbassert(hastCursor.getOpptriWhenLocked(this) == opPtrI);
     ndbassert(hastCursor.getLkWhenLocked(this).m_page_no == localkey.m_page_no);
     ndbassert(hastCursor.getLkWhenLocked(this).m_page_idx == localkey.m_page_idx);
+#endif//ACC_OLD
 
     release_frag_mutex_hash(fragrecptr.p, hash);
     return;
@@ -3634,6 +3701,8 @@ void Dbacc::execACC_LOCKREQ(Signal* signal)
 /*                                                                                   */
 /* --------------------------------------------------------------------------------- */
 /* --------------------------------------------------------------------------------- */
+
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* INSERT_ELEMENT                                                                    */
 /*       INPUT:                                                                      */
@@ -3781,7 +3850,9 @@ void Dbacc::insertElement(const Element   elem,
                   tidrResult);
   ndbrequire(tidrResult == ZTRUE);
 }//Dbacc::insertElement()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /**
  * insertContainer puts an element into a container if it has free space.
  *
@@ -3935,7 +4006,9 @@ void Dbacc::insertContainer(const Element          elem,
   pageptr.p->word32[conptr] = conthead;
   result = ZTRUE;
 }//Dbacc::insertContainer()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /** ---------------------------------------------------------------------------
  * Set next link of a container to reference to next container.
  *
@@ -3959,7 +4032,9 @@ void Dbacc::addnewcontainer(Page8Ptr pageptr,
   pageptr.p->word32[conptr] = containerhead;
   pageptr.p->word32[conptr + 1] = nextPagei;
 }//Dbacc::addnewcontainer()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* GETFREELIST                                                                       */
 /*         INPUT:                                                                    */
@@ -3985,7 +4060,9 @@ void Dbacc::getfreelist(Page8Ptr pageptr, Uint32& pageindex, Uint32& buftype)
   ndbrequire((pageindex <= Container::MAX_CONTAINER_INDEX) ||
              (pageindex == Container::NO_CONTAINER_INDEX));
 }//Dbacc::getfreelist()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* INCREASELISTCONT                                                                  */
 /*       INPUT:                                                                      */
@@ -4011,7 +4088,9 @@ void Dbacc::increaselistcont(Page8Ptr ilcPageptr)
     }//if
   }//if
 }//Dbacc::increaselistcont()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* SEIZE_LEFTLIST                                                                    */
 /*       INPUT:                                                                      */
@@ -4060,7 +4139,9 @@ void Dbacc::seizeLeftlist(Page8Ptr slPageptr, Uint32 tslPageindex)
   }//if
   increaselistcont(slPageptr);
 }//Dbacc::seizeLeftlist()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* SEIZE_RIGHTLIST                                                                   */
 /*         DESCRIPTION: THE BUFFER NOTED BY TSL_PAGEINDEX WILL BE REMOVED FROM THE   */
@@ -4097,6 +4178,7 @@ void Dbacc::seizeRightlist(Page8Ptr slPageptr, Uint32 tslPageindex)
   }//if
   increaselistcont(slPageptr);
 }//Dbacc::seizeRightlist()
+#endif//ACC_OLD
 
 /* --------------------------------------------------------------------------------- */
 /* --------------------------------------------------------------------------------- */
@@ -4145,13 +4227,16 @@ void Dbacc::seizeRightlist(Page8Ptr slPageptr, Uint32 tslPageindex)
 /*                     THE ADDRESS OF THE ELEMENT IN THE HASH TABLE,(GDI_PAGEPTR,    */
 /*                     TGDI_PAGEINDEX) ACCORDING TO LH3.                             */
 /* --------------------------------------------------------------------------------- */
+#ifdef ACC_OLD
 Uint32 Dbacc::getPagePtr(DynArr256::Head& directory, Uint32 index)
 {
   DynArr256 dir(directoryPoolPtr, directory);
   Uint32* ptr = dir.get(index);
   return *ptr;
 }
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 bool Dbacc::setPagePtr(DynArr256::Head& directory, Uint32 index, Uint32 ptri)
 {
   DynArr256 dir(directoryPoolPtr, directory);
@@ -4160,7 +4245,9 @@ bool Dbacc::setPagePtr(DynArr256::Head& directory, Uint32 index, Uint32 ptri)
   *ptr = ptri;
   return true;
 }
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 Uint32 Dbacc::unsetPagePtr(DynArr256::Head& directory, Uint32 index)
 {
   DynArr256 dir(directoryPoolPtr, directory);
@@ -4169,7 +4256,9 @@ Uint32 Dbacc::unsetPagePtr(DynArr256::Head& directory, Uint32 index)
   *ptr = RNIL;
   return ptri;
 }
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 void Dbacc::getdirindex(Page8Ptr& pageptr, Uint32& conidx)
 {
   const LHBits32 hashValue = operationRecPtr.p->hashValue;
@@ -4179,6 +4268,7 @@ void Dbacc::getdirindex(Page8Ptr& pageptr, Uint32& conidx)
                          fragrecptr.p->getPageNumber(address));
   c_page8_pool.getPtr(pageptr);
 }//Dbacc::getdirindex()
+#endif//ACC_OLD
 
 Uint32
 Dbacc::find_key_operation(Ptr<Operationrec> opPtr, bool invalid_local_key)
@@ -4300,6 +4390,7 @@ Dbacc::readTablePk(Uint32 localkey1,
   return ret;
 }
 
+#ifdef ACC_OLD
 /** ---------------------------------------------------------------------------
  * Find element.
  *
@@ -4511,6 +4602,7 @@ Dbacc::getElement(const AccKeyReq* signal,
   } while (1);
   return ZFALSE;
 }//Dbacc::getElement()
+#endif//ACC_OLD
 
 /** ---------------------------------------------------------------------------
  * Find entry.
@@ -4535,8 +4627,10 @@ Dbacc::hastGetElement(Hast& hast,
                       OperationrecPtr& lockOwnerPtr,
                       Local_key& localkey)
 {
+#ifdef ACC_OLD
   ndbrequire(fragrec.localkeylen == 1);
-  Uint32 hash = operationRecPtr.p->hashValue.pack();
+#endif//ACC_OLD
+  Uint32 hash = operationRecPtr.p->completeHashValue;
   // Use the Hast implementation to get a cursor to the first entry with
   // matching hash if such exists.
   cursor = hast.getCursorFirst(this, hash);
@@ -4569,7 +4663,7 @@ Dbacc::hastGetElement(Hast& hast,
        */
       lockOwnerPtr.p =
         m_ldm_instance_used->getOperationPtrP(lockOwnerPtr.i);
-      localkey = lockOwnerPtr.p->localdata;
+      localkey = cursor.getLkWhenLocked(this);
     }
     else
     {
@@ -4759,6 +4853,7 @@ Dbacc::trigger_dealloc(Signal* signal, const Operationrec* opPtrP)
   }
 }
 
+#ifdef ACC_OLD
 //✓hast calls made after every invocation of commitdelete.
 void Dbacc::commitdelete(Signal* signal)
 {
@@ -4903,7 +4998,9 @@ void Dbacc::commitdelete(Signal* signal)
     }//if
   }//if
 }//Dbacc::commitdelete()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /** --------------------------------------------------------------------------
  * Move last element over deleted element.
  *
@@ -4959,7 +5056,9 @@ void Dbacc::deleteElement(Page8Ptr delPageptr,
   return;
 
 }//Dbacc::deleteElement()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /** ---------------------------------------------------------------------------
  * Find last element in bucket.
  *
@@ -5119,7 +5218,9 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
   arrGuard(tlastContainerptr, 2048);
   lastPageptr.p->word32[tlastContainerptr] = containerhead;
 }//Dbacc::getLastAndRemove()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* RELEASE_LEFTLIST                                                                  */
 /*       INPUT:                                                                      */
@@ -5165,7 +5266,9 @@ void Dbacc::releaseLeftlist(Page8Ptr pageptr, Uint32 conidx, Uint32 conptr)
     checkoverfreelist(pageptr);
   }//if
 }//Dbacc::releaseLeftlist()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* RELEASE_RIGHTLIST                                                                 */
 /*       INPUT:                                                                      */
@@ -5210,7 +5313,9 @@ void Dbacc::releaseRightlist(Page8Ptr pageptr, Uint32 conidx, Uint32 conptr)
     checkoverfreelist(pageptr);
   }//if
 }//Dbacc::releaseRightlist()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* CHECKOVERFREELIST                                                                 */
 /*        INPUT: COL_PAGEPTR, POINTER OF AN OVERFLOW PAGE RECORD.                    */
@@ -5238,6 +5343,7 @@ void Dbacc::checkoverfreelist(Page8Ptr colPageptr)
     sparselist.addFirst(colPageptr);
   }//if
 }//Dbacc::checkoverfreelist()
+#endif//ACC_OLD
 
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
@@ -5741,29 +5847,31 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
        * ------------------------------------------------------------------ */
       if ((opbits & Operationrec::OP_ELEMENT_DISAPPEARED) == 0)
       {
+
+        // Hast
+        jamDebug();
+        ndbassert(!operationRecPtr.p->localdata.isInvalid());
+        Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
+        hastCursor.setUnlocked(this);
+#ifdef ACC_OLD
 	Page8Ptr aboPageidptr;
 	Uint32 taboElementptr;
 	Uint32 tmp2Olq;
 
         taboElementptr = operationRecPtr.p->elementPointer;
         aboPageidptr.i = operationRecPtr.p->elementPage; //✓hast
-        ndbassert(!operationRecPtr.p->localdata.isInvalid());
         tmp2Olq = ElementHeader::setUnlocked(
                       operationRecPtr.p->localdata.m_page_idx,
                       operationRecPtr.p->reducedHashValue);
         c_page8_pool.getPtr(aboPageidptr);
         arrGuard(taboElementptr, 2048);
         aboPageidptr.p->word32[taboElementptr] = tmp2Olq;
-
-        // Hast
-        jamDebug();
-        Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
-        hastCursor.setUnlocked(this);
         ndbassert(!ElementHeader::getLocked(aboPageidptr.p->word32[taboElementptr]));
         ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_idx ==
                   ElementHeader::getPageIdx(aboPageidptr.p->word32[taboElementptr]));
         ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_no ==
                   aboPageidptr.p->word32[taboElementptr + 1]);
+#endif//ACC_OLD
 
         release_frag_mutex_hash(fragrecptr.p, hash);
         jam();
@@ -5771,7 +5879,9 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
       } 
       else 
       {
+#ifdef ACC_OLD
         commitdelete(signal);
+#endif//ACC_OLD
         operationRecPtr.p->m_hastCursor.deleteEntry(this);
         release_frag_mutex_hash(fragrecptr.p, hash);
         jam();
@@ -5790,7 +5900,7 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
     /* This function is responsible to release ACC fragment mutex */
     abortSerieQueueOperation(signal, operationRecPtr, hash);
   }
-}
+}//Dbacc::abortOperation()
 
 //✗hast
 void
@@ -5801,7 +5911,10 @@ Dbacc::commitDeleteCheck(Signal* signal)
   OperationrecPtr deleteOpPtr;
   Uint32 elementDeleted = 0;
   bool deleteCheckOngoing = true;
+  Uint32 completeHashValue;
+#ifdef ACC_OLD
   LHBits32 hashValue;
+#endif//ACC_OLD
   lastOpPtr = operationRecPtr;
   opPtr.i = operationRecPtr.p->nextParallelQue;
   while (opPtr.i != RNIL) {
@@ -5827,7 +5940,10 @@ Dbacc::commitDeleteCheck(Signal* signal)
        * SCAN CAN PERFORM A DELETE IS BY BEING FOLLOWED BY A NORMAL 
        * DELETE-OPERATION THAT HAS A HASH VALUE.
        * ----------------------------------------------------------------- */
+      completeHashValue = deleteOpPtr.p->completeHashValue;
+#ifdef ACC_OLD
       hashValue = deleteOpPtr.p->hashValue;
+#endif//ACC_OLD
       elementDeleted = Operationrec::OP_ELEMENT_DISAPPEARED;
       deleteCheckOngoing = false;
     } else if (op == ZREAD || op == ZSCAN_OP) {
@@ -5865,7 +5981,10 @@ Dbacc::commitDeleteCheck(Signal* signal)
       jam();
       /* All pending dealloc operations are marked and reported to LQH */
       opPtr.p->m_op_bits |= elementDeleted;
+      opPtr.p->completeHashValue = completeHashValue;
+#ifdef ACC_OLD
       opPtr.p->hashValue = hashValue;
+#endif//ACC_OLD
       report_pending_dealloc(signal, opPtr.p, deleteOpPtr.p);
     }//if
     opPtr.i = opPtr.p->prevParallelQue;
@@ -5935,6 +6054,13 @@ void Dbacc::commitOperation(Signal* signal)
        * This is the normal path through the commit for operations owning the
        * lock without any queues and not a delete operation.
        */
+
+      // Hast
+      jamDebug();
+      Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
+      hastCursor.setUnlocked(this);
+
+#ifdef ACC_OLD
       Page8Ptr coPageidptr;
       Uint32 tcoElementptr;
       Uint32 tmp2Olq;
@@ -5948,16 +6074,12 @@ void Dbacc::commitOperation(Signal* signal)
       c_page8_pool.getPtr(coPageidptr);
       arrGuard(tcoElementptr, 2048);
       coPageidptr.p->word32[tcoElementptr] = tmp2Olq;
-
-      // Hast
-      jamDebug();
-      Hast::Cursor& hastCursor = operationRecPtr.p->m_hastCursor;
-      hastCursor.setUnlocked(this);
       ndbassert(!ElementHeader::getLocked(coPageidptr.p->word32[tcoElementptr]));
       ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_idx ==
                 ElementHeader::getPageIdx(coPageidptr.p->word32[tcoElementptr]));
       ndbassert(hastCursor.getLkWhenUnlocked(this).m_page_no ==
                 coPageidptr.p->word32[tcoElementptr + 1]);
+#endif//ACC_OLD
 
       release_frag_mutex_hash(fragrecptr.p, hash);
       jam();
@@ -5990,7 +6112,9 @@ void Dbacc::commitOperation(Signal* signal)
        * No queue and elementIsDisappeared is true. 
        * We perform the actual delete operation.
        */
+#ifdef ACC_OLD
       commitdelete(signal);
+#endif//ACC_OLD
       operationRecPtr.p->m_hastCursor.deleteEntry(this);
       release_frag_mutex_hash(fragrecptr.p, hash);
       jam();
@@ -6292,11 +6416,15 @@ Dbacc::release_lockowner(Signal* signal,
    */
   {
     newOwner.p->m_op_bits |= Operationrec::OP_LOCK_OWNER;
+#ifdef ACC_OLD
     newOwner.p->elementPage = opPtr.p->elementPage; //✓hast
     newOwner.p->elementPointer = opPtr.p->elementPointer;
     newOwner.p->elementContainer = opPtr.p->elementContainer;
     newOwner.p->reducedHashValue = opPtr.p->reducedHashValue;
+#endif//ACC_OLD
+    newOwner.p->completeHashValue = opPtr.p->completeHashValue;
     newOwner.p->m_op_bits |= (opbits & Operationrec::OP_ELEMENT_DISAPPEARED);
+#ifdef ACC_OLD
     if (opbits & Operationrec::OP_ELEMENT_DISAPPEARED)
     {
       /* ------------------------------------------------------------------- */
@@ -6311,23 +6439,25 @@ Dbacc::release_lockowner(Signal* signal,
       jam();
       newOwner.p->hashValue = opPtr.p->hashValue;
     }//if
+#endif//ACC_OLD
 
     // Copy Hast information
     newOwner.p->m_hastCursor = opPtr.p->m_hastCursor;
+    // Update Hast
+    jamDebug();
+    Hast::Cursor& newOwnerHastCursor = newOwner.p->m_hastCursor;
+    newOwnerHastCursor.setOpptriWhenLocked(this, newOwner.i);
 
+#ifdef ACC_OLD
     Page8Ptr pagePtr;
     pagePtr.i = newOwner.p->elementPage; //✓hast
     c_page8_pool.getPtr(pagePtr);
     const Uint32 tmp = ElementHeader::setLocked(newOwner.i);
     arrGuard(newOwner.p->elementPointer, 2048);
     pagePtr.p->word32[newOwner.p->elementPointer] = tmp;
-
-    // Update Hast
-    jamDebug();
-    Hast::Cursor& newOwnerHastCursor = newOwner.p->m_hastCursor;
-    newOwnerHastCursor.setOpptriWhenLocked(this, newOwner.i);
     ndbassert(newOwnerHastCursor.getOpptriWhenLocked(this) ==
               ElementHeader::getOpPtrI(pagePtr.p->word32[newOwner.p->elementPointer]));
+#endif//ACC_OLD
 
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
     /**
@@ -6335,16 +6465,20 @@ Dbacc::release_lockowner(Signal* signal,
      */
     if (newOwner.p->localdata.isInvalid())
     {
+#ifdef ACC_OLD
       pagePtr.p->word32[newOwner.p->elementPointer + 1] =
         newOwner.p->localdata.m_page_no;
+#endif//ACC_OLD
 
       // Hast
       newOwner.p->m_hastCursor.setLkWhenLocked(this, newOwner.p->localdata);
     }
     else
     {
+#ifdef ACC_OLD
       ndbrequire(newOwner.p->localdata.m_page_no ==
                    pagePtr.p->word32[newOwner.p->elementPointer+1]);
+#endif//ACC_OLD
 
       // Hast
       ndbrequire(newOwner.p->localdata.m_page_no ==
@@ -6465,8 +6599,12 @@ ref:
  */
 void Dbacc::takeOutLockOwnersList(OperationrecPtr& outOperPtr)
 {
+  Uint32 hash = outOperPtr.p->completeHashValue & (NUM_ACC_FRAGMENT_MUTEXES - 1);
+#ifdef ACC_OLD
   LHBits32 hashVal = getElementHash(outOperPtr);
-  Uint32 hash = hashVal.get_bits(NUM_ACC_FRAGMENT_MUTEXES - 1);
+  Uint32 accOldHash = hashVal.get_bits(NUM_ACC_FRAGMENT_MUTEXES - 1);
+  ndbassert(hash == accOldHash);
+#endif//ACC_OLD
   const Uint32 Tprev = outOperPtr.p->prevLockOwnerOp;
   const Uint32 Tnext = outOperPtr.p->nextLockOwnerOp;
 #ifdef VM_TRACE
@@ -6527,8 +6665,12 @@ void Dbacc::takeOutLockOwnersList(OperationrecPtr& outOperPtr)
 //✗hast
 void Dbacc::insertLockOwnersList(OperationrecPtr& insOperPtr)
 {
+  Uint32 hash = insOperPtr.p->completeHashValue & (NUM_ACC_FRAGMENT_MUTEXES - 1);
+#ifdef ACC_OLD
   LHBits32 hashVal = getElementHash(insOperPtr);
-  Uint32 hash = hashVal.get_bits(NUM_ACC_FRAGMENT_MUTEXES - 1);
+  Uint32 accOldHash = hashVal.get_bits(NUM_ACC_FRAGMENT_MUTEXES - 1);
+  ndbassert(hash == accOldHash);
+#endif//ACC_OLD
 
   OperationrecPtr tmpOperPtr;
 #ifdef VM_TRACE
@@ -6602,6 +6744,7 @@ Dbacc::get_lock_information(Dbacc **acc_block, Dblqh** lqh_block)
   return lock_flag;
 }
 
+#ifdef ACC_OLD
 Uint32
 Dbacc::seizePage_lock(Page8Ptr& spPageptr, int sub_page_id)
 {
@@ -6636,8 +6779,10 @@ Dbacc::seizePage_lock(Page8Ptr& spPageptr, int sub_page_id)
     NdbMutex_Unlock(lqh_block->m_lock_acc_page_mutex);
   }
   return result;
-}
+}//Dbacc::seizePage_lock()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 Uint32 Dbacc::allocOverflowPage()
 {
   Page8Ptr spPageptr;
@@ -6653,7 +6798,9 @@ Uint32 Dbacc::allocOverflowPage()
   initOverpage(spPageptr);
   return 0;
 }//Dbacc::allocOverflowPage()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 void Dbacc::execEXPANDCHECK2(Signal* signal)
 {
   jamEntry();
@@ -6804,7 +6951,9 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
   release_frag_mutex_bucket(fragrecptr.p, splitBucket);
   return;
 }//Dbacc::execEXPANDCHECK2()
+#endif//ACC_OLD
   
+#ifdef ACC_OLD
 void Dbacc::endofexpLab(Signal* signal)
 {
   c_allow_use_of_spare_pages = false;
@@ -6841,6 +6990,7 @@ void Dbacc::endofexpLab(Signal* signal)
   }//if
   return;
 }//Dbacc::endofexpLab()
+#endif//ACC_OLD
 
 void Dbacc::execDEBUG_SIG(Signal* signal) 
 {
@@ -6850,6 +7000,7 @@ void Dbacc::execDEBUG_SIG(Signal* signal)
   return;
 }//Dbacc::execDEBUG_SIG()
 
+#ifdef ACC_OLD
 //✗hast
 LHBits32 Dbacc::getElementHash(OperationrecPtr& oprec)
 {
@@ -6890,7 +7041,9 @@ LHBits32 Dbacc::getElementHash(OperationrecPtr& oprec)
     }
   }
 }
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 LHBits32 Dbacc::getElementHash(Uint32 const* elemptr)
 {
   jam();
@@ -6928,7 +7081,9 @@ LHBits32 Dbacc::getElementHash(Uint32 const* elemptr)
     return LHBits32();
   }
 }
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 LHBits32 Dbacc::getElementHash(Uint32 const* elemptr, OperationrecPtr& oprec)
 {
   if (!oprec.isNull())
@@ -6951,7 +7106,9 @@ LHBits32 Dbacc::getElementHash(Uint32 const* elemptr, OperationrecPtr& oprec)
     return getElementHash(oprec);
   }
 }
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* EXPANDCONTAINER                                                                   */
 /*        INPUT: EXC_PAGEPTR (POINTER TO THE ACTIVE PAGE RECORD)                     */
@@ -7246,7 +7403,9 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
     goto EXP_CONTAINER_LOOP;
   }//if
 }//Dbacc::expandcontainer()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 void Dbacc::execSHRINKCHECK2(Signal* signal) 
 {
   jamEntry();
@@ -7463,7 +7622,9 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
   release_frag_mutex_bucket(fragrecptr.p, mergeDestBucket);
   return;
 }//Dbacc::execSHRINKCHECK2()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 void Dbacc::endofshrinkbucketLab(Signal* signal)
 {
   c_allow_use_of_spare_pages = false;
@@ -7552,7 +7713,9 @@ void Dbacc::endofshrinkbucketLab(Signal* signal)
   ndbrequire(fragrecptr.p->getPageNumber(fragrecptr.p->level.getSize()) > 0);
   return;
 }//Dbacc::endofshrinkbucketLab()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* SHRINKCONTAINER                                                                   */
 /*        INPUT: EXC_PAGEPTR (POINTER TO THE ACTIVE PAGE RECORD)                     */
@@ -7671,7 +7834,9 @@ Dbacc::shrink_adjust_reduced_hash_value(Uint32 bucket_number)
 
   return;
 }//Dbacc::shrink_adjust_reduced_hash_value()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 void Dbacc::shrinkcontainer(Page8Ptr pageptr,
                             Uint32 conptr,
                             bool isforward,
@@ -7757,6 +7922,7 @@ void Dbacc::shrinkcontainer(Page8Ptr pageptr,
     goto SHR_LOOP;
   }//if
 }//Dbacc::shrinkcontainer()
+#endif//ACC_OLD
 
 void Dbacc::initFragAdd(Signal* signal,
                         FragmentrecPtr regFragPtr) const
@@ -7778,9 +7944,11 @@ void Dbacc::initFragAdd(Signal* signal,
   // NOTE: next line must match calculation in Dblqh::execLQHFRAGREQ
   regFragPtr.p->myfid = req->fragId;
   regFragPtr.p->myTableId = req->tableId;
+#ifdef ACC_OLD
   ndbrequire(req->kValue == 6);
   ndbrequire(req->kValue == regFragPtr.p->k);
   regFragPtr.p->expandCounter = 0;
+#endif//ACC_OLD
 
   /**
    * Only allow shrink during SR
@@ -7789,19 +7957,27 @@ void Dbacc::initFragAdd(Signal* signal,
    * Is later restored to 0 by LQH at end of REDO log execution
    */
   regFragPtr.p->expandOrShrinkQueued = false;
+#ifdef ACC_OLD
   regFragPtr.p->level.setSize(1 << req->kValue);
   regFragPtr.p->minloadfactor = minLoadFactor;
   regFragPtr.p->maxloadfactor = maxLoadFactor;
   regFragPtr.p->slack = Int64(regFragPtr.p->level.getSize()) * maxLoadFactor;
+#endif//ACC_OLD
+  // Currently only local key size 1 is supported.
+  ndbrequire(req->localKeyLen == 1);
+#ifdef ACC_OLD
   regFragPtr.p->localkeylen = req->localKeyLen;
   regFragPtr.p->nodetype = (req->reqInfo >> 4) & 0x3;
+#endif//ACC_OLD
   regFragPtr.p->keyLength = req->keyLength;
-  ndbrequire(req->keyLength != 0);
+  ndbrequire(req->keyLength != 0); // todoas does this simplify getElement?
+#ifdef ACC_OLD
   ndbrequire(regFragPtr.p->elementLength ==
              ZELEM_HEAD_SIZE + regFragPtr.p->localkeylen);
   Uint32 Tmp1 = regFragPtr.p->level.getSize();
   Uint32 Tmp2 = regFragPtr.p->maxloadfactor - regFragPtr.p->minloadfactor;
   regFragPtr.p->slackCheck = Int64(Tmp1) * Tmp2;
+#endif//ACC_OLD
   regFragPtr.p->mytabptr = req->tableId;
   regFragPtr.p->m_commit_count = 0; // stable results
   
@@ -7815,7 +7991,9 @@ void Dbacc::initFragAdd(Signal* signal,
 
 void Dbacc::initFragGeneral(FragmentrecPtr regFragPtr)const
 {
+#ifdef ACC_OLD
   new (&regFragPtr.p->directory) DynArr256::Head();
+#endif//ACC_OLD
 
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
   for (Uint32 i = 0; i < NUM_ACC_FRAGMENT_MUTEXES; i++)
@@ -7828,12 +8006,16 @@ void Dbacc::initFragGeneral(FragmentrecPtr regFragPtr)const
     regFragPtr.p->lockCount[i] = 0;
   }
   regFragPtr.p->hasCharAttr = ZFALSE;
+#ifdef ACC_OLD
   regFragPtr.p->dirRangeFull = ZFALSE;
+#endif//ACC_OLD
   regFragPtr.p->fragState = FREEFRAG;
 
+#ifdef ACC_OLD
   regFragPtr.p->sparsepages.init();
   regFragPtr.p->fullpages.init();
   regFragPtr.p->m_noOfAllocatedPages = 0;
+#endif//ACC_OLD
 
   regFragPtr.p->m_lockStats.init();
 }//Dbacc::initFragGeneral()
@@ -7892,6 +8074,7 @@ void Dbacc::execACC_TO_REQ(Signal* signal)
   return;
 }//Dbacc::execACC_TO_REQ()
 
+#ifdef ACC_OLD
 /* ----------------------------------------------------------------------------
  * Get information of next container.
  *
@@ -7934,7 +8117,9 @@ void Dbacc::nextcontainerinfo(Page8Ptr& pageptr,
     c_page8_pool.getPtr(pageptr);
   }//if
 }//Dbacc::nextcontainerinfo()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /** ---------------------------------------------------------------------------
  * Sets lock on an element.
  *
@@ -7956,6 +8141,7 @@ void Dbacc::setlock(Page8Ptr pageptr, Uint32 elemptr) const
   tselTmp1 = ElementHeader::setLocked(operationRecPtr.i);
   pageptr.p->word32[elemptr] = tselTmp1;
 }//Dbacc::setlock()
+#endif//ACC_OLD
 
 void Dbacc::getFragPtr(FragmentrecPtr &rootPtr,
                        Uint32 tableId,
@@ -7977,6 +8163,7 @@ void Dbacc::getFragPtr(FragmentrecPtr &rootPtr,
   return;
 }
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* INIT_OVERPAGE                                                                     */
 /*         INPUT. IOP_PAGEPTR, POINTER TO AN OVERFLOW PAGE RECORD                    */
@@ -8038,7 +8225,9 @@ void Dbacc::initOverpage(Page8Ptr iopPageptr)
   }//for
   iopPageptr.p->word32[iopIndex] = Container::NO_CONTAINER_INDEX;	/* RIGHT_LIST IS UPDATED */
 }//Dbacc::initOverpage()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* INIT_PAGE                                                                         */
 /*         INPUT. INP_PAGEPTR, POINTER TO A PAGE RECORD                              */
@@ -8137,6 +8326,7 @@ void Dbacc::initPage(Page8Ptr inpPageptr, Uint32 tipPageId)
   inpPageptr.p->word32[Page8::CHECKSUM] = 0;
   inpPageptr.p->word32[Page8::ALLOC_CONTAINERS] = 0;
 }//Dbacc::initPage()
+#endif//ACC_OLD
 
 /* --------------------------------------------------------------------------------- */
 /* RELEASE OP RECORD                                                                 */
@@ -8182,6 +8372,7 @@ void Dbacc::releaseFreeOpRec()
   }
 }
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* RELEASE_OVERPAGE                                                                  */
 /* --------------------------------------------------------------------------------- */
@@ -8195,8 +8386,10 @@ void Dbacc::releaseOverpage(Page8Ptr ropPageptr)
   jam();
   releasePage_lock(ropPageptr);
 }//Dbacc::releaseOverpage()
+#endif//ACC_OLD
 
 
+#ifdef ACC_OLD
 /* ------------------------------------------------------------------------- */
 /* RELEASE_PAGE                                                              */
 /* ------------------------------------------------------------------------- */
@@ -8215,7 +8408,9 @@ void Dbacc::releasePage_lock(Page8Ptr rpPageptr)
     NdbMutex_Unlock(lqh_block->m_lock_acc_page_mutex);
   }
 }
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 void Dbacc::releasePage(Page8Ptr rpPageptr,
                         FragmentrecPtr fragPtr,
                         EmulatedJamBuffer *jamBuf)
@@ -8240,6 +8435,7 @@ void Dbacc::releasePage(Page8Ptr rpPageptr,
             cfreepages.getCount() + cnoOfAllocatedPages);
   ndbassert(pages.getCount() <= cpageCount);
 }//Dbacc::releasePage()
+#endif//ACC_OLD
 
 #if 0
 bool Dbacc::validatePageCount() const
@@ -8264,7 +8460,12 @@ Uint64 Dbacc::getLinHashByteSize(Uint64 fragPtrI) const
   fragPtr.i = fragPtrI;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
   ndbassert(fragPtr.p->fragState == ACTIVEFRAG);
-  return fragPtr.p->m_noOfAllocatedPages * static_cast<Uint64>(sizeof(Page8));
+  //todoas get byte size of Hast table
+  Uint64 byteSize = 0;
+#ifdef ACC_OLD
+  byteSize += fragPtr.p->m_noOfAllocatedPages * static_cast<Uint64>(sizeof(Page8));
+#endif//ACC_OLD
+  return byteSize;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -8281,6 +8482,7 @@ bool Dbacc::seizeFragrec()
   return succ;
 }//Dbacc::seizeFragrec()
 
+#ifdef ACC_OLD
 /** 
  * A ZPAGESIZE_ERROR has occurred, out of index pages
  * Print some debug info if debug compiled
@@ -8291,8 +8493,9 @@ void Dbacc::zpagesize_error(const char* where){
         << "  cfreepages.getCount()=" << cfreepages.getCount() << endl
 	<< "  cnoOfAllocatedPages="<<cnoOfAllocatedPages);
 }
+#endif//ACC_OLD
 
-
+#ifdef ACC_OLD
 /* ------------------------------------------------------------------------- */
 /* SEIZE_PAGE                                                                */
 /* ------------------------------------------------------------------------- */
@@ -8355,7 +8558,9 @@ Uint32 Dbacc::seizePage(Page8Ptr& spPageptr,
   }
   return Uint32(0);
 }//Dbacc::seizePage()
+#endif//ACC_OLD
 
+#ifdef ACC_OLD
 /* --------------------------------------------------------------------------------- */
 /* SEND_SYSTEMERROR                                                                  */
 /* --------------------------------------------------------------------------------- */
@@ -8363,6 +8568,7 @@ void Dbacc::sendSystemerror(int line)const
 {
   progError(line, NDBD_EXIT_PRGERR);
 }//Dbacc::sendSystemerror()
+#endif//ACC_OLD
 
 void Dbacc::execDBINFO_SCANREQ(Signal *signal)
 {
@@ -8377,7 +8583,9 @@ void Dbacc::execDBINFO_SCANREQ(Signal *signal)
   case Ndbinfo::POOLS_TABLEID:
   {
     jam();
+#ifdef ACC_OLD
     const DynArr256Pool::Info pmpInfo = directoryPool.getInfo();
+#endif//ACC_OLD
 
     Ndbinfo::pool_entry pools[] =
     {
@@ -8388,6 +8596,7 @@ void Dbacc::execDBINFO_SCANREQ(Signal *signal)
         oprec_pool.getUsedHi(),
         { 0, 0, 0, 0},
         RT_DBACC_OPERATION},
+#ifdef ACC_OLD
       { "Index memory",
         cnoOfAllocatedPages,
         cpageCount,
@@ -8417,6 +8626,8 @@ void Dbacc::execDBINFO_SCANREQ(Signal *signal)
         0,
         { 0, 0, 0 },
         RT_DBACC_DIRECTORY},
+#endif//ACC_OLD
+      //todoas add info from Hast
       { NULL, 0,0,0,0,{ 0,0,0,0 }, 0}
     };
 
@@ -8684,12 +8895,17 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
     infoEvent("Dbacc::operationrec[%d]: transid(0x%x, 0x%x)",
 	      tmpOpPtr.i, tmpOpPtr.p->transId1,
 	      tmpOpPtr.p->transId2);
+#ifdef ACC_OLD
     infoEvent("elementPage=%d, elementPointer=%d ",
 	      tmpOpPtr.p->elementPage, //✗hast
 	      tmpOpPtr.p->elementPointer);
+#endif//ACC_OLD
     infoEvent("fid=%d, fragptr=%lld ",
               tmpOpPtr.p->fid, tmpOpPtr.p->fragptr);
+    infoEvent("completeHashValue=%d", tmpOpPtr.p->completeHashValue);
+#ifdef ACC_OLD
     infoEvent("hashValue=%d", tmpOpPtr.p->hashValue.pack());
+#endif//ACC_OLD
     infoEvent("nextLockOwnerOp=%d, nextOp=%d, nextParallelQue=%d ",
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
 	      tmpOpPtr.p->nextLockOwnerOp,
@@ -8710,8 +8926,10 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
               tmpOpPtr.p->nextParallelQue);
     infoEvent("prevSerialQue=%d",
 	      tmpOpPtr.p->prevSerialQue);
+#ifdef ACC_OLD
     infoEvent("m_op_bits=0x%x, reducedHashValue=%x ",
               tmpOpPtr.p->m_op_bits, tmpOpPtr.p->reducedHashValue.pack());
+#endif//ACC_OLD
     return;
   }
 
@@ -8904,9 +9122,16 @@ Dbacc::getL2PMapAllocBytes(Uint64 fragPtrI) const
   FragmentrecPtr fragPtr;
   fragPtr.i = fragPtrI;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
-  return fragPtr.p->directory.getByteSize();
+  //todoas get byte size of Hast directory, or perhaps remove in favour of
+  //getLinHashByteSize
+  Uint64 byteSize = 0;
+#ifdef ACC_OLD
+  byteSize += fragPtr.p->directory.getByteSize();
+#endif//ACC_OLD
+  return byteSize;
 }
 
+#ifdef ACC_OLD
 #ifdef VM_TRACE
 void
 Dbacc::debug_lh_vars(const char* where)const
@@ -8927,6 +9152,7 @@ Dbacc::debug_lh_vars(const char* where)const
     << "\n";
 }
 #endif
+#endif//ACC_OLD
 
 /**
  * getPrecedingOperation
@@ -8994,6 +9220,7 @@ Dbacc::getPrecedingOperation(OperationrecPtr& opPtr) const
   return (opPtr.i != RNIL);
 }
 
+#ifdef ACC_OLD
 /**
  * Implementation of Dbacc::Page32Lists
  */
@@ -9140,6 +9367,7 @@ void Dbacc::Page32Lists::releasePage8(Page32_pool& pool, Page8Ptr p8)
   p.p->list_id = new_list_id;
   sub_page_id_count[sub_page_id] --;
 }
+#endif//ACC_OLD
 
 void
 Dbacc::sendPoolShrink(const Uint32 pool_index)

@@ -16650,7 +16650,9 @@ Dblqh::setup_query_thread_for_key_access(Uint32 instanceNo)
   this->m_ldm_instance_used = lqh_block;
   this->tablerec = lqh_block->tablerec;
 
+#ifdef ACC_OLD
   c_acc->directoryPoolPtr = acc_block->directoryPoolPtr;
+#endif//ACC_OLD
   /**
    * The page8 pool is relying on the page32 pool and this use the
    * memroot of the process as start of ArrayPool and this is common
@@ -16675,7 +16677,9 @@ Dblqh::setup_query_thread_for_scan_access(Uint32 instanceNo)
   this->m_ldm_instance_used = lqh_block;
   this->tablerec = lqh_block->tablerec;
 
+#ifdef ACC_OLD
   c_acc->directoryPoolPtr = acc_block->directoryPoolPtr;
+#endif//ACC_OLD
 
   c_tup->tablerec = tup_block->tablerec;
   c_tup->c_page_map_pool_ptr = tup_block->c_page_map_pool_ptr;
@@ -16688,7 +16692,9 @@ void
 Dblqh::reset_query_thread_access()
 {
   this->tablerec = 0;
+#ifdef ACC_OLD
   c_acc->directoryPoolPtr = 0;
+#endif//ACC_OLD
   c_tup->tablerec = 0;
   c_tup->c_page_map_pool_ptr = 0;
   c_tux->c_indexPool.setArrayPtr(0);

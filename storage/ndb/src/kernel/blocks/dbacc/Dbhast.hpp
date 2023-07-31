@@ -31,6 +31,9 @@
 // Used to activate Hast-related debug logging.
 //#define DEBUG_HAST 1
 
+// Used to activate the old ACC implementation (before Hast) and validate the two implementations against each other.
+//#define ACC_OLD 1
+
 class Dbacc;
 
 class Hast {

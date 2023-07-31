@@ -30,21 +30,27 @@
 #define ACC_SAFE_QUEUE
 #endif
 
+#include "Dbhast.hpp"
 #include "util/require.h"
 #include <pc.hpp>
 #include "Bitmask.hpp"
+#ifdef ACC_OLD
 #include <DynArr256.hpp>
+#endif//ACC_OLD
 #include <SimulatedBlock.hpp>
+#ifdef ACC_OLD
 #include <LHLevel.hpp>
 #include <IntrusiveList.hpp>
 #include "Container.hpp"
+#endif//ACC_OLD
 #include "signaldata/AccKeyReq.hpp"
 #include "TransientPool.hpp"
 #include "TransientSlotPool.hpp"
+#ifdef ACC_OLD
 #include <Intrusive64List.hpp>
+#endif//ACC_OLD
 #include <RWPool64.hpp>
 #include <atomic>
-#include "Dbhast.hpp"
 
 #include <EventLogger.hpp>
 
@@ -96,7 +102,9 @@
 #define ZINITIALISE_RECORDS 1
 #define ZREL_ROOT_FRAG 5
 #define ZREL_FRAG 6
+#ifdef ACC_OLD
 #define ZREL_DIR 7
+#endif//ACC_OLD
 #define ZACC_SHRINK_TRANSIENT_POOLS 8
 #define ZACC_TRANSIENT_POOL_STAT 9
 /* ------------------------------------------------------------------------- */
@@ -129,6 +137,7 @@
 
 #endif
 
+#ifdef ACC_OLD
 class ElementHeader {
   /**
    * 
@@ -244,6 +253,7 @@ public:
 };
 
 typedef Container::Header ContainerHeader;
+#endif//ACC_OLD
 
 class Dbacc: public SimulatedBlock {
   friend class DbaccProxy;
@@ -295,6 +305,7 @@ enum State {
   ACTIVEROOT = 52
 };
 
+#ifdef ACC_OLD
 // Records
 
 /* --------------------------------------------------------------------------------- */
@@ -384,6 +395,7 @@ typedef SLCFifoList<Page8_pool, IA_Page8> Page8List;
 typedef LocalSLCFifoList<Page8_pool, IA_Page8> LocalPage8List;
 typedef DLCFifoList<Page8_pool, IA_Page8> ContainerPageList;
 typedef LocalDLCFifoList<Page8_pool, IA_Page8> LocalContainerPageList;
+#endif//ACC_OLD
 
 /* --------------------------------------------------------------------------------- */
 /* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN FRAGMENT    */
@@ -411,6 +423,7 @@ struct Fragmentrec {
   Uint32 m_commit_count;
   State rootState;
   
+#ifdef ACC_OLD
 //-----------------------------------------------------------------------------
 // Temporary variables used during shrink and expand process.
 //-----------------------------------------------------------------------------
@@ -420,6 +433,7 @@ struct Fragmentrec {
   Uint32 expSenderDirIndex;
   Uint32 expSenderIndex;
   Uint32 expSenderPageptr;
+#endif//ACC_OLD
 
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
 //-----------------------------------------------------------------------------
@@ -430,6 +444,7 @@ struct Fragmentrec {
 
   Uint32 lockCount[NUM_ACC_FRAGMENT_MUTEXES];
 
+#ifdef ACC_OLD
 //-----------------------------------------------------------------------------
 // References to Directory Ranges (which in turn references directories, which
 // in its turn references the pages) for the bucket pages and the overflow
@@ -480,6 +495,7 @@ struct Fragmentrec {
   Uint32 minloadfactor;
   Int64 slack;
   Int64 slackCheck;
+#endif//ACC_OLD
 
 //-----------------------------------------------------------------------------
 // Fragment State, mostly applicable during LCP and restore
@@ -490,14 +506,18 @@ struct Fragmentrec {
 // elementLength: Length of element in bucket and overflow pages
 // keyLength: Length of key
 //-----------------------------------------------------------------------------
+#ifdef ACC_OLD
   static constexpr Uint32 elementLength = 2;
+#endif//ACC_OLD
   Uint16 keyLength;
 
 //-----------------------------------------------------------------------------
 // Only allow one expand or shrink signal in queue at the time.
 //-----------------------------------------------------------------------------
+// todoas use this for Hast
   bool expandOrShrinkQueued;
 
+#ifdef ACC_OLD
 //-----------------------------------------------------------------------------
 // hashcheckbit is the bit to check whether to send element to split bucket or not
 // k (== 6) is the number of buckets per page
@@ -510,19 +530,23 @@ struct Fragmentrec {
 // nodetype can only be STORED in this release. Is currently only set, never read
 //-----------------------------------------------------------------------------
   Uint8 nodetype;
+#endif//ACC_OLD
 
 //-----------------------------------------------------------------------------
 // flag to avoid accessing table record if no char attributes
 //-----------------------------------------------------------------------------
   Uint8 hasCharAttr;
 
+#ifdef ACC_OLD
 //-----------------------------------------------------------------------------
 // flag to mark that execEXPANDCHECK2 has failed due to DirRange full
 //-----------------------------------------------------------------------------
   Uint8 dirRangeFull;
+  // todoas Hast might need something similar
 
   // Number of Page8 pages allocated for the hash index.
   Int32 m_noOfAllocatedPages;
+#endif//ACC_OLD
 
 //-----------------------------------------------------------------------------
 // Lock stats
@@ -677,9 +701,11 @@ struct Fragmentrec {
   LockStats m_lockStats;
 
 public:
+#ifdef ACC_OLD
   Uint32 getPageNumber(Uint32 bucket_number) const;
   Uint32 getPageIndex(Uint32 bucket_number) const;
   bool enough_valid_bits(LHBits16 const& reduced_hash_value) const;
+#endif//ACC_OLD
 };
 
   typedef Ptr64<Fragmentrec> FragmentrecPtr;
@@ -745,10 +771,15 @@ struct Operationrec {
 
   Uint32 m_op_bits;
   Local_key localdata;
+#ifdef ACC_OLD
   Uint32 elementPage;
   Uint32 elementPointer;
+#endif//ACC_OLD
   Uint32 fid;
+  Uint32 completeHashValue;
+#ifdef ACC_OLD
   LHBits32 hashValue;
+#endif//ACC_OLD
   Uint32 nextParallelQue;
   union {
     Uint32 nextSerialQue;      
@@ -773,12 +804,16 @@ struct Operationrec {
   Uint32 transId1;
   Uint32 transId2;
   Uint32 userptr;
+#ifdef ACC_OLD
   Uint16 elementContainer;
+#endif//ACC_OLD
   Uint16 tupkeylen;
   Uint32 m_scanOpDeleteCountOpRef;
   Uint32 userblockref;
   bool m_reserved;
+#ifdef ACC_OLD
   LHBits16 reducedHashValue;
+#endif//ACC_OLD
   NDB_TICKS m_lockTime;
 
   // todoas maybe: We put the Hast cursor last since it might differ in size between implementation.
@@ -788,7 +823,8 @@ struct Operationrec {
     return 
       transId1 == op->transId1 && transId2 == op->transId2;
   }
-}; /* p2c: size = 168 bytes */
+};
+//todoas Operationrec used to be 168 bytes, make sure it doesn't incease.
 
   typedef Ptr<Operationrec> OperationrecPtr;
   typedef TransientPool<Operationrec> Operationrec_pool;
@@ -847,8 +883,10 @@ private:
   // Transit signals
   void execDEBUG_SIG(Signal* signal);
   void execCONTINUEB(Signal* signal);
+#ifdef ACC_OLD
   void execEXPANDCHECK2(Signal* signal);
   void execSHRINKCHECK2(Signal* signal);
+#endif//ACC_OLD
   void execACC_OVER_REC(Signal* signal);
   void execNEXTOPERATION(Signal* signal);
 
@@ -880,11 +918,15 @@ private:
   void releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId);
   void releaseRootFragRecord(Signal* signal, RootfragmentrecPtr rootPtr) const;
   void releaseRootFragResources(Signal* signal, Uint32 tableId);
+#ifdef ACC_OLD
   void releaseDirResources(Signal* signal);
+#endif//ACC_OLD
   void releaseFragRecord(FragmentrecPtr regFragPtr);
   void initialiseFsConnectionRec(Signal* signal) const;
   void initialiseFsOpRec(Signal* signal) const;
+#ifdef ACC_OLD
   void initialisePageRec();
+#endif//ACC_OLD
   void initialiseRootfragRec(Signal* signal) const;
   void initialiseTableRec();
   void initTable(Tabrec*);
@@ -928,6 +970,7 @@ private:
                                    Uint32 hash);
   void mark_pending_abort(OperationrecPtr abortingOp, Uint32 nextParallelOp);
   
+#ifdef ACC_OLD
   void expandcontainer(Page8Ptr pageptr, Uint32 conidx);
   void shrinkcontainer(Page8Ptr pageptr,
                        Uint32 conptr,
@@ -966,9 +1009,11 @@ private:
   void increaselistcont(Page8Ptr);
   void seizeLeftlist(Page8Ptr slPageptr, Uint32 conidx);
   void seizeRightlist(Page8Ptr slPageptr, Uint32 conidx);
+#endif//ACC_OLD
   Uint32 find_key_operation(OperationrecPtr, bool);
   Uint32 readTablePk(Uint32, Uint32, bool, OperationrecPtr, Uint32*,
                      bool xfrm);
+#ifdef ACC_OLD
   Uint32 getElement(const AccKeyReq* signal,
                     OperationrecPtr& lockOwner,
                     Page8Ptr& bucketPageptr,
@@ -976,12 +1021,14 @@ private:
                     Page8Ptr& elemPageptr,
                     Uint32& elemConptr,
                     Uint32& elemptr);
+#endif//ACC_OLD
   void hastGetElement(Hast& hast,
                       const Uint32 *keydata,
                       const Fragmentrec& fragrec,
                       Hast::Cursor& cursor,
                       OperationrecPtr& lockOwnerPtr,
                       Local_key& localkey);
+#ifdef ACC_OLD
   LHBits32 getElementHash(OperationrecPtr& oprec);
   LHBits32 getElementHash(Uint32 const* element);
   LHBits32 getElementHash(Uint32 const* element, OperationrecPtr& oprec);
@@ -999,6 +1046,7 @@ private:
   void releaseLeftlist(Page8Ptr rlPageptr, Uint32 conidx, Uint32 conptr);
   void releaseRightlist(Page8Ptr rlPageptr, Uint32 conidx, Uint32 conptr);
   void checkoverfreelist(Page8Ptr colPageptr);
+#endif//ACC_OLD
   void abortOperation(Signal* signal, Uint32 hash);
   void commitOperation(Signal* signal);
   void copyOpInfo(OperationrecPtr dst, OperationrecPtr src) const;
@@ -1019,25 +1067,31 @@ private:
                           bool lo) const;
   void check_lock_upgrade(Signal* signal, OperationrecPtr lock_owner,
 			  OperationrecPtr release_op) const;
+#ifdef ACC_OLD
   Uint32 allocOverflowPage();
+#endif//ACC_OLD
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
   void insertLockOwnersList(OperationrecPtr&);
   void takeOutLockOwnersList(OperationrecPtr&);
 #endif
 
+#ifdef ACC_OLD
   void initOverpage(Page8Ptr);
   void initPage(Page8Ptr, Uint32);
+#endif//ACC_OLD
   void initRootfragrec(Signal* signal) const;
   void putOpInFragWaitQue(Signal* signal) const;
   void releaseOpRec();
   void releaseFreeOpRec();
+#ifdef ACC_OLD
   void releaseOverpage(Page8Ptr ropPageptr);
   void releasePage(Page8Ptr rpPageptr,
                    FragmentrecPtr fragPtr,
                    EmulatedJamBuffer *jamBuf);
   void releasePage_lock(Page8Ptr rpPageptr);
-  void seizeDirectory(Signal* signal) const;
+#endif//ACC_OLD
   bool seizeFragrec();
+#ifdef ACC_OLD
   Uint32 seizePage(Page8Ptr& spPageptr,
                    int sub_page_id,
                    bool allow_use_of_spare_pages,
@@ -1045,19 +1099,26 @@ private:
                    FragmentrecPtr fragPtr,
                    EmulatedJamBuffer *jamBuf);
   Uint32 seizePage_lock(Page8Ptr& spPageptr, int sub_page_id);
+#endif//ACC_OLD
   bool get_lock_information(Dbacc **acc_block, Dblqh** lqh_block);
   void seizeRootfragrec(Signal* signal) const;
+#ifdef ACC_OLD
   void sendSystemerror(int line) const;
+#endif//ACC_OLD
 
   void addFragRefuse(Signal* signal, Uint32 errorCode) const;
   void acckeyref1Lab(Signal* signal, Uint32 result_code) const;
   void insertelementLab(Signal* signal,
+#ifdef ACC_OLD
                         Page8Ptr bucketPageptr,
                         Uint32 bucketConidx,
+#endif//ACC_OLD
                         Uint32 hash,
                         Hast::Cursor& hastCursor);
+#ifdef ACC_OLD
   void endofexpLab(Signal* signal);
   void endofshrinkbucketLab(Signal* signal);
+#endif//ACC_OLD
   void accIsLockedLab(Signal* signal,
                       OperationrecPtr lockOwnerPtr,
                       Uint32 hash);
@@ -1066,12 +1127,15 @@ private:
                           Uint32 hash);
   void initialiseRecordsLab(Signal* signal, Uint32, Uint32, Uint32);
 
+#ifdef ACC_OLD
   void zpagesize_error(const char* where);
+#endif//ACC_OLD
 
   // Initialisation
   void initData();
   void initRecords(const ndb_mgm_configuration_iterator *mgm_cfg);
 
+#ifdef ACC_OLD
 #ifdef VM_TRACE
   void debug_lh_vars(const char* where) const;
 #else
@@ -1113,6 +1177,8 @@ private:
 /* --------------------------------------------------------------------------------- */
 /* TABREC                                                                            */
 /* --------------------------------------------------------------------------------- */
+#endif//ACC_OLD
+private:
   Tabrec *tabrec;
   TabrecPtr tabptr;
   Uint32 ctablesize;
@@ -1179,7 +1245,6 @@ public:
   bool check_expand_shrink_ongoing(Uint64 fragPtrI);
   Operationrec* getOperationPtrP(Uint32 opPtrI);
 
-  //todoas read and make sure we obey this, for example, the bucket numbers aren't the same between ACC and hast, and we need to take the hash mutex to grow and shrink.
   bool acquire_frag_mutex_hash(Fragmentrec *fragPtrP,
                                OperationrecPtr opPtr,
                                Uint32 & inx)
@@ -1187,8 +1252,12 @@ public:
     inx = 0;
     if (qt_likely(globalData.ndbMtQueryWorkers > 0))
     {
+      inx = opPtr.p->completeHashValue & (NUM_ACC_FRAGMENT_MUTEXES - 1);
+#ifdef ACC_OLD
       LHBits32 hashVal = getElementHash(opPtr);
-      inx = hashVal.get_bits(NUM_ACC_FRAGMENT_MUTEXES - 1);
+      Uint32 inx_old = hashVal.get_bits(NUM_ACC_FRAGMENT_MUTEXES - 1);
+      ndbassert(inx == inx_old);
+#endif//ACC_OLD
       jamDebug();
       jamLine(inx);
       NdbMutex_Lock(&fragPtrP->acc_frag_mutex[inx]);
@@ -1223,6 +1292,7 @@ public:
       ndbassert(inx == 0);
     }
   }
+#ifdef ACC_OLD
   void acquire_frag_mutex_bucket(Fragmentrec *fragPtrP,
                                  Uint32 bucket)
   {
@@ -1251,6 +1321,7 @@ public:
       jamLine(inx);
     }
   }
+#endif//ACC_OLD
 };
 
 inline bool
@@ -1287,6 +1358,7 @@ inline void Dbacc::checkPoolShrinkNeed(const Uint32 pool_index,
   }
 }
 #ifdef DBACC_C
+#ifdef ACC_OLD
 /**
  * Container short index is a third(!) numbering of containers on a Page8.
  *
@@ -1592,6 +1664,7 @@ inline bool Dbacc::Page32Lists::haveFreePage8(int sub_page_id) const
   Uint16 list_id_set = sub_page_id_to_list_id_set(sub_page_id);
   return (list_id_set & nonempty_lists) != 0;
 }
+#endif//ACC_OLD
 
 inline
 Dbacc::Operationrec*

@@ -63,12 +63,15 @@ void Dbacc::initData()
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
   m_acc_mutex_locked = RNIL;
 #endif
+#ifdef ACC_OLD
   c_restart_allow_use_spare = true;
+#endif//ACC_OLD
   m_curr_acc = this;
   ctablesize = ZTABLESIZE;
 
   Pool_context pc;
   pc.m_block = this;
+#ifdef ACC_OLD
   if (!m_is_query_block)
   {
     directoryPool.init(RT_DBACC_DIRECTORY, pc);
@@ -78,18 +81,25 @@ void Dbacc::initData()
   {
     directoryPoolPtr = 0;
   }
+#endif//ACC_OLD
 
   tabrec = 0;
 
+#ifdef ACC_OLD
   void* ptr = m_ctx.m_mm.get_memroot();
   c_page_pool.set((Page32*)ptr, (Uint32)~0);
+#endif//ACC_OLD
 
   c_fragment_pool.init(RT_DBACC_FRAGMENT, pc);
 
+#ifdef ACC_OLD
   c_allow_use_of_spare_pages = false;
+#endif//ACC_OLD
   cfreeopRec = RNIL;
 
+#ifdef ACC_OLD
   cnoOfAllocatedPagesMax = cnoOfAllocatedPages = cpageCount = 0;
+#endif//ACC_OLD
   // Records with constant sizes
 
   RSS_OP_COUNTER_INIT(cnoOfAllocatedFragrec);
@@ -109,9 +119,11 @@ void Dbacc::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
     init_global_ptrs(tmp, sizeof(tmp)/sizeof(tmp[0]));
   }
 #endif
+#ifdef ACC_OLD
   cfreepages.init();
   ndbassert(pages.getCount() - cfreepages.getCount() + cnoOfAllocatedPages ==
             cpageCount);
+#endif//ACC_OLD
 
   if (m_is_query_block)
   {
@@ -167,8 +179,10 @@ Dbacc::Dbacc(Block_context& ctx,
              Uint32 blockNo):
   SimulatedBlock(blockNo, ctx, instanceNumber),
   m_reserved_copy_frag_lock(oprec_pool),
-  c_tup(0),
-  c_page8_pool(c_page_pool)
+  c_tup(0)
+#ifdef ACC_OLD
+  ,c_page8_pool(c_page_pool)
+#endif//ACC_OLD
 {
   BLOCK_CONSTRUCTOR(Dbacc);
 
@@ -178,8 +192,10 @@ Dbacc::Dbacc(Block_context& ctx,
     addRecSignal(GSN_DUMP_STATE_ORD, &Dbacc::execDUMP_STATE_ORD);
     addRecSignal(GSN_DEBUG_SIG, &Dbacc::execDEBUG_SIG);
     addRecSignal(GSN_CONTINUEB, &Dbacc::execCONTINUEB);
+#ifdef ACC_OLD
     addRecSignal(GSN_EXPANDCHECK2, &Dbacc::execEXPANDCHECK2);
     addRecSignal(GSN_SHRINKCHECK2, &Dbacc::execSHRINKCHECK2);
+#endif//ACC_OLD
 
     // Received signals
     addRecSignal(GSN_STTOR, &Dbacc::execSTTOR);
@@ -206,8 +222,10 @@ Dbacc::Dbacc(Block_context& ctx,
     m_ldm_instance_used = nullptr;
     ndbrequire(blockNo == DBQACC);
     addRecSignal(GSN_STTOR, &Dbacc::execSTTOR);
+#ifdef ACC_OLD
     addRecSignal(GSN_EXPANDCHECK2, &Dbacc::execEXPANDCHECK2);
     addRecSignal(GSN_SHRINKCHECK2, &Dbacc::execSHRINKCHECK2);
+#endif//ACC_OLD
     addRecSignal(GSN_ACCSEIZEREQ, &Dbacc::execACCSEIZEREQ);
     addRecSignal(GSN_READ_CONFIG_REQ, &Dbacc::execREAD_CONFIG_REQ, true);
     addRecSignal(GSN_CONTINUEB, &Dbacc::execCONTINUEB);
