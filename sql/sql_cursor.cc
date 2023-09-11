@@ -124,7 +124,7 @@ class Query_result_materialize final : public Query_result_union {
   bool start_execution(THD *thd) override;
   bool send_result_set_metadata(THD *thd, const mem_root_deque<Item *> &list,
                                 uint flags) override;
-  void cleanup(THD *) override { m_result->cleanup(); }
+  void cleanup(THD * thd) override { m_result->cleanup(thd); }
   Server_side_cursor *cursor() const override { return m_cursor; }
 
  private:
@@ -401,10 +401,10 @@ bool Materialized_cursor::open(THD *thd) {
 */
 
 bool Materialized_cursor::fetch(ulong num_rows) {
-  THD *thd = table->in_use;
+  THD *thd = m_table->in_use;
 
   int res = 0;
-  result->begin_dataset();
+  m_result->begin_dataset();
   for (fetch_limit += num_rows; fetch_count < fetch_limit; fetch_count++) {
     if ((res = m_table->file->ha_rnd_next(m_table->record[0]))) break;
     /* Send data only if the read was successful. */
