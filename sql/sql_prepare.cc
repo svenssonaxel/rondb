@@ -2218,6 +2218,7 @@ Execute_sql_statement::Execute_sql_statement(LEX_STRING sql_text)
 */
 
 bool Execute_sql_statement::execute_server_code(THD *thd) {
+  RONDB475LOG("Execute_sql_statement::execute_server_code: Begin");
   sql_digest_state *parent_digest;
   PSI_statement_locker *parent_locker;
   bool error;
@@ -2225,8 +2226,10 @@ bool Execute_sql_statement::execute_server_code(THD *thd) {
   if (alloc_query(thd, m_sql_text.str, m_sql_text.length)) return true;
 
   Parser_state parser_state;
-  if (parser_state.init(thd, thd->query().str, thd->query().length))
+  if (parser_state.init(thd, thd->query().str, thd->query().length)) {
+    RONDB475LOG("Execute_sql_statement::execute_server_code: Return true=Failure");
     return true;
+  }
 
   parser_state.m_lip.multi_statements = false;
   lex_start(thd);
@@ -2239,7 +2242,10 @@ bool Execute_sql_statement::execute_server_code(THD *thd) {
   thd->m_digest = parent_digest;
   thd->m_statement_psi = parent_locker;
 
-  if (error) goto end;
+  if (error) {
+    ROND475LOG("Execute_sql_statement::execute_server_code: parse_sql error=%d", error);
+    goto end;
+  }
 
   thd->lex->set_trg_event_type_for_tables();
 
@@ -2254,12 +2260,15 @@ bool Execute_sql_statement::execute_server_code(THD *thd) {
   rewrite_query_if_needed(thd);
   log_execute_line(thd);
 
+  RONDB475LOG("Execute_sql_statement::execute_server_code: Before mysql_execute_command");
   error = mysql_execute_command(thd);
+  RONDB475LOG("Execute_sql_statement::execute_server_code: After mysql_execute_command");
   thd->m_statement_psi = parent_locker;
 
 end:
   lex_end(thd->lex);
 
+  RONDB475LOG("Execute_sql_statement::execute_server_code: Return %d", error);
   return error;
 }
 
@@ -3102,7 +3111,9 @@ bool Prepared_statement::execute_server_runnable(
   thd->swap_query_arena(m_arena, &arena_backup);
   thd->stmt_arena = &m_arena;
 
+  RONDB475LOG("Prepared_statement::execute_server_runnable: Before execute_server_code");
   error = server_runnable->execute_server_code(thd);
+  RONDB475LOG("Prepared_statement::execute_server_runnable: After execute_server_code, error == %d", error);
 
   thd->cleanup_after_query();
 
@@ -3616,9 +3627,11 @@ void Ed_connection::free_old_result() {
 */
 
 bool Ed_connection::execute_direct(LEX_STRING sql_text) {
+  RONDB475LOG("Ed_connection::execute_direct(LEX_STRING sql_text): Begin %s", sql_text.str);
   Execute_sql_statement execute_sql_statement(sql_text);
   DBUG_PRINT("ed_query", ("%s", sql_text.str));
 
+  RONDB475LOG("Ed_connection::execute_direct(LEX_STRING sql_text): Will execute");
   return execute_direct(&execute_sql_statement);
 }
 
@@ -3636,7 +3649,7 @@ bool Ed_connection::execute_direct(LEX_STRING sql_text) {
 */
 
 bool Ed_connection::execute_direct(Server_runnable *server_runnable) {
-  RONDB475LOG("Ed_connection::execute_direct: Begin");
+  RONDB475LOG("Ed_connection::execute_direct(Server_runnable): Begin");
   DBUG_TRACE;
 
   free_old_result(); /* Delete all data from previous execution, if any */
@@ -3645,13 +3658,13 @@ bool Ed_connection::execute_direct(Server_runnable *server_runnable) {
   m_thd->push_protocol(&protocol_local);
   m_thd->push_diagnostics_area(&m_diagnostics_area);
 
-  RONDB475LOG("Ed_connection::execute_direct: stmt");
+  RONDB475LOG("Ed_connection::execute_direct(Server_runnable): stmt");
   Prepared_statement stmt(m_thd);
-  RONDB475LOG("Ed_connection::execute_direct: exec");
+  RONDB475LOG("Ed_connection::execute_direct(Server_runnable): exec");
   bool rc = stmt.execute_server_runnable(server_runnable);
-  RONDB475LOG("Ed_connection::execute_direct: execute_server_runnable returned %d", rc);
+  RONDB475LOG("Ed_connection::execute_direct(Server_runnable): execute_server_runnable returned %d", rc);
   m_thd->send_statement_status();
-  RONDB475LOG("Ed_connection::execute_direct: after send_statement_status");
+  RONDB475LOG("Ed_connection::execute_direct(Server_runnable): after send_statement_status");
 
   m_thd->pop_protocol();
   m_thd->pop_diagnostics_area();

@@ -76,7 +76,7 @@ class Suppressor {
 bool Ndb_local_connection::execute_query(MYSQL_LEX_STRING sql_text,
                                          const uint *ignore_mysql_errors,
                                          const Suppressor *suppressor) {
-  RONDB475LOG("Ndb_local_connection::execute_query: Begin");
+  RONDB475LOG("Ndb_local_connection::execute_query: Begin %s", sql_text.str);
   DBUG_TRACE;
 
   RONDB475LOG("Ndb_local_connection::execute_query: Before exec");
@@ -138,7 +138,7 @@ bool Ndb_local_connection::execute_query(MYSQL_LEX_STRING sql_text,
 bool Ndb_local_connection::execute_query_iso(MYSQL_LEX_STRING sql_text,
                                              const uint *ignore_mysql_errors,
                                              const Suppressor *suppressor) {
-  RONDB475LOG("Ndb_local_connection::execute_query_iso: Begin");
+  RONDB475LOG("Ndb_local_connection::execute_query_iso: Begin %s", sql_text.str);
   /* Don't allow queries to affect THD's status variables */
   struct System_status_var save_thd_status_var = m_thd->status_var;
 
@@ -161,13 +161,13 @@ bool Ndb_local_connection::execute_query_iso(MYSQL_LEX_STRING sql_text,
 
   RONDB475LOG("Ndb_local_connection::execute_query_iso: 3");
   bool result = execute_query(sql_text, ignore_mysql_errors, suppressor);
-  RONDB475LOG("Ndb_local_connection::execute_query_iso: 4");
+  RONDB475LOG("Ndb_local_connection::execute_query_iso: 4, result == %d", result);
 
   /* Restore THD settings */
   m_thd->variables.option_bits = save_thd_options;
   m_thd->status_var = save_thd_status_var;
 
-  RONDB475LOG("Ndb_local_connection::execute_query_iso: return");
+  RONDB475LOG("Ndb_local_connection::execute_query_iso: return %d", result);
   return result;
 }
 

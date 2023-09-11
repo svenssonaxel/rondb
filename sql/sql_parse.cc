@@ -182,6 +182,11 @@
 #include "sql/debug_lock_order.h"
 #endif /* WITH_LOCK_ORDER */
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 namespace resourcegroups {
 class Resource_group;
 }  // namespace resourcegroups
@@ -2698,7 +2703,9 @@ static inline void binlog_gtid_end_transaction(THD *thd) {
   @retval true        Error
 */
 
+
 int mysql_execute_command(THD *thd, bool first_level) {
+  RONDB475LOG("mysql_execute_command: Begin, first_level == %d", first_level);
   int res = false;
   LEX *const lex = thd->lex;
   /* first SELECT_LEX (have special meaning for many of non-SELECTcommands) */
@@ -2729,6 +2736,7 @@ int mysql_execute_command(THD *thd, bool first_level) {
       lex->sql_command != SQLCOM_BINLOG_BASE64_EVENT) {
     my_error(ER_STATEMENT_NOT_ALLOWED_AFTER_START_TRANSACTION, MYF(0));
     binlog_gtid_end_transaction(thd);
+    RONDB475LOG("mysql_execute_command: return 1 at line %d", __LINE__);
     return 1;
   }
 
@@ -2831,6 +2839,7 @@ int mysql_execute_command(THD *thd, bool first_level) {
   if (unlikely(thd->slave_thread)) {
     if (!check_database_filters(thd, thd->db().str, lex->sql_command)) {
       binlog_gtid_end_transaction(thd);
+      RONDB475LOG("mysql_execute_command: return 0 at line %d", __LINE__);
       return 0;
     }
 
@@ -2854,6 +2863,7 @@ int mysql_execute_command(THD *thd, bool first_level) {
           Returning success without producing any errors in this case.
         */
         binlog_gtid_end_transaction(thd);
+        RONDB475LOG("mysql_execute_command: return 0 at line %d", __LINE__);
         return 0;
       }
 
@@ -2890,6 +2900,7 @@ int mysql_execute_command(THD *thd, bool first_level) {
         /* we warn the slave SQL thread */
         my_error(ER_SLAVE_IGNORED_TABLE, MYF(0));
         binlog_gtid_end_transaction(thd);
+        RONDB475LOG("mysql_execute_command: return 0 at line %d", __LINE__);
         return 0;
       }
 
@@ -2918,16 +2929,21 @@ int mysql_execute_command(THD *thd, bool first_level) {
       /* we warn the slave SQL thread */
       my_error(ER_SLAVE_IGNORED_TABLE, MYF(0));
       binlog_gtid_end_transaction(thd);
+      RONDB475LOG("mysql_execute_command: return 0 at line %d", __LINE__);
       return 0;
     }
     /*
        Execute deferred events first
     */
-    if (slave_execute_deferred_events(thd)) return -1;
+    if (slave_execute_deferred_events(thd)) {
+        RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
+        return -1;
+    }
 
     int ret = launch_hook_trans_begin(thd, all_tables);
     if (ret) {
       my_error(ret, MYF(0));
+      RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
       return -1;
     }
 
@@ -2935,6 +2951,7 @@ int mysql_execute_command(THD *thd, bool first_level) {
     int ret = launch_hook_trans_begin(thd, all_tables);
     if (ret) {
       my_error(ret, MYF(0));
+      RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
       return -1;
     }
 
@@ -2944,6 +2961,7 @@ int mysql_execute_command(THD *thd, bool first_level) {
     */
     if (deny_updates_if_read_only_option(thd, all_tables)) {
       err_readonly(thd);
+      RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
       return -1;
     }
   } /* endif unlikely slave */
@@ -2967,16 +2985,19 @@ int mysql_execute_command(THD *thd, bool first_level) {
     case GTID_STATEMENT_EXECUTE:
       break;
     case GTID_STATEMENT_CANCEL:
+      RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
       return -1;
     case GTID_STATEMENT_SKIP:
       my_ok(thd);
       binlog_gtid_end_transaction(thd);
+      RONDB475LOG("mysql_execute_command: return 0 at line %d", __LINE__);
       return 0;
   }
 
   if (thd->variables.require_row_format) {
     if (evaluate_command_row_only_restrictions(thd)) {
       my_error(ER_CLIENT_QUERY_FAILURE_INVALID_NON_ROW_FORMAT, MYF(0));
+      RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
       return -1;
     }
   }
@@ -3001,23 +3022,33 @@ int mysql_execute_command(THD *thd, bool first_level) {
       In this case we should not release metadata locks as the XA transaction
       will not be rolled back. Therefore we simply return here.
     */
-    if (trans_check_state(thd)) return -1;
+    if (trans_check_state(thd)) {
+      RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
+      return -1;
+    }
 
     /* Commit the normal transaction if one is active. */
-    if (trans_commit_implicit(thd)) return -1;
+    if (trans_commit_implicit(thd)) {
+      RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
+      return -1;
+    }
     /* Release metadata locks acquired in this transaction. */
     thd->mdl_context.release_transactional_locks();
   }
 
   DEBUG_SYNC(thd, "after_implicit_pre_commit");
 
-  if (gtid_pre_statement_post_implicit_commit_checks(thd)) return -1;
+  if (gtid_pre_statement_post_implicit_commit_checks(thd)) {
+    RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
+    return -1;
+  }
 
   if (mysql_audit_notify(thd,
                          first_level ? MYSQL_AUDIT_QUERY_START
                                      : MYSQL_AUDIT_QUERY_NESTED_START,
                          first_level ? "MYSQL_AUDIT_QUERY_START"
                                      : "MYSQL_AUDIT_QUERY_NESTED_START")) {
+    RONDB475LOG("mysql_execute_command: return 1 at line %d", __LINE__);
     return 1;
   }
 
@@ -3033,7 +3064,10 @@ int mysql_execute_command(THD *thd, bool first_level) {
   if (lex->create_info && lex->create_info->m_transactional_ddl &&
       !thd->slave_thread) {
     Disable_binlog_guard binlog_guard(thd);
-    if (trans_begin(thd, MYSQL_START_TRANS_OPT_READ_WRITE)) return true;
+    if (trans_begin(thd, MYSQL_START_TRANS_OPT_READ_WRITE)) {
+      RONDB475LOG("mysql_execute_command: return true at line %d", __LINE__);
+      return true;
+    }
   }
 
   /*
@@ -3461,7 +3495,10 @@ int mysql_execute_command(THD *thd, bool first_level) {
         if (all_tables != nullptr &&
             !thd->stmt_arena->is_stmt_prepare_or_first_stmt_execute() &&
             select_lex->check_privileges_for_subqueries(thd))
-          return true;
+          {
+            RONDB475LOG("mysql_execute_command: return true at line %d", __LINE__);
+            return true;
+          }
       }
       if (!(res = sql_set_variables(thd, lex_var_list, true)))
         my_ok(thd);
@@ -3532,7 +3569,10 @@ int mysql_execute_command(THD *thd, bool first_level) {
           Can we commit safely? If not, return to avoid releasing
           transactional metadata locks.
         */
-        if (trans_check_state(thd)) return -1;
+        if (trans_check_state(thd)) {
+          RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
+          return -1;
+        }
         res = trans_commit_implicit(thd);
         thd->locked_tables_list.unlock_locked_tables(thd);
         thd->mdl_context.release_transactional_locks();
@@ -3548,7 +3588,10 @@ int mysql_execute_command(THD *thd, bool first_level) {
         Can we commit safely? If not, return to avoid releasing
         transactional metadata locks.
       */
-      if (trans_check_state(thd)) return -1;
+      if (trans_check_state(thd)) {
+        RONDB475LOG("mysql_execute_command: return -1 at line %d", __LINE__);
+        return -1;
+      }
       /* We must end the transaction first, regardless of anything */
       res = trans_commit_implicit(thd);
       thd->locked_tables_list.unlock_locked_tables(thd);
@@ -4695,6 +4738,7 @@ finish:
     DEBUG_SYNC(thd, "restore_previous_state_after_statement_failed");
   }
 
+  RONDB475LOG("mysql_execute_command: return res || thd->is_error(), where res==%d, thd->is_error()==%d, on line %d", res, thd->is_error(), __LINE__);
   return res || thd->is_error();
 }
 
