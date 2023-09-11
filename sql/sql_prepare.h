@@ -166,7 +166,9 @@ class Ed_result_set final {
  private:
   MEM_ROOT m_mem_root;
   size_t m_column_count;
+public:
   List<Ed_row> *m_rows;
+private:
   Ed_row *m_fields;
   Ed_result_set *m_next_rset;
   friend class Ed_connection;
