@@ -283,12 +283,16 @@ void ThreadContext::deserialize_users(std::string &str) {
 
 /* returns false on success */
 bool ThreadContext::exec_sql(const std::string &statement) {
+  RONDB475LOG("ThreadContext::exec_sql: Begin");
   DBUG_ASSERT(m_closed);
+  RONDB475LOG("ThreadContext::exec_sql: m_closed");
   uint ignore_mysql_errors[1] = {0};  // Don't ignore any errors
   MYSQL_LEX_STRING sql_text = {const_cast<char *>(statement.c_str()),
                                statement.length()};
+  RONDB475LOG("ThreadContext::exec_sql: sql_text");
   /* execute_query_iso() returns false on success */
   m_closed = execute_query_iso(sql_text, ignore_mysql_errors, nullptr);
+  RONDB475LOG("ThreadContext::exec_sql: return");
   return m_closed;
 }
 
@@ -486,20 +490,30 @@ inline bool blacklisted(std::string user) {
    documented limitation is preferable to relying on the mysql table.
 */
 int ThreadContext::build_cache_of_ndb_users() {
+  RONDB475LOG("build_cache_of_ndb_users: Begin");
   int n = 0;
   local_granted_users.clear();
   if (!exec_sql("SELECT grantee FROM information_schema.user_privileges "
                 "WHERE privilege_type='NDB_STORED_USER'")) {
-    List<Ed_row> results = *get_results();
+    RONDB475LOG("build_cache_of_ndb_users: exec_sql ok");
+    Ed_result_set * got_results = get_results();
+    RONDB475LOG("build_cache_of_ndb_users: got_results = %p", (void*)got_results);
+    List<Ed_row> results = *got_results;
+    RONDB475LOG("build_cache_of_ndb_users: results = %p", (void*)results);
     n = results.elements;
     for (Ed_row result : results) {
+      RONDB475LOG("build_cache_of_ndb_users: result row", (void*)results);
       const MYSQL_LEX_STRING *result_user = result.get_column(0);
       std::string user(result_user->str, result_user->length);
-      if (!blacklisted(user)) local_granted_users.insert(user);
+      if (!blacklisted(user)) {
+        RONDB475LOG("build_cache_of_ndb_users: insert user", (void*)results);
+        local_granted_users.insert(user);
+      }
     }
     close();
   }
   m_rebuilt_cache = true;
+  RONDB475LOG("build_cache_of_ndb_users: return %d", n);
   return n;
 }
 

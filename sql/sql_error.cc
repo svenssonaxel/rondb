@@ -367,6 +367,7 @@ void Diagnostics_area::reset_diagnostics_area() {
   set_is_sent(false);
   // Tiny reset in debug mode to see garbage right away.
   m_status = DA_EMPTY;
+  RONDB475LOG("Diagnostics_area::m_status = DA_EMPTY");
 }
 
 void Diagnostics_area::set_ok_status(ulonglong affected_rows,
@@ -388,6 +389,7 @@ void Diagnostics_area::set_ok_status(ulonglong affected_rows,
   else
     m_message_text[0] = '\0';
   m_status = DA_OK;
+  RONDB475LOG("Diagnostics_area::m_status = DA_OK");
 }
 
 void Diagnostics_area::set_eof_status(THD *thd) {
@@ -409,6 +411,7 @@ void Diagnostics_area::set_eof_status(THD *thd) {
       (thd->sp_runtime_ctx ? 0 : current_statement_cond_count());
 
   m_status = DA_EOF;
+  RONDB475LOG("Diagnostics_area::m_status = DA_EOF");
 }
 
 void Diagnostics_area::set_error_status(THD *thd, uint mysql_errno) {
@@ -447,6 +450,7 @@ void Diagnostics_area::set_error_status(uint mysql_errno,
   strmake(m_message_text, message_text, sizeof(m_message_text) - 1);
 
   m_status = DA_ERROR;
+  RONDB475LOG("Diagnostics_area::m_status = DA_ERROR");
 }
 
 bool Diagnostics_area::has_sql_condition(const char *message_text,

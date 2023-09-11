@@ -351,6 +351,7 @@ class Diagnostics_area {
   void disable_status() {
     DBUG_ASSERT(m_status == DA_EMPTY);
     m_status = DA_DISABLED;
+    RONDB475LOG("Diagnostics_area::m_status = DA_DISABLED");
   }
 
   /**

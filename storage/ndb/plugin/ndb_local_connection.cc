@@ -71,9 +71,12 @@ class Suppressor {
 bool Ndb_local_connection::execute_query(MYSQL_LEX_STRING sql_text,
                                          const uint *ignore_mysql_errors,
                                          const Suppressor *suppressor) {
+  RONDB475LOG("Ndb_local_connection::execute_query: Begin");
   DBUG_TRACE;
 
+  RONDB475LOG("Ndb_local_connection::execute_query: Before exec");
   if (impl->connection.execute_direct(sql_text)) {
+    RONDB475LOG("Ndb_local_connection::execute_query: Exec failed");
     /* Error occured while executing the query */
     const uint last_errno = impl->connection.get_last_errno();
     assert(last_errno);  // last_errno must have been set
@@ -90,6 +93,7 @@ bool Ndb_local_connection::execute_query(MYSQL_LEX_STRING sql_text,
         should_ignore_error(ignore_mysql_errors, last_errno)) {
       /* MySQL level error suppressed -> return success */
       m_thd->clear_error();
+      RONDB475LOG("Ndb_local_connection::execute_query: Return false=Success (1)");
       return false;
     }
 
@@ -100,6 +104,7 @@ bool Ndb_local_connection::execute_query(MYSQL_LEX_STRING sql_text,
     if (suppressor && suppressor->should_ignore_error(impl->connection)) {
       /* Error suppressed -> return sucess */
       m_thd->clear_error();
+      RONDB475LOG("Ndb_local_connection::execute_query: Return false=Success (2)");
       return false;
     }
 
@@ -112,9 +117,11 @@ bool Ndb_local_connection::execute_query(MYSQL_LEX_STRING sql_text,
                     last_errno, last_errmsg);
     }
 
+    RONDB475LOG("Ndb_local_connection::execute_query: Return true=Failure (3)");
     return true;
   }
 
+  RONDB475LOG("Ndb_local_connection::execute_query: Exec succeeded. Return false=Success (4)");
   return false;  // Success
 }
 
@@ -126,12 +133,14 @@ bool Ndb_local_connection::execute_query(MYSQL_LEX_STRING sql_text,
 bool Ndb_local_connection::execute_query_iso(MYSQL_LEX_STRING sql_text,
                                              const uint *ignore_mysql_errors,
                                              const Suppressor *suppressor) {
+  RONDB475LOG("Ndb_local_connection::execute_query_iso: Begin");
   /* Don't allow queries to affect THD's status variables */
   struct System_status_var save_thd_status_var = m_thd->status_var;
 
   /* Check modified_non_trans_table is false(check if actually needed) */
   assert(!m_thd->get_transaction()->has_modified_non_trans_table(
       Transaction_ctx::STMT));
+  RONDB475LOG("Ndb_local_connection::execute_query_iso: 2");
 
   /* Turn off binlogging */
   ulonglong save_thd_options = m_thd->variables.option_bits;
@@ -145,12 +154,15 @@ bool Ndb_local_connection::execute_query_iso(MYSQL_LEX_STRING sql_text,
   */
   m_thd->set_query_id(next_query_id());
 
+  RONDB475LOG("Ndb_local_connection::execute_query_iso: 3");
   bool result = execute_query(sql_text, ignore_mysql_errors, suppressor);
+  RONDB475LOG("Ndb_local_connection::execute_query_iso: 4");
 
   /* Restore THD settings */
   m_thd->variables.option_bits = save_thd_options;
   m_thd->status_var = save_thd_status_var;
 
+  RONDB475LOG("Ndb_local_connection::execute_query_iso: return");
   return result;
 }
 

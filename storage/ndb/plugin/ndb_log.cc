@@ -154,6 +154,8 @@ static void ndb_log_detect_prefix(const char *fmt, const char **prefix,
   return;
 }
 
+#define RONDB475LOG(fmt, ...) ndb_log_info("RONDB475LOG: " fmt, ##__VA_ARGS__)
+
 void ndb_log_info(const char *fmt, ...) {
   const char *prefix;
   const char *fmt_start;

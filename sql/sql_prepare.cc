@@ -3077,6 +3077,7 @@ reexecute:
 
 bool Prepared_statement::execute_server_runnable(
     Server_runnable *server_runnable) {
+  RONDB475LOG("Prepared_statement::execute_server_runnable: Begin");
   Query_arena arena_backup;
   bool error;
   Query_arena *save_stmt_arena = thd->stmt_arena;
@@ -3085,7 +3086,10 @@ bool Prepared_statement::execute_server_runnable(
 
   m_arena.set_state(Query_arena::STMT_REGULAR_EXECUTION);
 
-  if (!(lex = new (m_arena.mem_root) st_lex_local)) return true;
+  if (!(lex = new (m_arena.mem_root) st_lex_local)) {
+    RONDB475LOG("Prepared_statement::execute_server_runnable: No mem_root, returning failure");
+    return true;
+  }
 
   Statement_backup stmt_backup;
   stmt_backup.set_thd_to_ps(thd, this);
@@ -3106,6 +3110,7 @@ bool Prepared_statement::execute_server_runnable(
 
   // Items and memory will be freed in destructor
 
+  RONDB475LOG("Prepared_statement::execute_server_runnable: Return %d", error);
   return error;
 }
 
@@ -3626,6 +3631,7 @@ bool Ed_connection::execute_direct(LEX_STRING sql_text) {
 */
 
 bool Ed_connection::execute_direct(Server_runnable *server_runnable) {
+  RONDB475LOG("Ed_connection::execute_direct: Begin");
   DBUG_TRACE;
 
   free_old_result(); /* Delete all data from previous execution, if any */
@@ -3634,9 +3640,13 @@ bool Ed_connection::execute_direct(Server_runnable *server_runnable) {
   m_thd->push_protocol(&protocol_local);
   m_thd->push_diagnostics_area(&m_diagnostics_area);
 
+  RONDB475LOG("Ed_connection::execute_direct: stmt");
   Prepared_statement stmt(m_thd);
+  RONDB475LOG("Ed_connection::execute_direct: exec");
   bool rc = stmt.execute_server_runnable(server_runnable);
+  RONDB475LOG("Ed_connection::execute_direct: execute_server_runnable returned %d", rc);
   m_thd->send_statement_status();
+  RONDB475LOG("Ed_connection::execute_direct: after send_statement_status");
 
   m_thd->pop_protocol();
   m_thd->pop_diagnostics_area();
@@ -3655,6 +3665,7 @@ bool Ed_connection::execute_direct(Server_runnable *server_runnable) {
   m_thd->reset_rewritten_query();
   m_thd->reset_query_for_display();
 
+  RONDB475LOG("Ed_connection::execute_direct: Return %d, while m_rsets=%p", rc, m_rsets);
   return rc;
 }
 
@@ -3669,7 +3680,9 @@ bool Ed_connection::execute_direct(Server_runnable *server_runnable) {
 */
 
 void Ed_connection::add_result_set(Ed_result_set *ed_result_set) {
+  RONDB475LOG("Protocol_local::add_result_set: Begin. m_rsets == %p, ed_result_set == %p, m_current_rset == %p", m_rsets, ed_result_set, m_current_rset);
   if (m_rsets) {
+    RONDB475LOG("Protocol_local::add_result_set: m_current_rset->m_next_rset == %p", m_current_rset->m_next_rset);
     m_current_rset->m_next_rset = ed_result_set;
     /* While appending, use m_current_rset as a pointer to the tail. */
     m_current_rset = ed_result_set;
@@ -3872,6 +3885,7 @@ bool Protocol_local::send_ok(uint, uint, ulonglong, ulonglong, const char *) {
 */
 
 bool Protocol_local::send_eof(uint, uint) {
+  RONDB475LOG("Protocol_local::send_eof: Begin. m_rset == %p, m_fields == %p", m_rset, m_fields);
   Ed_result_set *ed_result_set;
 
   DBUG_ASSERT(m_rset);
@@ -3883,7 +3897,10 @@ bool Protocol_local::send_eof(uint, uint) {
   m_rset = nullptr;
   m_fields = nullptr;
 
-  if (!ed_result_set) return true;
+  if (!ed_result_set) {
+    RONDB475LOG("Protocol_local::send_eof: Return failure.");
+    return true;
+  }
 
   /*
     Link the created Ed_result_set instance into the list of connection
@@ -3891,6 +3908,7 @@ bool Protocol_local::send_eof(uint, uint) {
   */
   m_connection->add_result_set(ed_result_set);
   m_column_count = 0;
+  RONDB475LOG("Protocol_local::send_eof: Return success.");
   return false;
 }
 

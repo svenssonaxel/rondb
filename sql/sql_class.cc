@@ -2542,38 +2542,50 @@ bool THD::send_result_set_row(const mem_root_deque<Item *> &row_items) {
 }
 
 void THD::send_statement_status() {
+  RONDB475LOG("THD::send_statement_status: Begin");
   DBUG_TRACE;
   DBUG_ASSERT(!get_stmt_da()->is_sent());
   bool error = false;
   Diagnostics_area *da = get_stmt_da();
 
   /* Can not be true, but do not take chances in production. */
-  if (da->is_sent()) return;
+  if (da->is_sent()) {
+    RONDB475LOG("THD::send_statement_status: UNEXPECTED (1)");
+    return;
+  }
 
   switch (da->status()) {
     case Diagnostics_area::DA_ERROR:
+      RONDB475LOG("THD::send_statement_status: da->status() == Diagnostics_area::DA_ERROR");
       /* The query failed, send error to log and abort bootstrap. */
       error = m_protocol->send_error(da->mysql_errno(), da->message_text(),
                                      da->returned_sqlstate());
       break;
     case Diagnostics_area::DA_EOF:
+      RONDB475LOG("THD::send_statement_status: da->status() == Diagnostics_area::DA_EOF");
       error =
           m_protocol->send_eof(server_status, da->last_statement_cond_count());
       break;
     case Diagnostics_area::DA_OK:
+      RONDB475LOG("THD::send_statement_status: da->status() == Diagnostics_area::DA_OK");
       error = m_protocol->send_ok(
           server_status, da->last_statement_cond_count(), da->affected_rows(),
           da->last_insert_id(), da->message_text());
       break;
     case Diagnostics_area::DA_DISABLED:
+      RONDB475LOG("THD::send_statement_status: da->status() == Diagnostics_area::DA_DISABLED");
       break;
     case Diagnostics_area::DA_EMPTY:
+      RONDB475LOG("THD::send_statement_status: da->status() == Diagnostics_area::DA_EMPTY (fallthrough to default)");
     default:
+      RONDB475LOG("THD::send_statement_status: da->status() == %d", da->status());
       DBUG_ASSERT(0);
       error = m_protocol->send_ok(server_status, 0, 0, 0, nullptr);
       break;
   }
+  RONDB475LOG("THD::send_statement_status: error == %d", error);
   if (!error) da->set_is_sent(true);
+  RONDB475LOG("THD::send_statement_status: return");
 }
 
 void THD::claim_memory_ownership(bool claim MY_ATTRIBUTE((unused))) {
