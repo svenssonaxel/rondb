@@ -108,6 +108,11 @@
 #include "template_utils.h"
 #include "thr_mutex.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 class Parse_tree_root;
 
 using std::max;

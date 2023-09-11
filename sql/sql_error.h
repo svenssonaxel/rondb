@@ -39,6 +39,11 @@
 #include "sql/sql_plist.h" /* I_P_List */
 #include "sql_string.h"    /* String */
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 class THD;
 class my_decimal;
 struct MYSQL_TIME;

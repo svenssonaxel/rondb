@@ -179,6 +179,11 @@ When one supplies long data for a placeholder:
 #include "sql_string.h"
 #include "violite.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 namespace resourcegroups {
 class Resource_group;
 }  // namespace resourcegroups

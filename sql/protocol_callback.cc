@@ -39,6 +39,11 @@
 #include "sql/sql_list.h"
 #include "sql_string.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 class String;
 union COM_DATA;
 

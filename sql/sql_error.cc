@@ -75,6 +75,11 @@ This file contains the implementation of error and warnings related
 #include "sql/system_variables.h"
 #include "sql/thr_malloc.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 using std::max;
 using std::min;
 

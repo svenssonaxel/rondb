@@ -39,6 +39,11 @@
 #include "storage/ndb/plugin/ndb_thd.h"
 #include "storage/ndb/plugin/ndb_thd_ndb.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 using ChangeNotice = const Acl_change_notification;
 
 //

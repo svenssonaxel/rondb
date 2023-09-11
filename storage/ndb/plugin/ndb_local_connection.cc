@@ -29,6 +29,11 @@
 #include "sql/sql_prepare.h"
 #include "storage/ndb/plugin/ndb_log.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 class Ndb_local_connection::Impl {
  public:
   Impl(THD *thd_arg) : connection(thd_arg) {}

@@ -736,11 +736,6 @@ void log_sink_buffer_check_timeout(void);
 
 #ifndef DISABLE_ERROR_LOGGING
 
-#define RONDB475LOG(fmt, ...) do {                                      \
-    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
-    fflush(stderr);                                                     \
-  } while (0)
-
 #if defined(LOG_COMPONENT_TAG)
 
 #define LogErr(severity, ecode, ...) \
