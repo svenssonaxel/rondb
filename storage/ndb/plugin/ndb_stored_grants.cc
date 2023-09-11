@@ -509,11 +509,12 @@ int ThreadContext::build_cache_of_ndb_users() {
     List<Ed_row> results = *got_results;
     n = results.elements;
     for (Ed_row result : results) {
-      RONDB475LOG("build_cache_of_ndb_users: result row", (void*)results);
+      RONDB475LOG("build_cache_of_ndb_users: result row");
       const MYSQL_LEX_STRING *result_user = result.get_column(0);
       std::string user(result_user->str, result_user->length);
+      RONDB475LOG("build_cache_of_ndb_users: iterate through user %s", user.c_str());
       if (!blacklisted(user)) {
-        RONDB475LOG("build_cache_of_ndb_users: insert user", (void*)results);
+        RONDB475LOG("build_cache_of_ndb_users: insert user %s", user.c_str());
         local_granted_users.insert(user);
       }
     }
