@@ -736,6 +736,8 @@ void log_sink_buffer_check_timeout(void);
 
 #ifndef DISABLE_ERROR_LOGGING
 
+#define RONDB475LOG(fmt, ...) LogErr(INFORMATION_LEVEL, "RONDB475LOG: " fmt, ##__VA_ARGS__)
+
 #if defined(LOG_COMPONENT_TAG)
 
 #define LogErr(severity, ecode, ...) \
