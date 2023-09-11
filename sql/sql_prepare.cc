@@ -848,6 +848,7 @@ void Prepared_statement::copy_parameter_types(Item_param **from_param_array) {
 }
 
 static void setup_conversion_functions(Prepared_statement *stmt,
+                                       THD *thd,
                                        PS_PARAM *parameters) {
   /*
     First execute or types altered by the client, setup the
@@ -859,7 +860,7 @@ static void setup_conversion_functions(Prepared_statement *stmt,
     Item_param *const param = *it;
     param->set_type_actual(parameters[i].type, parameters[i].unsigned_type);
     setup_one_conversion_function(param,
-                                  stmt->thd->variables.character_set_client);
+                                  thd->variables.character_set_client);
     param->sync_clones();
   }
 }
@@ -2713,7 +2714,7 @@ bool Prepared_statement::set_parameters(THD *thd, String *expanded_query,
     Setup conversion functions if new types are provided
     and insert parameters (types supplied / first execute)
   */
-  if (has_new_types) setup_conversion_functions(this, parameters);
+  if (has_new_types) setup_conversion_functions(this, thd, parameters);
   if (insert_params(thd, expanded_query, parameters)) {
     reset_stmt_params(this);
     return true;
