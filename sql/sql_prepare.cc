@@ -853,8 +853,8 @@ static void setup_conversion_functions(Prepared_statement *stmt,
     First execute or types altered by the client, setup the
     conversion routines for all parameters (one time)
   */
-  Item_param **it = stmt->param_array;
-  Item_param **end = it + stmt->param_count;
+  Item_param **it = stmt->m_param_array;
+  Item_param **end = it + stmt->m_param_count;
   for (uint i = 0; it < end; ++it, ++i) {
     Item_param *const param = *it;
     param->set_type_actual(parameters[i].type, parameters[i].unsigned_type);
@@ -2275,7 +2275,7 @@ end:
 Prepared_statement::Prepared_statement(THD *thd_arg)
     : m_arena(&m_mem_root, Query_arena::STMT_INITIALIZED),
       m_id(++thd_arg->statement_id_counter) {
-  init_sql_alloc(key_memory_prepared_statement_main_mem_root, &main_mem_root,
+  init_sql_alloc(key_memory_prepared_statement_main_mem_root, &m_mem_root,
                  thd_arg->variables.query_alloc_block_size,
                  thd_arg->variables.query_prealloc_size);
   *m_last_error = '\0';
@@ -2363,7 +2363,7 @@ Prepared_statement::~Prepared_statement() {
     m_lex->destroy();
     delete pointer_cast<st_lex_local *>(m_lex);  // TRASH memory
   }
-  free_root(&main_mem_root, MYF(0));
+  free_root(&m_mem_root, MYF(0));
 }
 
 void Prepared_statement::cleanup_stmt(THD *thd) {
@@ -2721,7 +2721,7 @@ bool Prepared_statement::set_parameters(THD *thd, String *expanded_query,
   return false;
 }
 
-bool Prepared_statement::set_parameters(thd *thd, String *expanded_query) {
+bool Prepared_statement::set_parameters(THD *thd, String *expanded_query) {
   /* SQL prepared statement */
   if (insert_params_from_vars(thd, thd->lex->prepared_stmt_params, expanded_query)) {
     reset_stmt_params(this);
@@ -3421,8 +3421,6 @@ bool Prepared_statement::execute(THD *thd, String *expanded_query,
       mysql_change_db(thd, to_lex_cstring(saved_cur_db_name), true);
 
     cleanup_stmt(thd);
-
-    m_lex->release_plugins();
 
     if (resource_group_switched)
       mgr_ptr->restore_original_resource_group(thd, src_res_grp, dest_res_grp);
