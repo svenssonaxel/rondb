@@ -2243,7 +2243,7 @@ bool Execute_sql_statement::execute_server_code(THD *thd) {
   thd->m_statement_psi = parent_locker;
 
   if (error) {
-    ROND475LOG("Execute_sql_statement::execute_server_code: parse_sql error=%d", error);
+    RONDB475LOG("Execute_sql_statement::execute_server_code: parse_sql error=%d", error);
     goto end;
   }
 
