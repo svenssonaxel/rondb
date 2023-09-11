@@ -503,8 +503,10 @@ int ThreadContext::build_cache_of_ndb_users() {
     RONDB475LOG("build_cache_of_ndb_users: exec_sql ok");
     Ed_result_set * got_results = get_results();
     RONDB475LOG("build_cache_of_ndb_users: got_results = %p", (void*)got_results);
+    if(got_results) {
+      RONDB475LOG("build_cache_of_ndb_users: got_results->m_rows = %p", (void*)got_results->m_rows);
+    }
     List<Ed_row> results = *got_results;
-    RONDB475LOG("build_cache_of_ndb_users: results = %p", (void*)results);
     n = results.elements;
     for (Ed_row result : results) {
       RONDB475LOG("build_cache_of_ndb_users: result row", (void*)results);
