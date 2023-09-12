@@ -711,7 +711,7 @@ bool Sql_cmd_dml::execute(THD *thd) {
 
 err:
   RONDB475LOG("Sql_cmd_dml::execute: 6");
-  DBUG_ASSERT(thd->is_error() || thd->killed);
+  DBUG_ASSERT(thd->is_error() || thd->killed.load());
   DBUG_PRINT("info", ("report_error: %d", thd->is_error()));
   THD_STAGE_INFO(thd, stage_end);
 
@@ -736,7 +736,7 @@ err:
 
   DBUG_EXECUTE_IF("use_attachable_trx", thd->end_attachable_transaction(););
 
-  RONDB475LOG("Sql_cmd_dml::execute: return thd->is_error()==%d, while thd->killed==%d", thd->is_error(), thd->killed);
+  RONDB475LOG("Sql_cmd_dml::execute: return thd->is_error()==%d, while thd->killed==%d", thd->is_error(), thd->killed.load());
   return thd->is_error();
 }
 
