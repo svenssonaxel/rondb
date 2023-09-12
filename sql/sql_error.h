@@ -303,9 +303,15 @@ class Diagnostics_area {
     m_can_overwrite_status = can_overwrite_status;
   }
 
-  bool is_sent() const { return m_is_sent; }
+  bool is_sent() const {
+    RONDB475LOG("Diagnostics_area::is_sent() -> %d", m_is_sent);
+    return m_is_sent;
+  }
 
-  void set_is_sent(bool is_sent) { m_is_sent = is_sent; }
+  void set_is_sent(bool is_sent) {
+    RONDB475LOG("Diagnostics_area::set_is_sent(%d)", is_sent);
+    m_is_sent = is_sent;
+  }
 
   /**
     Set OK status -- ends commands that do not return a
@@ -366,17 +372,35 @@ class Diagnostics_area {
   */
   void reset_diagnostics_area();
 
-  bool is_set() const { return m_status != DA_EMPTY; }
+  bool is_set() const {
+    RONDB475LOG("Diagnostics_area::is_set returns %d because m_status != DA_EMPTY", m_status != DA_EMPTY);
+    return m_status != DA_EMPTY;
+  }
 
-  bool is_error() const { return m_status == DA_ERROR; }
+  bool is_error() const {
+    RONDB475LOG("Diagnostics_area::is_error returns %d because m_status == %d", m_status == DA_ERROR, m_status);
+    return m_status == DA_ERROR;
+  }
 
-  bool is_eof() const { return m_status == DA_EOF; }
+  bool is_eof() const {
+    RONDB475LOG("Diagnostics_area::is_eof returns %d because m_status == %d", m_status == DA_EOF, m_status);
+    return m_status == DA_EOF;
+  }
 
-  bool is_ok() const { return m_status == DA_OK; }
+  bool is_ok() const {
+    RONDB475LOG("Diagnostics_area::is_ok returns %d because m_status == %d", m_status == DA_OK, m_status);
+    return m_status == DA_OK;
+  }
 
-  bool is_disabled() const { return m_status == DA_DISABLED; }
+  bool is_disabled() const {
+    RONDB475LOG("Diagnostics_area::is_disabled returns %d because m_status == %d", m_status == DA_DISABLED, m_status);
+    return m_status == DA_DISABLED;
+  }
 
-  enum_diagnostics_status status() const { return m_status; }
+  enum_diagnostics_status status() const {
+    RONDB475LOG("Diagnostics_area::status returns %d", m_status);
+    return m_status;
+  }
 
   const char *message_text() const {
     DBUG_ASSERT(m_status == DA_ERROR || m_status == DA_OK);

@@ -94,6 +94,11 @@
 #include "sql/window.h"  // Window
 #include "template_utils.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 using std::move;
 using std::vector;
 
@@ -1122,6 +1127,7 @@ bool SELECT_LEX_UNIT::ClearForExecution(THD *thd) {
 }
 
 bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
+  RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: Begin");
   THD_STAGE_INFO(thd, stage_executing);
   DEBUG_SYNC(thd, "before_join_exec");
 
@@ -1134,6 +1140,7 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
   Opt_trace_array trace_steps(trace, "steps");
 
   if (ClearForExecution(thd)) {
+    RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 28, return true=Fail");
     return true;
   }
 
@@ -1141,10 +1148,14 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
   Query_result *query_result = this->query_result();
   DBUG_ASSERT(query_result != nullptr);
 
-  if (query_result->start_execution(thd)) return true;
+  if (query_result->start_execution(thd)) {
+    RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 29");
+    return true;
+  }
 
   if (query_result->send_result_set_metadata(
           thd, *fields, Protocol::SEND_NUM_ROWS | Protocol::SEND_EOF)) {
+    RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 30");
     return true;
   }
 
@@ -1156,6 +1167,7 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
     for (SELECT_LEX *select = first_select(); select != nullptr;
          select = select->next_select()) {
       if (select->join->override_executor_func(select->join)) {
+        RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 31");
         return true;
       }
       thd->current_found_rows += select->join->send_records;
@@ -1169,7 +1181,10 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
       thd->current_found_rows =
           std::min(thd->current_found_rows, select_limit_cnt);
     }
-    return query_result->send_eof(thd);
+    RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 32");
+    bool retval = query_result->send_eof(thd);
+    RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 33, retval==%d", retval);
+    return retval;
   }
 
   if (item) {
@@ -1219,6 +1234,7 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
     });
 
     if (m_root_iterator->Init()) {
+      RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 34");
       return true;
     }
 
@@ -1228,19 +1244,25 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
       int error = m_root_iterator->Read();
       DBUG_EXECUTE_IF("bug13822652_1", thd->killed = THD::KILL_QUERY;);
 
-      if (error > 0 || thd->is_error())  // Fatal error
+      if (error > 0 || thd->is_error()) { // Fatal error
+        RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 35");
         return true;
-      else if (error < 0)
+      }
+      else if (error < 0) {
+        RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 39");
         break;
+      }
       else if (thd->killed)  // Aborted by user
       {
         thd->send_kill_message();
+        RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 36");
         return true;
       }
 
       ++*send_records_ptr;
 
       if (query_result->send_data(thd, *fields)) {
+        RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 37");
         return true;
       }
       thd->get_stmt_da()->inc_current_row_for_condition();
@@ -1252,7 +1274,9 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
 
   thd->current_found_rows = *send_records_ptr;
 
-  return query_result->send_eof(thd);
+  bool retval = query_result->send_eof(thd);
+  RONDB475LOG("SELECT_LEX_UNIT::ExecuteIteratorQuery: 38, return retval==%d", retval);
+  return retval;
 }
 
 /**
@@ -1264,10 +1288,14 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
 */
 
 bool SELECT_LEX_UNIT::execute(THD *thd) {
+  RONDB475LOG("SELECT_LEX_UNIT::execute: Begin");
   DBUG_TRACE;
   DBUG_ASSERT(is_optimized());
 
-  if (is_executed() && !uncacheable) return false;
+  if (is_executed() && !uncacheable) {
+    RONDB475LOG("SELECT_LEX_UNIT::execute: 24, return false=Success");
+    return false;
+  }
 
   DBUG_ASSERT(!unfinished_materialization());
 
@@ -1278,6 +1306,7 @@ bool SELECT_LEX_UNIT::execute(THD *thd) {
   */
   Change_current_select save_select(thd);
 
+  RONDB475LOG("SELECT_LEX_UNIT::execute: return ExecuteziteratorQuery(thd)");
   return ExecuteIteratorQuery(thd);
 }
 

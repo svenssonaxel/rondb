@@ -2705,9 +2705,9 @@ static inline void binlog_gtid_end_transaction(THD *thd) {
 
 
 int mysql_execute_command(THD *thd, bool first_level) {
-  RONDB475LOG("mysql_execute_command: Begin, first_level == %d", first_level);
   int res = false;
   LEX *const lex = thd->lex;
+  RONDB475LOG("mysql_execute_command: Begin, first_level == %d, lex->sql_command == %d", first_level, lex->sql_command);
   /* first SELECT_LEX (have special meaning for many of non-SELECTcommands) */
   SELECT_LEX *const select_lex = lex->select_lex;
   /* first table of first SELECT_LEX */
@@ -2836,7 +2836,9 @@ int mysql_execute_command(THD *thd, bool first_level) {
     res_grp_name[0] = '\0';
   }
 
+  RONDB475LOG("mysql_execute_command: At line %d, thd->slave_thread = %d, lex->sql_command = %d", __LINE__, thd->slave_thread, lex->sql_command);
   if (unlikely(thd->slave_thread)) {
+    RONDB475LOG("mysql_execute_command: line %d", __LINE__);
     if (!check_database_filters(thd, thd->db().str, lex->sql_command)) {
       binlog_gtid_end_transaction(thd);
       RONDB475LOG("mysql_execute_command: return 0 at line %d", __LINE__);

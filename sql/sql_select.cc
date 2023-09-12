@@ -119,6 +119,11 @@
 #include "template_utils.h"
 #include "thr_lock.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 using std::max;
 using std::min;
 
@@ -311,6 +316,7 @@ static bool validate_use_secondary_engine(const LEX *lex) {
 }
 
 bool Sql_cmd_dml::prepare(THD *thd) {
+  RONDB475LOG("Sql_cmd_dml::prepare: Begin");
   DBUG_TRACE;
 
   bool error_handler_active = false;
@@ -338,18 +344,24 @@ bool Sql_cmd_dml::prepare(THD *thd) {
     sure they are promoted to errors when strict mode is enabled.
   */
   if (is_data_change_stmt() && needs_explicit_preparation()) {
+    RONDB475LOG("Sql_cmd_dml::prepare: 17");
     // Push ignore / strict error handler
     if (lex->is_ignore()) {
+      RONDB475LOG("Sql_cmd_dml::prepare: 18");
       thd->push_internal_handler(&ignore_handler);
       error_handler_active = true;
     } else if (thd->is_strict_mode()) {
+      RONDB475LOG("Sql_cmd_dml::prepare: 19");
       thd->push_internal_handler(&strict_handler);
       error_handler_active = true;
     }
   }
+  RONDB475LOG("Sql_cmd_dml::prepare: 20");
 
   // Perform a coarse statement-specific privilege check.
+  RONDB475LOG("Sql_cmd_dml::prepare: 21");
   if (precheck(thd)) goto err;
+  RONDB475LOG("Sql_cmd_dml::prepare: 22");
 
   // Trigger out_of_memory condition inside open_tables_for_query()
   DBUG_EXECUTE_IF("sql_cmd_dml_prepare__out_of_memory",
@@ -360,13 +372,17 @@ bool Sql_cmd_dml::prepare(THD *thd) {
     S metadata locks instead of SW locks to be compatible with concurrent
     LOCK TABLES WRITE and global read lock.
   */
+  RONDB475LOG("Sql_cmd_dml::prepare: 23");
   if (open_tables_for_query(
           thd, lex->query_tables,
           needs_explicit_preparation() ? MYSQL_OPEN_FORCE_SHARED_MDL : 0)) {
+    RONDB475LOG("Sql_cmd_dml::prepare: 24");
     if (thd->is_error())  // @todo - dictionary code should be fixed
       goto err;
+    RONDB475LOG("Sql_cmd_dml::prepare: 25");
     if (error_handler_active) thd->pop_internal_handler();
     lex->cleanup(thd, false);
+    RONDB475LOG("Sql_cmd_dml::prepare: 26, return true = Failure");
     return true;
   }
 #ifndef DBUG_OFF
@@ -375,6 +391,7 @@ bool Sql_cmd_dml::prepare(THD *thd) {
 
   if (lex->set_var_list.elements && resolve_var_assignments(thd, lex))
     goto err; /* purecov: inspected */
+  RONDB475LOG("Sql_cmd_dml::prepare: 27");
 
   {
     Prepare_error_tracker tracker(thd);
@@ -382,13 +399,16 @@ bool Sql_cmd_dml::prepare(THD *thd) {
     Enable_derived_merge_guard derived_merge_guard(
         thd, is_show_cmd_using_system_view(thd));
 
+    RONDB475LOG("Sql_cmd_dml::prepare: 31");
     if (prepare_inner(thd)) goto err;
+    RONDB475LOG("Sql_cmd_dml::prepare: 32");
     if (!is_regular()) {
       if (save_cmd_properties(thd)) goto err;
       lex->set_secondary_engine_execution_context(nullptr);
     }
     set_prepared();
   }
+  RONDB475LOG("Sql_cmd_dml::prepare: 28");
 
   // Pop ignore / strict error handler
   if (error_handler_active) thd->pop_internal_handler();
@@ -396,6 +416,7 @@ bool Sql_cmd_dml::prepare(THD *thd) {
   // Revertable changes are not supported during preparation
   DBUG_ASSERT(thd->change_list.is_empty());
 
+  RONDB475LOG("Sql_cmd_dml::prepare: 29, return false==Success");
   return false;
 
 err:
@@ -408,6 +429,7 @@ err:
 
   lex->cleanup(thd, false);
 
+  RONDB475LOG("Sql_cmd_dml::prepare: 30, return true==Error");
   return true;
 }
 
@@ -474,26 +496,42 @@ bool Sql_cmd_select::prepare_inner(THD *thd) {
       redirects the output.
     */
     result = new (thd->mem_root) Query_result_send();
+    RONDB475LOG("Sql_cmd_dml::prepare_inner: 34");
     if (result == nullptr) return true; /* purecov: inspected */
+    RONDB475LOG("Sql_cmd_dml::prepare_inner: 35");
   } else {
+    RONDB475LOG("Sql_cmd_dml::prepare_inner: 6");
     if (result == nullptr) {
-      if (sql_command_code() == SQLCOM_SELECT)
+      RONDB475LOG("Sql_cmd_dml::prepare_inner: 1");
+      if (sql_command_code() == SQLCOM_SELECT) {
+        RONDB475LOG("Sql_cmd_dml::prepare_inner: 2");
         result = new (thd->mem_root) Query_result_send();
-      else if (sql_command_code() == SQLCOM_DO)
+      }
+      else if (sql_command_code() == SQLCOM_DO) {
+        RONDB475LOG("Sql_cmd_dml::prepare_inner: 3");
         result = new (thd->mem_root) Query_result_do();
-      else  // Currently assumed to be a SHOW command
+      }
+      else { // Currently assumed to be a SHOW command
+        RONDB475LOG("Sql_cmd_dml::prepare_inner: 4");
         result = new (thd->mem_root) Query_result_send();
+      }
 
-      if (result == nullptr) return true; /* purecov: inspected */
+      if (result == nullptr) {
+        RONDB475LOG("Sql_cmd_dml::prepare_inner: 5");
+        return true; /* purecov: inspected */
+      }
     }
   }
+  RONDB475LOG("Sql_cmd_dml::prepare_inner: 7");
 
   SELECT_LEX_UNIT *const unit = lex->unit;
   SELECT_LEX *parameters = unit->global_parameters();
   if (!parameters->has_limit()) {
+    RONDB475LOG("Sql_cmd_dml::prepare_inner: 8");
     parameters->m_use_select_limit = true;
   }
   if (unit->is_simple()) {
+    RONDB475LOG("Sql_cmd_dml::prepare_inner: 9");
     SELECT_LEX *const select = unit->first_select();
     select->context.resolve_in_select_list = true;
     select->set_query_result(result);
@@ -501,19 +539,28 @@ bool Sql_cmd_select::prepare_inner(THD *thd) {
     // Unlock the table as soon as possible, so don't set SELECT_NO_UNLOCK.
     select->make_active_options(0, 0);
 
-    if (select->prepare(thd, nullptr)) return true;
+    if (select->prepare(thd, nullptr)) {
+      RONDB475LOG("Sql_cmd_dml::prepare_inner: 11");
+      return true;
+    }
 
     unit->set_prepared();
   } else {
+    RONDB475LOG("Sql_cmd_dml::prepare_inner: 10");
     // If we have multiple query blocks, don't unlock and re-lock
     // tables between each each of them.
-    if (unit->prepare(thd, result, nullptr, SELECT_NO_UNLOCK, 0)) return true;
+    if (unit->prepare(thd, result, nullptr, SELECT_NO_UNLOCK, 0)) {
+      RONDB475LOG("Sql_cmd_dml::prepare_inner: 12");
+      return true;
+    }
   }
 
+  RONDB475LOG("Sql_cmd_dml::prepare_inner: 13");
   return false;
 }
 
 bool Sql_cmd_dml::execute(THD *thd) {
+  RONDB475LOG("Sql_cmd_dml::execute: Begin");
   DBUG_TRACE;
 
   lex = thd->lex;
@@ -563,24 +610,33 @@ bool Sql_cmd_dml::execute(THD *thd) {
       privileges for it.
     */
     cleanup(thd);
+    RONDB475LOG("Sql_cmd_dml::execute: 7");
     if (open_tables_for_query(thd, lex->query_tables, 0)) goto err;
+    RONDB475LOG("Sql_cmd_dml::execute: 8");
 #ifndef DBUG_OFF
     if (sql_command_code() == SQLCOM_SELECT)
       DEBUG_SYNC(thd, "after_table_open");
 #endif
     // Bind table and field information
+    RONDB475LOG("Sql_cmd_dml::execute: 9");
     if (restore_cmd_properties(thd)) return true;
+    RONDB475LOG("Sql_cmd_dml::execute: 10");
     if (check_privileges(thd)) goto err;
+    RONDB475LOG("Sql_cmd_dml::execute: 11");
 
     if (m_lazy_result) {
       Prepared_stmt_arena_holder ps_arena_holder(thd);
 
+      RONDB475LOG("Sql_cmd_dml::execute: 12");
       if (result->prepare(thd, *unit->get_unit_column_types(), unit)) goto err;
+      RONDB475LOG("Sql_cmd_dml::execute: 13");
       m_lazy_result = false;
     }
   }
 
+  RONDB475LOG("Sql_cmd_dml::execute: 14");
   if (validate_use_secondary_engine(lex)) goto err;
+  RONDB475LOG("Sql_cmd_dml::execute: 15");
 
   lex->set_exec_started();
 
@@ -591,6 +647,7 @@ bool Sql_cmd_dml::execute(THD *thd) {
 
   thd->clear_current_query_costs();
 
+  RONDB475LOG("Sql_cmd_dml::execute: 1");
   // Replication may require extra check of data change statements
   if (is_data_change_stmt() && run_before_dml_hook(thd)) goto err;
 
@@ -604,12 +661,15 @@ bool Sql_cmd_dml::execute(THD *thd) {
     partitions. As a consequence, in such a case, prepare stage can rely only
     on metadata about tables used and not data from them.
   */
+  RONDB475LOG("Sql_cmd_dml::execute: 2");
   if (!is_empty_query()) {
     if (lock_tables(thd, lex->query_tables, lex->table_count, 0)) goto err;
   }
 
   // Perform statement-specific execution
+  RONDB475LOG("Sql_cmd_dml::execute: 3");
   if (execute_inner(thd)) goto err;
+  RONDB475LOG("Sql_cmd_dml::execute: 4");
 
   // Count the number of statements offloaded to a secondary storage engine.
   if (using_secondary_storage_engine() && lex->unit->is_executed())
@@ -646,9 +706,11 @@ bool Sql_cmd_dml::execute(THD *thd) {
   */
   DEBUG_SYNC(thd, "before_reset_query_plan");
 
+  RONDB475LOG("Sql_cmd_dml::execute: 5, return false=Success");
   return false;
 
 err:
+  RONDB475LOG("Sql_cmd_dml::execute: 6");
   DBUG_ASSERT(thd->is_error() || thd->killed);
   DBUG_PRINT("info", ("report_error: %d", thd->is_error()));
   THD_STAGE_INFO(thd, stage_end);
@@ -674,6 +736,7 @@ err:
 
   DBUG_EXECUTE_IF("use_attachable_trx", thd->end_attachable_transaction(););
 
+  RONDB475LOG("Sql_cmd_dml::execute: return thd->is_error()==%d, while thd->killed==%d", thd->is_error(), thd->killed);
   return thd->is_error();
 }
 
@@ -806,27 +869,42 @@ static bool optimize_secondary_engine(THD *thd) {
 */
 
 bool Sql_cmd_dml::execute_inner(THD *thd) {
+  RONDB475LOG("Sql_cmd_dml::execute_inner: Begin");
   SELECT_LEX_UNIT *unit = lex->unit;
 
   if (unit->optimize(thd, /*materialize_destination=*/nullptr,
-                     /*create_iterators=*/true))
+                     /*create_iterators=*/true)) {
+    RONDB475LOG("Sql_cmd_dml::execute_inner: 15, return true=Failure");
     return true;
+  }
 
   // Calculate the current statement cost. It will be made available in
   // the Last_query_cost status variable.
   thd->m_current_query_cost = accumulate_statement_cost(lex);
 
   // Perform secondary engine optimizations, if needed.
-  if (optimize_secondary_engine(thd)) return true;
+  if (optimize_secondary_engine(thd)) {
+    RONDB475LOG("Sql_cmd_dml::execute_inner: 16, return true=Failure");
+    return true;
+  }
 
   // We know by now that execution will complete (successful or with error)
   lex->set_exec_completed();
   if (lex->is_explain()) {
-    if (explain_query(thd, thd, unit)) return true; /* purecov: inspected */
+    if (explain_query(thd, thd, unit)) {
+      RONDB475LOG("Sql_cmd_dml::execute_inner: 17, return true=Failure");
+      return true; /* purecov: inspected */
+    }
   } else {
-    if (unit->execute(thd)) return true;
+    RONDB475LOG("Sql_cmd_dml::execute_inner: 18");
+    if (unit->execute(thd)) {
+      RONDB475LOG("Sql_cmd_dml::execute_inner: 19, return true=Failure");
+      return true;
+    }
+    RONDB475LOG("Sql_cmd_dml::execute_inner: 21");
   }
 
+  RONDB475LOG("Sql_cmd_dml::execute_inner: 20, return false=Success");
   return false;
 }
 

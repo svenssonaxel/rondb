@@ -359,6 +359,7 @@ Diagnostics_area::Diagnostics_area(bool allow_unlimited_conditions)
 Diagnostics_area::~Diagnostics_area() { free_root(&m_condition_root, MYF(0)); }
 
 void Diagnostics_area::reset_diagnostics_area() {
+  RONDB475LOG("Diagnostics_area::reset_diagnostics_area()");
   DBUG_TRACE;
 #ifdef DBUG_OFF
   set_overwrite_status(false);
@@ -378,6 +379,7 @@ void Diagnostics_area::reset_diagnostics_area() {
 void Diagnostics_area::set_ok_status(ulonglong affected_rows,
                                      ulonglong last_insert_id,
                                      const char *message_text) {
+    RONDB475LOG("Diagnostics_area::set_ok_status(%llu, %llu, %s)", affected_rows, last_insert_id, message_text);
   DBUG_TRACE;
   DBUG_ASSERT(!is_set());
   /*
@@ -398,6 +400,7 @@ void Diagnostics_area::set_ok_status(ulonglong affected_rows,
 }
 
 void Diagnostics_area::set_eof_status(THD *thd) {
+  RONDB475LOG("Diagnostics_area::set_eof_status Begin");
   DBUG_TRACE;
   /* Only allowed to report eof if has not yet reported an error */
   DBUG_ASSERT(!is_set());
@@ -427,6 +430,7 @@ void Diagnostics_area::set_error_status(THD *thd, uint mysql_errno) {
 void Diagnostics_area::set_error_status(uint mysql_errno,
                                         const char *message_text,
                                         const char *returned_sqlstate) {
+  RONDB475LOG("Diagnostics_area::set_error_status(%u, %s, %s)", mysql_errno, message_text, returned_sqlstate);
   DBUG_TRACE;
   /*
     Only allowed to report error if has not yet reported a success
