@@ -74,6 +74,11 @@
 #include "storage/ndb/plugin/ndb_thd.h"
 #include "storage/ndb/plugin/ndb_upgrade_util.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 typedef NdbDictionary::Event NDBEVENT;
 typedef NdbDictionary::Table NDBTAB;
 
@@ -581,10 +586,12 @@ static void ndbcluster_binlog_log_query(handlerton *, THD *thd,
 
 static void ndbcluster_acl_notify(THD *thd,
                                   const Acl_change_notification *notice) {
+  RONDB475LOG("ndbcluster_acl_notify: Begin, thd->slave_thread==%d", thd->slave_thread);
   DBUG_TRACE;
 
   if (!check_ndb_in_thd(thd)) {
     ndb_log_error("Privilege distribution failed to seize thd_ndb");
+    RONDB475LOG("ndbcluster_acl_notify: Return on line %d", __LINE__);
     return;
   }
 
@@ -592,6 +599,7 @@ static void ndbcluster_acl_notify(THD *thd,
      schema distribution and requires no further action.
   */
   if (get_thd_ndb(thd)->check_option(Thd_ndb::NO_LOG_SCHEMA_OP)) {
+    RONDB475LOG("ndbcluster_acl_notify: Return on line %d", __LINE__);
     return;
   }
 
@@ -612,6 +620,7 @@ static void ndbcluster_acl_notify(THD *thd,
   Ndb_stored_grants::Strategy strategy =
       Ndb_stored_grants::handle_local_acl_change(thd, notice, &user_list,
                                                  &dist_use_db, &dist_refresh);
+  RONDB475LOG("ndbcluster_acl_notify: After handle_local_acl_change, strategy==%d", strategy);
 
   Ndb_schema_dist_client schema_dist_client(thd);
 
@@ -3389,6 +3398,7 @@ class Ndb_schema_event_handler {
   }
 
   void handle_grant_op(const Ndb_schema_op *schema) {
+    RONDB475LOG("handle_grant_op: Begin");
     DBUG_TRACE;
     Ndb_local_connection sql_runner(m_thd);
 
@@ -3398,17 +3408,22 @@ class Ndb_schema_event_handler {
     assert(
         get_thd_ndb(m_thd)->check_option(Thd_ndb::IS_SCHEMA_DIST_PARTICIPANT));
 
-    if (schema->node_id == own_nodeid()) return;
+    if (schema->node_id == own_nodeid()) {
+      RONDB475LOG("handle_grant_op: Return on line %d", __LINE__);
+      return;
+    }
 
     /* SOT_GRANT was sent by a pre-8.0 mysqld. Just ignore it. */
     if (schema->type == SOT_GRANT) {
       ndb_log_verbose(9, "Got SOT_GRANT event, disregarding.");
+      RONDB475LOG("handle_grant_op: Return on line %d", __LINE__);
       return;
     }
 
     /* For SOT_ACL_SNAPSHOT, update the snapshots for the users listed.
      */
     if (schema->type == SOT_ACL_SNAPSHOT) {
+      RONDB475LOG("handle_grant_op: Call update_users_from_snapshot, m_thd->slave_thread==%d", m_thd->slave_thread);
       if (!Ndb_stored_grants::update_users_from_snapshot(m_thd,
                                                          schema->query)) {
         ndb_log_error("Failed to apply ACL snapshot for users: %s",
@@ -3416,7 +3431,10 @@ class Ndb_schema_event_handler {
         m_schema_op_result.set_result(Ndb_schema_dist::SCHEMA_OP_FAILURE,
                                       "Distribution of ACL change failed");
       }
+      RONDB475LOG("handle_grant_op: Return on line %d", __LINE__);
       return;
+    } else {
+      RONDB475LOG("handle_grant_op: No call update_users_from_snapshot");
     }
 
     DBUG_ASSERT(schema->type == SOT_ACL_STATEMENT ||
@@ -3442,6 +3460,7 @@ class Ndb_schema_event_handler {
       m_schema_op_result.set_result(Ndb_schema_dist::SCHEMA_OP_FAILURE,
                                     "Distribution of ACL change failed");
       m_thd->reset_db(thd_db_save);
+      RONDB475LOG("handle_grant_op: Return on line %d", __LINE__);
       return;
     }
 
@@ -3449,7 +3468,10 @@ class Ndb_schema_event_handler {
     m_thd->reset_db(thd_db_save);
 
     if (schema->type == SOT_ACL_STATEMENT_REFRESH) {
+      RONDB475LOG("handle_grant_op: Call maintain_cache");
       Ndb_stored_grants::maintain_cache(m_thd);
+    } else {
+      RONDB475LOG("handle_grant_op: No call to maintain_cache");
     }
   }
 

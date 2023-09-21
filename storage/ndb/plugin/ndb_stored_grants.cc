@@ -495,7 +495,7 @@ inline bool blacklisted(std::string user) {
    documented limitation is preferable to relying on the mysql table.
 */
 int ThreadContext::build_cache_of_ndb_users() {
-  RONDB475LOG("build_cache_of_ndb_users: Begin");
+  RONDB475LOG("build_cache_of_ndb_users: Begin, m_thd->slave_thread==%d", m_thd->slave_thread);
   int n = 0;
   local_granted_users.clear();
   if (!exec_sql("SELECT grantee FROM information_schema.user_privileges "
@@ -881,6 +881,7 @@ int ThreadContext::handle_rename_user() {
    Determine a strategy for distributing the change to schema dist participants.
 */
 Ndb_stored_grants::Strategy ThreadContext::handle_change(ChangeNotice *notice) {
+  RONDB475LOG("ThreadContext::handle_change: Begin, m_thd->slave_thread==%d", m_thd->slave_thread);
   const Mem_root_array<std::string> *drop_list = nullptr;
   const Mem_root_array<std::string> *update_list = nullptr;
 
@@ -932,10 +933,16 @@ Ndb_stored_grants::Strategy ThreadContext::handle_change(ChangeNotice *notice) {
   }
 
   /* If statement did not affect any distributed users, do not distribute it */
-  if (n_changed_users == 0) return Ndb_stored_grants::Strategy::NONE;
+  if (n_changed_users == 0) {
+    RONDB475LOG("ThreadContext::handle_change: n_changed_users == 0, m_thd->slave_thread==%d, retu rn NONE at line %d", m_thd->slave_thread, __LINE__);
+    return Ndb_stored_grants::Strategy::NONE;
+  }
 
   /* The set of users known to be stored in NDB may have changed */
-  if (rebuild_local_cache) build_cache_of_ndb_users();
+  if (rebuild_local_cache) {
+    RONDB475LOG("ThreadContext::handle_change: Call rebuild_cache_of_ndb_users, m_thd->slave_thread==%d", m_thd->slave_thread);
+    build_cache_of_ndb_users();
+  }
 
   /* Write snapshot, and handle error */
   if (!write_snapshot()) return Ndb_stored_grants::Strategy::ERROR;
@@ -976,14 +983,20 @@ void Ndb_stored_grants::shutdown(Thd_ndb *thd_ndb) {
 }
 
 bool Ndb_stored_grants::apply_stored_grants(THD *thd) {
+  RONDB475LOG("Ndb_stored_grants::apply_stored_grants: Begin, thd->slave_thread==%d", thd->slave_thread);
+
   if (!metadata_table.isInitialized()) {
     ndb_log_error("stored grants: initialization has failed.");
+    RONDB475LOG("Ndb_stored_grants::apply_stored_grants: return false, line %d", __LINE__);
     return false;
   }
 
   ThreadContext context(thd);
 
-  if (!context.read_snapshot()) return false;
+  if (!context.read_snapshot()) {
+    RONDB475LOG("Ndb_stored_grants::apply_stored_grants: return false, line %d", __LINE__);
+    return false;
+  }
 
   (void)context.build_cache_of_ndb_users();
 
@@ -991,14 +1004,17 @@ bool Ndb_stored_grants::apply_stored_grants(THD *thd) {
   context.apply_current_snapshot();
   context.write_status_message_to_server_log();
   context.handle_dropped_users();
+  RONDB475LOG("Ndb_stored_grants::apply_stored_grants: return true, line %d", __LINE__);
   return true;  // success
 }
 
 Ndb_stored_grants::Strategy Ndb_stored_grants::handle_local_acl_change(
     THD *thd, const Acl_change_notification *notice, std::string *user_list,
     bool *schema_dist_use_db, bool *must_refresh) {
+  RONDB475LOG("Ndb_stored_grants::handle_local_acl_change: Begin, thd->slave_thread==%d", thd->slave_thread);
   if (!metadata_table.isInitialized()) {
     ndb_log_error("stored grants: initialization has failed.");
+    RONDB475LOG("Ndb_stored_grants::handle_local_acl_change: Return Strategy::ERROR on line %d", __LINE__);
     return Strategy::ERROR;
   }
 
@@ -1021,6 +1037,7 @@ Ndb_stored_grants::Strategy Ndb_stored_grants::handle_local_acl_change(
     context.serialize_snapshot_user_list(user_list);
   }
 
+  RONDB475LOG("Ndb_stored_grants::handle_local_acl_change: Return strategy==%d on line %d", strategy, __LINE__);
   return strategy;
 }
 
@@ -1031,18 +1048,25 @@ void Ndb_stored_grants::maintain_cache(THD *thd) {
 
 bool Ndb_stored_grants::update_users_from_snapshot(THD *thd,
                                                    std::string users) {
+  RONDB475LOG("Ndb_stored_grants::update_users_from_snapshot: Begin, thd->slave_thread==%d", thd->slave_thread);
   if (!metadata_table.isInitialized()) {
     ndb_log_error("stored grants: initialization has failed.");
+    RONDB475LOG("Ndb_stored_grants::update_users_from_snapshot: return false, line %d", __LINE__);
     return false;
   }
 
   ThreadContext context(thd);
 
   context.deserialize_users(users);
-  if (!context.read_snapshot()) return false;
+  if (!context.read_snapshot()) {
+    RONDB475LOG("Ndb_stored_grants::update_users_from_snapshot: return false, line %d", __LINE__);
+    return false;
+  }
 
+  RONDB475LOG("Ndb_stored_grants::update_users_from_snapshot: Call build_cache_of_ndb_users, thd->slave_thread==%d", thd->slave_thread);
   (void)context.build_cache_of_ndb_users();
   context.apply_current_snapshot();
   context.handle_dropped_users();
+  RONDB475LOG("Ndb_stored_grants::update_users_from_snapshot: return true, line %d", __LINE__);
   return true;  // success
 }

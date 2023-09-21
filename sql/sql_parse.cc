@@ -2838,7 +2838,7 @@ int mysql_execute_command(THD *thd, bool first_level) {
 
   RONDB475LOG("mysql_execute_command: At line %d, thd->slave_thread = %d, lex->sql_command = %d", __LINE__, thd->slave_thread, lex->sql_command);
   if (unlikely(thd->slave_thread)) {
-    RONDB475LOG("mysql_execute_command: line %d", __LINE__);
+    RONDB475LOG("mysql_execute_command: line %d, lex->sql_command==%d", __LINE__, lex->sql_command);
     if (!check_database_filters(thd, thd->db().str, lex->sql_command)) {
       binlog_gtid_end_transaction(thd);
       RONDB475LOG("mysql_execute_command: return 0 at line %d", __LINE__);
@@ -2928,10 +2928,11 @@ int mysql_execute_command(THD *thd, bool first_level) {
         !(lex->sql_command == SQLCOM_DROP_TABLE && lex->drop_temporary &&
           lex->drop_if_exists) &&
         all_tables_not_ok(thd, all_tables)) {
+      RONDB475LOG("mysql_execute_command: On line %d, lex->sql_command == %d, SQLCOM_UPDATE_MULTI == %d, SQLCOM_SET_OPTION == %d, SQLCOM_DROP_TABLE == %d, lex->drop_temporary == %d, lex->drop_if_exists == %d, ER_SLAVE_IGNORED_TABLE == %d", __LINE__, lex->sql_command, SQLCOM_UPDATE_MULTI, SQLCOM_SET_OPTION, SQLCOM_DROP_TABLE, lex->drop_temporary, lex->drop_if_exists, ER_SLAVE_IGNORED_TABLE);
       /* we warn the slave SQL thread */
-      my_error(ER_SLAVE_IGNORED_TABLE, MYF(0));
+       my_error(ER_SLAVE_IGNORED_TABLE, MYF(0));
       binlog_gtid_end_transaction(thd);
-      RONDB475LOG("mysql_execute_command: return 0 at line %d", __LINE__);
+      RONDB475LOG("mysql_execute_command: return 0 at line %d even though command is ignored", __LINE__);
       return 0;
     }
     /*

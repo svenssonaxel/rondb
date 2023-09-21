@@ -53,6 +53,11 @@
 #include "strings/mb_wc.h"
 #include "template_utils.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 /* Max length of a error message. Should be kept in sync with MYSQL_ERRMSG_SIZE.
  */
 #define ERRMSGSIZE (512)
@@ -213,6 +218,7 @@ const char *my_get_err_msg(int nr) {
 */
 
 void my_error(int nr, myf MyFlags, ...) {
+  RONDB475LOG("my_error: Begin, nr==%d", nr);
   const char *format;
   char ebuff[ERRMSGSIZE];
   DBUG_TRACE;
