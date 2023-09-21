@@ -60,6 +60,11 @@
 #include "sql_string.h"
 #include "template_utils.h"  // my_free_container_pointers
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 extern PSI_memory_key key_memory_array_buffer;
 
 Rpl_pfs_filter::Rpl_pfs_filter()
@@ -391,6 +396,7 @@ err:
 */
 
 bool Rpl_filter::tables_ok(const char *db, TABLE_LIST *tables) {
+  RONDB475LOG("Rpl_filter::tables_ok: Begin, db=%s", db);
   bool some_tables_updating = false;
   DBUG_TRACE;
 
@@ -399,15 +405,20 @@ bool Rpl_filter::tables_ok(const char *db, TABLE_LIST *tables) {
     char *end;
     uint len;
 
-    if (!tables->updating) continue;
+    if (!tables->updating) {
+      RONDB475LOG("Rpl_filter::tables_ok: Not updating, continue.");
+      continue;
+    }
     some_tables_updating = true;
     end = my_stpcpy(hash_key, tables->db ? tables->db : db);
     *end++ = '.';
     len = (uint)(my_stpcpy(end, tables->table_name) - hash_key);
+    RONDB475LOG("Rpl_filter::tables_ok: hash_key=%s", hash_key);
     if (do_table_hash_inited)  // if there are any do's
     {
       if (do_table_hash->count(std::string(hash_key, len)) != 0) {
         do_table_statistics.increase_counter();
+        RONDB475LOG("Rpl_filter::tables_ok: For hash_key=%s, return true on line %d", hash_key, __LINE__);
         return true;
       }
     }
@@ -415,16 +426,19 @@ bool Rpl_filter::tables_ok(const char *db, TABLE_LIST *tables) {
     {
       if (ignore_table_hash->count(std::string(hash_key, len)) != 0) {
         ignore_table_statistics.increase_counter();
+        RONDB475LOG("Rpl_filter::tables_ok: For hash_key=%s, return false on line %d", hash_key, __LINE__);
         return false;
       }
     }
     if (wild_do_table_inited && find_wild(&wild_do_table, hash_key, len)) {
       wild_do_table_statistics.increase_counter();
+      RONDB475LOG("Rpl_filter::tables_ok: For hash_key=%s, return true on line %d", hash_key, __LINE__);
       return true;
     }
     if (wild_ignore_table_inited &&
         find_wild(&wild_ignore_table, hash_key, len)) {
       wild_ignore_table_statistics.increase_counter();
+      RONDB475LOG("Rpl_filter::tables_ok: For hash_key=%s, return false on line %d", hash_key, __LINE__);
       return false;
     }
   }
@@ -435,7 +449,9 @@ bool Rpl_filter::tables_ok(const char *db, TABLE_LIST *tables) {
     If no explicit rule found and there was a do list, do not replicate.
     If there was no do list, go ahead
   */
-  return some_tables_updating && !do_table_hash_inited && !wild_do_table_inited;
+  bool ret = some_tables_updating && !do_table_hash_inited && !wild_do_table_inited;
+  RONDB475LOG("Rpl_filter::tables_ok: End with some_tables_updating=%d, do_table_hash_inited=%d, wild_do_table_inited=%d, ret=%d on line %d", some_tables_updating, do_table_hash_inited, wild_do_table_inited, ret, __LINE__);
+  return ret;
 }
 
 /*

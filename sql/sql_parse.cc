@@ -270,8 +270,25 @@ bool command_satisfy_acl_cache_requirement(unsigned command) {
 bool all_tables_not_ok(THD *thd, TABLE_LIST *tables) {
   Rpl_filter *rpl_filter = thd->rli_slave->rpl_filter;
 
-  return rpl_filter->is_on() && tables && !thd->sp_runtime_ctx &&
-         !rpl_filter->tables_ok(thd->db().str, tables);
+  //  return rpl_filter->is_on() && tables && !thd->sp_runtime_ctx &&
+  //         !rpl_filter->tables_ok(thd->db().str, tables);
+  bool a = rpl_filter->is_on();
+  RONDB475LOG("all_tables_not_ok: rpl_filter->is_on() is %d", a);
+  if(a) {
+    RONDB475LOG("all_tables_not_ok: tables is %p", tables);
+    if(tables) {
+      RONDB475LOG("all_tables_not_ok: thd->sp_runtime_ctx is %p", thd->sp_runtime_ctx);
+      if(!thd->sp_runtime_ctx) {
+        const char* b = thd->db().str;
+        bool c = rpl_filter->tables_ok(b, tables);
+        RONDB475LOG("all_tables_not_ok: rpl_filter->tables_ok(%s, %p) is %d", b, tables, c);
+        if(!c) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -2923,11 +2940,12 @@ int mysql_execute_command(THD *thd, bool first_level) {
       - DROP TEMPORARY TABLE IF EXISTS: we always execute it (otherwise we
         have stale files on slave caused by exclusion of one tmp table).
     */
+    bool dbg_01_all_tables_not_ok = all_tables_not_ok(thd, all_tables);
     if (!(lex->sql_command == SQLCOM_UPDATE_MULTI) &&
         !(lex->sql_command == SQLCOM_SET_OPTION) &&
         !(lex->sql_command == SQLCOM_DROP_TABLE && lex->drop_temporary &&
           lex->drop_if_exists) &&
-        all_tables_not_ok(thd, all_tables)) {
+        dbg_01_all_tables_not_ok) {
       RONDB475LOG("mysql_execute_command: On line %d, lex->sql_command == %d, SQLCOM_UPDATE_MULTI == %d, SQLCOM_SET_OPTION == %d, SQLCOM_DROP_TABLE == %d, lex->drop_temporary == %d, lex->drop_if_exists == %d, ER_SLAVE_IGNORED_TABLE == %d", __LINE__, lex->sql_command, SQLCOM_UPDATE_MULTI, SQLCOM_SET_OPTION, SQLCOM_DROP_TABLE, lex->drop_temporary, lex->drop_if_exists, ER_SLAVE_IGNORED_TABLE);
       /* we warn the slave SQL thread */
        my_error(ER_SLAVE_IGNORED_TABLE, MYF(0));
@@ -2935,6 +2953,7 @@ int mysql_execute_command(THD *thd, bool first_level) {
       RONDB475LOG("mysql_execute_command: return 0 at line %d even though command is ignored", __LINE__);
       return 0;
     }
+    RONDB475LOG("mysql_execute_command: On line %d, lex->sql_command == %d, SQLCOM_UPDATE_MULTI == %d, SQLCOM_SET_OPTION == %d, SQLCOM_DROP_TABLE == %d, lex->drop_temporary == %d, lex->drop_if_exists == %d, ER_SLAVE_IGNORED_TABLE == %d, dbg_01_all_tables_not_ok == %d", __LINE__, lex->sql_command, SQLCOM_UPDATE_MULTI, SQLCOM_SET_OPTION, SQLCOM_DROP_TABLE, lex->drop_temporary, lex->drop_if_exists, ER_SLAVE_IGNORED_TABLE, dbg_01_all_tables_not_ok);
     /*
        Execute deferred events first
     */
