@@ -1,5 +1,10 @@
 # This is a regression test for:
 # RONDB-475 Mysqld Segfault when reversing replication role
+# It seems this bug causes mysqld to crash when replicating a GRANT
+# NDB_STORED_USER statement while replication filtering is active e.g. by
+# using --replicate-ignore-table.
+
+# TODO: Try CHANGE REPLICATION FILTER https://dev.mysql.com/doc/refman/8.0/en/change-replication-filter.html
 
 #
 # Master Cluster                   Slave Cluster
@@ -63,6 +68,18 @@ SELECT * FROM t1;
 SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
 SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
 
+--echo # todo
+connection C;
+--echo [Server C]
+--source include/stop_slave.inc
+CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (test.t2);
+--source include/start_slave.inc
+connection A;
+--echo [Server A]
+CREATE TABLE t7 (pk INT PRIMARY KEY, a CHAR(1)) engine = ndb;
+INSERT INTO t7 VALUES(1, 'A');
+CREATE USER 'ndb_u7'@'localhost' IDENTIFIED by 'pass7';
+GRANT NDB_STORED_USER ON *.* TO 'ndb_u7'@'localhost';
 --echo #
 --echo # Change replication topology to go in the reverse direction.
 --echo #
@@ -134,6 +151,8 @@ DROP USER ndb_u1@localhost;
 DROP TABLE t1;
 DROP USER ndb_u2@localhost;
 DROP TABLE t2;
+DROP USER ndb_u7@localhost;
+DROP TABLE t7;
 --source include/wait_for_ndb_committed_to_binlog.inc
 sync_slave_with_master A;
 --source include/rpl_reset.inc
