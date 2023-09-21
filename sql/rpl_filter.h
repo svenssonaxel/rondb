@@ -224,6 +224,7 @@ class Rpl_filter {
   bool db_ok_with_wild_table(const char *db);
 
   bool is_on();
+  void set_table_rules_on_true();
   /**
     Check if the replication filter is empty or not.
 

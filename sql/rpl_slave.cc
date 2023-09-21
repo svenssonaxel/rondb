@@ -160,6 +160,11 @@
 #include "rpl_debug_points.h"
 #endif
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 struct mysql_cond_t;
 struct mysql_mutex_t;
 
@@ -10512,6 +10517,7 @@ static bool is_invalid_change_master_for_group_replication_applier(
   @retval           false      success.
 */
 bool change_master_cmd(THD *thd) {
+  RONDB475LOG("change_master_cmd: Begin");
   DBUG_TRACE;
 
   Master_info *mi = nullptr;
@@ -10524,6 +10530,7 @@ bool change_master_cmd(THD *thd) {
   if (!is_slave_configured()) {
     my_error(ER_SLAVE_CONFIGURATION, MYF(0));
     res = true;
+    RONDB475LOG("change_master_cmd: Error on line %d", __LINE__);
     goto err;
   }
 
@@ -10537,6 +10544,7 @@ bool change_master_cmd(THD *thd) {
       my_error(ER_SLAVE_CHANNEL_OPERATION_NOT_ALLOWED, MYF(0),
                "CHANGE MASTER with the given parameters", lex->mi.channel);
       res = true;
+      RONDB475LOG("change_master_cmd: Error on line %d", __LINE__);
       goto err;
     }
 
@@ -10550,6 +10558,7 @@ bool change_master_cmd(THD *thd) {
     if (is_group_replication_running()) {
       my_error(ER_GRP_OPERATION_NOT_ALLOWED_GR_MUST_STOP, MYF(0));
       res = true;
+      RONDB475LOG("change_master_cmd: Error on line %d", __LINE__);
       goto err;
     }
   }
@@ -10563,6 +10572,7 @@ bool change_master_cmd(THD *thd) {
       my_error(ER_SLAVE_CHANNEL_OPERATION_NOT_ALLOWED, MYF(0),
                "CHANGE MASTER with the given parameters", lex->mi.channel);
       res = true;
+      RONDB475LOG("change_master_cmd: Error on line %d", __LINE__);
       goto err;
     }
   }
@@ -10574,6 +10584,7 @@ bool change_master_cmd(THD *thd) {
   if (!lex->mi.for_channel && channel_map.get_num_instances() > 1) {
     my_error(ER_SLAVE_MULTIPLE_CHANNELS_CMD, MYF(0));
     res = true;
+    RONDB475LOG("change_master_cmd: Error on line %d", __LINE__);
     goto err;
   }
 
@@ -10587,7 +10598,9 @@ bool change_master_cmd(THD *thd) {
   }
 
   if (mi) {
+    RONDB475LOG("change_master_cmd: On line %d", __LINE__);
     bool configure_filters = !Master_info::is_configured(mi);
+    RONDB475LOG("change_master_cmd: mi=%p, configure_filters=%d", mi, configure_filters);
 
     if (!(res = change_master(thd, mi, &thd->lex->mi))) {
       /*
@@ -10595,6 +10608,7 @@ bool change_master_cmd(THD *thd) {
         "CHANGE MASTER", we need to configure rpl_filter for it.
       */
       if (configure_filters) {
+        RONDB475LOG("change_master_cmd: Before execute configure_channel_replication_filters");
         if ((res = Rpl_info_factory::configure_channel_replication_filters(
                  mi->rli, lex->mi.channel)))
           goto err;
@@ -10609,6 +10623,7 @@ bool change_master_cmd(THD *thd) {
       my_ok(thd);
     }
   } else {
+    RONDB475LOG("change_master_cmd: On line %d", __LINE__);
     /*
        Even default channel does not exist. So issue a previous
        backward compatible  error message (till 5.6).
@@ -10620,6 +10635,7 @@ bool change_master_cmd(THD *thd) {
 err:
   channel_map.unlock();
 
+  RONDB475LOG("change_master_cmd: Return %d", res);
   return res;
 }
 

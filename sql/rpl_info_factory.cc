@@ -60,6 +60,11 @@
 #include "sql_string.h"
 #include "thr_lock.h"
 
+#define RONDB475LOG(fmt, ...) do {                                      \
+    fprintf(stderr, "RONDB475LOG: " fmt "\n", ##__VA_ARGS__);           \
+    fflush(stderr);                                                     \
+  } while (0)
+
 /*
   Defines meta information on diferent repositories.
 */
@@ -936,6 +941,7 @@ err:
 
 bool Rpl_info_factory::configure_channel_replication_filters(
     Relay_log_info *rli, const char *channel_name) {
+  RONDB475LOG("Rpl_info_factory::configure_channel_replication_filters: Begin");
   DBUG_TRACE;
 
   /*
@@ -943,9 +949,13 @@ bool Rpl_info_factory::configure_channel_replication_filters(
     --replicate* nor CHANGE REPLICATION FILTER, and should not
     inherit from global filters.
   */
-  if (channel_map.is_group_replication_channel_name(channel_name)) return false;
+  if (channel_map.is_group_replication_channel_name(channel_name)) {
+    RONDB475LOG("Rpl_info_factory::configure_channel_replication_filters: Return false on line %d", __LINE__);
+    return false;
+  }
 
   if (Master_info::is_configured(rli->mi)) {
+    RONDB475LOG("Rpl_info_factory::configure_channel_replication_filters: Will call copy_global_replication_filters");
     /*
       A slave replication channel would copy global replication filters
       to its per-channel replication filters if there are no per-channel
@@ -955,9 +965,11 @@ bool Rpl_info_factory::configure_channel_replication_filters(
     if (rli->rpl_filter->copy_global_replication_filters()) {
       LogErr(ERROR_LEVEL, ER_RPL_SLAVE_GLOBAL_FILTERS_COPY_FAILED,
              channel_name);
+      RONDB475LOG("Rpl_info_factory::configure_channel_replication_filters: Return true on line %d", __LINE__);
       return true;
     }
   } else {
+    RONDB475LOG("Rpl_info_factory::configure_channel_replication_filters: Will NOT call copy_global_replication_filters");
     /*
       When starting server, users may set rpl filter options on an
       uninitialzied channel. The filter options will be reset with an
@@ -968,6 +980,7 @@ bool Rpl_info_factory::configure_channel_replication_filters(
       rli->rpl_filter->reset();
     }
   }
+  RONDB475LOG("Rpl_info_factory::configure_channel_replication_filters: Return false on line %d", __LINE__);
   return false;
 }
 
@@ -1068,6 +1081,7 @@ bool Rpl_info_factory::configure_channel_replication_filters(
 bool Rpl_info_factory::create_slave_info_objects(
     uint mi_option, uint rli_option, int thread_mask,
     Multisource_info *pchannel_map) {
+  RONDB475LOG("Rpl_info_factory::create_slave_info_objects: Begin");
   DBUG_TRACE;
 
   Master_info *mi = nullptr;
@@ -1108,6 +1122,7 @@ bool Rpl_info_factory::create_slave_info_objects(
     /* msg will contain the reason of failure */
     LogErr(ERROR_LEVEL, ER_RPL_SLAVE_GENERIC_MESSAGE, msg);
     error = true;
+    RONDB475LOG("Rpl_info_factory::create_slave_info_objects: Error on line %d", __LINE__);
     goto end;
   }
 
@@ -1118,6 +1133,7 @@ bool Rpl_info_factory::create_slave_info_objects(
                                          &default_channel_existed_previously)) {
     LogErr(ERROR_LEVEL, ER_RPL_SLAVE_COULD_NOT_CREATE_CHANNEL_LIST);
     error = true;
+    RONDB475LOG("Rpl_info_factory::create_slave_info_objects: Error on line %d", __LINE__);
     goto end;
   }
 
@@ -1127,6 +1143,7 @@ bool Rpl_info_factory::create_slave_info_objects(
     /* Not supported cases of B) C) and D) above */
     LogErr(ERROR_LEVEL, ER_RPL_MULTISOURCE_REQUIRES_TABLE_TYPE_REPOSITORIES);
     error = true;
+    RONDB475LOG("Rpl_info_factory::create_slave_info_objects: Error on line %d", __LINE__);
     goto end;
   }
 
@@ -1145,8 +1162,10 @@ bool Rpl_info_factory::create_slave_info_objects(
     For compatibility reasons, we have to separate the print out
     of the error messages.
   */
+  RONDB475LOG("Rpl_info_factory::create_slave_info_objects: Before looping through channels");
   for (std::vector<std::string>::iterator it = channel_list.begin();
        it != channel_list.end(); ++it) {
+    RONDB475LOG("Rpl_info_factory::create_slave_info_objects: One channel");
     const char *cname = (*it).c_str();
     bool is_default_channel =
         !strcmp(cname, pchannel_map->get_default_channel());
@@ -1165,7 +1184,9 @@ bool Rpl_info_factory::create_slave_info_objects(
           load_mi_and_rli_from_repositories(mi, ignore_if_no_info, thread_mask);
     }
 
+    RONDB475LOG("Rpl_info_factory::create_slave_info_objects: channel_error=%d", channel_error);
     if (!channel_error) {
+      RONDB475LOG("Rpl_info_factory::create_slave_info_objects: Call configure_channel_replication_filters");
       error = configure_channel_replication_filters(mi->rli, cname);
     } else {
       LogErr(ERROR_LEVEL, ER_RPL_SLAVE_FAILED_TO_INIT_A_MASTER_INFO_STRUCTURE,
@@ -1174,6 +1195,7 @@ bool Rpl_info_factory::create_slave_info_objects(
     error = error || channel_error;
   }
 end:
+  RONDB475LOG("Rpl_info_factory::create_slave_info_objects: Return %d", error);
   return error;
 }
 

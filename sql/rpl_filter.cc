@@ -221,6 +221,7 @@ int Rpl_filter::copy_global_replication_filters() {
   }
 
   if (!do_table_hash_inited && rpl_global_filter.do_table_hash_inited) {
+    RONDB475LOG("In Rpl_filter::copy_global_replication_filters, line %d" __LINE__);
     /*
       Build this->do_table_array from rpl_global_filter.do_table_hash since
       rpl_global_filter.do_table_array is freed after building do table hash.
@@ -231,7 +232,7 @@ int Rpl_filter::copy_global_replication_filters() {
     if (res != 0) goto err;
 
     do_table_array_inited = true;
-    table_rules_on = true;
+    set_table_rules_on_true();
 
     res = build_do_table_hash();
     if (res != 0) goto err;
@@ -244,6 +245,8 @@ int Rpl_filter::copy_global_replication_filters() {
 
     do_table_statistics.set_all(
         rpl_global_filter.do_table_statistics.get_configured_by());
+  } else {
+    RONDB475LOG("In Rpl_filter::copy_global_replication_filters, line %d" __LINE__);
   }
 
   if (!ignore_table_hash_inited && rpl_global_filter.ignore_table_hash_inited) {
@@ -258,7 +261,7 @@ int Rpl_filter::copy_global_replication_filters() {
     if (res != 0) goto err;
 
     ignore_table_array_inited = true;
-    table_rules_on = true;
+    set_table_rules_on_true();
 
     res = build_ignore_table_hash();
     DBUG_EXECUTE_IF("simulate_out_of_memory_on_copy_ignore_table", res = 1;);
@@ -283,7 +286,7 @@ int Rpl_filter::copy_global_replication_filters() {
     DBUG_ASSERT(!wild_do_table.empty());
 
     wild_do_table_inited = true;
-    table_rules_on = true;
+    set_table_rules_on_true();
 
     wild_do_table_statistics.set_all(
         rpl_global_filter.wild_do_table_statistics.get_configured_by());
@@ -300,7 +303,7 @@ int Rpl_filter::copy_global_replication_filters() {
     DBUG_ASSERT(!wild_ignore_table.empty());
 
     wild_ignore_table_inited = true;
-    table_rules_on = true;
+    set_table_rules_on_true();
 
     wild_ignore_table_statistics.set_all(
         rpl_global_filter.wild_ignore_table_statistics.get_configured_by());
@@ -579,6 +582,7 @@ bool Rpl_filter::db_ok_with_wild_table(const char *db) {
 }
 
 bool Rpl_filter::is_on() { return table_rules_on; }
+void Rpl_filter::set_table_rules_on_true() { table_rules_on = true; }
 
 bool Rpl_filter::is_rewrite_empty() { return rewrite_db.is_empty(); }
 
@@ -586,7 +590,7 @@ int Rpl_filter::add_do_table_array(const char *table_spec) {
   DBUG_TRACE;
   if (!do_table_array_inited)
     init_table_rule_array(&do_table_array, &do_table_array_inited);
-  table_rules_on = true;
+  set_table_rules_on_true();
   return add_table_rule_to_array(&do_table_array, table_spec);
 }
 
@@ -594,7 +598,7 @@ int Rpl_filter::add_ignore_table_array(const char *table_spec) {
   DBUG_TRACE;
   if (!ignore_table_array_inited)
     init_table_rule_array(&ignore_table_array, &ignore_table_array_inited);
-  table_rules_on = true;
+  set_table_rules_on_true();
   return add_table_rule_to_array(&ignore_table_array, table_spec);
 }
 
@@ -602,7 +606,7 @@ int Rpl_filter::add_wild_do_table(const char *table_spec) {
   DBUG_TRACE;
   if (!wild_do_table_inited)
     init_table_rule_array(&wild_do_table, &wild_do_table_inited);
-  table_rules_on = true;
+  set_table_rules_on_true();
   return add_table_rule_to_array(&wild_do_table, table_spec);
 }
 
@@ -610,7 +614,7 @@ int Rpl_filter::add_wild_ignore_table(const char *table_spec) {
   DBUG_TRACE;
   if (!wild_ignore_table_inited)
     init_table_rule_array(&wild_ignore_table, &wild_ignore_table_inited);
-  table_rules_on = true;
+  set_table_rules_on_true();
   int ret = add_table_rule_to_array(&wild_ignore_table, table_spec);
   return ret;
 }
