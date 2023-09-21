@@ -29,137 +29,24 @@
 --echo [Server D]
 call mtr.add_suppression("You need to use --log-bin .*");
 
---echo #
---echo # Use server A to create a test table with one row, and a test user.
---echo # Check that they replicate to all servers.
---echo # (Also check that we have 4 different server IDs.)
---echo #
+connection C;
+--echo [Server C]
+--source include/stop_slave.inc
+CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (test.some_nonexistent_table);
+--source include/start_slave.inc
+
 connection A;
 --echo [Server A]
-select @@server_id;
-CREATE TABLE t1 (pk INT PRIMARY KEY, a CHAR(1)) engine = ndb;
-INSERT INTO t1 VALUES(1, 'A');
-CREATE USER 'ndb_u1'@'localhost' IDENTIFIED by 'pass1';
-GRANT NDB_STORED_USER ON *.* TO 'ndb_u1'@'localhost';
-DROP USER 'ndb_u1'@'localhost';
 CREATE USER 'ndb_u1'@'localhost' IDENTIFIED by 'pass1';
 GRANT NDB_STORED_USER ON *.* TO 'ndb_u1'@'localhost';
 --source include/wait_for_ndb_committed_to_binlog.inc
 sync_slave_with_master;
-SELECT * FROM t1;
-SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
-SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
-connection B;
---echo [Server B]
-select @@server_id;
-SELECT * FROM t1;
-SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
-SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
-connection C;
---echo [Server C]
-select @@server_id;
-SELECT * FROM t1;
-SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
-SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
-connection D;
---echo [Server D]
-select @@server_id;
-SELECT * FROM t1;
-SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
-SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
-
---echo # todo
-connection C;
---echo [Server C]
---source include/stop_slave.inc
-CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (test.t2);
---source include/start_slave.inc
-connection A;
---echo [Server A]
-CREATE TABLE t7 (pk INT PRIMARY KEY, a CHAR(1)) engine = ndb;
-INSERT INTO t7 VALUES(1, 'A');
-CREATE USER 'ndb_u7'@'localhost' IDENTIFIED by 'pass7';
-GRANT NDB_STORED_USER ON *.* TO 'ndb_u7'@'localhost';
---echo #
---echo # Change replication topology to go in the reverse direction.
---echo #
---source include/rpl_reset.inc
-connection C;
---echo [Server C]
---source suite/ndb_rpl/t/show_replica_status.inc
---source include/stop_slave.inc
-connection C;
---source suite/ndb_rpl/t/show_replica_status.inc
---let $rpl_topology=2->1
---source include/rpl_change_topology.inc
-connection A;
---echo [Server A]
---source suite/ndb_rpl/t/show_replica_status.inc
---source include/start_slave.inc
-connection C;
---echo [Server C]
-# sync_slave_with_master uses current connection as master and argument as slave
-sync_slave_with_master A;
-connection A;
---echo [Server A]
---source suite/ndb_rpl/t/show_replica_status.inc
-connection C;
---echo [Server C]
---source suite/ndb_rpl/t/show_replica_status.inc
-
---echo #
---echo # Use server C to create a test table with one row, and a test user.
---echo # Check that they replicate to all servers.
---echo #
-connection C;
---echo [Server C]
-CREATE TABLE t2 (pk INT PRIMARY KEY, a CHAR(1)) engine = ndb;
-INSERT INTO t2 VALUES(1, 'C');
-CREATE USER 'ndb_u2'@'localhost' IDENTIFIED by 'pass2';
-GRANT NDB_STORED_USER ON *.* TO 'ndb_u2'@'localhost';
-DROP USER 'ndb_u2'@'localhost';
-CREATE USER 'ndb_u2'@'localhost' IDENTIFIED by 'pass2';
-GRANT NDB_STORED_USER ON *.* TO 'ndb_u2'@'localhost';
-DROP USER 'ndb_u1'@'localhost';
-CREATE USER 'ndb_u1'@'localhost' IDENTIFIED by 'pass1';
-GRANT NDB_STORED_USER ON *.* TO 'ndb_u1'@'localhost';
---source include/wait_for_ndb_committed_to_binlog.inc
-sync_slave_with_master A;
-connection C;
-SELECT * FROM t2;
-SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
-SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
-connection D;
---echo [Server D]
-SELECT * FROM t2;
-SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
-SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
-connection A;
---echo [Server A]
-SELECT * FROM t2;
-SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
-SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
-connection B;
---echo [Server B]
-SELECT * FROM t1;
-SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
-SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
 
 --echo # Cleanup
-connection C;
-DROP USER ndb_u1@localhost;
-DROP TABLE t1;
-DROP USER ndb_u2@localhost;
-DROP TABLE t2;
-DROP USER ndb_u7@localhost;
-DROP TABLE t7;
---source include/wait_for_ndb_committed_to_binlog.inc
-sync_slave_with_master A;
---source include/rpl_reset.inc
 connection A;
---source include/stop_slave.inc
---let $rpl_topology=1->2
---source include/rpl_change_topology.inc
+DROP USER ndb_u1@localhost;
+--source include/wait_for_ndb_committed_to_binlog.inc
+sync_slave_with_master;
 disconnect A;
 disconnect B;
 disconnect C;
