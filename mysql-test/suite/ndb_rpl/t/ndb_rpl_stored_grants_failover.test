@@ -1,10 +1,9 @@
-# This is a regression test for:
+# This is a regression test for bug:
 # RONDB-475 Mysqld Segfault when reversing replication role
-# It seems this bug causes mysqld to crash when replicating a GRANT
-# NDB_STORED_USER statement while replication filtering is active e.g. by
-# using --replicate-ignore-table.
 
-# TODO: Try CHANGE REPLICATION FILTER https://dev.mysql.com/doc/refman/8.0/en/change-replication-filter.html
+# This bug causes mysqld on the replica to crash when replicating a GRANT
+# NDB_STORED_USER statement while replication filtering is active e.g. by using
+# --replicate-ignore-table.
 
 #
 # Master Cluster                   Slave Cluster
@@ -16,40 +15,35 @@
 --source include/have_ndb.inc
 --source suite/ndb_rpl/ndb_master-slave.inc
 
-#
-# Connect to all servers.
-#
---connect(A,127.0.0.1,root,,,$MASTER_MYPORT,)
---connect(B,127.0.0.1,root,,,$MASTER_MYPORT1,)
---connect(C,127.0.0.1,root,,,$SLAVE_MYPORT,)
---connect(D,127.0.0.1,root,,,$SLAVE_MYPORT1,)
-
-# Warning suppression
---connection D
---echo [Server D]
+# Warning suppression on server D
+connect(D,127.0.0.1,root,,,$SLAVE_MYPORT1,);
 call mtr.add_suppression("You need to use --log-bin .*");
+disconnect D;
 
-connection C;
---echo [Server C]
+# Activate replication filtering on server C
+connection slave;
 --source include/stop_slave.inc
-CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (test.some_nonexistent_table);
+CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (test.nonexistent_table);
 --source include/start_slave.inc
 
-connection A;
---echo [Server A]
+# Execute a GRANT NDB_STORED_USER statement on server A so that it replicates to
+# server C
+connection master;
 CREATE USER 'ndb_u1'@'localhost' IDENTIFIED by 'pass1';
 GRANT NDB_STORED_USER ON *.* TO 'ndb_u1'@'localhost';
 --source include/wait_for_ndb_committed_to_binlog.inc
 sync_slave_with_master;
 
---echo # Cleanup
-connection A;
+# Make sure the replication worked
+connection slave;
+SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
+SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
+
+# Cleanup
+connection master;
 DROP USER ndb_u1@localhost;
 --source include/wait_for_ndb_committed_to_binlog.inc
 sync_slave_with_master;
-disconnect A;
-disconnect B;
-disconnect C;
-disconnect D;
+
 --let $rpl_only_running_threads= 1
 --source include/rpl_end.inc

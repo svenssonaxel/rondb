@@ -3,15 +3,17 @@ Warnings:
 Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
 Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
 [connection master]
-[Server D]
 call mtr.add_suppression("You need to use --log-bin .*");
-[Server C]
 include/stop_slave.inc
-CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (test.some_nonexistent_table);
+CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (test.nonexistent_table);
 include/start_slave.inc
-[Server A]
 CREATE USER 'ndb_u1'@'localhost' IDENTIFIED by 'pass1';
 GRANT NDB_STORED_USER ON *.* TO 'ndb_u1'@'localhost';
-# Cleanup
+SELECT host, user FROM mysql.user WHERE user LIKE 'ndb_%';
+host	user
+localhost	ndb_u1
+SELECT grantee FROM information_schema.user_privileges WHERE privilege_type='NDB_STORED_USER' ORDER BY grantee;
+grantee
+'ndb_u1'@'localhost'
 DROP USER ndb_u1@localhost;
 include/rpl_end.inc
