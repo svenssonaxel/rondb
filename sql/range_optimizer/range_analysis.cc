@@ -25,7 +25,6 @@
 #include <sys/types.h>
 
 #include "field_types.h"
-#include "m_ctype.h"
 #include "memory_debugging.h"
 #include "mf_wcomp.h"
 #include "my_alloc.h"
@@ -35,6 +34,7 @@
 #include "my_dbug.h"
 #include "my_inttypes.h"
 #include "my_table_map.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql/udf_registration_types.h"
 #include "mysql_com.h"
 #include "mysqld_error.h"
@@ -877,7 +877,7 @@ SEL_TREE *get_mm_tree(THD *thd, RANGE_OPT_PARAM *param, table_map prev_tables,
     dbug_print_tree("tree_returned", tree, param);
     return tree;
   }
-  if (cond->const_item() && !cond->is_expensive()) {
+  if (cond->const_item() && !cond->cost().IsExpensive()) {
     const SEL_TREE::Type type =
         cond->val_int() ? SEL_TREE::ALWAYS : SEL_TREE::IMPOSSIBLE;
     SEL_TREE *tree = new (param->temp_mem_root)

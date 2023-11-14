@@ -96,6 +96,11 @@ Uint32 overload_limit(const TransporterConfiguration* conf)
           conf->tcp.sendBufferSize*4/5);
 }
 
+/* Request a TLS key rotation after this number of bytes are sent
+   by a transporter, as described in WL#15130 and in RFC 8446 sec. 5.5.
+   The number here should have just one bit set.
+*/
+static constexpr Uint64 keyRotateBit = 0x0000000100000000;
 
 TCP_Transporter::TCP_Transporter(TransporterRegistry &t_reg,
 				 const TransporterConfiguration* conf)
@@ -132,6 +137,10 @@ TCP_Transporter::TCP_Transporter(TransporterRegistry &t_reg,
    */
   m_slowdown_limit = m_overload_limit * 6 / 10;
 
+  m_require_tls = conf->requireTls;
+  if(! isServer)
+    use_tls_client_auth();
+
   send_checksum_state.init();
 }
 
@@ -164,6 +173,7 @@ TCP_Transporter::TCP_Transporter(TransporterRegistry &t_reg,
   sockOptTcpMaxSeg = t->sockOptTcpMaxSeg;
   m_overload_limit = t->m_overload_limit;
   m_slowdown_limit = t->m_slowdown_limit;
+  if(! isServer) use_tls_client_auth();
   send_checksum_state.init();
 }
 
@@ -215,6 +225,15 @@ bool TCP_Transporter::connect_client_impl(NdbSocket & socket)
 
 bool TCP_Transporter::connect_common(NdbSocket & socket)
 {
+  struct x509_st * cert = socket.peer_certificate();
+  if(cert)
+  {
+    m_encrypted = true;
+    m_transporter_registry.getTlsKeyManager()->cert_table_set(remoteNodeId,
+                                                              cert);
+    socket.enable_locking();
+  }
+
   setSocketOptions(socket.ndb_socket());
   socket.set_nonblocking(true);
 
@@ -513,7 +532,15 @@ TCP_Transporter::doSend(bool need_wakeup)
   }
   sendCount += send_cnt;
   sendSize  += sum_sent;
+  bool rotateBitPre = ((m_bytes_sent & keyRotateBit) == keyRotateBit);
   m_bytes_sent += sum_sent;
+  bool rotateBitPost = ((m_bytes_sent & keyRotateBit) == keyRotateBit);
+
+  if(rotateBitPost != rotateBitPre)
+  {
+    theSocket.update_keys();
+  }
+
   if(sendCount >= reportFreq)
   {
     get_callback_obj()->reportSendLen(remoteNodeId, sendCount, sendSize);
@@ -529,15 +556,13 @@ TCP_Transporter::shutdown()
 {
   if (theSocket.is_valid())
   {
-    DEB_MULTI_TRP(("Close socket for trp %u",
-                   getTransporterIndex()));
+    DEB_MULTI_TRP(("Close socket for trp %u", getTransporterIndex()));
     theSocket.close();
     theSocket.invalidate();
   }
   else
   {
-    DEB_MULTI_TRP(("Socket already closed for trp %u",
-                   getTransporterIndex()));
+    DEB_MULTI_TRP(("Socket already closed for trp %u", getTransporterIndex()));
   }
   m_connected = false;
 }
@@ -689,4 +714,7 @@ TCP_Transporter::disconnectImpl()
       report_error(TE_ERROR_CLOSING_SOCKET);
     }
   }
+
+  m_encrypted = false;
+  m_transporter_registry.getTlsKeyManager()->cert_table_clear(remoteNodeId);
 }

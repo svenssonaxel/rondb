@@ -104,6 +104,12 @@ FUNCTION(MYSQL_ADD_EXECUTABLE target_arg)
     ${ARGN}
     )
 
+  IF(ARG_EXCLUDE_FROM_PGO)
+    IF(FPROFILE_GENERATE OR FPROFILE_USE)
+      RETURN()
+    ENDIF()
+  ENDIF()
+
   SET(target ${target_arg})
   SET(sources ${ARG_UNPARSED_ARGUMENTS})
 
@@ -177,10 +183,14 @@ FUNCTION(MYSQL_ADD_EXECUTABLE target_arg)
   ENDIF()
 
   IF(WIN32_CLANG AND WITH_ASAN)
-    TARGET_LINK_LIBRARIES(${target} "${ASAN_LIB_DIR}/clang_rt.asan-x86_64.lib")
-    TARGET_LINK_LIBRARIES(${target} "${ASAN_LIB_DIR}/clang_rt.asan_cxx-x86_64.lib")
-    SET_TARGET_PROPERTIES(${target} PROPERTIES LINK_FLAGS
-      "/wholearchive:\"${ASAN_LIB_DIR}/clang_rt.asan-x86_64.lib\" /wholearchive:\"${ASAN_LIB_DIR}/clang_rt.asan_cxx-x86_64.lib\"")
+    TARGET_LINK_LIBRARIES(${target}
+      "${ASAN_LIB_DIR}/clang_rt.asan-x86_64.lib"
+      "${ASAN_LIB_DIR}/clang_rt.asan_cxx-x86_64.lib"
+      )
+    MY_TARGET_LINK_OPTIONS(${target}
+      "/wholearchive:\"${ASAN_LIB_DIR}/clang_rt.asan-x86_64.lib\"")
+    MY_TARGET_LINK_OPTIONS(${target}
+      "/wholearchive:\"${ASAN_LIB_DIR}/clang_rt.asan_cxx-x86_64.lib\"")
   ENDIF()
 
   # Add unit test, do not install it.

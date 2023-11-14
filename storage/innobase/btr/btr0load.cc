@@ -1043,6 +1043,7 @@ dberr_t Btree_load::prepare_space(Page_load *&page_loader, size_t level,
     auto err = page_commit(page_loader, sibling_page_loader, true);
 
     if (err != DB_SUCCESS) {
+      sibling_page_loader->finish();
       sibling_page_loader->rollback();
       ut::delete_(sibling_page_loader);
       return err;
@@ -1319,6 +1320,5 @@ dberr_t Btree_load::build(Cursor &cursor) noexcept {
       break;
     }
   }
-
   return err == DB_END_OF_INDEX ? DB_SUCCESS : err;
 }

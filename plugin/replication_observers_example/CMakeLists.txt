@@ -26,10 +26,12 @@ ADD_DEFINITIONS(-DLOG_COMPONENT_TAG="replication_observers_example")
 MYSQL_ADD_PLUGIN(replication_observers_example
   gr_message_service_example.cc
   replication_observers_example.cc
+  src/binlog/service/iterator/tests/pfs.cc
+  src/binlog/service/iterator/tests/status_vars.cc
   MODULE_ONLY
   MODULE_OUTPUT_NAME "replication_observers_example_plugin"
   TEST_ONLY
-  LINK_LIBRARIES extra::rapidjson
+  LINK_LIBRARIES extra::rapidjson mysql_gtid
   )
 
 ADD_DEFINITIONS(-DMYSQL_SERVER)

@@ -76,7 +76,9 @@ public:
   void fetch_configuration(const char* _connect_string, int force_nodeid,
                            const char* _bind_adress,
                            NodeId allocated_nodeid,
-                           int connect_retries, int connect_delay);
+                           int connect_retries, int connect_delay,
+                           const char * tls_search_path, int mgm_tls_level);
+
   void setupConfiguration();
   void setupMemoryConfiguration(Uint64);
   void closeConfiguration(bool end_session= true);
@@ -150,6 +152,7 @@ public:
   ndb_mgm_configuration_iterator * getOwnConfigIterator() const;
 
   ConfigRetriever* get_config_retriever() { return m_config_retriever; }
+  NdbMgmHandle * get_mgm_handle_ptr();
 
   class LogLevel * m_logLevel;
   ndb_mgm_configuration_iterator * getClusterConfigIterator() const;

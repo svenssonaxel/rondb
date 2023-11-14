@@ -32,6 +32,7 @@
 #include <sys/types.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <optional>
@@ -40,7 +41,6 @@
 #include <vector>
 
 #include "lex_string.h"
-#include "m_ctype.h"
 #include "my_getopt.h"    // get_opt_arg_type
 #include "my_hostname.h"  // HOSTNAME_LENGTH
 #include "my_inttypes.h"
@@ -48,6 +48,7 @@
 #include "my_systime.h"  // my_micro_time()
 #include "mysql/components/services/system_variable_source_type.h"
 #include "mysql/status_var.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql/udf_registration_types.h"
 #include "mysql_com.h"           // Item_result
 #include "prealloced_array.h"    // Prealloced_array
@@ -68,7 +69,7 @@ struct LEX_USER;
 template <class Key, class Value>
 class collation_unordered_map;
 
-typedef ulonglong sql_mode_t;
+using sql_mode_t = uint64_t;
 typedef enum enum_mysql_show_type SHOW_TYPE;
 typedef enum enum_mysql_show_scope SHOW_SCOPE;
 template <class T>
@@ -365,8 +366,8 @@ class sys_var {
   inline static bool set_and_truncate(char *dst, const char *string,
                                       size_t sizeof_dst) {
     if (dst == string) return false;
-    size_t string_length = strlen(string), length;
-    length = std::min(sizeof_dst - 1, string_length);
+    const size_t string_length = strlen(string);
+    const size_t length = std::min(sizeof_dst - 1, string_length);
     memcpy(dst, string, length);
     dst[length] = 0;
     return length < string_length;  // truncated
@@ -846,6 +847,11 @@ class System_variable_tracker final {
     return m_cache.value().m_cached_is_sensitive;
   }
 
+  bool cached_is_applied_as_command_line() const {
+    if (!m_cache.has_value()) my_abort();
+    return m_cache.value().m_cached_is_applied_as_command_line;
+  }
+
   /** Number of system variable elements to preallocate. */
   static constexpr size_t SYSTEM_VARIABLE_PREALLOC = 200;
 
@@ -893,6 +899,7 @@ class System_variable_tracker final {
   struct Cache {
     SHOW_TYPE m_cached_show_type;
     bool m_cached_is_sensitive;
+    bool m_cached_is_applied_as_command_line;
   };
   mutable std::optional<Cache> m_cache;
 

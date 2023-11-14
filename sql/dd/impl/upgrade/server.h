@@ -23,10 +23,12 @@
 #ifndef DD_UPGRADE_IMPL__SERVER_H_INCLUDED
 #define DD_UPGRADE_IMPL__SERVER_H_INCLUDED
 
+#include <stdint.h>
 #include <stdio.h>
 
 #include <set>
 
+#include "my_inttypes.h"
 #include "my_sys.h"  // ErrorHandlerFunctionPointer
 #include "sql/dd/string_type.h"
 #include "sql/error_handler.h"  // Internal_error_handler
@@ -34,7 +36,9 @@
 class THD;
 class Time_zone;
 
-using sql_mode_t = ulonglong;
+struct CHARSET_INFO;
+
+using sql_mode_t = uint64_t;
 
 namespace dd {
 class Routine;

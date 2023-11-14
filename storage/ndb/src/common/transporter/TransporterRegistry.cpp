@@ -149,19 +149,43 @@ TransporterRegistry::get_bytes_received(NodeId node_id) const
 SocketServer::Session * TransporterService::newSession(ndb_socket_t sockfd)
 {
   /* The connection is currently running over a plain network socket.
-     If m_auth is a TlsAuthenticator, it might get upgraded to a TLS socket
-     in server_authenticate().
+     If m_auth is a SocketAuthTls, it might get upgraded to a TLS socket.
   */
   NdbSocket secureSocket;
   secureSocket.init_from_new(sockfd);
 
   DBUG_ENTER("SocketServer::Session * TransporterService::newSession");
   DEBUG_FPRINTF_DETAIL((stderr, "New session created\n"));
-  if (m_auth && !m_auth->server_authenticate(secureSocket))
+  if(m_auth)
   {
-    DEBUG_FPRINTF((stderr, "Failed to authenticate new session\n"));
-    secureSocket.close_with_reset(true); // Close with reset
-    DBUG_RETURN(0);
+    int auth_result = m_auth->server_authenticate(secureSocket);
+    g_eventLogger->debug("Transporter server auth result: %d [%s]",
+                         auth_result, SocketAuthenticator::error(auth_result));
+    if(auth_result < SocketAuthenticator::AuthOk)
+    {
+      DEBUG_FPRINTF((stderr, "Failed to authenticate new session\n"));
+      secureSocket.close_with_reset(true); // Close with reset
+      DBUG_RETURN(nullptr);
+    }
+
+    if(auth_result == SocketAuthTls::negotiate_tls_ok) // Intitate TLS
+    {
+      struct ssl_ctx_st * ctx = m_transporter_registry->m_tls_keys.ctx();
+      struct ssl_st * ssl = NdbSocket::get_server_ssl(ctx);
+      if(ssl == nullptr)
+      {
+        DBUG_RETURN(nullptr);
+      }
+      if(! secureSocket.associate(ssl))
+      {
+        NdbSocket::free_ssl(ssl);
+        DBUG_RETURN(nullptr);
+      }
+      if(! secureSocket.do_tls_handshake())
+      {
+        DBUG_RETURN(nullptr);
+      }
+    }
   }
 
   BaseString msg;
@@ -572,6 +596,16 @@ TransporterRegistry::set_hostname(Uint32 nodeId,
 }
 
 bool
+TransporterRegistry::init_tls(const char * searchPath, int nodeType,
+                              bool isPrimary, int mgmReqLevel)
+{
+  require(localNodeId);
+  m_tls_keys.init(searchPath, localNodeId, nodeType, isPrimary);
+  m_mgm_tls_req = mgmReqLevel;
+  return m_tls_keys.ctx();
+}
+
+bool
 TransporterRegistry::connect_server(NdbSocket & socket,
                                     BaseString & msg,
                                     bool& close_with_reset,
@@ -885,6 +919,23 @@ TransporterRegistry::connect_server(NdbSocket & socket,
     }
 
     // Failed to request client close
+    DBUG_RETURN(false);
+  }
+
+  /* Client Certificate Authorization.
+  */
+  ClientAuthorization * clientAuth;
+  int authResult = TlsKeyManager::check_socket_for_auth(socket, & clientAuth);
+
+  if((authResult == 0)  && clientAuth) {
+    // This check may block, waiting for a DNS lookup
+    authResult = TlsKeyManager::perform_client_host_auth(clientAuth);
+  }
+
+  if(authResult)
+  {
+    msg.assfmt("TLS %s (for node %d [%s])",
+               TlsKeyError::message(authResult), nodeId, t->remoteHostName);
     DBUG_RETURN(false);
   }
 
@@ -3817,8 +3868,11 @@ TransporterRegistry::start_clients_thread()
                                 "dynamic port",
                                 nodeId));
 
-	    if(!ndb_mgm_is_connected(m_mgm_handle))
-	      ndb_mgm_connect(m_mgm_handle, 0, 0, 0);
+            if(! ndb_mgm_is_connected(m_mgm_handle))
+            {
+              ndb_mgm_set_ssl_ctx(m_mgm_handle, m_tls_keys.ctx());
+              ndb_mgm_connect_tls(m_mgm_handle, 0, 0, 0, m_mgm_tls_req);
+            }
 
 	    if(ndb_mgm_is_connected(m_mgm_handle))
 	    {
@@ -3992,16 +4046,19 @@ TransporterRegistry::stop_clients()
 void
 TransporterRegistry::add_transporter_interface(NodeId remoteNodeId,
 					       const char *interf, 
-					       int s_port)
+					       int s_port, bool require_tls)
 {
   DBUG_ENTER("TransporterRegistry::add_transporter_interface");
   DBUG_PRINT("enter",("interface=%s, s_port= %d", interf, s_port));
   if (interf && strlen(interf) == 0)
     interf= nullptr;
 
+  // Iterate over m_transporter_interface. If an identical one
+  // already exists there, return without adding this one.
   for (unsigned i= 0; i < m_transporter_interface.size(); i++)
   {
     Transporter_interface &tmp= m_transporter_interface[i];
+    if (require_tls != tmp.m_require_tls) continue;
     if (s_port != tmp.m_s_service_port || tmp.m_s_service_port==0)
       continue;
     if (interf != nullptr && tmp.m_interface != nullptr &&
@@ -4014,10 +4071,12 @@ TransporterRegistry::add_transporter_interface(NodeId remoteNodeId,
       DBUG_VOID_RETURN; // found match, no need to insert
     }
   }
+
   Transporter_interface t;
   t.m_remote_nodeId= remoteNodeId;
   t.m_s_service_port= s_port;
   t.m_interface= interf;
+  t.m_require_tls= require_tls;
   m_transporter_interface.push_back(t);
   DBUG_PRINT("exit",("interface and port added"));
   DBUG_VOID_RETURN;
@@ -4046,8 +4105,8 @@ TransporterRegistry::start_service(SocketServer& socket_server,
     unsigned short port= (unsigned short)t.m_s_service_port;
     if(t.m_s_service_port<0)
       port= -t.m_s_service_port; // is a dynamic port
-    TransporterService *transporter_service =
-      new TransporterService(new SocketAuthSimple("ndbd", "ndbd passwd"));
+    SocketAuthTls * auth = new SocketAuthTls(& m_tls_keys, t.m_require_tls);
+    TransporterService *transporter_service = new TransporterService(auth);
     ndb_sockaddr addr;
     if (t.m_interface && Ndb_getAddr(&addr, t.m_interface))
     {
@@ -4151,6 +4210,12 @@ TransporterRegistry::get_node_id_trp(TrpId trp_id) const
   return allTransporters[trp_id]->getRemoteNodeId();
 }
 
+bool
+TransporterRegistry::is_encrypted_link(NodeId nodeId) const
+{
+  return theNodeIdTransporters[nodeId]->is_encrypted();
+}
+
 Transporter*
 TransporterRegistry::get_transporter(TrpId trp_id) const
 {
@@ -4191,7 +4256,8 @@ bool TransporterRegistry::connect_client(NdbMgmHandle *h)
   }
   require(!t->isMultiTransporter());
   require(!t->isPartOfMultiTransporter());
-  bool res = t->connect_client(connect_ndb_mgmd(h));
+  NdbSocket secureSocket = connect_ndb_mgmd(h);
+  bool res = t->connect_client(secureSocket);
   if (res == true)
   {
     DEBUG_FPRINTF((stderr, "(Node %u)performStates[Node %u] = CONNECTING,"
@@ -4243,55 +4309,60 @@ bool TransporterRegistry::report_dynamic_ports(NdbMgmHandle h) const
  * Given a connected NdbMgmHandle, turns it into a transporter
  * and returns the socket.
  */
-ndb_socket_t TransporterRegistry::connect_ndb_mgmd(NdbMgmHandle *h)
+NdbSocket TransporterRegistry::connect_ndb_mgmd(NdbMgmHandle *h)
 {
-  ndb_socket_t sockfd;
-
   DBUG_ENTER("TransporterRegistry::connect_ndb_mgmd(NdbMgmHandle)");
 
   if ( h==nullptr || *h == nullptr )
   {
     g_eventLogger->error("Mgm handle is NULL (%s:%d)", __FILE__, __LINE__);
-    DBUG_RETURN(sockfd);
+    DBUG_RETURN(NdbSocket());  // an invalid socket, newly created on the stack
+  }
+
+  /* Before converting, try to start TLS. */
+  if(m_tls_keys.ctx())
+  {
+    (void) ndb_mgm_set_ssl_ctx(*h, m_tls_keys.ctx());
+    (void) ndb_mgm_start_tls(*h);
   }
 
   if (!report_dynamic_ports(*h))
   {
     ndb_mgm_destroy_handle(h);
-    DBUG_RETURN(sockfd);
+    DBUG_RETURN(NdbSocket());  // an invalid socket, newly created on the stack
   }
 
   /**
    * convert_to_transporter also disposes of the handle (i.e. we don't leak
-   * memory here.
+   * memory here).
    */
   DBUG_PRINT("info", ("Converting handle to transporter"));
-  sockfd= ndb_mgm_convert_to_transporter(h);
-  if (!ndb_socket_valid(sockfd))
+  NdbSocket socket;
+  ndb_mgm_convert_to_transporter(h, &socket);
+  if (! socket.is_valid())
   {
     g_eventLogger->error("Failed to convert to transporter (%s: %d)",
                          __FILE__, __LINE__);
     ndb_mgm_destroy_handle(h);
   }
-  DBUG_RETURN(sockfd);
+  DBUG_RETURN(socket);
 }
 
 /**
  * Given a SocketClient, creates a NdbMgmHandle, turns it into a transporter
  * and returns the socket.
  */
-ndb_socket_t
+NdbSocket
 TransporterRegistry::connect_ndb_mgmd(const char* server_name,
                                       unsigned short server_port)
 {
   NdbMgmHandle h= ndb_mgm_create_handle();
-  ndb_socket_t s;
 
   DBUG_ENTER("TransporterRegistry::connect_ndb_mgmd(SocketClient)");
 
   if ( h == nullptr )
   {
-    DBUG_RETURN(s);
+    DBUG_RETURN(NdbSocket());
   }
 
   /**
@@ -4307,7 +4378,7 @@ TransporterRegistry::connect_ndb_mgmd(const char* server_name,
   {
     DBUG_PRINT("info", ("connection to mgmd failed"));
     ndb_mgm_destroy_handle(&h);
-    DBUG_RETURN(s);
+    DBUG_RETURN(NdbSocket());
   }
 
   DBUG_RETURN(connect_ndb_mgmd(&h));

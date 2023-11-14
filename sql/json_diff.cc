@@ -44,6 +44,7 @@
 #include "sql/sql_const.h"
 #include "sql/table.h"
 #include "sql_string.h"  // StringBuffer
+#include "string_with_len.h"
 #include "template_utils.h"
 
 class THD;
@@ -82,7 +83,7 @@ static bool write_length_and_string(String *to, const String &from) {
     length = 1 << 30;
   });
   char length_buf[9];
-  size_t length_length =
+  const size_t length_length =
       net_store_length((uchar *)length_buf, length) - (uchar *)length_buf;
   DBUG_PRINT("info", ("write_length_and_string: length=%lu length_length=%lu",
                       (unsigned long)length, (unsigned long)length_length));
@@ -137,7 +138,16 @@ size_t Json_diff::binary_length() const {
   if (operation() != enum_json_diff_operation::REMOVE) {
     // value
     buf.length(0);
-    if (value().to_binary(current_thd, &buf)) assert(0); /* purecov: deadcode */
+    if (value().to_binary(
+            &buf, &JsonDepthErrorHandler, &JsonKeyTooBigErrorHandler,
+            &JsonValueTooBigErrorHandler, &InvalidJsonErrorHandler))
+      assert(0); /* purecov: deadcode */
+    if (buf.length() > current_thd->variables.max_allowed_packet) {
+      my_error(ER_WARN_ALLOWED_PACKET_OVERFLOWED, MYF(0),
+               "json_binary::serialize",
+               current_thd->variables.max_allowed_packet);
+      assert(0);
+    }
     ret += length_of_length_and_string(buf.length());
   }
 
@@ -216,9 +226,17 @@ bool Json_diff::write_binary(String *to) const {
       DBUG_SET("+d,binlog_corrupt_write_length_and_string_bad_char");
     });
 #endif  // ifndef NDEBUG
-    if (value().to_binary(current_thd, &buf) ||
+    if (value().to_binary(
+            &buf, &JsonDepthErrorHandler, &JsonKeyTooBigErrorHandler,
+            &JsonValueTooBigErrorHandler, &InvalidJsonErrorHandler) ||
         write_length_and_string(to, buf))
       return true; /* purecov: inspected */  // OOM, error is reported
+    if (buf.length() > current_thd->variables.max_allowed_packet) {
+      my_error(ER_WARN_ALLOWED_PACKET_OVERFLOWED, MYF(0),
+               "json_binary::serialize",
+               current_thd->variables.max_allowed_packet);
+      return true;
+    }
     DBUG_PRINT("info",
                ("wrote JSON value of length %lu", (unsigned long)buf.length()));
   }
@@ -268,7 +286,7 @@ bool Json_diff_vector::write_binary(String *to) const {
       return true; /* purecov: inspected */  // OOM, error is reported
 
   // Store the length.
-  size_t length = to->length() - ENCODED_LENGTH_BYTES;
+  const size_t length = to->length() - ENCODED_LENGTH_BYTES;
   int4store(to->ptr(), (uint32)length);
 
   DBUG_PRINT("info", ("Wrote JSON diff vector length %lu=%02x %02x %02x %02x",
@@ -296,10 +314,10 @@ bool Json_diff_vector::read_binary(const char **from, const TABLE *table,
                 (uint)length));
     // Read operation
     if (length < 1) goto corrupted;
-    int operation_number = *p;
+    const int operation_number = *p;
     DBUG_PRINT("info", ("operation_number=%d", operation_number));
     if (operation_number >= JSON_DIFF_OPERATION_COUNT) goto corrupted;
-    enum_json_diff_operation operation =
+    const enum_json_diff_operation operation =
         static_cast<enum_json_diff_operation>(operation_number);
     length--;
     p++;
@@ -315,7 +333,7 @@ bool Json_diff_vector::read_binary(const char **from, const TABLE *table,
     size_t bad_index;
     DBUG_PRINT("info", ("path='%.*s'", (int)path_length, p));
     if (parse_path(path_length, pointer_cast<const char *>(p), &path,
-                   &bad_index, JsonDocumentDefaultDepthHandler))
+                   &bad_index, JsonDepthErrorHandler))
       goto corrupted;
     p += path_length;
     length -= path_length;
@@ -332,11 +350,11 @@ bool Json_diff_vector::read_binary(const char **from, const TABLE *table,
       json_binary::Value value = json_binary::parse_binary(
           pointer_cast<const char *>(p), value_length);
       if (value.type() == json_binary::Value::ERROR) goto corrupted;
-      Json_wrapper wrapper(value);
+      const Json_wrapper wrapper(value);
       std::unique_ptr<Json_dom> dom = wrapper.clone_dom();
       if (dom == nullptr)
         return true; /* purecov: inspected */  // OOM, error is reported
-      wrapper.dbug_print("", JsonDocumentDefaultDepthHandler);
+      wrapper.dbug_print("", JsonDepthErrorHandler);
 
       // Store diff
       add_diff(path, operation, std::move(dom));
@@ -414,8 +432,7 @@ enum_json_diff_status apply_json_diffs(Field_json *field,
   if (field->val_json(&doc))
     return enum_json_diff_status::ERROR; /* purecov: inspected */
 
-  doc.dbug_print("apply_json_diffs: before-doc",
-                 JsonDocumentDefaultDepthHandler);
+  doc.dbug_print("apply_json_diffs: before-doc", JsonDepthErrorHandler);
 
   // Should we collect logical diffs while applying them?
   const bool collect_logical_diffs =

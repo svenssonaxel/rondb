@@ -212,7 +212,8 @@ enum mysql_option {
   MYSQL_OPT_ZSTD_COMPRESSION_LEVEL,
   MYSQL_OPT_LOAD_DATA_LOCAL_DIR,
   MYSQL_OPT_USER_PASSWORD,
-  MYSQL_OPT_SSL_SESSION_DATA
+  MYSQL_OPT_SSL_SESSION_DATA,
+  MYSQL_OPT_TLS_SNI_SERVERNAME
 };
 
 /**
@@ -571,6 +572,7 @@ void STDCALL myodbc_remove_escape(MYSQL *mysql, char *name);
 unsigned int STDCALL mysql_thread_safe(void);
 bool STDCALL mysql_read_query_result(MYSQL *mysql);
 int STDCALL mysql_reset_connection(MYSQL *mysql);
+enum net_async_status STDCALL mysql_reset_connection_nonblocking(MYSQL *mysql);
 
 int STDCALL mysql_binlog_open(MYSQL *mysql, MYSQL_RPL *rpl);
 int STDCALL mysql_binlog_fetch(MYSQL *mysql, MYSQL_RPL *rpl);
@@ -764,6 +766,8 @@ bool STDCALL mysql_stmt_attr_get(MYSQL_STMT *stmt,
                                  enum enum_stmt_attr_type attr_type,
                                  void *attr);
 bool STDCALL mysql_stmt_bind_param(MYSQL_STMT *stmt, MYSQL_BIND *bnd);
+bool STDCALL mysql_stmt_bind_named_param(MYSQL_STMT *stmt, MYSQL_BIND *binds,
+                                         unsigned n_params, const char **names);
 bool STDCALL mysql_stmt_bind_result(MYSQL_STMT *stmt, MYSQL_BIND *bnd);
 bool STDCALL mysql_stmt_close(MYSQL_STMT *stmt);
 bool STDCALL mysql_stmt_reset(MYSQL_STMT *stmt);
@@ -809,6 +813,8 @@ MYSQL *STDCALL mysql_real_connect_dns_srv(MYSQL *mysql,
                                           const char *user, const char *passwd,
                                           const char *db,
                                           unsigned long client_flag);
+
+enum connect_stage STDCALL mysql_get_connect_nonblocking_stage(MYSQL *mysql);
 
 #ifdef __cplusplus
 }

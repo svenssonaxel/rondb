@@ -26,14 +26,6 @@ ENDIF()
 
 MSVC_CPPCHECK_DISABLE()
 
-IF(WITH_LTO OR CMAKE_COMPILER_FLAG_WITH_LTO)
-  # We get ODR violations because of multiple bison parsers.
-  MY_CHECK_CXX_COMPILER_WARNING("error=odr" HAS_WARN_FLAG)
-  IF(HAS_WARN_FLAG)
-    STRING_APPEND(CMAKE_EXE_LINKER_FLAGS " ${HAS_WARN_FLAG}")
-  ENDIF()
-ENDIF()
-
 # Some tests require Boost.
 INCLUDE_DIRECTORIES(SYSTEM ${BOOST_PATCHES_DIR} ${BOOST_INCLUDE_DIR})
 
@@ -103,13 +95,7 @@ ADD_DEPENDENCIES(gunit_large GenError)
 TARGET_LINK_LIBRARIES(gunit_small
   mysys strings ${GTEST_LIBRARIES} ${UNITTEST_JEMALLOC_LIB} extra::rapidjson)
 TARGET_LINK_LIBRARIES(gunit_large
-  mysys strings ${GTEST_LIBRARIES} ${UNITTEST_JEMALLOC_LIB} extra::rapidjson)
-
-IF(WIN32)
-  ## Create an object library of nt_servc.cc, so we don't have to
-  ## compile it again for each target
-  ADD_LIBRARY(my_nt_servc OBJECT ../../sql/nt_servc.cc)
-ENDIF()
+  ${GTEST_LIBRARIES} ${UNITTEST_JEMALLOC_LIB} extra::rapidjson)
 
 # Add some defines.
 ADD_DEFINITIONS(-DMYSQL_SERVER -DEXTRA_CODE_FOR_UNIT_TESTING)
@@ -182,6 +168,7 @@ SET(TESTS
   sql_string
   stl_alloc
   stream_cipher
+  strings_misc
   strings_skip_trailing
   strings_strnxfrm
   strings_utf8
@@ -293,6 +280,7 @@ SET(SERVER_TESTS
   subquery_syntax
   table_cache
   table_factor_syntax
+  table_histograms
   table_list
   tc_log_mmap
   temptable_allocator
@@ -308,7 +296,7 @@ SET(SERVER_TESTS
   log_event_status_size
 )
 
-IF(MY_COMPILER_IS_GNU AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12)
+IF(MY_COMPILER_IS_GNU AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
   ADD_COMPILE_FLAGS(regexp_engine-t.cc COMPILE_FLAGS "-Wno-restrict")
 ENDIF()
 
@@ -357,9 +345,6 @@ MYSQL_ADD_EXECUTABLE(merge_small_tests-t ${ALL_SMALL_TESTS}
   LINK_LIBRARIES sqlgunitlib gunit_small extra::rapidjson
   )
 
-IF(WIN32)
-  LIST(APPEND ALL_LARGE_TESTS ../../sql/nt_servc.cc)
-ENDIF()
 LIST(APPEND ALL_LARGE_TESTS ../../storage/example/ha_example.cc)
 
 MYSQL_ADD_EXECUTABLE(merge_large_tests-t ${ALL_LARGE_TESTS}
@@ -393,9 +378,6 @@ ADD_COMPILE_FLAGS(
 
 FOREACH(test ${SERVER_TESTS})
   SET(SRC_FILES ${test}-t.cc)
-  IF(WIN32)
-    LIST(APPEND SRC_FILES $<TARGET_OBJECTS:my_nt_servc>)
-  ENDIF()
   IF(test MATCHES "table_cache")
     LIST(APPEND SRC_FILES ../../storage/example/ha_example.cc)
   ENDIF()

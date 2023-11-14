@@ -32,6 +32,7 @@
 #include <mysql/components/services/log_builtins.h>
 #include <mysqld_error.h>
 
+#include "m_string.h"
 #include "my_dbug.h"
 #include "my_inttypes.h"
 #include "my_io.h"
@@ -41,6 +42,8 @@
 #include "thr_cond.h"
 
 static constexpr int STRING_BUFFER = 1024 * 4;
+
+struct CHARSET_INFO;
 
 static const char *sep =
     "======================================================\n";
@@ -344,7 +347,7 @@ static void test_com_query(void *p [[maybe_unused]]) {
   WRITE_STR("COM_QUERY");
 
   /* Open session 1: Must pass */
-  st_session = srv_session_open(NULL, plugin_ctx);
+  st_session = srv_session_open(nullptr, plugin_ctx);
   if (!st_session) {
     LogPluginErr(ERROR_LEVEL, ER_LOG_PRINTF_MSG, "srv_session_open failed.");
   } else
@@ -452,7 +455,7 @@ static int test_com_init_db(void *p) {
 
   MYSQL_SESSION st_session;
 
-  ENSURE_API_NOT_NULL(st_session = srv_session_open(NULL, p));
+  ENSURE_API_NOT_NULL(st_session = srv_session_open(nullptr, p));
 
   if (st_session) switch_user(st_session, user_privileged);
   COM_DATA cmd;
@@ -569,9 +572,9 @@ static void *test_session_thread(Test_data *tdata) {
 
   tdata->go();
 
-  int r = command_service_run_command(tdata->session, COM_QUERY, &cmd,
-                                      &my_charset_utf8mb3_general_ci, &sql_cbs,
-                                      CS_TEXT_REPRESENTATION, &cbdata);
+  const int r = command_service_run_command(
+      tdata->session, COM_QUERY, &cmd, &my_charset_utf8mb3_general_ci, &sql_cbs,
+      CS_TEXT_REPRESENTATION, &cbdata);
   WRITE_VAL("Killed run_command return value: %i\n", r);
 
   WRITE_VAL("thread shutdown: %i (%s)\n", cbdata.shutdown,
@@ -603,7 +606,7 @@ static int test_query_kill(void *p) {
 
   WRITE_STR("test_query_kill\n");
 
-  ENSURE_API_NOT_NULL(st_session = srv_session_open(NULL, p));
+  ENSURE_API_NOT_NULL(st_session = srv_session_open(nullptr, p));
 
   switch_user(st_session, user_privileged);
   MYSQL_SESSION st_session_victim;
@@ -665,7 +668,7 @@ static int test_com_process_kill(void *p) {
 
   WRITE_STR("COM_KILL\n");
 
-  ENSURE_API_NOT_NULL(st_session = srv_session_open(NULL, p));
+  ENSURE_API_NOT_NULL(st_session = srv_session_open(nullptr, p));
 
   switch_user(st_session, user_privileged);
   MYSQL_SESSION st_session_victim;
@@ -700,7 +703,7 @@ static int test_priv(void *p) {
 
   WRITE_STR("COM_QUERY with priv\n");
 
-  ENSURE_API_NOT_NULL(root_session = srv_session_open(NULL, p));
+  ENSURE_API_NOT_NULL(root_session = srv_session_open(nullptr, p));
 
   switch_user(root_session, user_privileged);
 
@@ -715,7 +718,7 @@ static int test_priv(void *p) {
   WRITE_STR("now try as ordinary user\n");
   {
     MYSQL_SESSION ordinary_session;
-    ENSURE_API_NOT_NULL(ordinary_session = srv_session_open(NULL, p));
+    ENSURE_API_NOT_NULL(ordinary_session = srv_session_open(nullptr, p));
     switch_user(ordinary_session, user_ordinary);
 
     cbd.reset();

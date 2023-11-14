@@ -80,6 +80,7 @@ ADD_LIBRARY(routing SHARED
   classic_binlog_dump_forwarder.cc
   classic_change_user_forwarder.cc
   classic_clone_forwarder.cc
+  classic_debug_forwarder.cc
   classic_greeting_forwarder.cc
   classic_init_schema_forwarder.cc
   classic_kill_forwarder.cc
@@ -113,8 +114,16 @@ ADD_LIBRARY(routing SHARED
 
   classic_greeting_receiver.cc
 
-  sql_value.cc
+  classic_query_param.cc
+  classic_session_tracker.cc
+
   show_warnings_parser.cc
+  sql_splitting_allowed.cc
+  sql_value.cc
+  start_transaction_parser.cc
+  implicit_commit_parser.cc
+
+  openssl_msg.cc
 )
 
 TARGET_LINK_LIBRARIES(routing

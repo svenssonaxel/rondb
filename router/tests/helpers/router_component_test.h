@@ -67,6 +67,19 @@ class RouterComponentTest : public ProcessManager, public ::testing::Test {
                                        const std::string &pattern,
                                        std::chrono::milliseconds timeout);
 
+  /** @brief Checks if the process' log contains specific number of occurences
+   * of a given string
+   *
+   * @param process             process handle
+   * @param expected_string     the string to look for in the logfile
+   * @param expected_occurences number of string occurences expected in the
+   *                            logfile
+   *
+   */
+  void check_log_contains(const ProcessWrapper &process,
+                          const std::string &expected_string,
+                          size_t expected_occurences = 1);
+
   /** @brief Sleep for a duration given as a parameter. The duration is
    * increased 10 times for the run with VALGRIND.
    */
@@ -84,10 +97,33 @@ class RouterComponentTest : public ProcessManager, public ::testing::Test {
     return session;
   }
 
+  std::pair<uint16_t, std::unique_ptr<MySQLSession>> make_new_connection_ok(
+      uint16_t router_port, std::vector<uint16_t> expected_node_ports) {
+    std::unique_ptr<MySQLSession> session{std::make_unique<MySQLSession>()};
+    EXPECT_NO_THROW(session->connect("127.0.0.1", router_port, "username",
+                                     "password", "", ""));
+
+    auto result{session->query_one("select @@port")};
+    const auto port =
+        static_cast<uint16_t>(std::strtoul((*result)[0], nullptr, 10));
+    EXPECT_THAT(expected_node_ports, ::testing::Contains(port));
+
+    return std::make_pair(port, std::move(session));
+  }
+
   uint16_t make_new_connection_ok(uint16_t router_port) {
     MySQLSession session;
     EXPECT_NO_THROW(session.connect("127.0.0.1", router_port, "username",
                                     "password", "", ""));
+
+    auto result{session.query_one("select @@port")};
+    return static_cast<uint16_t>(std::strtoul((*result)[0], nullptr, 10));
+  }
+
+  uint16_t make_new_connection_ok(const std::string &router_socket) {
+    MySQLSession session;
+    EXPECT_NO_THROW(
+        session.connect("", 0, "username", "password", router_socket, ""));
 
     auto result{session.query_one("select @@port")};
     return static_cast<uint16_t>(std::strtoul((*result)[0], nullptr, 10));

@@ -41,6 +41,7 @@
 #define CFG_NODE_DEDICATED            11
 #define CFG_NODE_PIDFILE_DIR          12
 #define CFG_NODE_ACTIVE               13
+#define CFG_NODE_REQUIRE_CERT         14
 
 /**
  * DB config parameters
@@ -269,6 +270,7 @@
 #define CFG_DB_TRP_KEEP_ALIVE_SEND_INTERVAL 678
 #define CFG_DB_TRANS_ERROR_LOGLEVEL 679
 #define CFG_DB_ENCRYPTED_FILE_SYSTEM  680
+#define CFG_DB_REQUIRE_TLS            681
 
 #define CFG_DB_BACKUP_SCHEMA_MEM      693
 #define CFG_DB_SCHEMA_MEM             694
@@ -305,6 +307,7 @@
 #define CFG_MAX_LOGLEVEL          262
 
 #define CFG_MGM_PORT                  300
+#define CFG_MGM_REQUIRE_TLS           301
 
 #define CFG_DB_MAX_BUFFERED_EPOCH_BYTES 350
 
@@ -333,6 +336,7 @@
 #define CFG_TCP_MAXSEG_SIZE           459
 #define CFG_TCP_BIND_INADDR_ANY       460
 #define CFG_TCP_SPINTIME              461
+#define CFG_TCP_REQUIRE_TLS           462
 
 #define CFG_TCP_ONLY_IPV4             499
 
@@ -398,5 +402,9 @@
 
 #define OPERATION_REDO_PROBLEM_ACTION_ABORT 0
 #define OPERATION_REDO_PROBLEM_ACTION_QUEUE 1
+
+#define CLIENT_TLS_RELAXED            0
+#define CLIENT_TLS_STRICT             1
+#define CLIENT_TLS_DEFERRED           2
 
 #endif

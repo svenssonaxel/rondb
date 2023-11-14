@@ -40,15 +40,14 @@
 #include <memory>     // unique_ptr
 #include <string>
 
-#include "m_ctype.h"
-#include "m_string.h"
-
 #include "my_inttypes.h"
+#include "mysql/strings/m_ctype.h"
 #include "sql-common/json_dom.h"
 #include "sql/psi_memory_key.h"  // key_memory_JSON
 #include "sql/sql_const.h"       // STRING_BUFFER_USUAL_SIZE
 #include "sql_string.h"          // String
-#include "template_utils.h"      // down_cast
+#include "string_with_len.h"
+#include "template_utils.h"  // down_cast
 
 namespace {
 
@@ -69,13 +68,11 @@ static bool is_ecmascript_identifier(const std::string &name);
 static bool is_digit(unsigned codepoint);
 static bool is_whitespace(char);
 
-static bool parse_path(Stream *, Json_path *, const JsonDocumentDepthHandler &);
-static bool parse_path_leg(Stream *, Json_path *,
-                           const JsonDocumentDepthHandler &);
+static bool parse_path(Stream *, Json_path *, const JsonErrorHandler &);
+static bool parse_path_leg(Stream *, Json_path *, const JsonErrorHandler &);
 static bool parse_ellipsis_leg(Stream *, Json_path *);
 static bool parse_array_leg(Stream *, Json_path *);
-static bool parse_member_leg(Stream *, Json_path *,
-                             const JsonDocumentDepthHandler &);
+static bool parse_member_leg(Stream *, Json_path *, const JsonErrorHandler &);
 
 static bool append_array_index(String *buf, size_t index, bool from_end) {
   if (!from_end) return buf->append_ulonglong(index);
@@ -137,7 +134,7 @@ bool Json_path_leg::is_autowrap() const {
         will also match a non-array which is auto-wrapped in a
         single-element array.
       */
-      Array_range range = get_array_range(1);
+      const Array_range range = get_array_range(1);
       return range.m_begin < range.m_end;
     }
     default:
@@ -152,11 +149,12 @@ Json_path_leg::Array_range Json_path_leg::get_array_range(
   assert(m_leg_type == jpl_array_range);
 
   // Get the beginning of the range.
-  size_t begin = first_array_index(array_length).position();
+  const size_t begin = first_array_index(array_length).position();
 
   // Get the (exclusive) end of the range.
-  Json_array_index last = last_array_index(array_length);
-  size_t end = last.within_bounds() ? last.position() + 1 : last.position();
+  const Json_array_index last = last_array_index(array_length);
+  const size_t end =
+      last.within_bounds() ? last.position() + 1 : last.position();
 
   return {begin, end};
 }
@@ -256,7 +254,7 @@ class Stream {
 /** Top level parsing factory method */
 bool parse_path(size_t path_length, const char *path_expression,
                 Json_path *path, size_t *bad_index,
-                const JsonDocumentDepthHandler &depth_handler) {
+                const JsonErrorHandler &depth_handler) {
   Stream stream(path_expression, path_length);
   if (parse_path(&stream, path, depth_handler)) {
     *bad_index = stream.position() - path_expression;
@@ -283,7 +281,7 @@ static inline bool is_whitespace(char ch) {
    @return true on error, false on success
 */
 static bool parse_path(Stream *stream, Json_path *path,
-                       const JsonDocumentDepthHandler &depth_handler) {
+                       const JsonErrorHandler &depth_handler) {
   path->clear();
 
   // the first non-whitespace character must be $
@@ -316,7 +314,7 @@ static bool parse_path(Stream *stream, Json_path *path,
    @return true on error, false on success
 */
 static bool parse_path_leg(Stream *stream, Json_path *path,
-                           const JsonDocumentDepthHandler &depth_handler) {
+                           const JsonErrorHandler &depth_handler) {
   switch (stream->peek()) {
     case BEGIN_ARRAY:
       return parse_array_leg(stream, path);
@@ -405,8 +403,9 @@ static bool parse_array_index(Stream *stream, uint32 *array_index,
 
   const char *endp;
   int err;
-  ulonglong idx = my_strntoull(&my_charset_utf8mb4_bin, stream->position(),
-                               stream->remaining(), 10, &endp, &err);
+  const ulonglong idx =
+      my_strntoull(&my_charset_utf8mb4_bin, stream->position(),
+                   stream->remaining(), 10, &endp, &err);
   if (err != 0 || idx > UINT_MAX32) {
     return true;
   }
@@ -556,8 +555,7 @@ static const char *find_end_of_member_name(const char *start, const char *end) {
   the input string is not a valid name
 */
 static std::unique_ptr<Json_string> parse_name_with_rapidjson(
-    const char *str, size_t len,
-    const JsonDocumentDepthHandler &depth_handler) {
+    const char *str, size_t len, const JsonErrorHandler &depth_handler) {
   Json_dom_ptr dom = Json_dom::parse(
       str, len, [](const char *, size_t) {}, depth_handler);
 
@@ -578,7 +576,7 @@ static std::unique_ptr<Json_string> parse_name_with_rapidjson(
    @return true on error, false on success
 */
 static bool parse_member_leg(Stream *stream, Json_path *path,
-                             const JsonDocumentDepthHandler &depth_handler) {
+                             const JsonErrorHandler &depth_handler) {
   // advance past the .
   assert(stream->peek() == BEGIN_MEMBER);
   stream->skip(1);
@@ -726,7 +724,7 @@ static bool is_ecmascript_identifier(const std::string &name) {
   unsigned codepoint;
 
   while (input_stream.Tell() < name.length()) {
-    bool first_codepoint = (input_stream.Tell() == 0);
+    const bool first_codepoint = (input_stream.Tell() == 0);
     if (!rapidjson::UTF8<char>::Decode(input_stream, &codepoint)) return false;
 
     // a unicode letter

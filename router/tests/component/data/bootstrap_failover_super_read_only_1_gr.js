@@ -1,15 +1,14 @@
 var common_stmts = require("common_statements");
 var gr_memberships = require("gr_memberships");
 
-
-var gr_members = gr_memberships.members(mysqld.global.gr_members);
-
 var options = {
   cluster_type: "gr",
   innodb_cluster_name: mysqld.global.cluster_name,
-  innodb_cluster_instances: mysqld.global.innodb_cluster_instances,
   gr_id: mysqld.global.gr_id,
-  replication_group_members: gr_members,
+  replication_group_members: gr_memberships.gr_members(
+      mysqld.global.gr_node_host, mysqld.global.gr_nodes),
+  innodb_cluster_instances: gr_memberships.cluster_nodes(
+      mysqld.global.gr_node_host, mysqld.global.cluster_nodes),
 };
 
 var common_responses = common_stmts.prepare_statement_responses(
@@ -18,6 +17,7 @@ var common_responses = common_stmts.prepare_statement_responses(
       "router_set_gr_consistency_level",
       "router_select_schema_version",
       "router_select_cluster_type_v2",
+      "router_select_current_instance_attributes",
       "router_select_replication_group_name",
       "router_select_group_membership_with_primary_mode",
       "router_select_group_replication_primary_member",

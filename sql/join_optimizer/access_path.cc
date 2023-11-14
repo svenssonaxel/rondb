@@ -22,6 +22,9 @@
 
 #include "sql/join_optimizer/access_path.h"
 
+#include <algorithm>
+#include <vector>
+
 #include "my_base.h"
 #include "sql/filesort.h"
 #include "sql/item_cmpfunc.h"
@@ -57,9 +60,8 @@
 #include "sql/sql_update.h"
 #include "sql/table.h"
 
-#include <vector>
-
 using pack_rows::TableCollection;
+using std::all_of;
 using std::vector;
 
 AccessPath *NewSortAccessPath(THD *thd, AccessPath *child, Filesort *filesort,
@@ -273,6 +275,8 @@ static table_map GetNullableEqRefTables(const AccessPath *root_path) {
   return tables;
 }
 
+namespace {
+
 // Mirrors QEP_TAB::pfs_batch_update(), with one addition:
 // If there is more than one table, batch mode will be handled by the join
 // iterators on the probe side, so joins will return false.
@@ -304,6 +308,17 @@ bool ShouldEnableBatchMode(AccessPath *path) {
   }
 }
 
+/**
+  If the path is a FILTER path marked that subqueries are to be materialized,
+  do so. If not, do nothing.
+
+  It is important that this is not called until the entire plan is ready;
+  not just when planning a single query block. The reason is that a query
+  block A with materializable subqueries may itself be part of a materializable
+  subquery B, so if one calls this when planning A, the subqueries in A will
+  irrevocably be materialized, even if that is not the optimal plan given B.
+  Thus, this is done when creating iterators.
+ */
 bool FinalizeMaterializedSubqueries(THD *thd, JOIN *join, AccessPath *path) {
   if (path->type != AccessPath::FILTER ||
       !path->filter().materialize_subqueries) {
@@ -311,25 +326,26 @@ bool FinalizeMaterializedSubqueries(THD *thd, JOIN *join, AccessPath *path) {
   }
   return WalkItem(
       path->filter().condition, enum_walk::POSTFIX, [thd, join](Item *item) {
-        if (!IsItemInSubSelect(item)) {
+        if (!is_quantified_comp_predicate(item)) {
           return false;
         }
         Item_in_subselect *item_subs = down_cast<Item_in_subselect *>(item);
-        Query_block *subquery_block = item_subs->unit->first_query_block();
-        if (!item_subs->subquery_allows_materialization(thd, subquery_block,
+        if (item_subs->strategy == Subquery_strategy::SUBQ_MATERIALIZATION) {
+          // This subquery is already set up for materialization.
+          return false;
+        }
+        Query_block *qb = item_subs->query_expr()->first_query_block();
+        if (!item_subs->subquery_allows_materialization(thd, qb,
                                                         join->query_block)) {
           return false;
         }
-        if (item_subs->finalize_materialization_transform(
-                thd, subquery_block->join)) {
+        if (item_subs->finalize_materialization_transform(thd, qb->join)) {
           return true;
         }
         item_subs->create_iterators(thd);
         return false;
       });
 }
-
-namespace {
 
 struct IteratorToBeCreated {
   AccessPath *path;
@@ -373,6 +389,44 @@ void SetupJobsForChildren(MEM_ROOT *mem_root, AccessPath *outer,
 }
 
 }  // namespace
+
+const Mem_root_array<Item *> *GetExtraHashJoinConditions(
+    MEM_ROOT *mem_root, bool using_hypergraph_optimizer,
+    const vector<HashJoinCondition> &equijoin_conditions,
+    const Mem_root_array<Item *> &other_conditions) {
+  if (!using_hypergraph_optimizer) {
+    // The old optimizer has already collected the necessary conditions in
+    // other_conditions or in a filter on top of the hash join.
+    return &other_conditions;
+  }
+
+  if (all_of(equijoin_conditions.begin(), equijoin_conditions.end(),
+             [](const HashJoinCondition &condition) {
+               return condition.store_full_sort_key();
+             })) {
+    // When we have no partially stored hash keys, there are no more conditions
+    // to add.
+    return &other_conditions;
+  }
+
+  // If we have at least one part of the hash key that cannot be stored fully in
+  // the hash join buffer, we need to add the corresponding equijoin condition
+  // as an extra condition to evaluate after the hash join. Append it to the
+  // non-equijoin predicates that we already have.
+  Mem_root_array<Item *> *extra_conditions =
+      new (mem_root) Mem_root_array<Item *>(mem_root, other_conditions);
+  if (extra_conditions == nullptr) return nullptr;
+
+  for (const HashJoinCondition &condition : equijoin_conditions) {
+    if (!condition.store_full_sort_key()) {
+      if (extra_conditions->push_back(condition.join_condition())) {
+        return nullptr;
+      }
+    }
+  }
+
+  return extra_conditions;
+}
 
 unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
     THD *thd, MEM_ROOT *mem_root, AccessPath *top_path, JOIN *top_join,
@@ -756,9 +810,15 @@ unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
         }
         const JoinPredicate *join_predicate = param.join_predicate;
         vector<HashJoinCondition> conditions;
+        conditions.reserve(join_predicate->expr->equijoin_conditions.size());
         for (Item_eq_base *cond : join_predicate->expr->equijoin_conditions) {
           conditions.emplace_back(cond, thd->mem_root);
         }
+        const Mem_root_array<Item *> *extra_conditions =
+            GetExtraHashJoinConditions(
+                mem_root, thd->lex->using_hypergraph_optimizer, conditions,
+                join_predicate->expr->join_conditions);
+        if (extra_conditions == nullptr) return nullptr;
         const bool probe_input_batch_mode =
             eligible_for_batch_mode && ShouldEnableBatchMode(param.outer);
         double estimated_build_rows = param.inner->num_output_rows();
@@ -815,6 +875,24 @@ unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
                 ? &join->hash_table_generation
                 : nullptr;
 
+        const auto first_row_cost = [](const AccessPath &p) {
+          return p.init_cost + p.cost / std::max(p.num_output_rows(), 1.0);
+        };
+
+        // If the probe (outer) input is empty, the join result will be empty,
+        // and we do not need to read the build input. For inner join and
+        // semijoin, the converse is also true. To benefit from this, we want to
+        // start with the input where the cost of reading the first row is
+        // lowest. (We only do this for Hypergraph, as the cost data for the
+        // traditional optimizer are incomplete, and since we are reluctant to
+        // change existing behavior.) Note that we always try the probe input
+        // first for left join and antijoin.
+        const HashJoinInput first_input =
+            (thd->lex->using_hypergraph_optimizer &&
+             first_row_cost(*param.inner) > first_row_cost(*param.outer))
+                ? HashJoinInput::kProbe
+                : HashJoinInput::kBuild;
+
         iterator = NewIterator<HashJoinIterator>(
             thd, mem_root, std::move(job.children[1]),
             GetUsedTables(param.inner, /*include_pruned_tables=*/true),
@@ -822,9 +900,8 @@ unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
             GetUsedTables(param.outer, /*include_pruned_tables=*/true),
             param.store_rowids, param.tables_to_get_rowid_for,
             thd->variables.join_buff_size, std::move(conditions),
-            param.allow_spill_to_disk, join_type,
-            join_predicate->expr->join_conditions, probe_input_batch_mode,
-            hash_table_generation);
+            param.allow_spill_to_disk, join_type, *extra_conditions,
+            first_input, probe_input_batch_mode, hash_table_generation);
         break;
       }
       case AccessPath::FILTER: {
@@ -955,16 +1032,16 @@ unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
 
         MaterializePathParameters *param = path->materialize().param;
         if (job.children.is_null()) {
-          job.AllocChildren(mem_root, param->query_blocks.size() + 1);
+          job.AllocChildren(mem_root, param->m_operands.size() + 1);
           todo.push_back(job);
           todo.push_back({path->materialize().table_path,
                           join,
                           eligible_for_batch_mode,
                           &job.children[0],
                           {}});
-          for (size_t i = 0; i < param->query_blocks.size(); ++i) {
-            const MaterializePathParameters::QueryBlock &from =
-                param->query_blocks[i];
+          for (size_t i = 0; i < param->m_operands.size(); ++i) {
+            const MaterializePathParameters::Operand &from =
+                param->m_operands[i];
             todo.push_back({from.subquery_path,
                             from.join,
                             /*eligible_for_batch_mode=*/true,
@@ -975,12 +1052,11 @@ unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
         }
         unique_ptr_destroy_only<RowIterator> table_iterator =
             std::move(job.children[0]);
-        Mem_root_array<materialize_iterator::QueryBlock> query_blocks(
-            thd->mem_root, param->query_blocks.size());
-        for (size_t i = 0; i < param->query_blocks.size(); ++i) {
-          const MaterializePathParameters::QueryBlock &from =
-              param->query_blocks[i];
-          materialize_iterator::QueryBlock &to = query_blocks[i];
+        Mem_root_array<materialize_iterator::Operand> operands(
+            thd->mem_root, param->m_operands.size());
+        for (size_t i = 0; i < param->m_operands.size(); ++i) {
+          const MaterializePathParameters::Operand &from = param->m_operands[i];
+          materialize_iterator::Operand &to = operands[i];
           to.subquery_iterator = std::move(job.children[i + 1]);
           to.select_number = from.select_number;
           to.join = from.join;
@@ -992,6 +1068,7 @@ unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
           to.m_first_distinct = from.m_first_distinct;
           to.m_total_operands = from.m_total_operands;
           to.m_operand_idx = from.m_operand_idx;
+          to.m_estimated_output_rows = from.subquery_path->num_output_rows();
 
           if (to.is_recursive_reference) {
             // Find the recursive reference to ourselves; there should be
@@ -1009,11 +1086,11 @@ unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
             }
           }
         }
-        JOIN *subjoin = param->ref_slice == -1 ? nullptr : query_blocks[0].join;
+        JOIN *subjoin = param->ref_slice == -1 ? nullptr : operands[0].join;
 
         iterator = unique_ptr_destroy_only<RowIterator>(
             materialize_iterator::CreateIterator(
-                thd, std::move(query_blocks), param, std::move(table_iterator),
+                thd, std::move(operands), param, std::move(table_iterator),
                 subjoin));
 
         break;
@@ -1375,14 +1452,16 @@ void ExpandSingleFilterAccessPath(THD *thd, AccessPath *path, const JOIN *join,
       filter_cost +=
           EstimateFilterCost(thd, filter_rows, condition, join->query_block)
               .cost_if_not_materialized;
-      filter_rows *= EstimateSelectivity(thd, condition, /*trace=*/nullptr);
+      filter_rows *= EstimateSelectivity(thd, condition, *expr->companion_set,
+                                         /*trace=*/nullptr);
     }
     for (Item *condition : expr->join_conditions) {
       items.push_back(condition);
       filter_cost +=
           EstimateFilterCost(thd, filter_rows, condition, join->query_block)
               .cost_if_not_materialized;
-      filter_rows *= EstimateSelectivity(thd, condition, /*trace=*/nullptr);
+      filter_rows *= EstimateSelectivity(thd, condition, *expr->companion_set,
+                                         /*trace=*/nullptr);
     }
     assert(!items.is_empty());
 

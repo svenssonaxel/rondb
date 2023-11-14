@@ -46,6 +46,8 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "my_config.h"
 #endif /* !UNIV_HOTBACKUP */
 
+#include <cstdint>
+
 #include <auto_thd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -147,7 +149,11 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "mysql/components/services/log_builtins.h"
 #include "mysql/plugin.h"
 #include "mysql/psi/mysql_data_lock.h"
+#include "mysql/psi/mysql_metric.h"
+#include "mysql/strings/int2str.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysys_err.h"
+#include "nulls.h"
 #include "os0thread-create.h"
 #include "os0thread.h"
 #include "p_s.h"
@@ -165,6 +171,7 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "srv0mon.h"
 #include "srv0srv.h"
 #include "srv0start.h"
+#include "string_with_len.h"
 #include "sync0sync.h"
 #ifdef UNIV_DEBUG
 #include "trx0purge.h"
@@ -185,6 +192,7 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0xa.h"
 #include "ut0mem.h"
 #include "ut0test.h"
+#include "ut0ut.h"
 #else
 #include <typelib.h>
 #include "buf0types.h"
@@ -725,6 +733,7 @@ static PSI_mutex_info all_innodb_mutexes[] = {
     PSI_MUTEX_KEY(log_flusher_mutex, 0, 0, PSI_DOCUMENT_ME),
     PSI_MUTEX_KEY(log_write_notifier_mutex, 0, 0, PSI_DOCUMENT_ME),
     PSI_MUTEX_KEY(log_flush_notifier_mutex, 0, 0, PSI_DOCUMENT_ME),
+    PSI_MUTEX_KEY(log_governor_mutex, 0, 0, PSI_DOCUMENT_ME),
     PSI_MUTEX_KEY(log_sys_arch_mutex, 0, 0, PSI_DOCUMENT_ME),
     PSI_MUTEX_KEY(log_cmdq_mutex, 0, 0, PSI_DOCUMENT_ME),
     PSI_MUTEX_KEY(log_sn_mutex, 0, 0, PSI_DOCUMENT_ME),
@@ -877,7 +886,10 @@ static PSI_thread_info all_innodb_threads[] = {
     PSI_THREAD_KEY(parallel_rseg_init_thread, "ib_par_rseg", 0, 0,
                    PSI_DOCUMENT_ME),
     PSI_THREAD_KEY(meb::redo_log_archive_consumer_thread, "ib_meb_rl",
-                   PSI_FLAG_SINGLETON, 0, PSI_DOCUMENT_ME)};
+                   PSI_FLAG_SINGLETON, 0, PSI_DOCUMENT_ME),
+    PSI_THREAD_KEY(bulk_flusher_thread, "ib_bl_flush", 0, 0, PSI_DOCUMENT_ME),
+    PSI_THREAD_KEY(bulk_alloc_thread, "ib_bl_alloc", PSI_FLAG_SINGLETON, 0,
+                   PSI_DOCUMENT_ME)};
 #endif /* UNIV_PFS_THREAD */
 
 #ifdef UNIV_PFS_IO
@@ -2322,7 +2334,7 @@ const char *innobase_get_err_msg(int error_code) /*!< in: MySQL error code */
 @param[out] mbminlen Minimum length of a char (in bytes)
 @param[out] mbmaxlen Maximum length of a char (in bytes) */
 void innobase_get_cset_width(ulint cset, ulint *mbminlen, ulint *mbmaxlen) {
-  CHARSET_INFO *cs;
+  const CHARSET_INFO *cs = nullptr;
   ut_ad(cset <= MAX_CHAR_COLL_NUM);
   ut_ad(mbminlen);
   ut_ad(mbmaxlen);
@@ -2536,16 +2548,15 @@ os_fd_t innobase_mysql_tmpfile(const char *path) {
 /** Wrapper around MySQL's copy_and_convert function.
  @return number of bytes copied to 'to' */
 static ulint innobase_convert_string(
-    void *to,              /*!< out: converted string */
-    ulint to_length,       /*!< in: number of bytes reserved
-                           for the converted string */
-    CHARSET_INFO *to_cs,   /*!< in: character set to convert to */
-    const void *from,      /*!< in: string to convert */
-    ulint from_length,     /*!< in: number of bytes to convert */
-    CHARSET_INFO *from_cs, /*!< in: character set to convert
-                           from */
-    uint *errors)          /*!< out: number of errors encountered
-                           during the conversion */
+    void *to,                    /*!< out: converted string */
+    ulint to_length,             /*!< in: number of bytes reserved
+                                 for the converted string */
+    const CHARSET_INFO *to_cs,   /*!< in: character set to convert to */
+    const void *from,            /*!< in: string to convert */
+    ulint from_length,           /*!< in: number of bytes to convert */
+    const CHARSET_INFO *from_cs, /*!< in: character set to convert from */
+    uint *errors)                /*!< out: number of errors encountered
+                                 during the conversion */
 {
   return (copy_and_convert((char *)to, (uint32)to_length, to_cs,
                            (const char *)from, (uint32)from_length, from_cs,
@@ -2570,7 +2581,7 @@ ulint innobase_raw_format(const char *data,   /*!< in: raw data */
 {
   /* XXX we use a hard limit instead of allocating
   but_size bytes from the heap */
-  CHARSET_INFO *data_cs;
+  const CHARSET_INFO *data_cs = nullptr;
   char buf_tmp[8192];
   ulint buf_tmp_used;
   uint num_errors;
@@ -5086,6 +5097,344 @@ static void innobase_post_ddl(THD *thd) {
   }
 }
 
+// simple (no measurement attributes supported) metric callback
+template <typename T>
+static void get_metric_simple_integer(void *measurement_context,
+                                      measurement_delivery_callback_t delivery,
+                                      void *delivery_context) {
+  assert(measurement_context != nullptr);
+  assert(delivery != nullptr);
+  // OTEL only supports int64_t integer counters, clamp wider types
+  const T measurement = *(T *)measurement_context;
+  const int64_t value = ut::clamp<int64_t>(measurement);
+  delivery->value_int64(delivery_context, value);
+}
+
+template <typename T>
+constexpr PSI_metric_info_v1 simple(const char *name, const char *unit,
+                                    const char *description,
+                                    MetricOTELType type, T &variable) {
+  return {name,
+          unit,
+          description,
+          type,
+          MetricNumType::METRIC_INTEGER,
+          0,
+          0,
+          get_metric_simple_integer<T>,
+          &variable};
+}
+
+//
+// Telemetry metric sources instrumented within the InnoDB storage engine
+// are being defined below.
+//
+// NOTE: please keep the metric descriptions in sync with the
+// description of the matching counters in srv/srv0mon.cc
+
+// clang-format off
+static PSI_metric_info_v1 inno_metrics[] = {
+    simple("dblwr_pages_written",
+     "",
+     "Number of pages that have been written for doublewrite operations (innodb_dblwr_pages_written)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_dblwr_pages_written),
+    simple("dblwr_writes",
+     "",
+     "Number of doublewrite operations that have been performed (innodb_dblwr_writes)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_dblwr_writes),
+    simple("redo_log_logical_size",
+     METRIC_UNIT_BYTES,
+     "LSN range size in bytes containing in-use redo log data (innodb_redo_log_logical_size)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_redo_log_logical_size),
+    simple("redo_log_physical_size",
+     METRIC_UNIT_BYTES,
+     "Disk space in bytes currently consumed by all redo log files on disk, excluding spare redo log files (innodb_redo_log_physical_size)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_redo_log_physical_size),
+    simple("redo_log_capacity_resized",
+     METRIC_UNIT_BYTES,
+     "Redo log capacity in bytes for all redo log files, after the last completed capacity resize operation (innodb_redo_log_capacity_resized)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_redo_log_capacity_resized),
+    simple("log_waits",
+     "",
+     "Number of log waits due to small log buffer (innodb_log_waits)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_log_waits),
+    simple("log_write_requests",
+     "",
+     "Number of log write requests (innodb_log_write_requests)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_log_write_requests),
+    simple("log_writes",
+     "",
+     "The number of physical writes to the InnoDB redo log file (innodb_log_writes)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_log_writes),
+    simple("os_log_fsyncs",
+     "",
+     "Number of fsync log writes (innodb_os_log_fsyncs)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_os_log_fsyncs),
+    simple("os_log_pending_fsyncs",
+     "",
+     "Number of pending fsync write (innodb_os_log_pending_fsyncs)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_os_log_pending_fsyncs),
+    simple("os_log_pending_writes",
+     "",
+     "Number of pending log file writes (innodb_os_log_pending_writes)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_os_log_pending_writes),
+    simple("os_log_written",
+     METRIC_UNIT_BYTES,
+     "Bytes of log written (innodb_os_log_written)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_os_log_written),
+    simple("page_size",
+     METRIC_UNIT_BYTES,
+     "InnoDB page size in bytes (innodb_page_size)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_page_size),
+    simple("pages_created",
+     "",
+     "Number of pages created (innodb_pages_created)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_pages_created),
+    simple("pages_read",
+     "",
+     "Number of pages read (innodb_pages_read)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_pages_read),
+    simple("pages_written",
+     "",
+     "Number of pages written (innodb_pages_written)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_pages_written),
+    simple("row_lock_current_waits",
+     "",
+     "Number of row locks currently being waited for (innodb_row_lock_current_waits)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_row_lock_current_waits),
+    simple("row_lock_time",
+     METRIC_UNIT_MILLISECONDS,
+     "Time spent in acquiring row locks, in milliseconds (innodb_row_lock_time)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_row_lock_time),
+    simple("row_lock_time_avg",
+     METRIC_UNIT_MILLISECONDS,
+     "The average time to acquire a row lock, in milliseconds (innodb_row_lock_time_avg)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_row_lock_time_avg),
+    simple("row_lock_time_max",
+     METRIC_UNIT_MILLISECONDS,
+     "The maximum time to acquire a row lock, in milliseconds (innodb_row_lock_time_max)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_row_lock_time_max),
+    simple("row_lock_waits",
+     "",
+     "Number of times a row lock had to be waited for (innodb_row_lock_waits)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_row_lock_waits),
+    simple("rows_deleted",
+     "",
+     "The number of rows deleted from InnoDB tables (innodb_rows_deleted)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_rows_deleted),
+    simple("rows_inserted",
+     "",
+     "The number of rows inserted into InnoDB tables (innodb_rows_inserted)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_rows_inserted),
+    simple("rows_read",
+     "",
+     "The number of rows read from InnoDB tables (innodb_rows_read)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_rows_read),
+    simple("rows_updated",
+     "",
+     "The number of rows updated in InnoDB tables (innodb_rows_updated)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_rows_updated),
+    simple("system_rows_deleted",
+     "",
+     "Number of rows deleted from InnoDB tables belonging to system-created schemas (innodb_system_rows_deleted)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_system_rows_deleted),
+    simple("system_rows_inserted",
+     "",
+     "Number of rows inserted into InnoDB tables belonging to system-created schemas (innodb_system_rows_inserted)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_system_rows_inserted),
+    simple("system_rows_read",
+     "",
+     "Number of rows read from InnoDB tables belonging to system-created schemas (innodb_system_rows_read)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_system_rows_read),
+    simple("system_rows_updated",
+     "",
+     "Number of rows updated in InnoDB tables belonging to system-created schemas (innodb_system_rows_updated)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_system_rows_updated),
+    simple("num_open_files",
+     "",
+     "Number of files currently open (innodb_num_open_files)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_num_open_files),
+    simple("truncated_status_writes",
+     "",
+     "Number of times output from the SHOW ENGINE INNODB STATUS statement has been truncated (innodb_truncated_status_writes)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_truncated_status_writes),
+    simple("undo_tablespaces_total",
+     "",
+     "Total number of undo tablespaces (innodb_undo_tablespaces_total)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_undo_tablespaces_total),
+    simple("undo_tablespaces_explicit",
+     "",
+     "Number of user-created undo tablespaces (innodb_undo_tablespaces_explicit)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_undo_tablespaces_explicit),
+    simple("undo_tablespaces_active", "",
+     "Number of active undo tablespaces, including implicit and explicit tablespaces (innodb_undo_tablespaces_active)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_undo_tablespaces_active)};
+
+static PSI_metric_info_v1 buffer_metrics[] = {
+    simple("pages_data",
+     "",
+     "Buffer pages containing data (innodb_buffer_pool_pages_data)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_buffer_pool_pages_data),
+    simple("bytes_data",
+     METRIC_UNIT_BYTES,
+     "Buffer bytes containing data (innodb_buffer_pool_bytes_data)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_buffer_pool_bytes_data),
+    simple("pages_dirty",
+     "",
+     "Buffer pages currently dirty (innodb_buffer_pool_pages_dirty)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_buffer_pool_pages_dirty),
+    simple("bytes_dirty",
+     METRIC_UNIT_BYTES,
+     "Buffer bytes currently dirty (innodb_buffer_pool_bytes_dirty)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_buffer_pool_bytes_dirty),
+    simple("pages_flushed",
+     "",
+     "The number of requests to flush pages from the InnoDB buffer pool (innodb_buffer_pool_pages_flushed)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_buffer_pool_pages_flushed),
+    simple("pages_free",
+     "",
+     "Buffer pages currently free (innodb_buffer_pool_pages_free)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_buffer_pool_pages_free),
+    simple("pages_misc",
+     "",
+     "Buffer pages for misc use such as row locks or the adaptive hash index (innodb_buffer_pool_pages_misc)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_buffer_pool_pages_misc),
+    simple("pages_total",
+     "",
+     "Total buffer pool size in pages (innodb_buffer_pool_pages_total)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_buffer_pool_pages_total),
+    simple("read_ahead_rnd",
+     "",
+     "The number of 'random' read-aheads initiated by InnoDB (innodb_buffer_pool_read_ahead_rnd)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_buffer_pool_read_ahead_rnd),
+    simple("read_ahead",
+     "",
+     "Number of pages read as read ahead (innodb_buffer_pool_read_ahead)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_buffer_pool_read_ahead),
+    simple("read_ahead_evicted",
+     "",
+     "Read-ahead pages evicted without being accessed (innodb_buffer_pool_read_ahead_evicted)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_buffer_pool_read_ahead_evicted),
+    simple("read_requests",
+     "",
+     "Number of logical read requests (innodb_buffer_pool_read_requests)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_buffer_pool_read_requests),
+    simple("reads",
+     "",
+     "Number of reads directly from disk (innodb_buffer_pool_reads)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_buffer_pool_reads),
+    simple("wait_free",
+     "",
+     "Number of times waited for free buffer (innodb_buffer_pool_wait_free)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_buffer_pool_wait_free),
+    simple("write_requests",
+     "",
+     "Number of write requests (innodb_buffer_pool_write_requests)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_buffer_pool_write_requests)
+};
+
+static PSI_metric_info_v1 data_metrics[] = {
+    simple("fsyncs",
+     "",
+     "Number of fsync() calls (innodb_data_fsyncs)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_data_fsyncs),
+    simple("pending_fsyncs",
+     "",
+     "Number of pending fsync operations (innodb_data_pending_fsyncs)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_data_pending_fsyncs),
+    simple("pending_reads",
+     "",
+     "The current number of pending reads (innodb_data_pending_reads)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_data_pending_reads),
+    simple("pending_writes",
+     "",
+     "The current number of pending writes (innodb_data_pending_writes)",
+     MetricOTELType::ASYNC_GAUGE_COUNTER,
+     export_vars.innodb_data_pending_writes),
+    simple("read",
+     METRIC_UNIT_BYTES,
+     "Amount of data read in bytes (innodb_data_read)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_data_read),
+    simple("reads",
+     "",
+     "Number of reads initiated (innodb_data_reads)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_data_reads),
+    simple("writes",
+     "",
+     "Number of writes initiated (innodb_data_writes)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_data_writes),
+    simple("written",
+     METRIC_UNIT_BYTES,
+     "Amount of data written in bytes (innodb_data_written)",
+     MetricOTELType::ASYNC_COUNTER,
+     export_vars.innodb_data_written)
+};
+
+// clang-format on
+
+static PSI_meter_info_v1 inno_meter[] = {
+    {"mysql.inno", "MySql InnoDB metrics", 10, 0, 0, inno_metrics,
+     std::size(inno_metrics)},
+    {"mysql.inno.buffer_pool", "MySql InnoDB buffer pool metrics", 10, 0, 0,
+     buffer_metrics, std::size(buffer_metrics)},
+    {"mysql.inno.data", "MySql InnoDB data metrics", 10, 0, 0, data_metrics,
+     std::size(data_metrics)}};
+
 /** Initialize the InnoDB storage engine plugin.
 @param[in,out]  p       InnoDB handlerton
 @return error code
@@ -5141,11 +5490,11 @@ static int innodb_init(void *p) {
   innobase_hton->unlock_hton_log = innobase_unlock_hton_log;
   innobase_hton->collect_hton_log_info = innobase_collect_hton_log_info;
   innobase_hton->fill_is_table = innobase_fill_i_s_table;
-  innobase_hton->flags = HTON_SUPPORTS_EXTENDED_KEYS |
-                         HTON_SUPPORTS_FOREIGN_KEYS | HTON_SUPPORTS_ATOMIC_DDL |
-                         HTON_CAN_RECREATE | HTON_SUPPORTS_SECONDARY_ENGINE |
-                         HTON_SUPPORTS_TABLE_ENCRYPTION |
-                         HTON_SUPPORTS_GENERATED_INVISIBLE_PK;
+  innobase_hton->flags =
+      HTON_SUPPORTS_EXTENDED_KEYS | HTON_SUPPORTS_FOREIGN_KEYS |
+      HTON_SUPPORTS_ATOMIC_DDL | HTON_CAN_RECREATE |
+      HTON_SUPPORTS_SECONDARY_ENGINE | HTON_SUPPORTS_TABLE_ENCRYPTION |
+      HTON_SUPPORTS_GENERATED_INVISIBLE_PK | HTON_SUPPORTS_BULK_LOAD;
 
   innobase_hton->replace_native_transaction_in_thd = innodb_replace_trx_in_thd;
   innobase_hton->file_extensions = ha_innobase_exts;
@@ -5354,12 +5703,15 @@ static int innodb_init(void *p) {
     return innodb_init_abort();
   }
 
+  mysql_meter_register(inno_meter, std::size(inno_meter));
+
   return 0;
 }
 
 /** De initialize the InnoDB storage engine plugin. */
 static int innodb_deinit(MYSQL_PLUGIN plugin_info [[maybe_unused]]) {
   release_plugin_services();
+  mysql_meter_unregister(inno_meter, std::size(inno_meter));
   return 0;
 }
 
@@ -7794,8 +8146,8 @@ extern size_t innobase_fts_casedn_str(CHARSET_INFO *cs, char *src,
   }
 }
 
-inline bool true_word_char(int c, uchar ch) {
-  return c & (_MY_U | _MY_L | _MY_NMR) || ch == '_';
+inline bool true_word_char(int c, uint8_t ch) {
+  return ((c & (MY_CHAR_U | MY_CHAR_L | MY_CHAR_NMR)) != 0) || ch == '_';
 }
 
 /** Get the next token from the given string and store it in *token.
@@ -15058,7 +15410,8 @@ int ha_innobase::create(const char *name, TABLE *form,
                         HA_CREATE_INFO *create_info, dd::Table *table_def) {
   THD *thd = ha_thd();
 
-  if (thd_sql_command(thd) == SQLCOM_TRUNCATE) {
+  if (thd_sql_command(thd) == SQLCOM_TRUNCATE ||
+      thd_sql_command(thd) == SQLCOM_LOAD) {
     return (truncate_impl(name, form, table_def));
   }
 
@@ -20468,15 +20821,15 @@ static void innodb_extend_and_initialize_update(THD *thd, SYS_VAR *,
                                                 const void *save) {
   bool extend_and_initialize [[maybe_unused]] =
       *static_cast<const bool *>(save);
-#if !defined(NO_FALLOCATE) && defined(UNIV_LINUX)
+#ifdef UNIV_LINUX
   *static_cast<bool *>(var_ptr) = extend_and_initialize;
-#else  /* !NO_FALLOCATE && UNIV_LINUX */
+#else  /* UNIV_LINUX */
   push_warning_printf(thd, Sql_condition::SL_WARNING,
                       ER_WARN_VAR_VALUE_CHANGE_NOT_SUPPORTED,
                       ER_THD(thd, ER_WARN_VAR_VALUE_CHANGE_NOT_SUPPORTED),
                       "innodb_extend_and_initialize");
   *static_cast<bool *>(var_ptr) = true;
-#endif /* !NO_FALLOCATE && UNIV_LINUX */
+#endif /* UNIV_LINUX */
 }
 
 /** Update the system variable innodb_buffer_pool_size using the "saved"
@@ -23850,20 +24203,7 @@ void ha_innobase::mv_key_capacity(uint *num_keys, size_t *keys_length) const {
       static_cast<uint32_t>(free_space), min_mv_key_length, num_keys);
 }
 
-/** Use this when the args are passed to the format string from
- messages_to_clients.txt directly as is.
-
- Push a warning message to the client, it is a wrapper around:
-
- void push_warning_printf(
-         THD *thd, Sql_condition::enum_condition_level level,
-         uint code, const char *format, ...);
- */
-void ib_senderrf(THD *thd,             /*!< in/out: session */
-                 ib_log_level_t level, /*!< in: warning level */
-                 uint32_t code,        /*!< MySQL error code */
-                 ...)                  /*!< Args */
-{
+void ib_senderrf(THD *thd, ib_log_level_t level, uint32_t code, ...) {
   va_list args;
   char *str = nullptr;
   const char *format = innobase_get_err_msg(code);
@@ -23883,7 +24223,7 @@ void ib_senderrf(THD *thd,             /*!< in/out: session */
   if (size > 0) {
     str = static_cast<char *>(malloc(size));
   }
-  if (str == NULL) {
+  if (str == nullptr) {
     va_end(args);
     return; /* Watch for Out-Of-Memory */
   }
@@ -23899,7 +24239,7 @@ void ib_senderrf(THD *thd,             /*!< in/out: session */
 #else
   /* Use a fixed length string. */
   str = static_cast<char *>(malloc(BUFSIZ));
-  if (str == NULL) {
+  if (str == nullptr) {
     va_end(args);
     return; /* Watch for Out-Of-Memory */
   }
@@ -23973,7 +24313,7 @@ void ib_errf(THD *thd,             /*!< in/out: session */
   if (size > 0) {
     str = static_cast<char *>(malloc(size));
   }
-  if (str == NULL) {
+  if (str == nullptr) {
     va_end(args);
     return; /* Watch for Out-Of-Memory */
   }
@@ -23989,7 +24329,7 @@ void ib_errf(THD *thd,             /*!< in/out: session */
 #else
   /* Use a fixed length string. */
   str = static_cast<char *>(malloc(BUFSIZ));
-  if (str == NULL) {
+  if (str == nullptr) {
     va_end(args);
     return; /* Watch for Out-Of-Memory */
   }

@@ -28,6 +28,7 @@
 #include <kernel/NodeBitmask.hpp>
 #include <NdbConfig.h>
 #include <portlib/ndb_daemon.h>
+#include "portlib/ssl_applink.h"
 #include "util/ndb_openssl_evp.h"
 
 #include "my_alloc.h"
@@ -82,6 +83,8 @@ static struct my_option my_long_options[] =
   NdbStdOpt::ndb_nodeid,
   NdbStdOpt::connect_retry_delay, //used
   NdbStdOpt::connect_retries, // used
+  NdbStdOpt::tls_search_path,
+  NdbStdOpt::mgm_tls,
   NDB_STD_OPT_DEBUG
   { "core-file", NDB_OPT_NOSHORT, "Write core on errors.",\
     &opt_core, nullptr, nullptr, GET_BOOL, NO_ARG,
@@ -303,7 +306,7 @@ real_main(int argc, char** argv)
              opt_ndb_connectstring, opt_ndb_nodeid, opt_bind_address,
              opt_no_start, opt_initial, opt_initialstart,
              opt_allocated_nodeid, opt_connect_retries, opt_connect_retry_delay,
-             opt_logbuffer_size);
+             opt_logbuffer_size, opt_tls_search_path, opt_mgm_tls);
   }
 
   /**
@@ -322,7 +325,9 @@ real_main(int argc, char** argv)
             opt_no_start,
             opt_daemon,
             opt_connect_retries,
-            opt_connect_retry_delay);
+            opt_connect_retry_delay,
+            opt_tls_search_path,
+            opt_mgm_tls);
 
   return 1; // Never reached
 }

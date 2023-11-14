@@ -133,6 +133,7 @@ public:
     NdbSocket socket(fd, NdbSocket::From::Existing);
     return connect_client(socket);
   }
+  bool connect_client_mgm(int);
   bool connect_server(NdbSocket & socket, BaseString& errormsg);
 
   /**
@@ -195,6 +196,7 @@ public:
   Uint32 get_max_send_buffer() { return m_max_send_buffer; }
 
   Uint32 get_connect_count() { return m_connect_count; }
+  virtual bool is_encrypted() const  { return m_encrypted; }
 
   void inc_overload_count() { m_overload_count++; }
   Uint32 get_overload_count() { return m_overload_count; }
@@ -250,6 +252,7 @@ protected:
 
   virtual bool configure(const TransporterConfiguration* conf);
   virtual bool configure_derived(const TransporterConfiguration* conf) = 0;
+  void use_tls_client_auth();
 
   /**
    * Blocking, for max timeOut milli seconds
@@ -263,7 +266,7 @@ protected:
    * Blocking
    */
   virtual void disconnectImpl() = 0;
-  
+
   /**
    * Remote host name/and address
    */
@@ -314,7 +317,7 @@ protected:
   // Sending/Receiving socket used by both client and server
   NdbSocket theSocket;
 private:
-  SocketClient *m_socket_client;
+  SocketClient *m_socket_client {nullptr};
   ndb_sockaddr m_connect_address;
 
   virtual bool send_is_possible(int timeout_millisec) const = 0;
@@ -340,6 +343,8 @@ protected:
   Uint32 m_timeOutMillis;
   bool m_connected;     // Are we connected
   TransporterType m_type;
+  bool m_require_tls;  // Configured mode
+  bool m_encrypted;    // Actual: true only if current connection is secure.
 
   /**
    * Statistics

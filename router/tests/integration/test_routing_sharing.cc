@@ -471,6 +471,7 @@ class SharedRouter {
               {"client_ssl_cert", SSL_TEST_DATA_DIR "/server-cert-sha512.pem"},
               {"connection_sharing", "1"},
               {"connection_sharing_delay", "0"},
+              {"connect_retry_timeout", "0"},
           });
     }
 
@@ -520,7 +521,7 @@ class SharedRouter {
     // wait for the connections appear in the pool.
     if (param.can_share()) {
       ASSERT_NO_ERROR(wait_for_idle_server_connections(
-          std::min(num_destinations, pool_size_), 1s));
+          std::min(num_destinations, pool_size_), 10s));
     }
   }
 
@@ -670,6 +671,7 @@ class TestEnv : public ::testing::Environment {
         if (s->mysqld_failed_to_start()) {
           GTEST_SKIP() << "mysql-server failed to start.";
         }
+        s->setup_mysqld_accounts();
       }
     }
 
@@ -887,7 +889,7 @@ class ShareConnectionTestWithRestartedServer
       }
     }
 
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 10s));
   }
 
  private:
@@ -979,7 +981,8 @@ class ShareConnectionTest
       if (s == nullptr || s->mysqld_failed_to_start()) {
         GTEST_SKIP() << "failed to start mysqld";
       } else {
-        s->close_all_connections();  // reset the router's connection-pool
+        ASSERT_NO_ERROR(
+            s->close_all_connections());  // reset the router's connection-pool
         s->reset_to_defaults();
       }
     }
@@ -1013,7 +1016,8 @@ TEST_P(ShareConnectionTest, classic_protocol_share_after_connect_same_user) {
 
     // wait until connection 0, 1, 2 are in the pool as 3 shall share with 0.
     if (ndx == 3 && can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(3, 10s));
     }
 
     ASSERT_NO_ERROR(cli.connect(shared_router()->host(),
@@ -1021,7 +1025,8 @@ TEST_P(ShareConnectionTest, classic_protocol_share_after_connect_same_user) {
 
     // connection goes out of the pool and back to the pool again.
     if (ndx == 3 && can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(3, 10s));
     }
   }
 
@@ -1149,7 +1154,8 @@ TEST_P(ShareConnectionTest, classic_protocol_purge_after_connect_same_user) {
 
     // wait until the connection is in the pool.
     if (can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(1, 10s));
     }
 
     // find it on one of the servers and kill it.
@@ -1176,7 +1182,7 @@ TEST_P(ShareConnectionTest, classic_protocol_purge_after_connect_same_user) {
     }
 
     // wait until it is gone from the pool.
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 10s));
   }
 
   // check that no connection is reused ...
@@ -1235,7 +1241,7 @@ TEST_P(ShareConnectionTest, classic_protocol_pool_after_connect_same_user) {
       size_t expected_pooled_connections = ndx < 3 ? ndx + 1 : 3;
 
       ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(
-          expected_pooled_connections, 1s));
+          expected_pooled_connections, 10s));
     }
 
     // find the server which received the connection attempt.
@@ -1333,7 +1339,8 @@ TEST_P(ShareConnectionTest,
 
     // wait until connection 0, 1, 2 are in the pool as 3 shall share with 0.
     if (ndx == 3 && can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(3, 10s));
     }
 
     auto connect_res =
@@ -1349,7 +1356,8 @@ TEST_P(ShareConnectionTest,
 
     // connection goes out of the pool and back to the pool again.
     if (ndx == 3 && can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(3, 10s));
     }
   }
 
@@ -1479,13 +1487,15 @@ TEST_P(ShareConnectionTest, classic_protocol_connection_is_sticky_purged) {
 
     // wait until the connection is in the pool ... and kill it.
     if (can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(1, 10s));
 
       for (auto &s : shared_servers()) {
-        s->close_all_connections();
+        ASSERT_NO_ERROR(s->close_all_connections());
       }
 
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(0, 10s));
     }
   }
 }
@@ -1525,7 +1535,8 @@ TEST_P(ShareConnectionTest, classic_protocol_connection_is_sticky_pooled) {
 
     // wait until the connection is in the pool ... and kill it.
     if (can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(1, 10s));
     }
   }
 }
@@ -1548,10 +1559,10 @@ TEST_P(ShareConnectionTest, classic_protocol_share_same_user) {
     if (can_share) {
       if (ndx == 0) {
         ASSERT_NO_ERROR(
-            shared_router()->wait_for_idle_server_connections(1, 1s));
+            shared_router()->wait_for_idle_server_connections(1, 10s));
       } else if (ndx == 3) {
         ASSERT_NO_ERROR(
-            shared_router()->wait_for_idle_server_connections(3, 1s));
+            shared_router()->wait_for_idle_server_connections(3, 10s));
       }
     }
   }
@@ -1681,7 +1692,7 @@ TEST_P(ShareConnectionTest, classic_protocol_share_different_accounts) {
   // wait a bit until all connections are moved to the pool to ensure that cli4
   // can share with cli1
   if (can_share && can_fetch_password) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 10s));
   }
 
   // shares with cli1
@@ -1698,7 +1709,7 @@ TEST_P(ShareConnectionTest, classic_protocol_share_different_accounts) {
 
   // wait a bit until the connection cli4 is moved to the pool.
   if (can_share && can_fetch_password) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 10s));
   }
 
   // shared between cli1 and cli4
@@ -1883,6 +1894,76 @@ TEST_P(ShareConnectionTest, classic_protocol_ping_with_pool) {
 
     // should pool
     ASSERT_NO_ERROR(cli2.ping());
+  }
+}
+
+TEST_P(ShareConnectionTest, classic_protocol_debug_with_pool) {
+  // 4 connections are needed as router does round-robin over 3 endpoints
+  std::array<MysqlClient, 4> clis;
+
+  const bool can_share = GetParam().can_share();
+
+  auto account = SharedServer::admin_account();
+
+  for (auto [ndx, cli] : stdx::ranges::views::enumerate(clis)) {
+    cli.username(account.username);
+    cli.password(account.password);
+
+    if (ndx == 3 && can_share) {
+      // before the 4th connection, wait until all 3 connections are in the
+      // pool.
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(3, 10s));
+    }
+
+    auto connect_res =
+        cli.connect(shared_router()->host(), shared_router()->port(GetParam()));
+    ASSERT_NO_ERROR(connect_res);
+  }
+
+  // wait a bit until the connection clis[3] is moved to the pool.
+  if (can_share) {
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(3, 10s));
+  }
+
+  // shared between 0 and 3
+  {
+    auto events_res = changed_event_counters(clis[0]);  // the (+ select)
+    ASSERT_NO_ERROR(events_res);
+
+    if (can_share) {
+      EXPECT_THAT(*events_res,
+                  ElementsAre(Pair("statement/com/Change user", 2),
+                              Pair("statement/sql/select", 2),
+                              Pair("statement/sql/set_option", 3)));
+    } else {
+      // no sharing possible, router is not injecting any statements.
+      EXPECT_THAT(*events_res, ::testing::IsEmpty());
+    }
+  }
+
+  {
+    // should pool
+    ASSERT_NO_ERROR(clis[0].dump_debug_info());
+  }
+
+  // shared between 0 and 3
+  {
+    auto events_res = changed_event_counters(clis[0]);  // the (+ select)
+    ASSERT_NO_ERROR(events_res);
+
+    if (can_share) {
+      EXPECT_THAT(*events_res,
+                  ElementsAre(Pair("statement/com/Change user", 2),
+                              Pair("statement/com/Debug", 1),
+                              Pair("statement/com/Reset Connection", 2),
+                              Pair("statement/sql/select", 3),
+                              Pair("statement/sql/set_option", 5)));
+    } else {
+      // no sharing possible, router is not injecting any statements.
+      EXPECT_THAT(*events_res, ElementsAre(Pair("statement/com/Debug", 1),
+                                           Pair("statement/sql/select", 1)));
+    }
   }
 }
 
@@ -2671,7 +2752,7 @@ TEST_P(ShareConnectionTest,
 
   // close all connections to force a new connection.
   for (auto &s : shared_servers()) {
-    s->close_all_connections();
+    ASSERT_NO_ERROR(s->close_all_connections());
   }
 
   // check if the new connection has the same schema.
@@ -2760,7 +2841,7 @@ TEST_P(ShareConnectionTest, classic_protocol_use_schema_pool_new_connection) {
 
   // close the pooled server-connection.
   for (auto &s : shared_servers()) {
-    s->close_all_connections();
+    ASSERT_NO_ERROR(s->close_all_connections());
   }
 
   {
@@ -3310,7 +3391,7 @@ TEST_P(ShareConnectionTest,
   ASSERT_NO_ERROR(cli.query("DO 0/0"));
 
   for (auto &s : shared_servers()) {
-    s->close_all_connections();
+    ASSERT_NO_ERROR(s->close_all_connections());
   }
 
   {
@@ -3372,7 +3453,7 @@ TEST_P(ShareConnectionTest, classic_protocol_use_schema_via_query) {
   ASSERT_NO_ERROR(cli.query("USE testing"));
 
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   {
@@ -3728,7 +3809,7 @@ TEST_P(ShareConnectionTest, classic_protocol_warnings_and_errors) {
                    std::to_string(close_connection_before_verify));
 
       for (auto &s : shared_servers()) {
-        s->close_all_connections();
+        ASSERT_NO_ERROR(s->close_all_connections());
       }
 
       MysqlClient cli;
@@ -3745,7 +3826,7 @@ TEST_P(ShareConnectionTest, classic_protocol_warnings_and_errors) {
 
       if (can_share && can_fetch_password) {
         ASSERT_NO_ERROR(
-            shared_router()->wait_for_idle_server_connections(1, 1s));
+            shared_router()->wait_for_idle_server_connections(1, 10s));
       }
 
       if (close_connection_before_verify) {
@@ -4139,12 +4220,12 @@ TEST_P(ShareConnectionTest, classic_protocol_get_lock_in_transaction) {
     if (can_share) {
       EXPECT_THAT(
           *events_res,
-          ElementsAre(Pair("statement/com/Reset Connection", 1),  // from-pool
-                      Pair("statement/sql/begin", 1),      // START TRANSACTION
+          ElementsAre(Pair("statement/com/Reset Connection", 2),  // from-pool
+                      Pair("statement/sql/begin", 2),      // START TRANSACTION
                       Pair("statement/sql/do", 1),         // DO ...()
                       Pair("statement/sql/rollback", 1),   // ROLLBACK
                       Pair("statement/sql/select", 1),     //
-                      Pair("statement/sql/set_option", 2)  // connect, from-pool
+                      Pair("statement/sql/set_option", 3)  // connect, from-pool
                       ));
     } else {
       EXPECT_THAT(
@@ -4165,9 +4246,9 @@ TEST_P(ShareConnectionTest, classic_protocol_get_lock_in_transaction) {
     if (can_share) {
       EXPECT_THAT(*events_res, ElementsAre(
                                    // from-pool, explicit, from-pool
-                                   Pair("statement/com/Reset Connection", 3),
+                                   Pair("statement/com/Reset Connection", 4),
                                    // START TRANSACTION
-                                   Pair("statement/sql/begin", 1),
+                                   Pair("statement/sql/begin", 2),
                                    // DO ...()
                                    Pair("statement/sql/do", 1),
                                    // ROLLBACK
@@ -4175,7 +4256,7 @@ TEST_P(ShareConnectionTest, classic_protocol_get_lock_in_transaction) {
                                    // events
                                    Pair("statement/sql/select", 2),
                                    // connect, from-pool, explicit, from-pool
-                                   Pair("statement/sql/set_option", 4)));
+                                   Pair("statement/sql/set_option", 5)));
     } else {
       EXPECT_THAT(*events_res, ElementsAre(
                                    // explicit
@@ -4327,12 +4408,12 @@ TEST_P(ShareConnectionTest,
     if (can_share) {
       EXPECT_THAT(
           *events_res,
-          ElementsAre(Pair("statement/com/Reset Connection", 1),  // from-pool
-                      Pair("statement/sql/begin", 1),      // START TRANSACTION
+          ElementsAre(Pair("statement/com/Reset Connection", 2),  // from-pool
+                      Pair("statement/sql/begin", 2),      // START TRANSACTION
                       Pair("statement/sql/do", 1),         // DO ...()
                       Pair("statement/sql/rollback", 1),   // ROLLBACK
                       Pair("statement/sql/select", 1),     //
-                      Pair("statement/sql/set_option", 2)  // connect, from-pool
+                      Pair("statement/sql/set_option", 3)  // connect, from-pool
                       ));
     } else {
       EXPECT_THAT(
@@ -4367,9 +4448,9 @@ TEST_P(ShareConnectionTest,
     if (can_share) {
       EXPECT_THAT(*events_res, ElementsAre(
                                    // from-pool, explicit, from-pool
-                                   Pair("statement/com/Reset Connection", 3),
+                                   Pair("statement/com/Reset Connection", 4),
                                    // START TRANSACTION
-                                   Pair("statement/sql/begin", 1),
+                                   Pair("statement/sql/begin", 2),
                                    // DO ...()
                                    Pair("statement/sql/do", 1),
                                    // ROLLBACK
@@ -4377,7 +4458,7 @@ TEST_P(ShareConnectionTest,
                                    // events, metadata-locks
                                    Pair("statement/sql/select", 3),
                                    // connect, from-pool, explicit, from-pool
-                                   Pair("statement/sql/set_option", 4)));
+                                   Pair("statement/sql/set_option", 5)));
     } else {
       EXPECT_THAT(*events_res, ElementsAre(
                                    // from-pool
@@ -4542,12 +4623,12 @@ TEST_P(ShareConnectionTest,
     if (can_share) {
       EXPECT_THAT(
           *events_res,
-          ElementsAre(Pair("statement/com/Reset Connection", 1),  // from-pool
-                      Pair("statement/sql/begin", 1),      // START TRANSACTION
+          ElementsAre(Pair("statement/com/Reset Connection", 2),  // from-pool
+                      Pair("statement/sql/begin", 2),      // START TRANSACTION
                       Pair("statement/sql/do", 1),         // DO ...()
                       Pair("statement/sql/rollback", 1),   // ROLLBACK
                       Pair("statement/sql/select", 1),     //
-                      Pair("statement/sql/set_option", 2)  // connect, from-pool
+                      Pair("statement/sql/set_option", 3)  // connect, from-pool
                       ));
     } else {
       EXPECT_THAT(
@@ -4582,9 +4663,9 @@ TEST_P(ShareConnectionTest,
     if (can_share) {
       EXPECT_THAT(*events_res, ElementsAre(
                                    // from-pool, explicit, from-pool
-                                   Pair("statement/com/Reset Connection", 3),
+                                   Pair("statement/com/Reset Connection", 4),
                                    // START TRANSACTION
-                                   Pair("statement/sql/begin", 1),
+                                   Pair("statement/sql/begin", 2),
                                    // DO ...()
                                    Pair("statement/sql/do", 1),
                                    // ROLLBACK
@@ -4592,7 +4673,7 @@ TEST_P(ShareConnectionTest,
                                    // events, metadata-locks
                                    Pair("statement/sql/select", 3),
                                    // connect, from-pool, explicit, from-pool
-                                   Pair("statement/sql/set_option", 4)));
+                                   Pair("statement/sql/set_option", 5)));
     } else {
       EXPECT_THAT(*events_res, ElementsAre(
                                    // from-pool, explicit, from-pool
@@ -4836,8 +4917,9 @@ TEST_P(ShareConnectionTest, classic_protocol_prepare_fail) {
       EXPECT_THAT(*events_res,
                   ElementsAre(Pair("statement/com/Prepare", 1),
                               Pair("statement/com/Reset Connection", 2),
-                              Pair("statement/sql/select", 1),     //
-                              Pair("statement/sql/set_option", 3)  //
+                              Pair("statement/sql/select", 1),        //
+                              Pair("statement/sql/set_option", 3),    //
+                              Pair("statement/sql/show_warnings", 1)  //
                               ));
     } else {
       EXPECT_THAT(*events_res, ElementsAre(Pair("statement/com/Prepare", 1)));
@@ -5673,7 +5755,7 @@ TEST_P(ShareConnectionTest, classic_protocol_set_option) {
                  "check if enabling multi-statement at runtime is handled "
                  "and sharing is allowed.");
 
-  ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 1s));
+  ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 10s));
 
   const bool can_share = GetParam().can_share();
 
@@ -5687,7 +5769,7 @@ TEST_P(ShareConnectionTest, classic_protocol_set_option) {
       cli.connect(shared_router()->host(), shared_router()->port(GetParam())));
 
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   {
@@ -5696,27 +5778,40 @@ TEST_P(ShareConnectionTest, classic_protocol_set_option) {
   }
 
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   ASSERT_NO_ERROR(cli.set_server_option(MYSQL_OPTION_MULTI_STATEMENTS_ON));
 
   {
     auto query_res = cli.query("DO 1; DO 2");
-    ASSERT_NO_ERROR(query_res);
+    if (can_share) {
+      ASSERT_ERROR(query_res);
 
-    for (const auto &res [[maybe_unused]] : *query_res) {
+      // multi-statements are forbidden when connection-sharing is enabled.
+      EXPECT_EQ(query_res.error().value(), 4501);
+    } else {
+      ASSERT_NO_ERROR(query_res);
+
+      for (const auto &res [[maybe_unused]] : *query_res) {
+      }
     }
   }
 
+  {
+    // a single statement is ok though.
+    auto query_res = cli.query("DO 1");
+    ASSERT_NO_ERROR(query_res);
+  }
+
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   EXPECT_NO_ERROR(cli.set_server_option(MYSQL_OPTION_MULTI_STATEMENTS_OFF));
 
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   {
@@ -5731,7 +5826,7 @@ TEST_P(ShareConnectionTest, classic_protocol_set_option_at_connect) {
                  "when sharing is allowed.");
 
   SCOPED_TRACE("// ensure the pool is empty");
-  ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 1s));
+  ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 10s));
 
   const bool can_share = GetParam().can_share();
 
@@ -5746,39 +5841,59 @@ TEST_P(ShareConnectionTest, classic_protocol_set_option_at_connect) {
       cli.connect(shared_router()->host(), shared_router()->port(GetParam())));
 
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   {
     auto query_res = cli.query("DO 1; DO 2");
-    ASSERT_NO_ERROR(query_res);
+    if (can_share) {
+      ASSERT_ERROR(query_res);
 
-    for (const auto &res [[maybe_unused]] : *query_res) {
+      // multi-statements are forbidden when connection-sharing is enabled.
+      EXPECT_EQ(query_res.error().value(), 4501);
+    } else {
+      ASSERT_NO_ERROR(query_res);
+
+      for (const auto &res [[maybe_unused]] : *query_res) {
+      }
     }
   }
 
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   ASSERT_NO_ERROR(cli.set_server_option(MYSQL_OPTION_MULTI_STATEMENTS_ON));
 
   {
     auto query_res = cli.query("DO 1; DO 2");
-    ASSERT_NO_ERROR(query_res);
+    if (can_share) {
+      ASSERT_ERROR(query_res);
 
-    for (const auto &res [[maybe_unused]] : *query_res) {
+      // multi-statements are forbidden when connection-sharing is enabled.
+      EXPECT_EQ(query_res.error().value(), 4501);
+    } else {
+      ASSERT_NO_ERROR(query_res);
+
+      for (const auto &res [[maybe_unused]] : *query_res) {
+      }
     }
   }
 
+  {
+    // a single statement is ok though.
+    auto query_res = cli.query("DO 1");
+    ASSERT_NO_ERROR(query_res);
+  }
+
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   EXPECT_NO_ERROR(cli.set_server_option(MYSQL_OPTION_MULTI_STATEMENTS_OFF));
 
   if (can_share) {
-    shared_router()->wait_for_idle_server_connections(1, 1s);
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   {
@@ -5823,7 +5938,7 @@ TEST_P(ShareConnectionTest, classic_protocol_binlog_dump) {
       cli.query("SET @source_binlog_checksum=@@global.binlog_checksum"));
 
   // purge the logs
-  ASSERT_NO_ERROR(cli.query("RESET MASTER"));
+  ASSERT_NO_ERROR(cli.query("RESET BINARY LOGS AND GTIDS"));
 
   {
     MYSQL_RPL rpl{};
@@ -7199,11 +7314,19 @@ class ChangeUserTest
   static std::unique_ptr<MysqlClient> cli_;
   static bool last_with_ssl_;
   static ShareConnectionParam last_connect_param_;
+  static int expected_change_user_;
+  static int expected_reset_connection_;
+  static int expected_select_;
+  static int expected_set_option_;
 };
 
 std::unique_ptr<MysqlClient> ChangeUserTest::cli_{};
 bool ChangeUserTest::last_with_ssl_{};
 ShareConnectionParam ChangeUserTest::last_connect_param_{};
+int ChangeUserTest::expected_change_user_{0};
+int ChangeUserTest::expected_reset_connection_{0};
+int ChangeUserTest::expected_select_{0};
+int ChangeUserTest::expected_set_option_{0};
 
 TEST_P(ChangeUserTest, classic_protocol) {
   auto [with_ssl, connect_param, test_param, schema] = GetParam();
@@ -7213,6 +7336,14 @@ TEST_P(ChangeUserTest, classic_protocol) {
   auto expect_success = expect_success_func(with_ssl, connect_param);
 
   const bool can_share = connect_param.can_share();
+  // if the password is empty, it is known, always.
+  //
+  // otherwise it can be fetched at change-user if there is:
+  //
+  // - SSL or
+  // - a public-key (!DISABLED)
+  const bool can_fetch_password =
+      (account.password.empty() || connect_param.client_ssl_mode != kDisabled);
 
   if (!with_ssl && connect_param.client_ssl_mode == kRequired) {
     // invalid combination.
@@ -7233,7 +7364,7 @@ TEST_P(ChangeUserTest, classic_protocol) {
       srv->close_all_connections();  // reset the router's connection-pool
     }
 
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 10s));
 
     cli_ = std::make_unique<MysqlClient>();
 
@@ -7248,6 +7379,16 @@ TEST_P(ChangeUserTest, classic_protocol) {
 
     ASSERT_NO_ERROR(cli_->connect(shared_router()->host(),
                                   shared_router()->port(connect_param)));
+
+    expected_reset_connection_ = 0;
+    expected_select_ = 0;
+    expected_set_option_ = 0;
+    expected_change_user_ = 0;
+
+    if (can_share) {
+      expected_select_ += 1;      // SELECT collation
+      expected_set_option_ += 1;  // SET session-track-system-vars
+    }
   }
 
   if (account.auth_method == "caching_sha2_password") {
@@ -7259,6 +7400,11 @@ TEST_P(ChangeUserTest, classic_protocol) {
   {
     auto cmd_res =
         cli_->change_user(account.username, account.password, schema);
+
+    expected_change_user_ += 1;
+    if (can_share) {
+      expected_set_option_ += 1;  // SET session-track-system-vars
+    }
 
     if (!account.password.empty() &&
         (account.auth_method == "caching_sha2_password" ||
@@ -7277,6 +7423,7 @@ TEST_P(ChangeUserTest, classic_protocol) {
     }
 
     ASSERT_NO_ERROR(cmd_res);
+
     {
       // no warnings.
       auto warning_res = cli_->warning_count();
@@ -7285,7 +7432,13 @@ TEST_P(ChangeUserTest, classic_protocol) {
     }
 
     if (can_share && expect_success) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(1, 10s));
+    }
+
+    if (can_share && can_fetch_password) {
+      expected_reset_connection_ += 1;
+      expected_set_option_ += 1;
     }
 
     {
@@ -7296,6 +7449,41 @@ TEST_P(ChangeUserTest, classic_protocol) {
                   ElementsAre(ElementsAre(account.username + "@localhost",
                                           schema.empty() ? "<NULL>" : schema)));
     }
+
+    expected_select_ += 1;
+  }
+
+  {
+    auto events_res = changed_event_counters(*cli_);
+    ASSERT_NO_ERROR(events_res);
+
+    if (can_share && can_fetch_password) {
+      expected_reset_connection_ += 1;
+      expected_set_option_ += 1;
+    }
+
+    if (expected_reset_connection_ > 0) {
+      EXPECT_THAT(
+          *events_res,
+          ElementsAre(Pair("statement/com/Change user", expected_change_user_),
+                      Pair("statement/com/Reset Connection",
+                           expected_reset_connection_),
+                      Pair("statement/sql/select", expected_select_),
+                      Pair("statement/sql/set_option", expected_set_option_)));
+    } else if (expected_set_option_ > 0) {
+      EXPECT_THAT(
+          *events_res,
+          ElementsAre(Pair("statement/com/Change user", expected_change_user_),
+                      Pair("statement/sql/select", expected_select_),
+                      Pair("statement/sql/set_option", expected_set_option_)));
+    } else {
+      EXPECT_THAT(
+          *events_res,
+          ElementsAre(Pair("statement/com/Change user", expected_change_user_),
+                      Pair("statement/sql/select", expected_select_)));
+    }
+
+    expected_select_ += 1;
   }
 
   // and change the user again.
@@ -7306,9 +7494,48 @@ TEST_P(ChangeUserTest, classic_protocol) {
         cli_->change_user(account.username, account.password, schema);
     ASSERT_NO_ERROR(cmd_res);
 
-    if (can_share && expect_success) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    expected_change_user_ += 1;
+    if (can_share) {
+      expected_set_option_ += 1;  // SET session-track-system-vars
     }
+
+    if (can_share && expect_success) {
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(1, 10s));
+    }
+  }
+
+  {
+    auto events_res = changed_event_counters(*cli_);
+    ASSERT_NO_ERROR(events_res);
+
+    if (can_share && can_fetch_password) {
+      expected_reset_connection_ += 1;
+      expected_set_option_ += 1;
+    }
+
+    if (expected_reset_connection_ > 0) {
+      EXPECT_THAT(
+          *events_res,
+          ElementsAre(Pair("statement/com/Change user", expected_change_user_),
+                      Pair("statement/com/Reset Connection",
+                           expected_reset_connection_),
+                      Pair("statement/sql/select", expected_select_),
+                      Pair("statement/sql/set_option", expected_set_option_)));
+    } else if (expected_set_option_ > 0) {
+      EXPECT_THAT(
+          *events_res,
+          ElementsAre(Pair("statement/com/Change user", expected_change_user_),
+                      Pair("statement/sql/select", expected_select_),
+                      Pair("statement/sql/set_option", expected_set_option_)));
+    } else {
+      EXPECT_THAT(
+          *events_res,
+          ElementsAre(Pair("statement/com/Change user", expected_change_user_),
+                      Pair("statement/sql/select", expected_select_)));
+    }
+
+    expected_select_ += 1;
   }
 }
 

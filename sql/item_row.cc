@@ -74,9 +74,9 @@ Item_row::Item_row(Item *head, const mem_root_deque<Item *> &tail)
   }
 }
 
-bool Item_row::itemize(Parse_context *pc, Item **res) {
+bool Item_row::do_itemize(Parse_context *pc, Item **res) {
   if (skip_itemize(res)) return false;
-  if (super::itemize(pc, res)) return true;
+  if (super::do_itemize(pc, res)) return true;
   for (uint i = 0; i < arg_count; i++) {
     if (items[i]->itemize(pc, &items[i])) return true;
   }
@@ -91,7 +91,7 @@ void Item_row::illegal_method_call(const char *method [[maybe_unused]]) const {
 }
 
 bool Item_row::fix_fields(THD *thd, Item **) {
-  assert(fixed == 0);
+  assert(!fixed);
   null_value = false;
   set_nullable(false);
   bool types_assigned = true;

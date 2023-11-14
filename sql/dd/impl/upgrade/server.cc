@@ -24,6 +24,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #include "sql/dd/upgrade/server.h"
@@ -32,9 +33,10 @@
 #endif
 #include <vector>
 
-#include "lex_string.h"
 #include "my_dbug.h"
 #include "mysql/components/services/log_builtins.h"
+#include "mysql/strings/m_ctype.h"
+#include "nulls.h"
 #include "scripts/mysql_fix_privilege_tables_sql.h"
 #include "scripts/sql_commands_system_tables_data_fix.h"
 #include "scripts/sql_firewall_stored_procedures.h"
@@ -64,8 +66,9 @@
 #include "sql/thd_raii.h"
 #include "sql/trigger.h"  // Trigger
 #include "sql/trigger_def.h"
+#include "string_with_len.h"
 
-typedef ulonglong sql_mode_t;
+using sql_mode_t = uint64_t;
 extern const char *mysql_sys_schema[];
 extern const char *fill_help_tables[];
 

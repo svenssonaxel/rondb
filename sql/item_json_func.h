@@ -31,14 +31,14 @@
 #include <memory>
 #include <utility>  // std::forward
 
-#include "m_ctype.h"
-
 #include "my_inttypes.h"
 #include "my_time.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql/udf_registration_types.h"
 #include "mysql_com.h"
 #include "mysql_time.h"
-#include "prealloced_array.h"      // Prealloced_array
+#include "prealloced_array.h"  // Prealloced_array
+#include "sql-common/json_error_handler.h"
 #include "sql-common/json_path.h"  // Json_path
 #include "sql/enum_query_type.h"
 #include "sql/field.h"
@@ -881,7 +881,7 @@ class Item_func_json_quote : public Item_str_func {
      Any interior character could be replaced by a 6 character
      escape sequence. Plus we will add 2 framing quote characters.
     */
-    uint32 max_char_length = (6 * args[0]->max_char_length()) + 2;
+    const uint32 max_char_length = (6 * args[0]->max_char_length()) + 2;
     set_data_type_string(max_char_length, &my_charset_utf8mb4_bin);
     return false;
   }
@@ -992,6 +992,9 @@ class Item_func_array_cast final : public Item_func {
     reallocation on each row.
   */
   unique_ptr_destroy_only<Json_array> m_result_array;
+
+ protected:
+  void add_json_info(Json_object *obj) override;
 
  public:
   Item_func_array_cast(const POS &pos, Item *a, Cast_target type, uint len_arg,
@@ -1243,7 +1246,7 @@ using Json_dom_ptr = std::unique_ptr<Json_dom>;
 
 bool parse_json(const String &res, Json_dom_ptr *dom, bool require_str_or_json,
                 const JsonParseErrorHandler &error_handler,
-                const JsonDocumentDepthHandler &depth_handler);
+                const JsonErrorHandler &depth_handler);
 
 typedef Prealloced_array<size_t, 16> Sorted_index_array;
 bool sort_and_remove_dups(const Json_wrapper &orig, Sorted_index_array *v);

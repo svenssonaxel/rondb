@@ -614,6 +614,10 @@ Trpman::execDBINFO_SCANREQ(Signal *signal)
         row.write_uint32(globalTransporterRegistry.get_overload_count(rnode));
         row.write_uint32(globalTransporterRegistry.get_status_slowdown().get(rnode));
         row.write_uint32(globalTransporterRegistry.get_slowdown_count(rnode));
+
+        /* TLS */
+        row.write_uint32(globalTransporterRegistry.is_encrypted_link(rnode));
+
         ndbinfo_send_row(signal, req, row, rl);
         break;
       }
@@ -632,6 +636,33 @@ Trpman::execDBINFO_SCANREQ(Signal *signal)
       }
     }
     break;
+  }
+
+  case Ndbinfo::CERTIFICATES_TABLEID:
+  {
+    TlsKeyManager * keyMgr = globalTransporterRegistry.getTlsKeyManager();
+    int peer_node_id = cursor->data[0];
+    cert_table_entry entry;
+    while(keyMgr->iterate_cert_table(peer_node_id, & entry)) {
+
+      jam();
+      Ndbinfo::Row row(signal, req);
+
+      row.write_uint32(getOwnNodeId());
+      row.write_uint32(peer_node_id);
+      row.write_string(entry.name);
+      row.write_string(entry.serial);
+      row.write_uint32(entry.expires);
+
+      ndbinfo_send_row(signal, req, row, rl);
+
+      if (rl.need_break(req))
+      {
+        jam();
+        ndbinfo_send_scan_break(signal, req, rl, peer_node_id);
+        return;
+      }
+    }
   }
 
   default:

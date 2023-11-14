@@ -38,6 +38,7 @@
 #include "plugin/group_replication/include/pipeline_stats.h"
 #include "plugin/group_replication/include/plugin.h"
 #include "plugin/group_replication/include/plugin_handlers/member_actions_handler.h"
+#include "plugin/group_replication/include/plugin_handlers/metrics_handler.h"
 #include "plugin/group_replication/include/plugin_handlers/primary_election_invocation_handler.h"
 #include "plugin/group_replication/include/plugin_handlers/remote_clone_handler.h"
 #include "plugin/group_replication/include/plugin_messages/group_action_message.h"
@@ -76,7 +77,9 @@ Plugin_gcs_events_handler::~Plugin_gcs_events_handler() {
 
 void Plugin_gcs_events_handler::on_message_received(
     const Gcs_message &message) const {
-  Plugin_gcs_message::enum_cargo_type message_type =
+  metrics_handler->add_message_sent(message);
+
+  const Plugin_gcs_message::enum_cargo_type message_type =
       Plugin_gcs_message::get_cargo_type(
           message.get_message_data().get_payload());
 
@@ -1562,7 +1565,6 @@ Plugin_gcs_events_handler::check_version_compatibility_with_group() const {
   Group_member_info_list_iterator all_members_it;
 
   Member_version lowest_version(0xFFFFFF);
-  /* Does not include local member version. */
   std::set<Member_version> unique_version_set;
   /* Find lowest member version and unique versions of the group for
    * comparison. */
@@ -1575,20 +1577,12 @@ Plugin_gcs_events_handler::check_version_compatibility_with_group() const {
       unique_version_set.insert((*all_members_it)->get_member_version());
     }
   }
-
-  /* Fetch all unique server versions in the group. */
-  std::set<Member_version> all_members_versions;
-  for (all_members_it = all_members->begin();
-       all_members_it != all_members->end(); all_members_it++) {
-    all_members_versions.insert((*all_members_it)->get_member_version());
-  }
-
   for (auto it = unique_version_set.begin();
        it != unique_version_set.end() && compatibility_type != INCOMPATIBLE;
        ++it) {
     Member_version ver(*it);
     compatibility_type = compatibility_manager->check_local_incompatibility(
-        ver, (ver == lowest_version), all_members_versions);
+        ver, (ver == lowest_version));
 
     if (compatibility_type == READ_COMPATIBLE) {
       read_compatible = true;

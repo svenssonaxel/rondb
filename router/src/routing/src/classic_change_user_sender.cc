@@ -35,7 +35,6 @@
 #include "classic_connect.h"
 #include "classic_connection_base.h"
 #include "classic_frame.h"
-#include "classic_query_sender.h"
 #include "hexify.h"
 #include "mysql/harness/logging/logging.h"
 #include "mysql/harness/stdx/expected.h"
@@ -44,8 +43,6 @@
 #include "tracer.h"
 
 IMPORT_LOG_FUNCTIONS()
-
-using mysql_harness::hexify;
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
@@ -259,11 +256,11 @@ static classic_protocol::message::client::ChangeUser change_user_for_reuse(
 stdx::expected<Processor::Result, std::error_code> ChangeUserSender::command() {
   auto *socket_splicer = connection()->socket_splicer();
   auto &src_conn = socket_splicer->client_conn();
-  auto src_channel = socket_splicer->client_channel();
-  auto src_protocol = connection()->client_protocol();
+  auto *src_channel = socket_splicer->client_channel();
+  auto *src_protocol = connection()->client_protocol();
 
-  auto dst_channel = socket_splicer->server_channel();
-  auto dst_protocol = connection()->server_protocol();
+  auto *dst_channel = socket_splicer->server_channel();
+  auto *dst_protocol = connection()->server_protocol();
 
   change_user_msg_ =
       change_user_for_reuse(src_channel, src_protocol, dst_protocol,
@@ -275,7 +272,8 @@ stdx::expected<Processor::Result, std::error_code> ChangeUserSender::command() {
             << ".. auth-method-name: " << change_user_msg_->auth_method_name()
             << "\n"
             << ".. auth-method-data: "
-            << hexify(change_user_msg_->auth_method_data()) << "\n"
+            << mysql_harness::hexify(change_user_msg_->auth_method_data())
+            << "\n"
       //
       ;
 #endif
@@ -283,6 +281,8 @@ stdx::expected<Processor::Result, std::error_code> ChangeUserSender::command() {
   if (auto &tr = tracer()) {
     tr.trace(Tracer::Event().stage("change_user::command"));
   }
+
+  trace_event_command_ = trace_span(parent_event_, "mysql/change_user");
 
   dst_protocol->seq_id(0xff);  // reset seq-id
 
@@ -346,11 +346,19 @@ stdx::expected<Processor::Result, std::error_code> ChangeUserSender::ok() {
           src_channel, src_protocol);
   if (!msg_res) return recv_server_failed(msg_res.error());
 
+  auto msg = *msg_res;
+
   if (auto &tr = tracer()) {
     tr.trace(Tracer::Event().stage("change_user::ok"));
   }
 
-  auto msg = *msg_res;
+  if (auto *ev = trace_span(trace_event_command_, "mysql/response")) {
+    ClassicFrame::trace_set_attributes(ev, src_protocol, msg);
+
+    trace_span_end(ev);
+  }
+
+  trace_command_end(trace_event_command_);
 
   if (!msg.session_changes().empty()) {
     auto track_res = connection()->track_session_changes(
@@ -395,6 +403,14 @@ stdx::expected<Processor::Result, std::error_code> ChangeUserSender::error() {
     tr.trace(Tracer::Event().stage("change_user::error: " +
                                    std::string(msg.message())));
   }
+
+  if (auto *ev = trace_span(trace_event_command_, "mysql/response")) {
+    ClassicFrame::trace_set_attributes(ev, src_protocol, msg);
+
+    trace_span_end(ev);
+  }
+
+  trace_command_end(trace_event_command_);
 
   connection()->authenticated(false);
 

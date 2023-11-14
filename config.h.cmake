@@ -222,6 +222,7 @@
 #cmakedefine SCRAM_LIB_CONFIGURED
 #cmakedefine WITH_HYPERGRAPH_OPTIMIZER
 #cmakedefine KERBEROS_LIB_SSPI
+#cmakedefine WITH_SHOW_PARSE_TREE
 
 /* Lock Order */
 #cmakedefine WITH_LOCK_ORDER 1
@@ -294,6 +295,7 @@
 #cmakedefine DISABLE_PSI_MEMORY 1
 #cmakedefine DISABLE_PSI_TRANSACTION 1
 #cmakedefine DISABLE_PSI_SERVER_TELEMETRY_TRACES 1
+#cmakedefine DISABLE_PSI_METRICS 1
 
 /*
  * MySQL version
@@ -364,5 +366,8 @@
 
 /* sasl_client_done support */
 #cmakedefine SASL_CLIENT_DONE_SUPPORTED @SASL_CLIENT_DONE_SUPPORTED@
+
+/* mysql native password support */
+#cmakedefine WITHOUT_MYSQL_NATIVE_PASSWORD @WITHOUT_MYSQL_NATIVE_PASSWORD@
 
 #endif

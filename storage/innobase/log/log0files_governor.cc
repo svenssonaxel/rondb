@@ -1304,6 +1304,8 @@ static Log_files_governor_iteration_result log_files_governor_iteration_low(
 }
 
 static void log_files_governor_iteration(log_t &log) {
+  IB_mutex_guard iteration_latch{&(log.governor_iteration_mutex),
+                                 UT_LOCATION_HERE};
   using Iteration_result = Log_files_governor_iteration_result;
 
   /* We can't use log_writer_mutex_own() here, because it could return true
@@ -2017,8 +2019,10 @@ void log_files_initialize_on_existing_redo(log_t &log) {
 Notifies the log_files_governor thread (to ensure it is soon).
 @param[in,out]  log   redo log */
 static void log_files_wait_until_next_governor_iteration(log_t &log) {
+  mutex_enter(&log.governor_iteration_mutex);
   const auto sig_count = os_event_reset(log.m_files_governor_iteration_event);
   os_event_set(log.m_files_governor_event);
+  mutex_exit(&log.governor_iteration_mutex);
   os_event_wait_low(log.m_files_governor_iteration_event, sig_count);
 }
 
@@ -2027,7 +2031,9 @@ void log_files_resize_requested(log_t &log) {
 }
 
 void log_files_thread_concurrency_updated(log_t &log) {
-  log_files_wait_until_next_governor_iteration(log);
+  if (log_files_governor_is_active()) {
+    log_files_wait_until_next_governor_iteration(log);
+  }
 }
 
 /** @} */

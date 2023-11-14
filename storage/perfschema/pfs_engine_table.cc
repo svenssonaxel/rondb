@@ -30,7 +30,6 @@
 #include <string.h>
 #include <algorithm>
 
-#include "m_ctype.h"
 #include "m_string.h"
 #include "my_bitmap.h"
 #include "my_byteorder.h"
@@ -41,6 +40,7 @@
 #include "myisampack.h"
 #include "mysql/components/services/bits/psi_bits.h"
 #include "mysql/components/services/bits/psi_mutex_bits.h"
+#include "mysql/strings/m_ctype.h"
 #include "sql/auth/auth_acls.h"
 #include "sql/current_thd.h"
 #include "sql/field.h"
@@ -133,6 +133,8 @@
 #include "storage/perfschema/table_setup_actors.h"
 #include "storage/perfschema/table_setup_consumers.h"
 #include "storage/perfschema/table_setup_instruments.h"
+#include "storage/perfschema/table_setup_meters.h"
+#include "storage/perfschema/table_setup_metrics.h"
 #include "storage/perfschema/table_setup_objects.h"
 #include "storage/perfschema/table_setup_threads.h"
 #include "storage/perfschema/table_socket_instances.h"
@@ -502,6 +504,8 @@ static PFS_engine_table_share *all_shares[] = {
     &table_setup_actors::m_share,
     &table_setup_consumers::m_share,
     &table_setup_instruments::m_share,
+    &table_setup_meters::m_share,
+    &table_setup_metrics::m_share,
     &table_setup_objects::m_share,
     &table_setup_threads::m_share,
     &table_tiws_by_index_usage::m_share,

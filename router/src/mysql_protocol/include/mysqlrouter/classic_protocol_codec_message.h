@@ -268,6 +268,13 @@ class Codec<borrowable::message::server::AuthMethodSwitch<Borrowed>>
 
   static constexpr uint8_t cmd_byte() noexcept { return 0xfe; }
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::plugin_auth;
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -326,6 +333,13 @@ class Codec<borrowable::message::server::AuthMethodData<Borrowed>>
       : __base(caps), v_{std::move(v)} {}
 
   static constexpr uint8_t cmd_byte() noexcept { return 0x01; }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
@@ -396,6 +410,14 @@ class Codec<borrowable::message::server::Ok<Borrowed>>
       : __base(caps), v_{std::move(v)} {}
 
   static constexpr uint8_t cmd_byte() noexcept { return 0x00; }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::session_track | capabilities::transactions |
+           capabilities::protocol_41;
+  }
 
   /**
    * decode a server::Ok message from a buffer-sequence.
@@ -547,6 +569,15 @@ class Codec<borrowable::message::server::Eof<Borrowed>>
   static constexpr uint8_t cmd_byte() noexcept { return 0xfe; }
 
   /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::text_result_with_session_tracking |
+           capabilities::session_track | capabilities::transactions |
+           capabilities::protocol_41;
+  }
+
+  /**
    * decode a server::Eof message from a buffer-sequence.
    *
    * capabilities checked:
@@ -689,6 +720,13 @@ class Codec<borrowable::message::server::Error<Borrowed>>
       : __base(caps), v_{std::move(v)} {}
 
   static constexpr uint8_t cmd_byte() { return 0xff; }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::protocol_41;
+  }
 
   static constexpr size_t max_size() noexcept {
     return std::numeric_limits<size_t>::max();
@@ -976,6 +1014,13 @@ class Codec<borrowable::message::server::SendFileRequest<Borrowed>>
 
   static constexpr uint8_t cmd_byte() noexcept { return 0xfb; }
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -1050,6 +1095,13 @@ class Codec<borrowable::message::server::StmtPrepareOk>
       : __base(caps), v_{std::move(v)} {}
 
   constexpr static uint8_t cmd_byte() noexcept { return 0x00; }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::optional_resultset_metadata;
+  }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
@@ -1486,6 +1538,13 @@ class Codec<borrowable::message::client::Quit>
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::Quit);
   }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
 };
 
 /**
@@ -1505,6 +1564,13 @@ class Codec<borrowable::message::client::ResetConnection>
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::ResetConnection);
   }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
 };
 
 /**
@@ -1523,6 +1589,13 @@ class Codec<borrowable::message::client::Ping>
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::Ping);
   }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
 };
 
 /**
@@ -1540,6 +1613,38 @@ class Codec<borrowable::message::client::Statistics>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::Statistics);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
+};
+
+/**
+ * codec for client's Debug command.
+ */
+template <>
+class Codec<borrowable::message::client::Debug>
+    : public CodecSimpleCommand<Codec<borrowable::message::client::Debug>,
+                                borrowable::message::client::Debug> {
+ public:
+  using value_type = borrowable::message::client::Debug;
+  using __base = CodecSimpleCommand<Codec<value_type>, value_type>;
+
+  constexpr Codec(value_type, capabilities::value_type caps) : __base(caps) {}
+
+  constexpr static uint8_t cmd_byte() noexcept {
+    return static_cast<uint8_t>(CommandByte::Debug);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 };
 
@@ -1570,6 +1675,13 @@ class Codec<borrowable::message::client::InitSchema<Borrowed>>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::InitSchema);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -1777,6 +1889,13 @@ class Codec<borrowable::message::client::Query<Borrowed>>
     return static_cast<uint8_t>(CommandByte::Query);
   }
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::query_attributes;
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -1917,6 +2036,13 @@ class Codec<borrowable::message::client::SendFile<Borrowed>>
   constexpr Codec(value_type v, capabilities::value_type caps)
       : __base(caps), v_{std::move(v)} {}
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -1962,6 +2088,13 @@ class Codec<borrowable::message::client::ListFields<Borrowed>>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::ListFields);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -2016,6 +2149,13 @@ class Codec<borrowable::message::client::Reload>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::Refresh);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -2074,6 +2214,13 @@ class Codec<borrowable::message::client::Kill>
     return static_cast<uint8_t>(CommandByte::ProcessKill);
   }
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -2125,6 +2272,13 @@ class Codec<borrowable::message::client::StmtPrepare<Borrowed>>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::StmtPrepare);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -2274,6 +2428,13 @@ class Codec<borrowable::message::client::StmtExecute<Borrowed>>
   }
 
   /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::query_attributes;
+  }
+
+  /**
    * decode a buffer into a message::client::StmtExecute.
    *
    * @param buffer a buffer
@@ -2408,7 +2569,7 @@ class Codec<borrowable::message::client::StmtExecute<Borrowed>>
           }
           types.emplace_back(type_res->value(), name_res->value());
         } else {
-          types.emplace_back(type_res->value());
+          types.emplace_back(type_res->value(), "");
         }
       }
     } else {
@@ -2430,7 +2591,15 @@ class Codec<borrowable::message::client::StmtExecute<Borrowed>>
         ++byte_pos;
       }
 
-      if (!(nullbits[byte_pos] & (1 << bit_pos))) {
+      // if the data was sent via COM_STMT_SEND_LONG_DATA, there will be no data
+      // for
+      const auto param_already_sent =
+          n < metadata_res->size() ? (*metadata_res)[n].param_already_sent
+                                   : false;
+
+      if (param_already_sent) {
+        values.emplace_back("");  // empty
+      } else if (!(nullbits[byte_pos] & (1 << bit_pos))) {
         stdx::expected<size_t, std::error_code> field_size_res(
             stdx::make_unexpected(
                 make_error_code(std::errc::invalid_argument)));
@@ -2449,8 +2618,9 @@ class Codec<borrowable::message::client::StmtExecute<Borrowed>>
           case field_type::NewDecimal:
           case field_type::Geometry: {
             auto string_field_size_res = accu.template step<bw::VarInt>();
-            if (!accu.result())
+            if (!accu.result()) {
               return stdx::make_unexpected(accu.result().error());
+            }
 
             field_size_res = string_field_size_res->value();
           } break;
@@ -2459,8 +2629,9 @@ class Codec<borrowable::message::client::StmtExecute<Borrowed>>
           case field_type::Timestamp:
           case field_type::Time: {
             auto time_field_size_res = accu.template step<bw::FixedInt<1>>();
-            if (!accu.result())
+            if (!accu.result()) {
               return stdx::make_unexpected(accu.result().error());
+            }
 
             field_size_res = time_field_size_res->value();
           } break;
@@ -2544,6 +2715,13 @@ class Codec<borrowable::message::client::StmtParamAppendData<Borrowed>>
     return static_cast<uint8_t>(CommandByte::StmtSendLongData);
   }
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -2599,6 +2777,13 @@ class Codec<borrowable::message::client::StmtClose>
     return static_cast<uint8_t>(CommandByte::StmtClose);
   }
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -2649,6 +2834,13 @@ class Codec<borrowable::message::client::StmtReset>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::StmtReset);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -2703,6 +2895,13 @@ class Codec<borrowable::message::client::SetOption>
     return static_cast<uint8_t>(CommandByte::SetOption);
   }
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -2754,6 +2953,13 @@ class Codec<borrowable::message::client::StmtFetch>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::StmtFetch);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -2902,6 +3108,15 @@ class Codec<borrowable::message::client::Greeting<Borrowed>>
 
   constexpr Codec(value_type v, capabilities::value_type caps)
       : __base(caps), v_{std::move(v)} {}
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::secure_connection | capabilities::protocol_41 |
+           capabilities::ssl | capabilities::client_auth_method_data_varint |
+           capabilities::connect_attributes | capabilities::connect_with_schema;
+  }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
@@ -3106,6 +3321,13 @@ class Codec<borrowable::message::client::AuthMethodData<Borrowed>>
   constexpr Codec(value_type v, capabilities::value_type caps)
       : __base(caps), v_{std::move(v)} {}
 
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
+
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
       const net::const_buffer &buffer, capabilities::value_type caps) {
     impl::DecodeBufferAccumulator accu(buffer, caps);
@@ -3184,6 +3406,14 @@ class Codec<borrowable::message::client::ChangeUser<Borrowed>>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::ChangeUser);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return capabilities::secure_connection | capabilities::plugin_auth |
+           capabilities::connect_attributes;
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -3279,6 +3509,13 @@ class Codec<borrowable::message::client::Clone>
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::Clone);
   }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
+  }
 };
 
 /**
@@ -3314,6 +3551,13 @@ class Codec<borrowable::message::client::BinlogDump<Borrowed>>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::BinlogDump);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -3388,6 +3632,13 @@ class Codec<borrowable::message::client::RegisterReplica<Borrowed>>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::RegisterReplica);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(
@@ -3479,6 +3730,13 @@ class Codec<borrowable::message::client::BinlogDumpGtid<Borrowed>>
 
   constexpr static uint8_t cmd_byte() noexcept {
     return static_cast<uint8_t>(CommandByte::BinlogDumpGtid);
+  }
+
+  /**
+   * capabilities the codec depends on.
+   */
+  static constexpr capabilities::value_type depends_on_capabilities() noexcept {
+    return {};
   }
 
   static stdx::expected<std::pair<size_t, value_type>, std::error_code> decode(

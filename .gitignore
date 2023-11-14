@@ -17,6 +17,8 @@ source_downloads
 [._]ss[a-gi-z]
 [._]sw[a-p]
 
+.clang-tidy
+
 # Configuration files for Visual Studio Code
 .vscode/
 

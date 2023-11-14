@@ -28,24 +28,25 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "my_loglevel.h"
 #include "mysql/components/services/bits/psi_mutex_bits.h"
 #include "mysql/components/services/log_builtins.h"
+#include "mysql/my_loglevel.h"
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <algorithm>
 #include <list>
 
-#include "libbinlogevents/include/control_events.h"
 #include "m_string.h"  // my_strtoll
 #include "my_byteorder.h"
 #include "my_dbug.h"
 #include "my_inttypes.h"
 #include "my_stacktrace.h"  // my_safe_printf_stderr
 #include "my_sys.h"
+#include "mysql/binlog/event/control_events.h"
 #include "mysql/psi/mysql_mutex.h"
 #include "mysql/service_mysql_alloc.h"
+#include "mysql/strings/int2str.h"
 #include "prealloced_array.h"
 #include "sql/rpl_gtid.h"
 #include "sql/sql_const.h"
@@ -482,13 +483,13 @@ enum_return_status Gtid_set::add_gtid_text(const char *text, bool *anonymous,
       s += 9;
     } else {
       rpl_sid sid;
-      if (sid.parse(s, binary_log::Uuid::TEXT_LENGTH) != 0) {
+      if (sid.parse(s, mysql::gtid::Uuid::TEXT_LENGTH) != 0) {
         DBUG_PRINT("info",
                    ("expected UUID; found garbage '%.80s' at char %d in '%s'",
                     s, (int)(s - text), text));
         goto parse_error;
       }
-      s += binary_log::Uuid::TEXT_LENGTH;
+      s += mysql::gtid::Uuid::TEXT_LENGTH;
       rpl_sidno sidno = sid_map->add_sid(sid);
       if (sidno <= 0) {
         RETURN_REPORTED_ERROR;
@@ -581,8 +582,8 @@ bool Gtid_set::is_valid(const char *text) {
     if (*s == 0) return true;
 
     // Parse SID.
-    if (!rpl_sid::is_valid(s, binary_log::Uuid::TEXT_LENGTH)) return false;
-    s += binary_log::Uuid::TEXT_LENGTH;
+    if (!rpl_sid::is_valid(s, mysql::gtid::Uuid::TEXT_LENGTH)) return false;
+    s += mysql::gtid::Uuid::TEXT_LENGTH;
     SKIP_WHITESPACE();
 
     // Iterate over intervals.
@@ -897,8 +898,8 @@ size_t Gtid_set::get_string_length(const Gtid_set::String_format *sf) const {
       if (n_sids > 0)
         cached_string_length +=
             total_interval_length +
-            n_sids *
-                (binary_log::Uuid::TEXT_LENGTH + sf->sid_gno_separator_length) +
+            n_sids * (mysql::gtid::Uuid::TEXT_LENGTH +
+                      sf->sid_gno_separator_length) +
             (n_sids - 1) * sf->gno_sid_separator_length +
             (n_intervals - n_sids) * sf->gno_gno_separator_length +
             n_long_intervals * sf->gno_start_end_separator_length;
@@ -1255,7 +1256,7 @@ void Gtid_set::encode(uchar *buf) const {
       n_sids++;
       // store SID
       sid_map->sidno_to_sid(sidno).copy_to(buf);
-      buf += binary_log::Uuid::BYTE_LENGTH;
+      buf += mysql::gtid::Uuid::BYTE_LENGTH;
       // make place for number of intervals
       uint64 n_intervals = 0;
       uchar *n_intervals_p = buf;

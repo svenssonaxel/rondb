@@ -1,7 +1,8 @@
 var common_stmts = require("common_statements");
+var gr_memberships = require("gr_memberships");
 
-if (mysqld.global.innodb_cluster_instances === undefined) {
-  mysqld.global.innodb_cluster_instances = [
+if (mysqld.global.cluster_nodes === undefined) {
+  mysqld.global.cluster_nodes = [
     ["5500", "localhost", 5500], ["5510", "localhost", 5510],
     ["5520", "localhost", 5520]
   ];
@@ -11,8 +12,8 @@ if (mysqld.global.cluster_name == undefined) {
   mysqld.global.cluster_name = "mycluster";
 }
 
-if (mysqld.global.metadata_version === undefined) {
-  mysqld.global.metadata_version = [2, 0, 3];
+if (mysqld.global.metadata_schema_version === undefined) {
+  mysqld.global.metadata_schema_version = [2, 0, 3];
 }
 
 if (mysqld.global.gr_id === undefined) {
@@ -20,12 +21,13 @@ if (mysqld.global.gr_id === undefined) {
 }
 
 var options = {
-  metadata_schema_version: mysqld.global.metadata_version,
+  metadata_schema_version: mysqld.global.metadata_schema_version,
   cluster_type: "gr",
   gr_id: mysqld.global.gr_id,
   clusterset_present: 0,
   innodb_cluster_name: mysqld.global.cluster_name,
-  innodb_cluster_instances: mysqld.global.innodb_cluster_instances,
+  innodb_cluster_instances: gr_memberships.cluster_nodes(
+      mysqld.global.gr_node_host, mysqld.global.cluster_nodes),
 };
 
 var common_responses = common_stmts.prepare_statement_responses(
@@ -43,6 +45,7 @@ var common_responses = common_stmts.prepare_statement_responses(
       "router_start_transaction",
       "router_commit",
       "router_clusterset_present",
+      "router_select_current_instance_attributes",
 
       // account verification
       "router_select_metadata_v2_gr_account_verification",

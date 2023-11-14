@@ -55,6 +55,7 @@
 #include "portlib/NdbTick.h"
 #include "portlib/ndb_sockaddr.h"
 #include "util/NdbSocket.h"
+#include "util/TlsKeyManager.hpp"
 
 #ifndef _WIN32
 /*
@@ -254,6 +255,13 @@ public:
   bool init(TransporterReceiveHandle&);
 
   /**
+   * Initialize TLS context. Cannot be called prior to init(NodeId).
+   * Returns true on success.
+   */
+  bool init_tls(const char * search_path, int node_type,
+                bool is_primary, int mgm_tls_requirement_level);
+
+  /**
      Perform handshaking of a client connection to accept it
      as transporter.
 
@@ -275,26 +283,20 @@ public:
                       bool& close_with_reset,
                       bool& log_failure);
 
-  bool connect_server(ndb_socket_t sockfd, BaseString & msg,
-                      bool & close_with_reset, bool & log_failure) {
-    NdbSocket sock(sockfd, NdbSocket::From::Existing);
-    return connect_server(sock, msg, close_with_reset, log_failure);
-  }
-
   bool connect_client(NdbMgmHandle *h);
 
   /**
    * Given a hostname and port, creates a NdbMgmHandle, turns it into
    * a transporter, and returns the socket.
    */
-  ndb_socket_t connect_ndb_mgmd(const char* server_name,
-                                unsigned short server_port);
+  NdbSocket connect_ndb_mgmd(const char* server_name,
+                             unsigned short server_port);
 
   /**
    * Given a connected NdbMgmHandle, turns it into a transporter
    * and returns the socket.
    */
-  ndb_socket_t connect_ndb_mgmd(NdbMgmHandle *h);
+  NdbSocket connect_ndb_mgmd(NdbMgmHandle *h);
 
   /**
    * Manage allTransporters and theNodeIdTransporters when using
@@ -555,10 +557,11 @@ public:
     NodeId m_remote_nodeId;
     int m_s_service_port;			// signed port number
     const char *m_interface;
+    bool m_require_tls;
   };
   Vector<Transporter_interface> m_transporter_interface;
   void add_transporter_interface(NodeId remoteNodeId, const char *interf,
-		  		 int s_port);	// signed port. <0 is dynamic
+                                 int s_port, bool requireTls);
 
   int get_transporter_count() const;
   Transporter* get_transporter(TrpId id) const;
@@ -572,6 +575,7 @@ public:
   }
   bool is_server(NodeId) const;
   ndb_sockaddr get_connect_address(NodeId node_id) const;
+  bool is_encrypted_link(NodeId) const;
 
   Uint64 get_bytes_sent(NodeId nodeId) const;
   Uint64 get_bytes_received(NodeId nodeId) const;
@@ -598,6 +602,8 @@ private:
   Uint32 nMultiTransporters;
   Uint32 nTCPTransporters;
   Uint32 nSHMTransporters;
+  TlsKeyManager m_tls_keys;
+  int m_mgm_tls_req;
 
 #ifdef ERROR_INSERT
   NodeBitmask m_blocked;
@@ -743,6 +749,9 @@ public:
                          Uint32 max_trp_ids);
 
   Uint32 get_num_trps();
+  TlsKeyManager * getTlsKeyManager()  { return & m_tls_keys; }
+  bool hasTlsCert() const             { return (bool) m_tls_keys.ctx(); }
+
 private:
   /**
    * Sum of max transporter memory for each transporter.

@@ -36,7 +36,6 @@
 #include <mysql/components/minimal_chassis.h>
 #include <mysql/components/services/dynamic_loader_scheme_file.h>
 #include "lex_string.h"
-#include "m_ctype.h"
 #include "my_command.h"
 #include "my_compress.h"
 #include "my_getopt.h"
@@ -60,10 +59,12 @@
 #include "mysql/components/services/bits/psi_statement_bits.h"
 #include "mysql/components/services/bits/psi_thread_bits.h"
 #include "mysql/status_var.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql_com.h"  // SERVER_VERSION_LENGTH
 #ifdef _WIN32
 #include "sql/nt_servc.h"
 #endif  // _WIN32
+#include "aggregated_stats.h"
 #include "sql/sql_bitmap.h"
 #include "sql/sql_const.h"  // UUID_LENGTH
 
@@ -149,11 +150,6 @@ void my_init_signals();
 bool gtid_server_init();
 void gtid_server_cleanup();
 void clean_up_mysqld_mutexes();
-
-extern MYSQL_PLUGIN_IMPORT CHARSET_INFO *files_charset_info;
-extern MYSQL_PLUGIN_IMPORT CHARSET_INFO *national_charset_info;
-extern MYSQL_PLUGIN_IMPORT CHARSET_INFO *table_alias_charset;
-extern CHARSET_INFO *character_set_filesystem;
 
 enum enum_server_operational_state {
   SERVER_BOOTING,      /* Server is not operational. It is starting */
@@ -250,7 +246,6 @@ extern bool using_udf_functions;
 extern bool locked_in_memory;
 extern bool opt_using_transactions;
 extern ulong current_pid;
-extern ulong expire_logs_days;
 extern ulong binlog_expire_logs_seconds;
 extern bool opt_binlog_expire_logs_auto_purge;
 extern uint sync_binlog_period, sync_relaylog_period, sync_relayloginfo_period,
@@ -374,6 +369,7 @@ extern const char *in_left_expr_name;
 extern SHOW_VAR status_vars[];
 extern struct System_variables max_system_variables;
 extern struct System_status_var global_status_var;
+extern struct aggregated_stats global_aggregated_stats;
 extern struct rand_struct sql_rand;
 extern handlerton *myisam_hton;
 extern handlerton *heap_hton;
@@ -383,7 +379,7 @@ extern uint opt_server_id_bits;
 extern ulong opt_server_id_mask;
 extern const char *load_default_groups[];
 extern struct my_option my_long_early_options[];
-extern bool mysqld_server_started;
+extern "C" MYSQL_PLUGIN_IMPORT bool mysqld_server_started;
 extern "C" MYSQL_PLUGIN_IMPORT int orig_argc;
 extern "C" MYSQL_PLUGIN_IMPORT char **orig_argv;
 extern my_thread_attr_t connection_attrib;

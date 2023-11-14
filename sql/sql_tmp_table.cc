@@ -38,7 +38,6 @@
 
 #include "field_types.h"
 #include "lex_string.h"
-#include "m_ctype.h"
 #include "m_string.h"
 #include "my_alloc.h"
 #include "my_bitmap.h"
@@ -47,9 +46,11 @@
 #include "my_pointer_arithmetic.h"
 #include "my_sys.h"
 #include "mysql/plugin.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql/udf_registration_types.h"
 #include "mysql_com.h"
 #include "mysqld_error.h"
+#include "nulls.h"
 #include "scope_guard.h"
 #include "sql/create_field.h"
 #include "sql/current_thd.h"
@@ -228,7 +229,7 @@ Field *create_tmp_field_from_field(THD *thd, const Field *org_field,
 */
 
 static Field *create_tmp_field_from_item(Item *item, TABLE *table) {
-  bool maybe_null = item->is_nullable();
+  const bool maybe_null = item->is_nullable();
   Field *new_field = nullptr;
 
   switch (item->result_type()) {
@@ -363,7 +364,7 @@ Field *create_tmp_field(THD *thd, TABLE *table, Item *item, Item::Type type,
                         bool make_copy_field) {
   DBUG_TRACE;
   Field *result = nullptr;
-  Item::Type orig_type = type;
+  const Item::Type orig_type = type;
   Item *orig_item = nullptr;
 
   // If we are optimizing twice (due to being in the hypergraph optimizer
@@ -381,7 +382,7 @@ Field *create_tmp_field(THD *thd, TABLE *table, Item *item, Item::Type type,
     type = Item::FIELD_ITEM;
   }
 
-  bool is_wf =
+  const bool is_wf =
       type == Item::SUM_FUNC_ITEM && item->real_item()->m_is_window_function;
 
   switch (type) {
@@ -514,7 +515,7 @@ Field *create_tmp_field(THD *thd, TABLE *table, Item *item, Item::Type type,
 */
 
 static void setup_tmp_table_column_bitmaps(TABLE *table, uchar *bitmaps) {
-  uint field_count = table->s->fields;
+  const uint field_count = table->s->fields;
   bitmap_init(&table->def_read_set, (my_bitmap_map *)bitmaps, field_count);
   bitmap_init(&table->tmp_set,
               (my_bitmap_map *)(bitmaps + bitmap_buffer_size(field_count)),
@@ -897,7 +898,7 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
   }
 
   /**
-    When true, enforces unique constraint (by adding a hidden hash_field and
+    When true, enforces unique constraint (by adding a hidden hash field and
     creating a key over this field) when:
     (1) unique key is too long, or
     (2) number of key parts in distinct key is too big, or
@@ -1397,9 +1398,11 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
       share->fields = ++fieldnr;
       param->hidden_field_count++;
       share->field--;
-      table->set_set_counter(
-          set_counter, param->m_operation == Temp_table_param::TTP_EXCEPT);
-      table->set_distinct(param->m_last_operation_is_distinct);
+      table->set_set_op(set_counter,
+                        param->m_operation == Temp_table_param::TTP_EXCEPT,
+                        param->m_last_operation_is_distinct);
+      table->set_hashing(
+          thd->optimizer_switch_flag(OPTIMIZER_SWITCH_HASH_SET_OPERATIONS));
     }
 
     Field_longlong *field = new (&share->mem_root)
@@ -1447,7 +1450,7 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
     else
       null_count++;
   }
-  uint hidden_null_pack_length =
+  const uint hidden_null_pack_length =
       (hidden_null_count + 7 + hidden_uneven_bit_length) / 8;
   share->null_bytes = (hidden_null_pack_length +
                        (null_count + total_uneven_bit_length + 7) / 8);
@@ -1514,7 +1517,7 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
       /*
         Get the value from default_values.
       */
-      ptrdiff_t diff = orig_field->table->default_values_offset();
+      const ptrdiff_t diff = orig_field->table->default_values_offset();
       Field *f_in_record0 = orig_field->table->field[orig_field->field_index()];
       if (f_in_record0->is_real_null(diff))
         field->set_null();
@@ -1606,7 +1609,14 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
     }
   }
 
-  // Create a key over hash_field to enforce unique constraint
+  // For set operations, we may use either a temporary table key strategy or a
+  // hashing strategy.  If a temporary table key strategy is used, it is set up
+  // here.  We create a key over a hash_field to enforce the unique constraint.
+  // If a hashing strategy is used, de-duplicating via a tmp table key is not
+  // used to start with, however it may be used as a fallback for secondary
+  // memory overflow during spill handling, thus most of the set-up is done
+  // here, but share->keys is set to 0 in instantiate_tmp_table until such time
+  //  as we would need the fallback.
   if (unique_constraint_via_hash_field) {
     KEY *hash_key;
     KEY_PART_INFO *hash_kpi;
@@ -2182,7 +2192,7 @@ static bool alloc_record_buffers(THD *thd, TABLE *table) {
     allows to exclude "myisam.h" from include files.
   */
   const int TMP_TABLE_UNIQUE_HASH_LENGTH = 4;
-  uint alloc_length =
+  const uint alloc_length =
       ALIGN_SIZE(share->reclength + TMP_TABLE_UNIQUE_HASH_LENGTH + 1);
   share->rec_buff_length = alloc_length;
   /*
@@ -2326,7 +2336,8 @@ static void trace_tmp_table(Opt_trace_context *trace, const TABLE *table) {
   trace_tmp.add("columns", s->fields)
       .add("row_length", s->reclength)
       .add("key_length", table->s->keys > 0 ? table->key_info->key_length : 0)
-      .add("unique_constraint", table->hash_field ? true : false)
+      .add("unique_constraint",
+           !table->is_union_or_table() || table->hash_field != nullptr)
       .add("makes_grouped_rows", table->group != nullptr)
       .add("cannot_insert_duplicates", s->is_distinct);
 
@@ -2351,7 +2362,6 @@ static void trace_tmp_table(Opt_trace_context *trace, const TABLE *table) {
   @param  thd             Thread handler
   @param  table           Table object that describes the table to be
                           instantiated
-
   Creates temporary table and opens it.
 
   @returns false if success, true if error
@@ -2363,6 +2373,7 @@ bool instantiate_tmp_table(THD *thd, TABLE *table) {
   table->in_use = thd;
 
   TABLE_SHARE *const share = table->s;
+  if (table->uses_hashing()) share->keys = 0;
 
 #ifndef NDEBUG
   for (uint i = 0; i < share->fields; i++)
@@ -2409,8 +2420,8 @@ bool instantiate_tmp_table(THD *thd, TABLE *table) {
 
   Opt_trace_context *const trace = &thd->opt_trace;
   if (unlikely(trace->is_started())) {
-    Opt_trace_object wrapper(trace);
-    Opt_trace_object convert(trace, "creating_tmp_table");
+    const Opt_trace_object wrapper(trace);
+    const Opt_trace_object convert(trace, "creating_tmp_table");
     trace_tmp_table(trace, table);
   }
   return false;
@@ -2711,7 +2722,7 @@ bool create_ondisk_from_heap(THD *thd, TABLE *wtable, int error,
 
         if (unlikely(thd->opt_trace.is_started())) {
           Opt_trace_context *trace = &thd->opt_trace;
-          Opt_trace_object wrapper(trace);
+          const Opt_trace_object wrapper(trace);
           Opt_trace_object convert(trace, "converting_tmp_table_to_ondisk");
           assert(error == HA_ERR_RECORD_FILE_FULL);
           convert.add_alnum("cause", "memory_table_size_exceeded");

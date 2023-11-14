@@ -31,11 +31,11 @@
 #include <utility>
 #include <vector>
 
-#include "m_ctype.h"
 #include "my_dbug.h"
-#include "my_loglevel.h"
 #include "my_sys.h"
 #include "mysql/components/services/log_builtins.h"
+#include "mysql/my_loglevel.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql_version.h"  // MYSQL_VERSION_ID
 #include "mysqld_error.h"
 #include "sql/auth/sql_security_ctx.h"
@@ -83,10 +83,15 @@ namespace {
 // Initialize recovery in the DDSE.
 bool DDSE_dict_recover(THD *thd, dict_recovery_mode_t dict_recovery_mode,
                        uint version) {
+  if (!opt_initialize)
+    sysd::notify("STATUS=InnoDB crash recovery in progress\n");
   handlerton *ddse = ha_resolve_by_legacy_type(thd, DB_TYPE_INNODB);
   if (ddse->dict_recover == nullptr) return true;
 
   bool error = ddse->dict_recover(dict_recovery_mode, version);
+  if (!opt_initialize)
+    sysd::notify("STATUS=InnoDB crash recovery ",
+                 error ? "unsuccessful" : "successful", "\n");
 
   /*
     Commit when tablespaces have been initialized, since in that
@@ -735,10 +740,14 @@ bool DDSE_dict_init(THD *thd, dict_init_mode_t dict_init_mode, uint version) {
   */
   List<const Object_table> ddse_tables;
   List<const Plugin_tablespace> ddse_tablespaces;
-  if (ddse->ddse_dict_init == nullptr ||
-      ddse->ddse_dict_init(dict_init_mode, version, &ddse_tables,
-                           &ddse_tablespaces))
-    return true;
+  sysd::notify("STATUS=InnoDB initialization in progress\n");
+  bool innodb_init_failed =
+      (ddse->ddse_dict_init == nullptr ||
+       ddse->ddse_dict_init(dict_init_mode, version, &ddse_tables,
+                            &ddse_tablespaces));
+  sysd::notify("STATUS=InnoDB initialization ",
+               innodb_init_failed ? "unsuccessful" : "successful", "\n");
+  if (innodb_init_failed) return true;
 
   /*
     Iterate over the table definitions and add them to the System_tables
@@ -1079,26 +1088,27 @@ bool create_dd_schema(THD *thd) {
                                     dd::String_type(MYSQL_SCHEMA_NAME.str));
 }
 
-bool getprop(THD *thd, const char *key, uint *value, bool silent = false) {
+bool getprop(THD *thd, const char *key, uint *value, bool silent = false,
+             loglevel level = ERROR_LEVEL) {
   bool exists = false;
   if (dd::tables::DD_properties::instance().get(thd, key, value, &exists) ||
       !exists) {
     /* purecov: begin inspected */
-    if (!silent) LogErr(ERROR_LEVEL, ER_FAILED_GET_DD_PROPERTY, key);
-    return true;
+    if (!silent) LogErr(level, ER_FAILED_GET_DD_PROPERTY, key);
+    if (level == ERROR_LEVEL) return true;
     /* purecov: end */
   }
   return false;
 }
 
-bool getprop(THD *thd, const char *key, String_type *value,
-             bool silent = false) {
+bool getprop(THD *thd, const char *key, String_type *value, bool silent = false,
+             loglevel level = ERROR_LEVEL) {
   bool exists = false;
   if (dd::tables::DD_properties::instance().get(thd, key, value, &exists) ||
       !exists) {
     /* purecov: begin inspected */
-    if (!silent) LogErr(ERROR_LEVEL, ER_FAILED_GET_DD_PROPERTY, key);
-    return true;
+    if (!silent) LogErr(level, ER_FAILED_GET_DD_PROPERTY, key);
+    if (level == ERROR_LEVEL) return true;
     /* purecov: end */
   }
   return false;
@@ -1177,12 +1187,14 @@ bool initialize_dd_properties(THD *thd) {
     uint server_downgrade_threshold = 0;
     uint server_upgrade_threshold = 0;
     /* purecov: begin inspected */
-    if (actual_server_version >= 80035 && actual_server_version != 80100 &&
-        (getprop(thd, "MYSQL_VERSION_STABILITY", &mysql_version_stability) ||
-         getprop(thd, "SERVER_DOWNGRADE_THRESHOLD",
-                 &server_downgrade_threshold) ||
-         getprop(thd, "SERVER_UPGRADE_THRESHOLD", &server_upgrade_threshold)))
-      return true;
+    if (actual_server_version >= 80035 && actual_server_version != 80100) {
+      (void)getprop(thd, "MYSQL_VERSION_STABILITY", &mysql_version_stability,
+                    false, WARNING_LEVEL);
+      (void)getprop(thd, "SERVER_DOWNGRADE_THRESHOLD",
+                    &server_downgrade_threshold, false, WARNING_LEVEL);
+      (void)getprop(thd, "SERVER_UPGRADE_THRESHOLD", &server_upgrade_threshold,
+                    false, WARNING_LEVEL);
+    }
 
     /* Is there a server version change? */
     if (MYSQL_VERSION_ID != actual_server_version) {

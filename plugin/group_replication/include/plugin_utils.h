@@ -38,6 +38,7 @@
 #include "my_systime.h"
 #include "plugin/group_replication/include/plugin_psi.h"
 #include "sql/malloc_allocator.h"
+#include "string_with_len.h"
 
 void log_primary_member_details();
 
@@ -205,7 +206,7 @@ class Synchronized_queue : public Synchronized_queue_interface<T> {
   }
 
   bool pop(T *out) override {
-    *out = NULL;
+    *out = nullptr;
     mysql_mutex_lock(&lock);
     while (queue.empty())
       mysql_cond_wait(&cond, &lock); /* purecov: inspected */
@@ -227,7 +228,7 @@ class Synchronized_queue : public Synchronized_queue_interface<T> {
   }
 
   bool front(T *out) override {
-    *out = NULL;
+    *out = nullptr;
     mysql_mutex_lock(&lock);
     while (queue.empty()) mysql_cond_wait(&cond, &lock);
     *out = queue.front();

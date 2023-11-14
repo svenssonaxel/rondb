@@ -82,7 +82,7 @@
 #include "x_connection.h"
 
 using mysql_harness::utility::string_format;
-using routing::AccessMode;
+using routing::Mode;
 using routing::RoutingStrategy;
 IMPORT_LOG_FUNCTIONS()
 
@@ -216,11 +216,8 @@ class Acceptor {
         auto sock_res = acceptor_socket_.accept(cur_io_thread_->context(),
                                                 client_endpoint, socket_flags);
         if (sock_res) {
-          // on Linux and AF_UNIX, the client_endpoint will be empty [only
-          // family is set]
-          //
-          // in that case, use the acceptor's endpoint
-          if (client_endpoint.size() == 2) {
+          // for AF_UNIX we use the acceptor's endpoint
+          if constexpr (std::is_same<Protocol, local::stream_protocol>::value) {
             client_endpoint = acceptor_endpoint_;
           }
 
@@ -589,6 +586,13 @@ stdx::expected<void, std::error_code> AcceptingEndpointUnixSocket::setup() {
       if (!last_res) {
         return stdx::make_unexpected(last_res.error());
       }
+    } else {
+      log_warning(
+          "Checking if existing socket file %s is bound by another process "
+          "failed: %s",
+          socket_name_.c_str(), connect_res.error().message().c_str());
+
+      return stdx::make_unexpected(connect_res.error());
     }
   }
 
@@ -652,12 +656,11 @@ MySQLRouting::MySQLRouting(const RoutingConfig &routing_config,
                            const std::string &route_name,
                            TlsServerContext *client_ssl_ctx,
                            DestinationTlsContext *dest_ssl_ctx)
-    : context_(routing_config, route_name,
-
-               client_ssl_ctx, dest_ssl_ctx),
+    : context_(routing_config, route_name, client_ssl_ctx, dest_ssl_ctx),
       io_ctx_{io_ctx},
       routing_strategy_(routing_config.routing_strategy),
-      access_mode_(routing_config.mode),
+      mode_(routing_config.mode),
+      access_mode_(routing_config.access_mode),
       max_connections_(set_max_connections(routing_config.max_connections)) {
   validate_destination_connect_timeout(
       std::chrono::milliseconds{routing_config.connect_timeout * 1000});
@@ -707,7 +710,7 @@ void MySQLRouting::run(mysql_harness::PluginFuncEnv *env) {
                get_routing_strategy_name(routing_strategy_).c_str());
     else
       log_info("[%s] started: routing mode = %s", context_.get_name().c_str(),
-               get_access_mode_name(access_mode_).c_str());
+               get_mode_name(mode_).c_str());
 
     auto res = run_acceptor(env);
     if (!res) {
@@ -1034,7 +1037,7 @@ void MySQLRouting::set_destinations_from_uri(const mysqlrouter::URI &uri) {
 
     destination_ = std::make_unique<DestMetadataCacheGroup>(
         io_ctx_, uri.host, routing_strategy_, uri.query,
-        context_.get_protocol(), access_mode_);
+        context_.get_protocol(), mode_);
   } else {
     throw std::runtime_error(string_format(
         "Invalid URI scheme; expecting: 'metadata-cache' is: '%s'",
@@ -1045,11 +1048,11 @@ void MySQLRouting::set_destinations_from_uri(const mysqlrouter::URI &uri) {
 namespace {
 
 routing::RoutingStrategy get_default_routing_strategy(
-    const routing::AccessMode access_mode) {
-  switch (access_mode) {
-    case routing::AccessMode::kReadOnly:
+    const routing::Mode mode) {
+  switch (mode) {
+    case routing::Mode::kReadOnly:
       return routing::RoutingStrategy::kRoundRobin;
-    case routing::AccessMode::kReadWrite:
+    case routing::Mode::kReadWrite:
       return routing::RoutingStrategy::kFirstAvailable;
     default:;  // fall-through
   }
@@ -1085,7 +1088,7 @@ void MySQLRouting::set_destinations_from_csv(const std::string &csv) {
   // if no routing_strategy is defined for standalone routing
   // we set the default based on the mode
   if (routing_strategy_ == RoutingStrategy::kUndefined) {
-    routing_strategy_ = get_default_routing_strategy(access_mode_);
+    routing_strategy_ = get_default_routing_strategy(mode_);
   }
 
   is_destination_standalone_ = true;
@@ -1093,8 +1096,17 @@ void MySQLRouting::set_destinations_from_csv(const std::string &csv) {
                                                context_.get_protocol());
 
   // Fall back to comma separated list of MySQL servers
+  //
+  // dests = dest *["," dest]
+  // dest = host [":" port]
+  // host = hostname-or-address
+  // port = NUM+
+  //
+  //
+  //
   while (std::getline(ss, part, ',')) {
     mysql_harness::trim(part);
+
     auto make_res = mysql_harness::make_tcp_address(part);
     if (!make_res) {
       throw std::runtime_error(
@@ -1149,7 +1161,7 @@ int MySQLRouting::set_max_connections(int maximum) {
   return max_connections_;
 }
 
-routing::AccessMode MySQLRouting::get_mode() const { return access_mode_; }
+routing::Mode MySQLRouting::get_mode() const { return mode_; }
 
 routing::RoutingStrategy MySQLRouting::get_routing_strategy() const {
   return routing_strategy_;

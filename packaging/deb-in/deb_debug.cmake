@@ -102,6 +102,7 @@ usr/lib/mysql/plugin/debug/auth.so
 usr/lib/mysql/plugin/debug/auth_test_plugin.so
 usr/lib/mysql/plugin/debug/authentication_ldap_sasl_client.so
 usr/lib/mysql/plugin/debug/authentication_fido_client.so
+usr/lib/mysql/plugin/debug/authentication_webauthn_client.so
 usr/lib/mysql/plugin/debug/authentication_kerberos_client.so
 usr/lib/mysql/plugin/debug/authentication_oci_client.so
 usr/lib/mysql/plugin/debug/component_example_component1.so
@@ -190,8 +191,15 @@ usr/lib/mysql/plugin/debug/component_test_mysql_system_variable_set.so
 usr/lib/mysql/plugin/debug/component_test_table_access.so
 usr/lib/mysql/plugin/debug/component_test_sensitive_system_variables.so
 usr/lib/mysql/plugin/debug/component_test_status_var_reader.so
+usr/lib/mysql/plugin/debug/component_test_server_telemetry_metrics.so
 usr/lib/mysql/plugin/debug/component_test_server_telemetry_traces.so
 usr/lib/mysql/plugin/debug/component_test_mysql_thd_store_service.so
+usr/lib/mysql/plugin/debug/component_test_event_tracking_consumer_c.so
+usr/lib/mysql/plugin/debug/component_test_event_tracking_consumer_b.so
+usr/lib/mysql/plugin/debug/component_test_event_tracking_consumer_a.so
+usr/lib/mysql/plugin/debug/component_test_event_tracking_producer_a.so
+usr/lib/mysql/plugin/debug/component_test_event_tracking_consumer.so
+usr/lib/mysql/plugin/debug/component_test_event_tracking_producer_b.so
 ")
 
 IF (DEB_PRODUCT STREQUAL "commercial")
@@ -203,6 +211,7 @@ usr/lib/mysql/plugin/debug/authentication_pam.so
 usr/lib/mysql/plugin/debug/authentication_ldap_sasl.so
 usr/lib/mysql/plugin/debug/authentication_kerberos.so
 usr/lib/mysql/plugin/debug/authentication_ldap_simple.so
+usr/lib/mysql/plugin/debug/telemetry_client.so
 usr/lib/mysql/plugin/debug/data_masking.so
 usr/lib/mysql/plugin/debug/keyring_okv.so
 usr/lib/mysql/plugin/debug/keyring_encrypted_file.so
@@ -218,6 +227,8 @@ usr/lib/mysql/plugin/debug/component_enterprise_encryption.so
 usr/lib/mysql/plugin/debug/component_masking.so
 usr/lib/mysql/plugin/debug/component_masking_functions.so
 usr/lib/mysql/plugin/debug/component_scheduler.so
+usr/lib/mysql/plugin/debug/component_telemetry.so
+usr/lib/mysql/plugin/debug/authentication_webauthn.so
 ")
   ENDIF()
   IF (DEB_AWS_SDK)

@@ -105,8 +105,9 @@ class ClusterMetadata {
   virtual void update_router_info(
       const uint32_t router_id, const std::string &cluster_id,
       const std::string &target_cluster, const std::string &rw_endpoint,
-      const std::string &ro_endpoint, const std::string &rw_x_endpoint,
-      const std::string &ro_x_endpoint, const std::string &username) = 0;
+      const std::string &ro_endpoint, const std::string &rw_split_endpoint,
+      const std::string &rw_x_endpoint, const std::string &ro_x_endpoint,
+      const std::string &username) = 0;
 
   virtual std::vector<std::string> get_routing_mode_queries() = 0;
 
@@ -139,6 +140,8 @@ class ClusterMetadata {
   virtual std::string get_cluster_type_specific_id() = 0;
 
   virtual ClusterInfo fetch_metadata_servers() = 0;
+
+  virtual InstanceType fetch_current_instance_type() = 0;
 
   virtual std::vector<std::string> get_grant_statements(
       const std::string &new_accounts) const = 0;
@@ -199,6 +202,11 @@ class ClusterMetadataGRV1 : public ClusterMetadataGR {
 
   std::vector<std::string> get_routing_mode_queries() override;
 
+  InstanceType fetch_current_instance_type() override {
+    // V1 of the metadata only supported GR instances
+    return InstanceType::GroupMember;
+  }
+
   void verify_router_id_is_ours(
       const uint32_t router_id,
       const std::string &hostname_override = "") override;
@@ -206,8 +214,9 @@ class ClusterMetadataGRV1 : public ClusterMetadataGR {
   void update_router_info(
       const uint32_t router_id, const std::string &cluster_id,
       const std::string &target_cluster, const std::string &rw_endpoint,
-      const std::string &ro_endpoint, const std::string &rw_x_endpoint,
-      const std::string &ro_x_endpoint, const std::string &username) override;
+      const std::string &ro_endpoint, const std::string &rw_split_endpoint,
+      const std::string &rw_x_endpoint, const std::string &ro_x_endpoint,
+      const std::string &username) override;
 
   uint32_t register_router(const std::string &router_name, const bool overwrite,
                            const std::string &hostname_override = "") override;
@@ -237,14 +246,17 @@ class ClusterMetadataGRV2 : public ClusterMetadataGR {
 
   std::vector<std::string> get_routing_mode_queries() override;
 
+  InstanceType fetch_current_instance_type() override;
+
   void verify_router_id_is_ours(
       uint32_t router_id, const std::string &hostname_override = "") override;
 
   void update_router_info(
       const uint32_t router_id, const std::string &cluster_id,
       const std::string &target_cluster, const std::string &rw_endpoint,
-      const std::string &ro_endpoint, const std::string &rw_x_endpoint,
-      const std::string &ro_x_endpoint, const std::string &username) override;
+      const std::string &ro_endpoint, const std::string &rw_split_endpoint,
+      const std::string &rw_x_endpoint, const std::string &ro_x_endpoint,
+      const std::string &username) override;
 
   uint32_t register_router(const std::string &router_name, const bool overwrite,
                            const std::string &hostname_override = "") override;
@@ -293,8 +305,9 @@ class ClusterMetadataGRInClusterSet : public ClusterMetadataGRV2 {
   void update_router_info(
       const uint32_t router_id, const std::string &cluster_id,
       const std::string &target_cluster, const std::string &rw_endpoint,
-      const std::string &ro_endpoint, const std::string &rw_x_endpoint,
-      const std::string &ro_x_endpoint, const std::string &username) override;
+      const std::string &ro_endpoint, const std::string &rw_split_endpoint,
+      const std::string &rw_x_endpoint, const std::string &ro_x_endpoint,
+      const std::string &username) override;
 
  protected:
   TargetClusterType target_cluster_type_;
@@ -321,6 +334,10 @@ class ClusterMetadataAR : public ClusterMetadata {
 
   ClusterInfo fetch_metadata_servers() override;
 
+  InstanceType fetch_current_instance_type() override {
+    return InstanceType::AsyncMember;
+  }
+
   std::string get_cluster_type_specific_id() override;
 
   uint64_t get_view_id(
@@ -334,8 +351,9 @@ class ClusterMetadataAR : public ClusterMetadata {
   void update_router_info(
       const uint32_t router_id, const std::string &cluster_id,
       const std::string &target_cluster, const std::string &rw_endpoint,
-      const std::string &ro_endpoint, const std::string &rw_x_endpoint,
-      const std::string &ro_x_endpoint, const std::string &username) override;
+      const std::string &ro_endpoint, const std::string &rw_split_endpoint,
+      const std::string &rw_x_endpoint, const std::string &ro_x_endpoint,
+      const std::string &username) override;
 
   uint32_t register_router(const std::string &router_name, const bool overwrite,
                            const std::string &hostname_override = "") override;

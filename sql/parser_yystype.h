@@ -336,7 +336,7 @@ struct PT_install_component_set_element {
 
 enum class Set_operator { UNION, EXCEPT, INTERSECT };
 
-union YYSTYPE {
+union MY_SQL_PARSER_STYPE {
   Lexer_yystype lexer;  // terminal values from the lexical scanner
   /*
     Hint parser section (sql_hints.yy)
@@ -690,6 +690,7 @@ union YYSTYPE {
     Explain_format_type explain_format_type;
     bool is_analyze;
     bool is_explicit;
+    LEX_STRING explain_into_variable_name;
   } explain_options_type;
   struct {
     Item *set_var;
@@ -712,8 +713,13 @@ union YYSTYPE {
   Set_operator query_operator;
   PT_install_component_set_element *install_component_set_element;
   List<PT_install_component_set_element> *install_component_set_list;
+  struct {
+    Parse_tree_root *statement;
+    LEX_CSTRING schema_name_for_explain;
+  } explainable_stmt;
 };
 
-static_assert(sizeof(YYSTYPE) <= 32, "YYSTYPE is too big");
+static_assert(sizeof(MY_SQL_PARSER_STYPE) <= 32, "YYSTYPE is too big");
+using MY_HINT_PARSER_STYPE = MY_SQL_PARSER_STYPE;
 
 #endif  // PARSER_YYSTYPE_INCLUDED

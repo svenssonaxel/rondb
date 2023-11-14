@@ -40,7 +40,6 @@
 #include "decimal.h"      // *2decimal
 #include "field_types.h"  // enum_field_types
 #include "lex_string.h"
-#include "m_ctype.h"
 #include "my_alloc.h"
 #include "my_bitmap.h"
 #include "my_dbug.h"
@@ -49,10 +48,12 @@
 #include "my_systime.h"
 #include "my_time.h"
 #include "mysql/service_mysql_alloc.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql_time.h"
 #include "mysqld_error.h"
 #include "scope_guard.h"          // create_scope_guard
 #include "sql-common/json_dom.h"  // Json_*
+#include "sql-common/my_decimal.h"
 #include "sql/auth/auth_common.h"
 #include "sql/create_field.h"
 #include "sql/dd/cache/dictionary_client.h"
@@ -70,8 +71,7 @@
 #include "sql/item.h"
 #include "sql/item_json_func.h"  // parse_json
 #include "sql/key.h"
-#include "sql/mdl.h"  // MDL_request
-#include "sql/my_decimal.h"
+#include "sql/mdl.h"             // MDL_request
 #include "sql/psi_memory_key.h"  // key_memory_histograms
 #include "sql/sql_base.h"        // open_and_lock_tables,
 #include "sql/sql_bitmap.h"
@@ -1257,59 +1257,12 @@ static bool fill_value_maps(
 
 bool update_histogram(THD *thd, Table_ref *table, const columns_set &columns,
                       int num_buckets, LEX_STRING data, results_map &results) {
-  dd::cache::Dictionary_client::Auto_releaser auto_releaser(thd->dd_client());
-
-  // Read only should have been stopped at an earlier stage.
-  assert(!check_readonly(thd, false));
-  assert(!thd->tx_read_only);
-
-  assert(results.empty());
-  assert(!columns.empty());
-
-  // Only one table should be specified in ANALYZE TABLE .. UPDATE HISTOGRAM
-  assert(table->next_local == nullptr);
-
-  if (table->table != nullptr && table->table->s->tmp_table != NO_TMP_TABLE) {
-    /*
-      Normally, the table we are going to read data from is not initialized at
-      this point. But if table->table is not a null-pointer, it has already been
-      initialized at an earlier stage. This will happen if the table is a
-      temporary table.
-    */
-    results.emplace("", Message::TEMPORARY_TABLE);
-    return true;
-  }
-
-  /*
-    Create two scope guards; one for disabling autocommit and one that will do a
-    rollback and ensure that any open tables are closed before returning.
-  */
-  Disable_autocommit_guard autocommit_guard(thd);
-  auto tables_guard = create_scope_guard([thd]() {
-    if (trans_rollback_stmt(thd) || trans_rollback(thd))
-      assert(false); /* purecov: deadcode */
-    close_thread_tables(thd);
-  });
-
-  if (open_and_lock_tables(thd, table, 0)) {
-    return true;
-  }
-
-  DBUG_EXECUTE_IF("histogram_fail_after_open_table", { return true; });
-
-  if (table->is_view()) {
-    results.emplace("", Message::VIEW);
-    return true;
-  }
-
+  // At this point we should have metadata locks on the table and histograms,
+  // and the table should be opened.
+  assert(thd->mdl_context.owns_equal_or_stronger_lock(
+      MDL_key::TABLE, table->db, table->table_name, MDL_SHARED_READ));
   assert(table->table != nullptr);
   TABLE *tbl = table->table;
-
-  if (tbl->s->encrypt_type.length > 0 &&
-      my_strcasecmp(system_charset_info, "n", tbl->s->encrypt_type.str) != 0) {
-    results.emplace("", Message::ENCRYPTED_TABLE);
-    return true;
-  }
 
   /*
     Check if the provided column names exist, and that they have a supported
@@ -1394,7 +1347,7 @@ bool update_histogram(THD *thd, Table_ref *table, const columns_set &columns,
       Histogram_error_handler error_handler(thd);
       JsonParseDefaultErrorHandler parse_handler("UPDATE HISTOGRAM", 0);
       if (parse_json(parse_input, &dom, true, parse_handler,
-                     JsonDocumentDefaultDepthHandler) ||
+                     JsonDepthErrorHandler) ||
           error_handler.has_error()) {
         results.emplace("", Message::JSON_FORMAT_ERROR);
         return true;
@@ -1424,12 +1377,7 @@ bool update_histogram(THD *thd, Table_ref *table, const columns_set &columns,
     }
 
     results.emplace(col_name, Message::HISTOGRAM_CREATED);
-
-    bool ret = trans_commit_stmt(thd) || trans_commit(thd);
-    close_thread_tables(thd);
-    tables_guard.commit();
-
-    return ret;
+    return false;
   }
 
   /*
@@ -1497,11 +1445,7 @@ bool update_histogram(THD *thd, Table_ref *table, const columns_set &columns,
 
     results.emplace(col_name, Message::HISTOGRAM_CREATED);
   }
-
-  bool ret = trans_commit_stmt(thd) || trans_commit(thd);
-  close_thread_tables(thd);
-  tables_guard.commit();
-  return ret;
+  return false;
 }
 
 bool drop_all_histograms(THD *thd, Table_ref &table,
@@ -1511,63 +1455,15 @@ bool drop_all_histograms(THD *thd, Table_ref &table,
   for (const auto &col : table_definition.columns())
     columns.emplace(col->name().c_str());
 
-  return drop_histograms(thd, table, columns, false, results);
+  return drop_histograms(thd, table, columns, results);
 }
 
 bool drop_histograms(THD *thd, Table_ref &table, const columns_set &columns,
-                     bool needs_lock, results_map &results) {
+                     results_map &results) {
   dd::cache::Dictionary_client *client = thd->dd_client();
   dd::cache::Dictionary_client::Auto_releaser auto_releaser(client);
 
-  if (needs_lock) {
-    /*
-      At this point ANALYZE TABLE DROP HISTOGRAM is the only caller of this
-      function that requires it to acquire lock on table and individual
-      column statistics.
-
-      Error out on temporary table for consistency with update histograms case.
-    */
-    if (table.table != nullptr && table.table->s->tmp_table != NO_TMP_TABLE) {
-      results.emplace("", Message::TEMPORARY_TABLE);
-      return true;
-    }
-    /*
-      Acquire shared metadata lock on the table (or check that it is locked
-      under LOCK TABLES) so this table and all column statistics for it are
-      not dropped under our feet.
-    */
-    if (thd->locked_tables_mode) {
-      if (!find_locked_table(thd->open_tables, table.db, table.table_name)) {
-        my_error(ER_TABLE_NOT_LOCKED, MYF(0), table.table_name);
-        return true;
-      }
-    } else {
-      if (thd->mdl_context.acquire_lock(&table.mdl_request,
-                                        thd->variables.lock_wait_timeout))
-        return true;  // error is already reported.
-    }
-  } else {
-    /*
-      In this case we assume that caller has acquired exclusive metadata
-      lock on table so there is no need to lock individual column statistics.
-      It is also caller's responsibility to ensure that table is non-temporary.
-    */
-    assert(thd->mdl_context.owns_equal_or_stronger_lock(
-        MDL_key::TABLE, table.db, table.table_name, MDL_EXCLUSIVE));
-  }
-
   for (const std::string &column_name : columns) {
-    if (needs_lock) {
-      MDL_key mdl_key;
-      dd::Column_statistics::create_mdl_key(
-          {table.db, table.db_length},
-          {table.table_name, table.table_name_length}, column_name.c_str(),
-          &mdl_key);
-
-      if (lock_for_write(thd, mdl_key))
-        return true;  // error is already reported.
-    }
-
     dd::String_type dd_name = dd::Column_statistics::create_name(
         {table.db, table.db_length},
         {table.table_name, table.table_name_length}, column_name.c_str());
@@ -1600,16 +1496,6 @@ bool drop_histograms(THD *thd, Table_ref &table, const columns_set &columns,
 
 bool Histogram::store_histogram(THD *thd) const {
   dd::cache::Dictionary_client *client = thd->dd_client();
-
-  MDL_key mdl_key;
-  dd::Column_statistics::create_mdl_key(get_database_name().str,
-                                        get_table_name().str,
-                                        get_column_name().str, &mdl_key);
-
-  if (lock_for_write(thd, mdl_key)) {
-    // Error has already been reported
-    return true; /* purecov: deadcode */
-  }
 
   DEBUG_SYNC(thd, "store_histogram_after_write_lock");
 
@@ -2078,12 +1964,13 @@ bool Histogram::get_raw_selectivity(Item **items, size_t item_count,
       assert(item_count == 2);
       /*
         Verify that one side of the predicate is a column/field, and that the
-        other side is a constant value.
+        other side is a constant value (except for EQUALS_TO and NOT_EQUALS_TO).
 
-        Make sure that we have the constant item as the right side argument of
+        Make sure that we have the field item as the left side argument of
         the predicate internally.
       */
-      if (items[0]->const_item() && items[1]->type() == Item::FIELD_ITEM) {
+      if (items[0]->type() != Item::FIELD_ITEM &&
+          items[1]->type() == Item::FIELD_ITEM) {
         // Flip the operators as well as the operator itself.
         switch (op) {
           case enum_operator::GREATER_THAN:
@@ -2106,7 +1993,8 @@ bool Histogram::get_raw_selectivity(Item **items, size_t item_count,
         items_flipped[1] = items[0];
         return get_selectivity(items_flipped, item_count, op, selectivity);
       } else if (items[0]->type() != Item::FIELD_ITEM ||
-                 !items[1]->const_item()) {
+                 (!items[1]->const_item() && op != enum_operator::EQUALS_TO &&
+                  op != enum_operator::NOT_EQUALS_TO)) {
         return true;
       }
       break;
@@ -2150,10 +2038,26 @@ bool Histogram::get_raw_selectivity(Item **items, size_t item_count,
 
   switch (op) {
     case enum_operator::LESS_THAN:
-    case enum_operator::EQUALS_TO:
     case enum_operator::GREATER_THAN: {
       return get_selectivity_dispatcher(items[1], op, typelib, selectivity);
     }
+    case enum_operator::EQUALS_TO:
+      if (items[1]->const_item()) {
+        return get_selectivity_dispatcher(items[1], op, typelib, selectivity);
+      } else if (empty(*this)) {
+        return true;
+      } else {
+        // We do not know the value of items[1], but we assume that it
+        // is uniformely distributed over the distinct values of
+        // items[0] (i.e. the field for which '*this' is the
+        // histogram).
+        *selectivity =
+            get_num_distinct_values() == 0
+                ? 0.0
+                : get_non_null_values_fraction() / get_num_distinct_values();
+
+        return false;
+      }
     case enum_operator::LESS_THAN_OR_EQUAL: {
       double greater_than_selectivity;
       if (get_selectivity_dispatcher(items[1], enum_operator::GREATER_THAN,
@@ -2174,16 +2078,33 @@ bool Histogram::get_raw_selectivity(Item **items, size_t item_count,
           std::max(get_non_null_values_fraction() - less_than_selectivity, 0.0);
       return false;
     }
-    case enum_operator::NOT_EQUALS_TO: {
-      double equals_to_selectivity;
-      if (get_selectivity_dispatcher(items[1], enum_operator::EQUALS_TO,
-                                     typelib, &equals_to_selectivity))
-        return true;
+    case enum_operator::NOT_EQUALS_TO:
+      if (items[1]->const_item()) {
+        double equals_to_selectivity;
+        if (get_selectivity_dispatcher(items[1], enum_operator::EQUALS_TO,
+                                       typelib, &equals_to_selectivity))
+          return true;
 
-      *selectivity =
-          std::max(get_non_null_values_fraction() - equals_to_selectivity, 0.0);
-      return false;
-    }
+        *selectivity = std::max(
+            get_non_null_values_fraction() - equals_to_selectivity, 0.0);
+        return false;
+      } else if (empty(*this)) {
+        return true;
+      } else {
+        const size_t distinct_values = get_num_distinct_values();
+        if (distinct_values == 0) {
+          *selectivity = 0.0;  // Field is NULL for all rows.
+        } else {
+          // We do not know the value of items[1], but we assume that it
+          // is uniformely distributed over the distinct values of
+          // items[0] (i.e. the field for which '*this' is the
+          // histogram).
+          *selectivity = get_non_null_values_fraction() *
+                         (distinct_values - 1.0) / distinct_values;
+        }
+        return false;
+      }
+
     case enum_operator::BETWEEN: {
       double less_than_selectivity;
       double greater_than_selectivity;

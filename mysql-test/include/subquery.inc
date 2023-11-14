@@ -2886,9 +2886,9 @@ SELECT
   SUM( (SELECT AVG( (SELECT COUNT(*) FROM t1 t HAVING t1.a < 12) ) FROM t2) )
 FROM t1;
 
---error ER_BAD_FIELD_ERROR
-SELECT t1.a as XXA,
-   SUM( (SELECT AVG( (SELECT COUNT(*) FROM t1 t HAVING XXA < 12) ) FROM t2) )
+--error ER_INVALID_GROUP_FUNC_USE
+SELECT t1.a as xxa,
+   SUM( (SELECT AVG( (SELECT COUNT(*) FROM t1 t HAVING xxa < 12) ) FROM t2) )
 FROM t1;
 
 DROP TABLE t1,t2;
@@ -3189,7 +3189,6 @@ CREATE TABLE t3 (
 INSERT INTO t3 VALUES (1,null), (2,null);
 --source include/turn_off_only_full_group_by.inc
 
---error ER_BAD_FIELD_ERROR
 SELECT
   IF(t1.f1 = 'R', a1.f2, t2.f2) AS a4,
   IF(t1.f1 = 'R', a1.f3, t2.f3) AS f3,
@@ -5212,9 +5211,9 @@ DROP TABLE t1,t2;
 CALL mtr.add_suppression("file *  was not purged because it is the active log file.");
 --enable_query_log
 --error 1064
-purge master logs before (select adddate(current_timestamp(), interval -4 day));
+purge binary logs before (select adddate(current_timestamp(), interval -4 day));
 --disable_warnings
-purge master logs before adddate(current_timestamp(), interval -4 day);
+purge binary logs before adddate(current_timestamp(), interval -4 day);
 --enable_warnings
 
 #

@@ -32,6 +32,7 @@
 #include <sys/types.h>  // TODO: replace with cstdint
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <map>
@@ -41,8 +42,6 @@
 #include <utility>
 
 #include "lex_string.h"
-#include "m_ctype.h"
-#include "m_string.h"
 #include "map_helpers.h"
 #include "mem_root_deque.h"
 #include "memory_debugging.h"
@@ -57,6 +56,7 @@
 #include "my_thread_local.h"
 #include "mysql/components/services/bits/psi_bits.h"
 #include "mysql/service_mysql_alloc.h"  // my_free
+#include "mysql/strings/m_ctype.h"
 #include "mysql_com.h"
 #include "mysqld_error.h"
 #include "prealloced_array.h"                // Prealloced_array
@@ -70,7 +70,8 @@
 #include "sql/join_optimizer/materialize_path_parameters.h"
 #include "sql/key_spec.h"  // KEY_CREATE_INFO
 #include "sql/mdl.h"
-#include "sql/mem_root_array.h"        // Mem_root_array
+#include "sql/mem_root_array.h"  // Mem_root_array
+#include "sql/parse_location.h"
 #include "sql/parse_tree_node_base.h"  // enum_parsing_context
 #include "sql/parser_yystype.h"
 #include "sql/query_options.h"  // OPTION_NO_CONST_TABLES
@@ -89,8 +90,9 @@
 #include "sql/thr_malloc.h"
 #include "sql/trigger_def.h"  // enum_trigger_action_time_type
 #include "sql/visible_fields.h"
-#include "sql_chars.h"
 #include "sql_string.h"
+#include "string_with_len.h"
+#include "strings/sql_chars.h"
 #include "thr_lock.h"  // thr_lock_type
 #include "violite.h"   // SSL_type
 
@@ -742,10 +744,10 @@ class Query_expression {
 
   /**
     If there is an unfinished materialization (see optimize()),
-    contains one element for each query block in this query expression.
+    contains one element for each operand (query block) in this query
+    expression.
    */
-  Mem_root_array<MaterializePathParameters::QueryBlock>
-      m_query_blocks_to_materialize;
+  Mem_root_array<MaterializePathParameters::Operand> m_operands;
 
  private:
   /**
@@ -891,14 +893,12 @@ class Query_expression {
   bool force_create_iterators(THD *thd);
 
   /// See optimize().
-  bool unfinished_materialization() const {
-    return !m_query_blocks_to_materialize.empty();
-  }
+  bool unfinished_materialization() const { return !m_operands.empty(); }
 
   /// See optimize().
-  Mem_root_array<MaterializePathParameters::QueryBlock>
+  Mem_root_array<MaterializePathParameters::Operand>
   release_query_blocks_to_materialize() {
-    return std::move(m_query_blocks_to_materialize);
+    return std::move(m_operands);
   }
 
   /// Set new query result object for this query expression
@@ -1113,6 +1113,12 @@ class Query_expression {
   enum_parsing_context place() const;
 
   bool walk(Item_processor processor, enum_walk walk, uchar *arg);
+
+  /**
+    Replace all targeted items using transformer provided and info in
+    arg.
+  */
+  bool replace_items(Item_transformer t, uchar *arg);
 
   /*
     An exception: this is the only function that needs to adjust
@@ -1442,10 +1448,14 @@ class Query_block : public Query_term {
   void set_sj_candidates(Mem_root_array<Item_exists_subselect *> *sj_cand) {
     sj_candidates = sj_cand;
   }
-
+  void add_subquery_transform_candidate(Item_exists_subselect *predicate) {
+    sj_candidates->push_back(predicate);
+  }
   bool has_sj_candidates() const {
     return sj_candidates != nullptr && !sj_candidates->empty();
   }
+
+  bool has_subquery_transforms() const { return sj_candidates != nullptr; }
 
   /// Add full-text function elements from a list into this query block
   bool add_ftfunc_list(List<Item_func_match> *ftfuncs);
@@ -1844,8 +1854,8 @@ class Query_block : public Query_term {
   /// using the field's index in a derived table.
   Item *get_derived_expr(uint expr_index);
 
-  MaterializePathParameters::QueryBlock setup_materialize_query_block(
-      AccessPath *childPath, TABLE *dst_table);
+  MaterializePathParameters::Operand setup_materialize_query_block(
+      AccessPath *child_path, TABLE *dst_table) const;
 
   // ************************************************
   // * Members (most of these should not be public) *
@@ -2175,6 +2185,8 @@ class Query_block : public Query_term {
   /// @note that using this means we modify resolved data during optimization
   uint hidden_items_from_optimization{0};
 
+  bool is_row_count_valid_for_semi_join();
+
  private:
   friend class Query_expression;
   friend class Condition_context;
@@ -2192,7 +2204,7 @@ class Query_block : public Query_term {
   ///  Build semijoin condition for th query block
   bool build_sj_cond(THD *thd, NESTED_JOIN *nested_join,
                      Query_block *subq_query_block, table_map outer_tables_map,
-                     Item **sj_cond);
+                     Item **sj_cond, bool *simple_const);
   bool decorrelate_condition(Semijoin_decorrelation &sj_decor,
                              Table_ref *join_nest);
 
@@ -2208,15 +2220,19 @@ class Query_block : public Query_term {
                                      Item *lifted_where_cond);
   bool transform_table_subquery_to_join_with_derived(
       THD *thd, Item_exists_subselect *subq_pred);
+  bool setup_count_over_partition(THD *thd, Table_ref *derived,
+                                  Lifted_fields_map *lifted_fields,
+                                  std::deque<Item_field *> &added_to_group_by,
+                                  uint hidden_fields);
   bool decorrelate_derived_scalar_subquery_pre(
       THD *thd, Table_ref *derived, Item *lifted_where,
-      Lifted_fields_map *lifted_where_fields, bool *added_card_check);
+      Lifted_fields_map *lifted_where_fields, bool *added_card_check,
+      bool *added_window_card_check);
   bool decorrelate_derived_scalar_subquery_post(
       THD *thd, Table_ref *derived, Lifted_fields_map *lifted_where_fields,
-      bool added_card_check);
+      bool added_card_check, bool added_window_card_check);
   void replace_referenced_item(Item *const old_item, Item *const new_item);
   void remap_tables(THD *thd);
-  bool resolve_subquery(THD *thd);
   void mark_item_as_maybe_null_if_rollup_item(Item *item);
   Item *resolve_rollup_item(THD *thd, Item *item);
   bool resolve_rollup(THD *thd);
@@ -2282,8 +2298,6 @@ class Query_block : public Query_term {
 
   bool prepare_values(THD *thd);
   bool check_only_full_group_by(THD *thd);
-  bool is_row_count_valid_for_semi_join();
-
   /**
     Copies all non-aggregated calls to the full-text search MATCH function from
     the HAVING clause to the SELECT list (as hidden items), so that we can
@@ -2339,9 +2353,10 @@ class Query_block : public Query_term {
   */
   ulonglong m_active_options{0};
 
+ public:
   Table_ref *resolve_nest{
       nullptr};  ///< Used when resolving outer join condition
-
+ private:
   /**
     Condition to be evaluated after all tables in a query block are joined.
     After all permanent transformations have been conducted by
@@ -2460,6 +2475,7 @@ struct st_sp_chistics {
   enum enum_sp_suid_behaviour suid;
   bool detistic;
   enum enum_sp_data_access daccess;
+  LEX_CSTRING language;  ///< CREATE|ALTER ... LANGUAGE <language>
 };
 
 extern const LEX_STRING null_lex_str;
@@ -2854,8 +2870,10 @@ class Query_tables_list {
     @retval nonzero if the statement is a row injection
   */
   inline bool is_stmt_row_injection() const {
-    return binlog_stmt_flags &
-           (1U << (BINLOG_STMT_UNSAFE_COUNT + BINLOG_STMT_TYPE_ROW_INJECTION));
+    constexpr uint32_t shift =
+        static_cast<uint32_t>(BINLOG_STMT_UNSAFE_COUNT) +
+        static_cast<uint32_t>(BINLOG_STMT_TYPE_ROW_INJECTION);
+    return binlog_stmt_flags & (1U << shift);
   }
 
   /**
@@ -2864,10 +2882,11 @@ class Query_tables_list {
     the slave SQL thread.
   */
   inline void set_stmt_row_injection() {
+    constexpr uint32_t shift =
+        static_cast<uint32_t>(BINLOG_STMT_UNSAFE_COUNT) +
+        static_cast<uint32_t>(BINLOG_STMT_TYPE_ROW_INJECTION);
     DBUG_TRACE;
-    binlog_stmt_flags |=
-        (1U << (BINLOG_STMT_UNSAFE_COUNT + BINLOG_STMT_TYPE_ROW_INJECTION));
-    return;
+    binlog_stmt_flags |= (1U << shift);
   }
 
   enum enum_stmt_accessed_table {
@@ -3026,7 +3045,7 @@ class Query_tables_list {
     bool unsafe = false;
 
     if (in_multi_stmt_transaction_mode) {
-      uint condition =
+      const uint condition =
           (binlog_direct ? BINLOG_DIRECT_ON : BINLOG_DIRECT_OFF) &
           (trx_cache_is_not_empty ? TRX_CACHE_NOT_EMPTY : TRX_CACHE_EMPTY) &
           (tx_isolation >= ISO_REPEATABLE_READ ? IL_GTE_REPEATABLE
@@ -3243,7 +3262,7 @@ class Lex_input_stream {
   */
   unsigned char yyGet() {
     assert(m_ptr <= m_end_of_query);
-    char c = *m_ptr++;
+    const char c = *m_ptr++;
     if (m_echo) *m_cpp_ptr++ = c;
     return c;
   }
@@ -3743,7 +3762,7 @@ struct LEX : public Query_tables_list {
   bool using_hypergraph_optimizer = false;
   LEX_STRING name;
   char *help_arg;
-  char *to_log; /* For PURGE MASTER LOGS TO */
+  char *to_log; /* For PURGE BINARY LOGS TO */
   const char *x509_subject, *x509_issuer, *ssl_cipher;
   // Widcard from SHOW ... LIKE <wildcard> statements.
   String *wild;
@@ -4666,11 +4685,10 @@ struct st_lex_local : public LEX {
   }
 };
 
-extern bool lex_init(void);
 extern void lex_free(void);
 extern bool lex_start(THD *thd);
 extern void lex_end(LEX *lex);
-extern int MYSQLlex(union YYSTYPE *, struct YYLTYPE *, class THD *);
+extern int my_sql_parser_lex(MY_SQL_PARSER_STYPE *, POS *, class THD *);
 
 extern void trim_whitespace(const CHARSET_INFO *cs, LEX_STRING *str);
 
@@ -4772,4 +4790,5 @@ bool accept_for_join(mem_root_deque<Table_ref *> *tables,
 Table_ref *nest_join(THD *thd, Query_block *select, Table_ref *embedding,
                      mem_root_deque<Table_ref *> *jlist, size_t table_cnt,
                      const char *legend);
+void get_select_options_str(ulonglong options, std::string *str);
 #endif /* SQL_LEX_INCLUDED */

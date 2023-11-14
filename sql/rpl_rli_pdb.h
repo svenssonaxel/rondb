@@ -29,18 +29,18 @@
 #include <atomic>
 #include <tuple>
 
-#include "libbinlogevents/include/binlog_event.h"
 #include "my_bitmap.h"
 #include "my_compiler.h"
 #include "my_dbug.h"
 #include "my_inttypes.h"
 #include "my_io.h"
-#include "my_loglevel.h"
 #include "my_psi_config.h"
+#include "mysql/binlog/event/binlog_event.h"
 #include "mysql/components/services/bits/mysql_cond_bits.h"
 #include "mysql/components/services/bits/mysql_mutex_bits.h"
 #include "mysql/components/services/bits/psi_bits.h"
 #include "mysql/components/services/bits/psi_mutex_bits.h"
+#include "mysql/my_loglevel.h"
 #include "mysql/service_mysql_alloc.h"
 #include "prealloced_array.h"  // Prealloced_array
 #include "sql/log_event.h"     // Format_description_log_event
@@ -534,7 +534,7 @@ class Slave_worker : public Relay_log_info {
   ulong wq_empty_waits;            // how many times got idle
   ulong events_done;               // how many events (statements) processed
   ulong groups_done;               // how many groups (transactions) processed
-  volatile int curr_jobs;          // number of active  assignments
+  std::atomic<int> curr_jobs;      // number of active  assignments
   // number of partitions allocated to the worker at point in time
   long usage_partition;
   // symmetric to rli->mts_end_group_sets_max_dbs

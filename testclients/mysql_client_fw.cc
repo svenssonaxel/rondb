@@ -27,15 +27,16 @@
 #include <algorithm>
 
 #include "errmsg.h"
-#include "m_ctype.h"
-#include "m_string.h"
 #include "my_alloc.h"
 #include "my_default.h"
 #include "my_getopt.h"
 #include "my_sys.h"
 #include "mysql/service_mysql_alloc.h"
+#include "mysql/strings/m_ctype.h"
+#include "nulls.h"
 #include "print_version.h"
 #include "sql_common.h"
+#include "strxmov.h"
 #include "welcome_copyright_notice.h" /* ORACLE_WELCOME_COPYRIGHT_NOTICE */
 
 #define MAX_TEST_QUERY_LENGTH 300 /* MAX QUERY BUFFER LENGTH */
@@ -49,7 +50,7 @@ static char *opt_password = nullptr;
 static char *opt_host = nullptr;
 static char *opt_unix_socket = nullptr;
 #if defined(_WIN32)
-static char *shared_memory_base_name = 0;
+static char *shared_memory_base_name = nullptr;
 #endif
 static unsigned int opt_port;
 static bool tty_password = false;
@@ -140,14 +141,14 @@ static void die(const char *file, int line, const char *expr) {
 
 #define myquery(RES)      \
   {                       \
-    int r = (RES);        \
+    const int r = (RES);  \
     if (r) myerror(NULL); \
     DIE_UNLESS(r == 0);   \
   }
 
 #define myquery2(L_MYSQL, RES)      \
   {                                 \
-    int r = (RES);                  \
+    const int r = (RES);            \
     if (r) myerror2(L_MYSQL, NULL); \
     DIE_UNLESS(r == 0);             \
   }
@@ -170,16 +171,16 @@ static void die(const char *file, int line, const char *expr) {
     DIE_UNLESS(r != 0);           \
   }
 
-#define check_stmt(stmt)          \
-  {                               \
-    if (stmt == 0) myerror(NULL); \
-    DIE_UNLESS(stmt != 0);        \
+#define check_stmt(stmt)                   \
+  {                                        \
+    if (stmt == nullptr) myerror(nullptr); \
+    DIE_UNLESS(stmt != nullptr);           \
   }
 
-#define check_stmt_r(stmt)        \
-  {                               \
-    if (stmt == 0) myerror(NULL); \
-    DIE_UNLESS(stmt == 0);        \
+#define check_stmt_r(stmt)                 \
+  {                                        \
+    if (stmt == nullptr) myerror(nullptr); \
+    DIE_UNLESS(stmt == nullptr);           \
   }
 
 #define mytest(x)      \
@@ -191,6 +192,12 @@ static void die(const char *file, int line, const char *expr) {
   if ((x)) {           \
     myerror(NULL);     \
     DIE_UNLESS(false); \
+  }
+
+#define mytest2(lmysql, x)  \
+  if (!(x)) {               \
+    myerror2(lmysql, NULL); \
+    DIE_UNLESS(false);      \
   }
 
 /* Silence unused function warnings for some of the static functions. */
@@ -1087,8 +1094,8 @@ static struct my_option client_test_long_options[] = {
      NO_ARG, 0, 0, 0, nullptr, 0, nullptr},
 #if defined(_WIN32)
     {"shared-memory-base-name", 'm', "Base name of shared memory.",
-     &shared_memory_base_name, (uchar **)&shared_memory_base_name, 0, GET_STR,
-     REQUIRED_ARG, 0, 0, 0, 0, 0, 0},
+     &shared_memory_base_name, (uchar **)&shared_memory_base_name, nullptr,
+     GET_STR, REQUIRED_ARG, 0, 0, 0, nullptr, 0, nullptr},
 #endif
     {"socket", 'S', "Socket file to use for connection", &opt_unix_socket,
      &opt_unix_socket, nullptr, GET_STR, REQUIRED_ARG, 0, 0, 0, nullptr, 0,

@@ -25,8 +25,8 @@
 
 /* This file includes all reserved words and functions */
 
-#include "m_string.h"
 #include "sql/lex_symbol.h"
+#include "string_with_len.h"
 
 /* We don't want to include sql_yacc.h into gen_lex_hash */
 #ifdef NO_YACC_SYMBOLS
@@ -299,6 +299,7 @@ static const SYMBOL symbols[] = {
     {SYM("GROUP", GROUP_SYM)},
     {SYM("GROUPING", GROUPING_SYM)},
     {SYM("GROUPS", GROUPS_SYM)},
+    {SYM("GTIDS", GTIDS_SYM)},
     {SYM("GTID_ONLY", GTID_ONLY_SYM)},
     {SYM("HANDLER", HANDLER_SYM)},
     {SYM("HASH", HASH_SYM)},
@@ -389,6 +390,7 @@ static const SYMBOL symbols[] = {
     {SYM("LOCKS", LOCKS_SYM)},
     {SYM("LOGFILE", LOGFILE_SYM)},
     {SYM("LOGS", LOGS_SYM)},
+    {SYM("LOG", LOG_SYM)},
     {SYM("LONG", LONG_SYM)},
     {SYM("LONGBLOB", LONGBLOB_SYM)},
     {SYM("LONGTEXT", LONGTEXT_SYM)},
@@ -507,8 +509,10 @@ static const SYMBOL symbols[] = {
     {SYM("OWNER", OWNER_SYM)},
     {SYM("PACK_KEYS", PACK_KEYS_SYM)},
     {SYM("PATH", PATH_SYM)},
+    {SYM("PARSE_TREE", PARSE_TREE_SYM)},
     {SYM("PARSER", PARSER_SYM)},
     {SYM("PAGE", PAGE_SYM)},
+    {SYM("PARALLEL", PARALLEL_SYM)},
     {SYM("PARTIAL", PARTIAL)},
     {SYM("PARTITION", PARTITION_SYM)},
     {SYM("PARTITIONING", PARTITIONING_SYM)},
@@ -619,6 +623,7 @@ static const SYMBOL symbols[] = {
     {SYM("ROWS", ROWS_SYM)},
     {SYM("ROW_FORMAT", ROW_FORMAT_SYM)},
     {SYM("RTREE", RTREE_SYM)},
+    {SYM("S3", S3_SYM)},
     {SYM("SAVEPOINT", SAVEPOINT_SYM)},
     {SYM("SCHEDULE", SCHEDULE_SYM)},
     {SYM("SCHEMA", DATABASE)},

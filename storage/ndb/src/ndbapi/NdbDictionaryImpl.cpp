@@ -33,7 +33,7 @@
 #include <NdbEnv.h>
 #include <util/version.h>
 #include <NdbSleep.h>
-#include "m_ctype.h"
+#include "mysql/strings/m_ctype.h"
 #include <util/require.h>
 #include <signaldata/IndexStatSignal.hpp>
 #include <signaldata/GetTabInfo.hpp>

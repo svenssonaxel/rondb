@@ -36,11 +36,13 @@
 #include "plugin/group_replication/include/applier.h"
 #include "plugin/group_replication/include/leave_group_on_failure.h"
 #include "plugin/group_replication/include/plugin.h"
+#include "plugin/group_replication/include/plugin_handlers/metrics_handler.h"
 #include "plugin/group_replication/include/plugin_messages/single_primary_message.h"
 #include "plugin/group_replication/include/plugin_server_include.h"
 #include "plugin/group_replication/include/services/notification/notification.h"
 #include "plugin/group_replication/libmysqlgcs/include/mysql/gcs/gcs_member_identifier.h"
 #include "sql/protocol_classic.h"
+#include "string_with_len.h"
 
 char applier_module_channel_name[] = "group_replication_applier";
 bool applier_thread_is_exiting = false;
@@ -267,6 +269,9 @@ int Applier_module::apply_view_change_packet(
     Format_description_log_event *fde_evt, Continuation *cont) {
   int error = 0;
 
+  /* Start garbage collection duration. */
+  const auto garbage_collection_begin = Metrics_handler::get_current_time();
+
   Gtid_set *group_executed_set = nullptr;
   Sid_map *sid_map = nullptr;
   if (!view_change_packet->group_executed_set.empty()) {
@@ -293,6 +298,11 @@ int Applier_module::apply_view_change_packet(
     delete sid_map;
     delete group_executed_set;
   }
+
+  /* Update garbage collection metrics. */
+  const auto garbage_collection_end = Metrics_handler::get_current_time();
+  metrics_handler->add_garbage_collection_run(garbage_collection_begin,
+                                              garbage_collection_end);
 
   View_change_log_event *view_change_event =
       new View_change_log_event(view_change_packet->view_id.c_str());
@@ -370,7 +380,8 @@ int Applier_module::apply_data_packet(Data_packet *data_packet,
     delete pevent;
 
     DBUG_EXECUTE_IF("stop_applier_channel_after_reading_write_rows_log_event", {
-      if (payload[EVENT_TYPE_OFFSET] == binary_log::WRITE_ROWS_EVENT) {
+      if (payload[EVENT_TYPE_OFFSET] ==
+          mysql::binlog::event::WRITE_ROWS_EVENT) {
         error = 1;
       }
     });
@@ -469,7 +480,8 @@ int Applier_module::applier_thread_handle() {
     replication channel connected to a master that does not add checksum to its
     binary log files.
   */
-  fde_evt->common_footer->checksum_alg = binary_log::BINLOG_CHECKSUM_ALG_OFF;
+  fde_evt->common_footer->checksum_alg =
+      mysql::binlog::event::BINLOG_CHECKSUM_ALG_OFF;
   cont = new Continuation();
 
   // Give the handlers access to the applier THD

@@ -78,8 +78,18 @@ public:
   TransporterFacade(GlobalDictCache *cache);
   ~TransporterFacade() override;
 
-  int start_instance(NodeId, const ndb_mgm_configuration*);
+  int start_instance(NodeId, const ndb_mgm_configuration*, bool tls_req=false);
   void stop_instance();
+
+  void configure_tls(const char *, int type, bool primary, int mgmLevel);
+  void api_configure_tls(const char * searchPath, bool primary, int mgmLevel)
+  {
+    configure_tls(searchPath, NODE_TYPE_API, primary, mgmLevel);
+  }
+  void mgm_configure_tls(const char * searchPath, int mgmLevel)
+  {
+    configure_tls(searchPath, NODE_TYPE_MGM, true, mgmLevel);
+  }
 
   /*
     (Re)configure the TransporterFacade
@@ -618,6 +628,12 @@ private:
    * of sending the data on these transporters.
    */
   TrpBitmask m_has_data_trps;
+
+  /* TLS Configuration */
+  const char * m_tls_search_path;
+  int m_tls_node_type;
+  bool m_tls_primary_api;
+  int m_mgm_tls_level;
 };
 
 inline

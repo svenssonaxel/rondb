@@ -58,7 +58,7 @@ int opt_auth_win_log_level = 2;
   Create connection out of an active MYSQL_PLUGIN_VIO object.
 
   @param[in] vio  pointer to a @c MYSQL_PLUGIN_VIO object used for
-                  connection - it can not be NULL
+                  connection - it can not be nullptr
 */
 
 Connection::Connection(MYSQL_PLUGIN_VIO *vio) : m_vio(vio), m_error(0) {
@@ -98,7 +98,7 @@ int Connection::write(const Blob &blob) {
 
 Blob Connection::read() {
   unsigned char *ptr;
-  int len = m_vio->read_packet(m_vio, &ptr);
+  const int len = m_vio->read_packet(m_vio, &ptr);
 
   if (len < 0) {
     m_error = true;
@@ -123,10 +123,10 @@ Blob Connection::read() {
 */
 
 Sid::Sid(const wchar_t *account_name)
-    : m_data(NULL)
+    : m_data(nullptr)
 #ifndef NDEBUG
       ,
-      m_as_string(NULL)
+      m_as_string(nullptr)
 #endif
 {
   DWORD sid_size = 0, domain_size = 0;
@@ -134,8 +134,8 @@ Sid::Sid(const wchar_t *account_name)
 
   // Determine required buffer sizes
 
-  success = LookupAccountNameW(NULL, account_name, NULL, &sid_size, NULL,
-                               &domain_size, &m_type);
+  success = LookupAccountNameW(nullptr, account_name, nullptr, &sid_size,
+                               nullptr, &domain_size, &m_type);
 
   if (!success && GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
 #ifndef NDEBUG
@@ -153,8 +153,8 @@ Sid::Sid(const wchar_t *account_name)
   m_data = (TOKEN_USER *)new BYTE[sid_size + sizeof(TOKEN_USER)];
   m_data->User.Sid = (BYTE *)m_data + sizeof(TOKEN_USER);
 
-  success = LookupAccountNameW(NULL, account_name, m_data->User.Sid, &sid_size,
-                               domain, &domain_size, &m_type);
+  success = LookupAccountNameW(nullptr, account_name, m_data->User.Sid,
+                               &sid_size, domain, &domain_size, &m_type);
 
   if (!success || !is_valid()) {
 #ifndef NDEBUG
@@ -171,7 +171,7 @@ Sid::Sid(const wchar_t *account_name)
 
 fail:
   if (m_data) delete[] m_data;
-  m_data = NULL;
+  m_data = nullptr;
 
 end:
   if (domain) delete[] domain;
@@ -187,10 +187,10 @@ end:
 */
 
 Sid::Sid(HANDLE token)
-    : m_data(NULL)
+    : m_data(nullptr)
 #ifndef NDEBUG
       ,
-      m_as_string(NULL)
+      m_as_string(nullptr)
 #endif
 {
   DWORD req_size = 0;
@@ -198,7 +198,7 @@ Sid::Sid(HANDLE token)
 
   // Determine required buffer size
 
-  success = GetTokenInformation(token, TokenUser, NULL, 0, &req_size);
+  success = GetTokenInformation(token, TokenUser, nullptr, 0, &req_size);
   if (!success && GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
 #ifndef NDEBUG
     Error_message_buf error_buf;
@@ -214,7 +214,7 @@ Sid::Sid(HANDLE token)
 
   if (!success || !is_valid()) {
     delete[] m_data;
-    m_data = NULL;
+    m_data = nullptr;
 #ifndef NDEBUG
     if (!success) {
       Error_message_buf error_buf;
@@ -243,17 +243,17 @@ bool Sid::is_valid(void) const {
 /**
   Produces string representation of the SID.
 
-  @return String representation of the SID or NULL in case of errors.
+  @return String representation of the SID or nullptr in case of errors.
 
   @note Memory allocated for the string is automatically freed in Sid's
   destructor.
 */
 
 const char *Sid::as_string() {
-  if (!m_data) return NULL;
+  if (!m_data) return nullptr;
 
   if (!m_as_string) {
-    bool success = ConvertSidToStringSid(m_data->User.Sid, &m_as_string);
+    const bool success = ConvertSidToStringSid(m_data->User.Sid, &m_as_string);
 
     if (!success) {
 #ifndef NDEBUG
@@ -262,8 +262,8 @@ const char *Sid::as_string() {
                            "ConvertSidToStringSid() failed with error %X (%s)",
                            GetLastError(), get_last_error_message(error_buf)));
 #endif
-      m_as_string = NULL;
-      return NULL;
+      m_as_string = nullptr;
+      return nullptr;
     }
   }
 
@@ -285,7 +285,7 @@ bool Sid::operator==(const Sid &other) {
   in internal buffer.
 */
 
-UPN::UPN() : m_buf(NULL) {
+UPN::UPN() : m_buf(nullptr) {
   wchar_t buf1[MAX_SERVICE_NAME_LENGTH];
 
   // First we try to use GetUserNameEx.
@@ -319,7 +319,7 @@ UPN::UPN() : m_buf(NULL) {
 
   if (!m_buf) ERROR_LOG(ERROR, ("Failed to convert UPN to utf8"));
 
-  // Note: possible error would be indicated by the fact that m_buf is NULL.
+  // Note: possible error would be indicated by the fact that m_buf is nullptr.
   return;
 }
 
@@ -337,15 +337,15 @@ UPN::~UPN() {
 
   If len is 0 then the length of the string will be computed by this function.
 
-  @return Pointer to a buffer containing utf8 representation or NULL in
+  @return Pointer to a buffer containing utf8 representation or nullptr in
           case of error.
 
   @note The returned buffer must be freed with @c free() call.
 */
 
 char *wchar_to_utf8(const wchar_t *string, size_t *len) {
-  char *buf = NULL;
-  size_t str_len = len && *len ? *len : wcslen(string);
+  char *buf = nullptr;
+  const size_t str_len = len && *len ? *len : wcslen(string);
 
   /*
     A conversion from utf8 to wchar_t will never take more than 3 bytes per
@@ -353,21 +353,22 @@ char *wchar_to_utf8(const wchar_t *string, size_t *len) {
     We check that assumption with an assertion later.
   */
 
-  size_t buf_len = 3 * str_len;
+  const size_t buf_len = 3 * str_len;
 
   buf = (char *)malloc(buf_len + 1);
   if (!buf) {
     DBUG_PRINT("error",
                ("Out of memory when converting string '%S' to utf8", string));
-    return NULL;
+    return nullptr;
   }
 
-  int res = WideCharToMultiByte(CP_UTF8,       // convert to UTF-8
-                                0,             // conversion flags
-                                string,        // input buffer
-                                str_len,       // its length
-                                buf, buf_len,  // output buffer and its size
-                                NULL, NULL);   // default character (not used)
+  const int res =
+      WideCharToMultiByte(CP_UTF8,            // convert to UTF-8
+                          0,                  // conversion flags
+                          string,             // input buffer
+                          str_len,            // its length
+                          buf, buf_len,       // output buffer and its size
+                          nullptr, nullptr);  // default character (not used)
 
   if (res) {
     buf[res] = '\0';
@@ -388,7 +389,7 @@ char *wchar_to_utf8(const wchar_t *string, size_t *len) {
   // Let's check our assumption about sufficient buffer size
   assert(ERROR_INSUFFICIENT_BUFFER != GetLastError());
 
-  return NULL;
+  return nullptr;
 }
 
 /**
@@ -400,7 +401,7 @@ char *wchar_to_utf8(const wchar_t *string, size_t *len) {
 
   If len is 0 then the length of the string will be computed by this function.
 
-  @return Pointer to a buffer containing wide-char representation or NULL in
+  @return Pointer to a buffer containing wide-char representation or nullptr in
           case of error.
 
   @note The returned buffer must be freed with @c free() call.
@@ -422,7 +423,7 @@ wchar_t *utf8_to_wchar(const char *string, size_t *len) {
     DBUG_PRINT("error", ("Out of memory when converting utf8 string '%s'"
                          " to wide-char representation",
                          string));
-    return NULL;
+    return nullptr;
   }
 
   size_t res;
@@ -449,7 +450,7 @@ wchar_t *utf8_to_wchar(const char *string, size_t *len) {
   // Let's check our assumption about sufficient buffer size
   assert(ERROR_INSUFFICIENT_BUFFER != GetLastError());
 
-  return NULL;
+  return nullptr;
 }
 
 /** Error handling ****************************************************/
@@ -463,12 +464,12 @@ wchar_t *utf8_to_wchar(const char *string, size_t *len) {
 */
 
 const char *get_last_error_message(Error_message_buf buf) {
-  int error = GetLastError();
+  const int error = GetLastError();
 
   buf[0] = '\0';
-  FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error,
+  FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, error,
                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)buf,
-                sizeof(Error_message_buf), NULL);
+                sizeof(Error_message_buf), nullptr);
 
   return buf;
 }

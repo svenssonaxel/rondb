@@ -35,7 +35,6 @@
 #include "caching_sha2_passwordopt-vars.h"
 #include "client/client_priv.h"
 #include "compression.h"
-#include "m_ctype.h"
 #include "m_string.h"
 #include "my_alloc.h"
 #include "my_dbug.h"
@@ -44,8 +43,11 @@
 #include "my_macros.h"
 #include "my_sys.h"
 #include "mysql/service_mysql_alloc.h"
+#include "mysql/strings/m_ctype.h"
+#include "nulls.h"
 #include "print_version.h"
 #include "sslopt-vars.h"
+#include "strxnmov.h"
 #include "typelib.h"
 #include "welcome_copyright_notice.h" /* ORACLE_WELCOME_COPYRIGHT_NOTICE */
 
@@ -67,7 +69,7 @@ static char *opt_compress_algorithm = nullptr;
 #include "multi_factor_passwordopt-vars.h"
 
 #if defined(_WIN32)
-static char *shared_memory_base_name = 0;
+static char *shared_memory_base_name = nullptr;
 #endif
 static uint opt_protocol = 0;
 static char *opt_bind_addr = nullptr;
@@ -277,8 +279,8 @@ static struct my_option my_long_options[] = {
      &opt_mysql_port, &opt_mysql_port, nullptr, GET_UINT, REQUIRED_ARG, 0, 0, 0,
      nullptr, 0, nullptr},
 #ifdef _WIN32
-    {"pipe", 'W', "Use named pipes to connect to server.", 0, 0, 0, GET_NO_ARG,
-     NO_ARG, 0, 0, 0, 0, 0, 0},
+    {"pipe", 'W', "Use named pipes to connect to server.", nullptr, nullptr,
+     nullptr, GET_NO_ARG, NO_ARG, 0, 0, 0, nullptr, 0, nullptr},
 #endif
     {"protocol", OPT_MYSQL_PROTOCOL,
      "The protocol to use for connection (tcp, socket, pipe, memory).", nullptr,
@@ -286,8 +288,8 @@ static struct my_option my_long_options[] = {
 #if defined(_WIN32)
     {"shared-memory-base-name", OPT_SHARED_MEMORY_BASE_NAME,
      "Base name of shared memory.", &shared_memory_base_name,
-     &shared_memory_base_name, 0, GET_STR_ALLOC, REQUIRED_ARG, 0, 0, 0, 0, 0,
-     0},
+     &shared_memory_base_name, nullptr, GET_STR_ALLOC, REQUIRED_ARG, 0, 0, 0,
+     nullptr, 0, nullptr},
 #endif
     {"show-table-type", 't', "Show table type column.", &opt_table_type,
      &opt_table_type, nullptr, GET_BOOL, NO_ARG, 0, 0, 0, nullptr, 0, nullptr},

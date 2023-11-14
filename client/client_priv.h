@@ -30,7 +30,6 @@
 #include <mysql.h>
 
 #include "errmsg.h"
-#include "m_string.h"
 #include "my_getopt.h"
 #include "my_sys.h"
 
@@ -184,6 +183,10 @@ enum options_client {
   OPT_SSL_SESSION_DATA_CONTINUE_ON_FAILED_REUSE,
   OPT_LONG_QUERY_TIME,
   OPT_AUTHENTICATION_KERBEROS_CLIENT_MODE,
+  OPT_TLS_SNI_SERVERNAME,
+  OPT_INIT_COMMAND_ADD,
+  OPT_OUTPUT_AS_VERSION,
+  OPT_AUTHENTICATION_WEBAUTHN_CLIENT_PRESERVE_PRIVACY,
   /* Add new option above this */
   OPT_MAX_CLIENT_OPTION
 };

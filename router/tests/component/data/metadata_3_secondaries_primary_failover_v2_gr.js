@@ -17,8 +17,8 @@ var gr_node_host = "127.0.0.1";
 var nodes = function(host, port_and_state) {
   return port_and_state.map(function(current_value) {
     return [
-      current_value[0], host, current_value[0], current_value[1],
-      current_value[2]
+      current_value[0], host, current_value[1], current_value[2],
+      current_value[3]
     ];
   });
 };
@@ -58,6 +58,7 @@ var common_responses = common_stmts.prepare_statement_responses(
       "router_clusterset_present",
       "router_check_member_state",
       "router_select_members_count",
+      "router_select_router_options_view",
     ],
     options);
 

@@ -33,10 +33,6 @@ if (mysqld.global.update_attributes_count === undefined) {
   mysqld.global.update_attributes_count = 0;
 }
 
-if (mysqld.global.update_last_check_in_count === undefined) {
-  mysqld.global.update_last_check_in_count = 0;
-}
-
 if (mysqld.global.router_version === undefined) {
   mysqld.global.router_version = "";
 }
@@ -47,6 +43,10 @@ if (mysqld.global.router_rw_classic_port === undefined) {
 
 if (mysqld.global.router_ro_classic_port === undefined) {
   mysqld.global.router_ro_classic_port = "";
+}
+
+if (mysqld.global.router_rw_split_classic_port === undefined) {
+  mysqld.global.router_rw_split_classic_port = "";
 }
 
 if (mysqld.global.router_rw_x_port === undefined) {
@@ -92,8 +92,8 @@ if (mysqld.global.bootstrap_target_type === undefined) {
 var nodes = function(host, port_and_state) {
   return port_and_state.map(function(current_value) {
     return [
-      current_value[0], host, current_value[0], current_value[1],
-      current_value[2]
+      current_value[0], host, current_value[1], current_value[2],
+      current_value[3]
     ];
   });
 };
@@ -141,15 +141,12 @@ var common_responses = common_stmts.prepare_statement_responses(
       "router_update_last_check_in_v2",
       "router_clusterset_present",
       "router_bootstrap_target_type",
-      "router_router_options",
+      "router_router_select_cs_options",
     ],
     options);
 
 var router_update_attributes_strict_v2 =
     common_stmts.get("router_update_attributes_strict_v2", options);
-
-var router_update_last_check_in_v2 =
-    common_stmts.get("router_update_last_check_in_v2", options);
 
 var router_select_metadata =
     common_stmts.get("router_select_metadata_v2_gr", options);
@@ -185,9 +182,6 @@ var router_start_transaction =
         }
       } else
         return router_update_attributes_strict_v2;
-    } else if (stmt === router_update_last_check_in_v2.stmt) {
-      mysqld.global.update_last_check_in_count++;
-      return router_update_last_check_in_v2;
     } else if (stmt === router_select_metadata.stmt) {
       mysqld.global.md_query_count++;
       return router_select_metadata;

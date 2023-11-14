@@ -95,6 +95,8 @@ class ROUTING_EXPORT AcceptingEndpoint {
                     const std::string &parent_routing_name)
       : io_ctx_(io_ctx), parent_routing_name_(parent_routing_name) {}
 
+  AcceptingEndpoint(const AcceptingEndpoint &) = delete;
+
   virtual stdx::expected<void, std::error_code> setup() = 0;
   virtual stdx::expected<void, std::error_code> cancel() = 0;
   virtual bool is_open() const = 0;
@@ -284,7 +286,7 @@ class ROUTING_EXPORT MySQLRouting : public MySQLRoutingBase {
 
   routing::RoutingStrategy get_routing_strategy() const override;
 
-  routing::AccessMode get_mode() const override;
+  routing::Mode get_mode() const override;
 
   std::vector<mysql_harness::TCPAddress> get_destinations() const override;
 
@@ -357,7 +359,10 @@ class ROUTING_EXPORT MySQLRouting : public MySQLRoutingBase {
   /** @brief Routing strategy to use when getting next destination */
   routing::RoutingStrategy routing_strategy_;
 
-  /** @brief Access mode of the servers in the routing */
+  /** @brief mode of the servers in the routing */
+  routing::Mode mode_;
+
+  /** @brief access_mode of the servers in the routing */
   routing::AccessMode access_mode_;
 
   /** @brief Maximum active connections

@@ -162,6 +162,7 @@ int init_instruments(const PFS_global_param *param) {
         PFS_MALLOC_ARRAY(&builtin_memory_file_handle, file_handle_max,
                          sizeof(PFS_file *), PFS_file *, MYF(MY_ZEROFILL));
     if (unlikely(file_handle_array == nullptr)) {
+      file_handle_max = 0;
       return 1;
     }
   }
@@ -725,6 +726,10 @@ PFS_thread *create_thread(PFS_thread_class *klass, PSI_thread_seqnum seqnum,
     pfs->m_telemetry_session = nullptr;
 #endif /* HAVE_PSI_SERVER_TELEMETRY_TRACES_INTERFACE */
 
+#ifndef NDEBUG
+    pfs->m_debug_session_notified = false;
+#endif
+
     pfs->m_lock.dirty_to_allocated(&dirty_state);
   }
 
@@ -827,7 +832,14 @@ void destroy_thread(PFS_thread *pfs) {
   pfs->m_thd = nullptr;
   pfs->m_cnt_thd = nullptr;
 
+#ifndef NDEBUG
+  assert(!pfs->m_debug_session_notified);
+#endif
+
 #ifdef HAVE_PSI_SERVER_TELEMETRY_TRACES_INTERFACE
+  assert(pfs->m_telemetry_session == nullptr);
+
+  // FIXME: remove this, abort must happen earlier.
   if (pfs->m_telemetry_session != nullptr) {
     assert(pfs->m_telemetry != nullptr);
     pfs->m_telemetry->m_tel_session_destroy(pfs->m_telemetry_session);

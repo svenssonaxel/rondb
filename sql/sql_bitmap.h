@@ -30,9 +30,11 @@
 #define SQL_BITMAP_INCLUDED
 
 #include <assert.h>
-#include "m_string.h"      // longlong2str
-#include "my_bitmap.h"     // MY_BITMAP
-#include "my_byteorder.h"  // int8store
+
+#include "dig_vec.h"
+#include "my_bitmap.h"              // MY_BITMAP
+#include "my_byteorder.h"           // int8store
+#include "mysql/strings/int2str.h"  // longlong2str
 
 #include "template_utils.h"
 
@@ -109,14 +111,19 @@ class Bitmap {
   bool operator!=(const Bitmap &map2) const { return !(*this == map2); }
   char *print(char *buf) const {
     char *s = buf;
-    const uchar *e = pointer_cast<const uchar *>(&buffer[0]),
-                *b = e + sizeof(buffer) - 1;
-    while (!*b && b > e) b--;
-    if ((*s = _dig_vec_upper[*b >> 4]) != '0') s++;
-    *s++ = _dig_vec_upper[*b & 15];
+    const uchar *e = pointer_cast<const uchar *>(&buffer[0]);
+    const uchar *b = e + sizeof(buffer) - 1;
+    while (*b == 0 && b > e) {
+      b--;
+    }
+    *s = dig_vec_upper[*b >> 4];
+    if (*s != '0') {
+      s++;
+    }
+    *s++ = dig_vec_upper[*b & 15];
     while (--b >= e) {
-      *s++ = _dig_vec_upper[*b >> 4];
-      *s++ = _dig_vec_upper[*b & 15];
+      *s++ = dig_vec_upper[*b >> 4];
+      *s++ = dig_vec_upper[*b & 15];
     }
     *s = 0;
     return buf;
@@ -131,6 +138,15 @@ class Bitmap {
   }
   uint bits_set() const { return bitmap_bits_set(&map); }
   uint get_first_set() const { return bitmap_get_first_set(&map); }
+
+  /**
+      Find the next set bit after 'bit_no'.
+      @param bit_no Start search at bit_no+1.
+      @returns index of next set bit, or MY_BIT_NONE.
+   */
+  uint get_next_set(uint bit_no) const {
+    return bitmap_get_next_set(&map, bit_no);
+  }
 };
 
 template <>
@@ -138,10 +154,10 @@ class Bitmap<64> {
   ulonglong map;
 
  public:
-  Bitmap<64>() { init(); }
+  Bitmap() { init(); }
   enum { ALL_BITS = 64 };
 
-  explicit Bitmap<64>(uint prefix_to_set) { set_prefix(prefix_to_set); }
+  explicit Bitmap(uint prefix_to_set) { set_prefix(prefix_to_set); }
   void init() { clear_all(); }
   void init(uint prefix_to_set) { set_prefix(prefix_to_set); }
   uint length() const { return 64; }
@@ -198,6 +214,17 @@ class Bitmap<64> {
   }
   uint get_first_set() const {
     for (uint i = 0; i < ALL_BITS; i++)
+      if (map & (1ULL << i)) return i;
+    return MY_BIT_NONE;
+  }
+
+  /**
+      Find the next set bit after 'bit_no'.
+      @param bit_no Start search at bit_no+1.
+      @returns index of next set bit, or MY_BIT_NONE.
+   */
+  uint get_next_set(uint bit_no) const {
+    for (uint i = bit_no + 1; i < ALL_BITS; i++)
       if (map & (1ULL << i)) return i;
     return MY_BIT_NONE;
   }

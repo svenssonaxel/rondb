@@ -56,7 +56,14 @@ FUNCTION(ADD_DYNAMIC_STATE_SCHEMA_COMMAND SHARED_OR_STATIC)
     COMMENT "Generating sources for ${SHARED_OR_STATIC} harness library"
     DEPENDS dynamic_state_schema.js
     )
-ENDFUNCTION()
+
+  ADD_CUSTOM_TARGET(json_schema_target_${SHARED_OR_STATIC}
+    DEPENDS ${GENERATED_SOURCES_${SHARED_OR_STATIC}}
+    )
+  ADD_DEPENDENCIES(clang_tidy_prerequisites
+    json_schema_target_${SHARED_OR_STATIC}
+    )
+ENDFUNCTION(ADD_DYNAMIC_STATE_SCHEMA_COMMAND)
 
 ADD_DYNAMIC_STATE_SCHEMA_COMMAND(SHARED)
 ADD_DYNAMIC_STATE_SCHEMA_COMMAND(STATIC)
@@ -140,7 +147,7 @@ ELSE()
 ENDIF()
 
 SET(common_libraries ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT}
-  ${SHLWAPI_LIBRARIES} ${WINSOCK_LIBRARIES} ${SSL_LIBRARIES})
+  ${SHLWAPI_LIBRARIES} ${WINSOCK_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
 
 SET(INSTALL_INCLUDE_DIR "include/mysql/harness")
 
@@ -156,6 +163,7 @@ CONFIGURE_FILE(plugin.h.in ${MySQLRouter_BINARY_DIR}/${INSTALL_INCLUDE_DIR}/plug
 # create harness library - static version
 ADD_LIBRARY(harness-archive STATIC
   ${harness_source} ${GENERATED_SOURCES_STATIC})
+ADD_DEPENDENCIES(harness-archive json_schema_target_STATIC)
 ADD_DEPENDENCIES(mysqlrouter_all harness-archive)
 
 TARGET_LINK_LIBRARIES(harness-archive {common_libraries} extra::rapidjson)
@@ -169,6 +177,7 @@ ENDIF()
 # create harness library - dynamic version
 ADD_LIBRARY(harness-library SHARED
   ${harness_source} ${GENERATED_SOURCES_SHARED})
+ADD_DEPENDENCIES(harness-library json_schema_target_SHARED)
 ADD_DEPENDENCIES(mysqlrouter_all harness-library)
 
 # mysys is need for my_print_stacktrace
@@ -283,7 +292,7 @@ TARGET_INCLUDE_DIRECTORIES(harness_tls
   ${CMAKE_CURRENT_BINARY_DIR}/../include/
   )
 TARGET_LINK_LIBRARIES(harness_tls
-  PUBLIC ${SSL_LIBRARIES}
+  PUBLIC OpenSSL::SSL OpenSSL::Crypto
   )
 SET_TARGET_PROPERTIES(harness_tls PROPERTIES
   OUTPUT_NAME "mysqlharness_tls"

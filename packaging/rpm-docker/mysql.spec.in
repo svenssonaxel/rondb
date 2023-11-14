@@ -254,7 +254,8 @@ for f in innochecksum ibd2sdi myisamchk myisam_ftdump myisamlog myisampack \
          my_safe_process %{!?cluster:mysqlbinlog} mysqlcheck mysql_client_test \
          mysql_config_editor mysqld_multi mysqld_safe mysqldumpslow mysqlimport \
          mysql_secure_installation mysqlshow mysqlslap mysqltest mysqltest_safe_process mysqlxtest \
-         comp_err perror lz4_decompress zlib_decompress mysql_keyring_encryption_test; do
+         comp_err perror lz4_decompress zlib_decompress mysql_keyring_encryption_test \
+         mysql_test_event_tracking; do
     rm -f %{buildroot}%{_bindir}/$f
 done
 
@@ -294,6 +295,7 @@ for p in \
          component_test_pfs_notification.so \
          component_test_pfs_resource_group.so \
          component_test_sensitive_system_variables.so \
+         component_test_server_telemetry_metrics.so \
          component_test_server_telemetry_traces.so \
          component_test_status_var_service_int.so \
          component_test_status_var_service_reg_only.so \
@@ -336,6 +338,12 @@ for p in \
          test_services_plugin_registry.so \
          test_udf_services.so \
          udf_example.so \
+         component_test_event_tracking_consumer.so \
+         component_test_event_tracking_producer_a.so \
+         component_test_event_tracking_producer_b.so \
+         component_test_event_tracking_consumer_a.so \
+         component_test_event_tracking_consumer_b.so \
+         component_test_event_tracking_consumer_c.so \
          ; do
     rm -f %{buildroot}%{_libdir}/mysql/plugin/$p
 done
@@ -408,6 +416,7 @@ rm -r $(readlink var) var
 %attr(755, root, root) %{_bindir}/ndb_select_all
 %attr(755, root, root) %{_bindir}/ndb_select_count
 %attr(755, root, root) %{_bindir}/ndb_show_tables
+%attr(755, root, root) %{_bindir}/ndb_sign_keys
 %attr(755, root, root) %{_bindir}/ndbinfo_select_all
 %attr(755, root, root) %{_bindir}/ndb_waiter
 %attr(755, root, root) %{_bindir}/ndb_mgm
@@ -445,6 +454,7 @@ rm -r $(readlink var) var
 %attr(755, root, root) %{_libdir}/mysql/plugin/authentication_ldap_sasl_client.so
 %if 0%{?add_fido_plugins}
 %attr(755, root, root) %{_libdir}/mysql/plugin/authentication_fido_client.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/authentication_webauthn_client.so
 %endif # add_fido_plugins
 %attr(755, root, root) %{_libdir}/mysql/plugin/authentication_kerberos_client.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/authentication_oci_client.so
@@ -531,6 +541,7 @@ rm -r $(readlink var) var
 %attr(755, root, root) %{_libdir}/mysql/plugin/authentication_ldap_simple.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/authentication_kerberos.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/authentication_pam.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/telemetry_client.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/data_masking.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/keyring_okv.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/keyring_encrypted_file.so
@@ -541,6 +552,7 @@ rm -r $(readlink var) var
 %attr(755, root, root) %{_libdir}/mysql/plugin/firewall.so
 %if 0%{?add_fido_plugins}
 %attr(755, root, root) %{_libdir}/mysql/plugin/authentication_fido.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/authentication_webauthn.so
 %endif # add_fido_plugins
 %attr(755, root, root) %{_libdir}/mysql/plugin/component_keyring_encrypted_file.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/component_keyring_oci.so
@@ -548,10 +560,12 @@ rm -r $(readlink var) var
 %attr(755, root, root) %{_libdir}/mysql/plugin/component_masking.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/component_masking_functions.so
 %attr(755, root, root) %{_libdir}/mysql/plugin/component_scheduler.so
+%attr(755, root, root) %{_libdir}/mysql/plugin/component_telemetry.so
 %if 0%{?aws_sdk}
 %attr(755, root, root) %{_libdir}/mysql/plugin/keyring_aws.so
 %endif # aws_sdk
 %attr(644, root, root) %{_datadir}/mysql-*/linux_install_firewall.sql
+%attr(644, root, root) %{_datadir}/mysql-*/uninstall_firewall.sql
 %attr(644, root, root) %{_datadir}/mysql-*/firewall_profile_migration.sql
 %attr(644, root, root) %{_datadir}/mysql-*/masking_functions_install.sql
 %attr(644, root, root) %{_datadir}/mysql-*/masking_functions_uninstall.sql
@@ -563,6 +577,12 @@ rm -r $(readlink var) var
 %dir %attr(750, mysql, mysql) /var/lib/mysql-keyring
 
 %changelog
+* Mon Jul 24 2023 Miroslav Rajcic <miroslav.rajcic@oracle.com> - 8.2.0-1
+- Added component_test_server_telemetry_metrics test component
+
+* Wed Mar 01 2023 Harin Vadodaria <harin.vadodaria@oracle.com> - 8.0.34-1
+- Added components, libraries and binaries related to event tracking
+
 * Thu Oct 13 2022 Miroslav Rajcic <miroslav.rajcic@oracle.com> - 8.0.33-1
 - Added component_test_server_telemetry_traces, component_test_mysql_thd_store_service test components
 
@@ -572,10 +592,6 @@ rm -r $(readlink var) var
 
 * Tue Jun 28 2022 Samar Pratap Singh <samar.pratap.singh@oracle.com> - 8.0.31-1
 - Added component_keyring_oci
-
-* Mon Jun 20 2022 Murthy Sidagam <venkata.sidagam@oracle.com> - 8.0.31-1
-- Added component_test_mysql_command_services.so test component
-- Added test_services_command_services.so test plugin
 
 * Wed Feb 02 2022 Harin Vadodaria <harin.vadodaria@oracle.com> - 8.0.30-1
 - Added component_enterprise_encryption

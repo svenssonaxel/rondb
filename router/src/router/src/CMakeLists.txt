@@ -34,6 +34,7 @@ SET(lib_source_files
   config_files.cc
   cluster_metadata.cc
   cluster_metadata_dynamic_state.cc
+  cluster_metadata_instance_attributes.cc
   sys_user_operations.cc
   utils.cc
   uri.cc
@@ -62,7 +63,7 @@ TARGET_LINK_LIBRARIES(router_lib
   harness_stdx
   harness_tls
   mysqlclient
-  ${SSL_LIBRARIES}
+  OpenSSL::SSL OpenSSL::Crypto
   io_component
   extra::rapidjson
   )
@@ -122,6 +123,7 @@ TARGET_INCLUDE_DIRECTORIES(router_frontend_lib
   ${PROJECT_SOURCE_DIR}/src/metadata_cache/include/
   ${PROJECT_SOURCE_DIR}/src/http/include/
   ${PROJECT_SOURCE_DIR}/src/rest_api/include/
+  ${PROJECT_SOURCE_DIR}/src/connection_pool/include/
 )
 
 MYSQL_ADD_EXECUTABLE(mysqlrouter

@@ -46,6 +46,7 @@ template <class T>
 class Bounds_checked_array;
 class Common_table_expr;
 class Filesort;
+class HashJoinCondition;
 class Item;
 class Item_func_match;
 class JOIN;
@@ -1524,32 +1525,31 @@ inline AccessPath *NewStreamingAccessPath(THD *thd, AccessPath *child,
   return path;
 }
 
-inline Mem_root_array<MaterializePathParameters::QueryBlock>
+inline Mem_root_array<MaterializePathParameters::Operand>
 SingleMaterializeQueryBlock(THD *thd, AccessPath *path, int select_number,
                             JOIN *join, bool copy_items,
                             Temp_table_param *temp_table_param) {
   assert(path != nullptr);
-  Mem_root_array<MaterializePathParameters::QueryBlock> array(thd->mem_root, 1);
-  MaterializePathParameters::QueryBlock &query_block = array[0];
-  query_block.subquery_path = path;
-  query_block.select_number = select_number;
-  query_block.join = join;
-  query_block.disable_deduplication_by_hash_field = false;
-  query_block.copy_items = copy_items;
-  query_block.temp_table_param = temp_table_param;
+  Mem_root_array<MaterializePathParameters::Operand> array(thd->mem_root, 1);
+  MaterializePathParameters::Operand &operand = array[0];
+  operand.subquery_path = path;
+  operand.select_number = select_number;
+  operand.join = join;
+  operand.disable_deduplication_by_hash_field = false;
+  operand.copy_items = copy_items;
+  operand.temp_table_param = temp_table_param;
   return array;
 }
 
 inline AccessPath *NewMaterializeAccessPath(
-    THD *thd,
-    Mem_root_array<MaterializePathParameters::QueryBlock> query_blocks,
+    THD *thd, Mem_root_array<MaterializePathParameters::Operand> operands,
     Mem_root_array<const AccessPath *> *invalidators, TABLE *table,
     AccessPath *table_path, Common_table_expr *cte, Query_expression *unit,
     int ref_slice, bool rematerialize, ha_rows limit_rows,
     bool reject_multiple_rows) {
   MaterializePathParameters *param =
       new (thd->mem_root) MaterializePathParameters;
-  param->query_blocks = std::move(query_blocks);
+  param->m_operands = std::move(operands);
   if (rematerialize) {
     // There's no point in adding invalidators if we're rematerializing
     // every time anyway.
@@ -1571,9 +1571,8 @@ inline AccessPath *NewMaterializeAccessPath(
   param->reject_multiple_rows = reject_multiple_rows;
 
 #ifndef NDEBUG
-  for (MaterializePathParameters::QueryBlock &query_block :
-       param->query_blocks) {
-    assert(query_block.subquery_path != nullptr);
+  for (MaterializePathParameters::Operand &operand : param->m_operands) {
+    assert(operand.subquery_path != nullptr);
   }
 #endif
 
@@ -1705,19 +1704,6 @@ AccessPath *NewUpdateRowsAccessPath(THD *thd, AccessPath *child,
  */
 void FindTablesToGetRowidFor(AccessPath *path);
 
-/**
-  If the path is a FILTER path marked that subqueries are to be materialized,
-  do so. If not, do nothing.
-
-  It is important that this is not called until the entire plan is ready;
-  not just when planning a single query block. The reason is that a query
-  block A with materializable subqueries may itself be part of a materializable
-  subquery B, so if one calls this when planning A, the subqueries in A will
-  irrevocably be materialized, even if that is not the optimal plan given B.
-  Thus, this is done when creating iterators.
- */
-bool FinalizeMaterializedSubqueries(THD *thd, JOIN *join, AccessPath *path);
-
 unique_ptr_destroy_only<RowIterator> CreateIteratorFromAccessPath(
     THD *thd, MEM_ROOT *mem_root, AccessPath *path, JOIN *join,
     bool eligible_for_batch_mode);
@@ -1797,5 +1783,25 @@ void ExpandSingleFilterAccessPath(THD *thd, AccessPath *path, const JOIN *join,
 
 /// Returns the tables that are part of a hash join.
 table_map GetHashJoinTables(AccessPath *path);
+
+/**
+  Get the conditions to put into the extra conditions of the HashJoinIterator.
+  This includes the non-equijoin conditions, as well as any equijoin conditions
+  on columns that are too big to include in the hash table. (The old optimizer
+  handles equijoin conditions on long columns elsewhere, so the last part only
+  applies to the hypergraph optimizer.)
+
+  @param mem_root The root on which to allocate memory, if needed.
+  @param using_hypergraph_optimizer True if using the hypergraph optimizer.
+  @param equijoin_conditions All the equijoin conditions of the join.
+  @param other_conditions All the non-equijoin conditions of the join.
+
+  @return All the conditions to evaluate as "extra conditions" in
+  HashJoinIterator, or nullptr on OOM.
+ */
+const Mem_root_array<Item *> *GetExtraHashJoinConditions(
+    MEM_ROOT *mem_root, bool using_hypergraph_optimizer,
+    const std::vector<HashJoinCondition> &equijoin_conditions,
+    const Mem_root_array<Item *> &other_conditions);
 
 #endif  // SQL_JOIN_OPTIMIZER_ACCESS_PATH_H

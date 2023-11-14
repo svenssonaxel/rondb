@@ -53,9 +53,9 @@
 
 #include "include/compression.h"
 
-#include "my_loglevel.h"
 #include "mysql/components/services/log_builtins.h"
 #include "mysql/components/services/log_shared.h"
+#include "mysql/my_loglevel.h"
 #include "mysql_com.h"
 #include "sql/protocol.h"
 #include "sql/rpl_trx_tracking.h"
@@ -70,9 +70,6 @@
 #include <utility>
 
 #include "ft_global.h"
-#include "libbinlogevents/include/binlog_event.h"
-#include "libbinlogevents/include/binlog_event.h"  // binary_log::max_log_event_size
-#include "libbinlogevents/include/compression/zstd_comp.h"  // DEFAULT_COMPRESSION_LEVEL
 #include "m_string.h"
 #include "my_aes.h"  // my_aes_opmode_names
 #include "my_command.h"
@@ -86,10 +83,17 @@
 #include "my_thread.h"
 #include "my_thread_local.h"
 #include "my_time.h"
-#include "myisam.h"  // myisam_flush
+#include "myisam.h"                           // myisam_flush
+#include "mysql/binlog/event/binlog_event.h"  // mysql::binlog::event::max_log_event_size
+#include "mysql/binlog/event/compression/zstd_comp.h"  // DEFAULT_COMPRESSION_LEVEL
 #include "mysql/plugin_group_replication.h"
 #include "mysql/psi/mysql_mutex.h"
+#include "mysql/strings/dtoa.h"
+#include "mysql/strings/int2str.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql_version.h"
+#include "nulls.h"
+#include "sql-common/my_decimal.h"
 #include "sql/auth/auth_acls.h"
 #include "sql/auth/auth_common.h"  // validate_user_plugins
 #include "sql/binlog.h"            // mysql_bin_log
@@ -104,7 +108,6 @@
 #include "sql/hostname_cache.h"  // host_cache_resize
 #include "sql/log.h"
 #include "sql/mdl.h"
-#include "sql/my_decimal.h"
 #include "sql/opt_trace_context.h"
 #include "sql/options_mysqld.h"
 #include "sql/protocol_classic.h"
@@ -136,6 +139,7 @@
 #include "sql/transaction.h"  // trans_commit_stmt
 #include "sql/transaction_info.h"
 #include "sql/xa.h"
+#include "string_with_len.h"
 #include "template_utils.h"  // pointer_cast
 #include "thr_lock.h"
 #ifdef _WIN32
@@ -207,7 +211,8 @@ static constexpr const unsigned long long OPTIMIZER_SWITCH_DEFAULT{
     OPTIMIZER_SWITCH_COND_FANOUT_FILTER | OPTIMIZER_SWITCH_DERIVED_MERGE |
     OPTIMIZER_SKIP_SCAN | OPTIMIZER_SWITCH_HASH_JOIN |
     OPTIMIZER_SWITCH_PREFER_ORDERING_INDEX |
-    OPTIMIZER_SWITCH_DERIVED_CONDITION_PUSHDOWN};
+    OPTIMIZER_SWITCH_DERIVED_CONDITION_PUSHDOWN |
+    OPTIMIZER_SWITCH_HASH_SET_OPERATIONS};
 
 static constexpr const unsigned long MYSQLD_NET_RETRY_COUNT{10};
 
@@ -402,8 +407,8 @@ static bool check_session_admin(sys_var *self, THD *thd, set_var *setv) {
 
 #ifdef WITH_LOCK_ORDER
 
-#define LO_TRAILING_PROPERTIES                                          \
-  NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(NULL), ON_UPDATE(NULL), NULL, \
+#define LO_TRAILING_PROPERTIES                                             \
+  NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(NULL), ON_UPDATE(NULL), nullptr, \
       sys_var::PARSE_EARLY
 
 static Sys_var_bool Sys_lo_enabled("lock_order", "Enable the lock order.",
@@ -481,8 +486,8 @@ static Sys_var_bool Sys_lo_debug_missing_key(
 #ifdef WITH_PERFSCHEMA_STORAGE_ENGINE
 
 #define PFS_TRAILING_PROPERTIES                                         \
-  NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(NULL), ON_UPDATE(NULL), NULL, \
-      sys_var::PARSE_EARLY
+  NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(nullptr), ON_UPDATE(nullptr), \
+      nullptr, sys_var::PARSE_EARLY
 
 static Sys_var_bool Sys_pfs_enabled("performance_schema",
                                     "Enable the performance schema.",
@@ -912,6 +917,20 @@ static Sys_var_ulong Sys_pfs_max_memory_classes(
     CMD_LINE(REQUIRED_ARG), VALID_RANGE(0, 1024), DEFAULT(PFS_MAX_MEMORY_CLASS),
     BLOCK_SIZE(1), PFS_TRAILING_PROPERTIES);
 
+static Sys_var_ulong Sys_pfs_max_meter_classes(
+    "performance_schema_max_meter_classes",
+    "Maximum number of meter source instruments.",
+    READ_ONLY GLOBAL_VAR(pfs_param.m_meter_class_sizing),
+    CMD_LINE(REQUIRED_ARG), VALID_RANGE(0, 64), DEFAULT(PFS_MAX_METER_CLASS),
+    BLOCK_SIZE(1), PFS_TRAILING_PROPERTIES);
+
+static Sys_var_ulong Sys_pfs_max_metric_classes(
+    "performance_schema_max_metric_classes",
+    "Maximum number of metric source instruments.",
+    READ_ONLY GLOBAL_VAR(pfs_param.m_metric_class_sizing),
+    CMD_LINE(REQUIRED_ARG), VALID_RANGE(0, 11000),
+    DEFAULT(PFS_MAX_METRIC_CLASS), BLOCK_SIZE(1), PFS_TRAILING_PROPERTIES);
+
 static Sys_var_long Sys_pfs_digest_size(
     "performance_schema_digests_size",
     "Size of the statement digest."
@@ -1283,7 +1302,7 @@ static bool check_explicit_defaults_for_timestamp(sys_var *self, THD *thd,
 */
 
 static bool check_gtid_next(sys_var *self, THD *thd, set_var *var) {
-  bool is_prepared_trx =
+  const bool is_prepared_trx =
       thd->get_transaction()->xid_state()->has_state(XID_STATE::XA_PREPARED);
 
   if (thd->in_sub_stmt) {
@@ -1339,7 +1358,7 @@ static bool binlog_format_check(sys_var *self, THD *thd, set_var *var) {
       replication channel applier is running, since unlike PERSIST,
       PERSIST_ONLY does not modify the runtime global system variable value.
     */
-    enum_slave_channel_status slave_channel_status =
+    const enum_slave_channel_status slave_channel_status =
         has_any_slave_channel_open_temp_table_or_is_its_applier_running();
     if (slave_channel_status == SLAVE_CHANNEL_APPLIER_IS_RUNNING) {
       my_error(ER_RUNNING_APPLIER_PREVENTS_SWITCH_GLOBAL_BINLOG_FORMAT, MYF(0));
@@ -1520,7 +1539,7 @@ static Sys_var_uint Sys_binlog_transaction_compression_level_zstd(
     "transaction compression in the binary log.",
     SESSION_VAR(binlog_trx_compression_level_zstd), CMD_LINE(REQUIRED_ARG),
     VALID_RANGE(1, 22),
-    DEFAULT(binary_log::transaction::compression::Zstd_comp::
+    DEFAULT(mysql::binlog::event::compression::Zstd_comp::
                 default_compression_level),
     BLOCK_SIZE(1), NO_MUTEX_GUARD, NOT_IN_BINLOG,
     ON_CHECK(check_binlog_trx_compression), ON_UPDATE(nullptr));
@@ -1607,7 +1626,8 @@ static bool repository_check(sys_var *self, THD *thd, set_var *var,
   Master_info *mi;
   int running = 0;
   const char *msg = nullptr;
-  bool rpl_info_option = static_cast<uint>(var->save_result.ulonglong_value);
+  const bool rpl_info_option =
+      static_cast<uint>(var->save_result.ulonglong_value);
 
   /* don't convert if the repositories are same */
   if (rpl_info_option ==
@@ -1836,7 +1856,7 @@ static bool check_charset(sys_var *, THD *thd, set_var *var) {
     if (!(res = var->value->val_str(&str)))
       var->save_result.ptr = nullptr;
     else {
-      ErrConvString err(res); /* Get utf8 '\0' terminated string */
+      const ErrConvString err(res); /* Get utf8 '\0' terminated string */
       if (!(var->save_result.ptr =
                 get_charset_by_csname(err.ptr(), MY_CS_PRIMARY, MYF(0))) &&
           !(var->save_result.ptr = get_old_charset_by_name(err.ptr()))) {
@@ -1849,7 +1869,7 @@ static bool check_charset(sys_var *, THD *thd, set_var *var) {
     }
   } else  // INT_RESULT
   {
-    int csno = (int)var->value->val_int();
+    const int csno = (int)var->value->val_int();
     if (!(var->save_result.ptr = get_charset(csno, MYF(0)))) {
       my_error(ER_UNKNOWN_CHARACTER_SET, MYF(0), llstr(csno, buff));
       return true;
@@ -1994,7 +2014,7 @@ static bool check_collation_not_null(sys_var *self, THD *thd, set_var *var) {
     if (!(res = var->value->val_str(&str)))
       var->save_result.ptr = nullptr;
     else {
-      ErrConvString err(res); /* Get utf8 '\0'-terminated string */
+      const ErrConvString err(res); /* Get utf8 '\0'-terminated string */
       if (!(var->save_result.ptr = get_charset_by_name(err.ptr(), MYF(0)))) {
         my_error(ER_UNKNOWN_COLLATION, MYF(0), err.ptr());
         return true;
@@ -2002,7 +2022,7 @@ static bool check_collation_not_null(sys_var *self, THD *thd, set_var *var) {
     }
   } else  // INT_RESULT
   {
-    int csno = (int)var->value->val_int();
+    const int csno = (int)var->value->val_int();
     if (!(var->save_result.ptr = get_charset(csno, MYF(0)))) {
       my_error(ER_UNKNOWN_COLLATION, MYF(0), llstr(csno, buff));
       return true;
@@ -2150,7 +2170,7 @@ static bool event_scheduler_check(sys_var *, THD *, set_var *var) {
 }
 static bool event_scheduler_update(sys_var *, THD *, enum_var_type) {
   int err_no = 0;
-  ulong opt_event_scheduler_value = Events::opt_event_scheduler;
+  const ulong opt_event_scheduler_value = Events::opt_event_scheduler;
   mysql_mutex_unlock(&LOCK_global_system_variables);
   /*
     Events::start() is heavyweight. In particular it creates a new THD,
@@ -2168,9 +2188,9 @@ static bool event_scheduler_update(sys_var *, THD *, enum_var_type) {
     rare and it's difficult to avoid it without opening up possibilities
     for deadlocks. See bug#51160.
   */
-  bool ret = opt_event_scheduler_value == Events::EVENTS_ON
-                 ? Events::start(&err_no)
-                 : Events::stop();
+  const bool ret = opt_event_scheduler_value == Events::EVENTS_ON
+                       ? Events::start(&err_no)
+                       : Events::stop();
   mysql_mutex_lock(&LOCK_global_system_variables);
   if (ret) {
     Events::opt_event_scheduler = Events::EVENTS_OFF;
@@ -2189,49 +2209,14 @@ static Sys_var_enum Sys_event_scheduler(
     NOT_IN_BINLOG, ON_CHECK(event_scheduler_check),
     ON_UPDATE(event_scheduler_update));
 
-static bool check_expire_logs_days(sys_var *, THD *, set_var *var) {
-  ulonglong expire_logs_days_value = var->save_result.ulonglong_value;
-
-  if (expire_logs_days_value && binlog_expire_logs_seconds) {
-    my_error(ER_BINLOG_EXPIRE_LOG_DAYS_AND_SECS_USED_TOGETHER, MYF(0));
-    return true;
-  }
-  return false;
-}
-
-static bool check_expire_logs_seconds(sys_var *, THD *, set_var *var) {
-  ulonglong expire_logs_seconds_value = var->save_result.ulonglong_value;
-
-  if (expire_logs_days && expire_logs_seconds_value) {
-    my_error(ER_DA_EXPIRE_LOGS_DAYS_IGNORED, MYF(0));
-    return true;
-  }
-  return false;
-}
-
-static Sys_var_ulong Sys_expire_logs_days(
-    "expire_logs_days",
-    "If non-zero, binary logs will be purged after expire_logs_days "
-    "days; If this option alone is set on the command line or in a "
-    "configuration file, it overrides the default value for "
-    "binlog-expire-logs-seconds. If both options are set to nonzero values, "
-    "binlog-expire-logs-seconds takes priority. Possible purges happen at "
-    "startup and at binary log rotation.",
-    GLOBAL_VAR(expire_logs_days), CMD_LINE(REQUIRED_ARG, OPT_EXPIRE_LOGS_DAYS),
-    VALID_RANGE(0, 99), DEFAULT(0), BLOCK_SIZE(1), NO_MUTEX_GUARD,
-    NOT_IN_BINLOG, ON_CHECK(check_expire_logs_days), ON_UPDATE(nullptr),
-    DEPRECATED_VAR("binlog_expire_logs_seconds"));
-
 static Sys_var_ulong Sys_binlog_expire_logs_seconds(
     "binlog_expire_logs_seconds",
     "If non-zero, binary logs will be purged after binlog_expire_logs_seconds"
-    " seconds; If both this option and expire_logs_days are set to non-zero"
-    "  values, this option takes priority. Purges happen at"
-    " startup and at binary log rotation.",
+    " seconds; Purges happen at startup and at binary log rotation.",
     GLOBAL_VAR(binlog_expire_logs_seconds),
     CMD_LINE(REQUIRED_ARG, OPT_BINLOG_EXPIRE_LOGS_SECONDS),
     VALID_RANGE(0, 0xFFFFFFFF), DEFAULT(2592000), BLOCK_SIZE(1), NO_MUTEX_GUARD,
-    NOT_IN_BINLOG, ON_CHECK(check_expire_logs_seconds), ON_UPDATE(nullptr));
+    NOT_IN_BINLOG, ON_CHECK(nullptr), ON_UPDATE(nullptr));
 
 static Sys_var_bool Sys_binlog_expire_logs_auto_purge(
     "binlog_expire_logs_auto_purge",
@@ -2915,8 +2900,8 @@ static Sys_var_ulong Sys_replica_max_allowed_packet(
     "The maximum size of packets sent from an upstream source server to this "
     "server.",
     GLOBAL_VAR(replica_max_allowed_packet), CMD_LINE(REQUIRED_ARG),
-    VALID_RANGE(1024, binary_log::max_log_event_size),
-    DEFAULT(binary_log::max_log_event_size), BLOCK_SIZE(1024));
+    VALID_RANGE(1024, mysql::binlog::event::max_log_event_size),
+    DEFAULT(mysql::binlog::event::max_log_event_size), BLOCK_SIZE(1024));
 
 static Sys_var_deprecated_alias Sys_slave_max_allowed_packet(
     "slave_max_allowed_packet", Sys_replica_max_allowed_packet);
@@ -3338,7 +3323,7 @@ static Sys_var_ulong Sys_range_optimizer_max_mem_size(
 
 static bool limit_parser_max_mem_size(sys_var *, THD *thd, set_var *var) {
   if (var->is_global_persist()) return false;
-  ulonglong val = var->save_result.ulonglong_value;
+  const ulonglong val = var->save_result.ulonglong_value;
   if (val > global_system_variables.parser_max_mem_size) {
     if (thd->security_context()->check_access(SUPER_ACL)) return false;
     var->save_result.ulonglong_value =
@@ -3451,6 +3436,7 @@ static const char *optimizer_switch_names[] = {
     "prefer_ordering_index",
     "hypergraph_optimizer",  // Deliberately not documented below.
     "derived_condition_pushdown",
+    "hash_set_operations",
     "default",
     NullS};
 static Sys_var_flagset Sys_optimizer_switch(
@@ -3464,7 +3450,7 @@ static Sys_var_flagset Sys_optimizer_switch(
     " block_nested_loop, batched_key_access, use_index_extensions,"
     " condition_fanout_filter, derived_merge, hash_join,"
     " subquery_to_derived, prefer_ordering_index,"
-    " derived_condition_pushdown} and val is one of "
+    " derived_condition_pushdown, hash_set_operations} and val is one of "
     "{on, off, default}",
     HINT_UPDATEABLE SESSION_VAR(optimizer_switch), CMD_LINE(REQUIRED_ARG),
     optimizer_switch_names, DEFAULT(OPTIMIZER_SWITCH_DEFAULT), NO_MUTEX_GUARD,
@@ -3704,7 +3690,7 @@ static void event_scheduler_restart(THD *thd) {
 
 static bool fix_read_only(sys_var *self, THD *thd, enum_var_type) {
   bool result = true;
-  bool new_read_only = read_only;  // make a copy before releasing a mutex
+  const bool new_read_only = read_only;  // make a copy before releasing a mutex
   DBUG_TRACE;
 
   /*
@@ -3809,7 +3795,7 @@ static bool fix_super_read_only(sys_var *, THD *thd, enum_var_type type) {
     return false;
   }
   bool result = true;
-  bool new_super_read_only =
+  const bool new_super_read_only =
       super_read_only; /* make a copy before releasing a mutex */
 
   /* set read_only to ON if it is OFF, letting fix_read_only()
@@ -3948,7 +3934,7 @@ static Sys_var_bool Sys_shared_memory(
 static Sys_var_charptr Sys_shared_memory_base_name(
     "shared_memory_base_name", "Base name of shared memory",
     READ_ONLY NON_PERSIST GLOBAL_VAR(shared_memory_base_name),
-    CMD_LINE(REQUIRED_ARG), IN_FS_CHARSET, DEFAULT(0));
+    CMD_LINE(REQUIRED_ARG), IN_FS_CHARSET, DEFAULT(nullptr));
 #endif
 
 // this has to be NO_CMD_LINE as the command-line option has a different name
@@ -4282,7 +4268,7 @@ static Sys_var_deprecated_alias Sys_slave_preserve_commit_order(
 
 bool Sys_var_charptr::global_update(THD *, set_var *var) {
   char *new_val, *ptr = var->save_result.string_value.str;
-  size_t len = var->save_result.string_value.length;
+  const size_t len = var->save_result.string_value.length;
   if (ptr) {
     new_val = (char *)my_memdup(key_memory_Sys_var_charptr_value, ptr, len + 1,
                                 MYF(MY_WME));
@@ -4307,7 +4293,7 @@ bool Sys_var_enum_binlog_checksum::global_update(THD *thd, set_var *var) {
   thd->set_skip_readonly_check();
   mysql_mutex_lock(mysql_bin_log.get_log_lock());
   if (mysql_bin_log.is_open()) {
-    bool alg_changed =
+    const bool alg_changed =
         (binlog_checksum_options != (uint)var->save_result.ulonglong_value);
     if (alg_changed)
       mysql_bin_log.checksum_alg_reset =
@@ -4315,14 +4301,14 @@ bool Sys_var_enum_binlog_checksum::global_update(THD *thd, set_var *var) {
     mysql_bin_log.rotate(true, &check_purge);
     if (alg_changed)
       mysql_bin_log.checksum_alg_reset =
-          binary_log::BINLOG_CHECKSUM_ALG_UNDEF;  // done
+          mysql::binlog::event::BINLOG_CHECKSUM_ALG_UNDEF;  // done
   } else {
     binlog_checksum_options =
         static_cast<ulong>(var->save_result.ulonglong_value);
   }
   assert(binlog_checksum_options == var->save_result.ulonglong_value);
   assert(mysql_bin_log.checksum_alg_reset ==
-         binary_log::BINLOG_CHECKSUM_ALG_UNDEF);
+         mysql::binlog::event::BINLOG_CHECKSUM_ALG_UNDEF);
   mysql_mutex_unlock(mysql_bin_log.get_log_lock());
 
   if (check_purge) mysql_bin_log.auto_purge();
@@ -4364,11 +4350,11 @@ bool Sys_var_gtid_set::session_update(THD *thd, set_var *var) {
   DBUG_TRACE;
   Gtid_set_or_null *gsn = (Gtid_set_or_null *)session_var_ptr(thd);
   char *value = var->save_result.string_value.str;
-  if (value == NULL)
+  if (value == nullptr)
     gsn->set_null();
   else {
     Gtid_set *gs = gsn->set_non_null(global_sid_map);
-    if (gs == NULL) {
+    if (gs == nullptr) {
       my_error(ER_OUT_OF_RESOURCES, MYF(0));  // allocation failed
       return true;
     }
@@ -4695,16 +4681,14 @@ bool Sys_var_gtid_mode::global_update(THD *thd, set_var *var) {
   }
 
   // Can't set GTID_MODE=OFF with ongoing calls to
-  // WAIT_FOR_EXECUTED_GTID_SET or
-  // WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS.
+  // WAIT_FOR_EXECUTED_GTID_SET.
   DBUG_PRINT("info",
              ("gtid_wait_count=%d", gtid_state->get_gtid_wait_count() > 0));
   if (new_gtid_mode == Gtid_mode::OFF &&
       gtid_state->get_gtid_wait_count() > 0) {
     my_error(ER_CANT_SET_GTID_MODE, MYF(0), "OFF",
              "there are ongoing calls to "
-             "WAIT_FOR_EXECUTED_GTID_SET or "
-             "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS. Before you set "
+             "WAIT_FOR_EXECUTED_GTID_SET. Before you set "
              "@@GLOBAL.GTID_MODE = OFF, ensure that no other "
              "client is waiting for GTID-transactions to be "
              "committed");
@@ -4755,9 +4739,9 @@ bool Sys_var_enforce_gtid_consistency::global_update(THD *thd, set_var *var) {
 
   DBUG_PRINT("info", ("var->save_result.ulonglong_value=%llu",
                       var->save_result.ulonglong_value));
-  enum_gtid_consistency_mode new_mode =
+  const enum_gtid_consistency_mode new_mode =
       (enum_gtid_consistency_mode)var->save_result.ulonglong_value;
-  enum_gtid_consistency_mode old_mode = get_gtid_consistency_mode();
+  const enum_gtid_consistency_mode old_mode = get_gtid_consistency_mode();
   auto gtid_mode = global_gtid_mode.get();
 
   assert(new_mode <= GTID_CONSISTENCY_MODE_WARN);
@@ -4824,8 +4808,9 @@ static Sys_var_enum_binlog_checksum Binlog_checksum_enum(
     "log events in the binary log. Possible values are NONE and CRC32; "
     "default is CRC32.",
     GLOBAL_VAR(binlog_checksum_options), CMD_LINE(REQUIRED_ARG),
-    binlog_checksum_type_names, DEFAULT(binary_log::BINLOG_CHECKSUM_ALG_CRC32),
-    NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(check_outside_trx));
+    binlog_checksum_type_names,
+    DEFAULT(mysql::binlog::event::BINLOG_CHECKSUM_ALG_CRC32), NO_MUTEX_GUARD,
+    NOT_IN_BINLOG, ON_CHECK(check_outside_trx));
 
 static Sys_var_bool Sys_source_verify_checksum(
     "source_verify_checksum",
@@ -5202,7 +5187,7 @@ bool Sys_var_transaction_isolation::session_update(THD *thd, set_var *var) {
      */
     enum_tx_isolation tx_isol;
     tx_isol = (enum_tx_isolation)var->save_result.ulonglong_value;
-    bool one_shot = (var->type == OPT_DEFAULT);
+    const bool one_shot = (var->type == OPT_DEFAULT);
     return set_tx_isolation(thd, tx_isol, one_shot);
   }
   return false;
@@ -5611,8 +5596,8 @@ static Sys_var_harows Sys_select_limit(
 static bool update_timestamp(THD *thd, set_var *var) {
   if (var->value) {
     double intpart;
-    double fractpart = modf(var->save_result.double_value, &intpart);
-    double micros = fractpart * 1000000.0;
+    const double fractpart = modf(var->save_result.double_value, &intpart);
+    const double micros = fractpart * 1000000.0;
     // Double multiplication, and conversion to integral may yield
     // 1000000 rather than 999999.
     struct timeval tmp;
@@ -5639,7 +5624,7 @@ static bool check_timestamp(sys_var *, THD *, set_var *var) {
   val = var->save_result.double_value;
   if (val != 0 &&  // this is how you set the default value
       (val < TYPE_TIMESTAMP_MIN_VALUE || val > TYPE_TIMESTAMP_MAX_VALUE)) {
-    ErrConvString prm(val);
+    const ErrConvString prm(val);
     my_error(ER_WRONG_VALUE_FOR_VAR, MYF(0), "timestamp", prm.ptr());
     return true;
   }
@@ -6030,7 +6015,8 @@ static Sys_var_have Sys_have_statement_timeout(
     READ_ONLY NON_PERSIST GLOBAL_VAR(have_statement_timeout), NO_CMD_LINE);
 
 static bool fix_general_log_state(sys_var *, THD *thd, enum_var_type) {
-  bool new_state = opt_general_log, res = false;
+  const bool new_state = opt_general_log;
+  bool res = false;
 
   if (query_logger.is_log_file_enabled(QUERY_LOG_GENERAL) == new_state)
     return false;
@@ -6066,7 +6052,8 @@ static Sys_var_bool Sys_log_raw(
     NO_MUTEX_GUARD, NOT_IN_BINLOG);
 
 static bool fix_slow_log_state(sys_var *, THD *thd, enum_var_type) {
-  bool new_state = opt_slow_log, res = false;
+  const bool new_state = opt_slow_log;
+  bool res = false;
 
   if (query_logger.is_log_file_enabled(QUERY_LOG_SLOW) == new_state)
     return false;
@@ -6450,7 +6437,7 @@ static bool check_locale(sys_var *self, THD *thd, set_var *var) {
   MY_LOCALE *locale;
   char buff[STRING_BUFFER_USUAL_SIZE];
   if (var->value->result_type() == INT_RESULT) {
-    int lcno = (int)var->value->val_int();
+    const int lcno = (int)var->value->val_int();
     if (!(locale = my_locale_by_number(lcno))) {
       my_error(ER_UNKNOWN_LOCALE, MYF(0), llstr(lcno, buff));
       return true;
@@ -6462,7 +6449,7 @@ static bool check_locale(sys_var *self, THD *thd, set_var *var) {
     if (!(res = var->value->val_str(&str)))
       return true;
     else if (!(locale = my_locale_by_name(thd, res->ptr(), res->length()))) {
-      ErrConvString err(res);
+      const ErrConvString err(res);
       my_error(ER_UNKNOWN_LOCALE, MYF(0), err.ptr());
       return true;
     }
@@ -6574,8 +6561,8 @@ static Sys_var_ulong Sys_sp_cache_size(
 static bool check_pseudo_replica_mode(sys_var *self, THD *thd, set_var *var) {
   if (check_session_admin_or_replication_applier(self, thd, var)) return true;
   if (check_outside_trx(self, thd, var)) return true;
-  longlong previous_val = thd->variables.pseudo_replica_mode;
-  longlong val = (longlong)var->save_result.ulonglong_value;
+  const longlong previous_val = thd->variables.pseudo_replica_mode;
+  const longlong val = (longlong)var->save_result.ulonglong_value;
   bool rli_fake = false;
 
   rli_fake = thd->rli_fake ? true : false;
@@ -6631,7 +6618,7 @@ static bool check_gtid_next_list(sys_var *self, THD *thd, set_var *var) {
     check and fix - if we ever implement this variable.
   */
   if (global_gtid_mode.get() == Gtid_mode::OFF &&
-      var->save_result.string_value.str != NULL)
+      var->save_result.string_value.str != nullptr)
     my_error(ER_CANT_SET_GTID_NEXT_LIST_TO_NON_NULL_WHEN_GTID_MODE_IS_OFF,
              MYF(0));
   return false;
@@ -6639,7 +6626,7 @@ static bool check_gtid_next_list(sys_var *self, THD *thd, set_var *var) {
 
 static bool update_gtid_next_list(sys_var *self, THD *thd, enum_var_type type) {
   assert(type == OPT_SESSION);
-  if (thd->get_gtid_next_list() != NULL)
+  if (thd->get_gtid_next_list() != nullptr)
     return gtid_acquire_ownership_multiple(thd) != 0 ? true : false;
   return false;
 }
@@ -7363,7 +7350,7 @@ bool Sys_var_binlog_encryption::global_update(THD *thd, set_var *var) {
   DBUG_TRACE;
 
   /* No-op if trying to set to current value */
-  bool new_value = var->save_result.ulonglong_value;
+  const bool new_value = var->save_result.ulonglong_value;
   if (new_value == rpl_encryption.is_enabled()) return false;
 
   DEBUG_SYNC(thd, "after_locking_global_sys_var_set_binlog_enc");
@@ -7436,8 +7423,8 @@ static bool check_set_default_table_encryption_access(sys_var *self
   // Should own one of SUPER or both (SYSTEM_VARIABLES_ADMIN and
   // TABLE_ENCRYPTION_ADMIN), unless this is the session option and
   // the value is unchanged.
-  longlong previous_val = thd->variables.default_table_encryption;
-  longlong val = (longlong)var->save_result.ulonglong_value;
+  const longlong previous_val = thd->variables.default_table_encryption;
+  const longlong val = (longlong)var->save_result.ulonglong_value;
   if ((!var->is_global_persist() && val == previous_val) ||
       thd->security_context()->check_access(SUPER_ACL) ||
       (thd->security_context()
@@ -7538,8 +7525,8 @@ static bool check_set_require_row_format(sys_var *, THD *thd, set_var *var) {
    Should own SUPER or SYSTEM_VARIABLES_ADMIN or SESSION_VARIABLES_ADMIN
    when the value is changing to NO, no privileges are needed to set to YES
   */
-  longlong previous_val = thd->variables.require_row_format;
-  longlong val = (longlong)var->save_result.ulonglong_value;
+  const longlong previous_val = thd->variables.require_row_format;
+  const longlong val = (longlong)var->save_result.ulonglong_value;
   assert(!var->is_global_persist());
 
   // if it was true and we are changing it
@@ -7654,7 +7641,7 @@ static Sys_var_deprecated_alias Sys_skip_slave_start("skip_slave_start",
                                                      Sys_skip_replica_start);
 
 static const char *terminology_use_previous_names[] = {"NONE", "BEFORE_8_0_26",
-                                                       nullptr};
+                                                       "BEFORE_8_2_0", nullptr};
 
 static Sys_var_enum Sys_terminology_use_previous(
     "terminology_use_previous",
@@ -7668,7 +7655,11 @@ static Sys_var_enum Sys_terminology_use_previous(
     "or SHOW REPLICA STATUS. When the global option is set to BEFORE_8_0_26, "
     "new sessions use BEFORE_8_0_26 as default for the session option, and in "
     "addition the thread commands that were in use until 8.0.25 are written "
-    "to the slow query log.",
+    "to the slow query log. If set to BEFORE_8_2_0 or less the command SHOW "
+    "CREATE EVENT will show how the event would have been created in a server "
+    "of a version lower than 8.2.0. SHOW EVENTS and queries into "
+    "information_schema.events will also output the old terminology for the "
+    "event status field.",
     SESSION_VAR(terminology_use_previous), CMD_LINE(REQUIRED_ARG),
     terminology_use_previous_names, DEFAULT(terminology_use_previous::NONE),
     NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(nullptr), ON_UPDATE(nullptr),
@@ -7718,3 +7709,40 @@ static Sys_var_enum Sys_explain_format(
     SESSION_VAR(explain_format), CMD_LINE(OPT_ARG), explain_format_names,
     DEFAULT(static_cast<ulong>(Explain_format_type::TRADITIONAL)),
     NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(nullptr), ON_UPDATE(nullptr));
+
+static Sys_var_bool Sys_tls_certificates_enforced_validation(
+    "tls_certificates_enforced_validation",
+    "If set to TRUE, server stops execution at the start up in case of invalid "
+    "certificates "
+    "When ALTER INSTANCE RELOAD TLS executed, new certficates will not be used "
+    "if validation fails. ",
+    READ_ONLY NON_PERSIST GLOBAL_VAR(opt_tls_certificates_enforced_validation),
+    CMD_LINE(OPT_ARG), DEFAULT(false), NO_MUTEX_GUARD, NOT_IN_BINLOG,
+    ON_CHECK(nullptr), ON_UPDATE(nullptr));
+
+static Sys_var_ulonglong Sys_set_operations_buffer_size(
+    "set_operations_buffer_size",
+    "The maximum size of the buffer used for hash based set operations ",
+    HINT_UPDATEABLE SESSION_VAR(set_operations_buffer_size),
+    CMD_LINE(REQUIRED_ARG), VALID_RANGE(16384 /* 16*1024 */, max_mem_sz),
+    DEFAULT(256ULL * 1024), BLOCK_SIZE(128));
+
+#ifndef NDEBUG
+// If this variable is set, it will inject a secondary overflow in spill to
+// disk of in-memory hash table used for INTERSECT, EXCEPT. Three integers must
+// be given to indicate where to inject the overflow:
+//   a) set index, cf. explanation in comments for class SpillState
+//   b) chunk index
+//   c) row number
+// Syntax: <set-idx:integer 0-based> <chunk-idx:integer 0-based>
+//         <row_no:integer 1-based>
+// Example:
+//       SET SESSION debug_set_operations_secondary_overflow_at = '1 5 7';
+// If the numbers given are outside range on the high side, they will never
+// trigger any secondary spill.
+static Sys_var_charptr Sys_debug_set_operations_secondary_overflow_at(
+    "debug_set_operations_secondary_overflow_at", "Error injection",
+    HINT_UPDATEABLE SESSION_VAR(debug_set_operations_secondary_overflow_at),
+    CMD_LINE(REQUIRED_ARG), IN_FS_CHARSET, DEFAULT(""), NO_MUTEX_GUARD,
+    NOT_IN_BINLOG, ON_CHECK(nullptr), ON_UPDATE(nullptr));
+#endif

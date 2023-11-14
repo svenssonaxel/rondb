@@ -51,6 +51,7 @@
 #include <mysql/components/component_implementation.h>
 #include <mysql/components/service.h>
 #include <mysql/components/service_implementation.h>
+#include <mysql/components/services/mysql_server_telemetry_metrics_service.h>
 #include <mysql/components/services/mysql_server_telemetry_traces_service.h>
 #include <mysql/components/services/psi_cond_service.h>
 #include <mysql/components/services/psi_error_service.h>
@@ -58,6 +59,7 @@
 #include <mysql/components/services/psi_idle_service.h>
 #include <mysql/components/services/psi_mdl_service.h>
 #include <mysql/components/services/psi_memory_service.h>
+#include <mysql/components/services/psi_metric_service.h>
 #include <mysql/components/services/psi_mutex_service.h>
 #include <mysql/components/services/psi_rwlock_service.h>
 #include <mysql/components/services/psi_socket_service.h>
@@ -84,12 +86,15 @@
 #include "my_thread.h"
 #include "mysql/psi/mysql_memory.h"
 #include "mysql/psi/mysql_thread.h"
+#include "mysql/psi/psi_metric.h"
+#include "mysql/strings/m_ctype.h"
 #include "pfs_error_provider.h"
 /* Make sure exported prototypes match the implementation. */
 #include "pfs_file_provider.h"
 #include "pfs_idle_provider.h"
 #include "pfs_memory_provider.h"
 #include "pfs_metadata_provider.h"
+#include "pfs_metric_provider.h"
 #include "pfs_socket_provider.h"
 #include "pfs_stage_provider.h"
 #include "pfs_statement_provider.h"
@@ -116,6 +121,7 @@
 #include "storage/perfschema/pfs_host.h"
 #include "storage/perfschema/pfs_instr.h"
 #include "storage/perfschema/pfs_instr_class.h"
+#include "storage/perfschema/pfs_metrics_service_imp.h"
 #include "storage/perfschema/pfs_plugin_table.h"
 #include "storage/perfschema/pfs_prepared_stmt.h"
 #include "storage/perfschema/pfs_program.h"
@@ -141,6 +147,7 @@
 #define DISABLE_PSI_IDLE
 #define DISABLE_PSI_MEMORY
 #define DISABLE_PSI_METADATA
+#define DISABLE_PSI_METRICS
 #define DISABLE_PSI_MUTEX
 #define DISABLE_PSI_PS
 #define DISABLE_PSI_RWLOCK
@@ -3498,7 +3505,8 @@ int get_thread_attributes(PFS_thread *pfs, bool current_thread,
   thread_attrs->m_user_data = pfs->m_user_data;
   thread_attrs->m_system_thread = pfs->m_system_thread;
 
-  assert(pfs->m_sock_addr_len <= sizeof(PSI_thread_attrs::m_sock_addr));
+  assert(pfs->m_sock_addr_len <=
+         static_cast<int>(sizeof(PSI_thread_attrs::m_sock_addr)));
   thread_attrs->m_sock_addr_length = pfs->m_sock_addr_len;
   if (thread_attrs->m_sock_addr_length > 0) {
     memcpy(&thread_attrs->m_sock_addr, &pfs->m_sock_addr, pfs->m_sock_addr_len);
@@ -7159,7 +7167,6 @@ void pfs_end_statement_vc(PSI_statement_locker *locker, void *stmt_da) {
     }
 
     if (pfs_program != nullptr) {
-      PFS_statement_stat *sub_stmt_stat = nullptr;
       sub_stmt_stat = &pfs_program->m_stmt_stat;
       if (sub_stmt_stat != nullptr) {
         if (pfs_flags & STATE_FLAG_TIMED) {
@@ -7197,17 +7204,16 @@ void pfs_end_statement_vc(PSI_statement_locker *locker, void *stmt_da) {
 
     if (pfs_prepared_stmt != nullptr) {
       if (state->m_in_prepare) {
-        PFS_single_stat *prepared_stmt_stat = nullptr;
-        prepared_stmt_stat = &pfs_prepared_stmt->m_prepare_stat;
-        if (prepared_stmt_stat != nullptr) {
+        PFS_single_stat *prepare_stat = nullptr;
+        prepare_stat = &pfs_prepared_stmt->m_prepare_stat;
+        if (prepare_stat != nullptr) {
           if (pfs_flags & STATE_FLAG_TIMED) {
-            prepared_stmt_stat->aggregate_value(wait_time);
+            prepare_stat->aggregate_value(wait_time);
           } else {
-            prepared_stmt_stat->aggregate_counted();
+            prepare_stat->aggregate_counted();
           }
         }
       } else {
-        PFS_statement_stat *prepared_stmt_stat = nullptr;
         prepared_stmt_stat = &pfs_prepared_stmt->m_execute_stat;
         if (prepared_stmt_stat != nullptr) {
           if (pfs_flags & STATE_FLAG_TIMED) {
@@ -7245,14 +7251,6 @@ void pfs_end_statement_vc(PSI_statement_locker *locker, void *stmt_da) {
           }
         }
       }
-    }
-
-    if (pfs_program != nullptr) {
-      sub_stmt_stat = &pfs_program->m_stmt_stat;
-    }
-
-    if (pfs_prepared_stmt != nullptr && !state->m_in_prepare) {
-      prepared_stmt_stat = &pfs_prepared_stmt->m_execute_stat;
     }
   }
 
@@ -7361,9 +7359,9 @@ void pfs_end_statement_vc(PSI_statement_locker *locker, void *stmt_da) {
     tel_data.m_sql_text = state->m_query_sample;
     tel_data.m_sql_text_length = state->m_query_sample_length;
 
-    const sql_digest_storage *digest_storage = state->m_digest;
-    if (digest_storage != nullptr) {
-      compute_digest_text(digest_storage, &digest_text);
+    const sql_digest_storage *tel_digest_storage = state->m_digest;
+    if (tel_digest_storage != nullptr) {
+      compute_digest_text(tel_digest_storage, &digest_text);
       tel_data.m_digest_text = digest_text.ptr();
     } else {
       tel_data.m_digest_text = nullptr;
@@ -8054,7 +8052,8 @@ void pfs_digest_end_vc(PSI_digest_locker *locker,
 
     state->m_digest = digest;
 
-    const uint req_flags = STATE_FLAG_THREAD | STATE_FLAG_EVENT;
+    const uint req_flags =
+        STATE_FLAG_THREAD | STATE_FLAG_EVENT | STATE_FLAG_DIGEST;
 
     if ((state->m_pfs_flags & req_flags) == req_flags) {
       auto *thread = reinterpret_cast<PFS_thread *>(state->m_thread);
@@ -8102,6 +8101,41 @@ PSI_prepared_stmt *pfs_create_prepared_stmt_vc(void *identity, uint stmt_id,
   if (sql_text_length > COL_INFO_SIZE) {
     sql_text_length = COL_INFO_SIZE;
   }
+
+  /*
+    IMPORTANT NOTE:
+
+    When:
+    - the performance schema is configured to _not_ instrument prepared
+      statements (m_pfs_flags == 0),
+    - a telemetry component is configured to _force_ instrumentation,
+      (m_collect_flags != 0), asking for prepared statements instrumentation.
+
+    prepared statements will be instrumented anyway,
+    and therefore will be visible in the performance schema.
+
+    This is an accepted side effect of telemetry.
+
+    Alternative 1, rejected:
+
+    Honor the performance schema configuration,
+    but do not honor the telemetry configuration.
+
+    Alternative 2, rejected:
+
+    Do not call create_prepared_stmt(),
+    but return a different instance of PFS_prepared_stmt just for telemetry.
+
+    This imply to adjust aggregation, and destroy prepared statements,
+    to account for this different instrumentation.
+
+    This will lead to CPU and MEMORY overhead comparable
+    to the performance schema instrumentation,
+    without the added benefits of seeing the prepared statement in
+    table performance_schema.PREPARED_STATEMENTS_INSTANCES.
+
+    Technically feasible if the side effect must be removed, but not desirable.
+  */
 
   PFS_prepared_stmt *pfs = create_prepared_stmt(
       identity, pfs_thread, pfs_program, pfs_stmt, stmt_id, stmt_name,
@@ -9902,6 +9936,8 @@ PROVIDES_SERVICE(performance_schema, psi_cond_v1),
     PROVIDES_SERVICE(performance_schema, pfs_plugin_column_year_v1),
     PROVIDES_SERVICE(performance_schema, psi_tls_channel_v1),
     PROVIDES_SERVICE(performance_schema, mysql_server_telemetry_traces_v1),
+    PROVIDES_SERVICE(performance_schema, mysql_server_telemetry_metrics_v1),
+    PROVIDES_SERVICE(performance_schema, psi_metric_v1),
     PROVIDES_SERVICE(performance_schema, pfs_plugin_column_text_v1),
     END_COMPONENT_PROVIDES();
 

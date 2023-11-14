@@ -352,7 +352,8 @@ class SharedRouter {
               {"client_ssl_key", SSL_TEST_DATA_DIR "/server-key-sha512.pem"},
               {"client_ssl_cert", SSL_TEST_DATA_DIR "/server-cert-sha512.pem"},
               {"connection_sharing", "1"},
-              {"connection_sharing_delay", "0"},
+              {"connection_sharing_delay", "0"},  //
+              {"connect_retry_timeout", "0"},
           });
     }
 
@@ -403,7 +404,7 @@ class SharedRouter {
     // wait for the connections appear in the pool.
     if (param.can_share()) {
       ASSERT_NO_ERROR(wait_for_idle_server_connections(
-          std::min(num_destinations, pool_size_), 1s));
+          std::min(num_destinations, pool_size_), 10s));
     }
   }
 
@@ -556,6 +557,8 @@ class TestEnv : public ::testing::Environment {
         if (s->mysqld_failed_to_start()) {
           GTEST_SKIP() << "mysql-server failed to start.";
         }
+        s->setup_mysqld_accounts();
+        s->install_plugins();
       }
     }
 
@@ -775,7 +778,7 @@ class ShareConnectionTestWithRestartedServer
       }
     }
 
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(0, 10s));
   }
 
  private:
@@ -838,8 +841,9 @@ class ShareConnectionTestTemp
       if (s == nullptr || s->mysqld_failed_to_start()) {
         GTEST_SKIP() << "failed to start mysqld";
       } else {
-        s->flush_privileges();       // reset the auth-cache
-        s->close_all_connections();  // reset the router's connection-pool
+        s->flush_privileges();  // reset the auth-cache
+        ASSERT_NO_ERROR(
+            s->close_all_connections());  // reset the router's connection-pool
         s->reset_to_defaults();
       }
     }
@@ -899,7 +903,7 @@ TEST_P(ShareConnectionTestWithRestartedServer,
     // wait until connection is in the pool.
     if (can_share) {
       ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(
-          std::min(ndx + 1, kNumServers), 1s));
+          std::min(ndx + 1, kNumServers), 10s));
     }
   }
 
@@ -914,20 +918,29 @@ TEST_P(ShareConnectionTestWithRestartedServer,
     ASSERT_NO_FATAL_FAILURE(wait_stopped_intermediate_router(inter));
   }
 
-  // caps for the error-packet parser
-  auto caps = classic_protocol::capabilities::protocol_41;
+  // caps of the server.
+  auto caps = classic_protocol::capabilities::protocol_41 |     // server::Error
+              classic_protocol::capabilities::query_attributes  // client::Query
+      ;
 
   // send one command per connection.
   for (auto [ndx, cli] : stdx::views::enumerate(clis)) {
     SCOPED_TRACE("// testing command " + std::to_string(ndx));
     std::vector<uint8_t> buf;
 
-    {
+    if (ndx == 3) {
+      auto encode_res = classic_protocol::encode<classic_protocol::frame::Frame<
+          classic_protocol::message::client::Query>>({0, {""}}, caps,
+                                                     net::dynamic_buffer(buf));
+      ASSERT_NO_ERROR(encode_res);
+    } else {
       auto encode_res = classic_protocol::encode<
           classic_protocol::frame::Frame<classic_protocol::wire::FixedInt<1>>>(
           {0, {static_cast<uint8_t>(ndx)}}, caps, net::dynamic_buffer(buf));
       ASSERT_NO_ERROR(encode_res);
+    }
 
+    {
       auto send_res = net::impl::socket::send(cli.native_handle(), buf.data(),
                                               buf.size(), 0);
       ASSERT_NO_ERROR(send_res);
@@ -989,7 +1002,6 @@ TEST_P(ShareConnectionTestWithRestartedServer,
             case 8:   // deprecated
             case 10:  // process-info
             case 11:  // connect
-            case 13:  // debug
             case 15:  // time
             case 16:  // delayed insert
             case cmd_byte<
@@ -1070,24 +1082,26 @@ TEST_P(ShareConnectionTestWithRestartedServer,
     // wait until connection is in the pool.
     if (can_share) {
       ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(
-          std::min(ndx + 1, kNumServers), 1s));
+          std::min(ndx + 1, kNumServers), 10s));
     }
   }
 
-  // caps for the error-packet parser
-  auto caps = classic_protocol::capabilities::protocol_41;
+  // caps of the server.
+  auto caps = classic_protocol::capabilities::protocol_41 |     // server::Error
+              classic_protocol::capabilities::query_attributes  // client::Query
+      ;
 
   // send one command per connection.
   for (auto [ndx, cli] : stdx::views::enumerate(clis)) {
     SCOPED_TRACE("// testing command " + std::to_string(ndx));
     std::vector<uint8_t> buf;
 
-    {
-      auto encode_res = classic_protocol::encode<
-          classic_protocol::frame::Frame<classic_protocol::wire::FixedInt<1>>>(
-          {0, {static_cast<uint8_t>(ndx)}}, caps, net::dynamic_buffer(buf));
-      ASSERT_NO_ERROR(encode_res);
+    auto encode_res = classic_protocol::encode<
+        classic_protocol::frame::Frame<classic_protocol::wire::FixedInt<1>>>(
+        {0, {static_cast<uint8_t>(ndx)}}, caps, net::dynamic_buffer(buf));
+    ASSERT_NO_ERROR(encode_res);
 
+    {
       auto send_res = net::impl::socket::send(cli.native_handle(), buf.data(),
                                               buf.size(), 0);
       ASSERT_NO_ERROR(send_res);
@@ -1147,7 +1161,6 @@ TEST_P(ShareConnectionTestWithRestartedServer,
         case 8:   // deprecated
         case 10:  // process-info
         case 11:  // connect
-        case 13:  // debug
         case 15:  // time
         case 16:  // delayed insert
         case cmd_byte<classic_protocol::message::client::ChangeUser>():  // 17
@@ -1177,8 +1190,11 @@ TEST_P(ShareConnectionTestWithRestartedServer,
           expected_error_code = 1046;  // no database selected
           break;
         case cmd_byte<classic_protocol::message::client::Query>():  // 3
-          expected_error_code =
-              (GetParam().client_ssl_mode != kPassthrough) ? 1065 : 1835;
+          expected_error_code = (GetParam().client_ssl_mode == kPreferred &&
+                                 GetParam().server_ssl_mode == kAsClient)
+                                    ? 1065  // query was empty
+                                    : 1835  // malformed packet
+              ;
           break;
         case cmd_byte<classic_protocol::message::client::StmtPrepare>():  // 22
 
@@ -1187,8 +1203,8 @@ TEST_P(ShareConnectionTestWithRestartedServer,
         case cmd_byte<classic_protocol::message::client::BinlogDump>():  // 18
         case cmd_byte<
             classic_protocol::message::client::BinlogDumpGtid>():  // 30
-
-          expected_error_code = 1227;  // query was empty
+        case 13:                                                   // debug
+          expected_error_code = 1227;  // access denied; SUPER is needed.
           break;
         case cmd_byte<
             classic_protocol::message::client::RegisterReplica>():  // 21
@@ -1263,7 +1279,7 @@ TEST_P(ShareConnectionTestWithRestartedServer,
 
   if (can_share) {
     SCOPED_TRACE("// wait until connection is pooled.");
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
 
     SCOPED_TRACE("// force a close of the connections in the pool");
 
@@ -1308,7 +1324,8 @@ TEST_P(ShareConnectionTestWithRestartedServer,
     EXPECT_EQ(my_port, *my_port_num_res);
 
     if (can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(1, 10s));
 
       this->wait_for_connections_to_server_expired(my_port);
     }
@@ -1434,7 +1451,7 @@ TEST_P(ShareConnectionTestWithRestartedServer,
   }
 
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   {
@@ -1472,7 +1489,7 @@ TEST_P(ShareConnectionTestWithRestartedServer,
   }
 
   if (can_share) {
-    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+    ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 10s));
   }
 
   // stop the first router and start another again.
@@ -1595,7 +1612,8 @@ TEST_P(ShareConnectionTestWithRestartedServer,
     my_port = *my_port_num_res;
 
     if (can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(1, 10s));
 
       ASSERT_NO_FATAL_FAILURE(
           this->wait_for_connections_to_server_expired(my_port));
@@ -1725,7 +1743,8 @@ TEST_P(ShareConnectionTestWithRestartedServer,
     my_port = *my_port_num_res;
 
     if (can_share) {
-      ASSERT_NO_ERROR(shared_router()->wait_for_idle_server_connections(1, 1s));
+      ASSERT_NO_ERROR(
+          shared_router()->wait_for_idle_server_connections(1, 10s));
     }
 
     // reconnects

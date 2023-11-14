@@ -111,6 +111,10 @@ class MySQLRoutingContext {
                                      1000};
   }
 
+  std::chrono::milliseconds connect_retry_timeout() const {
+    return routing_config_.connect_retry_timeout;
+  }
+
   const mysql_harness::TCPAddress &get_bind_address() const {
     return routing_config_.bind_address;
   }
@@ -159,6 +163,16 @@ class MySQLRoutingContext {
 
   std::chrono::milliseconds connection_sharing_delay() const {
     return routing_config_.connection_sharing_delay;
+  }
+
+  routing::AccessMode access_mode() const {
+    return routing_config_.access_mode;
+  }
+
+  bool wait_for_my_writes() const { return routing_config_.wait_for_my_writes; }
+
+  std::chrono::seconds wait_for_my_writes_timeout() const {
+    return routing_config_.wait_for_my_writes_timeout;
   }
 
  private:

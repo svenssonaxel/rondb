@@ -27,7 +27,8 @@
 
 #include <system_error>
 
-#include "processor.h"
+#include "forwarding_processor.h"
+#include "mysqlrouter/classic_protocol_message.h"
 
 /**
  * attach a server connection and initialize it.
@@ -43,7 +44,7 @@
  *
  * - the client's cleartext password must be known.
  */
-class LazyConnector : public Processor {
+class LazyConnector : public ForwardingProcessor {
  public:
   /**
    * create a lazy-connector.
@@ -52,6 +53,7 @@ class LazyConnector : public Processor {
    * @param in_handshake if true, the client connection is in Greeting or
    * ChangeUser right now.
    * @param on_error function that's called if an error happened.
+   * @param parent_event parent event for the tracer
    *
    * If "in_handshake" the LazyConnector may ask the client for a
    * "auth-method-switch" or a "plaintext-password".
@@ -59,10 +61,12 @@ class LazyConnector : public Processor {
   LazyConnector(
       MysqlRoutingClassicConnectionBase *conn, bool in_handshake,
       std::function<void(const classic_protocol::message::server::Error &err)>
-          on_error)
-      : Processor(conn),
+          on_error,
+      TraceEvent *parent_event)
+      : ForwardingProcessor(conn),
         in_handshake_{in_handshake},
-        on_error_(std::move(on_error)) {}
+        on_error_(std::move(on_error)),
+        parent_event_(parent_event) {}
 
   enum class Stage {
     Connect,
@@ -76,6 +80,15 @@ class LazyConnector : public Processor {
     SetSchemaDone,
     FetchSysVars,
     FetchSysVarsDone,
+    WaitGtidExecuted,
+    WaitGtidExecutedDone,
+    SetTrxCharacteristics,
+    SetTrxCharacteristicsDone,
+    CheckReadOnly,
+    CheckReadOnlyDone,
+
+    PoolOrClose,
+    FallbackToWrite,
 
     Done,
   };
@@ -84,6 +97,15 @@ class LazyConnector : public Processor {
 
   void stage(Stage stage) { stage_ = stage; }
   [[nodiscard]] Stage stage() const { return stage_; }
+
+  void failed(
+      const std::optional<classic_protocol::message::server::Error> &err) {
+    failed_ = err;
+  }
+
+  std::optional<classic_protocol::message::server::Error> failed() const {
+    return failed_;
+  }
 
  private:
   stdx::expected<Processor::Result, std::error_code> connect();
@@ -97,6 +119,16 @@ class LazyConnector : public Processor {
   stdx::expected<Processor::Result, std::error_code> set_schema_done();
   stdx::expected<Processor::Result, std::error_code> fetch_sys_vars();
   stdx::expected<Processor::Result, std::error_code> fetch_sys_vars_done();
+  stdx::expected<Processor::Result, std::error_code> check_read_only();
+  stdx::expected<Processor::Result, std::error_code> check_read_only_done();
+  stdx::expected<Processor::Result, std::error_code> wait_gtid_executed();
+  stdx::expected<Processor::Result, std::error_code> wait_gtid_executed_done();
+  stdx::expected<Processor::Result, std::error_code> set_trx_characteristics();
+  stdx::expected<Processor::Result, std::error_code>
+  set_trx_characteristics_done();
+
+  stdx::expected<Processor::Result, std::error_code> pool_or_close();
+  stdx::expected<Processor::Result, std::error_code> fallback_to_write();
 
   Stage stage_{Stage::Connect};
 
@@ -104,6 +136,27 @@ class LazyConnector : public Processor {
 
   std::function<void(const classic_protocol::message::server::Error &err)>
       on_error_;
+
+  bool retry_connect_{false};
+
+  // start timepoint to calculate the connect-retry-timeout.
+  std::chrono::steady_clock::time_point started_{
+      std::chrono::steady_clock::now()};
+
+  std::optional<classic_protocol::message::server::Error> failed_;
+
+  std::string trx_stmt_;
+
+  TraceEvent *parent_event_{};
+  TraceEvent *trace_event_connect_{};
+  TraceEvent *trace_event_authenticate_{};
+  TraceEvent *trace_event_set_vars_{};
+  TraceEvent *trace_event_fetch_sys_vars_{};
+  TraceEvent *trace_event_set_schema_{};
+  TraceEvent *trace_event_wait_gtid_executed_{};
+  TraceEvent *trace_event_check_read_only_{};
+  TraceEvent *trace_event_fallback_to_write_{};
+  TraceEvent *trace_event_set_trx_characteristics_{};
 };
 
 #endif

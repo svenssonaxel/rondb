@@ -24,25 +24,24 @@
 
 #include "my_config.h"
 
-#include "my_loglevel.h"
+#include "mysql/my_loglevel.h"
 #include "sql/derror.h"
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <list>
 
-#include "libbinlogevents/include/control_events.h"
-#include "m_ctype.h"
-#include "m_string.h"
 #include "my_base.h"
 #include "my_command.h"
 #include "my_dbug.h"
 #include "my_sys.h"
 #include "my_thread.h"
+#include "mysql/binlog/event/control_events.h"
 #include "mysql/components/services/log_builtins.h"
 #include "mysql/psi/mysql_cond.h"
 #include "mysql/psi/mysql_mutex.h"
 #include "mysql/psi/mysql_thread.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql/thread_type.h"
 #include "sql/auth/sql_security_ctx.h"
 #include "sql/current_thd.h"
@@ -61,6 +60,7 @@
 #include "sql/sql_parse.h"  // mysql_reset_thd_for_next_command
 #include "sql/system_variables.h"
 #include "sql_string.h"
+#include "string_with_len.h"
 
 using std::list;
 using std::string;
@@ -211,7 +211,8 @@ int Gtid_table_persistor::fill_fields(Field **fields, const char *sid,
 
   /* Store SID */
   fields[0]->set_notnull();
-  if (fields[0]->store(sid, binary_log::Uuid::TEXT_LENGTH, &my_charset_bin)) {
+  if (fields[0]->store(sid, mysql::gtid::Uuid::TEXT_LENGTH, &my_charset_bin) !=
+      0U) {
     my_error(ER_RPL_INFO_DATA_TOO_LONG, MYF(0), fields[0]->field_name);
     goto err;
   }
@@ -279,7 +280,8 @@ int Gtid_table_persistor::update_row(TABLE *table, const char *sid,
 
   /* Store SID */
   fields[0]->set_notnull();
-  if (fields[0]->store(sid, binary_log::Uuid::TEXT_LENGTH, &my_charset_bin)) {
+  if (fields[0]->store(sid, mysql::gtid::Uuid::TEXT_LENGTH, &my_charset_bin) !=
+      0U) {
     my_error(ER_RPL_INFO_DATA_TOO_LONG, MYF(0), fields[0]->field_name);
     return -1;
   }
@@ -341,7 +343,7 @@ int Gtid_table_persistor::save(THD *thd, const Gtid *gtid) {
   int error = 0;
   TABLE *table = nullptr;
   Gtid_table_access_context table_access_ctx;
-  char buf[binary_log::Uuid::TEXT_LENGTH + 1];
+  char buf[mysql::gtid::Uuid::TEXT_LENGTH + 1];
 
   /* Get source id */
   global_sid_lock->rdlock();
@@ -384,14 +386,7 @@ int Gtid_table_persistor::save(const Gtid_set *gtid_set, bool compress) {
   THD *thd = current_thd;
 
   if (table_access_ctx.init(&thd, &table, true)) {
-    error = 1;
-    /*
-      Gtid table is not ready to be used, so failed to
-      open it. Ignore the error.
-    */
-    thd->clear_error();
-    if (!thd->get_stmt_da()->is_set())
-      thd->get_stmt_da()->set_ok_status(0, 0, nullptr);
+    error = ret = 1;
     goto end;
   }
 
@@ -424,7 +419,7 @@ int Gtid_table_persistor::save(TABLE *table, const Gtid_set *gtid_set) {
   gtid_set->get_gtid_intervals(&gtid_intervals);
   for (iter = gtid_intervals.begin(); iter != gtid_intervals.end(); iter++) {
     /* Get source id. */
-    char buf[binary_log::Uuid::TEXT_LENGTH + 1];
+    char buf[mysql::gtid::Uuid::TEXT_LENGTH + 1];
     rpl_sid sid = gtid_set->get_sid_map()->sidno_to_sid(iter->sidno);
     sid.to_string(buf);
 

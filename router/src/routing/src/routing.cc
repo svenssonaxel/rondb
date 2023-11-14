@@ -51,11 +51,33 @@ namespace routing {
 // unused constant
 // const int kMaxConnectTimeout = INT_MAX / 1000;
 
-// keep in-sync with enum AccessMode
-static const std::array<const char *, 3> kAccessModeNames{{
+// keep in-sync with enum Mode
+static const std::array<const char *, 3> kModeNames{{
     nullptr,
     "read-write",
     "read-only",
+}};
+
+ROUTING_EXPORT Mode get_mode(const std::string &value) {
+  for (unsigned int i = 1; i < kModeNames.size(); ++i)
+    if (kModeNames[i] == value) return static_cast<Mode>(i);
+  return Mode::kUndefined;
+}
+
+ROUTING_EXPORT std::string get_mode_names() {
+  // +1 to skip undefined
+  return mysql_harness::serial_comma(kModeNames.begin() + 1, kModeNames.end());
+}
+
+ROUTING_EXPORT std::string get_mode_name(Mode mode) noexcept {
+  if (mode == Mode::kUndefined) return "<not-set>";
+
+  return kModeNames[static_cast<int>(mode)];
+}
+
+static const std::array<const char *, 2> kAccessModeNames{{
+    nullptr,
+    "auto",
 }};
 
 ROUTING_EXPORT AccessMode get_access_mode(const std::string &value) {
@@ -70,12 +92,10 @@ ROUTING_EXPORT std::string get_access_mode_names() {
                                      kAccessModeNames.end());
 }
 
-ROUTING_EXPORT std::string get_access_mode_name(
-    AccessMode access_mode) noexcept {
-  if (access_mode == AccessMode::kUndefined)
-    return "<not-set>";
-  else
-    return kAccessModeNames[static_cast<int>(access_mode)];
+ROUTING_EXPORT std::string get_access_mode_name(AccessMode mode) noexcept {
+  if (mode == AccessMode::kUndefined) return "<not-set>";
+
+  return kAccessModeNames[static_cast<int>(mode)];
 }
 
 // keep in-sync with enum RoutingStrategy

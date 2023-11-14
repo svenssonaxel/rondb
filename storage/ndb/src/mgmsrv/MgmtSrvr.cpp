@@ -26,6 +26,7 @@
 #include "util/require.h"
 #include <ndb_global.h>
 #include <cstring>
+#include "openssl/ssl.h"
 
 #include "MgmtSrvr.hpp"
 #include "ndb_mgmd_error.h"
@@ -62,6 +63,7 @@
 #include <NdbSleep.h>
 #include <portlib/NdbDir.hpp>
 #include "portlib/ndb_sockaddr.h"
+#include "portlib/ndb_openssl_version.h"
 #include <EventLogger.hpp>
 #include <logger/FileLogHandler.hpp>
 #include <logger/ConsoleLogHandler.hpp>
@@ -104,6 +106,9 @@ int g_errorInsert = 0;
 #else
 #define DEBUG_FPRINTF(a)
 #endif
+
+static constexpr bool openssl_version_ok =
+  (OPENSSL_VERSION_NUMBER >= NDB_TLS_MINIMUM_OPENSSL);
 
 void *
 MgmtSrvr::logLevelThread_C(void* m)
@@ -258,6 +263,8 @@ MgmtSrvr::MgmtSrvr(const MgmtOpts& opts) :
   m_local_config(NULL),
   _ownReference(0),
   m_config_manager(NULL),
+  m_tls_search_path(opts.tls_search_path),
+  m_client_tls_req(opts.mgm_tls),
   m_need_restart(false),
   theFacade(NULL),
   _isStopThread(false),
@@ -287,7 +294,6 @@ MgmtSrvr::MgmtSrvr(const MgmtOpts& opts) :
   /* Setup clusterlog as client[0] in m_event_listner */
   {
     Ndb_mgmd_event_service::Event_listener se;
-    ndb_socket_initialize(&(se.m_socket));
     for(size_t t = 0; t<LogLevel::LOGLEVEL_CATEGORIES; t++){
       se.m_logLevel.setLogLevel((LogLevel::EventCategory)t, 7);
     }
@@ -405,6 +411,14 @@ MgmtSrvr::init()
     g_eventLogger->error("Failed to start MgmtSrvr as node is deactivated");
     DBUG_RETURN(false);
   }
+
+  theFacade= new TransporterFacade(0);
+  if (theFacade == 0)
+  {
+    g_eventLogger->error("Could not create TransporterFacade.");
+    DBUG_RETURN(false);
+  }
+
   DBUG_RETURN(true);
 }
 
@@ -423,13 +437,6 @@ bool
 MgmtSrvr::start_transporter(const Config* config)
 {
   DBUG_ENTER("MgmtSrvr::start_transporter");
-
-  theFacade= new TransporterFacade(0);
-  if (theFacade == 0)
-  {
-    g_eventLogger->error("Could not create TransporterFacade.");
-    DBUG_RETURN(false);
-  }
 
   assert(_blockNumber == 0); // Blocknumber shouldn't been allocated yet
 
@@ -506,6 +513,18 @@ MgmtSrvr::start_mgm_service(const Config* config)
       g_eventLogger->error("PortNumber not defined for node %d", _ownNodeId);
       DBUG_RETURN(false);
     }
+
+    // Find the TLS requirement level
+    Uint32 requireCert = 0;
+    Uint32 requireTls = 0;
+
+    if(openssl_version_ok)
+    {
+      require(iter.get(CFG_MGM_REQUIRE_TLS, &requireTls) == 0);
+      require(iter.get(CFG_NODE_REQUIRE_CERT, &requireCert) == 0);
+    }
+    m_require_tls = requireTls;
+    m_require_cert = requireCert;
   }
 
   unsigned short port= m_port;
@@ -596,6 +615,10 @@ MgmtSrvr::start()
 {
   DBUG_ENTER("MgmtSrvr::start");
 
+  /* Configure TlsKeyManager */
+  require(m_tls_search_path);
+  theFacade->mgm_configure_tls(m_tls_search_path, m_client_tls_req);
+
   /* Start transporter */
   if(!start_transporter(m_local_config))
   {
@@ -609,6 +632,19 @@ MgmtSrvr::start()
     g_eventLogger->error("Failed to start management service!");
     DBUG_RETURN(false);
   }
+
+  /* Check for required TLS certificate */
+  ssl_ctx_st * ctx = theFacade->get_registry()->getTlsKeyManager()->ctx();
+  if(require_cert() && ! ctx)
+  {
+    g_eventLogger->error(
+      "Shutting down. This node does not have a valid TLS certificate.");
+    DBUG_RETURN(false);
+  }
+
+  g_eventLogger->info(require_tls() ?
+                      "This server will require all MGM clients to use TLS" :
+                      "Not requiring TLS");
 
   /* Use local MGM port for TransporterRegistry */
   if(!connect_to_self())
@@ -1346,7 +1382,8 @@ int MgmtSrvr::sendStopMgmd(NodeId nodeId,
   if ( h && connect_string.length() > 0 )
   {
     ndb_mgm_set_connectstring(h,connect_string.c_str());
-    if(ndb_mgm_connect(h,1,0,0))
+    ndb_mgm_set_ssl_ctx(h, ssl_ctx());
+    if(ndb_mgm_connect_tls(h,1,0,0, m_client_tls_req))
     {
       DBUG_PRINT("info",("failed ndb_mgm_connect"));
       ndb_mgm_destroy_handle(&h);
@@ -5578,14 +5615,14 @@ MgmtSrvr::getConnectionDbParameter(int node1, int node2,
 
 
 bool
-MgmtSrvr::transporter_connect(ndb_socket_t sockfd,
+MgmtSrvr::transporter_connect(NdbSocket & socket,
                               BaseString& msg,
                               bool& close_with_reset,
                               bool& log_failure)
 {
   DBUG_ENTER("MgmtSrvr::transporter_connect");
   TransporterRegistry* tr= theFacade->get_registry();
-  if (!tr->connect_server(sockfd, msg, close_with_reset, log_failure))
+  if (!tr->connect_server(socket, msg, close_with_reset, log_failure))
     DBUG_RETURN(false);
 
   /**
@@ -5612,7 +5649,8 @@ bool MgmtSrvr::connect_to_self()
              m_port);
   ndb_mgm_set_connectstring(mgm_handle, buf.c_str());
 
-  if(ndb_mgm_connect(mgm_handle, 0, 0, 0) < 0)
+  ndb_mgm_set_ssl_ctx(mgm_handle, ssl_ctx());
+  if(ndb_mgm_connect_tls(mgm_handle, 0, 0, 0, m_client_tls_req) < 0)
   {
     g_eventLogger->warning("%d %s",
                            ndb_mgm_get_latest_error(mgm_handle),
@@ -6086,6 +6124,16 @@ MgmtSrvr::request_events(NdbNodeBitmask nodes, Uint32 reports_per_node,
   ss.unlock();
 
   return true;
+}
+
+void MgmtSrvr::tls_stat_increment(unsigned int idx) {
+  if(idx < sizeof(m_tls_stats))
+    m_tls_stats[idx]++;
+}
+
+void MgmtSrvr::tls_stat_decrement(unsigned int idx) {
+  if(idx < sizeof(m_tls_stats))
+    m_tls_stats[idx]--;
 }
 
 template class MutexVector<NodeId>;

@@ -434,11 +434,12 @@ class Sql_cmd_show_keys : public Sql_cmd_show_table_base {
   Sql_cmd_show_keys() : Sql_cmd_show_table_base(SQLCOM_SHOW_KEYS) {}
 };
 
-/// Represents SHOW MASTER STATUS statement.
+/// Represents SHOW BINARY LOG STATUS statement.
 
-class Sql_cmd_show_master_status : public Sql_cmd_show_noplan {
+class Sql_cmd_show_binary_log_status : public Sql_cmd_show_noplan {
  public:
-  Sql_cmd_show_master_status() : Sql_cmd_show_noplan(SQLCOM_SHOW_MASTER_STAT) {}
+  Sql_cmd_show_binary_log_status()
+      : Sql_cmd_show_noplan(SQLCOM_SHOW_MASTER_STAT) {}
   bool check_privileges(THD *thd) override;
   bool execute_inner(THD *thd) override;
 };
@@ -483,6 +484,13 @@ class Sql_cmd_show_processlist : public Sql_cmd_show {
 
   const bool m_verbose{false};
   bool m_use_pfs{false};
+};
+
+/// Represents SHOW PARSE_TREE statement.
+
+class Sql_cmd_show_parse_tree : public Sql_cmd_show {
+ public:
+  Sql_cmd_show_parse_tree() : Sql_cmd_show(SQLCOM_SHOW_PARSE_TREE) {}
 };
 
 /// Represents SHOW PROFILE statement.

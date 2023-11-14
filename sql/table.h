@@ -30,26 +30,27 @@
 
 #include "field_types.h"
 #include "lex_string.h"
-#include "libbinlogevents/include/table_id.h"  // Table_id
-#include "m_ctype.h"
 #include "map_helpers.h"
 #include "mem_root_deque.h"
 #include "my_alloc.h"
 #include "my_base.h"
 #include "my_bitmap.h"
 #include "my_compiler.h"
+#include "mysql/binlog/event/table_id.h"  // Table_id
 
 #include "my_inttypes.h"
 #include "my_sys.h"
 #include "my_table_map.h"
 #include "mysql/components/services/bits/mysql_mutex_bits.h"
 #include "mysql/components/services/bits/psi_table_bits.h"
+#include "mysql/strings/m_ctype.h"
 #include "sql/dd/types/foreign_key.h"  // dd::Foreign_key::enum_rule
 #include "sql/enum_query_type.h"       // enum_query_type
 #include "sql/key.h"
 #include "sql/key_spec.h"
 #include "sql/mdl.h"  // MDL_wait_for_subgraph
 #include "sql/mem_root_array.h"
+#include "sql/mysqld_cs.h"
 #include "sql/opt_costmodel.h"  // Cost_model_table
 #include "sql/partition_info.h"
 #include "sql/record_buffer.h"  // Record_buffer
@@ -67,7 +68,7 @@ class Field_longlong;
 
 namespace histograms {
 class Histogram;
-}
+}  // namespace histograms
 
 class ACL_internal_schema_access;
 class ACL_internal_table_access;
@@ -94,6 +95,8 @@ class SortingIterator;
 class String;
 class THD;
 class Table_cache_element;
+class Table_histograms;
+class Table_histograms_collection;
 class Table_ref;
 class Table_trigger_dispatcher;
 class Temp_table_param;
@@ -304,11 +307,11 @@ struct ORDER {
   bool in_field_list{false}; /* true if in select field list */
   /**
      Tells whether this ORDER element was referenced with an alias or with an
-     expression, in the query:
-     SELECT a AS foo GROUP BY foo: true.
-     SELECT a AS foo GROUP BY a: false.
+     expression in the query, and what the alias was:
+     SELECT a AS foo GROUP BY foo: "foo".
+     SELECT a AS foo GROUP BY a: nullptr.
   */
-  bool used_alias{false};
+  const char *used_alias{nullptr};
   /**
     When GROUP BY is implemented with a temporary table (i.e. the table takes
     care to store only unique group rows, table->group != nullptr), each GROUP
@@ -698,21 +701,15 @@ struct TABLE_SHARE {
       : m_version(version), m_secondary_engine(secondary) {}
 
   /*
-    A map of [uint, Histogram] values, where the key is the field index. The
-    map is populated with any histogram statistics when it is loaded/created.
+    Managed collection of refererence-counted snapshots of histograms statistics
+    for the table. TABLE objects acquire/release pointers to histogram
+    statistics from this collection. A new statistics snapshot is inserted when
+    the share is initialized and when histograms are updated/dropped.
+
+    For temporary tables m_histograms should be nullptr since we do not support
+    histograms on temporary tables.
   */
-  malloc_unordered_map<uint, const histograms::Histogram *> *m_histograms{
-      nullptr};
-
-  /**
-    Find the histogram for the given field index.
-
-    @param field_index the index of the field we want to find a histogram for
-
-    @retval nullptr if no histogram is found
-    @retval a pointer to a histogram if one is found
-  */
-  const histograms::Histogram *find_histogram(uint field_index) const;
+  Table_histograms_collection *m_histograms{nullptr};
 
   /** Category of this table. */
   TABLE_CATEGORY table_category{TABLE_UNKNOWN_CATEGORY};
@@ -800,7 +797,7 @@ struct TABLE_SHARE {
   inline handlerton *db_type() const /* table_type for handler */
   {
     // assert(db_plugin);
-    return db_plugin ? plugin_data<handlerton *>(db_plugin) : NULL;
+    return db_plugin ? plugin_data<handlerton *>(db_plugin) : nullptr;
   }
   /**
     Value of ROW_FORMAT option for the table as provided by user.
@@ -848,7 +845,9 @@ struct TABLE_SHARE {
   /**
     Whether this is a temporary table that already has a UNIQUE index (removing
     duplicate rows on insert), so that the optimizer does not need to run
-    DISTINCT itself.
+    DISTINCT itself. Also used for INTERSECT and EXCEPT as a fall-back if
+    hashing fails (secondary overflow of in-memory hash table, in which case
+    we revert to de-duplication using the unique key in the output table).
   */
   bool is_distinct{false};
 
@@ -921,7 +920,7 @@ struct TABLE_SHARE {
   bool crashed{false};
   bool is_view{false};
   bool m_open_in_progress{false}; /* True: alloc'ed, false: def opened */
-  Table_id table_map_id;          /* for row-based replication */
+  mysql::binlog::event::Table_id table_map_id; /* for row-based replication */
 
   /*
     Cache for row-based replication table share checks that does not
@@ -1416,6 +1415,10 @@ struct TABLE {
   friend class Table_cache_element;
 
  public:
+  // Pointer to the histograms available on the table.
+  // Protected in the same way as the pointer to the share.
+  const Table_histograms *histograms{nullptr};
+
   /**
     A bitmap marking the hidden generated columns that exists for functional
     indexes.
@@ -1511,7 +1514,7 @@ struct TABLE {
   // we have distinct semantics, we squash duplicates. This all happens in the
   // reading step of the tmp table (TableScanIterator::Read),
   // cf. m_last_operation_is_distinct. For explanation if the logic of the set
-  // counter, see MaterializeIterator<Profiler>::MaterializeQueryBlock.
+  // counter, see MaterializeIterator<Profiler>::MaterializeOperand.
   //
 
   /// A priori unlimited. We pass this on to TableScanIterator at construction
@@ -1528,12 +1531,8 @@ struct TABLE {
   /// holding the counter used to compute INTERSECT and EXCEPT, in record[0].
   /// For EXCEPT [DISTINCT | ALL] and INTERSECT DISTINCT this is a simple 64
   /// bits counter. For INTERSECT ALL, it is subdivided into two sub counters
-  /// cf. class HalfCounter, cf. MaterializeQueryBlock. See set_counter().
+  /// cf. class HalfCounter, cf. MaterializeOperand. See set_counter().
   Field_longlong *m_set_counter{nullptr};
-
-  /// True if we have EXCEPT, else we have INTERSECT. See is_except() and
-  /// is_intersect().
-  bool m_except{false};
 
   /// If m_set_counter is set: true if last block has DISTINCT semantics,
   /// either because it is marked as such, or because we have computed this
@@ -1541,28 +1540,74 @@ struct TABLE {
   /// It will be true if any DISTINCT is given in the merged N-ary set
   /// operation. See is_distinct().
   bool m_last_operation_is_distinct{false};
+  /// If false, de-duplication happens via an index on this table, if
+  /// true, via an in-memory hash table, in which case we do not need to use
+  /// any index.
+  bool m_deduplicate_with_hashing{false};
+
+ public:
+  enum Set_operator_type {
+    SOT_NONE,
+    SOT_UNION_ALL,
+    SOT_UNION_DISTINCT,
+    SOT_INTERSECT_ALL,
+    SOT_INTERSECT_DISTINCT,
+    SOT_EXCEPT_ALL,
+    SOT_EXCEPT_DISTINCT
+  };
+
+ private:
+  /// Holds the set operation type
+  Set_operator_type m_set_op_type{SOT_NONE};
 
  public:
   /// Test if this tmp table stores the result of a UNION set operation or
   /// a single table.
   /// @return true if so, else false.
   bool is_union_or_table() const { return m_set_counter == nullptr; }
-  bool is_intersect() const { return m_set_counter != nullptr && !m_except; }
-  bool is_except() const { return m_set_counter != nullptr && m_except; }
+
+  void set_hashing(bool use_hashing) {
+    m_deduplicate_with_hashing = use_hashing;
+  }
+
+  bool uses_hashing() const { return m_deduplicate_with_hashing; }
+
+  /// Returns the set operation type
+  Set_operator_type set_op_type() {
+    if (m_set_op_type == SOT_NONE) {
+      assert(is_union_or_table());  // EXCEPT and INTERSECT are already set up
+      m_set_op_type = is_distinct() ? SOT_UNION_DISTINCT : SOT_UNION_ALL;
+    }
+    return m_set_op_type;
+  }
+
+  bool is_intersect() const {
+    return m_set_op_type == SOT_INTERSECT_ALL ||
+           m_set_op_type == SOT_INTERSECT_DISTINCT;
+  }
+
+  bool is_except() const {
+    return m_set_op_type == SOT_EXCEPT_ALL ||
+           m_set_op_type == SOT_EXCEPT_DISTINCT;
+  }
+
   bool is_distinct() const { return m_last_operation_is_distinct; }
   /**
     Initialize the set counter field pointer and the type of set operation
-    other than UNION.
+    *other than UNION*.
     @param set_counter the field in the materialized table that holds the
                        counter we use to compute intersect or except
-    @param is_except   if true, EXCEPT, else INTERSECT
+    @param except      if true, EXCEPT, else INTERSECT
+    @param distinct    if true, the set operation is DISTINCT, else ALL
   */
-  void set_set_counter(Field_longlong *set_counter, bool is_except) {
+  void set_set_op(Field_longlong *set_counter, bool except, bool distinct) {
     m_set_counter = set_counter;
-    m_except = is_except;
+    m_last_operation_is_distinct = distinct;
+    assert(m_set_op_type == SOT_NONE);
+    m_set_op_type = except
+                        ? (distinct ? SOT_EXCEPT_DISTINCT : SOT_EXCEPT_ALL)
+                        : distinct ? SOT_INTERSECT_DISTINCT : SOT_INTERSECT_ALL;
   }
-
-  void set_distinct(bool distinct) { m_last_operation_is_distinct = distinct; }
 
   Field_longlong *set_counter() { return m_set_counter; }
   //
@@ -2410,6 +2455,16 @@ struct TABLE {
             set or not
   */
   bool should_binlog_drop_if_temp(void) const;
+
+  /**
+    Find the histogram for the given field index.
+
+    @param field_index The index of the field we want to find a histogram for.
+
+    @retval nullptr if no histogram is found.
+    @retval Pointer to a histogram if one is found.
+  */
+  const histograms::Histogram *find_histogram(uint field_index) const;
 };
 
 static inline void empty_record(TABLE *table) {
@@ -2551,6 +2606,7 @@ struct LEX_MFA {
   LEX_CSTRING auth;
   LEX_CSTRING generated_password;
   LEX_CSTRING challenge_response;
+  LEX_CSTRING client_plugin;
   uint nth_factor;
   /*
     The following flags are indicators for the SQL syntax used while
@@ -2588,6 +2644,7 @@ struct LEX_MFA {
     auth = NULL_CSTR;
     generated_password = NULL_CSTR;
     challenge_response = NULL_CSTR;
+    client_plugin = NULL_CSTR;
     nth_factor = 1;
     uses_identified_by_clause = false;
     uses_authentication_string_clause = false;
@@ -3562,7 +3619,8 @@ class Table_ref {
   /* Index names in a "... JOIN ... USE/IGNORE INDEX ..." clause. */
   List<Index_hint> *index_hints{nullptr};
   TABLE *table{nullptr}; /* opened table */
-  Table_id table_id{};   /* table id (from binlog) for opened table */
+  mysql::binlog::event::Table_id
+      table_id{}; /* table id (from binlog) for opened table */
   /*
     Query_result for derived table to pass it from table creation to table
     filling procedure

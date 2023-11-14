@@ -34,6 +34,7 @@
 
 #include "client/client_priv.h"
 #include "compression.h"
+#include "m_string.h"
 #include "my_alloc.h"
 #include "my_dbug.h"
 #include "my_default.h"
@@ -42,8 +43,11 @@
 #include "my_macros.h"
 #include "my_systime.h"
 #include "mysql/service_mysql_alloc.h"
+#include "mysql/strings/int2str.h"
 #include "mysql_version.h"
+#include "nulls.h"
 #include "print_version.h"
+#include "strxmov.h"
 #include "thr_cond.h"
 #include "thr_mutex.h"
 #include "typelib.h"
@@ -85,7 +89,7 @@ static char *opt_compress_algorithm = nullptr;
 #include "multi_factor_passwordopt-vars.h"
 #include "sslopt-vars.h"
 #if defined(_WIN32)
-static char *shared_memory_base_name = 0;
+static char *shared_memory_base_name = nullptr;
 #endif
 
 static struct my_option my_long_options[] = {
@@ -178,8 +182,8 @@ static struct my_option my_long_options[] = {
      nullptr},
 #include "multi_factor_passwordopt-longopts.h"
 #ifdef _WIN32
-    {"pipe", 'W', "Use named pipes to connect to server.", 0, 0, 0, GET_NO_ARG,
-     NO_ARG, 0, 0, 0, 0, 0, 0},
+    {"pipe", 'W', "Use named pipes to connect to server.", nullptr, nullptr,
+     nullptr, GET_NO_ARG, NO_ARG, 0, 0, 0, nullptr, 0, nullptr},
 #endif
     {"plugin_dir", OPT_PLUGIN_DIR, "Directory for client-side plugins.",
      &opt_plugin_dir, &opt_plugin_dir, nullptr, GET_STR, REQUIRED_ARG, 0, 0, 0,
@@ -202,8 +206,8 @@ static struct my_option my_long_options[] = {
 #if defined(_WIN32)
     {"shared-memory-base-name", OPT_SHARED_MEMORY_BASE_NAME,
      "Base name of shared memory.", &shared_memory_base_name,
-     &shared_memory_base_name, 0, GET_STR_ALLOC, REQUIRED_ARG, 0, 0, 0, 0, 0,
-     0},
+     &shared_memory_base_name, nullptr, GET_STR_ALLOC, REQUIRED_ARG, 0, 0, 0,
+     nullptr, 0, nullptr},
 #endif
     {"silent", 's', "Be more silent.", &silent, &silent, nullptr, GET_BOOL,
      NO_ARG, 0, 0, 0, nullptr, 0, nullptr},

@@ -44,6 +44,7 @@
 #include "mysql/psi/mysql_socket.h"
 #include "mysql/psi/psi_memory.h"  // IWYU pragma: keep
 #include "mysql/service_mysql_alloc.h"
+#include "string_with_len.h"
 #include "template_utils.h"
 #include "vio/vio_priv.h"
 
@@ -463,10 +464,10 @@ Vio *vio_new_win32pipe(HANDLE hPipe) {
     }
 
     /* Create an object for event notification. */
-    vio->overlapped.hEvent = CreateEvent(NULL, false, false, NULL);
-    if (vio->overlapped.hEvent == NULL) {
+    vio->overlapped.hEvent = CreateEvent(nullptr, false, false, nullptr);
+    if (vio->overlapped.hEvent == nullptr) {
       internal_vio_delete(vio);
-      return NULL;
+      return nullptr;
     }
     vio->hPipe = hPipe;
   }

@@ -25,11 +25,13 @@
 #ifndef ROUTING_CLASSIC_CONNECTION_BASE_INCLUDED
 #define ROUTING_CLASSIC_CONNECTION_BASE_INCLUDED
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "channel.h"
@@ -43,6 +45,7 @@
 #include "mysqlrouter/connection_pool.h"
 #include "processor.h"
 #include "sql_exec_context.h"
+#include "trace_span.h"
 #include "tracer.h"
 
 /**
@@ -175,6 +178,42 @@ class ClassicProtocolState : public ProtocolStateBase {
     status_flags_ = val;
   }
 
+  /**
+   * trace the events of the commands.
+   *
+   * - enabled by ROUTER SET trace = 1
+   * - disabled by ROUTER SET trace = 0, change-user or reset-connection.
+   *
+   * @retval true if 'ROUTER SET trace' is '1'
+   * @retval false if 'ROUTER SET trace' is '0'
+   */
+  bool trace_commands() const { return trace_commands_; }
+  void trace_commands(bool val) { trace_commands_ = val; }
+
+  // executed GTIDs for this connection.
+  void gtid_executed(const std::string &gtid_execed) {
+    gtid_executed_ = gtid_execed;
+  }
+  std::string gtid_executed() const { return gtid_executed_; }
+
+  void wait_for_my_writes(bool v) { wait_for_my_writes_ = v; }
+  bool wait_for_my_writes() const { return wait_for_my_writes_; }
+
+  std::chrono::seconds wait_for_my_writes_timeout() const {
+    return wait_for_my_writes_timeout_;
+  }
+  void wait_for_my_writes_timeout(std::chrono::seconds timeout) {
+    wait_for_my_writes_timeout_ = timeout;
+  }
+
+  enum class AccessMode {
+    ReadWrite,
+    ReadOnly,
+  };
+
+  std::optional<AccessMode> access_mode() const { return access_mode_; }
+  void access_mode(std::optional<AccessMode> v) { access_mode_ = v; }
+
  private:
   classic_protocol::capabilities::value_type server_caps_{};
   classic_protocol::capabilities::value_type client_caps_{};
@@ -200,6 +239,17 @@ class ClassicProtocolState : public ProtocolStateBase {
 
   // status flags of the last statement.
   classic_protocol::status::value_type status_flags_{};
+
+  // if commands shall be traced.
+  bool trace_commands_{false};
+
+  std::string gtid_executed_;
+
+  bool wait_for_my_writes_{routing::kDefaultWaitForMyWrites};
+  std::chrono::seconds wait_for_my_writes_timeout_{
+      routing::kDefaultWaitForMyWritesTimeout};
+
+  std::optional<AccessMode> access_mode_{};
 };
 
 class MysqlRoutingClassicConnectionBase
@@ -227,8 +277,9 @@ class MysqlRoutingClassicConnectionBase
             TlsSwitchableConnection{nullptr, nullptr, context.dest_ssl_mode(),
                                     std::make_unique<ClassicProtocolState>()})},
         read_timer_{socket_splicer()->client_conn().connection()->io_ctx()},
-        connect_timer_{socket_splicer()->client_conn().connection()->io_ctx()} {
-  }
+        connect_timer_{socket_splicer()->client_conn().connection()->io_ctx()},
+        wait_for_my_writes_{context.wait_for_my_writes()},
+        wait_for_my_writes_timeout_{context.wait_for_my_writes_timeout()} {}
 
  public:
   // create a new shared_ptr<ThisClass>
@@ -265,6 +316,10 @@ class MysqlRoutingClassicConnectionBase
 
   SslMode dest_ssl_mode() const {
     return this->socket_splicer()->dest_ssl_mode();
+  }
+
+  net::impl::socket::native_handle_type get_client_fd() const override {
+    return socket_splicer()->client_conn().native_handle();
   }
 
   std::string get_client_address() const override {
@@ -349,6 +404,11 @@ class MysqlRoutingClassicConnectionBase
       classic_protocol::capabilities::value_type caps,
       bool ignore_some_state_changed = false);
 
+  /**
+   * reset the connection's settings to the initial-values.
+   */
+  void reset_to_initial();
+
  private:
   void trace_and_call_function(Tracer::Event::Direction dir,
                                std::string_view stage, Function func);
@@ -416,9 +476,31 @@ class MysqlRoutingClassicConnectionBase
 
   ProtocolSplicerBase *socket_splicer() { return socket_splicer_.get(); }
 
-  std::string get_destination_id() const override { return destination_id_; }
+  std::string get_destination_id() const override {
+    return expected_server_mode() == mysqlrouter::ServerMode::ReadOnly
+               ? read_only_destination_id()
+               : read_write_destination_id();
+  }
 
-  void destination_id(const std::string &id) { destination_id_ = id; }
+  void destination_id(const std::string &id) {
+    expected_server_mode() == mysqlrouter::ServerMode::ReadOnly
+        ? read_only_destination_id(id)
+        : read_write_destination_id(id);
+  }
+
+  std::string read_only_destination_id() const override {
+    return ro_destination_id_;
+  }
+  void read_only_destination_id(const std::string &destination_id) {
+    ro_destination_id_ = destination_id;
+  }
+
+  std::string read_write_destination_id() const override {
+    return rw_destination_id_;
+  }
+  void read_write_destination_id(const std::string &destination_id) {
+    rw_destination_id_ = destination_id;
+  }
 
   /**
    * check if the connection is authenticated.
@@ -456,6 +538,11 @@ class MysqlRoutingClassicConnectionBase
    */
   void connection_sharing_allowed_reset();
 
+  /**
+   * @return a string representing the reason why sharing is blocked.
+   */
+  std::string connection_sharing_blocked_by() const;
+
  private:
   int active_work_{0};
 
@@ -486,6 +573,28 @@ class MysqlRoutingClassicConnectionBase
 
   void some_state_changed(bool v) { some_state_changed_ = v; }
 
+  void expected_server_mode(mysqlrouter::ServerMode v) {
+    expected_server_mode_ = v;
+  }
+  mysqlrouter::ServerMode expected_server_mode() const {
+    return expected_server_mode_;
+  }
+
+  void wait_for_my_writes(bool v) { wait_for_my_writes_ = v; }
+  bool wait_for_my_writes() const { return wait_for_my_writes_; }
+
+  void gtid_at_least_executed(const std::string &gtid) {
+    gtid_at_least_executed_ = gtid;
+  }
+  std::string gtid_at_least_executed() const { return gtid_at_least_executed_; }
+
+  std::chrono::seconds wait_for_my_writes_timeout() const {
+    return wait_for_my_writes_timeout_;
+  }
+  void wait_for_my_writes_timeout(std::chrono::seconds timeout) {
+    wait_for_my_writes_timeout_ = timeout;
+  }
+
   RouteDestination *destinations() { return route_destination_; }
   Destinations &current_destinations() { return destinations_; }
 
@@ -497,13 +606,24 @@ class MysqlRoutingClassicConnectionBase
     return collation_connection_maybe_dirty_;
   }
 
+  std::optional<classic_protocol::session_track::TransactionCharacteristics>
+  trx_characteristics() const {
+    return trx_characteristics_;
+  }
+
+  std::optional<classic_protocol::session_track::TransactionState> trx_state()
+      const {
+    return trx_state_;
+  }
+
  private:
   RouteDestination *route_destination_;
   Destinations destinations_;
 
   std::unique_ptr<ProtocolSplicerBase> socket_splicer_;
 
-  std::string destination_id_;
+  std::string rw_destination_id_;  // read-write destination-id
+  std::string ro_destination_id_;  // read-only destination-id
 
   /**
    * client side handshake isn't finished yet.
@@ -546,6 +666,9 @@ class MysqlRoutingClassicConnectionBase
   }
   bool diagnostic_area_changed() const { return diagnostic_area_changed_; }
 
+  const TraceSpan &events() const { return events_; }
+  TraceSpan &events() { return events_; }
+
   enum class FromEither {
     None,
     Started,
@@ -566,6 +689,26 @@ class MysqlRoutingClassicConnectionBase
   bool diagnostic_area_changed_{};
 
   FromEither recv_from_either_{FromEither::None};
+
+  // events for router.trace.
+  TraceSpan events_;
+
+  // where to target the server-connections if access_mode is kAuto
+  //
+  // - Unavailable -> any destination (at connect)
+  // - ReadOnly    -> a read-only destination (if available)
+  // - ReadWrite   -> a read-write destination (if available)
+  mysqlrouter::ServerMode expected_server_mode_{
+      mysqlrouter::ServerMode::Unavailable};
+
+  // wait for 'gtid_at_least_executed_' with switch to a read-only destination?
+  bool wait_for_my_writes_;
+
+  // GTID to wait for. May be overwritten by client with query attributes.
+  std::string gtid_at_least_executed_;
+
+  // timeout for read your own writes. Setable with query attributes.
+  std::chrono::seconds wait_for_my_writes_timeout_;
 };
 
 #endif

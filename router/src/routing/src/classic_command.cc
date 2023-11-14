@@ -33,6 +33,7 @@
 #include "classic_change_user_forwarder.h"
 #include "classic_clone_forwarder.h"
 #include "classic_connection_base.h"
+#include "classic_debug_forwarder.h"
 #include "classic_frame.h"
 #include "classic_init_schema_forwarder.h"
 #include "classic_kill_forwarder.h"
@@ -447,6 +448,12 @@ stdx::expected<Processor::Result, std::error_code> CommandProcessor::command() {
       }
     }
 
+    if (ec == TlsErrc::kZeroReturn) {
+      // close the connection without a quit.
+      stage(Stage::Done);
+      return Result::Again;
+    }
+
     return recv_client_failed(ec);
   }
 
@@ -467,6 +474,7 @@ stdx::expected<Processor::Result, std::error_code> CommandProcessor::command() {
     // ProcessInfo =
     // ClassicFrame::cmd_byte<classic_protocol::message::client::ProcessInfo>(),
     Kill = ClassicFrame::cmd_byte<client::Kill>(),
+    Debug = ClassicFrame::cmd_byte<client::Debug>(),
     Ping = ClassicFrame::cmd_byte<client::Ping>(),
     ChangeUser = ClassicFrame::cmd_byte<client::ChangeUser>(),
     BinlogDump = ClassicFrame::cmd_byte<client::BinlogDump>(),
@@ -492,6 +500,18 @@ stdx::expected<Processor::Result, std::error_code> CommandProcessor::command() {
   // - a reconnect may have failed.
   stage(Stage::IsAuthed);
 
+  // init the command tracer.
+  connection()->events().active(
+      connection()->client_protocol()->trace_commands());
+
+  // The query processor handles SHOW WARNINGS which fetches the events.
+  if (Msg{msg_type} != Msg::Query) connection()->events().clear();
+
+  // reset the seq-id of the server side as this is a new command.
+  if (connection()->server_protocol() != nullptr) {
+    connection()->server_protocol()->seq_id(0xff);
+  }
+
   switch (Msg{msg_type}) {
     case Msg::Quit:
       stage(Stage::Done);  // after Quit is done, leave.
@@ -510,6 +530,8 @@ stdx::expected<Processor::Result, std::error_code> CommandProcessor::command() {
       return push_processor<ResetConnectionForwarder>(connection());
     case Msg::Kill:
       return push_processor<KillForwarder>(connection());
+    case Msg::Debug:
+      return push_processor<DebugForwarder>(connection());
     case Msg::Reload:
       return push_processor<ReloadForwarder>(connection());
     case Msg::Statistics:

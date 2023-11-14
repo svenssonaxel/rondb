@@ -27,7 +27,7 @@ ADD_WSHADOW_WARNING()
 # Lots of warnings about -Walloc-size-larger-than= from my_malloc.cc
 # but it is basically impossible to trace the actual origin.
 IF(FPROFILE_GENERATE OR FPROFILE_USE OR CMAKE_COMPILER_FLAG_WITH_LTO)
-  IF(MY_COMPILER_IS_GNU AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+  IF(MY_COMPILER_IS_GNU)
     # -Walloc-size-larger-than=PTRDIFF_MAX is enabled by default.
     STRING_APPEND(CMAKE_EXE_LINKER_FLAGS " -Wno-alloc-size-larger-than")
   ENDIF()
@@ -386,6 +386,7 @@ SET(SQL_SHARED_SOURCES
   histograms/equi_height_bucket.cc
   histograms/histogram.cc
   histograms/singleton.cc
+  histograms/table_histograms.cc
   histograms/value_map.cc
   hostname_cache.cc
   init.cc
@@ -431,6 +432,7 @@ SET(SQL_SHARED_SOURCES
   join_optimizer/online_cycle_finder.cc
   join_optimizer/overflow_bitset.cc
   join_optimizer/print_utils.cc
+  join_optimizer/relational_expression.cc
   join_optimizer/replace_item.cc
   json_diff.cc
   json_schema.cc
@@ -445,7 +447,6 @@ SET(SQL_SHARED_SOURCES
   mdl.cc
   mdl_context_backup.cc
   migrate_keyring.cc
-  my_decimal.cc
   mysqld.cc
   mysqld_thd_manager.cc
   opt_costconstantcache.cc
@@ -633,6 +634,9 @@ SET(SQL_SHARED_SOURCES
   xa/transaction_cache.cc
   xa/xid_extract.cc
   daemon_proxy_keyring/daemon_proxy_keyring.cc
+  reference_caching_setup.cc
+  sql_event_tracking_to_audit_event_mapping.cc
+  command_mapping.cc
   )
 
 IF(BUILD_IS_SINGLE_CONFIG)
@@ -775,6 +779,7 @@ SET(SQL_SOURCE
   ../sql-common/sql_string.cc
   ../sql-common/bind_params.cc
   ../sql-common/json_binary.cc
+  ../sql-common/my_decimal.cc
   ../sql-common/json_dom.cc
   ../sql-common/json_error_handler.cc
   ../sql-common/json_path.cc
@@ -799,7 +804,15 @@ SET(SQL_SOURCE
   srv_session.cc
   srv_session_info_service.cc
   srv_session_service.cc
+  aggregated_stats_buffer.cc
+  aggregated_stats.cc
   )
+
+IF ((NOT WITHOUT_MYSQL_NATIVE_PASSWORD)
+  OR (WITHOUT_MYSQL_NATIVE_PASSWORD EQUAL 0))
+  LIST(APPEND SQL_SOURCE ../sql-common/mysql_native_authentication_client.cc)
+ENDIF()
+
 
 IF(NOT HAVE_SETNS)
   LIST(REMOVE_ITEM SQL_SOURCE ../sql-common/net_ns.cc)
@@ -850,6 +863,7 @@ ENDIF()
 ADD_COMPILE_FLAGS(
   ${BUNDLED_LZ4_PATH}/xxhash.c
   iterators/hash_join_iterator.cc
+  iterators/composite_iterators.cc
   rpl_write_set_handler.cc
   COMPILE_FLAGS -I${CMAKE_SOURCE_DIR}/extra/lz4 -I${BUNDLED_LZ4_PATH}
   )
@@ -907,7 +921,7 @@ IF(MY_COMPILER_IS_GNU_OR_CLANG)
                       COMPILE_FLAGS "-Wno-unused-but-set-variable")
   ENDIF()
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98753
-  IF(MY_COMPILER_IS_GNU AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11)
+  IF(MY_COMPILER_IS_GNU AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 11)
     ADD_COMPILE_FLAGS(
       ${CMAKE_CURRENT_BINARY_DIR}/sql_yacc.cc
       ${CMAKE_CURRENT_BINARY_DIR}/sql_hints.yy.cc
@@ -939,9 +953,15 @@ ADD_DEPENDENCIES(sql_main GenServerSource)
 ADD_DEPENDENCIES(sql_main GenDigestServerSource)
 ADD_DEPENDENCIES(sql_main GenBootstrapPriv)
 ADD_DEPENDENCIES(sql_main GenSysSchema)
+
+MYSQL_ADD_PLUGIN(mysql_native_password
+  auth/mysql_native_password.cc
+  SYSTEM_INCLUDE_DIRECTORIES "${RAPIDJSON_INCLUDE_DIR}"
+  STATIC_ONLY DEFAULT)
+
 TARGET_LINK_LIBRARIES(sql_main ${MYSQLD_STATIC_PLUGIN_LIBS}
   mysql_server_component_services mysys strings vio
-  binlogevents_static ${LIBWRAP} ${LIBDL} ${SSL_LIBRARIES}
+  mysql_binlog_event ${LIBWRAP} ${LIBDL} OpenSSL::SSL OpenSSL::Crypto
   extra::rapidjson)
 
 # sql/immutable_string.h uses
@@ -1002,6 +1022,7 @@ SET(BINLOG_SOURCE
   binlog/group_commit/atomic_bgc_ticket_guard.cc
   binlog/monitoring/context.cc
   binlog/decompressing_event_object_istream.cc
+  binlog/services/iterator/file_storage.cc
   binlog.cc
   binlog_istream.cc
   binlog_ostream.cc
@@ -1034,7 +1055,7 @@ SET(BINLOG_SOURCE
   stream_cipher.cc
   )
 ADD_LIBRARY(binlog STATIC ${BINLOG_SOURCE})
-TARGET_LINK_LIBRARIES(binlog binlogevents_static)
+TARGET_LINK_LIBRARIES(binlog mysql_binlog_event)
 TARGET_LINK_LIBRARIES(binlog rpl)
 
 SET (RPL_SOURCE rpl_handler.cc rpl_tblmap.cc rpl_context.cc)
@@ -1100,6 +1121,7 @@ IF(WIN32)
   ADD_COMPILE_FLAGS(mysqld.cc COMPILE_FLAGS "/wd4251")
   IF(WIN32_CLANG)
     ADD_COMPILE_FLAGS(mysqld.cc COMPILE_FLAGS " -Wno-microsoft-cast")
+    ADD_COMPILE_FLAGS(log_event.cc COMPILE_FLAGS " -Wno-microsoft-template")
   ENDIF()
 ENDIF()
 
@@ -1158,11 +1180,6 @@ IF(APPLE)
 ENDIF()
 
 IF(WITH_LTO OR CMAKE_COMPILER_FLAG_WITH_LTO)
-  # We get ODR violations because of multiple bison parsers.
-  MY_CHECK_CXX_COMPILER_WARNING("error=odr" HAS_WARN_FLAG)
-  IF(HAS_WARN_FLAG)
-    MY_TARGET_LINK_OPTIONS(mysqld "${HAS_WARN_FLAG}")
-  ENDIF()
   # We may get errors in boost/geometry/srs/projections/proj/ob_tran.hpp
   # and several other boost files.
   MY_CHECK_CXX_COMPILER_WARNING("error=maybe-uninitialized" HAS_WARN_FLAG)
@@ -1224,7 +1241,7 @@ IF(MSVC)
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/mysqld.def
     COMMAND create_def
     "$<TARGET_FILE:binlog>"
-    "$<TARGET_FILE:binlogevents_static>"
+    "$<TARGET_FILE:mysql_binlog_event>"
     "$<TARGET_FILE:mysys>"
     "$<TARGET_FILE:mytime>"
     "$<TARGET_FILE:rpl>"
@@ -1234,7 +1251,7 @@ IF(MSVC)
     "$<TARGET_FILE:vio>"
     > mysqld.def
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}"
-    DEPENDS create_def binlog binlogevents_static mysys mytime rpl rpl_replica sql_main strings vio
+    DEPENDS create_def binlog mysql_binlog_event mysys mytime rpl rpl_replica sql_main strings vio
   )
   MY_ADD_CUSTOM_TARGET(GenMysqldDef ALL
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/mysqld.def)
@@ -1246,7 +1263,7 @@ ENDIF()
 SET_TARGET_PROPERTIES(mysqld PROPERTIES ENABLE_EXPORTS TRUE)
 TARGET_LINK_LIBRARIES(mysqld
   sql_main sql_gis binlog rpl rpl_source rpl_replica sql_dd mysys
-  minchassis binlogevents_static ext::icu)
+  minchassis mysql_binlog_event ext::icu)
 
 # Add dependency on ldap library, to ensure it is not unloaded
 # when we shutdown the authentication plugin.
@@ -1315,7 +1332,7 @@ ELSE()
     ${CMAKE_CURRENT_SOURCE_DIR}/sql_yacc.yy
     ${CMAKE_CURRENT_BINARY_DIR}/sql_yacc.cc
     COMPILE_FLAGS
-    "--name-prefix=MYSQL --yacc ${BISON_FLAGS_WARNINGS} ${BISON_NO_LINE_OPT}"
+    "--yacc ${BISON_FLAGS_WARNINGS} ${BISON_NO_LINE_OPT}"
     DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/sql_yacc.h
     )
 
@@ -1323,7 +1340,7 @@ ELSE()
     ${CMAKE_CURRENT_SOURCE_DIR}/sql_hints.yy
     ${CMAKE_CURRENT_BINARY_DIR}/sql_hints.yy.cc
     COMPILE_FLAGS
-    "--name-prefix=HINT_PARSER_ --yacc ${BISON_FLAGS_WARNINGS} ${BISON_NO_LINE_OPT}"
+    "--yacc ${BISON_FLAGS_WARNINGS} ${BISON_NO_LINE_OPT}"
     DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/sql_hints.yy.h
     )
 

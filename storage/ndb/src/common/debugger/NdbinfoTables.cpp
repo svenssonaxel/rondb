@@ -115,8 +115,8 @@ DECLARE_NDBINFO_TABLE(POOLS,14) =
   }
 };
 
-DECLARE_NDBINFO_TABLE(TRANSPORTERS, 11) =
-{ { "transporters", 11, 0,
+DECLARE_NDBINFO_TABLE(TRANSPORTERS, 12) =
+{ { "transporters", 12, 0,
      [] (const Ndbinfo::Counts &counts) {
         return (counts.data_nodes) * (counts.all_nodes - 1); },
      "transporter status" },
@@ -136,7 +136,8 @@ DECLARE_NDBINFO_TABLE(TRANSPORTERS, 11) =
     {"overload_count",       Ndbinfo::Number, "Number of overload onsets since connect"},
     
     {"slowdown",             Ndbinfo::Number, "Is link requesting slowdown"},
-    {"slowdown_count",       Ndbinfo::Number, "Number of slowdown onsets since connect"}
+    {"slowdown_count",       Ndbinfo::Number, "Number of slowdown onsets since connect"},
+    {"encrypted",            Ndbinfo::Number, "Is link using TLS encryption"}
   }
 };
 
@@ -636,7 +637,7 @@ DECLARE_NDBINFO_TABLE(TC_TIME_TRACK_STATS, 15) =
 DECLARE_NDBINFO_TABLE(CONFIG_VALUES,3) =
 { { "config_values", 3, 0,
     [] (const Ndbinfo::Counts &c) {
-      return c.data_nodes * 172;  // 172 = current number of config parameters
+      return c.data_nodes * 174;  // 174 = current number of config parameters
     },
     "Configuration parameter values" },
   {
@@ -1314,6 +1315,19 @@ DECLARE_NDBINFO_TABLE(TABLE_MAP,3) =
   }
 };
 
+DECLARE_NDBINFO_TABLE(CERTIFICATES, 5) =
+{ { "certificates", 5, 0,
+    [] (const Ndbinfo::Counts &c) { return c.data_nodes * c.all_nodes; },
+    "Certificates in current use for TLS connections" },
+  {
+    { "reporting_node_id", Ndbinfo::Number, "Reporting node" },
+    { "node_id",           Ndbinfo::Number, "Peer node" },
+    { "name",              Ndbinfo::String, "Certificate subject common name" },
+    { "serial",            Ndbinfo::String, "Certificate serial number" },
+    { "expires",           Ndbinfo::Number, "Certificate expiration date" }
+  }
+};
+
 #define DBINFOTBL(x) { Ndbinfo::x##_TABLEID, (const Ndbinfo::Table*)&ndbinfo_##x }
 
 static
@@ -1373,7 +1387,8 @@ struct ndbinfo_table_list_entry {
   DBINFOTBL(CPUDATA_1SEC),
   DBINFOTBL(CPUDATA_20SEC),
   DBINFOTBL(TABLE_MEM_USE),
-  DBINFOTBL(TABLE_MAP)
+  DBINFOTBL(TABLE_MAP),
+  DBINFOTBL(CERTIFICATES)
 };
 
 static int no_ndbinfo_tables =

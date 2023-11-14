@@ -28,11 +28,10 @@
 #include <atomic>
 
 #include "compression.h"  // COMPRESSION_ALGORITHM_NAME_BUFFER_SIZE
-#include "libbinlogevents/include/binlog_event.h"  // enum_binlog_checksum_alg
-#include "m_string.h"
 #include "my_inttypes.h"
 #include "my_io.h"
 #include "my_psi_config.h"
+#include "mysql/binlog/event/binlog_event.h"  // enum_binlog_checksum_alg
 #include "mysql/components/services/bits/psi_mutex_bits.h"
 #include "mysql/psi/mysql_mutex.h"
 #include "mysql_com.h"
@@ -43,6 +42,7 @@
 #include "sql/rpl_rli.h"                  // rli->get_log_lock()
 #include "sql/rpl_trx_boundary_parser.h"  // Transaction_boundary_parser
 #include "sql/sql_const.h"
+#include "strmake.h"
 
 class Rpl_info_handler;
 class Server_ids;
@@ -322,7 +322,7 @@ class Master_info : public Rpl_info {
     Initialized to novalue, then set to the queried from master
     @@global.binlog_checksum and deactivated once FD has been received.
   */
-  binary_log::enum_binlog_checksum_alg checksum_alg_before_fd;
+  mysql::binlog::event::enum_binlog_checksum_alg checksum_alg_before_fd;
   ulong retry_count;
   char master_uuid[UUID_LENGTH + 1];
   char bind_addr[HOSTNAME_LENGTH + 1];

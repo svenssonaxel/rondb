@@ -44,8 +44,8 @@
 #include "mysql_time.h"              // MYSQL_TIME
 #include "prealloced_array.h"        // Prealloced_array
 #include "sql-common/json_binary.h"  // json_binary::Value
+#include "sql-common/my_decimal.h"   // my_decimal
 #include "sql/malloc_allocator.h"    // Malloc_allocator
-#include "sql/my_decimal.h"          // my_decimal
 
 class Field_json;
 class Json_array;
@@ -57,6 +57,8 @@ class Json_seekable_path;
 class Json_wrapper;
 class String;
 class THD;
+
+struct CHARSET_INFO;
 
 typedef Prealloced_array<Json_wrapper, 16> Json_wrapper_vector;
 typedef Prealloced_array<Json_dom *, 16> Json_dom_vector;
@@ -281,7 +283,7 @@ class Json_dom {
   */
   static Json_dom_ptr parse(const char *text, size_t length,
                             const JsonParseErrorHandler &error_handler,
-                            const JsonDocumentDepthHandler &depth_handler);
+                            const JsonErrorHandler &depth_handler);
 
   /**
     Construct a DOM object based on a binary JSON value. The ownership
@@ -657,6 +659,12 @@ class Json_array final : public Json_container {
 
   /// Sort the array
   void sort(const CHARSET_INFO *cs = nullptr);
+  /// Sort the array using a user-defined comparator.
+  template <class T>
+  void sort(const T &comparator) {
+    std::sort(m_v.begin(), m_v.end(), comparator);
+  }
+
   /**
     Check if the given value appears in the array
 
@@ -1315,12 +1323,23 @@ class Json_wrapper {
   /**
     Get the wrapped contents in binary value form.
 
-    @param[in]     thd  current session
     @param[in,out] str  a string that will be filled with the binary value
+    @param json_depth_handler handler which will be called for JSON documents
+                              exceeding the maximum allowed depth
+    @param json_key_handler  handler which will be called for JSON documents
+                             having keys too large
+    @param json_value_handler handler which will be called for JSON documents
+                              having values too large
+    @param invalid_json_handler handler which will be called for invalid
+                                JSON documents
+
     @retval false on success
     @retval true  on error
   */
-  bool to_binary(const THD *thd, String *str) const;
+  bool to_binary(String *str, const JsonErrorHandler &json_depth_handler,
+                 const JsonErrorHandler &json_key_handler,
+                 const JsonErrorHandler &json_value_handler,
+                 const JsonErrorHandler &invalid_json_handler) const;
 
   /**
     Check if the wrapped JSON document is a binary value (a
@@ -1353,7 +1372,7 @@ class Json_wrapper {
     @return false formatting went well, else true
   */
   bool to_string(String *buffer, bool json_quoted, const char *func_name,
-                 const JsonDocumentDepthHandler &depth_handler) const;
+                 const JsonErrorHandler &depth_handler) const;
 
   /**
     Print this JSON document to the debug trace.
@@ -1362,7 +1381,7 @@ class Json_wrapper {
     this message.
   */
   void dbug_print(const char *message,
-                  const JsonDocumentDepthHandler &depth_handler) const;
+                  const JsonErrorHandler &depth_handler) const;
 
   /**
     Format the JSON value to an external JSON string in buffer in the format of
@@ -1377,7 +1396,7 @@ class Json_wrapper {
     @retval true on error
   */
   bool to_pretty_string(String *buffer, const char *func_name,
-                        const JsonDocumentDepthHandler &depth_handler) const;
+                        const JsonErrorHandler &depth_handler) const;
 
   // Accessors
 

@@ -37,8 +37,6 @@
 #include "decimal.h"      // E_DEC_OOM
 #include "field_types.h"  // enum_field_types
 #include "lex_string.h"
-#include "libbinlogevents/export/binary_log_funcs.h"  // my_time_binary_length
-#include "m_ctype.h"
 #include "my_alloc.h"
 #include "my_base.h"  // ha_storage_media
 #include "my_bitmap.h"
@@ -47,6 +45,9 @@
 #include "my_inttypes.h"
 #include "my_sys.h"
 #include "my_time.h"  // MYSQL_TIME_NOTE_TRUNCATED
+#include "mysql/binlog/event/export/binary_log_funcs.h"  // my_time_binary_length
+#include "mysql/strings/dtoa.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql/udf_registration_types.h"
 #include "mysql_com.h"
 #include "mysql_time.h"
@@ -62,6 +63,7 @@
 #include "template_utils.h"
 
 class Create_field;
+class CostOfItem;
 class Field;
 class Field_bit;
 class Field_bit_as_char;
@@ -286,7 +288,7 @@ inline uint get_enum_pack_length(int elements) {
 }
 
 inline uint get_set_pack_length(int elements) {
-  uint len = (elements + 7) / 8;
+  const uint len = (elements + 7) / 8;
   return len > 4 ? 8 : len;
 }
 
@@ -739,6 +741,9 @@ class Field {
   // set_field_length().
   uint32 field_length;
   virtual void set_field_length(uint32 length) { field_length = length; }
+
+  /// Update '*cost' with the fact that this Field is accessed.
+  virtual void add_to_cost(CostOfItem *cost) const;
 
  private:
   uint32 flags{0};
@@ -1447,7 +1452,7 @@ class Field {
   }
   longlong val_int_offset(ptrdiff_t row_offset) {
     ptr += row_offset;
-    longlong tmp = val_int();
+    const longlong tmp = val_int();
     ptr -= row_offset;
     return tmp;
   }
@@ -2018,6 +2023,8 @@ class Field_str : public Field {
   bool str_needs_quotes() const final { return true; }
   uint is_equal(const Create_field *new_field) const override;
 
+  void add_to_cost(CostOfItem *cost) const override;
+
   // An always-updated cache of the result of char_length(), because
   // dividing by charset()->mbmaxlen can be surprisingly costly compared
   // to the rest of e.g. make_sort_key().
@@ -2073,6 +2080,7 @@ class Field_real : public Field_num {
   bool get_date(MYSQL_TIME *ltime, my_time_flags_t fuzzydate) const final;
   bool get_time(MYSQL_TIME *ltime) const final;
   Truncate_result truncate(double *nr, double max_length);
+  Truncate_result truncate(double *nr, double max_length) const;
   uint32 max_display_length() const final { return field_length; }
   const uchar *unpack(uchar *to, const uchar *from, uint param_data) override;
   uchar *pack(uchar *to, const uchar *from, size_t max_length) const override;
@@ -2782,6 +2790,12 @@ class Field_temporal : public Field {
   [[nodiscard]] uint8 get_dec() const { return dec; }
   my_decimal *val_decimal(
       my_decimal *decimal_value) const override;  // FSP types redefine it
+
+  my_time_flags_t get_date_flags(const THD *thd) const {
+    return date_flags(thd);
+  }
+
+  uint8 get_fractional_digits() const { return dec; }
 };
 
 /**
@@ -3053,7 +3067,7 @@ class Field_timestampf : public Field_temporal_with_date_and_timef {
   uint32 pack_length() const final { return my_timestamp_binary_length(dec); }
   uint pack_length_from_metadata(uint field_metadata) const final {
     DBUG_TRACE;
-    uint tmp = my_timestamp_binary_length(field_metadata);
+    const uint tmp = my_timestamp_binary_length(field_metadata);
     return tmp;
   }
 
@@ -3292,7 +3306,7 @@ class Field_timef final : public Field_time_common {
   uint32 pack_length() const final { return my_time_binary_length(dec); }
   uint pack_length_from_metadata(uint field_metadata) const final {
     DBUG_TRACE;
-    uint tmp = my_time_binary_length(field_metadata);
+    const uint tmp = my_time_binary_length(field_metadata);
     return tmp;
   }
   uint row_pack_length() const final { return pack_length(); }
@@ -3419,7 +3433,7 @@ class Field_datetimef : public Field_temporal_with_date_and_timef {
   uint32 pack_length() const final { return my_datetime_binary_length(dec); }
   uint pack_length_from_metadata(uint field_metadata) const final {
     DBUG_TRACE;
-    uint tmp = my_datetime_binary_length(field_metadata);
+    const uint tmp = my_datetime_binary_length(field_metadata);
     return tmp;
   }
   bool zero_pack() const final { return true; }
@@ -3642,6 +3656,9 @@ class Field_blob : public Field_longstr {
     end of statement. Since InnoDB consumes calculated values only after all
     needed table's virtual fields were calculated, we have to have such backup
     buffer for each field.
+
+    Also used for set operation hashing: we need to compare the new
+    and the existing record with the same hash.
   */
   String m_blob_backup;
 

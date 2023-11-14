@@ -29,8 +29,8 @@ ADD_CONVENIENCE_LIBRARY(mytime ${MY_TIME_SOURCES})
 SET(MYSYS_SOURCES
   array.cc
   charset.cc
-  charset-def.cc
   dbug.cc
+  decimal.cc
   errors.cc
   lf_alloc-pin.cc
   lf_dynarray.cc
@@ -101,8 +101,12 @@ SET(MYSYS_SOURCES
   print_version.cc
   psi_noop.cc
   ptr_cmp.cc
-  sql_chars.cc
   stacktrace.cc
+  str2int.cc
+  strcont.cc
+  strmake.cc
+  strxmov.cc
+  strxnmov.cc
   thr_cond.cc
   thr_lock.cc
   thr_mutex.cc
@@ -192,7 +196,7 @@ ADD_CONVENIENCE_LIBRARY(mysys ${MYSYS_SOURCES}
   ${LIBRT}
   ${LIBEXECINFO}
   ${LIBUNWIND_LDFLAGS}
-  ${SSL_LIBRARIES}
+  OpenSSL::SSL OpenSSL::Crypto
   )
 
 # For targets that link with mysys, and are independent of other targets.
@@ -212,6 +216,14 @@ ENDIF()
 # MD5_Init() and others are deprecated.
 IF(SOLARIS AND MY_COMPILER_IS_GNU_OR_CLANG)
   ADD_COMPILE_FLAGS(my_md5.cc COMPILE_FLAGS "-Wno-deprecated-declarations")
+ENDIF()
+
+# WinSDK files included by these .cc files generate warnings in /analyze
+# TODO: remove these when the warnings in the SDK are fixed.
+# See e.g. https://aka.ms/AAfydfn
+IF(MSVC_CPPCHECK AND MSVC AND MSVC_VERSION GREATER 1935)
+  ADD_COMPILE_FLAGS(my_init.cc COMPILE_FLAGS "/wd6553")
+  ADD_COMPILE_FLAGS(my_conio.cc COMPILE_FLAGS "/wd28286")
 ENDIF()
 
 # We are not interesting in profiling tests.

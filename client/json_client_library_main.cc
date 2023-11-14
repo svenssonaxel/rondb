@@ -22,16 +22,24 @@
 
 /*
   This is a test executable which verifies that Json_wrapper::seek,
-  Json_dom::seek and Json_dom::parse functions are visible and can be called.
+  Json_dom::seek, Json_dom::parse, json_binary::parse_binary,
+  json_binary::serialize functions are visible and can be called.
  */
 #include <cstring>
 #include <iostream>
 #include <string>
 
+#include "sql-common/json_binary.h"
 #include "sql-common/json_dom.h"
 #include "sql-common/json_path.h"
 
+#include "sql-common/json_error_handler.h"
 #include "sql_string.h"
+
+void CoutDefaultDepthHandler() { std::cout << "Doc too deep"; }
+void CoutDefaultKeyErrorHandler() { std::cout << "Key too big"; }
+void CoutDefaultValueErrorHandler() { std::cout << "Value too big"; }
+void InvalidJsonErrorHandler() { std::cout << "Invalid JSON"; }
 
 int main() {
   Json_object o;
@@ -43,7 +51,7 @@ int main() {
 
   // Make sure Json_wrapper::seek is visible
   Json_wrapper_vector hits(PSI_NOT_INSTRUMENTED);
-  bool need_only_one{false};
+  const bool need_only_one{false};
   const char *json_path = R"($**."512")";
   Json_path path(PSI_NOT_INSTRUMENTED);
   size_t bad_index;
@@ -52,6 +60,19 @@ int main() {
 
   Json_wrapper wr(&o);
   wr.set_alias();
+
+  StringBuffer<20000> buf;
+  if (wr.to_binary(&buf, CoutDefaultDepthHandler, CoutDefaultKeyErrorHandler,
+                   CoutDefaultValueErrorHandler, InvalidJsonErrorHandler)) {
+    std::cout << "error";
+  } else {
+    const json_binary::Value v(
+        json_binary::parse_binary(buf.ptr(), buf.length()));
+    std::string std_string;
+    v.to_pretty_std_string(&std_string, CoutDefaultDepthHandler);
+    std::cout << "1. Binary_val[" << std_string << "]" << std::endl;
+  }
+
   wr.seek(path, path.leg_count(), &hits, true, need_only_one);
 
   for (auto &hit : hits) {
@@ -62,7 +83,7 @@ int main() {
 
   // Make sure Json_dom::parse is visible and error handling works
   {
-    std::string json{"[{\"key\":123},146]"};
+    const std::string json{"[{\"key\":123},146]"};
     Json_dom_ptr dom(Json_dom::parse(
         json.c_str(), json.length(),
         [](const char *, size_t) { assert(false); }, [] { assert(false); }));
@@ -70,7 +91,7 @@ int main() {
   }
 
   {
-    std::string json{
+    const std::string json{
         "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[["
         R"([[[[[[[[[[[[[[[[[[[[[[[[[[[[[[{"key":123}]]]]]]]]]]]]]]]]]]]]]]]]]])"
         "]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"
@@ -86,7 +107,7 @@ int main() {
   }
 
   {
-    std::string json{"[&&"};
+    const std::string json{"[&&"};
     Json_dom_ptr dom(Json_dom::parse(
         json.c_str(), json.length(),
         [](const char *err_mesg, size_t err_code) {
@@ -95,6 +116,44 @@ int main() {
         },
         [] { assert(false); }));
     if (dom != nullptr) assert(false);
+  }
+
+  {
+    my_decimal m;
+    double2my_decimal(0, 3.14000000001, &m);
+    const Json_decimal jd(m);
+    if (json_binary::serialize(&jd, &buf, CoutDefaultDepthHandler,
+                               CoutDefaultKeyErrorHandler,
+                               CoutDefaultValueErrorHandler))
+      std::cout << "ERRROR!!" << std::endl;
+
+    json_binary::Value v = json_binary::parse_binary(buf.ptr(), buf.length());
+    std::string std_string;
+    if (v.to_std_string(&std_string, CoutDefaultDepthHandler))
+      std::cout << "ERRROR!!" << std::endl;
+    std::cout << "4. val[" << std_string << "]" << std::endl;
+  }
+
+  {
+    /* DATETIME scalar */
+    MYSQL_TIME dt;
+    std::memset(&dt, 0, sizeof dt);
+    dt.year = 1988;
+    dt.month = 12;
+    dt.day = 15;
+    dt.time_type = MYSQL_TIMESTAMP_DATE;
+    const Json_datetime jd(dt, MYSQL_TYPE_DATETIME);
+
+    if (json_binary::serialize(&jd, &buf, CoutDefaultDepthHandler,
+                               CoutDefaultKeyErrorHandler,
+                               CoutDefaultValueErrorHandler))
+      std::cout << "ERRROR!!" << std::endl;
+
+    json_binary::Value v = json_binary::parse_binary(buf.ptr(), buf.length());
+    std::string std_string;
+    if (v.to_pretty_std_string(&std_string, CoutDefaultDepthHandler))
+      std::cout << "ERRROR!!" << std::endl;
+    std::cout << "5. val[" << std_string << "]" << std::endl;
   }
 
   return 0;

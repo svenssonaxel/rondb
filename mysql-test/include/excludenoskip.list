@@ -18,8 +18,6 @@ have_mac_os.inc
 not_mac_os.inc
 freebsd.inc
 not_freebsd.inc
-have_32bit.inc
-have_64bit.inc
 have_32bit_ulong.inc
 have_64bit_ulong.inc
 have_little_endian.inc
@@ -48,9 +46,6 @@ have_met_timezone.inc
 # Checks if server is started with Moscow leap timezone. Including the below inc file until Bug#25188986 is fixed.
 have_moscow_leap_timezone.inc
 
-# 32/64 bits time_t
-have_32bits_time.inc
-have_64bits_time.inc
 
 # 2.0 Binlog formats
 # Below files are included because rpl suite runs each test with 3 different
@@ -107,6 +102,7 @@ federated_bug_25714.test
 
 # 4.4
 check_openssl_version.inc
+check_openssl.inc
 have_tlsv13.inc
 not_have_tlsv13.inc
 not_tlsv13.inc
@@ -122,6 +118,7 @@ have_innodb_4k.inc
 have_innodb_64k.inc
 have_innodb_8k.inc
 have_innodb_max_16k.inc
+have_innodb_min_16k.inc
 have_innodb_min_8k.inc
 not_have_innodb_4k.inc
 
@@ -141,6 +138,10 @@ have_statement_timeout.inc
 # contains more than 2 InnoDB undo tablespaces.  That can be done using
 # --bootstrap=--init-file=std_data/explicit_undo_32.sql
 have_innodb_default_undo_tablespaces.inc
+
+# 4.9 General utility to skip if a specific command line option is used.
+# The usage is described in the .inc file.
+skip_by_command_line_option.inc
 
 # 5.0 Different protocols
 # Reason for inclusion: Tests should run only with supported protocols and
@@ -327,3 +328,4 @@ have_ruby.inc
 
 # 33. Skip tests on platforms that don't support the FIDO plugins
 have_fido_plugin.inc
+have_webauthn_plugin.inc

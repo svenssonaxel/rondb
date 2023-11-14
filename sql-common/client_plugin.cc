@@ -47,8 +47,6 @@
 #include <sys/types.h>
 
 #include "errmsg.h"
-#include "m_ctype.h"
-#include "m_string.h"
 #include "my_alloc.h"
 #include "my_dbug.h"
 #include "my_inttypes.h"
@@ -61,7 +59,10 @@
 #include "mysql/psi/mysql_memory.h"
 #include "mysql/psi/mysql_mutex.h"
 #include "mysql/service_mysql_alloc.h"
+#include "mysql/strings/m_ctype.h"
+#include "nulls.h"
 #include "sql_common.h"
+#include "strxnmov.h"
 #include "template_utils.h"
 
 #ifdef HAVE_DLFCN_H
@@ -71,6 +72,9 @@
 #if defined(CLIENT_PROTOCOL_TRACING)
 #include <mysql/plugin_trace.h>
 #endif
+
+#include <mysql/plugin_client_telemetry.h>
+struct st_mysql_client_plugin_TELEMETRY *client_telemetry_plugin;
 
 PSI_memory_key key_memory_root;
 PSI_memory_key key_memory_load_env_plugins;
@@ -115,6 +119,7 @@ static uint plugin_version[MYSQL_CLIENT_MAX_PLUGINS] = {
     0, /* these two are taken by Connector/C */
     MYSQL_CLIENT_AUTHENTICATION_PLUGIN_INTERFACE_VERSION,
     MYSQL_CLIENT_TRACE_PLUGIN_INTERFACE_VERSION,
+    MYSQL_CLIENT_TELEMETRY_PLUGIN_INTERFACE_VERSION,
 };
 
 /*
@@ -198,7 +203,7 @@ static struct st_mysql_client_plugin *do_add_plugin(
 #if defined(CLIENT_PROTOCOL_TRACING) && !defined(MYSQL_SERVER)
   /*
     If we try to load a protocol trace plugin but one is already
-    loaded (global trace_plugin pointer is not NULL) then we ignore
+    loaded (global trace_plugin pointer is not nullptr) then we ignore
     the new trace plugin and give error. This is done before the
     new plugin gets initialized.
   */
@@ -207,6 +212,13 @@ static struct st_mysql_client_plugin *do_add_plugin(
     goto err1;
   }
 #endif
+
+  if (plugin->type == MYSQL_CLIENT_TELEMETRY_PLUGIN &&
+      nullptr != client_telemetry_plugin) {
+    errmsg =
+        "Can not load another telemetry plugin while one is already loaded";
+    goto err1;
+  }
 
   /* Call the plugin initialization function, if any */
   if (plugin->init && plugin->init(errbuf, sizeof(errbuf), argc, args)) {
@@ -231,7 +243,7 @@ static struct st_mysql_client_plugin *do_add_plugin(
 #if defined(CLIENT_PROTOCOL_TRACING) && !defined(MYSQL_SERVER)
   /*
     If loaded plugin is a protocol trace one, then set the global
-    trace_plugin pointer to point at it. When trace_plugin is not NULL,
+    trace_plugin pointer to point at it. When trace_plugin is not nullptr,
     each new connection will be traced using the plugin pointed by it
     (see MYSQL_TRACE_STAGE() macro in libmysql/mysql_trace.h).
   */
@@ -239,6 +251,10 @@ static struct st_mysql_client_plugin *do_add_plugin(
     trace_plugin = (struct st_mysql_client_plugin_TRACE *)plugin;
   }
 #endif
+
+  if (plugin->type == MYSQL_CLIENT_TELEMETRY_PLUGIN) {
+    client_telemetry_plugin = (struct st_mysql_client_plugin_TELEMETRY *)plugin;
+  }
 
   return plugin;
 
@@ -407,7 +423,7 @@ struct st_mysql_client_plugin *mysql_load_plugin_v(MYSQL *mysql,
   struct st_mysql_client_plugin *plugin;
   const char *plugindir;
   const CHARSET_INFO *cs = nullptr;
-  size_t len = (name ? strlen(name) : 0);
+  const size_t len = (name ? strlen(name) : 0);
   int well_formed_error;
   size_t res = 0;
 #ifdef _WIN32
@@ -485,8 +501,8 @@ struct st_mysql_client_plugin *mysql_load_plugin_v(MYSQL *mysql,
 #ifdef _WIN32
     /* There should be no win32 calls between failed dlopen() and GetLastError()
      */
-    if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, GetLastError(), 0,
-                      win_errormsg, 2048, NULL))
+    if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, GetLastError(), 0,
+                      win_errormsg, 2048, nullptr))
       errmsg = win_errormsg;
     else
       errmsg = "";

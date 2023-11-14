@@ -352,8 +352,8 @@ class SocketCloseTest : public RouterComponentTest {
   std::optional<std::string> router_ro_x_socket;
   const std::string router_user{"mysql_test_user"};
   const std::string router_password{"mysql_test_password"};
-  const std::string custom_user{"custom_user"};
-  const std::string custom_password{"foobar"};
+  const std::string custom_user{"username"};
+  const std::string custom_password{"password"};
 };
 
 struct SocketsCloseTestParams {

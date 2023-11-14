@@ -41,6 +41,7 @@
 #include <mutex>
 #include <thread>
 
+#include "m_string.h"
 #include "my_byteorder.h"
 #include "my_compiler.h"
 #include "my_dbug.h"
@@ -50,7 +51,11 @@
 #include "my_macros.h"
 #include "my_systime.h"  // my_sleep()
 #include "my_time.h"     // SECS_PER_HOUR, SECS_PER_MIN
+#include "mysql/strings/int2str.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysql_client_fw.cc"
+#include "nulls.h"
+#include "strxmov.h"
 #include "template_utils.h"
 
 #include <list>
@@ -1257,18 +1262,18 @@ static void test_prepare_field_result() {
 
   if (!opt_silent) fprintf(stdout, "\n\n field attributes:\n");
   verify_prepare_field(result, 0, "int_c", "int_c", MYSQL_TYPE_LONG, "t1",
-                       "test_prepare_field_result", current_db, 11, 0);
+                       "test_prepare_field_result", current_db, 11, nullptr);
   verify_prepare_field(result, 1, "var_c", "var_c", MYSQL_TYPE_VAR_STRING, "t1",
-                       "test_prepare_field_result", current_db, 50, 0);
+                       "test_prepare_field_result", current_db, 50, nullptr);
   verify_prepare_field(result, 2, "date", "date_c", MYSQL_TYPE_DATE, "t1",
-                       "test_prepare_field_result", current_db, 10, 0);
+                       "test_prepare_field_result", current_db, 10, nullptr);
   verify_prepare_field(result, 3, "ts_c", "ts_c", MYSQL_TYPE_TIMESTAMP, "t1",
-                       "test_prepare_field_result", current_db, 19, 0);
+                       "test_prepare_field_result", current_db, 19, nullptr);
   verify_prepare_field(
       result, 4, "char_c", "char_c",
       (mysql_get_server_version(mysql) <= 50000 ? MYSQL_TYPE_VAR_STRING
                                                 : MYSQL_TYPE_STRING),
-      "t1", "test_prepare_field_result", current_db, 4, 0);
+      "t1", "test_prepare_field_result", current_db, 4, nullptr);
 
   verify_field_count(result, 5);
   mysql_free_result(result);
@@ -7076,7 +7081,7 @@ static void test_field_misc() {
                        "",                  /* field and its org name */
                        MYSQL_TYPE_LONGLONG, /* field type */
                        "", "",              /* table and its org name */
-                       "", 1, 0);           /* db name, length(its bool flag)*/
+                       "", 1, nullptr);     /* db name, length(its bool flag)*/
 
   mysql_free_result(result);
 
@@ -7096,7 +7101,7 @@ static void test_field_misc() {
                        "",                  /* field and its org name */
                        MYSQL_TYPE_LONGLONG, /* field type */
                        "", "",              /* table and its org name */
-                       "", 1, 0);           /* db name, length(its bool flag)*/
+                       "", 1, nullptr);     /* db name, length(its bool flag)*/
 
   mysql_free_result(result);
   mysql_stmt_close(stmt);
@@ -7118,7 +7123,7 @@ static void test_field_misc() {
                        MYSQL_TYPE_LONGLONG, /* field type */
                        "", "",              /* table and its org name */
                        /* db name, length */
-                       "", MY_INT64_NUM_DECIMAL_DIGITS, 0);
+                       "", MY_INT64_NUM_DECIMAL_DIGITS, nullptr);
 
   mysql_free_result(result);
   mysql_stmt_close(stmt);
@@ -7139,7 +7144,7 @@ static void test_field_misc() {
                        MYSQL_TYPE_LONGLONG, /* field type */
                        "", "",              /* table and its org name */
                        /* db name, length */
-                       "", MY_INT64_NUM_DECIMAL_DIGITS, 0);
+                       "", MY_INT64_NUM_DECIMAL_DIGITS, nullptr);
 
   mysql_free_result(result);
   mysql_stmt_close(stmt);
@@ -7160,7 +7165,7 @@ static void test_field_misc() {
                        "",                  /* field and its org name */
                        MYSQL_TYPE_LONGLONG, /* field type */
                        "", "",              /* table and its org name */
-                       "", 1, 0);           /* db name, length */
+                       "", 1, nullptr);     /* db name, length */
 
   mysql_free_result(result);
   mysql_stmt_close(stmt);
@@ -7473,24 +7478,24 @@ static void test_explain_bug() {
                        mysql_get_server_version(mysql) <= 50000
                            ? MYSQL_TYPE_STRING
                            : MYSQL_TYPE_VAR_STRING,
-                       0, 0, "", 64, 0);
+                       nullptr, nullptr, "", 64, nullptr);
 
-  verify_prepare_field(result, 1, "Type", "Type", MYSQL_TYPE_BLOB, 0, 0,
-                       "information_schema", 0, 0);
+  verify_prepare_field(result, 1, "Type", "Type", MYSQL_TYPE_BLOB, nullptr,
+                       nullptr, "information_schema", 0, nullptr);
 
   verify_prepare_field(result, 2, "Null", "Null",
                        mysql_get_server_version(mysql) <= 50000
                            ? MYSQL_TYPE_STRING
                            : MYSQL_TYPE_VAR_STRING,
-                       0, 0, "", 3, 0);
+                       nullptr, nullptr, "", 3, nullptr);
 
-  verify_prepare_field(result, 3, "Key", "Key", MYSQL_TYPE_STRING, 0, 0,
-                       "information_schema", 3, 0);
+  verify_prepare_field(result, 3, "Key", "Key", MYSQL_TYPE_STRING, nullptr,
+                       nullptr, "information_schema", 3, nullptr);
 
   if (mysql_get_server_version(mysql) >= 50027) {
     /*  The patch for bug#23037 changes column type of DEAULT to blob */
-    verify_prepare_field(result, 4, "Default", "Default", MYSQL_TYPE_BLOB, 0, 0,
-                         "information_schema", 0, 0);
+    verify_prepare_field(result, 4, "Default", "Default", MYSQL_TYPE_BLOB,
+                         nullptr, nullptr, "information_schema", 0, nullptr);
   } else {
     verify_prepare_field(
         result, 4, "Default", "Default",
@@ -7498,14 +7503,16 @@ static void test_explain_bug() {
             ? MYSQL_TYPE_BLOB
             : mysql_get_server_version(mysql) <= 50000 ? MYSQL_TYPE_STRING
                                                        : MYSQL_TYPE_VAR_STRING,
-        0, 0, "mysql", mysql_get_server_version(mysql) >= 50027 ? 0 : 64, 0);
+        nullptr, nullptr, "mysql",
+        mysql_get_server_version(mysql) >= 50027 ? 0 : 64, nullptr);
   }
 
   verify_prepare_field(
       result, 5, "Extra", "Extra",
       mysql_get_server_version(mysql) <= 50000 ? MYSQL_TYPE_STRING
                                                : MYSQL_TYPE_VAR_STRING,
-      0, 0, "", mysql_get_server_version(mysql) <= 50602 ? 27 : 256, 0);
+      nullptr, nullptr, "", mysql_get_server_version(mysql) <= 50602 ? 27 : 256,
+      nullptr);
 
   mysql_free_result(result);
   mysql_stmt_close(stmt);
@@ -7534,43 +7541,43 @@ static void test_explain_bug() {
   no = 0;
 
   verify_prepare_field(result, no++, "id", "", MYSQL_TYPE_LONGLONG, "", "", "",
-                       4, 0);
+                       4, nullptr);
 
   verify_prepare_field(result, no++, "select_type", "", MYSQL_TYPE_VAR_STRING,
-                       "", "", "", 19, 0);
+                       "", "", "", 19, nullptr);
 
   verify_prepare_field(result, no++, "table", "", MYSQL_TYPE_VAR_STRING, "", "",
-                       "", NAME_CHAR_LEN, 0);
+                       "", NAME_CHAR_LEN, nullptr);
 
   if (mysql_get_server_version(mysql) > 50702) no++;
 
   verify_prepare_field(result, no++, "type", "", MYSQL_TYPE_VAR_STRING, "", "",
-                       "", 10, 0);
+                       "", 10, nullptr);
 
   verify_prepare_field(result, no++, "possible_keys", "", MYSQL_TYPE_VAR_STRING,
-                       "", "", "", NAME_CHAR_LEN * MAX_KEY, 0);
+                       "", "", "", NAME_CHAR_LEN * MAX_KEY, nullptr);
 
   verify_prepare_field(result, no++, "key", "", MYSQL_TYPE_VAR_STRING, "", "",
-                       "", NAME_CHAR_LEN, 0);
+                       "", NAME_CHAR_LEN, nullptr);
 
   if (mysql_get_server_version(mysql) <= 50000) {
     verify_prepare_field(result, no++, "key_len", "", MYSQL_TYPE_LONGLONG, "",
-                         "", "", 3, 0);
+                         "", "", 3, nullptr);
   } else {
     verify_prepare_field(result, no++, "key_len", "", MYSQL_TYPE_VAR_STRING, "",
-                         "", "", NAME_CHAR_LEN * MAX_KEY, 0);
+                         "", "", NAME_CHAR_LEN * MAX_KEY, nullptr);
   }
 
   verify_prepare_field(result, no++, "ref", "", MYSQL_TYPE_VAR_STRING, "", "",
-                       "", NAME_CHAR_LEN * 16, 0);
+                       "", NAME_CHAR_LEN * 16, nullptr);
 
   verify_prepare_field(result, no++, "rows", "", MYSQL_TYPE_LONGLONG, "", "",
-                       "", 11, 0);
+                       "", 11, nullptr);
 
   if (mysql_get_server_version(mysql) > 50702) no++;
 
   verify_prepare_field(result, no++, "Extra", "", MYSQL_TYPE_VAR_STRING, "", "",
-                       "", 255, 0);
+                       "", 255, nullptr);
 
   mysql_free_result(result);
   mysql_stmt_close(stmt);
@@ -11726,7 +11733,7 @@ static void test_cursor_for_show() {
     //"SHOW FUNCTION CODE f1", - not supported in optimized build
       "SHOW FUNCTION STATUS",
       "SHOW GRANTS",
-      "SHOW MASTER STATUS",
+      "SHOW BINARY LOG STATUS",
       "SHOW OPEN TABLES",
       "SHOW PLUGINS",
       "SHOW PRIVILEGES",
@@ -13781,9 +13788,9 @@ static void test_bug9735() {
   myquery(rc);
   res = mysql_store_result(mysql);
   verify_prepare_field(res, 0, "a", "a", MYSQL_TYPE_BLOB, "t1", "t1",
-                       current_db, (1U << 24) - 1, 0);
+                       current_db, (1U << 24) - 1, nullptr);
   verify_prepare_field(res, 1, "b", "b", MYSQL_TYPE_BLOB, "t1", "t1",
-                       current_db, ~0U, 0);
+                       current_db, ~0U, nullptr);
   mysql_free_result(res);
   rc = mysql_query(mysql, "drop table t1");
   myquery(rc);
@@ -15945,7 +15952,7 @@ static void test_bug28934() {
 
   stmt->param_count = 2;
   error = mysql_stmt_execute(stmt);
-  DIE_UNLESS(error != 0);
+  DIE_UNLESS(error == 0);  // extra params assumed query attributes
   myerror(nullptr);
   mysql_stmt_close(stmt);
 
@@ -19061,6 +19068,7 @@ static void test_wl6791() {
     MYSQL_OPT_SSL_CAPATH,
     MYSQL_OPT_SSL_CIPHER,
     MYSQL_OPT_TLS_CIPHERSUITES,
+    MYSQL_OPT_TLS_SNI_SERVERNAME,
     MYSQL_OPT_SSL_CRL,
     MYSQL_OPT_SSL_CRLPATH,
     MYSQL_SERVER_PUBLIC_KEY },
@@ -19703,10 +19711,10 @@ static void test_bug21104470() {
   DIE_UNLESS(rc == 0);
 
   verify_prepare_field(result, 0, "j1", "j1", MYSQL_TYPE_JSON, "t1", "t1",
-                       current_db, UINT_MAX32, 0);
+                       current_db, UINT_MAX32, nullptr);
 
   verify_prepare_field(result, 1, "j2", "j2", MYSQL_TYPE_JSON, "t1", "t1",
-                       current_db, UINT_MAX32, 0);
+                       current_db, UINT_MAX32, nullptr);
 
   mysql_free_result(result);
   myquery(mysql_query(mysql, "DROP TABLE t1"));
@@ -19739,10 +19747,10 @@ static void test_bug21293012() {
   DIE_UNLESS(rc == 0);
 
   verify_prepare_field(result, 0, "j1", "j1", MYSQL_TYPE_JSON, "v1", "v1",
-                       current_db, UINT_MAX32, 0);
+                       current_db, UINT_MAX32, nullptr);
 
   verify_prepare_field(result, 1, "j2", "j2", MYSQL_TYPE_JSON, "v1", "v1",
-                       current_db, UINT_MAX32, 0);
+                       current_db, UINT_MAX32, nullptr);
 
   mysql_free_result(result);
   myquery(mysql_query(mysql, "DROP VIEW v1"));
@@ -20224,7 +20232,7 @@ static void test_mysql_binlog() {
   {
     MYSQL_RES *res;
     MYSQL_ROW row;
-    DIE_IF(mysql_query(mysql, "SHOW MASTER STATUS"));
+    DIE_IF(mysql_query(mysql, "SHOW BINARY LOG STATUS"));
     DIE_UNLESS(res = mysql_store_result(mysql));
     if (!(row = mysql_fetch_row(res)) || strcmp(row[0], binlog_name)) {
       if (!opt_silent) fprintf(stdout, "Skipping test_mysql_binlog\n");
@@ -20239,7 +20247,7 @@ static void test_mysql_binlog() {
   myquery(rc);
   rc = mysql_query(mysql, "SET @@global.binlog_checksum=NONE");
   myquery(rc);
-  rc = mysql_query(mysql, "RESET MASTER");
+  rc = mysql_query(mysql, "RESET BINARY LOGS AND GTIDS");
   myquery(rc);
   rc = mysql_query(mysql, "CREATE TABLE t1(a INT)");
   myquery(rc);
@@ -22763,16 +22771,16 @@ static void test_bug32892045() {
   mytest(result);
 
   verify_prepare_field(result, 0, "AAA", "AAA", MYSQL_TYPE_LONG, "t1", "t1",
-                       current_db, 11, 0);
+                       current_db, 11, nullptr);
 
   verify_prepare_field(result, 1, "bbb", "BBB", MYSQL_TYPE_LONG, "t1", "t1",
-                       current_db, 11, 0);
+                       current_db, 11, nullptr);
 
   verify_prepare_field(result, 2, "cCc", "CCC", MYSQL_TYPE_LONG, "t1", "t1",
-                       current_db, 11, 0);
+                       current_db, 11, nullptr);
 
   verify_prepare_field(result, 3, "eEe", "DDD", MYSQL_TYPE_LONG, "t1", "t1",
-                       current_db, 11, 0);
+                       current_db, 11, nullptr);
   mysql_free_result(result);
 
   result = mysql_stmt_result_metadata(stmt);
@@ -22860,10 +22868,10 @@ static void test_bug32915973() {
   mytest(result);
 
   verify_prepare_field(result, 0, "c",
-                       "",               // field and its org name
-                       MYSQL_TYPE_DATE,  // field type
-                       "", "",           // table and its org name
-                       "", 10, 0);       // db name, length(its bool flag)
+                       "",                // field and its org name
+                       MYSQL_TYPE_DATE,   // field type
+                       "", "",            // table and its org name
+                       "", 10, nullptr);  // db name, length(its bool flag)
 
   rc = mysql_stmt_bind_result(stmt, bind + 1);
   check_execute(stmt, rc);
@@ -22897,7 +22905,7 @@ static void test_bug32915973() {
                        "",                   // field and its org name
                        MYSQL_TYPE_DATETIME,  // field type
                        "", "",               // table and its org name
-                       "", 26, 0);           // db name, length(its bool flag)
+                       "", 26, nullptr);     // db name, length(its bool flag)
 
   rc = mysql_stmt_bind_result(stmt, bind + 1);
   check_execute(stmt, rc);
@@ -22932,7 +22940,7 @@ static void test_bug32915973() {
                        "",                   // field and its org name
                        MYSQL_TYPE_DATETIME,  // field type
                        "", "",               // table and its org name
-                       "", 26, 0);           // db name, length(its bool flag)
+                       "", 26, nullptr);     // db name, length(its bool flag)
 
   rc = mysql_stmt_bind_result(stmt, bind + 1);
   check_execute(stmt, rc);
@@ -22967,7 +22975,7 @@ static void test_bug32915973() {
                        "",                   // field and its org name
                        MYSQL_TYPE_DATETIME,  // field type
                        "", "",               // table and its org name
-                       "", 26, 0);           // db name, length(its bool flag)
+                       "", 26, nullptr);     // db name, length(its bool flag)
 
   rc = mysql_stmt_bind_result(stmt, bind + 1);
   check_execute(stmt, rc);
@@ -23001,7 +23009,7 @@ static void test_bug32915973() {
                        "",                   // field and its org name
                        MYSQL_TYPE_DATETIME,  // field type
                        "", "",               // table and its org name
-                       "", 26, 0);           // db name, length(its bool flag)
+                       "", 26, nullptr);     // db name, length(its bool flag)
 
   rc = mysql_stmt_bind_result(stmt, bind + 1);
   check_execute(stmt, rc);
@@ -23036,7 +23044,7 @@ static void test_bug32915973() {
                        "",                   // field and its org name
                        MYSQL_TYPE_DATETIME,  // field type
                        "", "",               // table and its org name
-                       "", 26, 0);           // db name, length(its bool flag)
+                       "", 26, nullptr);     // db name, length(its bool flag)
 
   rc = mysql_stmt_bind_result(stmt, bind + 1);
   check_execute(stmt, rc);
@@ -23418,6 +23426,229 @@ static void test_server_telemetry_traces() {
   test_zero_rpc(COM_SET_OPTION, true);
 }
 
+/*
+  Used by perfschema.telemetry_traces_prepared_stmt test.
+  Runs prepared statement with some bind arguments,
+  with or without query attributes.
+*/
+static void test_server_telemetry_traces_prepared() {
+  DBUG_TRACE;
+  myheader("test_server_telemetry_traces_prepared");
+
+  // wait for session to be processed by telemetry
+  // this assures the logs are being deterministic
+  // (ordering not changed between multiple sessions)
+  my_sleep(500000);  // 500msec
+
+  MYSQL_RES *result;
+  MYSQL_STMT *stmt;
+  int rc;
+  MYSQL_BIND ps_params[1];
+  MYSQL_BIND all_params[3];
+
+  int int_data = 4;
+
+  //
+  // Test1:
+  // run prepared statement with bound parameters (without query attributes)
+  //
+
+  // helps to delimit entries within the log file
+  rc = mysql_query(mysql,
+                   "SELECT test_component_trace_log('***** TEST - Prepared "
+                   "statement with bind params only:')");
+  if (rc == 1) {
+    // skip test if component_test_server_telemetry_metrics not loaded
+    // test makes sense to be run only through
+    // perfschema.telemetry_traces_prepared_stmt
+    return;
+  }
+  myquery(rc);
+  result = mysql_use_result(mysql);
+  mytest(result);
+  mysql_free_result(result);
+
+  stmt = mysql_simple_prepare(mysql, "SELECT POW(?,2) AS square");
+  check_stmt(stmt);
+
+  memset(ps_params, 0, sizeof(ps_params));
+
+  ps_params[0].buffer_type = MYSQL_TYPE_LONG;
+  ps_params[0].buffer = (char *)&int_data;
+  ps_params[0].length = nullptr;
+  ps_params[0].is_null = nullptr;
+
+  rc = mysql_stmt_bind_param(stmt, ps_params);
+  check_execute(stmt, rc);
+
+  rc = mysql_stmt_execute(stmt);
+  check_execute(stmt, rc);
+
+  // verify result, indicates unnamed param was passed correctly
+  rc = mysql_stmt_store_result(stmt);
+  DIE_UNLESS(rc == 0);
+
+  MYSQL_BIND rbind[1];
+  memset(rbind, 0, sizeof(rbind));
+  int squared_val;
+  rbind[0].buffer_type = MYSQL_TYPE_LONG;
+  rbind[0].buffer = (char *)&squared_val;
+  rc = mysql_stmt_bind_result(stmt, rbind);
+  DIE_UNLESS(rc == 0);
+
+  rc = mysql_stmt_fetch(stmt);
+  DIE_UNLESS(rc == 0);
+  DIE_UNLESS(squared_val == 16);  // 4 squared
+
+  mysql_stmt_close(stmt);
+  printf("Test 1 successfully completed\n");
+
+  //
+  // Test 2:
+  // run prepared statement with bound parameters AND query attributes
+  // (put unnamed parameter last, just for test)
+  //
+
+  rc = mysql_query(mysql,
+                   "SELECT test_component_trace_log('***** TEST - Prepared "
+                   "statement with both bind params and query attrs:')");
+  myquery(rc);
+  result = mysql_use_result(mysql);
+  mytest(result);
+  mysql_free_result(result);
+
+  stmt = mysql_simple_prepare(mysql, "SELECT POW(?,3) AS cubed");
+  check_stmt(stmt);
+
+  // bind parameters already setup, same as before
+  rc = mysql_stmt_bind_param(stmt, ps_params);
+  check_execute(stmt, rc);
+
+  // set query attributes
+  char str_traceon[] = "on";
+  ulong len_traceon = strlen(str_traceon);
+  int int_parentid = 1329494394;
+
+  memset(all_params, 0, sizeof(all_params));
+
+  all_params[0].buffer_type = MYSQL_TYPE_STRING;
+  all_params[0].buffer = (char *)str_traceon;
+  all_params[0].length = &len_traceon;
+  all_params[0].is_null = nullptr;
+
+  all_params[1].buffer_type = MYSQL_TYPE_LONG;
+  all_params[1].buffer = (char *)&int_parentid;
+  all_params[1].length = nullptr;
+  all_params[1].is_null = nullptr;
+
+  all_params[2].buffer_type = MYSQL_TYPE_LONG;
+  all_params[2].buffer = (char *)&int_data;
+  all_params[2].length = nullptr;
+  all_params[2].is_null = nullptr;
+
+  const char *names[3] = {"trace", "traceparent", nullptr};
+  rc = mysql_stmt_bind_named_param(stmt, all_params, std::size(all_params),
+                                   names);
+  DIE_UNLESS(rc == 0);
+
+  rc = mysql_stmt_execute(stmt);
+  check_execute(stmt, rc);
+
+  // verify result, indicates unnamed param was passed correctly
+  rc = mysql_stmt_store_result(stmt);
+  DIE_UNLESS(rc == 0);
+
+  memset(rbind, 0, sizeof(rbind));
+  int cubed_val;
+  rbind[0].buffer_type = MYSQL_TYPE_LONG;
+  rbind[0].buffer = (char *)&cubed_val;
+  rc = mysql_stmt_bind_result(stmt, rbind);
+  DIE_UNLESS(rc == 0);
+
+  rc = mysql_stmt_fetch(stmt);
+  DIE_UNLESS(rc == 0);
+  DIE_UNLESS(cubed_val == 64);  // 4 cubed
+
+  printf("Test 2 successfully completed\n");
+
+  //
+  // Test 3:
+  // test executing (already) prepared statement the 2nd time
+  //
+  rc = mysql_stmt_execute(stmt);
+  check_execute(stmt, rc);
+
+  printf("Test 3 successfully completed\n");
+
+  //
+  // Test 4:
+  // rebind bind parameters again (overwrites query attributes)
+  //
+  rc = mysql_stmt_bind_param(stmt, ps_params);
+  check_execute(stmt, rc);
+
+  rc = mysql_stmt_execute(stmt);
+  check_execute(stmt, rc);
+
+  printf("Test 4 successfully completed\n");
+
+  // Test 5:
+  // rebind all attributes again (should not be duplicated)
+  //
+  rc = mysql_stmt_bind_named_param(stmt, all_params, std::size(all_params),
+                                   names);
+  DIE_UNLESS(rc == 0);
+
+  rc = mysql_stmt_execute(stmt);
+  check_execute(stmt, rc);
+
+  printf("Test 5 successfully completed\n");
+
+  // Test 6:
+  // rebind one less query attribute compared to last time (should report no
+  // issues)
+  //
+  rc = mysql_stmt_bind_named_param(stmt, all_params, std::size(all_params) - 1,
+                                   names);
+  DIE_UNLESS(rc == 0);
+
+  rc = mysql_stmt_execute(stmt);
+  check_execute(stmt, rc);
+
+  printf("Test 6 successfully completed\n");
+
+  // Test 7:
+  // prepared statements with bound parameters and results is executed twice
+  //
+
+  rc = mysql_stmt_bind_named_param(stmt, all_params, std::size(all_params),
+                                   names);
+  DIE_UNLESS(rc == 0);
+
+  memset(rbind, 0, sizeof(rbind));
+  rbind[0].buffer_type = MYSQL_TYPE_LONG;
+  rbind[0].buffer = (char *)&cubed_val;
+
+  rc = mysql_stmt_bind_result(stmt, rbind);
+  DIE_UNLESS(rc == 0);
+
+  for (int i = 0; i < 2; i++) {
+    rc = mysql_stmt_execute(stmt);
+    check_execute(stmt, rc);
+
+    rc = mysql_stmt_store_result(stmt);
+    DIE_UNLESS(rc == 0);
+
+    cubed_val = 0;
+    rc = mysql_stmt_fetch(stmt);
+    DIE_UNLESS(rc == 0);
+    DIE_UNLESS(cubed_val == 64);  // 4 cubed
+  }
+
+  mysql_stmt_close(stmt);
+  printf("Test 7 successfully completed\n");
+}
+
 static void test_wl13128() {
   DBUG_TRACE;
   myheader("test_wl13128");
@@ -23531,6 +23762,174 @@ static void test_bug34869076() {
   DIE_UNLESS(err == true);
 
   mysql_close(lmysql);
+}
+
+static void test_wl15651() {
+  MYSQL *mysql_async = nullptr, *mysql_sync = nullptr;
+  net_async_status status;
+  MYSQL *ret;
+
+  static const char *stage_names[CONNECT_STAGE_COMPLETE + 1] = {
+      "CONNECT_STAGE_INVALID",
+      "CONNECT_STAGE_NOT_STARTED",
+      "CONNECT_STAGE_NET_BEGIN_CONNECT",
+      "CONNECT_STAGE_NET_WAIT_CONNECT",
+      "CONNECT_STAGE_NET_COMPLETE_CONNECT",
+      "CONNECT_STAGE_READ_GREETING",
+      "CONNECT_STAGE_PARSE_HANDSHAKE",
+      "CONNECT_STAGE_ESTABLISH_SSL",
+      "CONNECT_STAGE_AUTHENTICATE",
+      "CONNECT_STAGE_AUTH_BEGIN",
+      "CONNECT_STAGE_AUTH_RUN_FIRST_AUTHENTICATE_USER",
+      "CONNECT_STAGE_AUTH_HANDLE_FIRST_AUTHENTICATE_USER",
+      "CONNECT_STAGE_AUTH_READ_CHANGE_USER_RESULT",
+      "CONNECT_STAGE_AUTH_HANDLE_CHANGE_USER_REQUEST",
+      "CONNECT_STAGE_AUTH_RUN_SECOND_AUTHENTICATE_USER",
+      "CONNECT_STAGE_AUTH_INIT_MULTI_AUTH",
+      "CONNECT_STAGE_AUTH_FINISH_AUTH",
+      "CONNECT_STAGE_AUTH_HANDLE_SECOND_AUTHENTICATE_USER",
+      "CONNECT_STAGE_AUTH_DO_MULTI_PLUGIN_AUTH",
+      "CONNECT_STAGE_AUTH_HANDLE_MULTI_AUTH_RESPONSE",
+      "CONNECT_STAGE_PREP_SELECT_DATABASE",
+      "CONNECT_STAGE_PREP_INIT_COMMANDS",
+      "CONNECT_STAGE_SEND_ONE_INIT_COMMAND",
+      "CONNECT_STAGE_COMPLETE"};
+
+  myheader("test_wl15651");
+
+  enum connect_stage cs = mysql_get_connect_nonblocking_stage(mysql_async);
+  DIE_UNLESS(cs == CONNECT_STAGE_INVALID);
+
+  /* test stages for a nonblocking conneciton */
+  mysql_async = mysql_client_init(nullptr);
+  DIE_UNLESS(mysql_async != nullptr);
+
+  cs = mysql_get_connect_nonblocking_stage(mysql_async);
+  DIE_UNLESS(cs == CONNECT_STAGE_NOT_STARTED);
+
+  enum connect_stage cs_prev = cs;
+  do {
+    status = mysql_real_connect_nonblocking(
+        mysql_async, opt_host, opt_user, opt_password, current_db, opt_port,
+        opt_unix_socket, CLIENT_MULTI_STATEMENTS);
+    cs = mysql_get_connect_nonblocking_stage(mysql_async);
+    if (cs != cs_prev) {
+      if (!opt_silent)
+        fprintf(stdout,
+                "\n Nonblocking connect made transition from stage %s(%d) to "
+                "%s(%d)",
+                stage_names[cs_prev], cs_prev, stage_names[cs], cs);
+      cs_prev = cs;
+    }
+  } while (status == NET_ASYNC_NOT_READY);
+  DIE_UNLESS(status != NET_ASYNC_ERROR);
+
+  cs = mysql_get_connect_nonblocking_stage(mysql_async);
+  DIE_UNLESS(cs == CONNECT_STAGE_COMPLETE);
+
+  if (!opt_silent)
+    fprintf(stdout, "\n Nonblocking connect successful. Final stage %s(%d)",
+            stage_names[cs], cs);
+
+  mysql_close(mysql_async);
+
+  /* test stages for a blocking conneciton */
+  mysql_sync = mysql_client_init(nullptr);
+  DIE_UNLESS(mysql_sync != nullptr);
+
+  cs = mysql_get_connect_nonblocking_stage(mysql_sync);
+  DIE_UNLESS(cs == CONNECT_STAGE_NOT_STARTED);
+
+  if (!opt_silent)
+    fprintf(stdout, "\n Starting blocking connect. Starting stage %s(%d)",
+            stage_names[cs], cs);
+
+  ret = mysql_real_connect(mysql_sync, opt_host, opt_user, opt_password,
+                           current_db, opt_port, opt_unix_socket, 0);
+  DIE_UNLESS(ret == mysql_sync);
+
+  cs = mysql_get_connect_nonblocking_stage(mysql_sync);
+  DIE_UNLESS(cs == CONNECT_STAGE_COMPLETE);
+
+  if (!opt_silent)
+    fprintf(stdout, "\n Blocking connect successful. Final stage %s(%d)",
+            stage_names[cs], cs);
+
+  mysql_close(mysql_sync);
+}
+
+static void test_wl14839() {
+  myheader("test_wl14839");
+  int rc;
+
+  MYSQL *lmysql = mysql_client_init(nullptr);
+  DIE_UNLESS(lmysql);
+
+  printf("set gizmo as a SNI name.\n");
+  rc = mysql_options(lmysql, MYSQL_OPT_TLS_SNI_SERVERNAME, "gizmo");
+  myquery2(lmysql, rc);
+
+  printf("connect.\n");
+  if (!mysql_real_connect(lmysql, opt_host, opt_user, opt_password, current_db,
+                          opt_port, opt_unix_socket, 0)) {
+    fprintf(stderr, "Failed to connect to the database\n");
+    DIE_UNLESS(0);
+  }
+
+  printf("get the status Tls_sni_server_name var.\n");
+  rc = mysql_query(lmysql, "SHOW SESSION STATUS LIKE 'Tls_sni_server_name'");
+  myquery2(lmysql, rc);
+
+  MYSQL_RES *result = mysql_store_result(lmysql);
+  mytest2(lmysql, result);
+
+  MYSQL_ROW row;
+  if (!(row = mysql_fetch_row(result)) || !row[1]) {
+    fprintf(stdout, "\n *** ERROR: FAILED TO GET THE RESULT ***");
+    DIE_UNLESS(false);
+  }
+  printf("check the status Tls_sni_server_name var's value.\n");
+  if (strcmp(row[1], "gizmo")) {
+    fprintf(stdout, "\n obtained: `%s` (expected: `gizmo`)", row[1]);
+    DIE_UNLESS(false);
+  }
+  printf("Done\n");
+  mysql_free_result(result);
+
+  mysql_close(lmysql);
+}
+
+static void test_wl15633(void) {
+  myheader("test_wl15633");
+  MYSQL *mysql_local;
+  net_async_status status;
+
+  fprintf(stdout, "\n Establishing a test connection ...");
+  if (!(mysql_local = mysql_client_init(nullptr))) {
+    myerror("mysql_client_init() failed");
+    exit(1);
+  }
+
+  if (!(mysql_real_connect(mysql_local, opt_host, opt_user, opt_password,
+                           current_db, opt_port, opt_unix_socket, 0))) {
+    myerror("connection failed");
+    exit(1);
+  }
+
+  do {
+    status = mysql_reset_connection_nonblocking(mysql_local);
+  } while (status == NET_ASYNC_NOT_READY);
+
+  if (status == NET_ASYNC_ERROR) {
+    fprintf(stdout, "\n connection reset failed(%s)", mysql_error(mysql_local));
+    exit(1);
+  }
+
+  if (status == NET_ASYNC_COMPLETE) {
+    fprintf(stdout, "\n connection reset done in nonblocking way");
+  }
+
+  mysql_close(mysql_local);
 }
 
 static struct my_tests_st my_tests[] = {
@@ -23851,6 +24250,11 @@ static struct my_tests_st my_tests[] = {
     {"test_bug25584097", test_bug25584097},
     {"test_34556764", test_34556764},
     {"test_bug34869076", test_bug34869076},
+    {"test_wl15651", test_wl15651},
+    {"test_wl14839", test_wl14839},
+    {"test_wl15633", test_wl15633},
+    {"test_server_telemetry_traces_prepared",
+     test_server_telemetry_traces_prepared},
     {nullptr, nullptr}};
 
 static struct my_tests_st *get_my_tests() { return my_tests; }

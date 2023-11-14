@@ -29,6 +29,7 @@
 #include <cstring>
 #include <optional>
 #include <time.h>
+#include "openssl/ssl.h"
 
 #include "ConfigInfo.hpp"
 #include <mgmapi_config_parameters.h>
@@ -38,8 +39,9 @@
 #include <Bitmask.hpp>
 #include <ndb_opts.h>
 #include <ndb_version.h>
+#include "portlib/ndb_localtime.h"
+#include "portlib/ndb_openssl_version.h"
 #include "portlib/ndb_sockaddr.h"
-#include <portlib/ndb_localtime.h>
 #include <NdbTCP.h>
 
 #define KEY_INTERNAL 0
@@ -49,6 +51,9 @@
 
 #define _STR_VALUE(x) #x
 #define STR_VALUE(x) _STR_VALUE(x)
+
+static constexpr bool openssl_version_ok =
+  (OPENSSL_VERSION_NUMBER >= NDB_TLS_MINIMUM_OPENSSL);
 
 /****************************************************************************
  * Section names
@@ -453,7 +458,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     DB_TOKEN,
     "Name of computer for this node",
     ConfigInfo::CI_USED,
-    false,
+    CI_RESTART_SYSTEM,
     ConfigInfo::CI_STRING,
     "localhost",
     nullptr, nullptr },
@@ -514,12 +519,24 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     STR_VALUE(MAX_DATA_NODE_ID) },
 
   {
+    CFG_NODE_REQUIRE_CERT,
+    "RequireCertificate",
+    DB_TOKEN,
+    "Require valid TLS key and certificate at startup time",
+    ConfigInfo::CI_USED,
+    false,
+    ConfigInfo::CI_BOOL,
+    "false",
+    "false",
+    "true" },
+
+  {
     CFG_DB_SERVER_PORT,
     "ServerPort",
     DB_TOKEN,
     "Port used to setup transporter for incoming connections from API nodes",
     ConfigInfo::CI_USED,
-    false,
+    CI_RESTART_SYSTEM,
     ConfigInfo::CI_INT,
     nullptr,
     "1",
@@ -640,7 +657,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     DB_TOKEN,
     "HostName",
     ConfigInfo::CI_DEPRECATED,
-    false,
+    CI_RESTART_SYSTEM,
     ConfigInfo::CI_STRING,
     nullptr,
     nullptr, nullptr },
@@ -700,7 +717,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     DB_TOKEN,
     "Use shared memory transporter on same host",
     ConfigInfo::CI_USED,
-    0,
+    CI_RESTART_SYSTEM,
     ConfigInfo::CI_BOOL,
     "false",
     "false",
@@ -1994,7 +2011,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     DB_TOKEN,
     "Write compressed LCPs using zlib",
     ConfigInfo::CI_USED,
-    CI_RESTART_INITIAL,
+    false,
     ConfigInfo::CI_BOOL,
     "false",
     "false",
@@ -2024,6 +2041,19 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     "0",
     "0",
     "1"},
+
+  {
+    CFG_DB_REQUIRE_TLS,
+    "RequireTls",
+    DB_TOKEN,
+    "Require TLS-authenticated secure connections",
+    ConfigInfo::CI_USED,
+    0,
+    ConfigInfo::CI_BOOL,
+    "false",
+    "false",
+    "true"
+  },
 
   {
     CFG_EXTRA_SEND_BUFFER_MEMORY,
@@ -3507,6 +3537,32 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     STR_VALUE(MAX_INT_RNIL)
   },
 
+ {
+    CFG_NODE_REQUIRE_CERT,
+    "RequireCertificate",
+    MGM_TOKEN,
+    "Require valid TLS key and certificate at startup time",
+    ConfigInfo::CI_USED,
+    false,
+    ConfigInfo::CI_BOOL,
+    "false",
+    "false",
+    "true"
+ },
+
+  {
+    CFG_MGM_REQUIRE_TLS,
+    "RequireTls",
+    MGM_TOKEN,
+    "Require TLS-authenticated secure connections",
+    ConfigInfo::CI_USED,
+    0,
+    ConfigInfo::CI_BOOL,
+    "false",
+    "false",
+    "true"
+  },
+
   /****************************************************************************
    * TCP
    ***************************************************************************/
@@ -3662,6 +3718,19 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     "0",
     "0",
     "2000"
+  },
+
+  {
+    CFG_TCP_REQUIRE_TLS,
+    "RequireLinkTls",
+    "TCP",
+    "Use TLS-authenticated secure connections for TCP transporter links",
+    ConfigInfo::CI_INTERNAL,
+    0,
+    ConfigInfo::CI_BOOL,
+    "false",
+    "false",
+    "true"
   },
 
   {
@@ -6481,6 +6550,8 @@ add_a_connection(Vector<ConfigInfo::ConfigRuleSection>&sections,
   Uint32 wan = 0;
   Uint32 location_domain1 = 0;
   Uint32 location_domain2 = 0;
+  Uint32 reqTls1 = 0;
+  Uint32 reqTls2 = 0;
   require(ctx.m_config->get("Node", nodeId1, &tmp));
   tmp->get("HostName", &hostname1);
   tmp->get("LocationDomainId", &location_domain1);
@@ -6495,6 +6566,11 @@ add_a_connection(Vector<ConfigInfo::ConfigRuleSection>&sections,
     {
       return ret == 0 ? true : false;
     }
+  }
+
+  if(openssl_version_ok)
+  {
+    tmp->get("RequireTls", &reqTls1);
   }
 
   require(ctx.m_config->get("Node", nodeId2, &tmp));
@@ -6523,7 +6599,12 @@ add_a_connection(Vector<ConfigInfo::ConfigRuleSection>&sections,
       return ret == 0 ? true : false;
     }
   }
-  
+
+  if(openssl_version_ok)
+  {
+    tmp->get("RequireTls", &reqTls2);
+  }
+
   char buf[16];
   s.m_sectionData= new Properties(true);
   BaseString::snprintf(buf, sizeof(buf), "%u", nodeId1);
@@ -6550,6 +6631,8 @@ add_a_connection(Vector<ConfigInfo::ConfigRuleSection>&sections,
       s.m_sectionData->put("TCP_SND_BUF_SIZE", 4194304);
       s.m_sectionData->put("TCP_MAXSEG_SIZE", 61440);
     }
+
+    s.m_sectionData->put("RequireLinkTls", reqTls1 | reqTls2);
   }
   
   sections.push_back(s);

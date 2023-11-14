@@ -359,8 +359,9 @@ class SharedServer {
   stdx::expected<MysqlClient, MysqlError> admin_cli() {
     MysqlClient cli;
 
-    cli.username(admin_user_);
-    cli.password(admin_password_);
+    auto account = SharedServer::admin_account();
+    cli.username(account.username);
+    cli.password(account.password);
 
     auto connect_res = cli.connect(server_host(), server_port());
     if (!connect_res) return connect_res.get_unexpected();
@@ -371,8 +372,10 @@ class SharedServer {
   stdx::expected<std::unique_ptr<xcl::XSession>, xcl::XError> admin_xcli() {
     auto sess = xcl::create_session();
 
-    auto xerr = sess->connect(server_host().c_str(), server_mysqlx_port(),
-                              admin_user_.c_str(), admin_password_.c_str(), "");
+    auto account = SharedServer::admin_account();
+    auto xerr =
+        sess->connect(server_host().c_str(), server_mysqlx_port(),
+                      account.username.c_str(), account.password.c_str(), "");
 
     if (xerr.error() != 0) return stdx::make_unexpected(xerr);
 
@@ -518,32 +521,36 @@ class SharedServer {
   }
   [[nodiscard]] std::string server_host() const { return server_host_; }
 
-  [[nodiscard]] Account caching_sha2_password_account() const {
+  [[nodiscard]] static Account caching_sha2_password_account() {
     return {"caching_sha2", "somepass", "caching_sha2_password"};
   }
 
-  [[nodiscard]] Account caching_sha2_empty_password_account() const {
+  [[nodiscard]] static Account caching_sha2_empty_password_account() {
     return {"caching_sha2_empty", "", "caching_sha2_password"};
   }
 
-  [[nodiscard]] Account caching_sha2_single_use_password_account() const {
+  [[nodiscard]] static Account caching_sha2_single_use_password_account() {
     return {"caching_sha2_single_use", "notusedyet", "caching_sha2_password"};
   }
 
-  [[nodiscard]] Account native_password_account() const {
+  [[nodiscard]] static Account native_password_account() {
     return {"native", "somepass", "mysql_native_password"};
   }
 
-  [[nodiscard]] Account native_empty_password_account() const {
+  [[nodiscard]] static Account native_empty_password_account() {
     return {"native_empty", "", "mysql_native_password"};
   }
 
-  [[nodiscard]] Account sha256_password_account() const {
+  [[nodiscard]] static Account sha256_password_account() {
     return {"sha256_pass", "sha256pass", "sha256_password"};
   }
 
-  [[nodiscard]] Account sha256_empty_password_account() const {
+  [[nodiscard]] static Account sha256_empty_password_account() {
     return {"sha256_empty", "", "sha256_password"};
+  }
+
+  [[nodiscard]] static Account admin_account() {
+    return {"root", "", "caching_sha2_password"};
   }
 
  private:
@@ -557,9 +564,6 @@ class SharedServer {
   uint16_t server_mysqlx_port_{port_pool_.get_next_available()};
 
   bool mysqld_failed_to_start_{false};
-
-  const std::string admin_user_{"root"};
-  const std::string admin_password_{""};
 };
 
 class SharedRouter {
@@ -599,6 +603,7 @@ class SharedRouter {
                         SSL_TEST_DATA_DIR "/server-key-sha512.pem"},
                        {"client_ssl_cert",
                         SSL_TEST_DATA_DIR "/server-cert-sha512.pem"},
+                       {"connect_retry_timeout", "0"},
                    })
           .section("routing:x_" + param.testname,
                    {
@@ -795,6 +800,47 @@ TEST_P(ReuseConnectionTest, classic_protocol_ping) {
   ASSERT_NO_ERROR(connect_res);
 
   EXPECT_NO_ERROR(cli.ping());
+}
+
+// COM_DEBUG -> mysql_dump_debug_info.
+TEST_P(ReuseConnectionTest, classic_protocol_debug_succeeds) {
+  SCOPED_TRACE("// connecting to server");
+  MysqlClient cli;
+
+  auto account = SharedServer::admin_account();
+  cli.username(account.username);
+  cli.password(account.password);
+
+  ASSERT_NO_ERROR(
+      cli.connect(shared_router_->host(), shared_router_->port(GetParam())));
+
+  EXPECT_NO_ERROR(cli.dump_debug_info());
+
+  EXPECT_NO_ERROR(cli.dump_debug_info());
+}
+
+// COM_DEBUG -> mysql_dump_debug_info.
+TEST_P(ReuseConnectionTest, classic_protocol_debug_fails) {
+  SCOPED_TRACE("// connecting to server");
+  MysqlClient cli;
+
+  auto account = SharedServer::native_empty_password_account();
+  cli.username(account.username);
+  cli.password(account.password);
+
+  ASSERT_NO_ERROR(
+      cli.connect(shared_router_->host(), shared_router_->port(GetParam())));
+  {
+    auto res = cli.dump_debug_info();
+    ASSERT_ERROR(res);
+    EXPECT_EQ(res.error().value(), 1227);  // access denied, you need SUPER
+  }
+
+  {
+    auto res = cli.dump_debug_info();
+    ASSERT_ERROR(res);
+    EXPECT_EQ(res.error().value(), 1227);  // access denied, you need SUPER
+  }
 }
 
 TEST_P(ReuseConnectionTest, classic_protocol_kill) {
@@ -1466,30 +1512,30 @@ TEST_P(ReuseConnectionTest, classic_protocol_prepare_append_data_execute) {
   // longdata: c_string with len
   {
     auto append_res = stmt.append_param_data(0, "a", 1);
-    EXPECT_NO_ERROR(append_res) << append_res.error();
+    ASSERT_NO_ERROR(append_res);
   }
 
   // longdata: string_view
   {
     auto append_res = stmt.append_param_data(0, "b"sv);
-    EXPECT_NO_ERROR(append_res) << append_res.error();
+    ASSERT_NO_ERROR(append_res);
   }
 
   // longdata: string_view from std::string
   {
     auto append_res = stmt.append_param_data(0, std::string("c"));
-    EXPECT_NO_ERROR(append_res) << append_res.error();
+    ASSERT_NO_ERROR(append_res);
   }
 
   // longdata: string_view from c-string
   {
     auto append_res = stmt.append_param_data(0, "d");
-    EXPECT_NO_ERROR(append_res) << append_res.error();
+    ASSERT_NO_ERROR(append_res);
   }
 
   {
     auto exec_res = stmt.execute();
-    EXPECT_NO_ERROR(exec_res) << exec_res.error();
+    ASSERT_NO_ERROR(exec_res) << exec_res.error();
 
     // may contain multi-resultset
     size_t results{0};
@@ -1522,7 +1568,7 @@ TEST_P(ReuseConnectionTest, classic_protocol_prepare_append_data_execute) {
   // execute again
   {
     auto exec_res = stmt.execute();
-    EXPECT_NO_ERROR(exec_res) << exec_res.error();
+    ASSERT_NO_ERROR(exec_res);
   }
 }
 

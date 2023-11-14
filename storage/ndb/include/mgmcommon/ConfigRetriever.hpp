@@ -29,6 +29,7 @@
 #include <ndb_types.h>
 #include <mgmapi.h>
 #include "mgmcommon/NdbMgm.hpp"
+#include "util/TlsKeyManager.hpp"
 #include <BaseString.hpp>
 
 /**
@@ -42,6 +43,9 @@ public:
 		  const char * _bind_address = nullptr,
                   int timeout_ms = 30000);
   ~ConfigRetriever();
+
+  /* Initialize a built-in TlsKeyManager to use for MGM TLS. */
+  void init_mgm_tls(const char * tls_search_path, Node::Type, int req_level);
 
   int do_connect(int no_retries, int retry_delay_in_seconds, int verbose);
   int disconnect();
@@ -99,7 +103,9 @@ public:
   void end_session(bool end) { m_end_session= end; }
 
   Uint32 get_configuration_nodeid() const;
+  ssl_ctx_st * ssl_ctx() const { return m_tlsKeyManager.ctx(); }
 private:
+  TlsKeyManager m_tlsKeyManager;
   BaseString errorString;
   enum ErrorType {
     CR_NO_ERROR = 0,
@@ -116,6 +122,7 @@ private:
   NdbMgmHandle m_handle;
   bool check_duplicate_hostname_port(const struct ndb_mgm_configuration *conf,
                                      char *buf);
+  int m_tls_req_level{0};
 };
 
 #endif
