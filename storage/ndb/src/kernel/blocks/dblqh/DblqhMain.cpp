@@ -6193,7 +6193,7 @@ void Dblqh::execTUPKEYCONF(Signal* signal)
   switch (regTcPtr.p->transactionState) {
   case TcConnectionrec::SCAN_TUPKEY:
   {
-    jamDebug();
+    jamDebug(); // ZHAO 52
     scanTupkeyConfLab(signal, regTcPtr.p);
     return;
   }
@@ -8271,7 +8271,7 @@ got_lock:
   fragPtrP->m_concurrent_scan_count++;
   DEB_FRAGMENT_LOCK(fragPtrP);
   NdbMutex_Unlock(&fragPtrP->frag_mutex);
-  jam();
+  jam(); // ZHAO 12
   m_fragment_lock_status = FRAGMENT_LOCKED_IN_SCAN_MODE;
   m_scan_frag_access_spintime += elapsed;
   m_scan_frag_access_spinloops += spin_loops;
@@ -17117,7 +17117,7 @@ void Dblqh::exec_next_scan_conf(Signal *signal)
    * The scan block sent an immediate signal requiring no
    * real-time break.
    */
-  jamDebug();
+  jamDebug(); // ZHAO 36
   NextScanConf * const nextScanConf = (NextScanConf *)&signal->theData[0];
   ScanRecord * const scanPtr = scanptr.p;
   const Uint32 pageNo = nextScanConf->localKey[0];
@@ -17132,7 +17132,7 @@ void Dblqh::exec_next_scan_conf(Signal *signal)
   scanPtr->m_row_id.m_page_no = pageNo;
   continue_next_scan_conf(signal,
                           scanPtr->scanState,
-                          scanPtr);
+                          scanPtr); // ZHAO 37
 }
 
 void Dblqh::continue_next_scan_conf(Signal *signal,
@@ -17152,13 +17152,13 @@ void Dblqh::continue_next_scan_conf(Signal *signal,
   switch (scanState) {
   case ScanRecord::WAIT_NEXT_SCAN:
   {
-    jamDebug();
+    jamDebug(); // ZHAO 37
     NextScanConf * const nextScanConf = (NextScanConf *)&signal->theData[0];
     nextScanConfScanLab(signal,
                         scanPtr,
                         nextScanConf->fragId,
                         nextScanConf->accOperationPtr,
-                        m_tc_connect_ptr);
+                        m_tc_connect_ptr); // ZHAO 38
     return;
   }
   case ScanRecord::WAIT_NEXT_SCAN_COPY:
@@ -18163,7 +18163,7 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
     jam();
     return;
   }
-  jamEntryDebug();
+  jamEntryDebug(); // ZHAO 1
 
   if (ERROR_INSERTED(5097))
   {
@@ -18244,7 +18244,7 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
 #ifdef CONNECT_DEBUG
     ctcNumUseLocal++;
 #endif
-    jamEntry();
+    jamEntry(); // ZHAO 2
   }
   else
   {
@@ -18384,7 +18384,7 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
     }
 
     {
-      jamDebug();
+      jamDebug(); // ZHAO 3
       regTcPtr->attrInfoIVal= attrInfoPtr.i;
       if (keyLen > 0)
       {
@@ -18409,7 +18409,7 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
       if (!ScanFragReq::getLcpScanFlag(reqinfo) &&
           !m_is_query_block)
       {
-        jamDebug();
+        jamDebug(); // ZHAO 4
         Fragrecord::UsageStat& useStat = fragptr.p->m_useStat;
         useStat.m_scanFragReqCount++;
         useStat.m_scanBoundWords+= keyLen;
@@ -18431,7 +18431,7 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
       regTcPtr->m_corrFactorHi = corrFactorHi;
     }
     jamLineDebug((Uint16)aiLen);
-    errorCode = initScanrec(scanFragReq, aiLen, tcConnectptr);
+    errorCode = initScanrec(scanFragReq, aiLen, tcConnectptr); // ZHAO 5
     if (unlikely(errorCode != ZOK))
     {
       jam();
@@ -18443,7 +18443,7 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
     Uint32 mutexIndex = hashIndex & (NUM_TRANSACTION_HASH_MUTEXES - 1);
     regTcPtr->prevHashRec = RNIL;
     regTcPtr->hashIndex = hashIndex;
-    jamDebug();
+    jamDebug(); // ZHAO 10
     jamLineDebug(Uint16(hashIndex));
     jamLineDebug(Uint16(m_curr_lqh->instance()));
     NdbMutex_Lock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
@@ -18471,7 +18471,7 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
     }//if
     regTcPtr->nextHashRec = nextHashptr.i;
     NdbMutex_Unlock(&m_curr_lqh->transaction_hash_mutex[mutexIndex]);
-    continueAfterReceivingAllAiLab(signal, tcConnectptr);
+    continueAfterReceivingAllAiLab(signal, tcConnectptr); // ZHAO 11
     jamDebug();
     release_frag_access(prim_tab_fragptr.p);
     return;
@@ -18572,7 +18572,7 @@ void Dblqh::continueAfterReceivingAllAiLab(
   SimulatedBlock *block = scanPtr->scanBlock;
   req->requestInfo = requestInfo;
 
-  acquire_frag_scan_access(prim_tab_fragptr.p, regTcPtr);
+  acquire_frag_scan_access(prim_tab_fragptr.p, regTcPtr); // ZHAO 11
 
   const Uint32 senderData = scanptr.i;
   const Uint32 senderRef = cownref;
@@ -18591,12 +18591,12 @@ void Dblqh::continueAfterReceivingAllAiLab(
   req->transId2 = transId2;
   req->savePointId = savePointId;
 
-  block->EXECUTE_DIRECT_FN(f, signal);
+  block->EXECUTE_DIRECT_FN(f, signal); // ZHAO 12
   if (likely(signal->theData[8] == 0))
   {
     /* ACC_SCANCONF */
-    jamEntryDebug();
-    accScanConfScanLab(signal, tcConnectptr);
+    jamEntryDebug(); // ZHAO 15
+    accScanConfScanLab(signal, tcConnectptr); // ZHAO 16
   }
   else
   {
@@ -18666,7 +18666,7 @@ void Dblqh::accScanConfScanLab(Signal* signal,
   if (scanPtr->scanStoredProcId == RNIL)
   {
     TcConnectionrec * const regTcPtr = tcConnectptr.p;
-    jamDebug();
+    jamDebug(); // ZHAO 16
     /* Send AttrInfo to TUP to store as 'stored procedure'
      * and get storedProcId back for future reference
      */
@@ -18689,15 +18689,15 @@ void Dblqh::accScanConfScanLab(Signal* signal,
      */
     regTcPtr->attrInfoIVal= RNIL;
 
-    c_tup->execSTORED_PROCREQ(signal);
+    c_tup->execSTORED_PROCREQ(signal); // ZHAO 17
     if (likely(signal->theData[0] == 0))
     {
       /* STORED_PROCCONF */
-      jamEntryDebug();
+      jamEntryDebug(); // ZHAO 19
       Uint32 storedProcId = signal->theData[1];
       scanPtr->scanStoredProcId = storedProcId;
-      c_tup->copyAttrinfo(storedProcId, bool(regTcPtr->opExec));
-      storedProcConfScanLab(signal, tcConnectptr);
+      c_tup->copyAttrinfo(storedProcId, bool(regTcPtr->opExec)); // ZHAO 20
+      storedProcConfScanLab(signal, tcConnectptr); // ZHAO 21
       return;
     }
     else
@@ -18802,7 +18802,7 @@ void Dblqh::storedProcConfScanLab(Signal* signal,
                              block,
                              f,
                              scanPtr,
-                             tcConnectptr.p->clientConnectrec);
+                             tcConnectptr.p->clientConnectrec); // ZHAO 21
       return;
     }
     ndbassert(in_send_next_scan == 1);
@@ -19127,7 +19127,7 @@ void Dblqh::nextScanConfScanLab(Signal* signal,
   TcConnectionrec * const regTcPtr = tcConnectptr.p;
   if (likely(fragId != RNIL && accOpPtr != RNIL))
   {
-    jamDebug();
+    jamDebug(); // ZHAO 38
     check_send_scan_hb_rep(signal, scanPtr, tcConnectptr.p);
     scanPtr->scan_check_lcp_stop = 0;
     set_acc_ptr_in_scan_record(scanPtr,
@@ -19222,8 +19222,8 @@ void Dblqh::nextScanConfScanLab(Signal* signal,
     regTcPtr->transactionState = TcConnectionrec::SCAN_TUPKEY;
     if (likely(!disk_table))
     {
-      jamDebug();
-      next_scanconf_tupkeyreq(signal, scanPtr, regTcPtr, fragPtrP);
+      jamDebug(); // ZHAO 39
+      next_scanconf_tupkeyreq(signal, scanPtr, regTcPtr, fragPtrP); // ZHAO 40
       return;
     }
     else
@@ -19309,7 +19309,7 @@ Dblqh::next_scanconf_tupkeyreq(Signal* signal,
 			       TcConnectionrec * regTcPtr,
 			       Fragrecord * fragPtrP)
 {
-  jamDebug();
+  jamDebug(); // ZHAO 40
   /* No AttrInfo sent to TUP, it uses a stored procedure */
   TupKeyReq * const tupKeyReq = (TupKeyReq *)signal->getDataPtrSend(); 
   {
@@ -19324,9 +19324,9 @@ Dblqh::next_scanconf_tupkeyreq(Signal* signal,
     tupKeyReq->keyRef1 = keyRef1;
     tupKeyReq->keyRef2 = keyRef2;
   }
-  if (c_tup->execTUPKEYREQ(signal, regTcPtr, scanPtr))
+  if (c_tup->execTUPKEYREQ(signal, regTcPtr, scanPtr)) // ZHAO 41
   {
-    execTUPKEYCONF(signal);
+    execTUPKEYCONF(signal); // ZHAO 52
     return;
   }
   else
@@ -19642,7 +19642,7 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
   }
   else
   {
-    jamDebug();
+    jamDebug(); // ZHAO 53
     scanPtr->scanFlag = NextScanReq::ZSCAN_NEXT_COMMIT;
     Uint32 accOpPtr= get_acc_ptr_from_scan_record(scanPtr,
 					   scanPtr->m_curr_batch_size_rows-1,
@@ -20070,7 +20070,7 @@ Uint32 Dblqh::initScanrec(const ScanFragReq* scanFragReq,
   const Uint32 max_rows = scanFragReq->batch_size_rows;
   const Uint32 max_bytes = scanFragReq->batch_size_bytes;
 
-  jamDebug();
+  jamDebug(); // ZHAO 5
   scanPtr->lcpScan = lcpScan;
   scanPtr->statScan = statScan;
   scanPtr->scanTcWaiting = scanTcWaiting;
@@ -20112,7 +20112,7 @@ Uint32 Dblqh::initScanrec(const ScanFragReq* scanFragReq,
   ndbrequire(c_fragment_pool.getPtr(tFragPtr));
   scanPtr->fragPtrI = fragptr.p->tableFragptr;
   prim_tab_fragptr = tFragPtr;
-  c_tup->prepare_tab_pointers(prim_tab_fragptr.p->tupFragptr);
+  c_tup->prepare_tab_pointers(prim_tab_fragptr.p->tupFragptr); // ZHAO 6
   c_acc->prepare_tab_pointers(prim_tab_fragptr.p->accFragptr);
   
   /**
@@ -20141,13 +20141,13 @@ Uint32 Dblqh::initScanrec(const ScanFragReq* scanFragReq,
   }
   else
   {
-    jam();
+    jam(); // ZHAO 7
     ndbassert(tupScan);
     start = max_parallel_scans_per_frag;
     stop = start + max_parallel_scans_per_frag;
     if (stop > FirstNR_ScanNo)
     {
-      jam();
+      jam(); // ZHAO 8
       stop = FirstNR_ScanNo;
     }
   }
@@ -20187,7 +20187,7 @@ Uint32 Dblqh::initScanrec(const ScanFragReq* scanFragReq,
   {
     if (!scanPtr->scanKeyinfoFlag)
     {
-      jam();
+      jam(); // ZHAO 9
       fragptr.p->m_activeScans++;
       /**
        * Range scans and TUP scans need no scanNumber except if it is
@@ -20884,7 +20884,7 @@ void Dblqh::send_next_NEXT_SCANREQ(Signal* signal,
         return;
       }
     }
-    jamDebug();
+    jamDebug(); // ZHAO 21
     m_scan_direct_count = scan_direct_count + 1;
     m_in_send_next_scan = 1;
     /**
@@ -20894,8 +20894,8 @@ void Dblqh::send_next_NEXT_SCANREQ(Signal* signal,
      */
     scanPtr->scan_lastSeen = __LINE__;
     signal->m_extra_signals++;
-    jamDebug();
-    block->EXECUTE_DIRECT_FN(f, signal);
+    jamDebug(); // ZHAO 22
+    block->EXECUTE_DIRECT_FN(f, signal); // ZHAO 23
     if (m_in_send_next_scan == 1)
     {
       /**
@@ -20905,7 +20905,7 @@ void Dblqh::send_next_NEXT_SCANREQ(Signal* signal,
       m_in_send_next_scan = 0;
       return;
     }
-    jamDebug();
+    jamDebug(); // ZHAO 55 first end
     ndbassert(m_in_send_next_scan == 2);
     m_in_send_next_scan = 0;
   } while (1);

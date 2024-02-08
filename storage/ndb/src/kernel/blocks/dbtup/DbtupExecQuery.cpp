@@ -167,7 +167,7 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
 
   if (interpretedFlag)
   {
-    jam();
+    jam(); // ZHAO 20
 
     // Read sectionPtr's
     reader.getWords(&cinBuffer[0], 5);
@@ -523,7 +523,7 @@ Dbtup::setup_read(KeyReqStruct *req_struct,
   }
   if (likely(currOpPtr.i == RNIL))
   {
-    jamDebug();
+    jamDebug(); // ZHAO 44
     if (regTabPtr->need_expand(disk))
     {
       jamDebug();
@@ -1075,7 +1075,7 @@ void Dbtup::prepare_scanTUPKEYREQ(Uint32 page_id, Uint32 page_idx)
     Uint32 *tuple_ptr = get_ptr(&pagePtr,
         &key,
         prepare_tabptr.p);
-    jamDebug();
+    jamDebug(); // ZHAO 35
     prepare_pageptr = pagePtr;
     prepare_page_idx = page_idx;
     prepare_tuple_ptr = tuple_ptr;
@@ -1129,7 +1129,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
   Ptr<Operationrec> operPtr = prepare_oper_ptr;
   KeyReqStruct req_struct(this);
 
-  jamEntryDebug();
+  jamEntryDebug(); // ZHAO 41
   jamLineDebug(Uint16(prepare_oper_ptr.i));
   req_struct.m_lqh = c_lqh;
 
@@ -1423,7 +1423,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
    */
   if (likely(Roptype == ZREAD))
   {
-    jamDebug();
+    jamDebug(); // ZHAO 42
     regOperPtr->op_struct.bit_field.m_tuple_existed_at_start = 0;
     ndbassert(!Local_key::isInvalid(pageid, pageidx));
 
@@ -1442,7 +1442,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
       /**
        * Get pointer to tuple
        */
-      jamDebug();
+      jamDebug(); // ZHAO 43
       regOperPtr->m_tuple_location.m_page_no = loc_prepare_page_id;
       setup_fixed_tuple_ref_opt(&req_struct);
       setup_fixed_part(&req_struct, regOperPtr, regTabPtr);
@@ -1465,7 +1465,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
         return false;
       }
       if (unlikely(setup_read(&req_struct, regOperPtr, regTabPtr, 
-              disk_page != RNIL) == false))
+              disk_page != RNIL) == false)) // ZHAO 44
       {
         jam();
         tupkeyErrorLab(&req_struct);
@@ -1484,7 +1484,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
       }
       release_frag_mutex_read(regFragPtr, pageid, jamBuffer());
     }
-    if (handleReadReq(signal, regOperPtr, regTabPtr, &req_struct) != -1)
+    if (handleReadReq(signal, regOperPtr, regTabPtr, &req_struct) != -1) // ZHAO 45
     {
       req_struct.log_size= 0;
       /* ---------------------------------------------------------------- */
@@ -2063,7 +2063,7 @@ int Dbtup::handleReadReq(Signal* signal,
   }
   else
   {
-    return interpreterStartLab(signal, req_struct);
+    return interpreterStartLab(signal, req_struct); // ZHAO 45
   }
 
   jam();
@@ -3808,7 +3808,7 @@ int Dbtup::interpreterStartLab(Signal* signal,
     {
       if (likely(regOperPtr->op_type == ZREAD))
       {
-        jamDebug();
+        jamDebug(); // ZHAO 45
         RinstructionCounter += RinitReadLen;
       }
       else
@@ -3933,15 +3933,15 @@ int Dbtup::interpreterStartLab(Signal* signal,
     }
     if (likely(RinitReadLen > 0))
     {
-      jamDebug();
+      jamDebug(); // ZHAO 46
       TnoDataRW= readAttributes(req_struct,
                                 &cinBuffer[5],
                                 RinitReadLen,
                                 &dst[0],
-                                dstLen);
+                                dstLen); // ZHAO 47
       if (TnoDataRW >= 0)
       {
-        jamDebug();
+        jamDebug(); // ZHAO 48
         RattroutCounter = TnoDataRW;
       }
       else
@@ -3983,7 +3983,7 @@ int Dbtup::interpreterStartLab(Signal* signal,
      *    This is used for ANYVALUE and interpreted delete.
      */
     req_struct->log_size+= RlogSize;
-    sendReadAttrinfo(signal, req_struct, RattroutCounter);
+    sendReadAttrinfo(signal, req_struct, RattroutCounter); // ZHAO 49
     if (RlogSize > 0)
     {
       return sendLogAttrinfo(signal, req_struct, RlogSize, regOperPtr);

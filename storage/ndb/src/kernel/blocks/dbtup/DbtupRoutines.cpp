@@ -389,10 +389,10 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
   req_struct->max_read= 4*maxRead;
   req_struct->xfrm_flag= false;  // Only read of keys may transform
   Uint8*outBuffer = (Uint8*)outBuf;
-  thrjamDebug(req_struct->jamBuffer);
+  thrjamDebug(req_struct->jamBuffer); // ZHAO 47
   while (inBufIndex < inBufLen)
   {
-    thrjamDebug(req_struct->jamBuffer);
+    thrjamDebug(req_struct->jamBuffer); // ZHAO 48
     tmpAttrBufIndex= req_struct->out_buf_index;
     tmpAttrBufBits = req_struct->out_buf_bits;
     AttributeHeader ahIn(inBuffer[inBufIndex]);
@@ -419,7 +419,7 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
       if (likely((*f)(outBuffer,
                       req_struct,
                       ahOut,
-                      attrDes)))
+                      attrDes))) // ZHAO 49
       {
         continue;
       }

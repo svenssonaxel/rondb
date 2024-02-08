@@ -118,14 +118,14 @@ void Dbtup::bufferTRANSID_AI(Signal* signal, BlockReference aRef,
 
   buffer->packetLenTA= TpacketLen + 1+TransIdAI::HeaderLength+lenOfData;
   buffer->noOfPacketsTA++;
-  updatePackedList(hostId);
+  updatePackedList(hostId); // ZHAO 51
 }
 
 void Dbtup::updatePackedList(Uint16 hostId)
 {
   if (hostBuffer[hostId].inPackedList == false) {
     Uint32 TpackedListIndex= cpackedListIndex;
-    jamDebug();
+    jamDebug(); // ZHAO 51;
     hostBuffer[hostId].inPackedList= true;
     cpackedList[TpackedListIndex]= hostId;
     cpackedListIndex= TpackedListIndex + 1;
@@ -219,8 +219,8 @@ void Dbtup::sendAPI_TRANSID_AI(Signal* signal,
     if (1+TransIdAI::HeaderLength + lenOfData +  // this TRANSID_AI
         1+TransIdAI::HeaderLength + 1 <= 25)     // 1 word TRANSID_AI
     {
-      jamDebug();
-      bufferTRANSID_AI(signal, recBlockRef, dataBuf, lenOfData);
+      jamDebug(); // ZHAO 50
+      bufferTRANSID_AI(signal, recBlockRef, dataBuf, lenOfData); // ZHAO 51
     }
     else
 #endif
@@ -327,11 +327,11 @@ void Dbtup::sendReadAttrinfo(Signal* signal,
      */
     if(nodeId != getOwnNodeId())
     {
-      jamDebug();
+      jamDebug(); // ZHAO 49
       if (is_api)
       {
         sendAPI_TRANSID_AI(signal, recBlockref,
-                           &signal->theData[25], ToutBufIndex);
+                           &signal->theData[25], ToutBufIndex); // ZHAO 50
       }
 
       /**

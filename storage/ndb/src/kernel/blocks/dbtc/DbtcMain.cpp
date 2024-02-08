@@ -18649,6 +18649,7 @@ Dbtc::send_close_scan(Signal *signal,
              ScanFragNextReq::SignalLength, JBB);
 }
 
+Uint32 g_debug=0;
 void Dbtc::sendScanTabConf(Signal* signal,
                            const ScanRecordPtr scanPtr,
                            const ApiConnectRecordPtr apiConnectptr)
@@ -18779,6 +18780,10 @@ void Dbtc::sendScanTabConf(Signal* signal,
 	       ScanTabConf::SignalLength + (words_per_op * op_count), JBB);
   }
   scanPtr.p->m_queued_count = 0;
+
+	if (g_debug) {
+		ndbabort();
+	}
 
   if (release)
   {
@@ -19548,6 +19553,12 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
   {
     Uint32 val = dumpState->args[1];
     m_num_scan_fragreq_counts = val;
+    return;
+  }
+	else if (dumpState->args[0] == DumpStateOrd::TCSetDebug)
+  {
+    g_debug = dumpState->args[1];
+    fprintf(stderr, "ZHAO, set g_debug to %u\n", g_debug);
     return;
   }
   else if (dumpState->args[0] == DumpStateOrd::TCSetLoadRefreshCount)

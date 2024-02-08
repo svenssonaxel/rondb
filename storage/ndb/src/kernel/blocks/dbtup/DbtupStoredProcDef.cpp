@@ -42,7 +42,7 @@ void Dbtup::execSTORED_PROCREQ(Signal* signal)
 {
   OperationrecPtr regOperPtr;
   TablerecPtr regTabPtr;
-  jamEntryDebug();
+  jamEntryDebug(); // ZHAO 17
   regOperPtr.i = signal->theData[0];
   ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(regOperPtr));
   regTabPtr.i = signal->theData[1];
@@ -65,7 +65,7 @@ void Dbtup::execSTORED_PROCREQ(Signal* signal)
   switch (requestInfo) {
   case ZSCAN_PROCEDURE:
   {
-    jamDebug();
+    jamDebug(); // ZHAO 18
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
     storedProcCountNonAPI(apiBlockref, +1);
 #endif

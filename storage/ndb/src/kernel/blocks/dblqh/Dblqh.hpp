@@ -5375,7 +5375,7 @@ Dblqh::i_get_acc_ptr(ScanRecord* scanP, Uint32* &acc_ptr, Uint32 index)
     segment= (index + SectionSegment::DataLength -1) / 
       SectionSegment::DataLength;
     segmentOffset= (index - 1) % SectionSegment::DataLength;
-    jamDebug();
+    jamDebug(); // ZHAO next
     ndbassert( segment < ScanRecord::MaxScanAccSegments );
 
     segmentIVal= scanP->scan_acc_op_ptr[ segment ];
@@ -5790,8 +5790,8 @@ Dblqh::acquire_frag_scan_access(Fragrecord *fragPtrP,
   {
     if (m_fragment_lock_status == FRAGMENT_UNLOCKED)
     {
-      jamDebug();
-      handle_acquire_scan_frag_access(fragPtrP);
+      jamDebug(); // ZHAO 11
+      handle_acquire_scan_frag_access(fragPtrP); // ZHAO 12
       return;
     }
     jamDebug();

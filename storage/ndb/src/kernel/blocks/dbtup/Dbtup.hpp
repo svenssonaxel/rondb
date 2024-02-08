@@ -5012,7 +5012,7 @@ Dbtup::prepare_tab_pointers(Uint64 frag_id)
    * fragment and table pointers in preparation for calls to
    * execTUPKEYREQ.
    */
-  jamDebug();
+  jamDebug(); // ZHAO 6
   FragrecordPtr fragptr;
   TablerecPtr tabptr;
 
