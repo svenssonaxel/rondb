@@ -152,7 +152,8 @@ void Dbtup::copyAttrinfo(Uint32 expectedLen,
 }
 
 Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
-                           bool interpretedFlag)
+                           bool interpretedFlag,
+                           Uint32 scan_op_i)
 {
   /* Get stored procedure */
   StoredProcPtr storedPtr;
@@ -210,6 +211,41 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
       pos += paramLen;
     }
     cinBuffer[4] = paramLen;
+    // Moz
+    if (prepare_fragptr.p->fragTableId == 17)
+    {
+      ScanOpPtr scanPtr;
+      scanPtr.i = scan_op_i;
+      ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
+      ScanOp& scan = *scanPtr.p;
+      ndbrequire(scan.m_tableId == prepare_fragptr.p->fragTableId &&
+                 scan.m_fragId == prepare_fragptr.p->fragmentId);
+
+      if (scan.agg_result == nullptr) {
+        // Initialize agg_result resources
+        reader.getWord(pos);
+        ndbrequire((*(pos) >> 16) == 0x0721);
+        Uint32 proc_len = *(pos) & 0xFF;
+        ndbrequire(intmax_t{readerLen - proc_len} == (pos - cinBuffer));
+        Uint32 proc_start = (pos - cinBuffer);
+
+        reader.getWords(pos, proc_len);
+        ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
+
+        scan.agg_result = new AggResult(&cinBuffer[proc_start], proc_len);
+				scan.agg_result->Init();
+
+        if (prepare_fragptr.p->fragmentId == 0) {
+          fprintf(stderr, "Moz, Initialize agg_result by aggregation proc from %u on fragment %u\n",
+              proc_start, prepare_fragptr.p->fragmentId);
+        }
+      } else {
+        if (prepare_fragptr.p->fragmentId == 0) {
+          fprintf(stderr, "Moz, Already initialized agg_result on fragment %u, Skip\n",
+              prepare_fragptr.p->fragmentId);
+        }
+      }
+    }
   }
   else
   {
@@ -1251,6 +1287,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
     req_struct.m_row_id.m_page_no = RNIL;
     req_struct.m_row_id.m_page_idx = ZNIL;
 #endif
+    req_struct.scan_op_i = lqhScanPtrP->scanAccPtr;
   }
   else
   {
@@ -1282,6 +1319,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
     const Uint32 row_id_page_idx = tupKeyReq->m_row_id_page_idx;
     req_struct.m_row_id.m_page_no = row_id_page_no;
     req_struct.m_row_id.m_page_idx = row_id_page_idx;
+    req_struct.scan_op_i = RNIL;
   }
   req_struct.m_deferred_constraints = deferred_constraints;
   req_struct.m_disable_fk_checks = disable_fk_checks;
@@ -3759,6 +3797,17 @@ int Dbtup::interpreterStartLab(Signal* signal,
 
   Uint32 RattrinbufLen= req_struct->attrinfo_len;
   const BlockReference sendBref= req_struct->rec_blockref;
+
+  if (req_struct->scan_op_i != RNIL) {
+    ScanOpPtr scanPtr;
+    scanPtr.i = req_struct->scan_op_i;
+    ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
+    ScanOp& scan = *scanPtr.p;
+    if (scan.m_tableId == 17 && scan.m_fragId == 0) {
+      fprintf(stderr, "Moz, interpreterStartLab, get scan_op_i %u for fragment %u\n",
+          scanPtr.i, scan.m_fragId);
+    }
+  }
 
   const Uint32 node = refToNode(sendBref);
   if(node != 0 && node != getOwnNodeId())

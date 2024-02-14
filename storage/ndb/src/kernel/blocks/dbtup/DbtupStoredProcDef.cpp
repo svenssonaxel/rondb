@@ -74,6 +74,11 @@ void Dbtup::execSTORED_PROCREQ(Signal* signal)
     handle.m_ptr[0].i = signal->theData[6];
     handle.m_cnt = 1;
     getSections(handle.m_cnt, handle.m_ptr);
+    // if (prepare_fragptr.p->fragTableId == 17 /*regTabPtr.i == 17*/) {
+    //   fprintf(stderr, "Moz, SectionHandle: [%u], [%u], [%u] on fragment %u\n",
+    //       handle.m_ptr[0].sz, handle.m_ptr[1].sz, handle.m_ptr[2].sz,
+    //       prepare_fragptr.p->fragmentId);
+    // }
 
     scanProcedure(signal,
                   regOperPtr.p,
@@ -177,6 +182,45 @@ void Dbtup::scanProcedure(Signal* signal,
     }
   }
   Uint32 lenAttrInfo = handle->m_ptr[0].p->m_sz;
+  // Moz
+  bool inject_agg_proc = bool(signal->theData[7]);
+  if (inject_agg_proc) {
+    ndbrequire(prepare_fragptr.p->fragTableId == 17);
+
+    // hard code aggregation program for testing
+    Uint32 start_pos = lenAttrInfo;
+    Uint32 curr_pos = lenAttrInfo;
+		Uint16 proc_len = 5;
+    handle->m_ptr[0].p->theData[curr_pos++] = (0x0721) << 16 | proc_len;
+    handle->m_ptr[0].p->theData[curr_pos++] = (0) << 16 | 1;             // agg result num 1
+    handle->m_ptr[0].p->theData[curr_pos++] = NDB_TYPE_UNSIGNED;         // agg result 0 type
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_UNSIGNED & 0x1F) << 21 |                        // NDB_TYPE_UNSIGNED
+                (kReg1 & 0x0F) << 16 |                                    // Register 1
+                0;                                                        // Column 0
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpSum) << 26 |                                          // SUM
+                (NDB_TYPE_UNSIGNED & 0x1F) << 21 |                        // NDB_TYPE_UNSIGNED (Reg 1)
+                (kReg1 & 0x0F) << 16 |                                    // Register 1
+                0;                                                        // agg_result 0
+
+    handle->m_ptr[0].p->m_sz = curr_pos;
+    lenAttrInfo = curr_pos;
+
+    if (prepare_fragptr.p->fragmentId == 0) {
+      fprintf(stderr, "Moz, Inject aggregation program from %u on fragment %u:\n"
+							"%u, %u, %u, %u, %u\n",
+          lenAttrInfo, prepare_fragptr.p->fragmentId,
+					handle->m_ptr[0].p->theData[start_pos],
+					handle->m_ptr[0].p->theData[start_pos + 1],
+					handle->m_ptr[0].p->theData[start_pos + 2],
+					handle->m_ptr[0].p->theData[start_pos + 3],
+					handle->m_ptr[0].p->theData[start_pos + 4]);
+    }
+  } else {
+    ndbrequire(prepare_fragptr.p->fragTableId != 17);
+  }
   handle->clear();
   storedPtr.p->storedCode = (isCopy) ? ZCOPY_PROCEDURE : ZSCAN_PROCEDURE;
   storedPtr.p->storedProcIVal= handle->m_ptr[0].i;

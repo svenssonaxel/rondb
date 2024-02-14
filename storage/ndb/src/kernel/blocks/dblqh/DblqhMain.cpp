@@ -17010,7 +17010,8 @@ void Dblqh::setup_scan_pointers(Uint32 scanPtrI, Uint32 line)
     jamDebug();
     Uint32 storedProcLen =
       c_tup->copyAttrinfo(loc_scanptr.p->scanStoredProcId,
-                          bool(loc_tcConnectptr.p->opExec));
+                          bool(loc_tcConnectptr.p->opExec),
+                          loc_scanptr.p->scanAccPtr);
     (void)storedProcLen;
     ndbassert(loc_scanptr.p->scanAiLength == storedProcLen);
   }
@@ -18683,20 +18684,34 @@ void Dblqh::accScanConfScanLab(Signal* signal,
 // theData[4] is not used
     signal->theData[5] = sig5;
     signal->theData[6] = sig6;
-    
+    // Moz
+    // temporary solution, just for hardcode agg program
+    // remove later
+    if (regTcPtr->tableref == 17) {
+      signal->theData[7] = regTcPtr->opExec;
+    } else {
+      signal->theData[7] = 0;
+    }
     /* Pass ATTRINFO as long section, we don't need
      * it after this
      */
     regTcPtr->attrInfoIVal= RNIL;
 
     c_tup->execSTORED_PROCREQ(signal); // ZHAO 17
+    // Moz
+    // temporary solution, just for hardcode agg program
+    // remove later
+    if (regTcPtr->tableref == 17 && bool(regTcPtr->opExec)) {
+      scanptr.p->scanAiLength += 5;
+    }
     if (likely(signal->theData[0] == 0))
     {
       /* STORED_PROCCONF */
       jamEntryDebug(); // ZHAO 19
       Uint32 storedProcId = signal->theData[1];
       scanPtr->scanStoredProcId = storedProcId;
-      c_tup->copyAttrinfo(storedProcId, bool(regTcPtr->opExec)); // ZHAO 20
+      c_tup->copyAttrinfo(storedProcId, bool(regTcPtr->opExec),
+                          scanPtr->scanAccPtr); // ZHAO 20
       storedProcConfScanLab(signal, tcConnectptr); // ZHAO 21
       return;
     }
@@ -18723,7 +18738,8 @@ void Dblqh::accScanConfScanLab(Signal* signal,
       // Advance to next parameter in the attrInfo
       c_tup->nextAttrInfoParam(scanPtr->scanStoredProcId);
     }
-    c_tup->copyAttrinfo(scanPtr->scanStoredProcId, bool(regTcPtr->opExec));
+    c_tup->copyAttrinfo(scanPtr->scanStoredProcId, bool(regTcPtr->opExec),
+                        scanPtr->scanAccPtr);
     storedProcConfScanLab(signal, tcConnectptr);
     return;
   }

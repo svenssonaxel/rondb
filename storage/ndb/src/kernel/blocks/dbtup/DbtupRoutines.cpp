@@ -376,6 +376,11 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                           Uint32* outBuf,
                           Uint32  maxRead)
 {
+  if (req_struct->fragPtrP->fragTableId == 17 &&
+      req_struct->fragPtrP->fragmentId == 0) {
+    fprintf(stderr, "Moz, inBufLen: %u, scan_op_i: %u\n", inBufLen,
+            req_struct->scan_op_i);
+  }
   Uint32 attributeId, descr_index, tmpAttrBufIndex, tmpAttrBufBits, inBufIndex;
   AttributeHeader* ahOut;
 
@@ -398,6 +403,30 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
     AttributeHeader ahIn(inBuffer[inBufIndex]);
     inBufIndex++;
     attributeId= ahIn.getAttributeId();
+    if (req_struct->fragPtrP->fragTableId == 17 &&
+        req_struct->fragPtrP->fragmentId == 0) {
+      const Uint32* attrDescriptor = req_struct->tablePtrP->tabDescriptor +
+        (attributeId * ZAD_SIZE);
+      const Uint32 TattrDesc1 = attrDescriptor[0];
+      // const Uint32 TattrDesc2 = attrDescriptor[1];
+      const Uint32 type_id = AttributeDescriptor::getType(TattrDesc1);
+      const Uint32 size = AttributeDescriptor::getSize(TattrDesc1);
+      const Uint32 size_in_bytes = AttributeDescriptor::getSizeInBytes(TattrDesc1);
+      const Uint32 size_in_words = AttributeDescriptor::getSizeInWords(TattrDesc1);
+      const Uint32 array_type = AttributeDescriptor::getArrayType(TattrDesc1);
+      const Uint32 array_size = AttributeDescriptor::getArraySize(TattrDesc1);
+      const Uint32 nullable = AttributeDescriptor::getNullable(TattrDesc1);
+      const Uint32 distri_key = AttributeDescriptor::getDKey(TattrDesc1);
+      const Uint32 primary_key = AttributeDescriptor::getPrimaryKey(TattrDesc1);
+      const Uint32 dynamic = AttributeDescriptor::getDynamic(TattrDesc1);
+      const Uint32 disk_based = AttributeDescriptor::getDiskBased(TattrDesc1);
+      fprintf(stderr, "Moz-AttributeDescriptor, attributeId: %u, type_id: %u, size: %u, "
+             "size_in_bytes: %u, size_in_words: %u, array_type: %u, "
+             "array_size: %u, nullable: %u, distri_key: %u, primary_key: %u "
+             "dynamic: %u, disk_based: %u\n",
+             attributeId, type_id, size, size_in_bytes, size_in_words, array_type,
+             array_size, nullable, distri_key, primary_key, dynamic, disk_based);
+    }
     descr_index= attributeId * ZAD_SIZE;
 
     tmpAttrBufIndex = pad32(tmpAttrBufIndex, tmpAttrBufBits);
@@ -421,6 +450,19 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                       ahOut,
                       attrDes))) // ZHAO 49
       {
+        if (req_struct->fragPtrP->fragTableId == 17 &&
+            req_struct->fragPtrP->fragmentId == 0) {
+          fprintf(stderr, "Moz-AttributeHeader, attributeId: %u, byte_size: %u, "
+                  "data_size: %u, is_null: %u. ",
+              ahOut->getAttributeId(), ahOut->getByteSize(), ahOut->getDataSize(),
+              ahOut->isNULL());
+          if (attributeId == 0) {
+            fprintf(stderr, "VALUE: %d\n", *(int32*)ahOut->getDataPtr());
+          } else {
+            fprintf(stderr, "VALUE: %s\n", (char*)ahOut->getDataPtr());
+          }
+        }
+
         continue;
       }
       else

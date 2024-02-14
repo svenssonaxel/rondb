@@ -59,6 +59,7 @@
 #include "util/ndb_math.h"
 #include "TransientPool.hpp"
 #include "TransientSlotPool.hpp"
+#include "AggResult.hpp"
 
 #define JAM_FILE_ID 414
 
@@ -460,6 +461,17 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
 
   // Tup scan, similar to Tux scan.  Later some of this could
   // be moved to common superclass.
+  struct GBHashEntry {
+    char* ptr;
+    uint32_t len;
+  };
+
+  union DataValue {
+    int64_t val_int64;
+    uint64_t val_uint64;
+    double val_double;
+  };
+
   struct ScanOp {
     static constexpr Uint32 TYPE_ID = RT_DBTUP_SCAN_OPERATION;
     Uint32 m_magic;
@@ -476,7 +488,9 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
       m_transId1(0),
       m_transId2(0),
       m_savePointId(0),
-      m_accLockOp(RNIL)
+      m_accLockOp(RNIL),
+      is_aggregation(false),
+      agg_result(nullptr)
     {}
 
     enum State {
@@ -533,6 +547,10 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
     Uint32 nextList;
     };
     Uint32 prevList;
+
+    // Aggregation
+    bool is_aggregation;
+    AggResult* agg_result;
   };
   static constexpr Uint32 DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX = 3;
   typedef Ptr<ScanOp> ScanOpPtr;
@@ -2112,6 +2130,8 @@ struct KeyReqStruct {
   Uint16 var_pos_array[2][2*MAX_ATTRIBUTES_IN_TABLE + 1];
   OperationrecPtr prevOpPtr;
   Dblqh *m_lqh;
+
+  Uint32 scan_op_i;
 };
 
   friend struct Undo_buffer;
@@ -3262,7 +3282,8 @@ private:
 			 Uint32 resultRef, Uint32 resultData, Uint32 routeRef);
 public:
   Uint32 copyAttrinfo(Uint32 storedProcId,
-                      bool interpretedFlag);
+                      bool interpretedFlag,
+                      Uint32 scan_op_i = RNIL);
   void copyAttrinfo(Uint32 expectedLen,
                     Uint32 attrInfoIVal);
 

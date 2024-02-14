@@ -580,7 +580,6 @@ public:
     Uint32 defValSectionI;
   };
   typedef Ptr<AddFragRecord> AddFragRecordPtr;
-  
   struct ScanRecord {
     static constexpr Uint32 TYPE_ID = RT_DBLQH_SCAN_RECORD;
     Uint32 m_magic;
