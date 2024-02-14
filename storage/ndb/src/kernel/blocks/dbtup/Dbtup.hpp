@@ -59,7 +59,6 @@
 #include "util/ndb_math.h"
 #include "TransientPool.hpp"
 #include "TransientSlotPool.hpp"
-#include "AggResult.hpp"
 
 #define JAM_FILE_ID 414
 
@@ -251,6 +250,7 @@ inline const Uint32* ALIGN_WORD(const void* ptr)
 #endif
 
 class Dbtux;
+class AggResult;
 
 class Dbtup: public SimulatedBlock {
 friend class DbtupProxy;
@@ -461,17 +461,6 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
 
   // Tup scan, similar to Tux scan.  Later some of this could
   // be moved to common superclass.
-  struct GBHashEntry {
-    char* ptr;
-    uint32_t len;
-  };
-
-  union DataValue {
-    int64_t val_int64;
-    uint64_t val_uint64;
-    double val_double;
-  };
-
   struct ScanOp {
     static constexpr Uint32 TYPE_ID = RT_DBTUP_SCAN_OPERATION;
     Uint32 m_magic;

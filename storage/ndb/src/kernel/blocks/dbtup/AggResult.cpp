@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <cstring>
 #include "AggResult.hpp"
-#include "Dbtup.hpp"
 
 bool AggResult::Init() {
   if (inited_) {
@@ -56,5 +55,11 @@ bool AggResult::Init() {
   agg_prog_start_pos_ = cur_pos_;
   memset(registers_, 0, sizeof(registers_));
 
+  return true;
+}
+
+bool AggResult::ProcessRec(const Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct) {
+  assert(inited_ && n_agg_results_ == 1 &&
+         n_gb_cols_ == 0 && prog_len_ == 5 && agg_prog_start_pos_ == 3);
   return true;
 }

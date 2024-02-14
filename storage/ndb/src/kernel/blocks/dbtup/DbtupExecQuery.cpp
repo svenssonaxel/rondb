@@ -45,6 +45,7 @@
 #include <Checksum.hpp>
 #include <portlib/ndb_prefetch.h>
 #include "../dblqh/Dblqh.hpp"
+#include "AggResult.hpp"
 
 #define JAM_FILE_ID 422
 
@@ -223,21 +224,25 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
 
       if (scan.agg_result == nullptr) {
         // Initialize agg_result resources
-        reader.getWord(pos);
+        // 1. get 1st program word to verify Magic number
+        ndbrequire(reader.getWord(pos));
         ndbrequire((*(pos) >> 16) == 0x0721);
-        Uint32 proc_len = *(pos) & 0xFF;
+        Uint32 proc_len = *(pos) & 0xFFFF;
         ndbrequire(intmax_t{readerLen - proc_len} == (pos - cinBuffer));
         Uint32 proc_start = (pos - cinBuffer);
+        pos++;
 
-        reader.getWords(pos, proc_len);
+        // 2. get remaining program words
+        ndbrequire(reader.getWords(pos, proc_len - 1));
         ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
 
+        // 3. construct agg_result
         scan.agg_result = new AggResult(&cinBuffer[proc_start], proc_len);
-				scan.agg_result->Init();
+        ndbrequire(scan.agg_result->Init());
 
         if (prepare_fragptr.p->fragmentId == 0) {
-          fprintf(stderr, "Moz, Initialize agg_result by aggregation proc from %u on fragment %u\n",
-              proc_start, prepare_fragptr.p->fragmentId);
+          fprintf(stderr, "Moz, Initialize agg_result by aggregation proc from %u on fragment %u, proc_len %u\n",
+              proc_start, prepare_fragptr.p->fragmentId, proc_len);
         }
       } else {
         if (prepare_fragptr.p->fragmentId == 0) {
@@ -3798,17 +3803,6 @@ int Dbtup::interpreterStartLab(Signal* signal,
   Uint32 RattrinbufLen= req_struct->attrinfo_len;
   const BlockReference sendBref= req_struct->rec_blockref;
 
-  if (req_struct->scan_op_i != RNIL) {
-    ScanOpPtr scanPtr;
-    scanPtr.i = req_struct->scan_op_i;
-    ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
-    ScanOp& scan = *scanPtr.p;
-    if (scan.m_tableId == 17 && scan.m_fragId == 0) {
-      fprintf(stderr, "Moz, interpreterStartLab, get scan_op_i %u for fragment %u\n",
-          scanPtr.i, scan.m_fragId);
-    }
-  }
-
   const Uint32 node = refToNode(sendBref);
   if(node != 0 && node != getOwnNodeId())
   {
@@ -4032,6 +4026,19 @@ int Dbtup::interpreterStartLab(Signal* signal,
      *    This is used for ANYVALUE and interpreted delete.
      */
     req_struct->log_size+= RlogSize;
+
+    if (req_struct->scan_op_i != RNIL) {
+      ScanOpPtr scanPtr;
+      scanPtr.i = req_struct->scan_op_i;
+      ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
+      ScanOp& scan = *scanPtr.p;
+      if (scan.m_tableId == 17 && scan.m_fragId == 0) {
+        fprintf(stderr, "Moz, interpreterStartLab, get scan_op_i %u for fragment %u\n",
+            scanPtr.i, scan.m_fragId);
+        scan.agg_result->ProcessRec(this, req_struct);
+      }
+    }
+
     sendReadAttrinfo(signal, req_struct, RattroutCounter); // ZHAO 49
     if (RlogSize > 0)
     {

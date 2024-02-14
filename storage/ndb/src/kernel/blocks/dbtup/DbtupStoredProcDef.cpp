@@ -29,6 +29,7 @@
 #include <RefConvert.hpp>
 #include <ndb_limits.h>
 #include <pc.hpp>
+#include "AggResult.hpp"
 
 #define JAM_FILE_ID 406
 
@@ -211,7 +212,7 @@ void Dbtup::scanProcedure(Signal* signal,
     if (prepare_fragptr.p->fragmentId == 0) {
       fprintf(stderr, "Moz, Inject aggregation program from %u on fragment %u:\n"
 							"%u, %u, %u, %u, %u\n",
-          lenAttrInfo, prepare_fragptr.p->fragmentId,
+          start_pos, prepare_fragptr.p->fragmentId,
 					handle->m_ptr[0].p->theData[start_pos],
 					handle->m_ptr[0].p->theData[start_pos + 1],
 					handle->m_ptr[0].p->theData[start_pos + 2],

@@ -33,6 +33,7 @@
 #include <portlib/ndb_prefetch.h>
 #include <util/rondb_hash.hpp>
 #include "../dblqh/Dblqh.hpp"
+#include "AggResult.hpp"
 
 #define JAM_FILE_ID 408
 

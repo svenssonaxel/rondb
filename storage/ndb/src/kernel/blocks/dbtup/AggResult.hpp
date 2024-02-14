@@ -8,6 +8,7 @@
 
 #include <math.h>
 #include <map>
+#include "Dbtup.hpp"
 
 enum AggColumnType {
   kTypeUnknown = 0,
@@ -122,7 +123,7 @@ class AggResult {
 
   bool Init();
 
-  // bool ProcessRec(Record* rec);
+  bool ProcessRec(const Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct);
   void Print();
 
  private:

@@ -16944,7 +16944,8 @@ void Dblqh::setup_scan_pointers_from_tc_con(TcConnectionrecPtr tcConnectptr,
     jamDebug();
     Uint32 storedProcLen =
       c_tup->copyAttrinfo(loc_scanptr.p->scanStoredProcId,
-                          bool(tcConnectptr.p->opExec));
+                          bool(tcConnectptr.p->opExec),
+                          loc_scanptr.p->scanAccPtr);
     (void)storedProcLen;
     ndbassert(loc_scanptr.p->scanAiLength == storedProcLen);
   }
