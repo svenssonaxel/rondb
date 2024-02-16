@@ -45,7 +45,7 @@
 #include <Checksum.hpp>
 #include <portlib/ndb_prefetch.h>
 #include "../dblqh/Dblqh.hpp"
-#include "AggResult.hpp"
+#include "AggInterpreter.hpp"
 
 #define JAM_FILE_ID 422
 
@@ -222,8 +222,8 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
       ndbrequire(scan.m_tableId == prepare_fragptr.p->fragTableId &&
                  scan.m_fragId == prepare_fragptr.p->fragmentId);
 
-      if (scan.agg_result == nullptr) {
-        // Initialize agg_result resources
+      if (scan.agg_interpreter == nullptr) {
+        // Initialize agg_interpreter resources
         // 1. get 1st program word to verify Magic number
         ndbrequire(reader.getWord(pos));
         ndbrequire((*(pos) >> 16) == 0x0721);
@@ -236,17 +236,17 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
         ndbrequire(reader.getWords(pos, proc_len - 1));
         ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
 
-        // 3. construct agg_result
-        scan.agg_result = new AggResult(&cinBuffer[proc_start], proc_len);
-        ndbrequire(scan.agg_result->Init());
+        // 3. construct agg_interpreter
+        scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len);
+        ndbrequire(scan.agg_interpreter->Init());
 
-        if (prepare_fragptr.p->fragmentId == 0) {
-          fprintf(stderr, "Moz, Initialize agg_result by aggregation proc from %u on fragment %u, proc_len %u\n",
+        if (prepare_fragptr.p->fragmentId == 1) {
+          fprintf(stderr, "Moz, Initialize agg_interpreter by aggregation proc from %u on fragment %u, proc_len %u\n",
               proc_start, prepare_fragptr.p->fragmentId, proc_len);
         }
       } else {
-        if (prepare_fragptr.p->fragmentId == 0) {
-          fprintf(stderr, "Moz, Already initialized agg_result on fragment %u, Skip\n",
+        if (prepare_fragptr.p->fragmentId == 1) {
+          fprintf(stderr, "Moz, Already initialized agg_interpreter on fragment %u, Skip\n",
               prepare_fragptr.p->fragmentId);
         }
       }
@@ -4032,10 +4032,10 @@ int Dbtup::interpreterStartLab(Signal* signal,
       scanPtr.i = req_struct->scan_op_i;
       ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
       ScanOp& scan = *scanPtr.p;
-      if (scan.m_tableId == 17 && scan.m_fragId == 0) {
+      if (scan.m_tableId == 17 && scan.m_fragId == 1) {
         fprintf(stderr, "Moz, interpreterStartLab, get scan_op_i %u for fragment %u\n",
             scanPtr.i, scan.m_fragId);
-        scan.agg_result->ProcessRec(this, req_struct);
+        scan.agg_interpreter->ProcessRec(this, req_struct);
       }
     }
 

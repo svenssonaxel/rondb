@@ -29,7 +29,7 @@
 #include <RefConvert.hpp>
 #include <ndb_limits.h>
 #include <pc.hpp>
-#include "AggResult.hpp"
+#include "AggInterpreter.hpp"
 
 #define JAM_FILE_ID 406
 
@@ -191,25 +191,26 @@ void Dbtup::scanProcedure(Signal* signal,
     // hard code aggregation program for testing
     Uint32 start_pos = lenAttrInfo;
     Uint32 curr_pos = lenAttrInfo;
-		Uint16 proc_len = 5;
+		Uint16 proc_len = 6;
     handle->m_ptr[0].p->theData[curr_pos++] = (0x0721) << 16 | proc_len;
-    handle->m_ptr[0].p->theData[curr_pos++] = (0) << 16 | 1;             // agg result num 1
-    handle->m_ptr[0].p->theData[curr_pos++] = NDB_TYPE_UNSIGNED;         // agg result 0 type
+    handle->m_ptr[0].p->theData[curr_pos++] = 1 << 16 | 1;                // agg result num 1
+    handle->m_ptr[0].p->theData[curr_pos++] = 12 << 16;                   // group by col
+    handle->m_ptr[0].p->theData[curr_pos++] = NDB_TYPE_INT;               // agg result 0 type
     handle->m_ptr[0].p->theData[curr_pos++] =
                 (kOpLoadCol) << 26 |                                      // LOADCOL
-                (NDB_TYPE_UNSIGNED & 0x1F) << 21 |                        // NDB_TYPE_UNSIGNED
+                (NDB_TYPE_INT & 0x1F) << 21 |                             // NDB_TYPE_INT
                 (kReg1 & 0x0F) << 16 |                                    // Register 1
                 0;                                                        // Column 0
     handle->m_ptr[0].p->theData[curr_pos++] =
                 (kOpSum) << 26 |                                          // SUM
-                (NDB_TYPE_UNSIGNED & 0x1F) << 21 |                        // NDB_TYPE_UNSIGNED (Reg 1)
+                (NDB_TYPE_INT & 0x1F) << 21 |                             // NDB_TYPE_INT (Reg 1)
                 (kReg1 & 0x0F) << 16 |                                    // Register 1
                 0;                                                        // agg_result 0
 
     handle->m_ptr[0].p->m_sz = curr_pos;
     lenAttrInfo = curr_pos;
 
-    if (prepare_fragptr.p->fragmentId == 0) {
+    if (prepare_fragptr.p->fragmentId == 1) {
       fprintf(stderr, "Moz, Inject aggregation program from %u on fragment %u:\n"
 							"%u, %u, %u, %u, %u\n",
           start_pos, prepare_fragptr.p->fragmentId,

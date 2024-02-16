@@ -348,6 +348,19 @@ pad32(Uint32 bytepos, Uint32 bitsused)
   return ret;
 }
 
+// Moz define
+#define sint3korr(A)  ((int32_t) ((((uint8_t) (A)[2]) & 128) ? \
+                                  (((uint32_t) 255L << 24) | \
+                                  (((uint32_t) (uint8_t) (A)[2]) << 16) |\
+                                  (((uint32_t) (uint8_t) (A)[1]) << 8) | \
+                                   ((uint32_t) (uint8_t) (A)[0])) : \
+                                 (((uint32_t) (uint8_t) (A)[2]) << 16) |\
+                                 (((uint32_t) (uint8_t) (A)[1]) << 8) | \
+                                  ((uint32_t) (uint8_t) (A)[0])))
+
+#define uint3korr(A)  (uint32_t) (((uint32_t) ((uint8_t) (A)[0])) +\
+                                  (((uint32_t) ((uint8_t) (A)[1])) << 8) +\
+                                  (((uint32_t) ((uint8_t) (A)[2])) << 16))
 /* ---------------------------------------------------------------- */
 /*       THIS ROUTINE IS USED TO READ A NUMBER OF ATTRIBUTES IN THE */
 /*       DATABASE AND PLACE THE RESULT IN ATTRINFO RECORDS.         */
@@ -377,7 +390,7 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                           Uint32  maxRead)
 {
   if (req_struct->fragPtrP->fragTableId == 17 &&
-      req_struct->fragPtrP->fragmentId == 0) {
+      req_struct->fragPtrP->fragmentId == 1) {
     fprintf(stderr, "Moz, inBufLen: %u, scan_op_i: %u\n", inBufLen,
             req_struct->scan_op_i);
   }
@@ -404,7 +417,7 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
     inBufIndex++;
     attributeId= ahIn.getAttributeId();
     if (req_struct->fragPtrP->fragTableId == 17 &&
-        req_struct->fragPtrP->fragmentId == 0) {
+        req_struct->fragPtrP->fragmentId == 1) {
       const Uint32* attrDescriptor = req_struct->tablePtrP->tabDescriptor +
         (attributeId * ZAD_SIZE);
       const Uint32 TattrDesc1 = attrDescriptor[0];
@@ -451,15 +464,61 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                       attrDes))) // ZHAO 49
       {
         if (req_struct->fragPtrP->fragTableId == 17 &&
-            req_struct->fragPtrP->fragmentId == 0) {
+            req_struct->fragPtrP->fragmentId == 1) {
           fprintf(stderr, "Moz-AttributeHeader, attributeId: %u, byte_size: %u, "
-                  "data_size: %u, is_null: %u. ",
+                  "data_size: %u, is_null: %u. 4B: %x %x %x %x.",
               ahOut->getAttributeId(), ahOut->getByteSize(), ahOut->getDataSize(),
-              ahOut->isNULL());
-          if (attributeId == 0) {
-            fprintf(stderr, "VALUE: %d\n", *(int32*)ahOut->getDataPtr());
-          } else {
-            fprintf(stderr, "VALUE: %s\n", (char*)ahOut->getDataPtr());
+              ahOut->isNULL(),
+              *((uint8_t*)ahOut->getDataPtr()),
+              *((uint8_t*)ahOut->getDataPtr() + 1),
+              *((uint8_t*)ahOut->getDataPtr() + 2),
+              *((uint8_t*)ahOut->getDataPtr() + 3));
+          int32_t tmp_val;
+          uint32_t tmp_uval;
+          switch (attributeId) {
+            case 0:
+              fprintf(stderr, "VALUE: %d\n", *(int32*)ahOut->getDataPtr());
+              break;
+            case 1:
+              fprintf(stderr, "VALUE: %d\n", *(int8*)ahOut->getDataPtr());
+              break;
+            case 2:
+              fprintf(stderr, "VALUE: %d\n", *(int16*)ahOut->getDataPtr());
+              break;
+            case 3:
+              tmp_val = sint3korr((int8*)ahOut->getDataPtr());
+              fprintf(stderr, "VALUE: %d\n", tmp_val);
+              break;
+            case 4:
+              fprintf(stderr, "VALUE: %ld\n", *(int64*)ahOut->getDataPtr());
+              break;
+            case 5:
+              fprintf(stderr, "VALUE: %u\n", *(uint8*)ahOut->getDataPtr());
+              break;
+            case 6:
+              fprintf(stderr, "VALUE: %u\n", *(uint16*)ahOut->getDataPtr());
+              break;
+            case 7:
+              tmp_uval = uint3korr((uint8*)ahOut->getDataPtr());
+              fprintf(stderr, "VALUE: %u\n", tmp_uval);
+							break;
+            case 8:
+              fprintf(stderr, "VALUE: %u\n", *(uint32*)ahOut->getDataPtr());
+              break;
+            case 9:
+              fprintf(stderr, "VALUE: %lu\n", *(uint64*)ahOut->getDataPtr());
+              break;
+            case 10:
+              fprintf(stderr, "VALUE: %f\n", *(float*)ahOut->getDataPtr());
+              break;
+            case 11:
+              fprintf(stderr, "VALUE: %lf\n", *(double*)ahOut->getDataPtr());
+              break;
+            case 12:
+              fprintf(stderr, "VALUE: %s\n", (char*)ahOut->getDataPtr());
+              break;
+            default:
+              break;
           }
         }
 

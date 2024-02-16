@@ -33,7 +33,7 @@
 #include <portlib/ndb_prefetch.h>
 #include <util/rondb_hash.hpp>
 #include "../dblqh/Dblqh.hpp"
-#include "AggResult.hpp"
+#include "AggInterpreter.hpp"
 
 #define JAM_FILE_ID 408
 
@@ -276,7 +276,7 @@ Dbtup::execACC_SCANREQ(Signal* signal)
     // conf
     AccScanConf* const conf = (AccScanConf*)signal->getDataPtrSend();
     conf->scanPtr = req->senderData;
-    if (scan.m_tableId == 17 && scan.m_fragId == 0) {
+    if (scan.m_tableId == 17 && scan.m_fragId == 1) {
       fprintf(stderr, "Moz, execACC_SCANREQ, get scan_op_i %u for fragment %u\n",
               scanPtr.i, scan.m_fragId);
     }
@@ -3605,11 +3605,11 @@ Dbtup::releaseScanOp(ScanOpPtr& scanPtr)
   else
   {
     jam();
-    if (scanPtr.p->m_tableId == 17 && scanPtr.p->m_fragId == 0) {
-      fprintf(stderr, "Moz, Destory aggregation resources in fragment %u\n",
+    if (scanPtr.p->m_tableId == 17 && scanPtr.p->m_fragId == 1) {
+      fprintf(stderr, "Moz, Destory aggregation interpreter in fragment %u\n",
           scanPtr.p->m_fragId);
     }
-    delete scanPtr.p->agg_result;
+    delete scanPtr.p->agg_interpreter;
     c_scanOpPool.release(scanPtr);
     checkPoolShrinkNeed(DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX,
                         c_scanOpPool);

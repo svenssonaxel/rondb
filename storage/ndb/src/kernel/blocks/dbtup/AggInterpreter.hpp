@@ -3,8 +3,8 @@
  *
  * Author: Zhao Song
  */
-#ifndef AGGRESULT_H_
-#define AGGRESULT_H_
+#ifndef AGGINTERPRETER_H_
+#define AGGINTERPRETER_H_
 
 #include <math.h>
 #include <map>
@@ -76,7 +76,7 @@ union DataValue {
   void* val_ptr;
 };
 
-typedef int32_t DataType;
+typedef uint32_t DataType;
 struct Register {
   DataType type;
   DataValue value;
@@ -96,19 +96,20 @@ struct GBColInfo {
   bool is_unsigned;
 };
 
-class AggResult {
+class AggInterpreter {
  public:
-  AggResult(const uint32_t* prog, uint32_t prog_len):
+  AggInterpreter(const uint32_t* prog, uint32_t prog_len):
     prog_len_(prog_len), cur_pos_(0),
     inited_(false), n_gb_cols_(0), gb_cols_(nullptr),
     n_agg_results_(0),
     agg_results_(nullptr), agg_prog_start_pos_(0),
     gb_map_(nullptr), n_groups_(0),
-    gb_cols_type_inited_(false), gb_cols_info_(nullptr) {
+		buf_pos_(0) {
       prog_ = new uint32_t[prog_len];
       memcpy(prog_, prog, prog_len * sizeof(uint32_t));
+			memset(buf_, 0, 2048 * sizeof(uint32_t));
   }
-  ~AggResult() {
+  ~AggInterpreter() {
     delete[] prog_;
     delete[] gb_cols_;
     delete[] agg_results_;
@@ -117,13 +118,12 @@ class AggResult {
         delete[] iter->first.ptr;
       }
       delete gb_map_;
-      delete[] gb_cols_info_;
     }
   }
 
   bool Init();
 
-  bool ProcessRec(const Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct);
+  bool ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct);
   void Print();
 
  private:
@@ -141,7 +141,8 @@ class AggResult {
 
   std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>* gb_map_;
   uint32_t n_groups_;
-  bool gb_cols_type_inited_;
-  GBColInfo* gb_cols_info_;
+	uint32_t buf_[2048];
+	uint32_t buf_pos_;
+	static uint32_t g_buf_len_;
 };
-#endif  // AGGRESULT_H_
+#endif  // AGGINTERPRETER_H_
