@@ -237,7 +237,11 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
         ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
 
         // 3. construct agg_interpreter
-        scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len);
+        if (scan.m_fragId == 1) {
+          scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, true);
+        } else {
+          scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
+        }
         ndbrequire(scan.agg_interpreter->Init());
 
         if (prepare_fragptr.p->fragmentId == 1) {

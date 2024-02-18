@@ -41,15 +41,16 @@ bool AggInterpreter::Init() {
   }
 
   /*
-   * 4. Get all aggregation results types
+   * 4. Reset all aggregation results
    */
   if (n_agg_results_) {
     agg_results_ = new AggResItem[n_agg_results_];
     uint32_t i = 0;
-    while (i < n_agg_results_ && cur_pos_ < prog_len_) {
-      agg_results_[i].type = prog_[cur_pos_++];
-      agg_results_[i].inited = false;  // used by Min/Max
+    while (i < n_agg_results_) {
+      agg_results_[i].type = NDB_TYPE_UNDEFINED;
       agg_results_[i++].value.val_int64 = 0;
+      agg_results_[i].is_unsigned = false;
+      agg_results_[i].is_null = true;
     }
   }
 
@@ -60,7 +61,7 @@ bool AggInterpreter::Init() {
   return true;
 }
 
-bool TypeSupported(DataType type) {
+static bool TypeSupported(DataType type) {
   switch (type) {
     case NDB_TYPE_TINYINT:
     case NDB_TYPE_SMALLINT:
@@ -83,7 +84,7 @@ bool TypeSupported(DataType type) {
   return false;
 }
 
-bool IsUnsigned(DataType type) {
+static bool IsUnsigned(DataType type) {
   switch (type) {
     case NDB_TYPE_TINYUNSIGNED:
     case NDB_TYPE_SMALLUNSIGNED:
@@ -97,7 +98,7 @@ bool IsUnsigned(DataType type) {
 	return false;
 }
 
-DataType AlignedType(DataType type) {
+static DataType AlignedType(DataType type) {
   switch (type) {
     case NDB_TYPE_TINYINT:
     case NDB_TYPE_SMALLINT:
@@ -121,20 +122,144 @@ DataType AlignedType(DataType type) {
   return NDB_TYPE_UNDEFINED;
 }
 
-void SetRegisterNull(Register* reg) {
+static bool TestIfSumOverflowsUint64(uint64_t arg1, uint64_t arg2) {
+  return ULLONG_MAX - arg1 < arg2;
+}
+
+static void SetRegisterNull(Register* reg) {
   reg->is_null = true;
   reg->value.val_int64 = 0;
   reg->is_unsigned = false;
 }
 
-void ResetRegister(Register* reg) {
+static void ResetRegister(Register* reg) {
   reg->type = NDB_TYPE_UNDEFINED;
   SetRegisterNull(reg);
 }
 
+static int32_t Sum(const Register& a, AggResItem* res, bool print) {
+  assert(a.type != NDB_TYPE_UNDEFINED);
+  if (res->type == NDB_TYPE_UNDEFINED) {
+    // Agg result first initialized
+    *res = a;
+    if (print) {
+      fprintf(stderr, "Moz, Init AggRes to [%ld, %d, %d, %d]\n",
+          res->value.val_int64, res->type, res->is_unsigned, res->is_null);
+    }
+    assert(res->type != NDB_TYPE_UNDEFINED);
+    return 1;
+  }
+
+  if (a.is_null) {
+    // Register has null value
+    return 1;
+  }
+
+  DataType res_type = NDB_TYPE_UNDEFINED;
+  if (a.type == NDB_TYPE_DOUBLE || res->type == NDB_TYPE_DOUBLE) {
+    res_type = NDB_TYPE_DOUBLE;
+  } else {
+    assert(a.type == NDB_TYPE_BIGINT &&
+          (res->type == NDB_TYPE_BIGINT || res->type == NDB_TYPE_UNDEFINED));
+    res_type = NDB_TYPE_BIGINT;
+  }
+
+  if (res_type == NDB_TYPE_BIGINT) {
+    int64_t val0 = a.value.val_int64;
+    int64_t val1 = res->value.val_int64;
+    int64_t res_val = static_cast<uint64_t>(val0) + static_cast<uint64_t>(val1);
+    bool res_unsigned = false;
+
+    if (a.is_unsigned) {
+      if (res->is_unsigned || val1 >= 0) {
+        if (TestIfSumOverflowsUint64((uint64_t)val0, (uint64_t)val1)) {
+          // overflows;
+          return -1;
+        } else {
+          res_unsigned = true;
+        }
+      } else {
+        if ((uint64_t)val0 > (uint64_t)(LLONG_MAX)) {
+          res_unsigned = true;
+        }
+      }
+    } else {
+      if (res->is_unsigned) {
+        if (val0 >= 0) {
+          if (TestIfSumOverflowsUint64((uint64_t)val0, (uint64_t)val1)) {
+            // overflows;
+            return -1;
+          } else {
+            res_unsigned = true;
+          }
+        } else {
+          if ((uint64_t)val1 > (uint64_t)(LLONG_MAX)) {
+            res_unsigned = true;
+          }
+        }
+      } else {
+        if (val0 >= 0 && val1 >= 0) {
+          res_unsigned = true;
+        } else if (val0 < 0 && val1 < 0 && res_val >= 0) {
+          // overflow
+          return -1;
+        }
+      }
+    }
+
+    // Check if res_val is overflow
+    bool unsigned_flag = false;
+    if (res_type == NDB_TYPE_BIGINT) {
+      unsigned_flag = (a.is_unsigned | res->is_unsigned);
+    } else {
+      assert(res_type == NDB_TYPE_DOUBLE);
+      unsigned_flag = (a.is_unsigned & res->is_unsigned);
+    }
+    if ((unsigned_flag && !res_unsigned && res_val < 0) ||
+        (!unsigned_flag && res_unsigned &&
+         (uint64_t)res_val > (uint64_t)LLONG_MAX)) {
+      return -1;
+    } else {
+      if (unsigned_flag) {
+        res->value.val_uint64 = res_val;
+      } else {
+        res->value.val_int64 = res_val;
+      }
+    }
+    res->is_unsigned = unsigned_flag;
+  } else {
+    double val0 = (a.type == NDB_TYPE_DOUBLE) ?
+                     a.value.val_double :
+                     ((a.is_unsigned == true) ?
+                       static_cast<double>(a.value.val_uint64) :
+                       static_cast<double>(a.value.val_int64));
+    double val1 = (res->type == NDB_TYPE_DOUBLE) ?
+                     res->value.val_double :
+                     ((res->is_unsigned == true) ?
+                       static_cast<double>(res->value.val_uint64) :
+                       static_cast<double>(res->value.val_int64));
+    double res_val = val0 + val1;
+    if (std::isfinite(res_val)) {
+      res->value.val_double = res_val;
+    } else {
+      // overflow
+      return -1;
+    }
+    res->is_unsigned = false;
+  }
+
+  res->type = res_type;
+
+  if (print) {
+    fprintf(stderr, "Moz, Update AggRes to [%ld, %d, %d, %d]\n",
+        res->value.val_int64, res->type, res->is_unsigned, res->is_null);
+  }
+  return 0;
+}
+
 bool AggInterpreter::ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct) {
   assert(inited_ && n_agg_results_ == 1 &&
-         n_gb_cols_ == 1 && prog_len_ == 6 && agg_prog_start_pos_ == 4);
+         n_gb_cols_ == 1 && prog_len_ == 5 && agg_prog_start_pos_ == 3);
 
 	AggResItem* agg_res_ptr = nullptr;
   if (n_gb_cols_) {
@@ -190,7 +315,7 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struc
   // DataType type2;
   // bool is_unsigned2;
   // uint32_t reg_index2;
-  //uint32_t agg_index;
+  uint32_t agg_index;
   uint32_t col_index;
 
   const uint32_t* attrDescriptor = nullptr;
@@ -293,6 +418,16 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struc
 				}
 				break;
       case kOpSum:
+				type = (value & 0x03E00000) >> 21;
+				is_unsigned = IsUnsigned(type);
+				reg_index = (value & 0x000F0000) >> 16;
+        agg_index = (value & 0x0000FFFF);
+
+        ret = Sum(registers_[reg_index], &agg_res_ptr[agg_index], print_);
+        if (ret < 0) {
+          fprintf(stderr, "Overflow, value is out of range\n");
+        }
+        assert(ret >= 0);
         break;
       default:
         assert(0);
@@ -300,3 +435,73 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struc
   }
   return true;
 }
+
+void AggInterpreter::Print() {
+  if (!print_) {
+    return;
+  }
+  if (n_gb_cols_) {
+    if (gb_map_) {
+      fprintf(stderr, "Group by columns: [");
+      for (uint32_t i = 0; i < n_gb_cols_; i++) {
+        if (i != n_gb_cols_ - 1) {
+          fprintf(stderr, "%u ", gb_cols_[i] >> 16);
+        } else {
+          fprintf(stderr, "%u", gb_cols_[i] >> 16);
+        }
+      }
+      fprintf(stderr, "]\n");
+      fprintf(stderr, "Num of groups: %lu\n", gb_map_->size());
+      fprintf(stderr, "Aggregation results:\n");
+
+      for (auto iter = gb_map_->begin(); iter != gb_map_->end(); iter++) {
+        int pos = 0;
+        fprintf(stderr, "(");
+        for (uint32_t i = 0; i < n_gb_cols_; i++) {
+          if (i != n_gb_cols_ - 1) {
+            fprintf(stderr, "%u: %p, ", i, iter->first.ptr + pos);
+          } else {
+            fprintf(stderr, "%u: %p): ", i, iter->first.ptr + pos);
+          }
+        }
+
+        AggResItem* item = reinterpret_cast<AggResItem*>(iter->second.ptr);
+        for (uint32_t i = 0; i < n_agg_results_; i++) {
+          switch (item[i].type) {
+            case NDB_TYPE_BIGINT:
+              // fprintf(stderr, "    (NDB_TYPE_BIGINT: %ld)\n", item[i].value.val_int64);
+              fprintf(stderr, "[%15ld]", item[i].value.val_int64);
+              break;
+
+            case NDB_TYPE_DOUBLE:
+              // fprintf(stderr, "    (NDB_TYPE_DOUBLE: %.16f)\n", item[i].value.val_double);
+              fprintf(stderr, "[%31.16f]", item[i].value.val_double);
+              break;
+            default:
+              assert(0);
+          }
+        }
+        fprintf(stderr, "\n");
+      }
+    }
+  } else {
+    AggResItem* item = agg_results_;
+    for (uint32_t i = 0; i < n_agg_results_; i++) {
+      switch (item[i].type) {
+        case NDB_TYPE_BIGINT:
+          // fprintf(stderr, "    (NDB_TYPE_BIGINT: %ld)\n", item[i].value.val_int64);
+          fprintf(stderr, "[%15ld]", item[i].value.val_int64);
+          break;
+
+        case NDB_TYPE_DOUBLE:
+          // fprintf(stderr, "    (NDB_TYPE_DOUBLE: %.16f)\n", item[i].value.val_double);
+          fprintf(stderr, "[%31.16f]", item[i].value.val_double);
+          break;
+        default:
+          assert(0);
+      }
+    }
+    fprintf(stderr, "\n");
+  }
+}
+

@@ -10,18 +10,6 @@
 #include <map>
 #include "Dbtup.hpp"
 
-enum AggColumnType {
-  kTypeUnknown = 0,
-  kTypeTinyInt,
-  kTypeSmallInt,
-  kTypeMediumInt,
-  kTypeInt,
-  kTypeBigInt,
-  kTypeFloat,
-  kTypeDouble,
-  kTypeVarchar
-};
-
 struct GBHashEntry {
   char *ptr;
   uint32_t len;
@@ -84,32 +72,28 @@ struct Register {
   bool is_null;
 };
 
-struct AggResItem {
-  DataType type;
-  DataValue value;
-  bool is_unsigned;
-  bool inited;  // used by Min/Max
-};
+typedef Register AggResItem;
 
 struct GBColInfo {
-  AggColumnType type;
+  DataType type;
   bool is_unsigned;
 };
 
 class AggInterpreter {
  public:
-  AggInterpreter(const uint32_t* prog, uint32_t prog_len):
+  AggInterpreter(const uint32_t* prog, uint32_t prog_len, bool print):
     prog_len_(prog_len), cur_pos_(0),
     inited_(false), n_gb_cols_(0), gb_cols_(nullptr),
     n_agg_results_(0),
     agg_results_(nullptr), agg_prog_start_pos_(0),
     gb_map_(nullptr), n_groups_(0),
-		buf_pos_(0) {
+		buf_pos_(0), print_(print) {
       prog_ = new uint32_t[prog_len];
       memcpy(prog_, prog, prog_len * sizeof(uint32_t));
 			memset(buf_, 0, 2048 * sizeof(uint32_t));
   }
   ~AggInterpreter() {
+    Print();
     delete[] prog_;
     delete[] gb_cols_;
     delete[] agg_results_;
@@ -144,5 +128,6 @@ class AggInterpreter {
 	uint32_t buf_[2048];
 	uint32_t buf_pos_;
 	static uint32_t g_buf_len_;
+  bool print_;
 };
 #endif  // AGGINTERPRETER_H_
