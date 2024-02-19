@@ -191,18 +191,26 @@ void Dbtup::scanProcedure(Signal* signal,
     // hard code aggregation program for testing
     Uint32 start_pos = lenAttrInfo;
     Uint32 curr_pos = lenAttrInfo;
-		Uint16 proc_len = 5;
+		Uint16 proc_len = 7;
     handle->m_ptr[0].p->theData[curr_pos++] = (0x0721) << 16 | proc_len;
     handle->m_ptr[0].p->theData[curr_pos++] = 1 << 16 | 1;                // agg result num 1
     handle->m_ptr[0].p->theData[curr_pos++] = 12 << 16;                   // group by col
     handle->m_ptr[0].p->theData[curr_pos++] =
                 (kOpLoadCol) << 26 |                                      // LOADCOL
-                (NDB_TYPE_INT & 0x1F) << 21 |                             // NDB_TYPE_INT
+                (NDB_TYPE_INT & 0x1F) << 21 |                             // "TYPE"
                 (kReg1 & 0x0F) << 16 |                                    // Register 1
                 0;                                                        // Column 0
     handle->m_ptr[0].p->theData[curr_pos++] =
-                (kOpSum) << 26 |                                          // SUM
-                (NDB_TYPE_INT & 0x1F) << 21 |                             // NDB_TYPE_INT (Reg 1)
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_FLOAT & 0x1F) << 21 |                           // "TYPE"
+                (kReg2 & 0x0F) << 16 |                                    // Register 2
+                10;                                                       // Column 10
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpPlus) << 26 |                                         // PLUS
+                (kReg1 & 0x0F) << 12 |                                    // Register 1
+                (kReg2 & 0x0F) << 8;                                      // Register 2
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpCount) << 26 |                                        // "OPERATION"
                 (kReg1 & 0x0F) << 16 |                                    // Register 1
                 0;                                                        // agg_result 0
 

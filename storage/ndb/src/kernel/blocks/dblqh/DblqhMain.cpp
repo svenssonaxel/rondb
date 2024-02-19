@@ -18703,7 +18703,7 @@ void Dblqh::accScanConfScanLab(Signal* signal,
     // temporary solution, just for hardcode agg program
     // remove later
     if (regTcPtr->tableref == 17 && bool(regTcPtr->opExec)) {
-      scanptr.p->scanAiLength += 5;
+      scanptr.p->scanAiLength += 7;
     }
     if (likely(signal->theData[0] == 0))
     {

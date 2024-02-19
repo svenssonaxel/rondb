@@ -473,52 +473,56 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
               *((uint8_t*)ahOut->getDataPtr() + 1),
               *((uint8_t*)ahOut->getDataPtr() + 2),
               *((uint8_t*)ahOut->getDataPtr() + 3));
-          int32_t tmp_val;
-          uint32_t tmp_uval;
-          switch (attributeId) {
-            case 0:
-              fprintf(stderr, "VALUE: %d\n", *(int32*)ahOut->getDataPtr());
-              break;
-            case 1:
-              fprintf(stderr, "VALUE: %d\n", *(int8*)ahOut->getDataPtr());
-              break;
-            case 2:
-              fprintf(stderr, "VALUE: %d\n", *(int16*)ahOut->getDataPtr());
-              break;
-            case 3:
-              tmp_val = sint3korr((int8*)ahOut->getDataPtr());
-              fprintf(stderr, "VALUE: %d\n", tmp_val);
-              break;
-            case 4:
-              fprintf(stderr, "VALUE: %ld\n", *(int64*)ahOut->getDataPtr());
-              break;
-            case 5:
-              fprintf(stderr, "VALUE: %u\n", *(uint8*)ahOut->getDataPtr());
-              break;
-            case 6:
-              fprintf(stderr, "VALUE: %u\n", *(uint16*)ahOut->getDataPtr());
-              break;
-            case 7:
-              tmp_uval = uint3korr((uint8*)ahOut->getDataPtr());
-              fprintf(stderr, "VALUE: %u\n", tmp_uval);
-							break;
-            case 8:
-              fprintf(stderr, "VALUE: %u\n", *(uint32*)ahOut->getDataPtr());
-              break;
-            case 9:
-              fprintf(stderr, "VALUE: %lu\n", *(uint64*)ahOut->getDataPtr());
-              break;
-            case 10:
-              fprintf(stderr, "VALUE: %f\n", *(float*)ahOut->getDataPtr());
-              break;
-            case 11:
-              fprintf(stderr, "VALUE: %lf\n", *(double*)ahOut->getDataPtr());
-              break;
-            case 12:
-              fprintf(stderr, "VALUE: %s\n", (char*)ahOut->getDataPtr());
-              break;
-            default:
-              break;
+          if (ahOut->isNULL()) {
+            fprintf(stderr, "VALUE: [NULL]\n");
+          } else {
+            int32_t tmp_val;
+            uint32_t tmp_uval;
+            switch (attributeId) {
+              case 0:
+                fprintf(stderr, "VALUE: %d\n", *(int32*)ahOut->getDataPtr());
+                break;
+              case 1:
+                fprintf(stderr, "VALUE: %d\n", *(int8*)ahOut->getDataPtr());
+                break;
+              case 2:
+                fprintf(stderr, "VALUE: %d\n", *(int16*)ahOut->getDataPtr());
+                break;
+              case 3:
+                tmp_val = sint3korr((int8*)ahOut->getDataPtr());
+                fprintf(stderr, "VALUE: %d\n", tmp_val);
+                break;
+              case 4:
+                fprintf(stderr, "VALUE: %ld\n", *(int64*)ahOut->getDataPtr());
+                break;
+              case 5:
+                fprintf(stderr, "VALUE: %u\n", *(uint8*)ahOut->getDataPtr());
+                break;
+              case 6:
+                fprintf(stderr, "VALUE: %u\n", *(uint16*)ahOut->getDataPtr());
+                break;
+              case 7:
+                tmp_uval = uint3korr((uint8*)ahOut->getDataPtr());
+                fprintf(stderr, "VALUE: %u\n", tmp_uval);
+                break;
+              case 8:
+                fprintf(stderr, "VALUE: %u\n", *(uint32*)ahOut->getDataPtr());
+                break;
+              case 9:
+                fprintf(stderr, "VALUE: %lu\n", *(uint64*)ahOut->getDataPtr());
+                break;
+              case 10:
+                fprintf(stderr, "VALUE: %f\n", *(float*)ahOut->getDataPtr());
+                break;
+              case 11:
+                fprintf(stderr, "VALUE: %lf\n", *(double*)ahOut->getDataPtr());
+                break;
+              case 12:
+                fprintf(stderr, "VALUE: %s\n", (char*)ahOut->getDataPtr());
+                break;
+              default:
+                break;
+            }
           }
         }
 
