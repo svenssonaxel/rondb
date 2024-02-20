@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -5969,7 +5969,7 @@ NdbDictInterface::createIndex(const NdbIndexImpl & impl,
 
   int errCodes[] = { CreateIndxRef::Busy, CreateIndxRef::NotMaster, 0 };
 
-  int timeout = DICT_SHORT_WAITFOR_TIMEOUT;
+  int timeout = DICT_LONG_WAITFOR_TIMEOUT;
   DBUG_EXECUTE_IF("ndb_dictsignal_timeout", {
     DBUG_PRINT("info", ("Reducing timeout for DICT GSN_CREATE_INDX_REQ"
                         " in NdbDictInterface::createIndex()"));
