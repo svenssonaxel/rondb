@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2004, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2024, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +32,7 @@ extern const char *tab_path;
 bool
 BackupPrinter::table(const TableS & tab)
 {
-  if (m_print || m_print_meta) 
+  if (m_print_meta)
   {
     m_ndbout << tab;
     info.setLevel(254);
@@ -44,7 +45,7 @@ bool
 BackupPrinter::tuple(const TupleS & tup, Uint32 fragId)
 {
   m_dataCount++;
-  if (m_print || m_print_data)
+  if (m_print_data)
   {
     if (m_ndbout.m_out == info.m_out)
     {
@@ -62,7 +63,7 @@ BackupPrinter::tuple(const TupleS & tup, Uint32 fragId)
 bool
 BackupPrinter::logEntry(const LogEntry & logE)
 {
-  if (m_print || m_print_log)
+  if (m_print_log)
     m_ndbout << logE << endl;
   else if(m_print_sql_log)
   {
@@ -76,7 +77,7 @@ BackupPrinter::logEntry(const LogEntry & logE)
 void
 BackupPrinter::endOfLogEntrys()
 {
-  if (m_print || m_print_log || m_print_sql_log)
+  if (m_print_data || m_print_log || m_print_sql_log)
   {
     info.setLevel(254);
     info << "Printed " << m_dataCount << " tuples and "
@@ -87,17 +88,11 @@ BackupPrinter::endOfLogEntrys()
 bool
 BackupPrinter::update_apply_status(const RestoreMetaData &metaData, bool snapshotstart)
 {
-  if (m_print)
-  {
-  }
   return true;
 }
 
 bool
 BackupPrinter::delete_epoch_tuple()
 {
-  if (m_print)
-  {
-  }
   return true;
 }

@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -831,7 +831,7 @@ readArguments(Ndb_opts & opts, char*** pargv)
       info << endl;
   }
 
-  if (ga_restore)
+  if (ga_restore || ga_print) // TODO: should ga_print be here?
   {
     // Exclude privilege tables unless explicitly included
     if (!opt_restore_privilege_tables)
@@ -993,9 +993,9 @@ bool create_consumers(RestoreThreadData *data)
 
   if (_print)
   {
-    ga_print = true;
-    ga_restore = true;
-    printer->m_print = true;
+    _print_meta = true;
+    _print_data = true;
+    _print_log = true;
   }
   if (_print_meta)
   {
@@ -3092,7 +3092,7 @@ main(int argc, char** argv)
 
   g_restoring_in_parallel = true;
   // check if single-threaded restore is necessary
-  if (_print || _print_meta || _print_data || _print_log || _print_sql_log
+  if (_print_meta || _print_data || _print_log || _print_sql_log
              || ga_backup_format == BF_SINGLE)
   {
     g_restoring_in_parallel = false;
