@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -44,6 +44,7 @@
 #if (defined(VM_TRACE) || defined(ERROR_INSERT))
 //#define DEBUG_INDEX_BUILD 1
 #endif
+#define DEBUG_INDEX_BUILD 1
 
 #ifdef DEBUG_INDEX_BUILD
 #define DEB_INDEX_BUILD(arglist) do { g_eventLogger->info arglist ; } while (0)

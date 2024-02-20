@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2004, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2023, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1335,18 +1335,28 @@ BackupRestore::rebuild_indexes(const TableS& table)
     const char * const idx_name = idx->getName();
     const char * const tab_name = idx->getTable();
     const NDB_TICKS start = NdbTick_getCurrentTicks();
-    restoreLogger.log_info("Rebuilding index `%s` on table `%s` ...",
-        idx_name, tab_name);
     if (!ndbapi_dict_operation_retry(
             [idx, idx_name, tab_name](NdbDictionary::Dictionary *dict) {
               if (!dict->getIndex(idx_name, tab_name)) {
+                restoreLogger.log_info("===dbg=== Rebuilding index `%s` on table `%s` ...",
+                                       idx_name, tab_name);
+                int ciret = dict->createIndex(*idx, 1);
+                if(ciret)restoreLogger.log_info("===dbg=== Error rebuilding index `%s` on table `%s`: %d", idx_name, tab_name, ciret);
+                return ciret;
+              } else {
+                restoreLogger.log_info("===dbg=== Before rebuilding index `%s` on table `%s` we must drop it.", idx_name, tab_name);
+                int diret = dict->dropIndex(idx_name, tab_name);
+                restoreLogger.log_info("===dbg=== Dropping index `%s` on table `%s` returned %d", idx_name, tab_name, diret);
+                if(diret) return diret;
+                restoreLogger.log_info("===dbg=== Rebuilding index `%s` on table `%s` ...", idx_name, tab_name);
                 return dict->createIndex(*idx, 1);
-              } else
-                return 0;
+                //restoreLogger.log_info("===dbg=== Skipping rebuild of index `%s` on table `%s` since it already exists.", idx_name, tab_name);
+                //return 0;
+              }
             },
             dict)) {
       restoreLogger.log_error(
-          "Rebuilding index `%s` on table `%s` failed: %u: %s", idx_name,
+          "===dbg=== Rebuilding index `%s` on table `%s` failed: %u: %s", idx_name,
           tab_name, dict->getNdbError().code, dict->getNdbError().message);
       return false;
     }
@@ -3584,6 +3594,8 @@ BackupRestore::endOfTablesFK()
           return false;
         }
         cols[i++] = pCol;
+        restoreLogger.log_info("===dbg=== Foreign key %s fk column %u parent column %u is named %s",
+                               fkname, i, j, pCol->getName());
       }
       cols[i] = 0;
       fk.setParent(*pTab, pInd, cols);
@@ -3604,6 +3616,8 @@ BackupRestore::endOfTablesFK()
           return false;
         }
         cols[i++] = cCol;
+        restoreLogger.log_info("===dbg=== Foreign key %s fk column %u child column %u is named %s",
+                               fkname, i, j, cCol->getName());
       }
       cols[i] = 0;
       fk.setChild(*cTab, cInd, cols);
@@ -3611,21 +3625,22 @@ BackupRestore::endOfTablesFK()
     fk.setOnUpdateAction(fkinfo.getOnUpdateAction());
     fk.setOnDeleteAction(fkinfo.getOnDeleteAction());
 
-    restoreLogger.log_info("Creating foreign key: %s", fkname);
+    restoreLogger.log_info("===dbg=== Creating foreign key %s parent %s child %s",
+                           fkname, pInfo, cInfo);
     if (!ndbapi_dict_operation_retry(
             [fk](NdbDictionary::Dictionary *dict) {
               return dict->createForeignKey(fk);
             },
             dict)) {
       restoreLogger.log_error(
-          "Failed to create foreign key %s"
+          "===dbg=== Failed to create foreign key %s"
           " parent %s child %s : %u: %s",
           fkname, pInfo, cInfo, dict->getNdbError().code,
           dict->getNdbError().message);
       return false;
     }
     restoreLogger.log_info(
-        "Successfully created foreign key %s parent %s child %s", fkname, pInfo,
+        "===dbg=== Successfully created foreign key %s parent %s child %s", fkname, pInfo,
         cInfo);
   }
   restoreLogger.log_info("Create foreign keys done");
@@ -3638,7 +3653,7 @@ bool BackupRestore::ndbapi_dict_operation_retry(
   int retries;
   for (retries = 0; retries < MAX_RETRIES; retries++) {
     if (func(dict) != 0) {
-      if (dict->getNdbError().status != NdbError::TemporaryError) {
+      if (dict->getNdbError().status != NdbError::TemporaryError) { //
         return false;
       }
       restoreLogger.log_error("Failed with temporary error: %d %s",

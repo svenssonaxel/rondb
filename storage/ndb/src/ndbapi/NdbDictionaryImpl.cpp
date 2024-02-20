@@ -5965,7 +5965,7 @@ NdbDictInterface::createIndex(const NdbIndexImpl & impl,
   ptr[0].p = (Uint32*)&attributeList;
   ptr[0].sz = 1 + attributeList.sz;
   ptr[1].p = (const Uint32*)m_buffer.get_data();
-  ptr[1].sz = m_buffer.length() >> 2;                //BUG?
+  ptr[1].sz = m_buffer.length() >> 2;                //BUG??
 
   int errCodes[] = { CreateIndxRef::Busy, CreateIndxRef::NotMaster, 0 };
 

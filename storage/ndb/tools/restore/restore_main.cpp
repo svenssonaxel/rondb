@@ -38,6 +38,7 @@
 #include "my_getopt.h"
 #include "util/ndb_openssl_evp.h" // ndb_openssl_evp::library_init()
 #include "portlib/NdbTick.h"
+//#include <NdbSleep.h>
 
 #include "../src/ndbapi/NdbDictionaryImpl.hpp"
 #include "consumer_printer.hpp"
@@ -2850,8 +2851,10 @@ int do_restore(RestoreThreadData *thrdata)
         {
           return NdbToolsProgramExitCode::FAILED;
         }
+        //NdbSleep_MilliSleep(1000);
       }
     }
+    //NdbSleep_MilliSleep(5000);
     for (Uint32 j = 0; j < g_consumers.size(); j++)
     {
       if (!g_consumers[j]->endOfTablesFK())
