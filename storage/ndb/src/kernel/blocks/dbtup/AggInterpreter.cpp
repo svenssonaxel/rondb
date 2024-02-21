@@ -11,6 +11,10 @@
 
 uint32_t AggInterpreter::g_buf_len_ = 2048;
 
+// TODO (zhao) Remove them later
+std::mutex g_agg_mutex;
+AggInterpreter* g_agg_results[2] = {nullptr};
+
 bool AggInterpreter::Init() {
   if (inited_) {
     return true;
@@ -254,7 +258,8 @@ static int32_t RegPlusReg(const Register& a, const Register& b, Register* res) {
   return 0;
 }
 
-static int32_t RegMinusReg(const Register& a, const Register& b, Register* res) {
+static int32_t RegMinusReg(const Register& a, const Register& b,
+                           Register* res) {
   assert(a.type != NDB_TYPE_UNDEFINED && b.type != NDB_TYPE_UNDEFINED);
 
   DataType res_type = NDB_TYPE_UNDEFINED;
@@ -582,7 +587,6 @@ static int32_t RegDivReg(const Register& a, const Register& b, Register* res) {
       SetRegisterNull(res);
       res->is_unsigned = res_unsigned;
     } else {
-
       uval0 = static_cast<uint64_t>(val0_negative &&
           val0 != LLONG_MIN ? -val0 : val0);
       uval1 = static_cast<uint64_t>(val1_negative &&
@@ -686,7 +690,6 @@ static int32_t RegModReg(const Register& a, const Register& b, Register* res) {
       SetRegisterNull(res);
       res->is_unsigned = res_unsigned;
     } else {
-
       uval0 = static_cast<uint64_t>(val0_negative &&
           val0 != LLONG_MIN ? -val0 : val0);
       uval1 = static_cast<uint64_t>(val1_negative &&
@@ -1060,8 +1063,8 @@ static int32_t Count(const Register& a, AggResItem* res, bool print) {
 
 bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         Dbtup::KeyReqStruct* req_struct) {
-  assert(inited_ && n_agg_results_ == 1 &&
-         n_gb_cols_ == 1 && prog_len_ == 7 && agg_prog_start_pos_ == 3);
+  assert(inited_ && n_agg_results_ == 4 &&
+         n_gb_cols_ == 1 && prog_len_ == 25 && agg_prog_start_pos_ == 3);
 
   AggResItem* agg_res_ptr = nullptr;
   if (n_gb_cols_) {
@@ -1131,7 +1134,7 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 
     switch (op) {
       case kOpPlus:
-        reg_index = (value & 0x000F0000) >> 16;
+        reg_index = (value & 0x0000F000) >> 12;
         reg_index2 = (value & 0x00000F00) >> 8;
 
         ret = RegPlusReg(registers_[reg_index], registers_[reg_index2],
@@ -1142,7 +1145,7 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         assert(ret >= 0);
         break;
       case kOpMinus:
-        reg_index = (value & 0x000F0000) >> 16;
+        reg_index = (value & 0x0000F000) >> 12;
         reg_index2 = (value & 0x00000F00) >> 8;
 
         ret = RegMinusReg(registers_[reg_index], registers_[reg_index2],
@@ -1153,7 +1156,7 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         assert(ret >= 0);
         break;
       case kOpMul:
-        reg_index = (value & 0x000F0000) >> 16;
+        reg_index = (value & 0x0000F000) >> 12;
         reg_index2 = (value & 0x00000F00) >> 8;
 
         ret = RegMulReg(registers_[reg_index], registers_[reg_index2],
@@ -1164,7 +1167,7 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         assert(ret >= 0);
         break;
       case kOpDiv:
-        reg_index = (value & 0x000F0000) >> 16;
+        reg_index = (value & 0x0000F000) >> 12;
         reg_index2 = (value & 0x00000F00) >> 8;
 
         ret = RegDivReg(registers_[reg_index], registers_[reg_index2],
@@ -1175,7 +1178,7 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         assert(ret >= 0);
         break;
       case kOpMod:
-        reg_index = (value & 0x000F0000) >> 16;
+        reg_index = (value & 0x0000F000) >> 12;
         reg_index2 = (value & 0x00000F00) >> 8;
 
         ret = RegModReg(registers_[reg_index], registers_[reg_index2],
@@ -1292,6 +1295,41 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
             assert(0);
         }
         break;
+      case kOpLoadConst:
+        type = (value & 0x03E00000) >> 21;
+        reg_index = (value & 0x000F0000) >> 16;
+        assert(type == NDB_TYPE_BIGINT || type == NDB_TYPE_BIGUNSIGNED ||
+               type == NDB_TYPE_DOUBLE);
+        ResetRegister(&registers_[reg_index]);
+        registers_[reg_index].type = AlignedType(type);
+        registers_[reg_index].is_unsigned = IsUnsigned(type);
+        registers_[reg_index].is_null = false;
+        switch (type) {
+          case NDB_TYPE_BIGINT:
+            registers_[reg_index].value.val_int64 =
+                sint8korr(reinterpret_cast<char*>(&prog_[exec_pos]));
+            fprintf(stderr, "Moz-Intp: LoadConst[%u] NDB_TYPE_BIGINT %ld\n",
+                reg_index, registers_[reg_index].value.val_int64);
+            break;
+          case NDB_TYPE_BIGUNSIGNED:
+            registers_[reg_index].value.val_uint64 =
+                uint8korr(reinterpret_cast<char*>(&prog_[exec_pos]));
+            fprintf(stderr, "Moz-Intp: LoadConst[%u] "
+                            "NDB_TYPE_BIGUNSIGNED %lu\n",
+                reg_index, registers_[reg_index].value.val_uint64);
+            break;
+          case NDB_TYPE_DOUBLE:
+            registers_[reg_index].value.val_double =
+                doubleget(reinterpret_cast<unsigned char*>(
+                      &prog_[exec_pos]));
+            fprintf(stderr, "Moz-Intp: LoadConst[%u] NDB_TYPE_DOUBLE %lf\n",
+                reg_index, registers_[reg_index].value.val_double);
+            break;
+          default:
+            assert(0);
+        }
+        exec_pos += 2;
+        break;
       case kOpSum:
         reg_index = (value & 0x000F0000) >> 16;
         agg_index = (value & 0x0000FFFF);
@@ -1332,9 +1370,9 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 }
 
 void AggInterpreter::Print() {
-  if (!print_) {
-    return;
-  }
+  // if (!print_) {
+  //   return;
+  // }
   if (n_gb_cols_) {
     if (gb_map_) {
       fprintf(stderr, "Group by columns: [");
@@ -1362,8 +1400,10 @@ void AggInterpreter::Print() {
 
         AggResItem* item = reinterpret_cast<AggResItem*>(iter->second.ptr);
         for (uint32_t i = 0; i < n_agg_results_; i++) {
+          fprintf(stderr, "(%u, %u, %u)", item[i].type,
+                  item[i].is_unsigned, item[i].is_null);
           if (item[i].is_null) {
-            fprintf(stderr, "[%s, %2u]", "NULL", item[i].type);
+            fprintf(stderr, "[NULL]");
           } else {
             switch (item[i].type) {
               case NDB_TYPE_BIGINT:
@@ -1383,8 +1423,10 @@ void AggInterpreter::Print() {
   } else {
     AggResItem* item = agg_results_;
     for (uint32_t i = 0; i < n_agg_results_; i++) {
+      fprintf(stderr, "(%u, %u, %u)", item[i].type,
+              item[i].is_unsigned, item[i].is_null);
       if (item[i].is_null) {
-        fprintf(stderr, "[NULL, %2u]", item[i].type);
+        fprintf(stderr, "[NULL]");
       } else {
         switch (item[i].type) {
           case NDB_TYPE_BIGINT:

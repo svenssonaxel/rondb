@@ -30,6 +30,7 @@
 #include <ndb_limits.h>
 #include <pc.hpp>
 #include "AggInterpreter.hpp"
+#include "include/my_byteorder.h"
 
 #define JAM_FILE_ID 406
 
@@ -191,28 +192,113 @@ void Dbtup::scanProcedure(Signal* signal,
     // hard code aggregation program for testing
     Uint32 start_pos = lenAttrInfo;
     Uint32 curr_pos = lenAttrInfo;
-		Uint16 proc_len = 7;
+		Uint16 proc_len = 25;
     handle->m_ptr[0].p->theData[curr_pos++] = (0x0721) << 16 | proc_len;
-    handle->m_ptr[0].p->theData[curr_pos++] = 1 << 16 | 1;                // agg result num 1
-    handle->m_ptr[0].p->theData[curr_pos++] = 12 << 16;                   // group by col
+    handle->m_ptr[0].p->theData[curr_pos++] = 1 << 16 | 4;                // Num of group by cols | Num of agg results
+    handle->m_ptr[0].p->theData[curr_pos++] = 12 << 16;                   // Group by col
+
+    // 1. SUM(UBIGINT + UTINYINT)
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_BIGUNSIGNED & 0x1F) << 21 |                     // "TYPE"
+                (kReg1 & 0x0F) << 16 |                                    // Register
+                9;                                                        // Column
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_TINYUNSIGNED & 0x1F) << 21 |                    // "TYPE"
+                (kReg2 & 0x0F) << 16 |                                    // Register
+                5;                                                        // Column
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpPlus) << 26 |                                         // "MATH OP"
+                (kReg1 & 0x0F) << 12 |                                    // Register
+                (kReg2 & 0x0F) << 8;                                      // Register
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpSum) << 26 |                                          // "AGG OP"
+                (kReg1 & 0x0F) << 16 |                                    // Register
+                0;                                                        // agg_result 
+
+    // 2. MAX(SMALLINT - MEDIUMINT)
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_SMALLINT & 0x1F) << 21 |                        // "TYPE"
+                (kReg1 & 0x0F) << 16 |                                    // Register
+                2;                                                        // Column
     handle->m_ptr[0].p->theData[curr_pos++] =
                 (kOpLoadCol) << 26 |                                      // LOADCOL
                 (NDB_TYPE_MEDIUMINT & 0x1F) << 21 |                       // "TYPE"
-                (kReg1 & 0x0F) << 16 |                                    // Register 1
+                (kReg2 & 0x0F) << 16 |                                    // Register
                 3;                                                        // Column
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpMinus) << 26 |                                        // "MATH OP"
+                (kReg1 & 0x0F) << 12 |                                    // Register
+                (kReg2 & 0x0F) << 8;                                      // Register
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpMax) << 26 |                                          // "AGG OP"
+                (kReg1 & 0x0F) << 16 |                                    // Register
+                1;                                                        // agg_result 
+
+    // 3. MIN((DOUBLE / INT) * (FLOAT + 3.5))
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_DOUBLE & 0x1F) << 21 |                          // "TYPE"
+                (kReg1 & 0x0F) << 16 |                                    // Register
+                11;                                                       // Column
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_INT & 0x1F) << 21 |                             // "TYPE"
+                (kReg2 & 0x0F) << 16 |                                    // Register
+                0;                                                        // Column
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpDiv) << 26 |                                          // "MATH OP"
+                (kReg1 & 0x0F) << 12 |                                    // Register
+                (kReg2 & 0x0F) << 8;                                      // Register
+
     handle->m_ptr[0].p->theData[curr_pos++] =
                 (kOpLoadCol) << 26 |                                      // LOADCOL
                 (NDB_TYPE_FLOAT & 0x1F) << 21 |                           // "TYPE"
-                (kReg2 & 0x0F) << 16 |                                    // Register 2
+                (kReg2 & 0x0F) << 16 |                                    // Register
                 10;                                                       // Column
     handle->m_ptr[0].p->theData[curr_pos++] =
-                (kOpMod) << 26 |                                          // "MATH OP"
-                (kReg1 & 0x0F) << 12 |                                    // Register 1
-                (kReg2 & 0x0F) << 8;                                      // Register 2
+                (kOpLoadConst) << 26 |                                    // LOADCONST
+                (NDB_TYPE_DOUBLE & 0x1F) << 21 |                          // "TYPE"
+                (kReg3 & 0x0F) << 16;                                     // Register
+    // longlongstore() for BIGINT
+    doublestore(reinterpret_cast<unsigned char*>(
+          &(handle->m_ptr[0].p->theData[curr_pos])), 3.5);
+    curr_pos += 2;
     handle->m_ptr[0].p->theData[curr_pos++] =
-                (kOpSum) << 26 |                                          // "AGG OP"
-                (kReg1 & 0x0F) << 16 |                                    // Register 1
-                0;                                                        // agg_result 0
+                (kOpPlus) << 26 |                                         // "MATH OP"
+                (kReg2 & 0x0F) << 12 |                                    // Register
+                (kReg3 & 0x0F) << 8;                                      // Register
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpMul) << 26 |                                          // "MATH OP"
+                (kReg1 & 0x0F) << 12 |                                    // Register
+                (kReg2 & 0x0F) << 8;                                      // Register
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpMin) << 26 |                                          // "AGG OP"
+                (kReg1 & 0x0F) << 16 |                                    // Register
+                2;                                                        // agg_result 
+
+    // 4. COUNT(UBIGINT % USMALLINT)
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_BIGUNSIGNED & 0x1F) << 21 |                     // "TYPE"
+                (kReg1 & 0x0F) << 16 |                                    // Register
+                9;                                                        // Column
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpLoadCol) << 26 |                                      // LOADCOL
+                (NDB_TYPE_SMALLUNSIGNED & 0x1F) << 21 |                   // "TYPE"
+                (kReg2 & 0x0F) << 16 |                                    // Register
+                6;                                                        // Column
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpMod) << 26 |                                          // "MATH OP"
+                (kReg1 & 0x0F) << 12 |                                    // Register
+                (kReg2 & 0x0F) << 8;                                      // Register
+    handle->m_ptr[0].p->theData[curr_pos++] =
+                (kOpCount) << 26 |                                        // "AGG OP"
+                (kReg1 & 0x0F) << 16 |                                    // Register
+                3;                                                        // agg_result 
+
 
     handle->m_ptr[0].p->m_sz = curr_pos;
     lenAttrInfo = curr_pos;

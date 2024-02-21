@@ -4039,6 +4039,8 @@ int Dbtup::interpreterStartLab(Signal* signal,
       if (scan.m_tableId == 17 && scan.m_fragId == 1) {
         fprintf(stderr, "Moz, interpreterStartLab, get scan_op_i %u for fragment %u\n",
             scanPtr.i, scan.m_fragId);
+      }
+      if (scan.m_tableId == 17) {
         scan.agg_interpreter->ProcessRec(this, req_struct);
       }
     }

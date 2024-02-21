@@ -3580,8 +3580,11 @@ Dbtup::stop_lcp_scan(Uint32 tableId, Uint32 fragId)
   scanPtr.p->m_tableId = RNIL;
 }
 
-void
-Dbtup::releaseScanOp(ScanOpPtr& scanPtr)
+// Moz
+// TODO (Zhao) remove them later
+extern std::mutex g_agg_mutex;
+extern AggInterpreter* g_agg_results[2];
+void Dbtup::releaseScanOp(ScanOpPtr& scanPtr)
 {
   FragrecordPtr fragPtr;
   fragPtr.i = scanPtr.p->m_fragPtrI;
@@ -3605,11 +3608,14 @@ Dbtup::releaseScanOp(ScanOpPtr& scanPtr)
   else
   {
     jam();
-    if (scanPtr.p->m_tableId == 17 && scanPtr.p->m_fragId == 1) {
+    g_agg_mutex.lock();
+    if (scanPtr.p->m_tableId == 17) {
       fprintf(stderr, "Moz, Destory aggregation interpreter in fragment %u\n",
           scanPtr.p->m_fragId);
     }
+    // TODO (Zhao) Should delete here
     delete scanPtr.p->agg_interpreter;
+    g_agg_mutex.unlock();
     c_scanOpPool.release(scanPtr);
     checkPoolShrinkNeed(DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX,
                         c_scanOpPool);

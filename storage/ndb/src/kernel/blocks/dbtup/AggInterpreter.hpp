@@ -8,6 +8,7 @@
 
 #include <math.h>
 #include <map>
+#include <mutex>
 #include "Dbtup.hpp"
 
 struct GBHashEntry {
@@ -23,7 +24,7 @@ enum InterpreterOp {
   kOpDiv,
   kOpMod,
   kOpLoadCol,
-  kOpStore,
+  kOpLoadConst,
   kOpSum,
   kOpMax,
   kOpMin,
