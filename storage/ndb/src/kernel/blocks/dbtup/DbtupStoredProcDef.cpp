@@ -197,20 +197,20 @@ void Dbtup::scanProcedure(Signal* signal,
     handle->m_ptr[0].p->theData[curr_pos++] = 12 << 16;                   // group by col
     handle->m_ptr[0].p->theData[curr_pos++] =
                 (kOpLoadCol) << 26 |                                      // LOADCOL
-                (NDB_TYPE_INT & 0x1F) << 21 |                             // "TYPE"
+                (NDB_TYPE_MEDIUMINT & 0x1F) << 21 |                       // "TYPE"
                 (kReg1 & 0x0F) << 16 |                                    // Register 1
-                0;                                                        // Column 0
+                3;                                                        // Column
     handle->m_ptr[0].p->theData[curr_pos++] =
                 (kOpLoadCol) << 26 |                                      // LOADCOL
                 (NDB_TYPE_FLOAT & 0x1F) << 21 |                           // "TYPE"
                 (kReg2 & 0x0F) << 16 |                                    // Register 2
-                10;                                                       // Column 10
+                10;                                                       // Column
     handle->m_ptr[0].p->theData[curr_pos++] =
-                (kOpPlus) << 26 |                                         // PLUS
+                (kOpMod) << 26 |                                          // "MATH OP"
                 (kReg1 & 0x0F) << 12 |                                    // Register 1
                 (kReg2 & 0x0F) << 8;                                      // Register 2
     handle->m_ptr[0].p->theData[curr_pos++] =
-                (kOpCount) << 26 |                                        // "OPERATION"
+                (kOpSum) << 26 |                                          // "AGG OP"
                 (kReg1 & 0x0F) << 16 |                                    // Register 1
                 0;                                                        // agg_result 0
 
