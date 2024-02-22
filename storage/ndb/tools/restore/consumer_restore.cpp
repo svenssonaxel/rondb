@@ -63,6 +63,7 @@ extern unsigned int opt_no_binlog;
 extern bool ga_skip_broken_objects;
 extern bool ga_continue_on_data_errors;
 extern bool ga_allow_unique_indexes;
+extern bool ga_rebuild_fk;
 
 extern Properties g_rewrite_databases;
 
@@ -1303,6 +1304,9 @@ bool
 BackupRestore::rebuild_indexes(const TableS& table)
 {
   if (!m_rebuild_indexes)
+     return true;
+
+  if (ga_rebuild_fk)
      return true;
 
   const char *tablename = table.getTableName();
@@ -3476,6 +3480,9 @@ BackupRestore::endOfTablesFK()
 {
   if (!m_restore_meta && !m_rebuild_indexes && !m_disable_indexes)
     return true;
+
+  if (!ga_rebuild_fk)
+     return true;
 
   NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
   restoreLogger.log_info("Create foreign keys");

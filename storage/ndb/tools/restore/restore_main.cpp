@@ -148,6 +148,7 @@ static int _no_restore_disk = 0;
 static bool _preserve_trailing_spaces = false;
 static bool ga_disable_indexes = false;
 static bool ga_rebuild_indexes = false;
+bool ga_rebuild_fk = false;
 bool ga_continue_on_data_errors = false;
 bool ga_allow_unique_indexes = false;
 bool ga_skip_unknown_objects = false;
@@ -471,6 +472,10 @@ static struct my_option my_long_options[] =
   { "rebuild-indexes", NDB_OPT_NOSHORT,
     "Rebuild indexes",
     &ga_rebuild_indexes, nullptr, nullptr,
+    GET_BOOL, NO_ARG, 0, 0, 0, 0, 0, 0 },
+  { "rebuild-fk", NDB_OPT_NOSHORT,
+    "Rebuild FK",
+    &ga_rebuild_fk, nullptr, nullptr,
     GET_BOOL, NO_ARG, 0, 0, 0, 0, 0, 0 },
   { "continue-on-data-errors", NDB_OPT_NOSHORT,
     "Continue after failing to restore data",
@@ -3041,6 +3046,8 @@ main(int argc, char** argv)
     g_options.append(" --allow-unique-indexes");
   if (ga_rebuild_indexes)
     g_options.append(" --rebuild-indexes");
+  if (ga_rebuild_fk)
+    g_options.append(" --rebuild-fk");
   g_options.appfmt(" -p %d", ga_nParallelism);
   if (ga_skip_unknown_objects)
     g_options.append(" --skip-unknown-objects");
