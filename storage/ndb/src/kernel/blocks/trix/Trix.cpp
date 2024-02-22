@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -872,6 +872,7 @@ void Trix::execUTIL_EXECUTE_CONF(Signal* signal)
 
 void Trix::execUTIL_EXECUTE_REF(Signal* signal)
 {
+  g_eventLogger->error("===dbg=== In Trix::execUTIL_EXECUTE_REF");
   jamEntry();
   UtilExecuteRef * utilExecuteRef = (UtilExecuteRef *)signal->getDataPtr();
   SubscriptionRecPtr subRecPtr;
@@ -905,9 +906,11 @@ void Trix::execUTIL_EXECUTE_REF(Signal* signal)
   else if (subRec->requestType == FK_BUILD &&
            utilExecuteRef->TCErrorCode == TUPLE_NOT_FOUND)
   {
+    g_eventLogger->error("===dbg=== In Trix::execUTIL_EXECUTE_REF, sending FK_NO_PARENT_ROW_EXISTS because subRec->requestType == FK_BUILD && utilExecuteRef->TCErrorCode == TUPLE_NOT_FOUND == %d", TUPLE_NOT_FOUND);
     jam();
     buildFailed(signal, subRecPtr,
                 (BuildIndxRef::ErrorCode)FK_NO_PARENT_ROW_EXISTS);
+    ndbrequire(false);
   }
   else
   {
@@ -2482,6 +2485,7 @@ Trix::statUtilPrepareConf(Signal* signal, Uint32 statPtrI)
     utilRef->senderData = stat.m_ownPtrI;
     utilRef->errorCode = UtilExecuteRef::AllocationError;
     utilRef->TCErrorCode = 0;
+    g_eventLogger->error("In Trix::statUtilPrepareConf, sendSignal UTIL_EXECUTE_REF");
     sendSignal(reference(), GSN_UTIL_EXECUTE_REF,
                signal, UtilExecuteRef::SignalLength, JBB);
     return;
@@ -2909,6 +2913,7 @@ Trix::statCleanExecute(Signal* signal, StatOp& stat)
     utilRef->senderData = stat.m_ownPtrI;
     utilRef->errorCode = UtilExecuteRef::TCError;
     utilRef->TCErrorCode = 626;
+    g_eventLogger->error("In Trix::statCleanExecute, sendSignal UTIL_EXECUTE_REF");
     sendSignal(reference(), GSN_UTIL_EXECUTE_REF,
                signal, UtilExecuteRef::SignalLength, JBB);
     subRec->expectedConf++;
@@ -3084,6 +3089,7 @@ Trix::statScanExecute(Signal* signal, StatOp& stat)
     utilRef->senderData = stat.m_ownPtrI;
     utilRef->errorCode = UtilExecuteRef::TCError;
     utilRef->TCErrorCode = 630;
+    g_eventLogger->error("In Trix::statScanExecute, sendSignal UTIL_EXECUTE_REF");
     sendSignal(reference(), GSN_UTIL_EXECUTE_REF,
                signal, UtilExecuteRef::SignalLength, JBB);
     subRec->expectedConf++;

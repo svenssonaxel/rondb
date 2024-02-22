@@ -1410,7 +1410,8 @@ BackupRestore::object(Uint32 type, const void * ptr)
     {
       NdbDictionary::LogfileGroup * lg = m_logfilegroups[old.getDefaultLogfileGroupId()];
       old.setDefaultLogfileGroup(* lg);
-      restoreLogger.log_info("Creating tablespace: %s...", old.getName());
+      restoreLogger.log_info("Creating tablespace: %s with ID %d...",
+                             old.getName(), id);
 
       if (!ndbapi_dict_operation_retry(
               [old](NdbDictionary::Dictionary *dict) {
@@ -1433,9 +1434,20 @@ BackupRestore::object(Uint32 type, const void * ptr)
       NdbDictionary::Tablespace* currptr = new NdbDictionary::Tablespace(curr);
       NdbDictionary::Tablespace * null = 0;
       m_tablespaces.set(currptr, id, null);
-      restoreLogger.log_debug("Retreived tablespace: %s oldid: %u newid: %u"
+      restoreLogger.log_info("Retreived tablespace: %s oldid: %u newid: %u"
           " %p", currptr->getName(), id, currptr->getObjectId(),
 	 (void*)currptr);
+      // Describe the tablespace
+      ndbout << "Type: Tablespace" << endl;
+      ndbout << "Name: " << curr.getName() << endl;
+      ndbout << "Object Version: " << curr.getObjectVersion() << endl;
+      ndbout << "Extent Size: " << curr.getExtentSize() << endl;
+      NdbDictionary::AutoGrowSpecification ags = curr.getAutoGrowSpecification();
+      ndbout << "AutoGrow.min_free: " << ags.min_free << endl;
+      ndbout << "AutoGrow.max_size: " << ags.max_size << endl;
+      ndbout << "AutoGrow.file_size: " << ags.file_size << endl;
+      ndbout << "AutoGrow.filename_pattern: " << ags.filename_pattern << endl;
+      // End of describing
       m_n_tablespace++;
       return true;
     }
@@ -1480,6 +1492,18 @@ BackupRestore::object(Uint32 type, const void * ptr)
       restoreLogger.log_debug("Retreived logfile group: %s oldid: %u newid: %u"
             " %p", currptr->getName(), id, currptr->getObjectId(),
             (void*)currptr);
+      // Describe the logfile group
+      ndbout << "Type: LogfileGroup" << endl;
+      ndbout << "Name: " << curr.getName() << endl;
+      ndbout << "UndoBuffer size: " << curr.getUndoBufferSize() << endl;
+      ndbout << "Version: " << curr.getObjectVersion() << endl;
+      ndbout << "Free Words: " << curr.getUndoFreeWords() << endl;
+      NdbDictionary::AutoGrowSpecification ags = curr.getAutoGrowSpecification();
+      ndbout << "AutoGrow.min_free: " << ags.min_free << endl;
+      ndbout << "AutoGrow.max_size: " << ags.max_size << endl;
+      ndbout << "AutoGrow.file_size: " << ags.file_size << endl;
+      ndbout << "AutoGrow.filename_pattern: " << ags.filename_pattern << endl;
+      // End of describing
       m_n_logfilegroup++;
       return true;
     }
@@ -3038,7 +3062,7 @@ BackupRestore::table(const TableS & table){
     if (copy.getTablespace(&id))
     {
       NdbDictionary::Tablespace* ts = m_tablespaces[id];
-      restoreLogger.log_debug("Connecting %s to tablespace oldid: %u newid: %u",
+      restoreLogger.log_info("Connecting %s to tablespace oldid: %u newid: %u",
                               name, id, ts->getObjectId());
       copy.setTablespace(* ts);
     }

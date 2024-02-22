@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2022, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2022, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1075,7 +1075,7 @@ void
 DbUtil::execUTIL_EXECUTE_REF(Signal* signal) {
   jamEntry();
 
-  g_eventLogger->info("UTIL_EXECUTE_REF");
+  g_eventLogger->error("DbUtil::execUTIL_EXECUTE_REF");
   printUTIL_EXECUTE_REF(stdout, signal->getDataPtrSend(), signal->length(), 0);
 }
 
@@ -1113,6 +1113,7 @@ DbUtil::sendUtilExecuteRef(Signal* signal, UtilExecuteRef::ErrorCode error,
   ref->errorCode   = error;
   ref->TCErrorCode = TCerror;
 
+  g_eventLogger->error("In DbUtil::sendUtilExecuteRef, sendSignal UTIL_EXECUTE_REF");
   sendSignal(recipient, GSN_UTIL_EXECUTE_REF, signal, 
 	     UtilPrepareRef::SignalLength, JBB);
 }
@@ -2670,6 +2671,7 @@ DbUtil::execTRANSID_AI(Signal* signal){
     return;
   }
 
+  g_eventLogger->error("In DbUtil::execTRANSID_AT, calling finishTransaction");
   finishTransaction(signal, transPtr);
 }
 
@@ -2738,6 +2740,7 @@ DbUtil::execTCKEYCONF(Signal* signal){
     jam();
     return;
   }
+  g_eventLogger->error("In DbUtil::execTCKEYCONF, calling finishTransaction");
   finishTransaction(signal, transPtr);
 }
 
@@ -2764,6 +2767,7 @@ DbUtil::execTCKEYREF(Signal* signal){
   //ndbout << "Transaction error (code: " << errCode << ")" << endl;
   
   transPtr.p->errorCode = errCode;
+  g_eventLogger->error("In DbUtil::execTCKEYREF, calling finishTransaction, transPtr.p->errorCode: %d", transPtr.p->errorCode);
   finishTransaction(signal, transPtr);
 }
 
@@ -2808,6 +2812,7 @@ DbUtil::execTCROLLBACKREP(Signal* signal){
   }
 
   transPtr.p->errorCode = errCode;
+  g_eventLogger->error("In DbUtil::execTCROLLBACKREP, calling finishTransaction, transPtr.p->errorCode: %d", transPtr.p->errorCode);
   finishTransaction(signal, transPtr);
 }
 
@@ -2845,6 +2850,7 @@ DbUtil::finishTransaction(Signal* signal, TransactionPtr transPtr){
       ret->senderData = transPtr.p->clientData;
       ret->errorCode = UtilExecuteRef::TCError;
       ret->TCErrorCode = transPtr.p->errorCode;
+      g_eventLogger->error("In DbUtil::finishTransaction, sendSignal UTIL_EXECUTE_REF");
       sendSignal(transPtr.p->clientRef, GSN_UTIL_EXECUTE_REF, signal, 
 		 UtilExecuteRef::SignalLength, JBB);
     } else {

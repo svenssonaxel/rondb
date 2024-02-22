@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2024, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -222,8 +223,12 @@ int desc_undofile(Ndb_cluster_connection &con, Ndb *myndb, char const* name)
     ndbout << "Node: " << id << endl;
     ndbout << "Path: " << uf.getPath() << endl;
     ndbout << "Size: " << uf.getSize() << endl;
+    ndbout << "Object Id: " << uf.getObjectId() << endl;
+    ndbout << "Object Version: " << uf.getObjectVersion() << endl;
+    ndbout << "Object Status: " << uf.getObjectStatus() << endl;
 
     ndbout << "Logfile Group: " << uf.getLogfileGroup() << endl;
+    // todo: logfilegroupid
 
     /** FIXME: are these needed, the functions aren't there
 	but the prototypes are...
@@ -259,8 +264,12 @@ int desc_datafile(Ndb_cluster_connection &con, Ndb *myndb, char const* name)
     ndbout << "Path: " << df.getPath() << endl;
     ndbout << "Size: " << df.getSize() << endl;
     ndbout << "Free: " << df.getFree() << endl;
+    ndbout << "Object Id: " << df.getObjectId() << endl;
+    ndbout << "Object Version: " << df.getObjectVersion() << endl;
+    ndbout << "Object Status: " << df.getObjectStatus() << endl;
 
     ndbout << "Tablespace: " << df.getTablespace() << endl;
+    // todo tablespaceid
 
     /** We probably don't need to display this ever...
 	ndbout << "Number: " << uf.getFileNo() << endl;

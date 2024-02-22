@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -18043,10 +18043,10 @@ void Dbdict::execUTIL_EXECUTE_REF(Signal *signal)
 #ifdef EVENT_DEBUG
   UtilExecuteRef * ref = (UtilExecuteRef *)signal->getDataPtrSend();
 
-  g_eventLogger->info("execUTIL_EXECUTE_REF");
-  g_eventLogger->info("senderData %u", ref->getSenderData());
-  g_eventLogger->info("errorCode %u", ref->getErrorCode());
-  g_eventLogger->info("TCErrorCode %u", ref->getTCErrorCode());
+  g_eventLogger->error("Dbdict::execUTIL_EXECUTE_REF");
+  g_eventLogger->error("senderData %u", ref->getSenderData());
+  g_eventLogger->error("errorCode %u", ref->getErrorCode());
+  g_eventLogger->error("TCErrorCode %u", ref->getTCErrorCode());
 #endif
 
   ndbrequire(recvSignalUtilReq(signal, 1) == 0);

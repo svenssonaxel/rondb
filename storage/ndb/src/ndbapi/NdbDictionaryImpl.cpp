@@ -3890,6 +3890,7 @@ NdbDictInterface::parseTableInfo(NdbTableImpl ** ret,
   impl->m_id = tableDesc->TableId;
   impl->m_version = tableDesc->TableVersion;
   impl->m_status = NdbDictionary::Object::Retrieved;
+  assert((tableDesc->RangeListDataLen & 0x3) == 0);
   if (!impl->m_internalName.assign(internalName) ||
       impl->updateMysqlName() ||
       !impl->m_externalName.assign(externalName) ||
@@ -3907,6 +3908,7 @@ NdbDictInterface::parseTableInfo(NdbTableImpl ** ret,
      *       and len is specified in bytes (yuck)
      *       please change to Uint32 and len == count
      */
+    assert((tableDesc->FragmentDataLen & 0x1) == 0);
     Uint32 cnt = tableDesc->FragmentDataLen / 2;
     for (Uint32 i = 0; i<cnt; i++)
       if (impl->m_fd.push_back((Uint32)tableDesc->FragmentData[i]))
