@@ -1,0 +1,58 @@
+Create table t1 with a unique index, and table t2 without.
+use test;
+create table t1 (
+id int primary key,
+val1 int unique) engine=ndb;
+create table t2 (
+id int primary key,
+val1 int) engine=ndb;
+insert into t1 values
+(1, 6),
+(3, 4),
+(2, 5);
+insert into t2 values
+(8, 11),
+(7, 12),
+(9, 10);
+Original database
+show create table t1;
+Table	Create Table
+t1	CREATE TABLE `t1` (
+  `id` int NOT NULL,
+  `val1` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `val1` (`val1`)
+) ENGINE=ndbcluster DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+select * from t1 order by id;
+id	val1
+1	6
+2	5
+3	4
+show create table t2;
+Table	Create Table
+t2	CREATE TABLE `t2` (
+  `id` int NOT NULL,
+  `val1` int DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=ndbcluster DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+select * from t2 order by id;
+id	val1
+7	12
+8	11
+9	10
+Backing up data
+Single-invocation per node
+- Restored database matches original
+drop database airflow;
+drop database antrise2;
+drop database antrise3;
+drop database glassfish_timers;
+drop database h2obrist;
+drop database hello2;
+drop database hopsworks;
+drop database hops;
+drop database metastore;
+ALTER TABLESPACE ts_1 drop datafile 'ts_1_data_file_0.dat';
+ALTER TABLESPACE ts_1 drop datafile 'ts_1_data_file_1.dat';
+DROP TABLESPACE ts_1;
+DROP LOGFILE GROUP lg_1 ENGINE ndbcluster;
