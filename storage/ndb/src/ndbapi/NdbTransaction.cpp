@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -2760,6 +2760,7 @@ Remark:         Handles the reception of the ROLLBACKREP signal.
 int
 NdbTransaction::receiveTCROLLBACKREP( const NdbApiSignal* aSignal)
 {
+  g_eventLogger->error("In NdbTransaction::receiveTCROLLBACKREP");
   DBUG_ENTER("NdbTransaction::receiveTCROLLBACKREP");
 
   /****************************************************************************

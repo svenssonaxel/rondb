@@ -154,7 +154,7 @@ Trix::execREAD_CONFIG_REQ(Signal* signal)
   Uint32 ref = req->senderRef;
   Uint32 senderData = req->senderData;
 
-  m_enable_debug_insert_build = false;
+  m_enable_debug_insert_build = true;
 
   const ndb_mgm_configuration_iterator * p = 
     m_ctx.m_config.getOwnConfigIterator();
@@ -872,7 +872,7 @@ void Trix::execUTIL_EXECUTE_CONF(Signal* signal)
 
 void Trix::execUTIL_EXECUTE_REF(Signal* signal)
 {
-  g_eventLogger->error("===dbg=== In Trix::execUTIL_EXECUTE_REF");
+  g_eventLogger->error("===dbg=== In Trix::execUTIL_EXECUTE_REF, signal Id %d sender %d", signal->getSignalId(), signal->header.theSendersSignalId);
   jamEntry();
   UtilExecuteRef * utilExecuteRef = (UtilExecuteRef *)signal->getDataPtr();
   SubscriptionRecPtr subRecPtr;

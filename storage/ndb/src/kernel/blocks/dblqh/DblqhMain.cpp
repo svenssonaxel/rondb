@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -9013,7 +9013,7 @@ Dblqh::handle_release_exclusive_frag_access(Fragrecord *fragPtrP)
 /* KEY INFORMATION, ATTRIBUTE INFORMATION, NODE INFORMATION AND A LOT MORE   */
 /* ------------------------------------------------------------------------- */
 void Dblqh::execLQHKEYREQ(Signal* signal) 
-{
+{  g_eventLogger->error("In Dblqh::execLQHKEYREQ with signal id %d, sender %d", signal->getSignalId(), signal->header.theSendersSignalId);
   if (unlikely(!assembleFragments(signal)))
   {
     jam();

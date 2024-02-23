@@ -2812,7 +2812,7 @@ DbUtil::execTCROLLBACKREP(Signal* signal){
   }
 
   transPtr.p->errorCode = errCode;
-  g_eventLogger->error("In DbUtil::execTCROLLBACKREP, calling finishTransaction, transPtr.p->errorCode: %d", transPtr.p->errorCode);
+  g_eventLogger->error("In DbUtil::execTCROLLBACKREP, calling finishTransaction, signal id %d, sender %d, transPtr.p->errorCode: %d", signal->getSignalId(), signal->header.theSendersSignalId, transPtr.p->errorCode);
   finishTransaction(signal, transPtr);
 }
 
@@ -2850,7 +2850,7 @@ DbUtil::finishTransaction(Signal* signal, TransactionPtr transPtr){
       ret->senderData = transPtr.p->clientData;
       ret->errorCode = UtilExecuteRef::TCError;
       ret->TCErrorCode = transPtr.p->errorCode;
-      g_eventLogger->error("In DbUtil::finishTransaction, sendSignal UTIL_EXECUTE_REF");
+      g_eventLogger->error("In DbUtil::finishTransaction, sendSignal UTIL_EXECUTE_REF, id %d sender %d", signal->getSignalId(), signal->header.theSendersSignalId);
       sendSignal(transPtr.p->clientRef, GSN_UTIL_EXECUTE_REF, signal, 
 		 UtilExecuteRef::SignalLength, JBB);
     } else {

@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -519,6 +519,7 @@ void Dbtc::execCONTINUEB(Signal* signal)
         jam();
         apiConnectptr.p->returnsignal = RS_TCROLLBACKREP;
         apiConnectptr.p->returncode = ZNODEFAIL_BEFORE_COMMIT;
+        g_eventLogger->error("In Dbtc::execCONTINUEB, returnsignal = RS_TCROLLBACKREP, returncode = ZNODEFAIL_BEFORE_COMMIT, call toAbortHandlingLab");
         toAbortHandlingLab(signal, apiConnectptr);
         return;
       }
@@ -881,6 +882,7 @@ void Dbtc::execCONTINUEB(Signal* signal)
       tcRollbackRep->transId[1] = Tdata2;
       tcRollbackRep->returnCode = Tdata3;
       tcRollbackRep->errorData = Tdata4;
+      g_eventLogger->error("In Dbtc::execCONTINUEB, case TcContinueB::ZDEBUG_DELAY_TCROLLBACKREP, sending TCROLLBACKREP");
       sendSignal(blockRef, GSN_TCROLLBACKREP, signal, 
                  TcRollbackRep::SignalLength, JBB);
     }
@@ -2459,6 +2461,7 @@ void Dbtc::sendSignalErrorRefuseLab(Signal* signal, ApiConnectRecordPtr const ap
     signal->theData[1] = signal->theData[ttransid_ptr];
     signal->theData[2] = signal->theData[ttransid_ptr + 1];
     signal->theData[3] = ZSIGNAL_ERROR;
+    g_eventLogger->error("In Dbtc::sendSignalErrorRefuseLab, send TCROLLBACKREP");
     sendSignal(apiConnectptr.p->ndbapiBlockref, GSN_TCROLLBACKREP, 
 	       signal, 4, JBB);
   }
@@ -2583,6 +2586,7 @@ Dbtc::check_tc_hbrep(Signal *signal,
 void
 Dbtc::TCKEY_abort(Signal* signal, int place, ApiConnectRecordPtr const apiConnectptr)
 {
+  g_eventLogger->error("In Dbtc::TCKEY_abort, called from place %d with signal id %d, sender %d", place, signal->getSignalId(), signal->header.theSendersSignalId);
   switch (place) {
   case 0:
     jam();
@@ -2606,6 +2610,7 @@ Dbtc::TCKEY_abort(Signal* signal, int place, ApiConnectRecordPtr const apiConnec
     signal->theData[2] = t2;
     signal->theData[3] = ZABORT_ERROR;
     ndbassert(false);
+    g_eventLogger->error("In Dbtc::TCKEY_abort, sending TCROLLBACKREP to API for signal id %d, sender %d", signal->getSignalId(), signal->header.theSendersSignalId);
     sendSignal(apiConnectptr.p->ndbapiBlockref, GSN_TCROLLBACKREP, 
 	       signal, 4, JBB);
     /**
@@ -9255,6 +9260,7 @@ void Dbtc::releaseDirtyWrite(Signal* signal, ApiConnectRecordPtr const apiConnec
  *****************************************************************************/
 void Dbtc::execLQHKEYREF(Signal* signal) 
 {
+  g_eventLogger->error("In Dbtc::execLQHKEYREF with signal id %d, sender %d", signal->getSignalId(), signal->header.theSendersSignalId);
   const LqhKeyRef * const lqhKeyRef = (LqhKeyRef *)signal->getDataPtr();
   Uint32 indexId = 0;
   jamEntry();
@@ -9511,6 +9517,7 @@ void Dbtc::execLQHKEYREF(Signal* signal)
 	 * No error is allowed on this operation
 	 */
         logAbortingOperation(signal, apiConnectptr, tcConnectptr, errCode);
+        g_eventLogger->error("In Dbtc::execLQHKEYREF line %d with signal id %d, sender %d, aborting from place 49", __LINE__, signal->getSignalId(), signal->header.theSendersSignalId);
         TCKEY_abort(signal, 49, apiConnectptr);
 	return;
       }//if
@@ -11289,6 +11296,7 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
 
     apiConnectptr.p->returnsignal = RS_TCROLLBACKREP;      
     apiConnectptr.p->returncode = errCode;
+    g_eventLogger->error("In Dbtc::timeOutFoundLab, returnsignal = RS_TCROLLBACKREP, returncode = errCode = %d", errCode);
     abort010Lab(signal, apiConnectptr);
     break;
   }
@@ -19323,6 +19331,7 @@ void Dbtc::releaseAbortResources(Signal* signal,
       sendSignal(blockRef, GSN_TCROLLBACKCONF, signal, 3, JBB);
       break;
     case RS_TCROLLBACKREP:{
+      g_eventLogger->error("In Dbtc::releaseAbortResources, case RS_TCROLLBACKREP");
       jam();
       ok = true;
 #ifdef ERROR_INSERT
@@ -19354,6 +19363,7 @@ void Dbtc::releaseAbortResources(Signal* signal,
       tcRollbackRep->transId[1] = apiConnectptr.p->transid[1];
       tcRollbackRep->returnCode = apiConnectptr.p->returncode;
       tcRollbackRep->errorData = apiConnectptr.p->errorData;
+      g_eventLogger->error("In Dbtc::releaseAbortResources, sending TCROLLBACKREP");
       sendSignal(blockRef, GSN_TCROLLBACKREP, signal, 
 		 TcRollbackRep::SignalLength, JBB);
     }
@@ -22055,6 +22065,7 @@ void Dbtc::execTCINDXREQ(Signal* signal)
       signal->theData[4] = ZNODEFAIL_BEFORE_COMMIT;
       signal->theData[5] = RS_TCROLLBACKREP;
       signal->theData[6] = 8101;
+      g_eventLogger->error("In Dbtc::execTCINDXREQ, sending CONTINUEB with RS_TCROLLBACKREP in ERROR_INSERT");
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 100, 6);
       *signal = s;
     }
@@ -22962,6 +22973,7 @@ void Dbtc::execTCROLLBACKREP(Signal* signal)
   ApiConnectRecordPtr apiConnectptr;
   apiConnectptr.i = indexOp->tcIndxReq.apiConnectPtr;
   c_apiConnectRecordPool.getPtr(apiConnectptr);
+  g_eventLogger->error("In Dbtc::execTCROLLBACKREP, sending TCROLLBACKREP signal");
   sendSignal(apiConnectptr.p->ndbapiBlockref, 
 	     GSN_TCROLLBACKREP, signal, TcRollbackRep::SignalLength, JBB);
 }

@@ -1,5 +1,5 @@
 /* Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -4593,6 +4593,7 @@ Dbacc::getElement(const AccKeyReq* signal,
       jamDebug();
       ndbrequire((tgeNextptrtype == ZLEFT) || (tgeNextptrtype == ZRIGHT));
     }//if
+    Uint32 len=0;
     if (tgeRemLen >= Container::HEADER_SIZE + TelemLen)
     {
       jamDebug();
@@ -4650,7 +4651,7 @@ Dbacc::getElement(const AccKeyReq* signal,
 	  {
             // We read the key for cmp_key() usage -> no xfrm
             const bool xfrm = false;
-            Uint32 len = readTablePk(localkey.m_page_no,
+            len = readTablePk(localkey.m_page_no,
                                      localkey.m_page_idx,
                                      tgeElementHeader,
                                      lockOwnerPtr,
@@ -4704,6 +4705,20 @@ Dbacc::getElement(const AccKeyReq* signal,
     if (tgeNextptrtype == 0)
     {
       jamDebug();
+      ////////////////////////////////////////////////////////////////////////////////
+      g_eventLogger->error("===dbg=== In DBACC, failed a lookup, line %d", __LINE__);
+      g_eventLogger->error("fragrecptr.p->myTableId == %d", fragrecptr.p->myTableId);
+      g_eventLogger->error("last len == %d", len);
+      g_eventLogger->error("signal->hashValue == 0x%.8x", signal->hashValue);
+      g_eventLogger->error("fragrecptr.p->m_use_new_hash_function == %d", fragrecptr.p->m_use_new_hash_function);
+      g_eventLogger->error("Correct hash for key using fragrec hash function: 0x%.8x", rondb_calc_hash_val((const char*)signal->keyInfo, signal->keyLen, fragrecptr.p->m_use_new_hash_function));
+      g_eventLogger->error("Hash for key using old hash function: 0x%.8x", rondb_calc_hash_val((const char*)signal->keyInfo, signal->keyLen, false));
+      g_eventLogger->error("Hash for key using new hash function: 0x%.8x", rondb_calc_hash_val((const char*)signal->keyInfo, signal->keyLen, true));
+      g_eventLogger->error("signal->keyLen == %d", signal->keyLen);
+      g_eventLogger->error("fragrecptr.p->keyLength == %d", fragrecptr.p->keyLength);
+      for(Uint32 i=0; i<signal->keyLen; i++)
+        g_eventLogger->error("signal->keyInfo[%d]=0x%.8x", i, signal->keyInfo[i]);
+      ////////////////////////////////////////////////////////////////////////////////
       return ZFALSE;	/* NO MORE CONTAINER */
     }//if
     /* NEXT CONTAINER PAGE INDEX 7 BITS */
