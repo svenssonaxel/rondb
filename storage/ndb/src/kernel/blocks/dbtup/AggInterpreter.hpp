@@ -94,7 +94,7 @@ class AggInterpreter {
       memset(buf_, 0, 2048 * sizeof(uint32_t));
   }
   ~AggInterpreter() {
-    Print();
+    // Print();
     delete[] prog_;
     delete[] gb_cols_;
     delete[] agg_results_;
@@ -110,6 +110,8 @@ class AggInterpreter {
 
   bool ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct);
   void Print();
+  static void MergePrint(const AggInterpreter* in1, const AggInterpreter* in2);
+  static bool g_debug;
 
  private:
   uint32_t* prog_;

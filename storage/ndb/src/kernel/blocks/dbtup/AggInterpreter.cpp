@@ -11,9 +11,10 @@
 
 uint32_t AggInterpreter::g_buf_len_ = 2048;
 
-// TODO (zhao) Remove them later
+// TODO(zhao) Remove them later
 std::mutex g_agg_mutex;
 AggInterpreter* g_agg_results[2] = {nullptr};
+bool AggInterpreter::g_debug = false;
 
 bool AggInterpreter::Init() {
   if (inited_) {
@@ -1086,10 +1087,12 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
     if (iter != gb_map_->end()) {
       header = reinterpret_cast<AttributeHeader*>(iter->first.ptr);
       agg_res_ptr = reinterpret_cast<AggResItem*>(iter->second.ptr);
-      fprintf(stderr, "Moz, Found GBHashEntry, id: %u, byte_size: %u, "
-                      "data_size: %u, is_null: %u\n",
-                      header->getAttributeId(), header->getByteSize(),
-                      header->getDataSize(), header->isNULL());
+      if (print_) {
+        fprintf(stderr, "Moz, Found GBHashEntry, id: %u, byte_size: %u, "
+            "data_size: %u, is_null: %u\n",
+            header->getAttributeId(), header->getByteSize(),
+            header->getDataSize(), header->isNULL());
+      }
     } else {
       agg_rec = new char[len_in_char +
                         n_agg_results_ * sizeof(AggResItem)];
@@ -1211,8 +1214,8 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         registers_[reg_index].is_null = header->isNULL();
         if (registers_[reg_index].is_null) {
           // Column has a null value
-          fprintf(stderr, "Moz-Intp: Load NULL, type: %u\n",
-              registers_[reg_index].type);
+          // fprintf(stderr, "Moz-Intp: Load NULL, type: %u\n",
+          //     registers_[reg_index].type);
           registers_[reg_index].value.val_int64 = 0;
           break;
         }
@@ -1220,75 +1223,75 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
           case NDB_TYPE_TINYINT:
             registers_[reg_index].value.val_int64 =
                 *reinterpret_cast<int8_t*>(&buf_[buf_pos_ + 1]);
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_TINYINT %ld\n",
-                registers_[reg_index].value.val_int64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_TINYINT %ld\n",
+            //     registers_[reg_index].value.val_int64);
             break;
           case NDB_TYPE_SMALLINT:
             registers_[reg_index].value.val_int64 =
                 sint2korr(reinterpret_cast<char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_SMALLINT %ld\n",
-                registers_[reg_index].value.val_int64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_SMALLINT %ld\n",
+            //     registers_[reg_index].value.val_int64);
             break;
           case NDB_TYPE_MEDIUMINT:
             registers_[reg_index].value.val_int64 =
                 sint3korr(reinterpret_cast<char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_MEDIUM %ld\n",
-                registers_[reg_index].value.val_int64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_MEDIUM %ld\n",
+            //     registers_[reg_index].value.val_int64);
             break;
           case NDB_TYPE_INT:
             registers_[reg_index].value.val_int64 =
                 sint4korr(reinterpret_cast<char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_INT %ld\n",
-                registers_[reg_index].value.val_int64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_INT %ld\n",
+            //     registers_[reg_index].value.val_int64);
             break;
           case NDB_TYPE_BIGINT:
             registers_[reg_index].value.val_int64 =
                 sint8korr(reinterpret_cast<char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_BIGINT %ld\n",
-                registers_[reg_index].value.val_int64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_BIGINT %ld\n",
+            //     registers_[reg_index].value.val_int64);
             break;
           case NDB_TYPE_TINYUNSIGNED:
             registers_[reg_index].value.val_uint64 =
                 *reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_TINYUNSIGNED %lu\n",
-                registers_[reg_index].value.val_uint64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_TINYUNSIGNED %lu\n",
+            //     registers_[reg_index].value.val_uint64);
             break;
           case NDB_TYPE_SMALLUNSIGNED:
             registers_[reg_index].value.val_uint64 =
                 uint2korr(reinterpret_cast<char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_SMALLUNSIGNED %lu\n",
-                registers_[reg_index].value.val_uint64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_SMALLUNSIGNED %lu\n",
+            //     registers_[reg_index].value.val_uint64);
             break;
           case NDB_TYPE_MEDIUMUNSIGNED:
             registers_[reg_index].value.val_uint64 =
                 uint3korr(reinterpret_cast<char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_MEDIUMUNSIGNED %lu\n",
-                registers_[reg_index].value.val_uint64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_MEDIUMUNSIGNED %lu\n",
+            //     registers_[reg_index].value.val_uint64);
             break;
           case NDB_TYPE_UNSIGNED:
             registers_[reg_index].value.val_uint64 =
                 uint4korr(reinterpret_cast<char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_UNSIGNED %lu\n",
-                registers_[reg_index].value.val_uint64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_UNSIGNED %lu\n",
+            //     registers_[reg_index].value.val_uint64);
             break;
           case NDB_TYPE_BIGUNSIGNED:
             registers_[reg_index].value.val_uint64 =
                 uint8korr(reinterpret_cast<char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_BIGUNSIGNED %lu\n",
-                registers_[reg_index].value.val_uint64);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_BIGUNSIGNED %lu\n",
+            //     registers_[reg_index].value.val_uint64);
             break;
           case NDB_TYPE_FLOAT:
             registers_[reg_index].value.val_double =
                 floatget(reinterpret_cast<unsigned char*>(&buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_FLOAT %lf\n",
-                registers_[reg_index].value.val_double);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_FLOAT %lf\n",
+            //     registers_[reg_index].value.val_double);
             break;
           case NDB_TYPE_DOUBLE:
             registers_[reg_index].value.val_double =
                 doubleget(reinterpret_cast<unsigned char*>(
                       &buf_[buf_pos_ + 1]));
-            fprintf(stderr, "Moz-Intp: Load NDB_TYPE_DOUBLE %lf\n",
-                registers_[reg_index].value.val_double);
+            // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_DOUBLE %lf\n",
+            //     registers_[reg_index].value.val_double);
             break;
 
           default:
@@ -1308,22 +1311,22 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
           case NDB_TYPE_BIGINT:
             registers_[reg_index].value.val_int64 =
                 sint8korr(reinterpret_cast<char*>(&prog_[exec_pos]));
-            fprintf(stderr, "Moz-Intp: LoadConst[%u] NDB_TYPE_BIGINT %ld\n",
-                reg_index, registers_[reg_index].value.val_int64);
+            // fprintf(stderr, "Moz-Intp: LoadConst[%u] NDB_TYPE_BIGINT %ld\n",
+            //     reg_index, registers_[reg_index].value.val_int64);
             break;
           case NDB_TYPE_BIGUNSIGNED:
             registers_[reg_index].value.val_uint64 =
                 uint8korr(reinterpret_cast<char*>(&prog_[exec_pos]));
-            fprintf(stderr, "Moz-Intp: LoadConst[%u] "
-                            "NDB_TYPE_BIGUNSIGNED %lu\n",
-                reg_index, registers_[reg_index].value.val_uint64);
+            // fprintf(stderr, "Moz-Intp: LoadConst[%u] "
+            //                 "NDB_TYPE_BIGUNSIGNED %lu\n",
+            //     reg_index, registers_[reg_index].value.val_uint64);
             break;
           case NDB_TYPE_DOUBLE:
             registers_[reg_index].value.val_double =
                 doubleget(reinterpret_cast<unsigned char*>(
                       &prog_[exec_pos]));
-            fprintf(stderr, "Moz-Intp: LoadConst[%u] NDB_TYPE_DOUBLE %lf\n",
-                reg_index, registers_[reg_index].value.val_double);
+            // fprintf(stderr, "Moz-Intp: LoadConst[%u] NDB_TYPE_DOUBLE %lf\n",
+            //     reg_index, registers_[reg_index].value.val_double);
             break;
           default:
             assert(0);
@@ -1444,3 +1447,219 @@ void AggInterpreter::Print() {
   }
 }
 
+void AggInterpreter::MergePrint(const AggInterpreter* in1,
+                                   const AggInterpreter* in2) {
+  assert(in1 != nullptr && in2 != nullptr);
+  assert(in1->n_agg_results_ == in2->n_agg_results_);
+  auto iter1 = in1->gb_map_->begin();
+  auto iter2 = in2->gb_map_->begin();
+
+  while (iter1 != in1->gb_map_->end() && iter2 != in2->gb_map_->end()) {
+    uint32_t len1 = iter1->first.len;
+    uint32_t len2 = iter2->first.len;
+    assert(len1 == len2);
+
+    int ret = memcmp(iter1->first.ptr, iter2->first.ptr, len1);
+    if (ret < 0) {
+      int pos = 0;
+      fprintf(stderr, "(");
+      for (uint32_t i = 0; i < in1->n_gb_cols_; i++) {
+        if (i != in1->n_gb_cols_ - 1) {
+          fprintf(stderr, "%u: %p, ", i, iter1->first.ptr + pos);
+        } else {
+          fprintf(stderr, "%u: %p): ", i, iter1->first.ptr + pos);
+        }
+      }
+      AggResItem* item = reinterpret_cast<AggResItem*>(iter1->second.ptr);
+      for (uint32_t i = 0; i < in1->n_agg_results_; i++) {
+        fprintf(stderr, "(%u, %u, %u)", item[i].type,
+            item[i].is_unsigned, item[i].is_null);
+        if (item[i].is_null) {
+          fprintf(stderr, "[NULL]");
+        } else {
+          switch (item[i].type) {
+            case NDB_TYPE_BIGINT:
+              fprintf(stderr, "[%15ld]", item[i].value.val_int64);
+              break;
+            case NDB_TYPE_DOUBLE:
+              fprintf(stderr, "[%31.16f]", item[i].value.val_double);
+              break;
+            default:
+              assert(0);
+          }
+        }
+      }
+      fprintf(stderr, "\n");
+      iter1++;
+    } else if (ret > 0) {
+      int pos = 0;
+      fprintf(stderr, "(");
+      for (uint32_t i = 0; i < in2->n_gb_cols_; i++) {
+        if (i != in2->n_gb_cols_ - 1) {
+          fprintf(stderr, "%u: %p, ", i, iter2->first.ptr + pos);
+        } else {
+          fprintf(stderr, "%u: %p): ", i, iter2->first.ptr + pos);
+        }
+      }
+      AggResItem* item = reinterpret_cast<AggResItem*>(iter2->second.ptr);
+      for (uint32_t i = 0; i < in2->n_agg_results_; i++) {
+        fprintf(stderr, "(%u, %u, %u)", item[i].type,
+            item[i].is_unsigned, item[i].is_null);
+        if (item[i].is_null) {
+          fprintf(stderr, "[NULL]");
+        } else {
+          switch (item[i].type) {
+            case NDB_TYPE_BIGINT:
+              fprintf(stderr, "[%15ld]", item[i].value.val_int64);
+              break;
+            case NDB_TYPE_DOUBLE:
+              fprintf(stderr, "[%31.16f]", item[i].value.val_double);
+              break;
+            default:
+              assert(0);
+          }
+        }
+      }
+      fprintf(stderr, "\n");
+      iter2++;
+    } else {
+      int pos = 0;
+      fprintf(stderr, "(");
+      for (uint32_t i = 0; i < in1->n_gb_cols_; i++) {
+        if (i != in1->n_gb_cols_ - 1) {
+          fprintf(stderr, "%u: %p, ", i, iter1->first.ptr + pos);
+        } else {
+          fprintf(stderr, "%u: %p): ", i, iter1->first.ptr + pos);
+        }
+      }
+      AggResItem* item1 = reinterpret_cast<AggResItem*>(iter1->second.ptr);
+      AggResItem* item2 = reinterpret_cast<AggResItem*>(iter2->second.ptr);
+      AggResItem result;
+      for (uint32_t i = 0; i < in1->n_agg_results_; i++) {
+        assert(item1[i].type == item2[i].type);
+        assert(item1[i].is_unsigned == item2[i].is_unsigned);
+        if (item1[i].is_null && item2[i].is_null) {
+          result = *item1;
+        } else if (item1[i].is_null) {
+          result = *item2;
+        } else if (item2[i].is_null) {
+          result = *item1;
+        } else {
+          result.type = item1[i].type;
+          result.is_unsigned = item1[i].is_unsigned;
+          switch (i) {
+            case 0:
+              // SUM
+            case 3:
+              // COUNT
+              assert(item1[i].type == NDB_TYPE_BIGINT);
+              assert(item1[i].is_unsigned == 1);
+              result.value.val_uint64 =
+                item1[i].value.val_uint64 + item2[i].value.val_uint64;
+              break;
+            case 1:
+              // MAX
+              assert(item1[i].type == NDB_TYPE_BIGINT);
+              assert(item1[i].is_unsigned == 0);
+              result.value.val_int64 =
+                item1[i].value.val_int64 >= item2[i].value.val_int64 ?
+                  item1[i].value.val_int64 : item2[i].value.val_int64;
+              break;
+            case 2:
+              // MIN
+              assert(item1[i].type == NDB_TYPE_DOUBLE);
+              result.value.val_double =
+                item1[i].value.val_double <= item2[i].value.val_double ?
+                  item1[i].value.val_double : item2[i].value.val_double;
+              break;
+             default:
+              assert(0);
+          }
+        }
+        fprintf(stderr, "(%u, %u, %u)", result.type,
+            result.is_unsigned, result.is_null);
+        if (result.is_null) {
+          fprintf(stderr, "[NULL]");
+        } else {
+          switch (result.type) {
+            case NDB_TYPE_BIGINT:
+              fprintf(stderr, "[%15ld]", result.value.val_int64);
+              break;
+            case NDB_TYPE_DOUBLE:
+              fprintf(stderr, "[%31.16f]", result.value.val_double);
+              break;
+            default:
+              assert(0);
+          }
+        }
+      }
+      fprintf(stderr, "\n");
+      iter1++;
+      iter2++;
+    }
+  }
+  while (iter1 != in1->gb_map_->end()) {
+    int pos = 0;
+    fprintf(stderr, "(");
+    for (uint32_t i = 0; i < in1->n_gb_cols_; i++) {
+      if (i != in1->n_gb_cols_ - 1) {
+        fprintf(stderr, "%u: %p, ", i, iter1->first.ptr + pos);
+      } else {
+        fprintf(stderr, "%u: %p): ", i, iter1->first.ptr + pos);
+      }
+    }
+    AggResItem* item = reinterpret_cast<AggResItem*>(iter1->second.ptr);
+    for (uint32_t i = 0; i < in1->n_agg_results_; i++) {
+      fprintf(stderr, "(%u, %u, %u)", item[i].type,
+          item[i].is_unsigned, item[i].is_null);
+      if (item[i].is_null) {
+        fprintf(stderr, "[NULL]");
+      } else {
+        switch (item[i].type) {
+          case NDB_TYPE_BIGINT:
+            fprintf(stderr, "[%15ld]", item[i].value.val_int64);
+            break;
+          case NDB_TYPE_DOUBLE:
+            fprintf(stderr, "[%31.16f]", item[i].value.val_double);
+            break;
+          default:
+            assert(0);
+        }
+      }
+    }
+    fprintf(stderr, "\n");
+    iter1++;
+  }
+  while (iter2 != in2->gb_map_->end()) {
+    int pos = 0;
+    fprintf(stderr, "(");
+    for (uint32_t i = 0; i < in2->n_gb_cols_; i++) {
+      if (i != in2->n_gb_cols_ - 1) {
+        fprintf(stderr, "%u: %p, ", i, iter2->first.ptr + pos);
+      } else {
+        fprintf(stderr, "%u: %p): ", i, iter2->first.ptr + pos);
+      }
+    }
+    AggResItem* item = reinterpret_cast<AggResItem*>(iter2->second.ptr);
+    for (uint32_t i = 0; i < in2->n_agg_results_; i++) {
+      fprintf(stderr, "(%u, %u, %u)", item[i].type,
+          item[i].is_unsigned, item[i].is_null);
+      if (item[i].is_null) {
+        fprintf(stderr, "[NULL]");
+      } else {
+        switch (item[i].type) {
+          case NDB_TYPE_BIGINT:
+            fprintf(stderr, "[%15ld]", item[i].value.val_int64);
+            break;
+          case NDB_TYPE_DOUBLE:
+            fprintf(stderr, "[%31.16f]", item[i].value.val_double);
+            break;
+          default:
+            assert(0);
+        }
+      }
+    }
+    fprintf(stderr, "\n");
+    iter2++;
+  }
+}

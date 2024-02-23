@@ -238,7 +238,7 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
 
         // 3. construct agg_interpreter
         if (scan.m_fragId == 1) {
-          scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, true);
+          scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
         } else {
           scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
         }
@@ -249,7 +249,8 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
               proc_start, prepare_fragptr.p->fragmentId, proc_len);
         }
       } else {
-        if (prepare_fragptr.p->fragmentId == 1) {
+        if (prepare_fragptr.p->fragmentId == 1 &&
+            AggInterpreter::g_debug == true) {
           fprintf(stderr, "Moz, Already initialized agg_interpreter on fragment %u, Skip\n",
               prepare_fragptr.p->fragmentId);
         }
@@ -4036,7 +4037,8 @@ int Dbtup::interpreterStartLab(Signal* signal,
       scanPtr.i = req_struct->scan_op_i;
       ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
       ScanOp& scan = *scanPtr.p;
-      if (scan.m_tableId == 17 && scan.m_fragId == 1) {
+      if (scan.m_tableId == 17 && scan.m_fragId == 1 &&
+          AggInterpreter::g_debug == true) {
         fprintf(stderr, "Moz, interpreterStartLab, get scan_op_i %u for fragment %u\n",
             scanPtr.i, scan.m_fragId);
       }

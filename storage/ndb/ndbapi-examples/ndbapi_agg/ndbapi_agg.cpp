@@ -92,6 +92,7 @@
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
+#include <random>
 
 /**
  * Helper sleep function
@@ -171,10 +172,43 @@ void create_table(MYSQL &mysql)
   }
 }
 
+std::random_device rd;
+std::mt19937 gen(rd());
+
+/*
+std::uniform_int_distribution<int64_t> g_bigint(0xFFFFFFFF, 0x7FFFFFFF);
+std::uniform_int_distribution<uint64_t> g_ubigint(0, 0xFFFFFFFF);
+std::uniform_int_distribution<int32_t> g_int(0xFFFF, 0x7FFF);
+std::uniform_int_distribution<uint32_t> g_uint(0, 0xFFFF);
+std::uniform_int_distribution<int32_t> g_mediumint(0x0FFF, 0x7FF);
+std::uniform_int_distribution<uint32_t> g_umediumint(0, 0xFFF);
+std::uniform_int_distribution<int16_t> g_smallint(0xFF, 0x7F);
+std::uniform_int_distribution<uint16_t> g_usmallint(0, 0xFF);
+std::uniform_int_distribution<int8_t> g_tinyint(0xF, 0x7);
+std::uniform_int_distribution<uint8_t> g_utinyint(0, 0xF);
+std::uniform_real_distribution<float> g_float(0xFFFF, 0x7FFF);
+std::uniform_real_distribution<double> g_double(0xFFFFFFFF, 0x7FFFFFFF);
+*/
+
+std::uniform_int_distribution<int64_t> g_bigint(-3147483648, 3147483648);
+std::uniform_int_distribution<uint64_t> g_ubigint(0, 5294967295);
+std::uniform_int_distribution<int32_t> g_int(-2147483648, 2147483647);
+std::uniform_int_distribution<uint32_t> g_uint(0, 4294967295);
+std::uniform_int_distribution<int32_t> g_mediumint(-8388608, 8388607);
+std::uniform_int_distribution<uint32_t> g_umediumint(0, -2147483648);
+std::uniform_int_distribution<int16_t> g_smallint(-32768, 32767);
+std::uniform_int_distribution<uint16_t> g_usmallint(0, 32768);
+std::uniform_int_distribution<int8_t> g_tinyint(-128, 127);
+std::uniform_int_distribution<uint8_t> g_utinyint(0, 255);
+std::uniform_real_distribution<float> g_float(-32768, 32767);
+std::uniform_real_distribution<double> g_double(-8388608, 8388607);
+
+std::uniform_int_distribution<uint8_t> g_zero(0, 19);
+
 int populate(Ndb * myNdb)
 {
   int i;
-  Row rows[11];
+  Row rows[10];
 
   const NdbDictionary::Dictionary* myDict= myNdb->getDictionary();
   const NdbDictionary::Table *myTable= myDict->getTable("api_scan");
@@ -182,30 +216,51 @@ int populate(Ndb * myNdb)
   if (myTable == NULL) 
     APIERROR(myDict->getNdbError());
 
-  for (i = 1; i < 10; i++)
+  for (i = 0; i < 10; i++)
   {
-    rows[i].cint32 = -i;
-    rows[i].cint8 = -i;
-    rows[i].cint16 = -i;
-    rows[i].cint24 = -i * 65535;
-    rows[i].cint64 = -i;
+    rows[i].cint32 = g_int(gen);
+    rows[i].cint8 = g_tinyint(gen);
+    rows[i].cint16 = g_smallint(gen);
+    rows[i].cint24 = g_mediumint(gen);
+    rows[i].cint64 = g_bigint(gen);
 
-    rows[i].cuint32 = i;
-    rows[i].cuint8 = i;
-    rows[i].cuint16 = i;
-    rows[i].cuint24 = i * 65535;
-    rows[i].cuint64 = i;
+    rows[i].cuint8 = g_utinyint(gen);
+    rows[i].cuint16 = g_usmallint(gen);
+    if (g_zero(gen) == 6) {
+      rows[i].cuint16 = 0;
+    }
+    rows[i].cuint24 = g_umediumint(gen);
+    rows[i].cuint32 = g_uint(gen);
+    rows[i].cuint64 = g_ubigint(gen);
+    if (g_zero(gen) == 6) {
+      rows[i].cuint64 = 0;
+    }
 
-    rows[i].cfloat = i * 1.1;
-    rows[i].cdouble = i * 1.11;
+    rows[i].cfloat = g_float(gen);
+    rows[i].cdouble = g_double(gen);
+    if (g_zero(gen) == 6) {
+      rows[i].cdouble = 0;
+    }
 
     // Must memset here, otherwise group by this
     // column in aggregation interpreter would be undefined.
     memset(rows[i].cchar, 0, sizeof(rows[i].cchar));
-    if (i % 2 == 0) {
-      sprintf(rows[i].cchar, "GROUP_1");
-    } else {
-      sprintf(rows[i].cchar, "GROUP_2");
+
+    switch (i % 4) {
+      case 0:
+        sprintf(rows[i].cchar, "GROUP_1");
+        break;
+      case 1:
+        sprintf(rows[i].cchar, "GROUP_2");
+        break;
+      case 2:
+        sprintf(rows[i].cchar, "GROUP_3");
+        break;
+      case 3:
+        sprintf(rows[i].cchar, "GROUP_4");
+        break;
+      default:
+        assert(0);
     }
   }
 
@@ -453,11 +508,16 @@ void ndb_run_scan(const char * connectstring)
     exit(-1);
   }
 
-  if(populate(&myNdb) > 0)
-     std::cout << "populate: Success!" << std::endl;
+  for (int i = 0; i < 10000; i++) {
+    if (populate(&myNdb) != 1) {
+      std::cout << "populate: Failed!" << std::endl;
+    }
+  }
 
-  if(scan_print(&myNdb) > 0)
-    std::cout << "scan_print: Success!" << std::endl  << std::endl;
+  std::cout << "Intialize table and data done!" << std::endl;
+
+  //if(scan_print(&myNdb) > 0)
+  //  std::cout << "scan_print: Success!" << std::endl  << std::endl;
   
 }
 

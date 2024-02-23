@@ -190,6 +190,9 @@ void Dbtup::scanProcedure(Signal* signal,
     ndbrequire(prepare_fragptr.p->fragTableId == 17);
 
     // hard code aggregation program for testing
+    // select sum(CUBIGINT+CUTINYINT), max(CSMALLINT-CMEDIUMINT),
+    // min((CDOUBLE/CINT)*(CFLOAT+3.5)), count(CUBIGINT%CUSMALLINT)
+    // from agg.api_scan group by CCHAR;
     Uint32 start_pos = lenAttrInfo;
     Uint32 curr_pos = lenAttrInfo;
 		Uint16 proc_len = 25;
@@ -303,7 +306,7 @@ void Dbtup::scanProcedure(Signal* signal,
     handle->m_ptr[0].p->m_sz = curr_pos;
     lenAttrInfo = curr_pos;
 
-    if (prepare_fragptr.p->fragmentId == 1) {
+    if (prepare_fragptr.p->fragmentId == 1 && AggInterpreter::g_debug == true) {
       fprintf(stderr, "Moz, Inject aggregation program from %u on fragment %u:\n"
 							"%u, %u, %u, %u, %u\n",
           start_pos, prepare_fragptr.p->fragmentId,
@@ -314,7 +317,7 @@ void Dbtup::scanProcedure(Signal* signal,
 					handle->m_ptr[0].p->theData[start_pos + 4]);
     }
   } else {
-    ndbrequire(prepare_fragptr.p->fragTableId != 17);
+    // ndbrequire(prepare_fragptr.p->fragTableId != 17);
   }
   handle->clear();
   storedPtr.p->storedCode = (isCopy) ? ZCOPY_PROCEDURE : ZSCAN_PROCEDURE;

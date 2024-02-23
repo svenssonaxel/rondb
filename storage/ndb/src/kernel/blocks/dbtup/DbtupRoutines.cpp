@@ -42,6 +42,10 @@
 
 #define JAM_FILE_ID 402
 
+// Moz
+// TODO (ZHAO) remove them later
+#include "include/my_byteorder.h"
+#include "AggInterpreter.hpp"
 
 void
 Dbtup::setUpQueryRoutines(Tablerec *regTabPtr)
@@ -348,19 +352,6 @@ pad32(Uint32 bytepos, Uint32 bitsused)
   return ret;
 }
 
-// Moz define
-#define sint3korr(A)  ((int32_t) ((((uint8_t) (A)[2]) & 128) ? \
-                                  (((uint32_t) 255L << 24) | \
-                                  (((uint32_t) (uint8_t) (A)[2]) << 16) |\
-                                  (((uint32_t) (uint8_t) (A)[1]) << 8) | \
-                                   ((uint32_t) (uint8_t) (A)[0])) : \
-                                 (((uint32_t) (uint8_t) (A)[2]) << 16) |\
-                                 (((uint32_t) (uint8_t) (A)[1]) << 8) | \
-                                  ((uint32_t) (uint8_t) (A)[0])))
-
-#define uint3korr(A)  (uint32_t) (((uint32_t) ((uint8_t) (A)[0])) +\
-                                  (((uint32_t) ((uint8_t) (A)[1])) << 8) +\
-                                  (((uint32_t) ((uint8_t) (A)[2])) << 16))
 /* ---------------------------------------------------------------- */
 /*       THIS ROUTINE IS USED TO READ A NUMBER OF ATTRIBUTES IN THE */
 /*       DATABASE AND PLACE THE RESULT IN ATTRINFO RECORDS.         */
@@ -390,7 +381,8 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                           Uint32  maxRead)
 {
   if (req_struct->fragPtrP->fragTableId == 17 &&
-      req_struct->fragPtrP->fragmentId == 1) {
+      req_struct->fragPtrP->fragmentId == 1 &&
+      AggInterpreter::g_debug == true) {
     fprintf(stderr, "Moz, inBufLen: %u, scan_op_i: %u\n", inBufLen,
             req_struct->scan_op_i);
   }
@@ -417,7 +409,8 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
     inBufIndex++;
     attributeId= ahIn.getAttributeId();
     if (req_struct->fragPtrP->fragTableId == 17 &&
-        req_struct->fragPtrP->fragmentId == 1) {
+        req_struct->fragPtrP->fragmentId == 1 &&
+        AggInterpreter::g_debug == true) {
       const Uint32* attrDescriptor = req_struct->tablePtrP->tabDescriptor +
         (attributeId * ZAD_SIZE);
       const Uint32 TattrDesc1 = attrDescriptor[0];
@@ -464,7 +457,8 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                       attrDes))) // ZHAO 49
       {
         if (req_struct->fragPtrP->fragTableId == 17 &&
-            req_struct->fragPtrP->fragmentId == 1) {
+            req_struct->fragPtrP->fragmentId == 1 &&
+            AggInterpreter::g_debug == true) {
           fprintf(stderr, "Moz-AttributeHeader, attributeId: %u, byte_size: %u, "
                   "data_size: %u, is_null: %u. 4B: %x %x %x %x.",
               ahOut->getAttributeId(), ahOut->getByteSize(), ahOut->getDataSize(),
@@ -489,7 +483,7 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                 fprintf(stderr, "VALUE: %d\n", *(int16*)ahOut->getDataPtr());
                 break;
               case 3:
-                tmp_val = sint3korr((int8*)ahOut->getDataPtr());
+                tmp_val = sint3korr((unsigned char*)ahOut->getDataPtr());
                 fprintf(stderr, "VALUE: %d\n", tmp_val);
                 break;
               case 4:
@@ -502,7 +496,7 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                 fprintf(stderr, "VALUE: %u\n", *(uint16*)ahOut->getDataPtr());
                 break;
               case 7:
-                tmp_uval = uint3korr((uint8*)ahOut->getDataPtr());
+                tmp_uval = uint3korr((unsigned char*)ahOut->getDataPtr());
                 fprintf(stderr, "VALUE: %u\n", tmp_uval);
                 break;
               case 8:
