@@ -910,7 +910,6 @@ void Trix::execUTIL_EXECUTE_REF(Signal* signal)
     jam();
     buildFailed(signal, subRecPtr,
                 (BuildIndxRef::ErrorCode)FK_NO_PARENT_ROW_EXISTS);
-    ndbrequire(false);
   }
   else
   {
