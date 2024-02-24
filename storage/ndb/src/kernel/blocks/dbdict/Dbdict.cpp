@@ -28741,7 +28741,7 @@ Dbdict::buildFK_prepare(Signal* signal, SchemaOpPtr op_ptr)
   }
 
   /**
-   * RONDB-615:
+   * RONDB-620:
    *   If the user has defined the FOREIGN KEY CONSTRAINT with multiple
    *   columns and in different order to the parent tables primary key
    *   definition we could read the key from the child table with key
