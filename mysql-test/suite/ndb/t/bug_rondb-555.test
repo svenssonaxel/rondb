@@ -104,9 +104,9 @@ select * from hopsworks.project;
 --output /home/user/prog/RONDB-615/build/out-tbl-python_dep.txt
 select * from hopsworks.python_dep;
 
-# select inode_pid, inode_name, partition_id from hopsworks.git_repositories where inode_pid=1378 and inode_name='stardist' and partition_id=1378;
-# select src_inode_pid, src_inode_name, src_inode_partition_id from hopsworks.hdfs_command_execution where src_inode_pid=425 and src_inode_name='data.zip' and src_inode_partition_id=425;
-# select inode_pid, inode_name, partition_id from hopsworks.project where inode_pid=157 and inode_name='Vedanalys' and partition_id=157;
+select inode_pid, inode_name, partition_id from hopsworks.git_repositories where inode_pid=1378 and inode_name='stardist' and partition_id=1378;
+select src_inode_pid, src_inode_name, src_inode_partition_id from hopsworks.hdfs_command_execution where src_inode_pid=425 and src_inode_name='data.zip' and src_inode_partition_id=425;
+select inode_pid, inode_name, partition_id from hopsworks.project where inode_pid=157 and inode_name='Vedanalys' and partition_id=157;
 
 
 
@@ -120,11 +120,22 @@ select parent_id, name, partition_id from hops.hdfs_inodes;
 select inode_pid, inode_name, partition_id from hopsworks.dataset where (inode_pid, inode_name, partition_id) not in (select parent_id, name, partition_id from hops.hdfs_inodes);
 --output /home/user/prog/RONDB-615/build/out5.txt
 select parent_id, name, partition_id from hops.hdfs_inodes where parent_id=21 and name='numpy' and partition_id=21;
-#--output /home/user/prog/RONDB-615/build/out4.txt
-#select inode_pid, inode_name, partition_id from hopsworks.dataset where inode_pid=129 and inode_name='hello2.db' and partition_id=129;
+--output /home/user/prog/RONDB-615/build/out4.txt
+select inode_pid, inode_name, partition_id from hopsworks.dataset where inode_pid=129 and inode_name='hello2.db' and partition_id=129;
+# mysqltest: At line 124: Query 'select inode_pid, inode_name, partition_id from hopsworks.dataset where inode_pid=129 and inode_name='hello2.db' and partition_id=129' failed.
+# ERROR 1034 (HY000): Incorrect key file for table 'dataset'; try to repair it
+
 
 # Rebuild foreign keys only, not indexes
 --exec $restore -n 2 --rebuild-indexes --rebuild-fk           $backup >> $riserestorelog
+
+--output /home/user/prog/RONDB-615/build/out44.txt
+select inode_pid, inode_name, partition_id from hopsworks.dataset where inode_pid=129 and inode_name='hello2.db' and partition_id=129;
+
+
+select inode_pid, inode_name, partition_id from hopsworks.git_repositories where inode_pid=1378 and inode_name='stardist' and partition_id=1378;
+select src_inode_pid, src_inode_name, src_inode_partition_id from hopsworks.hdfs_command_execution where src_inode_pid=425 and src_inode_name='data.zip' and src_inode_partition_id=425;
+select inode_pid, inode_name, partition_id from hopsworks.project where inode_pid=157 and inode_name='Vedanalys' and partition_id=157;
 
 # Cleanup
 
@@ -135,8 +146,8 @@ drop database glassfish_timers;
 drop database h2obrist;
 drop database hello2;
 drop database hopsworks;
-drop database hops;
 drop database metastore;
+drop database hops;
 
 #drop tablespace ts_1;
 #drop logfile group lg_1 engine ndb;
