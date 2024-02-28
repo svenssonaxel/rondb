@@ -1547,7 +1547,7 @@ void Dbtc::execSTTOR(Signal* signal)
       DEB_RR_INIT(("(%u) RR Groups inited", instance()));
     }
     fill_distr_references(&m_distribution_handle);
-    calculate_distribution_signal(&m_distribution_handle);
+    calculate_distribution_signal(&m_distribution_handle, 1);
     if (first_instance)
     {
       print_static_distr_info(&m_distribution_handle);
@@ -5815,7 +5815,7 @@ void Dbtc::sendlqhkeyreq(Signal* signal,
       if (nodeId == getOwnNodeId())
       {
         Uint32 instance_no = refToInstance(TBRef);
-        ndbrequire(globalData.ndbMtQueryWorkers > 0);
+        ndbassert(globalData.ndbMtQueryWorkers > 0);
         jam();
         TBRef = get_lqhkeyreq_ref(&m_distribution_handle, instance_no);
       }
@@ -6332,7 +6332,7 @@ bool
 Dbtc::CommitAckMarker::insert_in_commit_ack_marker_all(Dbtc *tc,
                                                        NodeId node_id)
 {
-  for (Uint32 ikey = 1; ikey <= MAX_NDBMT_LQH_THREADS; ikey++)
+  for (Uint32 ikey = 1; ikey <= MAX_NDBMT_LQH_WORKERS; ikey++)
   {
     if (!insert_in_commit_ack_marker(tc, ikey, node_id))
       return false;
@@ -7735,7 +7735,7 @@ Dbtc::sendCommitLqh(Signal* signal,
   Uint32 len = 5;
   Uint32 instanceNo = getInstanceNo(Tnode, instanceKey);
 #ifndef UNPACKED_COMMIT_SIGNALS
-  if (unlikely(instanceNo > MAX_NDBMT_LQH_THREADS))
+  if (unlikely(instanceNo > MAX_NDBMT_LQH_WORKERS))
 #endif
   {
     memcpy(&signal->theData[0], &Tdata[0], len << 2);
@@ -8269,7 +8269,7 @@ Dbtc::sendCompleteLqh(Signal* signal,
 
   Uint32 instanceNo = getInstanceNo(Tnode, instanceKey);
 #ifndef UNPACKED_COMMIT_SIGNALS
-  if (unlikely(instanceNo > MAX_NDBMT_LQH_THREADS))
+  if (unlikely(instanceNo > MAX_NDBMT_LQH_WORKERS))
 #endif
   {
     memcpy(&signal->theData[0], &Tdata[0], len << 2);
@@ -8498,7 +8498,7 @@ Dbtc::sendFireTrigReqLqh(Signal* signal,
   req->pass = pass;
   Uint32 len = FireTrigReq::SignalLength;
   Uint32 instanceNo = getInstanceNo(Tnode, instanceKey);
-  if (instanceNo > MAX_NDBMT_LQH_THREADS) {
+  if (instanceNo > MAX_NDBMT_LQH_WORKERS) {
     memcpy(signal->theData, Tdata, len << 2);
     BlockReference lqhRef = numberToRef(DBLQH, instanceNo, Tnode);
     sendSignal(lqhRef, GSN_FIRE_TRIG_REQ, signal, len, JBB);
@@ -8771,7 +8771,7 @@ Dbtc::sendRemoveMarker(Signal* signal,
   Tdata[2] = transid2;
   Uint32 len = 3;
   Uint32 instanceNo = getInstanceNo(nodeId, instanceKey);
-  if (instanceNo > MAX_NDBMT_LQH_THREADS) {
+  if (instanceNo > MAX_NDBMT_LQH_WORKERS) {
     jam();
     // first word omitted
     memcpy(&signal->theData[0], &Tdata[1], (len - 1) << 2);
@@ -18693,7 +18693,7 @@ bool Dbtc::sendScanFragReq(Signal* signal,
         if (nodeId == getOwnNodeId())
         {
           jam();
-          ndbrequire(globalData.ndbMtQueryWorkers > 0);
+          ndbassert(globalData.ndbMtQueryWorkers > 0);
           ref = get_scan_fragreq_ref(&m_distribution_handle, instance_no);
           check_blockref(ref);
           scanFragP.p->lqhBlockref = ref;
@@ -26621,6 +26621,7 @@ Dbtc::execUPD_QUERY_DIST_ORD(Signal *signal)
    * distribution of the signals received in distribute_signal.
    */
   jam();
+  Uint32 low_load = signal->theData[0];
   DistributionHandler *dist_handle = &m_distribution_handle;
   ndbrequire(signal->getNoOfSections() == 1);
   SegmentedSectionPtr ptr;
@@ -26631,7 +26632,7 @@ Dbtc::execUPD_QUERY_DIST_ORD(Signal *signal)
   memset(dist_handle->m_weights, 0, sizeof(dist_handle->m_weights));
   copy(dist_handle->m_weights, ptr);
   releaseSections(handle);
-  calculate_distribution_signal(dist_handle);
+  calculate_distribution_signal(dist_handle, low_load);
 #ifdef DEBUG_SCHED_STATS
   if (instance() == 1)
   {

@@ -212,7 +212,7 @@ private:
   static Uint64 get_total_memory(
                   const ndb_mgm_configuration_iterator *p,
                   bool & total_memory_set);
-  Uint64 get_schema_memory(ndb_mgm_configuration_iterator *p);
+  void get_schema_memory(ndb_mgm_configuration_iterator *p, Uint64&);
   Uint64 get_backup_schema_memory(ndb_mgm_configuration_iterator *p);
   Uint64 get_replication_memory(ndb_mgm_configuration_iterator *p);
   static Uint64 get_and_set_transaction_memory(
@@ -224,7 +224,9 @@ private:
            const ndb_mgm_configuration_iterator *p);
   static Uint64 get_and_set_long_message_buffer(
            const ndb_mgm_configuration_iterator *p);
-  static Uint64 compute_os_overhead(Uint64 total_memory);
+  static Uint64 compute_os_overhead(
+    Uint64 total_memory,
+    const ndb_mgm_configuration_iterator *p);
   static Uint64 compute_static_overhead();
   static Uint64 compute_backup_page_memory(
                   const ndb_mgm_configuration_iterator *p);
@@ -240,6 +242,11 @@ public:
                      Uint32 & noOfDBNodes,
                      Uint32 & noOfAPINodes,
                      Uint32 & noOfMGMNodes);
+  Uint32 getRRGroups(Uint32 thr_no,
+                     Uint32 num_ldm_threads,
+                     Uint32 num_tc_threads,
+                     Uint32 num_recv_threads,
+                     Uint32 num_main_threads);
 };
 
 inline

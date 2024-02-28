@@ -1120,7 +1120,7 @@ TransporterFacade::do_send_adaptive(const TrpBitmask& trps)
        *   even if we see a value being slightly off.
        */
       if (b->m_current_send_buffer_size > 4*1024 ||    // 1)
-          b->m_flushed_cnt >= m_poll_waiters/8)        // 2)
+          b->m_flushed_cnt >= m_use_poll_waiters/8)    // 2)
       {
         try_send_buffer(trp, b);
       }
@@ -1182,6 +1182,8 @@ void TransporterFacade::threadMainSend(void)
   raise_thread_prio(theSendThread);
 
   NDB_TICKS lastActivityCheck = NdbTick_getCurrentTicks();
+  NDB_TICKS lastMaxWaitersCheck = lastActivityCheck;
+
   while(!theStopSend)
   {
     NdbMutex_Lock(m_send_thread_mutex);
@@ -1248,6 +1250,15 @@ void TransporterFacade::threadMainSend(void)
 
       Guard g(m_send_thread_mutex);
       m_has_data_trps.bitOR(m_active_trps);
+    }
+    const Uint32 elapsed_max_waiters_ms =
+      NdbTick_Elapsed(lastMaxWaitersCheck,now).milliSec();
+    if (elapsed_max_waiters_ms > 10)
+    {
+      lastMaxWaitersCheck = now;
+      /* Read without protection to avoid complexity of poll mutex */
+      m_use_poll_waiters = m_max_poll_waiters;
+      m_max_poll_waiters = 0;
     }
   }
   theTransporterRegistry->stopSending();
@@ -1685,7 +1696,7 @@ TransporterFacade::TransporterFacade(GlobalDictCache *cache) :
   theStopReceive(0),
   theStopSend(0),
   theStopWakeup(0),
-  sendThreadWaitMillisec(10),
+  sendThreadWaitMillisec(1),
   theSendThread(nullptr),
   theReceiveThread(nullptr),
   theWakeupThread(nullptr),
@@ -1706,7 +1717,9 @@ TransporterFacade::TransporterFacade(GlobalDictCache *cache) :
   m_send_thread_mutex(nullptr),
   m_send_thread_cond(nullptr),
   m_send_thread_nodes(),
-  m_has_data_trps()
+  m_has_data_trps(),
+  m_max_poll_waiters(0),
+  m_use_poll_waiters(0)
 {
   DBUG_ENTER("TransporterFacade::TransporterFacade");
   thePollMutex = NdbMutex_CreateWithName("PollMutex");
@@ -3586,6 +3599,8 @@ TransporterFacade::add_to_poll_queue(trp_client* clnt)  //Need thePollMutex
   }
   m_poll_queue_tail = clnt;
   m_poll_waiters++;
+  if (m_poll_waiters > m_max_poll_waiters)
+    m_max_poll_waiters;
 }
 
 void

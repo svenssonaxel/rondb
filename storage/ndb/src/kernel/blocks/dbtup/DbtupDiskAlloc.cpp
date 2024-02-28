@@ -202,11 +202,15 @@ Dbtup::printPtr(EventLogger *logger, const char *msg, int idx,
       " m_extent_no: %u"
       " m_free_space: %u"
       " m_free_matrix_pos: %u"
-      " m_free_page_count: [",
+      " m_free_page_count: [%u,%u,%u,%u]",
       msg, idx, ptr.i, printLocal_Key(buf, MAX_LOG_MESSAGE_SIZE, ptr.p->m_key),
       ptr.p->m_first_page_no, ptr.p->m_empty_page_no, ptr.p->m_key.m_file_no,
       ptr.p->m_key.m_page_no, ptr.p->m_extent_no, ptr.p->m_free_space,
-      ptr.p->m_free_matrix_pos);
+      ptr.p->m_free_matrix_pos,
+      ptr.p->m_free_page_count[0],
+      ptr.p->m_free_page_count[1],
+      ptr.p->m_free_page_count[2],
+      ptr.p->m_free_page_count[3]);
 }
 
 void 
@@ -2001,6 +2005,7 @@ Dbtup::disk_page_free(Signal *signal,
   Uint64 lsn;
   if ((tabPtrP->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
   {
+    jamDebug();
     sz = 1;
     const Uint32 *src= ((Fix_page*)pagePtr.p)->get_ptr(page_idx, 0);
     if (!((*(src + 1)) < Tup_page::DATA_WORDS))
@@ -2121,7 +2126,8 @@ Dbtup::disk_page_free(Signal *signal,
                   used,
                   old_free,
                   new_free));
-  Int32 change = new_free - used;
+  Int32 change = ((tabPtrP->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0) ?
+                 1 : new_free - used;
   update_extent_pos(jamBuffer(),
                     fragPtrP,
                     extentPtr,

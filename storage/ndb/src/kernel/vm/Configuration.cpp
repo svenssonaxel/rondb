@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -502,24 +502,27 @@ Configuration::get_num_nodes(Uint32 &noOfNodes,
   noOfNodes = nodeNo;
 }
 
-Uint64
-Configuration::get_schema_memory(ndb_mgm_configuration_iterator *p)
+void
+Configuration::get_schema_memory(ndb_mgm_configuration_iterator *p,
+                                 Uint64 & ret_table_mem)
 {
   Uint64 schema_memory = 0;
-  ndb_mgm_get_int64_parameter(p,
-                              CFG_DB_SCHEMA_MEM,
-                              &schema_memory);
-  if (schema_memory != 0)
-  {
-    globalData.theSchemaMemory = schema_memory;
-    return schema_memory;
-  }
   Uint32 num_replicas = 2;
   ndb_mgm_get_int_parameter(p, CFG_DB_NO_REPLICAS, &num_replicas);
   Uint32 num_fragments = 0;
   ndb_mgm_get_int_parameter(p, CFG_LQH_FRAG, &num_fragments);
   Uint32 num_tot_fragments = 0;
   ndb_mgm_get_int_parameter(p, CFG_DIH_FRAG_CONNECT, &num_tot_fragments);
+
+  Uint32 noOfNodes = 0;
+  Uint32 noOfDBNodes = 0;
+  Uint32 noOfAPINodes = 0;
+  Uint32 noOfMGMNodes = 0;
+  get_num_nodes(noOfNodes,
+                noOfDBNodes,
+                noOfAPINodes,
+                noOfMGMNodes);
+
   Uint32 num_triggers = globalData.theMaxNoOfTriggers;
   Uint32 num_attributes = globalData.theMaxNoOfAttributes;
   Uint32 num_tables = globalData.theMaxNoOfTables;
@@ -535,7 +538,10 @@ Configuration::get_schema_memory(ndb_mgm_configuration_iterator *p)
                              Uint64(num_ordered_indexes) +
                              Uint64(num_unique_hash_indexes);
   Uint64 num_replica_records =
-    num_table_objects * (partitions_per_node + 1) * num_replicas;
+    num_table_objects *
+    partitions_per_node *
+    num_replicas *
+    noOfDBNodes;
   Uint64 num_ldm_threads = Uint64(globalData.ndbMtLqhWorkers);
   Uint64 num_tc_threads = Uint64(globalData.ndbMtTcWorkers);
 
@@ -562,7 +568,8 @@ Configuration::get_schema_memory(ndb_mgm_configuration_iterator *p)
   Uint64 dict_table_mem =
     Dbdict::getTableRecordSize() * num_table_objects;
   Uint64 dict_obj_mem =
-    (Dbdict::getDictObjectRecordSize() + 8) * (num_table_objects + num_triggers);
+    (Dbdict::getDictObjectRecordSize() + 8) *
+    (num_table_objects + num_triggers);
   Uint64 dict_key_descriptor_mem =
     sizeof(struct KeyDescriptor) * num_table_objects;
 
@@ -813,10 +820,23 @@ Configuration::get_schema_memory(ndb_mgm_configuration_iterator *p)
 
   DEB_AUTOMATIC_MEMORY(("Fragment map size %llu MBytes", map_size / MBYTE64));
 
-  schema_memory = schema_mem_block - table_mem;
-  schema_memory += map_size;
-  globalData.theSchemaMemory = schema_memory;
-  return schema_mem_block + map_size;
+  ret_table_mem = table_mem;
+  Uint64 config_schema_memory = 0;
+  ndb_mgm_get_int64_parameter(p,
+                              CFG_DB_SCHEMA_MEM,
+                              &config_schema_memory);
+  if (config_schema_memory != 0)
+  {
+    globalData.theSchemaMemory = config_schema_memory;
+    globalData.theExtraSchemaMemory = 0;
+  }
+  else
+  {
+    schema_memory = schema_mem_block - table_mem;
+    schema_memory += map_size;
+    globalData.theSchemaMemory = schema_memory / 4;
+    globalData.theExtraSchemaMemory = schema_memory / 4;
+  }
 }
 
 Uint64
@@ -905,7 +925,7 @@ Configuration::get_replication_memory(ndb_mgm_configuration_iterator *p)
   Uint64 num_ldm_threads = Uint64(globalData.ndbMtLqhWorkers);
 
   Uint64 suma_buffer_mem =
-          Uint64(48) * MBYTE64 * num_ldm_threads;
+          Uint64(8) * MBYTE64 * num_ldm_threads;
 
   globalData.theReplicationMemory = suma_buffer_mem;
   return suma_buffer_mem;
@@ -947,9 +967,9 @@ Configuration::get_and_set_redo_buffer(const ndb_mgm_configuration_iterator *p)
   if (redo_buffer == 0)
   {
     Uint32 num_ldm_threads = globalData.ndbMtLqhWorkers;
-    redo_buffer64 = Uint64(num_ldm_threads) * Uint64(64) * MBYTE64;
+    redo_buffer64 = Uint64(num_ldm_threads) * Uint64(32) * MBYTE64;
     redo_buffer64 /= Uint64(num_log_parts);
-    redo_buffer64 = MIN(redo_buffer64, Uint64(64) * MBYTE64);
+    redo_buffer64 = MIN(redo_buffer64, Uint64(128) * MBYTE64);
   }
   globalData.theRedoBuffer = redo_buffer64;
   Uint64 ret_size = redo_buffer64 * Uint64(num_log_parts);
@@ -964,11 +984,7 @@ Configuration::get_and_set_undo_buffer(const ndb_mgm_configuration_iterator *p)
   if (undo_buffer == 0)
   {
     Uint32 num_ldm_threads = globalData.ndbMtLqhWorkers;
-    undo_buffer = Uint64(48) * MBYTE64 * Uint64(num_ldm_threads);
-  }
-  if (undo_buffer > Uint64(16384) * MBYTE64)
-  {
-    undo_buffer = Uint64(16384) * MBYTE64;
+    undo_buffer = Uint64(24) * MBYTE64 * Uint64(num_ldm_threads);
   }
   globalData.theUndoBuffer = undo_buffer;
   return undo_buffer;
@@ -987,8 +1003,6 @@ Configuration::get_send_buffer(const ndb_mgm_configuration_iterator *p)
   else
   {
     Uint32 num_threads = get_num_threads();
-    Uint32 num_extra_threads = globalData.ndbMtRecoverThreads;
-    num_threads += num_extra_threads;
     mem = globalTransporterRegistry.get_total_max_send_buffer();
     mem += (Uint64(2) * MBYTE64 * num_threads);
   }
@@ -1013,7 +1027,9 @@ Configuration::get_and_set_long_message_buffer(
 }
 
 Uint64
-Configuration::compute_os_overhead(Uint64 total_memory)
+Configuration::compute_os_overhead(
+  Uint64 total_memory,
+  const ndb_mgm_configuration_iterator *p)
 {
   /**
    * This includes memory used by the OS for all sorts of internal operations.
@@ -1030,10 +1046,21 @@ Configuration::compute_os_overhead(Uint64 total_memory)
    * We remove 1% of the total memory, 100 MBytes per thread, in addition
    * we remove 1.4 GByte to handle smaller VM sizes.
    */
+  Uint64 os_static_overhead = 0;
+  ndb_mgm_get_int64_parameter(p, CFG_DB_OS_STATIC_OVERHEAD, &os_static_overhead);
+  Uint64 os_cpu_overhead = 0;
+  ndb_mgm_get_int64_parameter(p, CFG_DB_OS_CPU_OVERHEAD, &os_cpu_overhead);
+  if (os_static_overhead == 0)
+  {
+    os_static_overhead = Uint64(1400) * MBYTE64;
+  }
+  if (os_cpu_overhead == 0)
+  {
+    os_cpu_overhead = Uint64(100) * MBYTE64;
+  }
   Uint64 reserved_part = total_memory / Uint64(100);
-  Uint32 num_threads = get_num_threads() + globalData.ndbMtRecoverThreads;
-  Uint64 os_static_overhead = Uint64(1400) * MBYTE64;
-  Uint64 os_cpu_overhead = Uint64(num_threads) * Uint64(100) * MBYTE64;
+  Uint32 num_threads = get_num_threads();
+  os_cpu_overhead *= Uint64(num_threads);
   return os_static_overhead + os_cpu_overhead + reserved_part;
 }
 
@@ -1045,7 +1072,7 @@ Configuration::compute_backup_page_memory(
   ndb_mgm_get_int_parameter(p, CFG_DB_BACKUP_LOG_BUFFER_MEM, &backup_log_buffer);
   backup_log_buffer += BACKUP_DEFAULT_WRITE_SIZE;
   Uint64 lcp_buffer = BACKUP_DEFAULT_BUFFER_SIZE + BACKUP_DEFAULT_WRITE_SIZE;
-  lcp_buffer *= ((2 * BackupFormat::NDB_MAX_FILES_PER_LCP) + 1); 
+  lcp_buffer *= ((2 * BackupFormat::NDB_MAX_FILES_PER_LCP) + 1);
   Uint64 per_thread_buffer = lcp_buffer + Uint64(backup_log_buffer);
   per_thread_buffer +=
     ((Backup::NO_OF_PAGES_META_FILE + 9) * GLOBAL_PAGE_SIZE);
@@ -1274,10 +1301,8 @@ Configuration::assign_default_memory_sizes(
 Uint64
 Configuration::compute_restore_memory()
 {
-  Uint32 num_ldm_threads = globalData.ndbMtLqhWorkers;
-  Uint32 num_restore_threads = globalData.ndbMtRecoverThreads;
-  num_ldm_threads += num_restore_threads;
-  Uint64 restore_memory = Uint64(4) * MBYTE64 * Uint64(num_ldm_threads);
+  Uint32 num_restore_threads = globalData.ndbMtQueryWorkers;
+  Uint64 restore_memory = Uint64(4) * MBYTE64 * Uint64(num_restore_threads);
   return restore_memory;
 }
 
@@ -1290,11 +1315,10 @@ Configuration::compute_static_overhead()
    */
   Uint64 static_overhead = Uint64(208) * MBYTE64;
   Uint32 num_threads = get_num_threads();
-  Uint32 num_extra_threads = globalData.ndbMtRecoverThreads;
   static_overhead += // Small memory allocations
-    ((num_threads + num_extra_threads) * MBYTE64);
+    ((num_threads) * MBYTE64);
   Uint32 num_send_threads = globalData.ndbMtSendThreads;
-  Uint64 num_all_threads = num_threads + num_extra_threads + num_send_threads;
+  Uint64 num_all_threads = num_threads + num_send_threads;
   static_overhead += (num_all_threads * 2 * MBYTE64); // Stack memory
   return static_overhead;
 }
@@ -1312,28 +1336,41 @@ Configuration::calculate_automatic_memory(ndb_mgm_configuration_iterator *p,
                          " available memory");
     return false;
   }
-  Uint64 schema_memory = get_schema_memory(p);
-  Uint64 backup_schema_memory = get_backup_schema_memory(p);
+  Uint64 table_memory = 0;
+  get_schema_memory(p, table_memory);
+  Uint64 schema_memory = globalData.theSchemaMemory;
+
+  Uint64 compute_backup_schema_memory = get_backup_schema_memory(p);
+  Uint64 backup_schema_memory = compute_backup_schema_memory / 4;
+  
   Uint64 replication_memory = get_replication_memory(p);
   Uint64 transaction_memory =
     get_and_set_transaction_memory(p, min_transaction_memory);
   Uint64 redo_buffer = get_and_set_redo_buffer(p);
   Uint64 undo_buffer = get_and_set_undo_buffer(p);
   Uint64 long_message_buffer = get_and_set_long_message_buffer(p);
-  Uint64 job_buffer = compute_jb_pages(&globalEmulatorData) * 
-                      GLOBAL_PAGE_SIZE;
+  Uint64 compute_job_buffer =
+    compute_jb_pages(&globalEmulatorData) * GLOBAL_PAGE_SIZE;
+  Uint64 job_buffer = compute_job_buffer / 4;
   Uint64 static_overhead = compute_static_overhead();
   Uint64 os_overhead = 0;
   if (!total_memory_set)
   {
-    os_overhead = compute_os_overhead(total_memory);
+    os_overhead = compute_os_overhead(total_memory, p);
   }
-  Uint64 send_buffer = get_send_buffer(p);
+  Uint64 compute_send_buffer = get_send_buffer(p);
+  Uint64 send_buffer = compute_send_buffer / 2;
   Uint64 backup_page_memory = compute_backup_page_memory(p);
   Uint64 restore_memory = compute_restore_memory();
   Uint64 pack_memory = compute_pack_memory();
   Uint64 fs_memory = compute_fs_memory();
   Uint64 shared_global_memory = get_and_set_shared_global_memory(p);
+  Uint64 extra_shared_global_memory = 0;
+  extra_shared_global_memory += (compute_backup_schema_memory / 4);
+  extra_shared_global_memory += globalData.theExtraSchemaMemory;
+  extra_shared_global_memory += (compute_job_buffer / 4);
+  extra_shared_global_memory += (compute_send_buffer / 2);
+  shared_global_memory += extra_shared_global_memory;
   Uint64 used_memory =
     schema_memory +
     backup_schema_memory +
@@ -1350,7 +1387,8 @@ Configuration::calculate_automatic_memory(ndb_mgm_configuration_iterator *p,
     restore_memory +
     pack_memory +
     fs_memory +
-    shared_global_memory;
+    shared_global_memory +
+    table_memory;
   g_eventLogger->info("SchemaMemory is %llu MBytes", schema_memory / MBYTE64);
   g_eventLogger->info("BackupSchemaMemory is %llu MBytes",
                       backup_schema_memory / MBYTE64);
@@ -1361,22 +1399,24 @@ Configuration::calculate_automatic_memory(ndb_mgm_configuration_iterator *p,
   g_eventLogger->info("Redo log buffer size total are %llu MBytes",
                       redo_buffer / MBYTE64);
   g_eventLogger->info("Undo log buffer is %llu MBytes", undo_buffer / MBYTE64);
-  g_eventLogger->info("LongMessageBuffer is %llu MBytes",
+  g_eventLogger->info("LongMessageBuffer is %llu MBytes, (not in Global Memory)",
                       long_message_buffer / MBYTE64);
   g_eventLogger->info("Send buffer sizes are %llu MBytes",
                       send_buffer / MBYTE64);
   g_eventLogger->info("Job buffer sizes are %llu MBytes",
                       job_buffer / MBYTE64);
-  g_eventLogger->info("Static overhead is %llu MBytes",
+  g_eventLogger->info("Static overhead is %llu MBytes, (not in Global Memory)",
                       static_overhead / MBYTE64);
   g_eventLogger->info("OS overhead is %llu MBytes", os_overhead / MBYTE64);
-  g_eventLogger->info("Backup Page memory is %llu MBytes",
+  g_eventLogger->info("Backup Page memory is %llu MBytes, (not in Global Memory)",
                       backup_page_memory / MBYTE64);
   g_eventLogger->info("Restore memory is %llu MBytes",
                       restore_memory / MBYTE64);
   g_eventLogger->info("Packed signal memory is %llu MBytes",
                       pack_memory / MBYTE64);
   g_eventLogger->info("NDBFS memory is %llu MBytes", fs_memory / MBYTE64);
+  g_eventLogger->info("Table memory is %llu MBytes, (not in Global Memory)",
+                      table_memory / MBYTE64);
   g_eventLogger->info("SharedGlobalMemory is %llu MBytes",
                       shared_global_memory / MBYTE64);
   g_eventLogger->info("Total memory is %llu MBytes", total_memory / MBYTE64);
@@ -1664,7 +1704,7 @@ Configuration::setupConfiguration()
   if (auto_thread_config == 0 &&
       thrconfigstring != nullptr && thrconfigstring[0] != 0)
   {
-    int res = m_thr_config.do_parse(
+    int res = m_thr_config.do_parse_thrconfig(
         thrconfigstring, _realtimeScheduler, _schedulerSpinTimer);
     if (res != 0)
     {
@@ -1680,10 +1720,16 @@ Configuration::setupConfiguration()
       Uint32 num_cpus = 0;
       iter.get(CFG_DB_NUM_CPUS, &num_cpus);
       g_eventLogger->info("Use automatic thread configuration");
-      m_thr_config.do_parse(_realtimeScheduler,
-                            _schedulerSpinTimer,
-                            num_cpus,
-                            globalData.ndbRRGroups);
+      Uint32 use_tc_threads = 1;
+      iter.get(CFG_DB_USE_TC_THREADS, &use_tc_threads);
+      Uint32 use_ldm_threads = 1;
+      iter.get(CFG_DB_USE_LDM_THREADS, &use_ldm_threads);
+      m_thr_config.do_parse_auto(_realtimeScheduler,
+                                 _schedulerSpinTimer,
+                                 num_cpus,
+                                 globalData.ndbRRGroups,
+                                 use_tc_threads,
+                                 use_ldm_threads);
     }
     else
     {
@@ -1699,11 +1745,11 @@ Configuration::setupConfiguration()
 #endif
       Uint32 lqhthreads = 0;
       iter.get(CFG_NDBMT_LQH_THREADS, &lqhthreads);
-      int res = m_thr_config.do_parse(mtthreads,
-                                      lqhthreads,
-                                      classic,
-                                      _realtimeScheduler,
-                                      _schedulerSpinTimer);
+      int res = m_thr_config.do_parse_classic(mtthreads,
+                                              lqhthreads,
+                                              classic,
+                                              _realtimeScheduler,
+                                              _schedulerSpinTimer);
       if (res != 0)
       {
         ERROR_SET(fatal, NDBD_EXIT_INVALID_CONFIG,
@@ -1753,19 +1799,6 @@ Configuration::setupConfiguration()
       m_thr_config.getThreadCount(THRConfig::T_RECV);
     globalData.ndbMtSendThreads =
       m_thr_config.getThreadCount(THRConfig::T_SEND);
-    globalData.ndbMtQueryThreads =
-      m_thr_config.getThreadCount(THRConfig::T_QUERY);
-    if (globalData.ndbMtQueryThreads > 0)
-    {
-      ERROR_SET(fatal, NDBD_EXIT_INVALID_CONFIG,
-               "Invalid configuration fetched. ",
-               " Query threads are no longer supported"
-               ", instead Query blocks are part of LDM threads,"
-               " thus move the query thread instances to LDM threads"
-               " and also the CPU bindings should be moved");
-    }
-    globalData.ndbMtRecoverThreads =
-      m_thr_config.getThreadCount(THRConfig::T_RECOVER);
     globalData.ndbMtTcThreads = m_thr_config.getThreadCount(THRConfig::T_TC);
     if (globalData.ndbMtTcThreads == 0)
     {
@@ -1826,7 +1859,15 @@ Configuration::setupConfiguration()
 
     globalData.ndbMtLqhWorkers = ldm_workers;
     globalData.ndbMtLqhThreads = ldm_threads;
-    globalData.ndbMtQueryWorkers = ldm_workers;
+    /**
+     * Each block thread will have one Query worker, thus no more
+     * any need for recover threads.
+     */
+    globalData.ndbMtQueryWorkers = ldm_threads +
+                                   globalData.ndbMtTcThreads +
+                                   globalData.ndbMtMainThreads +
+                                   globalData.ndbMtReceiveThreads;
+
     if (ldm_threads == 0)
     {
       /**
@@ -1839,59 +1880,56 @@ Configuration::setupConfiguration()
        * With 1 receive thread we will allow for a maximum of 1 main
        * thread.
        */
-      if ((globalData.ndbMtTcThreads > 0) ||
-          (globalData.ndbMtRecoverThreads > 0))
+      if (globalData.ndbMtTcThreads > 0)
       {
         ERROR_SET(fatal, NDBD_EXIT_INVALID_CONFIG,
                   "Invalid configuration fetched. ",
                   "Setting number of ldm threads to 0 must be combined"
-                  " with 0 tc and recover threads");
+                  " with 0 tc threads");
       }
-      if (globalData.ndbMtReceiveThreads > 1)
+      if (globalData.ndbMtReceiveThreads == 1 &&
+          globalData.ndbMtMainThreads > 1)
       {
-        /**
-         * In the case of 1 receive thread and no LDM threads we will not
-         * assign any Query workers. But with more than 1 receive thread
-         * and no LDM thread we will use 1 LDM worker and 1 Query worker in
-         * each receive thread in addition to a TC worker.
-         *
-         * This ensures that the receive thread can take care of the entire
-         * query for Committed Read queries, a sort of parallel ndbd setup.
-         */
-        globalData.ndbMtQueryWorkers = globalData.ndbMtReceiveThreads;
+        ERROR_SET(fatal, NDBD_EXIT_INVALID_CONFIG,
+                  "Invalid configuration fetched. ",
+                  "No LDM threads with 1 receive thread allows for"
+                  " 1 main thread, but no more");
       }
-      else
-      {
-        globalData.ndbMtQueryWorkers = 0;
-        if (globalData.ndbMtMainThreads > 1)
-        {
-          ERROR_SET(fatal, NDBD_EXIT_INVALID_CONFIG,
-                    "Invalid configuration fetched. ",
-                    "No LDM threads with 1 receive thread allows for"
-                    " 1 main thread, but no more");
-        }
-      }
-    }
-    globalData.QueryThreadsPerLdm = 0;
-    if (globalData.ndbMtQueryWorkers > 0)
-    {
-      globalData.QueryThreadsPerLdm = 1;
     }
 
-    if ((globalData.ndbMtRecoverThreads + globalData.ndbMtQueryWorkers) >
-         MAX_NDBMT_QUERY_THREADS)
+    if ((globalData.ndbMtQueryWorkers) > MAX_NDBMT_QUERY_WORKERS)
     {
       ERROR_SET(fatal, NDBD_EXIT_INVALID_CONFIG,
                 "Invalid configuration fetched. ",
-                "Sum of recover threads and query threads can be max 127");
+                "Query workers can be max 127");
     }
-    require(globalData.ndbMtQueryWorkers == globalData.ndbMtLqhThreads ||
-            globalData.ndbMtQueryWorkers == globalData.ndbMtReceiveThreads);
+    if (globalData.ndbRRGroups == 0)
+    {
+      /**
+       * ndbRRGroups haven't been set yet, means we didn't use
+       * do_parse_auto. Calculate it here.
+       */
+      globalData.ndbRRGroups = Ndb_GetRRGroups(globalData.ndbMtQueryWorkers);
+    }
   } while (0);
 
   calcSizeAlt(cf);
   set_not_active_nodes();
   DBUG_VOID_RETURN;
+}
+
+Uint32
+Configuration::getRRGroups(Uint32 thr_no,
+                           Uint32 num_ldm_threads,
+                           Uint32 num_tc_threads,
+                           Uint32 num_recv_threads,
+                           Uint32 num_main_threads)
+{
+  return m_thr_config.getRRGroups(thr_no,
+                                  num_ldm_threads,
+                                  num_tc_threads,
+                                  num_recv_threads,
+                                  num_main_threads);
 }
 
 void
@@ -2090,6 +2128,7 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
   unsigned int partitionsPerNode = 2;
   unsigned int automaticThreadConfig = 1;
   unsigned int automaticMemoryConfig = 1;
+  unsigned int max_schema_objects = OLD_NDB_MAX_TABLES;
 
   m_logLevel = new LogLevel();
   if (!m_logLevel)
@@ -2104,6 +2143,7 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
     { CFG_DB_NO_LOCAL_SCANS, &noOfLocalScanRecords, true },
     { CFG_DB_RESERVED_LOCAL_SCANS, &reservedLocalScanRecords, true },
     { CFG_DB_BATCH_SIZE, &noBatchSize, false },
+    { CFG_DB_MAX_NUM_SCHEMA_OBJECTS, &max_schema_objects, false },
     { CFG_DB_NO_TABLES, &noOfTables, false },
     { CFG_DB_NO_ORDERED_INDEXES, &noOfOrderedIndexes, false },
     { CFG_DB_NO_UNIQUE_HASH_INDEXES, &noOfUniqueHashIndexes, false },
@@ -2235,6 +2275,24 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
     g_eventLogger->info("MaxNoOfTriggers set to %u", noOfTriggers);
   }
 
+  
+  if (max_schema_objects < noOfMetaTables)
+  {
+    char reason_msg[256];
+    const char *msg = "Schema File Error";
+    BaseString::snprintf(reason_msg, sizeof(reason_msg),
+      "Trying to start with less schema objects than table objects"
+      ", started with %u table objects and a maximum of %u"
+      " schema objects in schema file, increase"
+      " MaxNoOfSchemaObjects",
+      noOfMetaTables,
+      max_schema_objects);
+    ERROR_SET(fatal,
+              NDBD_EXIT_SR_SCHEMAFILE,
+              msg,
+              reason_msg);
+  }
+
   /**
    * Do size calculations
    */
@@ -2247,9 +2305,6 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
   cfg.put(CFG_TUP_NO_TRIGGERS, noOfTriggers + 3 * noOfMetaTables);
 
   Uint32 noOfMetaTablesDict= noOfMetaTables;
-  if (noOfMetaTablesDict > NDB_MAX_TABLES)
-    noOfMetaTablesDict= NDB_MAX_TABLES;
-
   {
     /**
      * Dict Size Alt values
@@ -2312,8 +2367,6 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
       noOfLocalOperations= (11 * noOfOperations) / 10;
   }
 
-  const Uint32 noOfTCLocalScanRecords = DO_DIV(noOfLocalScanRecords,
-                                               tcInstances);
   const Uint32 noOfTCScanRecords = noOfScanRecords;
 
   // ReservedXXX defaults to 25% of MaxNoOfXXX
@@ -2342,11 +2395,7 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
      * non-reserved operation records, so we ensure that we use a
      * large portion of the memory for reserved operation records.
      */
-#if (defined(VM_TRACE)) || (defined(ERROR_INSERT))
-    reservedOperations = 1000 * ldmInstances;
-#else
-    reservedOperations = 100000 * ldmInstances;
-#endif
+    reservedOperations = 2000 * ldmInstances;
   }
   if (reservedTransactions == 0)
   {
@@ -2376,9 +2425,12 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
       automaticThreadConfig == 1)
   {
     numFragmentsPerNodePerLdm =
-      (partitionsPerNode + 1) * noOfMetaTables * noOfReplicas / ldmInstances;
-    noFragPerTable= (noOfDBNodes * (partitionsPerNode + 1));
-    numReplicas = noOfMetaTables * (partitionsPerNode + 1) * noOfReplicas;
+      partitionsPerNode * noOfMetaTables * noOfReplicas / ldmInstances;
+    noFragPerTable= (noOfDBNodes * partitionsPerNode);
+    numReplicas = noOfMetaTables *
+                  partitionsPerNode *
+                  noOfReplicas *
+                  noOfDBNodes;
   }
   else
   {
@@ -2430,6 +2482,7 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
             (reservedOperations / ldmInstances) + EXTRA_LOCAL_OPERATIONS +
             (reservedLocalScanRecords / ldmInstances) +
             NODE_RECOVERY_SCAN_OP_RECORDS;
+    ldm_reserved_operations = MAX(ldm_reserved_operations, noOfLocalOperations);
     ldm_reserved_operations = MIN(ldm_reserved_operations, UINT28_MAX);
     cfg.put(CFG_LDM_RESERVED_OPERATIONS, ldm_reserved_operations);
 
@@ -2498,65 +2551,50 @@ Configuration::calcSizeAlt(ConfigValues * ownConfig)
       ERROR_SET(fatal, NDBD_EXIT_INVALID_CONFIG, msg, buf);
     }
 
-    cfg.put(CFG_TC_TARGET_FRAG_LOCATION, Uint32(0));
     cfg.put(CFG_TC_MAX_FRAG_LOCATION, UINT32_MAX);
     cfg.put(CFG_TC_RESERVED_FRAG_LOCATION, Uint32(0));
 
-    cfg.put(CFG_TC_TARGET_SCAN_FRAGMENT, noOfTCLocalScanRecords);
     cfg.put(CFG_TC_MAX_SCAN_FRAGMENT, UINT32_MAX);
     cfg.put(CFG_TC_RESERVED_SCAN_FRAGMENT, reservedLocalScanRecords / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_SCAN_RECORD, noOfTCScanRecords);
     cfg.put(CFG_TC_MAX_SCAN_RECORD, noOfTCScanRecords);
     cfg.put(CFG_TC_RESERVED_SCAN_RECORD, reservedScanRecords / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_CONNECT_RECORD, noOfOperations + 16 + noOfTransactions);
     cfg.put(CFG_TC_MAX_CONNECT_RECORD, UINT32_MAX);
-    cfg.put(CFG_TC_RESERVED_CONNECT_RECORD, reservedOperations);
+    cfg.put(CFG_TC_RESERVED_CONNECT_RECORD, reservedOperations / ldmInstances);
 
     const Uint32 takeOverOperations = noOfOperations +
                                       EXTRA_OPERATIONS_FOR_FIRST_TRANSACTION;
-    cfg.put(CFG_TC_TARGET_TO_CONNECT_RECORD, takeOverOperations);
     cfg.put(CFG_TC_MAX_TO_CONNECT_RECORD, takeOverOperations);
     cfg.put(CFG_TC_RESERVED_TO_CONNECT_RECORD, takeOverOperations);
 
-    cfg.put(CFG_TC_TARGET_COMMIT_ACK_MARKER, noOfTransactions);
     cfg.put(CFG_TC_MAX_COMMIT_ACK_MARKER, UINT32_MAX);
     cfg.put(CFG_TC_RESERVED_COMMIT_ACK_MARKER, reservedTransactions / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_TO_COMMIT_ACK_MARKER, Uint32(0));
     cfg.put(CFG_TC_MAX_TO_COMMIT_ACK_MARKER, Uint32(0));
     cfg.put(CFG_TC_RESERVED_TO_COMMIT_ACK_MARKER, Uint32(0));
 
-    cfg.put(CFG_TC_TARGET_INDEX_OPERATION, noOfIndexOperations);
     cfg.put(CFG_TC_MAX_INDEX_OPERATION, UINT32_MAX);
     cfg.put(CFG_TC_RESERVED_INDEX_OPERATION, reservedIndexOperations / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_API_CONNECT_RECORD, noOfTransactions);
     cfg.put(CFG_TC_MAX_API_CONNECT_RECORD, UINT32_MAX);
     cfg.put(CFG_TC_RESERVED_API_CONNECT_RECORD, reservedTransactions / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_TO_API_CONNECT_RECORD, reservedTransactions);
     cfg.put(CFG_TC_MAX_TO_API_CONNECT_RECORD, noOfTransactions);
     cfg.put(CFG_TC_RESERVED_TO_API_CONNECT_RECORD, reservedTransactions / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_CACHE_RECORD, noOfTransactions);
     cfg.put(CFG_TC_MAX_CACHE_RECORD, noOfTransactions);
     cfg.put(CFG_TC_RESERVED_CACHE_RECORD, reservedTransactions / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_FIRED_TRIGGER_DATA, noOfTriggerOperations);
     cfg.put(CFG_TC_MAX_FIRED_TRIGGER_DATA, UINT32_MAX);
     cfg.put(CFG_TC_RESERVED_FIRED_TRIGGER_DATA, reservedTriggerOperations / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_ATTRIBUTE_BUFFER, transactionBufferBytes);
     cfg.put(CFG_TC_MAX_ATTRIBUTE_BUFFER, UINT32_MAX);
     cfg.put(CFG_TC_RESERVED_ATTRIBUTE_BUFFER, reservedTransactionBufferBytes / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_COMMIT_ACK_MARKER_BUFFER, 2 * noOfTransactions);
     cfg.put(CFG_TC_MAX_COMMIT_ACK_MARKER_BUFFER, UINT32_MAX);
     cfg.put(CFG_TC_RESERVED_COMMIT_ACK_MARKER_BUFFER, 2 * reservedTransactions / tcInstances);
 
-    cfg.put(CFG_TC_TARGET_TO_COMMIT_ACK_MARKER_BUFFER, Uint32(0));
     cfg.put(CFG_TC_MAX_TO_COMMIT_ACK_MARKER_BUFFER, Uint32(0));
     cfg.put(CFG_TC_RESERVED_TO_COMMIT_ACK_MARKER_BUFFER, Uint32(0));
 

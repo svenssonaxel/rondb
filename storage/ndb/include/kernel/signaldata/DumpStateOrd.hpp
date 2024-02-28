@@ -96,8 +96,20 @@ public:
     CmvmiDummySignal = 103004,
     CmvmiSendDummySignal = 103005,
     CmvmiSetMaxSendDelay = 103006,
-    CmvmiSetMinSendDelay = 103007,
-    CmvmiSetMaxSendBufferSizeDelay = 103008,
+    CmvmiSetMinSendDelay = 103007, /* Deprecated */
+    CmvmiSetMaxSendBufferSizeDelay = 103008, /* Deprecated */
+    CmvmiSetMaxNumExtendedDelay = 103009,
+    CmvmiSetExtendDelay = 103010,
+    CmvmiSetMaxSignalsBeforeWakeupOther = 103011,
+    CmvmiSetMaxSignalsBeforeWakeupTc = 103012,
+    CmvmiSetMaxSignalsBeforeWakeupReceiver = 103013,
+    CmvmiSetMaxSignalsBeforeFlushOther = 103014,
+    CmvmiSetMaxSignalsBeforeFlushTc = 103015,
+    CmvmiSetMaxSignalsBeforeFlushReceiver = 103016,
+    CmvmiSetMaxSignalsPerJBBReceive = 103017,
+    CmvmiSetTcQueryThreadDistance = 103018,
+    CmvmiSetRecvQueryThreadDistance = 103019,
+
     _CMVMIMax = 103099,
 
     _THRMANMin = 104000,
@@ -107,6 +119,12 @@ public:
     SetSpintimePerCall = 104003,
     EnableAdaptiveSpinning = 104004,
     _THRMANMax = 104999,
+
+    _TRIXMin = 105000,
+    EnableDebugInsertBuild = 105000,
+    DisableDebugInsertBuild = 105001,
+    _TRIXMax = 105999,
+
     // 1 QMGR Dump information about phase 1 variables
     // 13 CMVMI Dump signal counter
     // 13 NDBCNTR Dump start phase information

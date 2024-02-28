@@ -720,10 +720,10 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
        * EXTENT_SEARCH_MATRIX_COLS - 1 is always 0, thus no need of
        * checking this. The result is given.
        */
-      for (Uint32 i = 0; i < EXTENT_SEARCH_MATRIX_COLS - 2; i++)
+      for (Uint32 i = 0; i < EXTENT_SEARCH_MATRIX_COLS - 1; i++)
       {
-	if(free >= m_page_free_bits_map[i])
-	  return i;
+        if (free >= m_page_free_bits_map[i])
+          return i;
       }
       return EXTENT_SEARCH_MATRIX_COLS - 1;
     }
@@ -855,21 +855,17 @@ struct Fragrecord {
   void acquire_frag_page_map_mutex(Fragrecord *fragPtrP,
                                    EmulatedJamBuffer *jamBuf)
   {
-    if (qt_likely(globalData.ndbMtQueryWorkers > 0))
-    {
-      thrjam(jamBuf);
-      ndbrequire(!m_is_in_query_thread);
-      NdbMutex_Lock(&fragPtrP->tup_frag_page_map_mutex);
-    }
+    ndbassert(globalData.ndbMtQueryWorkers > 0);
+    thrjam(jamBuf);
+    ndbrequire(!m_is_in_query_thread);
+    NdbMutex_Lock(&fragPtrP->tup_frag_page_map_mutex);
   }
   void release_frag_page_map_mutex(Fragrecord *fragPtrP,
                                    EmulatedJamBuffer *jamBuf)
   {
-    if (qt_likely(globalData.ndbMtQueryWorkers > 0))
-    {
-      NdbMutex_Unlock(&fragPtrP->tup_frag_page_map_mutex);
-      thrjam(jamBuf);
-    }
+    ndbassert(globalData.ndbMtQueryWorkers > 0);
+    NdbMutex_Unlock(&fragPtrP->tup_frag_page_map_mutex);
+    thrjam(jamBuf);
   }
   void acquire_frag_page_map_mutex_read(EmulatedJamBuffer *jamBuf)
   {
@@ -901,7 +897,7 @@ struct Fragrecord {
                           Uint32 logicalPageId,
                           EmulatedJamBuffer *jamBuf)
   {
-    if (qt_likely(globalData.ndbMtQueryWorkers > 0))
+    ndbassert(globalData.ndbMtQueryWorkers > 0);
     {
       ndbrequire(!m_is_in_query_thread);
       Uint32 hash = logicalPageId & (NUM_TUP_FRAGMENT_MUTEXES - 1);
@@ -914,12 +910,12 @@ struct Fragrecord {
                           Uint32 logicalPageId,
                           EmulatedJamBuffer *jamBuf)
   {
-    if (qt_likely(globalData.ndbMtQueryWorkers > 0))
+    ndbassert(globalData.ndbMtQueryWorkers > 0);
     {
       Uint32 hash = logicalPageId & (NUM_TUP_FRAGMENT_MUTEXES - 1);
       NdbMutex_Unlock(&fragPtrP->tup_frag_mutex[hash]);
       thrjamDebug(jamBuf);
-      thrjamLine(jamBuf, hash);
+      thrjamLineDebug(jamBuf, hash);
     }
   }
   void acquire_frag_mutex_read(Fragrecord *fragPtrP,

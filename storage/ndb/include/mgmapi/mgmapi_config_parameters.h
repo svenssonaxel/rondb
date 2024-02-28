@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2004, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -270,13 +270,24 @@
 #define CFG_DB_TRANS_ERROR_LOGLEVEL 679
 #define CFG_DB_ENCRYPTED_FILE_SYSTEM  680
 
+/* Start RonDB only configuration parameters */
+#define CFG_DB_MAX_NUM_SCHEMA_OBJECTS 688
+
+#define CFG_DB_USE_TC_THREADS         689
+#define CFG_DB_USE_LDM_THREADS        690
+
+#define CFG_DB_OS_STATIC_OVERHEAD     691
+#define CFG_DB_OS_CPU_OVERHEAD        692
+
 #define CFG_DB_BACKUP_SCHEMA_MEM      693
 #define CFG_DB_SCHEMA_MEM             694
 #define CFG_DB_REPLICATION_MEM        695
+
 #define CFG_DB_LOW_LATENCY            696
 #define CFG_DB_UNDO_BUFFER            697
 #define CFG_DB_TOTAL_MEMORY_CONFIG    698
 #define CFG_DB_AUTO_MEMORY_CONFIG     699
+/* End RonDB only configuration parameters */
 
 #define CFG_NODE_ARBIT_RANK           200
 #define CFG_NODE_ARBIT_DELAY          201

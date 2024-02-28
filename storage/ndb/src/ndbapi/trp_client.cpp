@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2010, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -244,9 +244,10 @@ trp_client::complete_poll()
 int
 trp_client::do_forceSend(bool forceSend)
 {
+  (void)forceSend;
   flush_send_buffers();
 
-  if (forceSend)
+  if (m_facade->m_use_poll_waiters < 16)
   {
     m_facade->try_send_all(m_flushed_trps_mask);
   }
@@ -474,7 +475,10 @@ trp_client::getSendBufferLevel(TrpId trp_id, SB_LevelType &level)
     m_facade->m_send_buffer.get_total_send_buffer_size();
   Uint64 tot_used_send_buffer_size =
     m_facade->m_send_buffer.get_total_used_send_buffer_size();
+  Uint64 max_node_send_buffer_size =
+    (Uint64)m_facade->get_registry()->getSendBufferSize(node);
   calculate_send_buffer_level(current_send_buffer_size,
+                              max_node_send_buffer_size,
                               tot_send_buffer_size,
                               tot_used_send_buffer_size,
                               0,

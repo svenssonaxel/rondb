@@ -617,7 +617,11 @@ private:
    * In both cases the send thread will be activated to take care
    * of sending the data on these transporters.
    */
-  TrpBitmask m_has_data_trps;
+  NodeBitmask m_has_data_trps;
+
+  /* Calculate max poll waiters */
+  volatile Uint32 m_max_poll_waiters;
+  Uint32 m_use_poll_waiters;
 };
 
 inline

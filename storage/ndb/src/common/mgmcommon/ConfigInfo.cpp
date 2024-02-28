@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2003, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -562,6 +562,18 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     STR_VALUE(MAX_INT_RNIL) },
   
   {
+    CFG_DB_MAX_NUM_SCHEMA_OBJECTS,
+    "MaxNoOfSchemaObjects",
+    DB_TOKEN,
+    "Max number of schema objects stored in the schema file",
+    ConfigInfo::CI_USED,
+    false,
+    ConfigInfo::CI_INT,
+    STR_VALUE(OLD_NDB_MAX_TABLES),
+    STR_VALUE(OLD_NDB_MAX_TABLES),
+    STR_VALUE(MAX_INT_RNIL) },
+
+  {
     CFG_DB_NO_TABLES,
     "MaxNoOfTables",
     DB_TOKEN,
@@ -571,7 +583,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     ConfigInfo::CI_INT,
     "0",
     "8",
-    STR_VALUE(NDB_MAX_TABLES) },
+    STR_VALUE(1000000000) },
   
   {
     CFG_DB_NO_ORDERED_INDEXES,
@@ -583,7 +595,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     ConfigInfo::CI_INT,
     "0",
     "0",
-    STR_VALUE(MAX_INT_RNIL) },
+    STR_VALUE(1000000000) },
 
   {
     CFG_DB_NO_UNIQUE_HASH_INDEXES,
@@ -595,7 +607,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     ConfigInfo::CI_INT,
     "0",
     "0",
-    STR_VALUE(MAX_INT_RNIL) },
+    STR_VALUE(1000000000) },
 
   {
     CFG_DB_NO_INDEX_OPS,
@@ -747,12 +759,12 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     "MaxSendDelay",
     DB_TOKEN,
     "Max number of microseconds to delay sending in ndbmtd",
-    ConfigInfo::CI_DEPRECATED,
+    ConfigInfo::CI_USED,
     false,
     ConfigInfo::CI_INT,
+    "125",
     "0",
-    "0",
-    "11000" },
+    "1000" },
 
   {
     CFG_DB_SCHED_SPIN_TIME,
@@ -1022,12 +1034,36 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     CFG_DB_TOTAL_MEMORY_CONFIG,
     "TotalMemoryConfig",
     DB_TOKEN,
-    "Specific amount of memory used",
+    "Avoid using this amount of memory by data node",
     ConfigInfo::CI_USED,
     false,
     ConfigInfo::CI_INT64,
     "0",
     "2G",
+    "65536G" },
+
+  {
+    CFG_DB_OS_STATIC_OVERHEAD,
+    "OsStaticOverhead",
+    DB_TOKEN,
+    "Avoid using this amount of memory by data node",
+    ConfigInfo::CI_USED,
+    false,
+    ConfigInfo::CI_INT64,
+    "1400M",
+    "400M",
+    "65536G" },
+
+  {
+    CFG_DB_OS_CPU_OVERHEAD,
+    "OsCpuOverhead",
+    DB_TOKEN,
+    "Avoid using this amount of memory multiplied by number of CPUs",
+    ConfigInfo::CI_USED,
+    false,
+    ConfigInfo::CI_INT64,
+    "100M",
+    "50M",
     "65536G" },
 
   {
@@ -1845,7 +1881,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     "0",
     STR_VALUE(MAX_INT_RNIL) },
   
-  { 
+  {
     CFG_DB_BACKUP_DATA_BUFFER_MEM,
     "BackupDataBufferSize",
     DB_TOKEN,
@@ -1857,7 +1893,7 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     "512K",
     STR_VALUE(MAX_INT_RNIL) },
 
-  { 
+  {
     CFG_DB_BACKUP_LOG_BUFFER_MEM,
     "BackupLogBufferSize",
     DB_TOKEN,
@@ -2101,6 +2137,32 @@ const ConfigInfo::ParamInfo ConfigInfo::m_ParamInfo[] = {
     "0",
     "0",
     STR_VALUE(MAX_USED_NUM_CPUS)
+  },
+
+  {
+    CFG_DB_USE_TC_THREADS,
+    "UseTcThreads",
+    DB_TOKEN,
+    "Use TC threads in automatic thread configuration",
+    ConfigInfo::CI_USED,
+    CI_RESTART_SYSTEM | CI_RESTART_INITIAL,
+    ConfigInfo::CI_BOOL,
+    "true",
+    "false",
+    "true"
+  },
+
+  {
+    CFG_DB_USE_LDM_THREADS,
+    "UseLdmThreads",
+    DB_TOKEN,
+    "Use LDM threads in automatic thread configuration",
+    ConfigInfo::CI_USED,
+    CI_RESTART_SYSTEM | CI_RESTART_INITIAL,
+    ConfigInfo::CI_BOOL,
+    "true",
+    "false",
+    "true"
   },
 
   {
@@ -4281,7 +4343,8 @@ ConfigInfo::ConfigInfo()
     const ParamInfo & param = m_ParamInfo[i];
     Uint64 default_uint64;
     bool   default_bool;
-    
+
+
     // Create new section if it did not exist
     if (!m_info.getCopy(param._section, &section)) {
       Properties newsection(true);
@@ -6049,7 +6112,7 @@ checkThreadConfig(InitConfigFileParser::Context & ctx, const char * unused)
   }
   else if (ctx.m_currentSection->get("ThreadConfig", &thrconfig))
   {
-    int ret = tmp.do_parse(thrconfig, realtimeScheduler, spinTimer);
+    int ret = tmp.do_parse_thrconfig(thrconfig, realtimeScheduler, spinTimer);
     if (ret)
     {
       ctx.reportError("Unable to parse ThreadConfig: %s",
@@ -6074,7 +6137,7 @@ checkThreadConfig(InitConfigFileParser::Context & ctx, const char * unused)
   }
   else if (maxExecuteThreads || lqhThreads || classic)
   {
-    int ret = tmp.do_parse(
+    int ret = tmp.do_parse_classic(
         maxExecuteThreads, lqhThreads, classic, realtimeScheduler, spinTimer);
     if (ret)
     {

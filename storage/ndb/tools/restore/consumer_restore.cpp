@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2004, 2023, Oracle and/or its affiliates.
+   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -60,6 +61,8 @@ static Uint32 get_part_id(const NdbDictionary::Table *table,
 extern BaseString g_options;
 extern unsigned int opt_no_binlog;
 extern bool ga_skip_broken_objects;
+extern bool ga_continue_on_data_errors;
+extern bool ga_allow_unique_indexes;
 
 extern Properties g_rewrite_databases;
 
@@ -2238,7 +2241,71 @@ BackupRestore::table_compatible_check(TableS & tableS)
     return true;
 
   const NdbTableImpl & tmptab = NdbTableImpl::getImpl(* tableS.m_dictTable);
-  if ((int)tmptab.m_indexType != (int)NdbDictionary::Index::Undefined) {
+  if ((int) tmptab.m_indexType != (int) NdbDictionary::Index::Undefined)
+  {
+    if((int) tmptab.m_indexType != (int) NdbDictionary::Index::UniqueHashIndex)
+      return true;
+
+    // We now know that tablename refers to a unique hash index in the backup.
+    // Find out whether this unique hash index exists in the database.
+    const char *index_qualified_name = tablename;
+    const char *table_qualified_name = tmptab.m_primaryTable.c_str();
+    BaseString index_db_name, index_schema_name, index_name, table_db_name, table_schema_name, table_name;
+    if (!dissect_index_name(index_qualified_name, index_db_name, index_schema_name, index_name))
+      return false;
+    if (!dissect_table_name(table_qualified_name, table_db_name, table_schema_name, table_name))
+      return false;
+    if(strcmp(index_db_name.c_str(), "sys") != 0)
+    {
+      restoreLogger.log_error("Error: Expected index %s to belong to database sys.",
+                              index_qualified_name);
+      return false;
+    }
+    if(strcmp(index_schema_name.c_str(), "def") != 0)
+    {
+      restoreLogger.log_error("Error: Expected index %s to belong to schema def.",
+                              index_qualified_name);
+      return false;
+    }
+    if(strcmp(table_schema_name.c_str(), "def") != 0)
+    {
+      restoreLogger.log_error("Error: Expected table %s to belong to schema def.",
+                              table_qualified_name);
+      return false;
+    }
+    check_rewrite_database(table_db_name);
+    m_ndb->setDatabaseName(table_db_name.c_str());
+    m_ndb->setSchemaName(table_schema_name.c_str());
+    NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
+    const NdbDictionary::Index* indexTab = dict->getIndex(index_name.c_str(), table_name.c_str());
+    bool index_exists_in_db = indexTab != 0;
+    // End of finding out whether index exists in database
+
+    // If we are restoring data into a database where a unique index exists, we
+    // might have a problem. We have already checked that we are restoring data.
+    if(index_exists_in_db)
+    {
+      if(ga_allow_unique_indexes)
+      {
+        restoreLogger.log_error( "WARNING: Table %s.%s contains unique index "
+            "%s. This can cause ndb_restore to fail with duplicate key errors "
+            "while restoring data. To avoid duplicate key errors, use "
+            "--disable-indexes before or when restoring data and "
+            "--rebuild-indexes after or when restoring data. Will continue due "
+            "to --allow-unique-indexes being set.",
+            table_db_name.c_str(), table_name.c_str(), index_name.c_str());
+      }
+      else
+      {
+        restoreLogger.log_error( "ERROR: Refusing to restore because table "
+            "%s.%s contains unique index %s. Use --disable-indexes before or "
+            "when restoring data and --rebuild-indexes after or when restoring "
+            "data. Optionally, and with risk of causing duplicate key errors "
+            "while restoring, you can use --allow-unique-indexes instead.",
+            table_db_name.c_str(), table_name.c_str(), index_name.c_str());
+        return false;
+      }
+    }
     return true;
   }
 
@@ -3661,9 +3728,19 @@ bool BackupRestore::get_fatal_error()
   return m_fatal_error;
 }
 
+bool BackupRestore::has_data_error()
+{
+  return m_data_error;
+}
+
 void BackupRestore::set_fatal_error(bool err)
 {
   m_fatal_error = err;
+}
+
+void BackupRestore::set_data_error(bool err)
+{
+  m_data_error = err;
 }
 
 bool BackupRestore::tuple(const TupleS & tup, Uint32 fragmentId)
@@ -3968,6 +4045,32 @@ bool BackupRestore::isMissingTable(const TableS& table)
   return ((tab == NULL) && (dict->getNdbError().code == 723));
 }
 
+void BackupRestore::logErrorWithTuple(const char* prefix, TupleS const *tup)
+{
+  NdbMutex_Lock(restoreLogger.m_mutex);
+  ndberr << prefix << tup->getTable()->getTableName() << " ";
+  // We could do `ndberr << *tup`, but that will only print values. We want attribute names as well.
+  int size = tup->getNoOfAttributes();
+  for (int i = 0; i < size; i++)
+  {
+    AttributeData * attr_data = tup->getData(i);
+    AttributeDesc * attr_desc = tup->getDesc(i);
+    const AttributeS attr = {attr_desc, *attr_data};
+    ndberr << attr.Desc->m_column->getName() << "=" << attr;
+    if (i < (size - 1))
+      ndberr << ", ";
+  }
+  ndberr << "\n";
+  NdbMutex_Unlock(restoreLogger.m_mutex);
+}
+
+void BackupRestore::logErrorWithLogEntry(const char* prefix, LogEntry const *le)
+{
+  NdbMutex_Lock(restoreLogger.m_mutex);
+  ndberr << prefix << *le << "\n";
+  NdbMutex_Unlock(restoreLogger.m_mutex);
+}
+
 void BackupRestore::cback(int result, restore_callback_t *cb)
 {
 #ifdef ERROR_INSERT
@@ -3990,15 +4093,33 @@ void BackupRestore::cback(int result, restore_callback_t *cb)
       tuple_a(cb); // retry
     else
     {
-      restoreLogger.log_error("Restore: Failed to restore data due to a unrecoverable error. Exiting...");
       cb->next = m_free_callback;
       m_free_callback = cb;
+      set_data_error(true);
+      if(ga_continue_on_data_errors)
+      {
+        restoreLogger.log_error("Restore: Failed to restore data due to an "
+                                "unrecoverable error. Will continue due to "
+                                "--continue-on-data-errors being set.");
+        logErrorWithTuple("The tuple that failed to restore is: ", &cb->tup);
+      }
+      else
+      {
+        restoreLogger.log_error("Restore: Failed to restore data due to an "
+                                "unrecoverable error. You could provide "
+                                "--continue-on-data-errors to not give up at "
+                                "this point. Exiting...");
+        logErrorWithTuple("The tuple that failed to restore is: ", &cb->tup);
+        set_fatal_error(true);
+      }
       return;
     }
   }
   else if (get_fatal_error()) // fatal error in other restore-thread
   {
-    restoreLogger.log_error("Restore: Failed to restore data due to a unrecoverable error. Exiting...");
+    restoreLogger.log_error("Restore: Failed to restore data due to an "
+                            "unrecoverable error in another restore thread. "
+                            "Exiting...");
     cb->next = m_free_callback;
     m_free_callback = cb;
     return;
@@ -4801,7 +4922,24 @@ void BackupRestore::cback_logentry(int result, restore_callback_t *cb)
     }
     if (!ok)
     {
-      set_fatal_error(true);
+      set_data_error(true);
+      if(ga_continue_on_data_errors)
+      {
+        restoreLogger.log_error("Restore: Failed to restore data from a log "
+                                "entry due to an unrecoverable error. Will "
+                                "continue due to --continue-on-data-errors "
+                                "being set.");
+        logErrorWithLogEntry("The log entry that failed to restore is: ", cb->le);
+      }
+      else
+      {
+        restoreLogger.log_error("Restore: Failed to restore data from a log "
+                                "entry due to an unrecoverable error. You "
+                                "could provide --continue-on-data-errors to "
+                                "not give up at this point. Exiting...");
+        logErrorWithLogEntry("The log entry that failed to restore is: ", cb->le);
+        set_fatal_error(true);
+      }
       return;
     }
   }

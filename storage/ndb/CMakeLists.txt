@@ -311,7 +311,6 @@ ENDIF()
 
 ADD_SUBDIRECTORY(tools)
 ADD_SUBDIRECTORY(test)
-ADD_SUBDIRECTORY(rest-server)
 IF(WITH_NDB_TEST)
   ADD_SUBDIRECTORY(src/cw/cpcd)
 ENDIF()
@@ -344,3 +343,8 @@ ENDIF()
 
 ## WiX support disabled for now
 # ADD_SUBDIRECTORY(wix)
+
+IF(WITH_RDRS)
+  ADD_SUBDIRECTORY(rest-server)
+  ADD_SUBDIRECTORY(rest-server2)
+ENDIF()

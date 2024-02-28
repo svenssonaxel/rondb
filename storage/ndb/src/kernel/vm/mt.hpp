@@ -1,5 +1,5 @@
 /* Copyright (c) 2008, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2021, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2021, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -48,10 +48,7 @@
   messages directed to other nodes and contains no blocks and
   executes thus no signals.
 */
-#define MAX_BLOCK_THREADS (MAX_MAIN_THREADS +       \
-                           MAX_NDBMT_LQH_THREADS +  \
-                           MAX_NDBMT_TC_THREADS +   \
-                           MAX_NDBMT_RECEIVE_THREADS)
+#define MAX_BLOCK_THREADS (NDBMT_MAX_BLOCK_INSTANCES)
 
 /**
  * The worst case is the single thread instance running the receive thread,
@@ -92,7 +89,10 @@ void mt_execSTOP_FOR_CRASH();
 Uint32 mt_get_thread_signal_id(Uint32 thr_no);
 Uint32 mt_get_exec_thread_signal_id(Uint32 thr_no, Uint32 sender_thr_no);
 Uint32 mt_map_api_node_to_recv_instance(NodeId);
-void mt_getSendBufferLevel(Uint32 self, TrpId trp_id, SB_LevelType &level);
+void mt_getSendBufferLevel(Uint32 self,
+                           TrpId trp_id,
+                           BlockNumber bno,
+                           SB_LevelType &level);
 Uint32 mt_getEstimatedJobBufferLevel(Uint32 self);
 bool mt_isEstimatedJobBufferLevelChanged(Uint32 self);
 NDB_TICKS mt_getHighResTimer(Uint32 self);
@@ -103,12 +103,24 @@ void mt_startChangeNeighbourNode();
 void mt_setNeighbourNode(NodeId node);
 void mt_endChangeNeighbourNode();
 void mt_setWakeupThread(Uint32 self, Uint32 wakeup_instance);
-void mt_setConfMaxSendDelay(Uint32 max_send_delay);
-void mt_setConfMinSendDelay(Uint32 min_send_delay);
+
+Int32 mt_getTcDecrease();
+Int32 mt_getRecvDecrease();
+void mt_setTcQueryThreadDistance(Int32);
+void mt_setRecvQueryThreadDistance(Int32);
+
+void mt_setConfMaxSignalsPerJBBReceive(Uint32 max_signals_per_jbb_receive);
+void mt_setConfMaxSignalsBeforeFlushOther(Uint32);
+void mt_setConfMaxSignalsBeforeFlushTc(Uint32);
+void mt_setConfMaxSignalsBeforeFlushReceiver(Uint32);
+void mt_setConfMaxSignalsBeforeWakeupOther(Uint32);
+void mt_setConfMaxSignalsBeforeWakeupTc(Uint32);
+void mt_setConfMaxSignalsBeforeWakeupReceiver(Uint32);
+void mt_setMaxNumExtendedDelay(Uint32);
+void mt_setExtendDelay(Uint32);
+Uint32 mt_getMaxSendDelay(void);
 void mt_setMaxSendDelay(Uint32 max_send_delay);
 void mt_setMinSendDelay(Uint32 min_send_delay);
-void mt_setMaxSendBufferSizeDelay(Uint32 max_send_buffer_size_delay);
-bool mt_is_recover_thread(Uint32 thr_no);
 void mt_setOverloadStatus(Uint32 self,
                          OverloadStatus new_status);
 void mt_setNodeOverloadStatus(Uint32 self,
@@ -125,8 +137,8 @@ void mt_setSpintime(Uint32 self, Uint32 new_spintime);
 Uint32 mt_getWakeupLatency(void);
 void mt_setWakeupLatency(Uint32);
 
-const char *mt_getThreadName(Uint32 self);
-const char *mt_getThreadDescription(Uint32 self);
+void mt_getThreadName(Uint32 self, char *name);
+void mt_getThreadDescription(Uint32 self, char *desc);
 void mt_getSendPerformanceTimers(Uint32 send_instance,
                                  Uint64 & exec_time,
                                  Uint64 & sleep_time,
@@ -145,6 +157,7 @@ bool mt_epoll_add_trp(Uint32 self, TrpId trp_id);
 bool mt_is_recv_thread_for_new_trp(Uint32 self,
                                    TrpId trp_id);
 Uint32 mt_getMainThrmanInstance();
+Uint32 mt_getRepThrmanInstance();
 
 SendStatus mt_send_remote(Uint32 self, const SignalHeader *sh, Uint8 prio,
                           const Uint32 *data, NodeId nodeId,

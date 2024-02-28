@@ -808,6 +808,7 @@ private:
     Uint32 m_page_id;
     Uint32 m_size;
     Uint32 m_free;
+    bool m_in_free_chunk_list;
     union {
       Uint32 nextPool;
       Uint32 nextList;
@@ -877,6 +878,7 @@ private:
       Uint32 nextList;
     };
     Uint32 prevList;
+    bool is_free;
   };
   typedef ArrayPool<Trigger_page_chunk> Trigger_page_chunk_pool;
   typedef DLCFifoList<Trigger_page_chunk_pool> Trigger_page_chunk_fifo;
