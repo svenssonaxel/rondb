@@ -17360,6 +17360,16 @@ void Dblqh::execSCAN_NEXTREQ(Signal* signal)
     jam();
     scanPtr->m_max_batch_size_rows = max_rows;
   }
+
+  // Moz
+  // if (tcConnectptr.p->tableref == 17) {
+  //   fprintf(stderr, "Moz Dblqh::execSCAN_NEXTREQ, batch_size_rows: %u, batch_size_bytes: %u, "
+  //                   "m_max_batch_size_rows: %u, m_max_batch_size_bytes: %u, "
+  //                   "m_curr_batch_size_rows: %u, m_curr_batch_size_bytes: %u\n",
+  //                   nextReq->batch_size_rows, nextReq->batch_size_bytes,
+  //                   scanPtr->m_max_batch_size_rows, scanPtr->m_max_batch_size_bytes,
+  //                   scanPtr->m_curr_batch_size_rows, scanPtr->m_curr_batch_size_bytes);
+  // }
   
   /* --------------------------------------------------------------------
    * If scanLockHold = true we need to unlock previous round of
@@ -17438,6 +17448,9 @@ void Dblqh::scanNextLoopLab(Signal* signal,
   signal->theData[2] = scanFlag;
 
   ndbrequire(is_scan_ok(scanPtr, fragstatus));
+  // Moz statemach
+  ndbrequire(scanPtr->scanState == ScanRecord::WAIT_NEXT_SCAN ||
+             scanPtr->scanState == ScanRecord::WAIT_SCAN_NEXTREQ);
   scanPtr->scanState = ScanRecord::WAIT_NEXT_SCAN;
   scanPtr->scan_lastSeen = __LINE__;
   if (unlikely(in_send_next_scan == 0))
@@ -17486,6 +17499,7 @@ void Dblqh::scanLockReleasedLab(Signal* signal,
     else if (scanPtr->m_last_row && !scanPtr->scanLockHold)
     {
       jam();
+      // TODO(Zhao) maybe need to change here
       closeScanLab(signal, regTcPtr);
     }
     else if (scanPtr->check_scan_batch_completed() &&
@@ -17493,6 +17507,7 @@ void Dblqh::scanLockReleasedLab(Signal* signal,
     {
       jam();
       scanPtr->scan_lastSeen = __LINE__;
+      // TODO(Zhao) Don't send conf to TC
       sendScanFragConf(signal, ZFALSE, regTcPtr);
     }
     else
@@ -18378,6 +18393,10 @@ void Dblqh::execSCAN_FRAGREQ(Signal* signal)
                tcConnectptr);
     regTcPtr->opExec =
       (1 ^ ScanFragReq::getNotInterpretedFlag(reqinfo));
+    if (ScanFragReq::getAggregationFlag(reqinfo)) {
+      ndbrequire(regTcPtr->opExec);
+      regTcPtr->opAgg = 1;
+    }
     {
       const Uint32 applRef = scanFragReq->resultRef;
 
@@ -18531,6 +18550,8 @@ void Dblqh::continueAfterReceivingAllAiLab(
     return;
   }
 
+  // Moz statemach
+  ndbrequire(scanPtr->scanState == ScanRecord::SCAN_FREE);
   scanPtr->scanState = ScanRecord::WAIT_ACC_SCAN;
   AccScanReq * req = (AccScanReq*)&signal->theData[0];
 
@@ -18540,6 +18561,7 @@ void Dblqh::continueAfterReceivingAllAiLab(
   AccScanReq::setReadCommittedFlag(requestInfo, scanPtr->readCommitted);
   AccScanReq::setDescendingFlag(requestInfo, scanPtr->descending);
   AccScanReq::setStatScanFlag(requestInfo, scanPtr->statScan);
+  AccScanReq::setAggregationFlag(requestInfo, scanPtr->m_aggregation);
 
   if (refToMain(regTcPtr->clientBlockref) == getBACKUP())
   {
@@ -18686,12 +18708,12 @@ void Dblqh::accScanConfScanLab(Signal* signal,
     signal->theData[5] = sig5;
     signal->theData[6] = sig6;
     // Moz
+    // Indicator to inject aggregation program
     // temporary solution, just for hardcode agg program
     // remove later
-    if (regTcPtr->tableref == 17) {
-      signal->theData[7] = regTcPtr->opExec;
-    } else {
-      signal->theData[7] = 0;
+    signal->theData[7] = regTcPtr->opAgg;
+    if (regTcPtr->tableref != 17) {
+      ndbrequire(regTcPtr->opAgg == 0);
     }
     /* Pass ATTRINFO as long section, we don't need
      * it after this
@@ -18811,6 +18833,8 @@ void Dblqh::storedProcConfScanLab(Signal* signal,
     signal->theData[1] = RNIL;
     signal->theData[2] = NextScanReq::ZSCAN_NEXT;
     signal->theData[0] = sig0;
+    // Moz statemach
+    ndbrequire(scanPtr->scanState == ScanRecord::WAIT_ACC_SCAN);
     scanPtr->scanState = ScanRecord::WAIT_NEXT_SCAN;
     scanPtr->scan_lastSeen = __LINE__;
     if (likely(in_send_next_scan == 0))
@@ -19268,6 +19292,9 @@ void Dblqh::nextScanConfScanLab(Signal* signal,
     if (fragId == RNIL && !scanPtr->scanLockHold)
     {
       jamDebug();
+      if (scanPtr->m_aggregation) {
+        c_tup->SendAggResToAPI(signal, tcConnectptr.p, scanPtr);
+      }
       closeScanLab(signal, tcConnectptr.p);
       return;
     }
@@ -19629,6 +19656,7 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
     }
   }
 
+  // TODO(Zhao) Skip here
   if (scanPtr->check_scan_batch_completed() || last_row)
   {
     if (scanPtr->scanLockHold == ZTRUE)
@@ -19801,6 +19829,9 @@ void Dblqh::closeScanLab(Signal* signal, TcConnectionrec* regTcPtr)
   Fragrecord::FragStatus fragstatus = regFragPtr.p->fragStatus;
   ExecFunction f = scanPtr->scanFunction_NEXT_SCANREQ;
 
+  //Moz statemach
+  ndbrequire(scanPtr->scanState == ScanRecord::WAIT_SCAN_NEXTREQ ||
+             scanPtr->scanState == ScanRecord::WAIT_NEXT_SCAN);
   scanPtr->scanState = ScanRecord::WAIT_CLOSE_SCAN;
   scanPtr->scan_lastSeen = __LINE__;
   scanPtr->scan_check_lcp_stop = 0;
@@ -20035,12 +20066,14 @@ Uint32 Dblqh::initScanrec(const ScanFragReq* scanFragReq,
   const Uint32 rangeScan = ScanFragReq::getRangeScanFlag(reqinfo);
   const Uint32 prioAFlag = ScanFragReq::getPrioAFlag(reqinfo);
   const Uint32 firstMatch = ScanFragReq::getFirstMatchFlag(reqinfo);
+  const Uint32 aggregation = ScanFragReq::getAggregationFlag(reqinfo);
 
   scanPtr->scanLockMode = scanLockMode;
   scanPtr->readCommitted = readCommitted;
   scanPtr->rangeScan = rangeScan;
   scanPtr->prioAFlag = prioAFlag;
   scanPtr->m_first_match_flag = firstMatch;
+  scanPtr->m_aggregation = aggregation;
 
   const Uint32 descending = ScanFragReq::getDescendingFlag(reqinfo);
   Uint32 tupScan = ScanFragReq::getTupScanFlag(reqinfo);
@@ -20086,6 +20119,11 @@ Uint32 Dblqh::initScanrec(const ScanFragReq* scanFragReq,
   const Uint32 scanApiOpPtr = scanFragReq->clientOpPtr;
   const Uint32 max_rows = scanFragReq->batch_size_rows;
   const Uint32 max_bytes = scanFragReq->batch_size_bytes;
+  // Moz
+  // if (scanFragReq->tableId == 17) {
+  //   fprintf(stderr, "Moz batch_size_rows: %u, batch_size_bytes: %u\n",
+  //                   max_rows, max_bytes);
+  // }
 
   jamDebug(); // ZHAO 5
   scanPtr->lcpScan = lcpScan;
@@ -20329,6 +20367,7 @@ void Dblqh::initScanTc(const ScanFragReq* req,
   regTcPtr->m_dealloc_data.m_dealloc_ref_count = RNIL;
   regTcPtr->operation = ZREAD;
   regTcPtr->opExec = 0;  // Default 'not interpret', set later if needed
+  regTcPtr->opAgg = 0; // set it with opExec later
   regTcPtr->abortState = TcConnectionrec::ABORT_IDLE;
   // set TcConnectionrec::OP_SAVEATTRINFO so that a
   // "old" scan (short signals) update currTupAiLen which is checked
@@ -20938,6 +20977,9 @@ void Dblqh::sendScanFragConf(Signal* signal,
 {
   jamDebug();
   ScanRecord * const scanPtr = scanptr.p;
+  // Moz
+  // Make sure that we send correct m_curr_batch_size_XXX, otherwise
+  // the API cannot start to parse the TRANSID_AI message
   const Uint32 completed_ops= scanPtr->m_curr_batch_size_rows;
   const Uint32 total_len= scanPtr->m_curr_batch_size_bytes / sizeof(Uint32);
 
@@ -20973,6 +21015,10 @@ void Dblqh::sendScanFragConf(Signal* signal,
     jamDebug();
     scanPtr->m_curr_batch_size_rows = 0;
     scanPtr->m_curr_batch_size_bytes= 0;
+    // Moz statemach
+    ndbrequire(scanPtr->scanState == ScanRecord::WAIT_NEXT_SCAN ||
+               (scanPtr->scanState == ScanRecord::WAIT_CLOSE_SCAN &&
+                scanCompleted == ZSCAN_FRAG_CLOSED));
     if (!scanCompleted)
     {
       scanPtr->scanState = ScanRecord::WAIT_SCAN_NEXTREQ;

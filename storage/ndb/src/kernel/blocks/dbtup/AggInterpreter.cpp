@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <cstring>
 #include <utility>
+
+#include "signaldata/TransIdAI.hpp"
 #include "include/my_byteorder.h"
 #include "AggInterpreter.hpp"
 
@@ -1081,7 +1083,7 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
       buf_pos_ += (1 + header->getDataSize());
     }
 
-    uint32_t len_in_char = (buf_pos_ + 1) * sizeof(uint32_t);
+    uint32_t len_in_char = buf_pos_ * sizeof(uint32_t);
     GBHashEntry entry{reinterpret_cast<char*>(buf_), len_in_char};
     auto iter = gb_map_->find(entry);
     if (iter != gb_map_->end()) {
@@ -1662,4 +1664,103 @@ void AggInterpreter::MergePrint(const AggInterpreter* in1,
     fprintf(stderr, "\n");
     iter2++;
   }
+}
+
+uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
+  // TODO(Zhao) new limitation
+  if (!force && (gb_map_ == nullptr || gb_map_->size() < 10)) {
+    return 0;
+  }
+  if (force &&
+      (n_gb_cols_ != 0 && (gb_map_ == nullptr || gb_map_->size() == 0))) {
+    return 0;
+  }
+  // Uint32* data_buf = (signal->getDataPtrSend() + TransIdAI::HeaderLength);
+  Uint32* data_buf = (&signal->theData[25]);
+  // Uint32 data_buf[4096];
+  uint32_t pos = 0;
+  assert(n_gb_cols_ < 0xFFFF);
+  assert(n_agg_results_ < 0xFFFF);
+
+  if (n_gb_cols_) {
+    data_buf[pos++] = AttributeHeader::AGG_RESULT << 16 | 0x0721;
+    data_buf[pos++] = n_gb_cols_ << 16 | n_agg_results_;
+    data_buf[pos++] = gb_map_->size();
+    for (auto iter = gb_map_->begin(); iter != gb_map_->end();) {
+      assert(iter->first.len % 4 == 0 && iter->first.len < 0xFFFF);
+      assert(iter->second.len % 4 == 0 && iter->second.len < 0xFFFF);
+      data_buf[pos++] = iter->first.len << 16 | iter->second.len;
+      assert(iter->first.ptr + (iter->first.len + iter->second.len) ==
+          iter->second.ptr + iter->second.len);
+      MEMCOPY_NO_WORDS(&data_buf[pos], iter->first.ptr,
+          (iter->first.len + iter->second.len) >> 2);
+      pos += ((iter->first.len + iter->second.len) >> 2);
+      delete[] iter->first.ptr;
+      gb_map_->erase(iter++);
+    }
+  } else {
+    data_buf[pos++] = AttributeHeader::AGG_RESULT << 16 | 0x0721;
+    data_buf[pos++] = n_gb_cols_ << 16 | n_agg_results_;
+    data_buf[pos++] = 0;
+    data_buf[pos++] = 0;
+    assert(gb_map_ == nullptr);
+    MEMCOPY_NO_WORDS(&data_buf[pos], agg_results_,
+        (n_agg_results_ * sizeof(AggResItem)) >> 2);
+    pos += ((n_agg_results_ * sizeof(AggResItem)) >> 2);
+  }
+
+  uint32_t data_len = pos;
+  uint32_t parse_pos = 0;
+
+  while (parse_pos < data_len) {
+    AttributeHeader agg_checker_ah(data_buf[parse_pos++]);
+    assert(agg_checker_ah.getAttributeId() == AttributeHeader::AGG_RESULT &&
+           agg_checker_ah.getByteSize() == 0x0721);
+    uint32_t n_gb_cols = data_buf[parse_pos] >> 16;
+    uint32_t n_agg_results = data_buf[parse_pos++] & 0xFFFF;
+    uint32_t n_res_items = data_buf[parse_pos++];
+    fprintf(stderr, "Moz, GB cols: %u, AGG results: %u, RES items: %u\n",
+            n_gb_cols, n_agg_results, n_res_items);
+
+    if (n_gb_cols) {
+      for (uint32_t i = 0; i < n_res_items; i++) {
+        uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
+        uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
+        AttributeHeader ah(data_buf[parse_pos++]);
+        fprintf(stderr,
+                "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
+                "res_len: %u, value: ",
+                ah.getAttributeId(), ah.getByteSize(),
+                ah.getDataSize(), gb_cols_len, agg_res_len);
+        assert(ah.getDataPtr() != &data_buf[parse_pos]);
+        char* ptr = (char*)(&data_buf[parse_pos]);
+        for (uint32_t i = 0; i < ah.getByteSize(); i++) {
+          fprintf(stderr, " %x", ptr[i]);
+        }
+        parse_pos += ah.getDataSize();
+        fprintf(stderr, "]");
+        for (uint32_t i = 0; i < n_agg_results; i++) {
+          AggResItem* ptr = (AggResItem*)(&data_buf[parse_pos]);
+          fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
+                  ptr->type, ptr->is_unsigned, ptr->is_null);
+          switch (ptr->type) {
+            case NDB_TYPE_BIGINT:
+              fprintf(stderr, "%15ld", ptr->value.val_int64);
+              break;
+            case NDB_TYPE_DOUBLE:
+              fprintf(stderr, "%31.16f", ptr->value.val_double);
+              break;
+            default:
+              assert(0);
+          }
+          fprintf(stderr, ")");
+          parse_pos += (sizeof(AggResItem) >> 2);
+        }
+        fprintf(stderr, "\n");
+      }
+    } else {
+    }
+  }
+  assert(parse_pos == data_len);
+  return pos;
 }

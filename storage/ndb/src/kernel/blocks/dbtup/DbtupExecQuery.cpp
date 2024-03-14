@@ -4042,12 +4042,51 @@ int Dbtup::interpreterStartLab(Signal* signal,
         fprintf(stderr, "Moz, interpreterStartLab, get scan_op_i %u for fragment %u\n",
             scanPtr.i, scan.m_fragId);
       }
+      if (scan.m_tableId == 17 && scan.m_fragId == 1 &&
+          AggInterpreter::g_debug == true) {
+        fprintf(stderr, "Moz, RattroutCounter: %u, start_index: %u, data: ",
+                RattroutCounter, start_index);
+        char* ptr = (char*)(&(signal->theData[0]));
+        for (Uint8 i = 0; i < (start_index * 4); i++) {
+          fprintf(stderr, " %x", *(ptr + i));
+        }
+        fprintf(stderr, " -- ");
+        ptr += (start_index * 4);
+        for (Uint8 i = 0; i < RattroutCounter * 4; i++) {
+          fprintf(stderr, " %x", *(ptr + i));
+        }
+        fprintf(stderr, "\n");
+      }
       if (scan.m_tableId == 17) {
         scan.agg_interpreter->ProcessRec(this, req_struct);
+        uint32_t res_len = scan.agg_interpreter->PrepareAggResIfNeeded(signal, false);
+        // fprintf(stderr, "HAHA agg connectPtr: %u, trans1: %u,"
+        //         " trans2: %u rec_blockref: %u, res_len: %u, read_len: %u\n",
+        //         req_struct->tc_operation_ptr,
+        //         req_struct->trans_id1,
+        //         req_struct->trans_id2,
+        //         req_struct->rec_blockref,
+        //         res_len,
+        //         req_struct->read_length);
+        if (res_len != 0) {
+          // Moz
+          // We need to req_struct->read_length here, which will update
+          // the Dblqh::ScanRecord::m_curr_batch_size_bytes later in
+          // the Dblqh::scanTupkeyConfLab
+          req_struct->read_length = res_len;
+          TransIdAI * transIdAI=  (TransIdAI *)signal->getDataPtrSend();
+          transIdAI->connectPtr = req_struct->tc_operation_ptr;
+          transIdAI->transId[0] = req_struct->trans_id1;
+          transIdAI->transId[1] = req_struct->trans_id2;
+          SendAggregationResult(signal, res_len, req_struct->rec_blockref);
+        }
+      } else {
+        sendReadAttrinfo(signal, req_struct, RattroutCounter); // ZHAO 49
       }
+    } else {
+      sendReadAttrinfo(signal, req_struct, RattroutCounter); // ZHAO 49
     }
 
-    sendReadAttrinfo(signal, req_struct, RattroutCounter); // ZHAO 49
     if (RlogSize > 0)
     {
       return sendLogAttrinfo(signal, req_struct, RlogSize, regOperPtr);
@@ -4058,6 +4097,39 @@ int Dbtup::interpreterStartLab(Signal* signal,
   {
     return TUPKEY_abort(req_struct, 22);
   }
+}
+
+void Dbtup::SendAggregationResult(Signal* signal, Uint32 res_len,
+                                 BlockReference api_blockref) {
+  ndbassert(refToMain(api_blockref) != 32770);
+  const Uint32 nodeId= refToNode(api_blockref);
+
+  bool connectedToNode= getNodeInfo(nodeId).m_connected;
+  const Uint32 type= getNodeInfo(nodeId).m_type;
+  const bool is_api= (type >= NodeInfo::API && type <= NodeInfo::MGM);
+  ndbrequire(is_api);
+  ndbrequire(nodeId != getOwnNodeId());
+  ndbrequire(connectedToNode);
+
+
+  // if (res_len <= TransIdAI::DataLength)
+  // {
+  //   jamDebug();
+  //   ndbassert(buffer->packetLenTA == 0);
+  //   if (dataBuf != &signal->theData[TransIdAI::HeaderLength])
+  //   {
+  //     MEMCOPY_NO_WORDS(&signal->theData[TransIdAI::HeaderLength],
+  //                      &signal->theData[25], res_len);
+  //   }
+  //   sendSignal(api_blockref, GSN_TRANSID_AI, signal,
+  //       TransIdAI::HeaderLength+22, JBB);
+  // } else {
+    LinearSectionPtr ptr[3];
+    ptr[0].p= const_cast<Uint32*>(&signal->theData[25]);
+    ptr[0].sz= res_len;
+    sendSignal(api_blockref, GSN_TRANSID_AI, signal,
+               TransIdAI::HeaderLength, JBB, ptr, 1);
+  // }
 }
 
 /* ---------------------------------------------------------------- */

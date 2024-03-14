@@ -479,7 +479,7 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
       m_transId2(0),
       m_savePointId(0),
       m_accLockOp(RNIL),
-      is_aggregation(false),
+      m_aggregation(0),
       agg_interpreter(nullptr)
     {}
 
@@ -539,7 +539,7 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
     Uint32 prevList;
 
     // Aggregation
-    bool is_aggregation;
+    Uint32 m_aggregation;
     AggInterpreter* agg_interpreter;
   };
   static constexpr Uint32 DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX = 3;
@@ -2809,6 +2809,9 @@ private:
                         KeyReqStruct *req_struct,
                         Uint32 TnoOfData);
 
+  void SendAggregationResult(Signal* signal, Uint32 res_len,
+                             BlockReference api_blockref);
+
 //------------------------------------------------------------------
 //------------------------------------------------------------------
   int sendLogAttrinfo(Signal* signal,
@@ -3278,6 +3281,8 @@ public:
                     Uint32 attrInfoIVal);
 
   void nextAttrInfoParam(Uint32 storedProcId);
+
+  void SendAggResToAPI(Signal*, const void* lqhTcConnectrec, void* lqhScanRecord);
   /**
    * Used by Restore...
    */

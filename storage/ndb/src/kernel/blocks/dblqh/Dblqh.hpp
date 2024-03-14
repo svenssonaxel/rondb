@@ -596,7 +596,8 @@ public:
       scanType(ST_IDLE),
       m_takeOverRefCount(0),
       m_reserved(0),
-      m_send_early_hbrep(0)
+      m_send_early_hbrep(0),
+      m_aggregation(0)
     {
     }
 
@@ -719,6 +720,7 @@ public:
     Uint8 prioAFlag;
     Uint8 m_first_match_flag;
     Uint8 m_send_early_hbrep;
+    Uint8 m_aggregation;
   };
   static constexpr Uint32 DBLQH_SCAN_RECORD_TRANSIENT_POOL_INDEX = 1;
   typedef Ptr<ScanRecord> ScanRecordPtr;
@@ -2886,6 +2888,7 @@ public:
     Uint8 nextSeqNoReplica;
     Uint8 opSimple;
     Uint8 opExec;
+    Uint8 opAgg;
     Uint8 operation;
     Uint8 m_reorg;
     Uint8 reclenAiLqhkey;

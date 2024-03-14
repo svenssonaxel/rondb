@@ -30,6 +30,8 @@
 #include <ndb_limits.h>
 #include <pc.hpp>
 #include <signaldata/TransIdAI.hpp>
+#include "../dblqh/Dblqh.hpp"
+#include "AggInterpreter.hpp"
 
 #define JAM_FILE_ID 410
 
@@ -477,4 +479,37 @@ void Dbtup::sendReadAttrinfo(Signal* signal,
   ptr[0].sz= ToutBufIndex;
   sendSignal(routeBlockref, GSN_TRANSID_AI_R, signal,
              TransIdAI::HeaderLength+1, JBB, ptr, 1);
+}
+
+void Dbtup::SendAggResToAPI(Signal* signal, const void* lqhTcConnectrec,
+                            void* lqhScanRecord) {
+  const Dblqh::TcConnectionrec* lqhOpPtrP =
+                              (Dblqh::TcConnectionrec*)lqhTcConnectrec;
+  Dblqh::ScanRecord* lqhScanPtrP = (Dblqh::ScanRecord*)lqhScanRecord;
+  ndbrequire(lqhScanPtrP->scanAccPtr != RNIL);
+  ScanOpPtr scanPtr;
+  scanPtr.i = lqhScanPtrP->scanAccPtr;
+  ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
+  ScanOp& scan = *scanPtr.p;
+  ndbrequire(scan.agg_interpreter != nullptr);
+  uint32_t res_len = scan.agg_interpreter->PrepareAggResIfNeeded(signal, true);
+  // fprintf(stderr, "Hello table %u frag %u, res_len: %u,"
+  //         " trans[0]: %u, trans[2]: %u, connectPtr: %u, blockref: %u"
+  //         ", size_bytes: %u, size_rows: %u\n",
+  //         scan.m_tableId, scan.m_fragId, res_len,
+  //         lqhOpPtrP->transid[0], lqhOpPtrP->transid[1],
+  //         lqhScanPtrP->scanApiOpPtr, lqhScanPtrP->scanApiBlockref,
+  //         lqhScanPtrP->m_curr_batch_size_bytes, lqhScanPtrP->m_curr_batch_size_rows);
+  if (res_len != 0) {
+    TransIdAI * transIdAI=  (TransIdAI *)signal->getDataPtrSend();
+    transIdAI->connectPtr = lqhScanPtrP->scanApiOpPtr;
+    transIdAI->transId[0] = lqhOpPtrP->transid[0];
+    transIdAI->transId[1] = lqhOpPtrP->transid[1];
+    ndbrequire(lqhScanPtrP->m_curr_batch_size_bytes == 0);
+    // ndbrequire(lqhScanPtrP->m_curr_batch_size_rows == 0);
+    lqhScanPtrP->m_curr_batch_size_bytes = res_len * sizeof(Uint32);
+    lqhScanPtrP->m_curr_batch_size_rows = 1;
+    SendAggregationResult(signal, res_len, lqhScanPtrP->scanApiBlockref);
+  }
+
 }
