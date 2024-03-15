@@ -183,8 +183,8 @@ private:
 #define PARALLEL_SHIFT     (0)
 #define PARALLEL_MASK      (255)
 
-#define SCAN_AGGREGATION_SHIFT (0)
-#define SCAN_AGGREGATION_MASK  (255)
+#define SCAN_AGGREGATION_SHIFT (7)
+#define SCAN_AGGREGATION_MASK  (1)
 
 #define LOCK_MODE_SHIFT     (8)
 #define LOCK_MODE_MASK      (1)
@@ -237,7 +237,9 @@ ScanTabReq::getParallelism(const UintR & requestInfo){
 inline
 Uint8
 ScanTabReq::getAggregation(const UintR & requestInfo) {
-  return ((Uint8)((requestInfo >> PARALLEL_SHIFT) & PARALLEL_MASK) == 128);
+  assert((requestInfo & 0x7F) == 0);
+  return ((Uint8)((requestInfo >> SCAN_AGGREGATION_SHIFT) &
+                  SCAN_AGGREGATION_MASK));
 }
 
 inline
@@ -302,6 +304,13 @@ ScanTabReq::setParallelism(UintR & requestInfo, Uint32 type){
   ASSERT_MAX(type, PARALLEL_MASK, "ScanTabReq::setParallelism");
   requestInfo= (requestInfo & ~(PARALLEL_MASK << PARALLEL_SHIFT)) |
                ((type & PARALLEL_MASK) << PARALLEL_SHIFT);
+}
+
+inline
+void
+ScanTabReq::setAggregation(UintR & requestInfo, Uint32 flag) {
+  assert((requestInfo & 0x7F) == 0);
+  requestInfo |= (flag << SCAN_AGGREGATION_SHIFT);
 }
 
 inline

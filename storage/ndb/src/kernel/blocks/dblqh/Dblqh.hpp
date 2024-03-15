@@ -5350,6 +5350,11 @@ inline
 bool
 Dblqh::ScanRecord::check_scan_batch_completed() const
 {
+  // Moz
+  // Don't break aggregation
+  if (m_aggregation == true) {
+    return false;
+  }
   Uint32 max_rows = m_max_batch_size_rows;
   Uint32 max_bytes = m_max_batch_size_bytes;
 

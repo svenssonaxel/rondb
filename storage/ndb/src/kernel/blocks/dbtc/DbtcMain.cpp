@@ -16403,9 +16403,9 @@ Dbtc::initScanrec(ScanRecordPtr scanptr,
   ScanFragReq::setAggregationFlag(tmp, ScanTabReq::getAggregation(ri));
   // Moz
   // TODO(Zhao) remove it later
-  if (scanptr.p->scanTableref == 17) {
-    ScanFragReq::setAggregationFlag(tmp, 1);
-  }
+  // if (scanptr.p->scanTableref == 17) {
+  //   ScanFragReq::setAggregationFlag(tmp, 1);
+  // }
   if (unlikely(ScanTabReq::getViaSPJFlag(ri)))
   {
     jam();

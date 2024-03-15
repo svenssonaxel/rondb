@@ -215,6 +215,7 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
     // Moz
     if (prepare_fragptr.p->fragTableId == 17)
     {
+      assert(prepare_fragptr.p->fragTableId == 17);
       ScanOpPtr scanPtr;
       scanPtr.i = scan_op_i;
       ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
@@ -222,7 +223,7 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
       ndbrequire(scan.m_tableId == prepare_fragptr.p->fragTableId &&
                  scan.m_fragId == prepare_fragptr.p->fragmentId);
 
-      if (scan.agg_interpreter == nullptr) {
+      if (scan.m_aggregation == true && scan.agg_interpreter == nullptr) {
         // Initialize agg_interpreter resources
         // 1. get 1st program word to verify Magic number
         ndbrequire(reader.getWord(pos));
@@ -4057,7 +4058,9 @@ int Dbtup::interpreterStartLab(Signal* signal,
         }
         fprintf(stderr, "\n");
       }
-      if (scan.m_tableId == 17) {
+      // Moz
+      if (scan.m_aggregation == true) {
+        ndbrequire(scan.agg_interpreter != nullptr);
         scan.agg_interpreter->ProcessRec(this, req_struct);
         uint32_t res_len = scan.agg_interpreter->PrepareAggResIfNeeded(signal, false);
         // fprintf(stderr, "HAHA agg connectPtr: %u, trans1: %u,"

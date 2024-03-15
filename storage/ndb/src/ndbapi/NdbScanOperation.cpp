@@ -58,6 +58,7 @@ NdbScanOperation::NdbScanOperation(Ndb* aNdb, NdbOperation::Type aType) :
   m_scanFinalisedOk= false;
   m_readTuplesCalled= false;
   m_interpretedCodeOldApi= nullptr;
+  m_aggregation_code = nullptr;
 }
 
 NdbScanOperation::~NdbScanOperation()
@@ -237,6 +238,14 @@ NdbScanOperation::addInterpretedCode()
     theSubroutineSize= subroutineWords;
   }
 
+  return res;
+}
+
+int NdbScanOperation::addAggregationCode() {
+  const NdbAggregationCode* code = m_aggregation_code;
+  int res = insertATTRINFOData_NdbRecord((const char*)code->buffer(),
+                                          code->instructions_length() << 2);
+  theAggregationSize = code->instructions_length();
   return res;
 }
 
@@ -505,6 +514,15 @@ NdbScanOperation::scanImpl(const NdbScanOperation::ScanOptions *options,
   {
     if (addInterpretedCode() == -1)
       return -1;
+  }
+
+  /* Add aggregation code words to ATTRINFO signal
+   * chain as necessary
+   */
+  if (m_aggregation_code != nullptr) {
+    if (addAggregationCode() == -1) {
+      return -1;
+    }
   }
   
   /* Scan is now fully defined, so let's start preparing
@@ -1539,6 +1557,25 @@ NdbScanOperation::freeInterpretedCodeOldApi()
   }
 }
 
+int NdbScanOperation::setAggregationCode(const NdbAggregationCode *code)
+{
+  if (theStatus == NdbOperation::UseNdbRecord)
+  {
+    setErrorCodeAbort(4284); // Cannot mix NdbRecAttr and NdbRecord methods...
+    return -1;
+  }
+
+  // TODO (Zhao)
+  // if ((code->m_flags & NdbAggregationCode::Finalised) == 0)
+  // {
+  //   setErrorCodeAbort(4519); //  NdbAggregationCode::finalise() not called.
+  //   return -1;
+  // }
+
+  m_aggregation_code = code;
+
+  return 0;
+}
 
 void
 NdbScanOperation::setReadLockMode(LockMode lockMode)
@@ -2371,6 +2408,11 @@ int NdbScanOperation::prepareSendScan(Uint32 /*aTC_ConnectPtr*/,
 
   /* Set distribution key info if required */
   ScanTabReq::setDistributionKeyFlag(reqInfo, theDistrKeyIndicator_);
+
+  /* Set aggregation information */
+  if (m_aggregation_code != nullptr) {
+    ScanTabReq::setAggregation(reqInfo, 1);
+  }
   req->requestInfo = reqInfo;
   req->distributionKey= theDistributionKey;
   theSCAN_TABREQ->setLength(ScanTabReq::StaticLength + theDistrKeyIndicator_);

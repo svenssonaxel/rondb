@@ -186,6 +186,7 @@ void Dbtup::scanProcedure(Signal* signal,
   Uint32 lenAttrInfo = handle->m_ptr[0].p->m_sz;
   // Moz
   bool inject_agg_proc = bool(signal->theData[7]);
+  assert(inject_agg_proc == false);
   if (inject_agg_proc) {
     ndbrequire(prepare_fragptr.p->fragTableId == 17);
 

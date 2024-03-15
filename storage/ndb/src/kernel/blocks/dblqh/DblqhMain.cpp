@@ -18711,9 +18711,12 @@ void Dblqh::accScanConfScanLab(Signal* signal,
     // Indicator to inject aggregation program
     // temporary solution, just for hardcode agg program
     // remove later
-    signal->theData[7] = regTcPtr->opAgg;
+    // signal->theData[7] = regTcPtr->opAgg;
+    signal->theData[7] = 0;
     if (regTcPtr->tableref != 17) {
       ndbrequire(regTcPtr->opAgg == 0);
+    } else {
+      // ndbrequire(regTcPtr->opAgg == 1);
     }
     /* Pass ATTRINFO as long section, we don't need
      * it after this
@@ -18725,7 +18728,8 @@ void Dblqh::accScanConfScanLab(Signal* signal,
     // temporary solution, just for hardcode agg program
     // remove later
     if (regTcPtr->tableref == 17 && bool(regTcPtr->opExec)) {
-      scanptr.p->scanAiLength += 25;
+      // assert(regTcPtr->opAgg);
+      // scanptr.p->scanAiLength += 25;
     }
     if (likely(signal->theData[0] == 0))
     {
