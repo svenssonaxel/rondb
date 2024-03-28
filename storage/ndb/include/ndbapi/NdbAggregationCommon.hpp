@@ -3,8 +3,12 @@
  *
  * Author: Zhao Song
  */
-#ifndef AGGCOMMON_H_
-#define AGGCOMMON_H_
+#ifndef NDBAGGREGATIONCOMMON_H_
+#define NDBAGGREGATIONCOMMON_H_
+#include <cstring>
+#include <cstdint>
+
+#define MAX_AGG_RESULT_BATCH_BYTES 8192
 enum InterpreterOp {
   kOpUnknown = 0,
   kOpPlus,
@@ -55,4 +59,24 @@ struct GBColInfo {
   bool is_unsigned;
 };
 
-#endif  // AGGCOMMON_H_
+struct GBHashEntry {
+  char *ptr;
+  uint32_t len;
+};
+
+struct GBHashEntryCmp {
+  bool operator() (const GBHashEntry& n1, const GBHashEntry& n2) const {
+    uint32_t len = n1.len > n2.len ?
+                    n2.len : n1.len;
+
+    int ret = memcmp(n1.ptr, n2.ptr, len);
+    if (ret == 0) {
+      return n1.len < n2.len;
+    } else {
+      return ret < 0;
+    }
+  }
+};
+
+
+#endif  // NDBAGGREGATIONCOMMON_H_

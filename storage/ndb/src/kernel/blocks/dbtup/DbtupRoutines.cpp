@@ -3029,6 +3029,7 @@ Dbtup::read_pseudo(const Uint32 * inBuffer, Uint32 inPos,
   switch(attrId){
   case AttributeHeader::READ_LCP:
     return read_lcp(inBuffer, inPos, req_struct, outBuf);
+  case AttributeHeader::AGG_RESULT:
   case AttributeHeader::READ_PACKED:
   case AttributeHeader::READ_ALL:
     return (int)read_packed(inBuffer, inPos, req_struct, outBuf);

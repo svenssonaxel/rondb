@@ -27,7 +27,7 @@
 #define NdbScanOperation_H
 
 #include "NdbOperation.hpp"
-#include "NdbAggregationCode.hpp"
+#include "NdbAggregator.hpp"
 
 class NdbBlob;
 class NdbResultSet;
@@ -320,7 +320,7 @@ public:
 
 #endif
 
-  int setAggregationCode(const NdbAggregationCode *code);
+  int setAggregationCode(const NdbAggregator *code);
 
   /**
    * Get the next tuple in a scan transaction. 
@@ -741,7 +741,7 @@ protected:
   bool  m_scanFinalisedOk;
 
   /* Aggregation program for NdbRecord operations. */
-  const NdbAggregationCode *m_aggregation_code;
+  const NdbAggregator *m_aggregation_code;
 private:
   NdbScanOperation(const NdbScanOperation&); // Not impl.
   NdbScanOperation&operator=(const NdbScanOperation&);

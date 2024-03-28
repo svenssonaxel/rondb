@@ -93,6 +93,7 @@
 #include <sys/select.h>
 #endif
 #include <random>
+// #include <AttributeHeader.hpp>
 
 /**
  * Helper sleep function
@@ -111,8 +112,8 @@ milliSleep(int milliseconds){
  */
 #define PRINT_ERROR(code,msg) \
   std::cout << "Error in " << __FILE__ << ", line: " << __LINE__ \
-            << ", code: " << code \
-            << ", msg: " << msg << "." << std::endl
+  << ", code: " << code \
+  << ", msg: " << msg << "." << std::endl
 #define MYSQLERROR(mysql) { \
   PRINT_ERROR(mysql_errno(&mysql),mysql_error(&mysql)); \
   exit(-1); }
@@ -148,26 +149,26 @@ void drop_table(MYSQL &mysql)
 void create_table(MYSQL &mysql) 
 {
   while (mysql_query(&mysql, 
-    "CREATE TABLE agg.api_scan ("
-      "CINT INT NOT NULL,"
-      "CTINYINT TINYINT NOT NULL,"
-      "CSMALLINT SMALLINT NOT NULL,"
-      "CMEDIUMINT MEDIUMINT NOT NULL,"
-      "CBIGINT BIGINT NOT NULL,"
-      "CUTINYINT TINYINT UNSIGNED NOT NULL,"
-      "CUSMALLINT SMALLINT UNSIGNED NOT NULL,"
-      "CUMEDIUMINT MEDIUMINT UNSIGNED NOT NULL,"
-      "CUINT INT UNSIGNED NOT NULL,"
-      "CUBIGINT BIGINT UNSIGNED NOT NULL,"
-      "CFLOAT FLOAT NOT NULL,"
-      "CDOUBLE DOUBLE NOT NULL,"
-      "CCHAR CHAR(20) NOT NULL,"
-      "PRIMARY KEY USING HASH (CINT)) ENGINE=NDB CHARSET=latin1"))
+        "CREATE TABLE agg.api_scan ("
+        "CINT INT NOT NULL,"
+        "CTINYINT TINYINT NOT NULL,"
+        "CSMALLINT SMALLINT NOT NULL,"
+        "CMEDIUMINT MEDIUMINT NOT NULL,"
+        "CBIGINT BIGINT NOT NULL,"
+        "CUTINYINT TINYINT UNSIGNED NOT NULL,"
+        "CUSMALLINT SMALLINT UNSIGNED NOT NULL,"
+        "CUMEDIUMINT MEDIUMINT UNSIGNED NOT NULL,"
+        "CUINT INT UNSIGNED NOT NULL,"
+        "CUBIGINT BIGINT UNSIGNED NOT NULL,"
+        "CFLOAT FLOAT NOT NULL,"
+        "CDOUBLE DOUBLE NOT NULL,"
+        "CCHAR CHAR(20) NOT NULL,"
+        "PRIMARY KEY USING HASH (CINT)) ENGINE=NDB CHARSET=latin1"))
   {
     if (mysql_errno(&mysql) != ER_TABLE_EXISTS_ERROR)
       MYSQLERROR(mysql);
     std::cout << "MySQL Cluster already has example table: api_scan. "
-	      << "Dropping it..." << std::endl; 
+      << "Dropping it..." << std::endl; 
     drop_table(mysql);
   }
 }
@@ -176,19 +177,19 @@ std::random_device rd;
 std::mt19937 gen(rd());
 
 /*
-std::uniform_int_distribution<int64_t> g_bigint(0xFFFFFFFF, 0x7FFFFFFF);
-std::uniform_int_distribution<uint64_t> g_ubigint(0, 0xFFFFFFFF);
-std::uniform_int_distribution<int32_t> g_int(0xFFFF, 0x7FFF);
-std::uniform_int_distribution<uint32_t> g_uint(0, 0xFFFF);
-std::uniform_int_distribution<int32_t> g_mediumint(0x0FFF, 0x7FF);
-std::uniform_int_distribution<uint32_t> g_umediumint(0, 0xFFF);
-std::uniform_int_distribution<int16_t> g_smallint(0xFF, 0x7F);
-std::uniform_int_distribution<uint16_t> g_usmallint(0, 0xFF);
-std::uniform_int_distribution<int8_t> g_tinyint(0xF, 0x7);
-std::uniform_int_distribution<uint8_t> g_utinyint(0, 0xF);
-std::uniform_real_distribution<float> g_float(0xFFFF, 0x7FFF);
-std::uniform_real_distribution<double> g_double(0xFFFFFFFF, 0x7FFFFFFF);
-*/
+   std::uniform_int_distribution<int64_t> g_bigint(0xFFFFFFFF, 0x7FFFFFFF);
+   std::uniform_int_distribution<uint64_t> g_ubigint(0, 0xFFFFFFFF);
+   std::uniform_int_distribution<int32_t> g_int(0xFFFF, 0x7FFF);
+   std::uniform_int_distribution<uint32_t> g_uint(0, 0xFFFF);
+   std::uniform_int_distribution<int32_t> g_mediumint(0x0FFF, 0x7FF);
+   std::uniform_int_distribution<uint32_t> g_umediumint(0, 0xFFF);
+   std::uniform_int_distribution<int16_t> g_smallint(0xFF, 0x7F);
+   std::uniform_int_distribution<uint16_t> g_usmallint(0, 0xFF);
+   std::uniform_int_distribution<int8_t> g_tinyint(0xF, 0x7);
+   std::uniform_int_distribution<uint8_t> g_utinyint(0, 0xF);
+   std::uniform_real_distribution<float> g_float(0xFFFF, 0x7FFF);
+   std::uniform_real_distribution<double> g_double(0xFFFFFFFF, 0x7FFFFFFF);
+   */
 
 std::uniform_int_distribution<int64_t> g_bigint(-3147483648, 3147483648);
 std::uniform_int_distribution<uint64_t> g_ubigint(0, 5294967295);
@@ -205,10 +206,11 @@ std::uniform_real_distribution<double> g_double(-8388608, 8388607);
 
 std::uniform_int_distribution<uint8_t> g_zero(0, 19);
 
+#define NUM 300
 int populate(Ndb * myNdb)
 {
   int i;
-  Row rows[10];
+  Row rows[NUM];
 
   const NdbDictionary::Dictionary* myDict= myNdb->getDictionary();
   const NdbDictionary::Table *myTable= myDict->getTable("api_scan");
@@ -216,31 +218,44 @@ int populate(Ndb * myNdb)
   if (myTable == NULL) 
     APIERROR(myDict->getNdbError());
 
-  for (i = 0; i < 10; i++)
+  for (i = 0; i < NUM; i++)
   {
-    rows[i].cint32 = g_int(gen);
-    rows[i].cint8 = g_tinyint(gen);
-    rows[i].cint16 = g_smallint(gen);
-    rows[i].cint24 = g_mediumint(gen);
-    rows[i].cint64 = g_bigint(gen);
+    // rows[i].cint32 = g_int(gen);
+    // rows[i].cint8 = g_tinyint(gen);
+    // rows[i].cint16 = g_smallint(gen);
+    // rows[i].cint24 = g_mediumint(gen);
+    // rows[i].cint64 = g_bigint(gen);
 
-    rows[i].cuint8 = g_utinyint(gen);
-    rows[i].cuint16 = g_usmallint(gen);
-    if (g_zero(gen) == 6) {
-      rows[i].cuint16 = 0;
-    }
-    rows[i].cuint24 = g_umediumint(gen);
-    rows[i].cuint32 = g_uint(gen);
-    rows[i].cuint64 = g_ubigint(gen);
-    if (g_zero(gen) == 6) {
-      rows[i].cuint64 = 0;
-    }
+    // rows[i].cuint8 = g_utinyint(gen);
+    // rows[i].cuint16 = g_usmallint(gen);
+    // if (g_zero(gen) == 6) {
+    //   rows[i].cuint16 = 0;
+    // }
+    // rows[i].cuint24 = g_umediumint(gen);
+    // rows[i].cuint32 = g_uint(gen);
+    // rows[i].cuint64 = g_ubigint(gen);
+    // if (g_zero(gen) == 6) {
+    //   rows[i].cuint64 = 0;
+    // }
 
-    rows[i].cfloat = g_float(gen);
-    rows[i].cdouble = g_double(gen);
-    if (g_zero(gen) == 6) {
-      rows[i].cdouble = 0;
-    }
+    // rows[i].cfloat = g_float(gen);
+    // rows[i].cdouble = g_double(gen);
+    // if (g_zero(gen) == 6) {
+    //   rows[i].cdouble = 0;
+    // }
+    rows[i].cint32 = i;
+    rows[i].cint8 = i;
+    rows[i].cint16 = i;
+    rows[i].cint24 = i;
+    rows[i].cint64 = i;
+    rows[i].cuint8 = i * 2;
+    rows[i].cuint16 = i * 2;
+    rows[i].cuint24 = i * 2;
+    rows[i].cuint32 = i * 2;
+    rows[i].cuint64 = i * 2;
+    rows[i].cfloat = i * 1.1;
+    rows[i].cdouble = i * 1.11;
+
 
     // Must memset here, otherwise group by this
     // column in aggregation interpreter would be undefined.
@@ -268,7 +283,7 @@ int populate(Ndb * myNdb)
   if (myTrans == NULL)
     APIERROR(myNdb->getNdbError());
 
-  for (i = 1; i < 10; i++) 
+  for (i = 1; i < NUM; i++) 
   {
     NdbOperation* myNdbOperation = myTrans->getNdbOperation(myTable);
     if (myNdbOperation == NULL) 
@@ -302,9 +317,9 @@ int populate(Ndb * myNdb)
   return check != -1;
 }
 
-int scan_print(Ndb * myNdb)
+int scan_aggregation(Ndb * myNdb)
 {
-// Scan all records exclusive and update
+  // Scan all records exclusive and update
   // them one by one
   int                  retryAttempt = 0;
   const int            retryMax = 10;
@@ -315,8 +330,9 @@ int scan_print(Ndb * myNdb)
   NdbScanOperation	*myScanOp;
   /* Result of reading attribute value, three columns:
      REG_NO, BRAND, and COLOR
-   */
-  NdbRecAttr *    	myRecAttr[14];   
+     */
+  // NdbRecAttr *    	myRecAttr[14];   
+  NdbRecAttr* myRecAttr;   
 
   const NdbDictionary::Dictionary* myDict= myNdb->getDictionary();
   const NdbDictionary::Table *myTable= myDict->getTable("api_scan");
@@ -339,7 +355,7 @@ int scan_print(Ndb * myNdb)
     if (retryAttempt >= retryMax)
     {
       std::cout << "ERROR: has retried this operation " << retryAttempt 
-		<< " times, failing!" << std::endl;
+        << " times, failing!" << std::endl;
       return -1;
     }
 
@@ -350,11 +366,11 @@ int scan_print(Ndb * myNdb)
 
       if (err.status == NdbError::TemporaryError)
       {
-	milliSleep(50);
-	retryAttempt++;
-	continue;
+        milliSleep(50);
+        retryAttempt++;
+        continue;
       }
-     std::cout << err.message << std::endl;
+      std::cout << err.message << std::endl;
       return -1;
     }
     /*
@@ -379,34 +395,39 @@ int scan_print(Ndb * myNdb)
       return -1;
     } 
 
+    NdbAggregator aggregator(myTable);
+    myScanOp->setAggregationCode(&aggregator);
+
     /**
      * Define storage for fetched attributes.
      * E.g., the resulting attributes of executing
      * myOp->getValue("REG_NO") is placed in myRecAttr[0].
      * No data exists in myRecAttr until transaction has committed!
      */
-    myRecAttr[0] = myScanOp->getValue("CINT");
-    myRecAttr[1] = myScanOp->getValue("CTINYINT");
-    myRecAttr[2] = myScanOp->getValue("CSMALLINT");
-    myRecAttr[3] = myScanOp->getValue("CMEDIUMINT");
-    myRecAttr[4] = myScanOp->getValue("CBIGINT");
-    myRecAttr[5] = myScanOp->getValue("CUTINYINT");
-    myRecAttr[6] = myScanOp->getValue("CUSMALLINT");
-    myRecAttr[7] = myScanOp->getValue("CUMEDIUMINT");
-    myRecAttr[8] = myScanOp->getValue("CUINT");
-    myRecAttr[9] = myScanOp->getValue("CUBIGINT");
-    myRecAttr[10] = myScanOp->getValue("CFLOAT");
-    myRecAttr[11] = myScanOp->getValue("CDOUBLE");
-    myRecAttr[12] = myScanOp->getValue("CCHAR");
-    if(myRecAttr[0] ==NULL || myRecAttr[1] == NULL || myRecAttr[2]==NULL ||
-       myRecAttr[3] ==NULL || myRecAttr[4] == NULL || myRecAttr[5]==NULL ||
-       myRecAttr[6] ==NULL || myRecAttr[7] == NULL || myRecAttr[8]==NULL ||
-       myRecAttr[9] ==NULL || myRecAttr[10] == NULL || myRecAttr[11]==NULL ||
-       myRecAttr[12] ==NULL)
+    Uint32 col = 0xFF00;
+    myRecAttr = myScanOp->getValue(col);
+    // myRecAttr[1] = myScanOp->getValue("CTINYINT");
+    // myRecAttr[2] = myScanOp->getValue("CSMALLINT");
+    // myRecAttr[3] = myScanOp->getValue("CMEDIUMINT");
+    // myRecAttr[4] = myScanOp->getValue("CBIGINT");
+    // myRecAttr[5] = myScanOp->getValue("CUTINYINT");
+    // myRecAttr[6] = myScanOp->getValue("CUSMALLINT");
+    // myRecAttr[7] = myScanOp->getValue("CUMEDIUMINT");
+    // myRecAttr[8] = myScanOp->getValue("CUINT");
+    // myRecAttr[9] = myScanOp->getValue("CUBIGINT");
+    // myRecAttr[10] = myScanOp->getValue("CFLOAT");
+    // myRecAttr[11] = myScanOp->getValue("CDOUBLE");
+    // myRecAttr[12] = myScanOp->getValue("CCHAR");
+    // if(myRecAttr[0] ==NULL || myRecAttr[1] == NULL || myRecAttr[2]==NULL ||
+    //    myRecAttr[3] ==NULL || myRecAttr[4] == NULL || myRecAttr[5]==NULL ||
+    //    myRecAttr[6] ==NULL || myRecAttr[7] == NULL || myRecAttr[8]==NULL ||
+    //    myRecAttr[9] ==NULL || myRecAttr[10] == NULL || myRecAttr[11]==NULL ||
+    //    myRecAttr[12] ==NULL)
+    if (myRecAttr == NULL)
     {
-	std::cout << myTrans->getNdbError().message << std::endl;
-	myNdb->closeTransaction(myTrans);
-	return -1;
+      std::cout << myTrans->getNdbError().message << std::endl;
+      myNdb->closeTransaction(myTrans);
+      return -1;
     }
     /**
      * Start scan   (NoCommit since we are only reading at this stage);
@@ -414,48 +435,34 @@ int scan_print(Ndb * myNdb)
     if(myTrans->execute(NdbTransaction::NoCommit) != 0){      
       err = myTrans->getNdbError();    
       if(err.status == NdbError::TemporaryError){
-	std::cout << myTrans->getNdbError().message << std::endl;
-	myNdb->closeTransaction(myTrans);
-	milliSleep(50);
-	continue;
+        std::cout << myTrans->getNdbError().message << std::endl;
+        myNdb->closeTransaction(myTrans);
+        milliSleep(50);
+        continue;
       }
       std::cout << err.code << std::endl;
       std::cout << myTrans->getNdbError().code << std::endl;
       myNdb->closeTransaction(myTrans);
       return -1;
     }
-    
+
     /**
      * start of loop: nextResult(true) means that "parallelism" number of
      * rows are fetched from NDB and cached in NDBAPI
      */    
-    while((check = myScanOp->nextResult(true)) == 0){
+    while((check = myScanOp->nextResult(true)) == 0) {
       do {
-	
-	fetchedRows++;
-	/**
-	 * print  REG_NO unsigned int
-	 */
-  fprintf(stdout, "%8d, %8d, %8d, %8d, %8lld, %8u, %8u ,%8u , %8u, %8llu, %8f, %8lf, %s\n",
-	myRecAttr[0]->int32_value(),
-	myRecAttr[1]->int8_value(),
-	myRecAttr[2]->short_value(),
-	myRecAttr[3]->medium_value(),
-	myRecAttr[4]->int64_value(),
-	myRecAttr[5]->u_8_value(),
-	myRecAttr[6]->u_short_value(),
-	myRecAttr[7]->u_medium_value(),
-	myRecAttr[8]->u_32_value(),
-	myRecAttr[9]->u_64_value(),
-	myRecAttr[10]->float_value(),
-	myRecAttr[11]->double_value(),
-	myRecAttr[12]->aRef());
 
-	/**
-	 * nextResult(false) means that the records 
-	 * cached in the NDBAPI are modified before
-	 * fetching more rows from NDB.
-	 */    
+        fetchedRows++;
+
+        int32_t len = aggregator.ProcessRes(myRecAttr->aRef());
+        fprintf(stderr, "Process length: %u\n", len);
+        
+        /**
+         * nextResult(false) means that the records 
+         * cached in the NDBAPI are modified before
+         * fetching more rows from NDB.
+         */    
       } while((check = myScanOp->nextResult(false)) == 0);
 
     }    
@@ -508,17 +515,17 @@ void ndb_run_scan(const char * connectstring)
     exit(-1);
   }
 
-  for (int i = 0; i < 10000; i++) {
+  for (int i = 0; i < 1; i++) {
     if (populate(&myNdb) != 1) {
-      std::cout << "populate: Failed!" << std::endl;
+      // std::cout << "populate: Failed!" << std::endl;
     }
   }
 
   std::cout << "Intialize table and data done!" << std::endl;
 
-  //if(scan_print(&myNdb) > 0)
-  //  std::cout << "scan_print: Success!" << std::endl  << std::endl;
-  
+  if(scan_aggregation(&myNdb) > 0)
+    std::cout << "scan_aggregation: Success!" << std::endl  << std::endl;
+
 }
 
 int main(int argc, char** argv)

@@ -29,7 +29,7 @@
 #include "portlib/ndb_compiler.h"
 #include <cstddef>
 #include <cstdint>
-#include "../kernel/blocks/dbtup/AggCommon.hpp"
+#include "NdbAggregationCommon.hpp"
 
 /**
  * 'class NdbReceiveBuffer' takes care of buffering multi-row
@@ -655,9 +655,16 @@ Uint32 packed_rowsize(const NdbRecord *result_record,
   const NdbRecAttr *ra= first_rec_attr;
   while (ra != nullptr)
   {
-    // AttrHeader + max column size. Aligned to word boundary
-    sizeInWords+= 1 + ((ra->getColumn()->getSizeInBytes() + 3) / 4);
-    ra= ra->next();
+    if (ra->getColumn() != nullptr) {
+      // AttrHeader + max column size. Aligned to word boundary
+      sizeInWords+= 1 + ((ra->getColumn()->getSizeInBytes() + 3) / 4);
+      ra= ra->next();
+    } else {
+      // Moz
+      // Aggregation
+      sizeInWords += MAX_AGG_RESULT_BATCH_BYTES / 4;
+      ra= ra->next();
+    }
   }
 
   return sizeInWords;
@@ -1174,56 +1181,63 @@ NdbReceiver::unpackRow(const Uint32* aDataPtr, Uint32 aLength, char* row)
     uint32_t parse_pos = 0;
     const uint32_t* data_buf = aDataPtr;
 
-    while (parse_pos < aLength) {
-      AttributeHeader agg_checker_ah(data_buf[parse_pos++]);
-      assert(agg_checker_ah.getAttributeId() == AttributeHeader::AGG_RESULT &&
-          agg_checker_ah.getByteSize() == 0x0721);
-      uint32_t n_gb_cols = data_buf[parse_pos] >> 16;
-      uint32_t n_agg_results = data_buf[parse_pos++] & 0xFFFF;
-      uint32_t n_res_items = data_buf[parse_pos++];
-      fprintf(stderr, "Moz, GB cols: %u, AGG results: %u, RES items: %u\n",
-          n_gb_cols, n_agg_results, n_res_items);
+    AttributeHeader agg_checker_ah(data_buf[parse_pos++]);
+    assert(agg_checker_ah.getAttributeId() == AttributeHeader::AGG_RESULT &&
+        agg_checker_ah.getByteSize() == 0x0721);
+    uint32_t n_gb_cols = data_buf[parse_pos] >> 16;
+    uint32_t n_agg_results = data_buf[parse_pos++] & 0xFFFF;
+    uint32_t n_res_items = data_buf[parse_pos++];
+    fprintf(stderr, "Moz, GB cols: %u, AGG results: %u, RES items: %u\n",
+        n_gb_cols, n_agg_results, n_res_items);
 
-      if (n_gb_cols) {
-        for (uint32_t i = 0; i < n_res_items; i++) {
-          uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
-          uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
-          AttributeHeader ah(data_buf[parse_pos++]);
-          fprintf(stderr,
-              "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
-              "res_len: %u, value: ",
-              ah.getAttributeId(), ah.getByteSize(),
-              ah.getDataSize(), gb_cols_len, agg_res_len);
-          assert(ah.getDataPtr() != &data_buf[parse_pos]);
-          const char* ptr = (const char*)(&data_buf[parse_pos]);
-          for (uint32_t i = 0; i < ah.getByteSize(); i++) {
-            fprintf(stderr, " %x", ptr[i]);
-          }
-          parse_pos += ah.getDataSize();
-          fprintf(stderr, "]");
-          for (uint32_t i = 0; i < n_agg_results; i++) {
-            const AggResItem* ptr = (const AggResItem*)(&data_buf[parse_pos]);
-            fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
-                ptr->type, ptr->is_unsigned, ptr->is_null);
-            switch (ptr->type) {
-              case NDB_TYPE_BIGINT:
-                fprintf(stderr, "%15ld", ptr->value.val_int64);
-                break;
-              case NDB_TYPE_DOUBLE:
-                fprintf(stderr, "%31.16f", ptr->value.val_double);
-                break;
-              default:
-                assert(0);
-            }
-            fprintf(stderr, ")");
-            parse_pos += (sizeof(AggResItem) >> 2);
-          }
-          fprintf(stderr, "\n");
+    if (n_gb_cols) {
+      for (uint32_t i = 0; i < n_res_items; i++) {
+        uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
+        uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
+        AttributeHeader ah(data_buf[parse_pos++]);
+        fprintf(stderr,
+            "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
+            "res_len: %u, value: ",
+            ah.getAttributeId(), ah.getByteSize(),
+            ah.getDataSize(), gb_cols_len, agg_res_len);
+        assert(ah.getDataPtr() != &data_buf[parse_pos]);
+        const char* ptr = (const char*)(&data_buf[parse_pos]);
+        for (uint32_t i = 0; i < ah.getByteSize(); i++) {
+          fprintf(stderr, " %x", ptr[i]);
         }
-      } else {
+        parse_pos += ah.getDataSize();
+        fprintf(stderr, "]");
+        for (uint32_t i = 0; i < n_agg_results; i++) {
+          const AggResItem* ptr = (const AggResItem*)(&data_buf[parse_pos]);
+          fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
+              ptr->type, ptr->is_unsigned, ptr->is_null);
+          switch (ptr->type) {
+            case NDB_TYPE_BIGINT:
+              fprintf(stderr, "%15ld", ptr->value.val_int64);
+              break;
+            case NDB_TYPE_DOUBLE:
+              fprintf(stderr, "%31.16f", ptr->value.val_double);
+              break;
+            default:
+              assert(0);
+          }
+          fprintf(stderr, ")");
+          parse_pos += (sizeof(AggResItem) >> 2);
+        }
+        fprintf(stderr, "\n");
       }
+    } else {
+      // TODO(Zhao)
     }
     assert(parse_pos == aLength);
+
+    if (aLength > 0) {
+      assert(m_type == NDB_SCANRECEIVER);
+
+      /* Save position for RecAttr values for later retrieval. */
+      m_rec_attr_data = aDataPtr;
+      m_rec_attr_len = aLength;
+    }
     return 0;
   }
 
@@ -1350,9 +1364,26 @@ NdbReceiver::handle_rec_attrs(NdbRecAttr* rec_attr_list,
     const Uint32 attrId= ah.getAttributeId();
     const Uint32 attrSize= ah.getByteSize();
     aLength--;
-    assert(aLength >= (attrSize/sizeof(Uint32)));
+    // Moz
+    // TODO (Zhao) handle 0x0721 as a legal size
+    // assert(aLength >= (attrSize / sizeof(Uint32)));
 
     {
+      if (attrId == AttributeHeader::AGG_RESULT) {
+        // Moz
+        // Only 1 NdbRecAttr per aggregation result
+        assert(currRecAttr->theNext == nullptr &&
+               currRecAttr->theAttrId == AttributeHeader::AGG_RESULT);
+        assert(attrSize == 0x0721);
+        // aLength here is in word size...
+        currRecAttr->receive_data(aDataPtr, aLength * sizeof(uint32_t));
+        aDataPtr += aLength;
+        aLength = 0;
+
+        return 0;
+      }
+
+      assert(aLength >= (attrSize/sizeof(Uint32)));
       // We've processed the NdbRecord part of the TRANSID_AI, if
       // any.  There are signal words left, so they must be
       // RecAttr data

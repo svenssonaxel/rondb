@@ -242,7 +242,7 @@ NdbScanOperation::addInterpretedCode()
 }
 
 int NdbScanOperation::addAggregationCode() {
-  const NdbAggregationCode* code = m_aggregation_code;
+  const NdbAggregator* code = m_aggregation_code;
   int res = insertATTRINFOData_NdbRecord((const char*)code->buffer(),
                                           code->instructions_length() << 2);
   theAggregationSize = code->instructions_length();
@@ -354,6 +354,7 @@ NdbScanOperation::handleScanOptions(const ScanOptions *options)
     }
     m_interpreted_code= options->interpretedCode;
   }
+
 
   /* User's operation 'tag' data. */
   if (options->optionsPresent & ScanOptions::SO_CUSTOMDATA)
@@ -1557,7 +1558,7 @@ NdbScanOperation::freeInterpretedCodeOldApi()
   }
 }
 
-int NdbScanOperation::setAggregationCode(const NdbAggregationCode *code)
+int NdbScanOperation::setAggregationCode(const NdbAggregator *code)
 {
   if (theStatus == NdbOperation::UseNdbRecord)
   {
@@ -3112,8 +3113,12 @@ NdbScanOperation::getValue_NdbRecAttr_scan(const NdbColumnImpl* attrInfo,
     }
   }
   else {
-    /* Attribute name or id not found in the table */
-    setErrorCodeAbort(4004);
+    if (m_aggregation_code != nullptr) {
+      recAttr = theReceiver.getValue(nullptr, aValue);
+    } else {
+      /* Attribute name or id not found in the table */
+      setErrorCodeAbort(4004);
+    }
   }
 
   return recAttr;

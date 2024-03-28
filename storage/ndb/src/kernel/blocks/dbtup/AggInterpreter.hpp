@@ -10,26 +10,7 @@
 #include <map>
 #include <mutex>
 #include "Dbtup.hpp"
-#include "AggCommon.hpp"
-
-struct GBHashEntry {
-  char *ptr;
-  uint32_t len;
-};
-
-struct GBHashEntryCmp {
-  bool operator() (const GBHashEntry& n1, const GBHashEntry& n2) const {
-    uint32_t len = n1.len > n2.len ?
-                    n2.len : n1.len;
-
-    int ret = memcmp(n1.ptr, n2.ptr, len);
-    if (ret == 0) {
-      return n1.len < n2.len;
-    } else {
-      return ret < 0;
-    }
-  }
-};
+#include "NdbAggregationCommon.hpp"
 
 class AggInterpreter {
  public:
