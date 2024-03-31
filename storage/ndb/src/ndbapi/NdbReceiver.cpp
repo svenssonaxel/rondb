@@ -1187,44 +1187,44 @@ NdbReceiver::unpackRow(const Uint32* aDataPtr, Uint32 aLength, char* row)
     uint32_t n_gb_cols = data_buf[parse_pos] >> 16;
     uint32_t n_agg_results = data_buf[parse_pos++] & 0xFFFF;
     uint32_t n_res_items = data_buf[parse_pos++];
-    fprintf(stderr, "Moz, GB cols: %u, AGG results: %u, RES items: %u\n",
-        n_gb_cols, n_agg_results, n_res_items);
+    // fprintf(stderr, "Moz, GB cols: %u, AGG results: %u, RES items: %u\n",
+    //     n_gb_cols, n_agg_results, n_res_items);
 
     if (n_gb_cols) {
       for (uint32_t i = 0; i < n_res_items; i++) {
-        uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
-        uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
+        // uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
+        // uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
         AttributeHeader ah(data_buf[parse_pos++]);
-        fprintf(stderr,
-            "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
-            "res_len: %u, value: ",
-            ah.getAttributeId(), ah.getByteSize(),
-            ah.getDataSize(), gb_cols_len, agg_res_len);
+        // fprintf(stderr,
+        //     "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
+        //     "res_len: %u, value: ",
+        //     ah.getAttributeId(), ah.getByteSize(),
+        //     ah.getDataSize(), gb_cols_len, agg_res_len);
         assert(ah.getDataPtr() != &data_buf[parse_pos]);
-        const char* ptr = (const char*)(&data_buf[parse_pos]);
-        for (uint32_t i = 0; i < ah.getByteSize(); i++) {
-          fprintf(stderr, " %x", ptr[i]);
-        }
+        // const char* ptr = (const char*)(&data_buf[parse_pos]);
+        // for (uint32_t i = 0; i < ah.getByteSize(); i++) {
+        //   fprintf(stderr, " %x", ptr[i]);
+        // }
         parse_pos += ah.getDataSize();
-        fprintf(stderr, "]");
+        // fprintf(stderr, "]");
         for (uint32_t i = 0; i < n_agg_results; i++) {
-          const AggResItem* ptr = (const AggResItem*)(&data_buf[parse_pos]);
-          fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
-              ptr->type, ptr->is_unsigned, ptr->is_null);
-          switch (ptr->type) {
-            case NDB_TYPE_BIGINT:
-              fprintf(stderr, "%15ld", ptr->value.val_int64);
-              break;
-            case NDB_TYPE_DOUBLE:
-              fprintf(stderr, "%31.16f", ptr->value.val_double);
-              break;
-            default:
-              assert(0);
-          }
-          fprintf(stderr, ")");
+          // const AggResItem* ptr = (const AggResItem*)(&data_buf[parse_pos]);
+          // fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
+          //     ptr->type, ptr->is_unsigned, ptr->is_null);
+          // switch (ptr->type) {
+          //   case NDB_TYPE_BIGINT:
+          //     fprintf(stderr, "%15ld", ptr->value.val_int64);
+          //     break;
+          //   case NDB_TYPE_DOUBLE:
+          //     fprintf(stderr, "%31.16f", ptr->value.val_double);
+          //     break;
+          //   default:
+          //     assert(0);
+          // }
+          // fprintf(stderr, ")");
           parse_pos += (sizeof(AggResItem) >> 2);
         }
-        fprintf(stderr, "\n");
+        // fprintf(stderr, "\n");
       }
     } else {
       // TODO(Zhao)

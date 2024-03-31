@@ -19175,9 +19175,15 @@ void Dblqh::nextScanConfScanLab(Signal* signal,
     jamDebug(); // ZHAO 38
     check_send_scan_hb_rep(signal, scanPtr, tcConnectptr.p);
     scanPtr->scan_check_lcp_stop = 0;
-    set_acc_ptr_in_scan_record(scanPtr,
-                               scanPtr->m_curr_batch_size_rows,
-                               accOpPtr);
+    if (scanPtr->m_aggregation) {
+      set_acc_ptr_in_scan_record(scanPtr,
+                                 0,
+                                 accOpPtr);
+    } else {
+      set_acc_ptr_in_scan_record(scanPtr,
+                                 scanPtr->m_curr_batch_size_rows,
+                                 accOpPtr);
+    }
 
     if (unlikely(signal->getLength() ==
                  NextScanConf::SignalLengthNoKeyInfo))
@@ -19605,7 +19611,9 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
   regTcPtr->transactionState = TcConnectionrec::SCAN_STATE_USED;
 
 
-  const Uint32 rows = scanPtr->m_curr_batch_size_rows;
+  const Uint32 rows = scanPtr->m_aggregation ? 0 :
+                        scanPtr->m_curr_batch_size_rows;
+
   const Uint32 accOpPtr= get_acc_ptr_from_scan_record(scanPtr, rows, false);
   if (accOpPtr != (Uint32)-1)
   {
@@ -19693,8 +19701,10 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
   {
     jamDebug(); // ZHAO 53
     scanPtr->scanFlag = NextScanReq::ZSCAN_NEXT_COMMIT;
+    Uint32 index = scanPtr->m_aggregation ? 0 :
+                   scanPtr->m_curr_batch_size_rows-1;
     Uint32 accOpPtr= get_acc_ptr_from_scan_record(scanPtr,
-					   scanPtr->m_curr_batch_size_rows-1,
+					   index,
 					   false);
     scanNextLoopLab(signal,
                     regTcPtr->clientConnectrec,

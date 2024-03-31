@@ -206,7 +206,7 @@ std::uniform_real_distribution<double> g_double(-8388608, 8388607);
 
 std::uniform_int_distribution<uint8_t> g_zero(0, 19);
 
-#define NUM 300
+#define NUM 10000
 int populate(Ndb * myNdb)
 {
   int i;
@@ -220,41 +220,43 @@ int populate(Ndb * myNdb)
 
   for (i = 0; i < NUM; i++)
   {
-    // rows[i].cint32 = g_int(gen);
-    // rows[i].cint8 = g_tinyint(gen);
-    // rows[i].cint16 = g_smallint(gen);
-    // rows[i].cint24 = g_mediumint(gen);
-    // rows[i].cint64 = g_bigint(gen);
+    rows[i].cint32 = g_int(gen);
+    rows[i].cint8 = g_tinyint(gen);
+    rows[i].cint16 = g_smallint(gen);
+    rows[i].cint24 = g_mediumint(gen);
+    rows[i].cint64 = g_bigint(gen);
 
-    // rows[i].cuint8 = g_utinyint(gen);
-    // rows[i].cuint16 = g_usmallint(gen);
-    // if (g_zero(gen) == 6) {
-    //   rows[i].cuint16 = 0;
-    // }
-    // rows[i].cuint24 = g_umediumint(gen);
-    // rows[i].cuint32 = g_uint(gen);
-    // rows[i].cuint64 = g_ubigint(gen);
-    // if (g_zero(gen) == 6) {
-    //   rows[i].cuint64 = 0;
-    // }
+    rows[i].cuint8 = g_utinyint(gen);
+    rows[i].cuint16 = g_usmallint(gen);
+    if (g_zero(gen) == 6) {
+      rows[i].cuint16 = 0;
+    }
+    rows[i].cuint24 = g_umediumint(gen);
+    rows[i].cuint32 = g_uint(gen);
+    rows[i].cuint64 = g_ubigint(gen);
+    if (g_zero(gen) == 6) {
+      rows[i].cuint64 = 0;
+    }
 
-    // rows[i].cfloat = g_float(gen);
-    // rows[i].cdouble = g_double(gen);
-    // if (g_zero(gen) == 6) {
-    //   rows[i].cdouble = 0;
-    // }
-    rows[i].cint32 = i;
-    rows[i].cint8 = i;
-    rows[i].cint16 = i;
-    rows[i].cint24 = i;
-    rows[i].cint64 = i;
-    rows[i].cuint8 = i * 2;
-    rows[i].cuint16 = i * 2;
-    rows[i].cuint24 = i * 2;
-    rows[i].cuint32 = i * 2;
-    rows[i].cuint64 = i * 2;
-    rows[i].cfloat = i * 1.1;
-    rows[i].cdouble = i * 1.11;
+    rows[i].cfloat = g_float(gen);
+    rows[i].cdouble = g_double(gen);
+    if (g_zero(gen) == 6) {
+      rows[i].cdouble = 0;
+    }
+
+    // Simple for debug
+    // rows[i].cint32 = i;
+    // rows[i].cint8 = i;
+    // rows[i].cint16 = i;
+    // rows[i].cint24 = i;
+    // rows[i].cint64 = i;
+    // rows[i].cuint8 = i * 2;
+    // rows[i].cuint16 = i * 2;
+    // rows[i].cuint24 = i * 2;
+    // rows[i].cuint32 = i * 2;
+    // rows[i].cuint64 = i * 2;
+    // rows[i].cfloat = i * 1.1;
+    // rows[i].cdouble = i * 1.11;
 
 
     // Must memset here, otherwise group by this
@@ -465,7 +467,9 @@ int scan_aggregation(Ndb * myNdb)
          */    
       } while((check = myScanOp->nextResult(false)) == 0);
 
-    }    
+    }
+    fprintf(stderr, "---FINAL RESULT---\n");
+    aggregator.Print();
     myNdb->closeTransaction(myTrans);
     return 1;
   }

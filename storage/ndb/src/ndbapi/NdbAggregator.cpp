@@ -27,6 +27,11 @@ NdbAggregator::NdbAggregator(const NdbDictionary::Table* table) :
         agg_results_[i].is_null = true;
       }
     }
+    memset(agg_ops_, kOpUnknown, 256 * 4);
+    agg_ops_[0] = kOpSum;
+    agg_ops_[1] = kOpMax;
+    agg_ops_[2] = kOpMin;
+    agg_ops_[3] = kOpCount;
 
     // Program
     memset(buffer_, 0, 1024 * sizeof(uint32));
@@ -163,14 +168,15 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
   assert(n_gb_cols == n_gb_cols_);
   assert(n_agg_results == n_agg_results_);
   uint32_t n_res_items = data_buf[parse_pos++];
-  fprintf(stderr, "Moz-ProcessRes, GB cols: %u, AGG results: %u, RES items: %u\n",
-      n_gb_cols, n_agg_results, n_res_items);
+  //fprintf(stderr, "Moz-ProcessRes, GB cols: %u, AGG results: %u, RES items: %u\n",
+  //    n_gb_cols, n_agg_results, n_res_items);
 
   AggResItem* agg_res_ptr = nullptr;
   if (n_gb_cols) {
     char* agg_rec = nullptr;
-    const AttributeHeader* header = nullptr;
+    // const AttributeHeader* header = nullptr;
     for (uint32_t i = 0; i < n_res_items; i++) {
+      bool need_merge = false;
       uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
       uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
 
@@ -179,12 +185,13 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
                   gb_cols_len};
       auto iter = gb_map_->find(entry);
       if (iter != gb_map_->end()) {
-        header = reinterpret_cast<AttributeHeader*>(iter->first.ptr);
+        // header = reinterpret_cast<AttributeHeader*>(iter->first.ptr);
         agg_res_ptr = reinterpret_cast<AggResItem*>(iter->second.ptr);
-        fprintf(stderr, "Moz, Found GBHashEntry, id: %u, byte_size: %u, "
-            "data_size: %u, is_null: %u\n",
-            header->getAttributeId(), header->getByteSize(),
-            header->getDataSize(), header->isNULL());
+        // fprintf(stderr, "Moz, Found GBHashEntry, id: %u, byte_size: %u, "
+        //     "data_size: %u, is_null: %u\n",
+        //     header->getAttributeId(), header->getByteSize(),
+        //     header->getDataSize(), header->isNULL());
+        need_merge = true;
       } else {
         assert(n_agg_results * sizeof(AggResItem) == agg_res_len);
         agg_rec = new char[gb_cols_len + agg_res_len];
@@ -198,53 +205,129 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
                 agg_res_len})));
         agg_res_ptr = reinterpret_cast<AggResItem*>(agg_rec + agg_res_len);
       }
+
+      assert(agg_res_len == n_agg_results * sizeof(AggResItem));
+      const AggResItem* res = reinterpret_cast<const AggResItem*>(
+                           &data_buf[parse_pos + (gb_cols_len >> 2)]);
+      if (need_merge) {
+        for (uint32_t i = 0; i < n_agg_results; i++) {
+          assert(((res[i].type == NDB_TYPE_BIGINT &&
+                  res[i].is_unsigned == agg_res_ptr[i].is_unsigned) ||
+                  res[i].type == NDB_TYPE_DOUBLE) &&
+                  res[i].type == agg_res_ptr[i].type);
+          if (res[i].is_null) {
+          } else if (agg_res_ptr[i].is_null) {
+            agg_res_ptr[i] = res[i];
+          } else {
+            agg_res_ptr[i].type = res[i].type;
+            agg_res_ptr[i].is_unsigned = res[i].is_unsigned;
+            switch (agg_ops_[i]) {
+              case kOpSum:
+                if (res[i].type == NDB_TYPE_BIGINT) {
+                  if (res[i].is_unsigned) {
+                    agg_res_ptr[i].value.val_uint64 += res[i].value.val_uint64;
+                  } else {
+                    agg_res_ptr[i].value.val_int64 += res[i].value.val_int64;
+                  }
+                } else {
+                  assert(res[i].type == NDB_TYPE_DOUBLE);
+                  agg_res_ptr[i].value.val_double += res[i].value.val_double;
+                }
+                break;
+              case kOpCount:
+                assert(res[i].type == NDB_TYPE_BIGINT);
+                assert(res[i].is_unsigned == 1);
+                agg_res_ptr[i].value.val_int64 += res[i].value.val_int64;
+                break;
+              case kOpMax:
+                if (res[i].type == NDB_TYPE_BIGINT) {
+                  if (res[i].is_unsigned) {
+                    agg_res_ptr[i].value.val_uint64 =
+                      agg_res_ptr[i].value.val_uint64 >= res[i].value.val_uint64 ?
+                      agg_res_ptr[i].value.val_uint64 : res[i].value.val_uint64;
+                  } else {
+                    agg_res_ptr[i].value.val_int64 =
+                      agg_res_ptr[i].value.val_int64 >= res[i].value.val_int64 ?
+                      agg_res_ptr[i].value.val_int64 : res[i].value.val_int64;
+                  }
+                } else {
+                  assert(res[i].type == NDB_TYPE_DOUBLE);
+                  agg_res_ptr[i].value.val_double =
+                    agg_res_ptr[i].value.val_double >= res[i].value.val_double ?
+                    agg_res_ptr[i].value.val_double : res[i].value.val_double;
+                }
+                break;
+              case kOpMin:
+                if (res[i].type == NDB_TYPE_BIGINT) {
+                  if (res[i].is_unsigned) {
+                    agg_res_ptr[i].value.val_uint64 =
+                      agg_res_ptr[i].value.val_uint64 <= res[i].value.val_uint64 ?
+                      agg_res_ptr[i].value.val_uint64 : res[i].value.val_uint64;
+                  } else {
+                    agg_res_ptr[i].value.val_int64 =
+                      agg_res_ptr[i].value.val_int64 <= res[i].value.val_int64 ?
+                      agg_res_ptr[i].value.val_int64 : res[i].value.val_int64;
+                  }
+                } else {
+                  assert(res[i].type == NDB_TYPE_DOUBLE);
+                  agg_res_ptr[i].value.val_double =
+                    agg_res_ptr[i].value.val_double <= res[i].value.val_double ?
+                    agg_res_ptr[i].value.val_double : res[i].value.val_double;
+                }
+                break;
+              default:
+                assert(0);
+                break;
+            }
+          }
+        }
+      }
       AttributeHeader ah(data_buf[parse_pos]);
+      /*
       fprintf(stderr,
           "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
           "res_len: %u, value: %p]\n",
           ah.getAttributeId(), ah.getByteSize(),
           ah.getDataSize(), gb_cols_len, agg_res_len,
           agg_res_ptr);
+       */
       assert(ah.getDataPtr() != &data_buf[parse_pos]);
       assert(4 + ah.getByteSize() == gb_cols_len);
       parse_pos += ((gb_cols_len + agg_res_len) >> 2);
-
-      /*
-       AttributeHeader ah(data_buf[parse_pos++]);
-       fprintf(stderr,
-       "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
-       "res_len: %u, value: ",
-       ah.getAttributeId(), ah.getByteSize(),
-       ah.getDataSize(), gb_cols_len, agg_res_len);
-       assert(ah.getDataPtr() != &data_buf[parse_pos]);
-       const char* ptr = (const char*)(&data_buf[parse_pos]);
-       for (uint32_t i = 0; i < ah.getByteSize(); i++) {
-       fprintf(stderr, " %x", ptr[i]);
-       }
-       parse_pos += ah.getDataSize();
-       fprintf(stderr, "]");
-       for (uint32_t i = 0; i < n_agg_results; i++) {
-       const AggResItem* ptr = (const AggResItem*)(&data_buf[parse_pos]);
-       fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
-       ptr->type, ptr->is_unsigned, ptr->is_null);
-       switch (ptr->type) {
-       case NDB_TYPE_BIGINT:
-       fprintf(stderr, "%15ld", ptr->value.val_int64);
-       break;
-       case NDB_TYPE_DOUBLE:
-       fprintf(stderr, "%31.16f", ptr->value.val_double);
-       break;
-       default:
-       assert(0);
-       }
-       fprintf(stderr, ")");
-       parse_pos += (sizeof(AggResItem) >> 2);
-       }
-       fprintf(stderr, "\n");
-       */
     }
   } else {
     // TODO(Zhao)
   }
   return parse_pos;
+}
+
+void NdbAggregator::Print() {
+  if (n_gb_cols_) {
+    assert(gb_map_ != nullptr);
+    for (auto iter = gb_map_->begin(); iter != gb_map_->end(); iter++) {
+      fprintf(stderr, "(%p): ", iter->first.ptr);
+      AggResItem* item = reinterpret_cast<AggResItem*>(iter->second.ptr);
+      for (uint32_t i = 0; i < n_agg_results_; i++) {
+        fprintf(stderr, "(%u, %u, %u)", item[i].type,
+            item[i].is_unsigned, item[i].is_null);
+        if (item[i].is_null) {
+          fprintf(stderr, "[NULL]");
+        } else {
+          switch (item[i].type) {
+            case NDB_TYPE_BIGINT:
+              fprintf(stderr, "[%15ld]", item[i].value.val_int64);
+              break;
+            case NDB_TYPE_DOUBLE:
+              fprintf(stderr, "[%31.16f]", item[i].value.val_double);
+              break;
+            default:
+              assert(0);
+          }
+        }
+      }
+      fprintf(stderr, "\n");
+    }
+  } else {
+    // TODO(Zhao)
+  }
 }

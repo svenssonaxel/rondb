@@ -23,6 +23,7 @@ class NdbAggregator {
     return instructions_length_;
   }
   int32_t ProcessRes(char* buf);
+  void Print();
  private:
   const NdbTableImpl *table_impl_;
   uint32_t buffer_[1024];
@@ -31,6 +32,7 @@ class NdbAggregator {
   uint32_t n_gb_cols_;
   uint32_t n_agg_results_;
   AggResItem* agg_results_;
+  uint32_t agg_ops_[256];
   std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>* gb_map_;
 };
 #endif  // NDBAGGREGATOR_H_
