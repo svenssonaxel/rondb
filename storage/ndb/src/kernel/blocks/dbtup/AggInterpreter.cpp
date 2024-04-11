@@ -1066,8 +1066,8 @@ static int32_t Count(const Register& a, AggResItem* res, bool print) {
 
 bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         Dbtup::KeyReqStruct* req_struct) {
-  assert(inited_ && n_agg_results_ == 4 &&
-         n_gb_cols_ == 1 && prog_len_ == 25 && agg_prog_start_pos_ == 3);
+  assert(inited_ && n_agg_results_ == 3 &&
+         n_gb_cols_ == 1 && prog_len_ == 11 && agg_prog_start_pos_ == 3);
 
   AggResItem* agg_res_ptr = nullptr;
   if (n_gb_cols_) {
@@ -1098,6 +1098,8 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
     } else {
       agg_rec = new char[len_in_char +
                         n_agg_results_ * sizeof(AggResItem)];
+      memset(agg_rec, 0, len_in_char +
+                        n_agg_results_ * sizeof(AggResItem));
       memcpy(agg_rec, reinterpret_cast<char*>(buf_), len_in_char);
       GBHashEntry new_entry{agg_rec, len_in_char};
 

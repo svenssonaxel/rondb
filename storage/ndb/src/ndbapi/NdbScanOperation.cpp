@@ -1566,15 +1566,54 @@ int NdbScanOperation::setAggregationCode(const NdbAggregator *code)
     return -1;
   }
 
-  // TODO (Zhao)
-  // if ((code->m_flags & NdbAggregationCode::Finalised) == 0)
-  // {
-  //   setErrorCodeAbort(4519); //  NdbAggregationCode::finalise() not called.
-  //   return -1;
-  // }
+  if (code == nullptr || !code->finalized())
+  {
+    setErrorCodeAbort(4560); //  NdbAggregatior::Finalise() not called.
+    return -1;
+  }
 
-  m_aggregation_code = code;
+  m_aggregation_code = const_cast<NdbAggregator*>(code);
 
+  return 0;
+}
+
+int NdbScanOperation::DoAggregation() {
+
+  if (m_aggregation_code == nullptr ||
+      !m_aggregation_code->finalized())
+  {
+    setErrorCodeAbort(4560); //  NdbAggregatior::Finalise() not called.
+    return -1;
+  }
+  /**
+   * Read without locks, without being placed in lock queue
+   */
+  if (readTuples(NdbOperation::LM_CommittedRead) != 0) {
+    return -1;
+  } 
+
+  NdbRecAttr* myRecAttr;
+  Uint32 col = 0xFF00;
+  myRecAttr = getValue(col);
+  if (myRecAttr == nullptr) {
+    return -1;
+  }
+	
+  if (m_transConnection->execute(NdbTransaction::NoCommit) != 0) {
+    return -1;
+  }
+
+  int check = -1;
+  while ((check = nextResult(true)) == 0) {
+    // TODO(Zhao) handle return value;
+    if (!m_aggregation_code->ProcessRes(myRecAttr->aRef())) {
+      return -1;
+    }
+  }
+  if (check < 0) {
+    return check;
+  }
+  m_aggregation_code->PrepareResults();
   return 0;
 }
 

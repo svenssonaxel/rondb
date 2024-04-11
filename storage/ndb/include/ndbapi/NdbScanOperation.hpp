@@ -322,6 +322,9 @@ public:
 
   int setAggregationCode(const NdbAggregator *code);
 
+  int DoAggregation();
+  // int DoAggregation(NdbRecAttr* myRecAttr);
+
   /**
    * Get the next tuple in a scan transaction. 
    * 
@@ -741,7 +744,7 @@ protected:
   bool  m_scanFinalisedOk;
 
   /* Aggregation program for NdbRecord operations. */
-  const NdbAggregator *m_aggregation_code;
+  NdbAggregator *m_aggregation_code;
 private:
   NdbScanOperation(const NdbScanOperation&); // Not impl.
   NdbScanOperation&operator=(const NdbScanOperation&);

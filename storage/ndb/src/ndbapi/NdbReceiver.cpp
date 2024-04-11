@@ -1192,15 +1192,17 @@ NdbReceiver::unpackRow(const Uint32* aDataPtr, Uint32 aLength, char* row)
 
     if (n_gb_cols) {
       for (uint32_t i = 0; i < n_res_items; i++) {
-        // uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
-        // uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
+        uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
+        uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
         AttributeHeader ah(data_buf[parse_pos++]);
+        assert(gb_cols_len + agg_res_len == sizeof(AttributeHeader) + 
+               ah.getByteSize() + sizeof(AggResItem) * n_agg_results);
         // fprintf(stderr,
         //     "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
         //     "res_len: %u, value: ",
         //     ah.getAttributeId(), ah.getByteSize(),
         //     ah.getDataSize(), gb_cols_len, agg_res_len);
-        assert(ah.getDataPtr() != &data_buf[parse_pos]);
+        // assert(ah.getDataPtr() != &data_buf[parse_pos]);
         // const char* ptr = (const char*)(&data_buf[parse_pos]);
         // for (uint32_t i = 0; i < ah.getByteSize(); i++) {
         //   fprintf(stderr, " %x", ptr[i]);

@@ -325,16 +325,9 @@ int scan_aggregation(Ndb * myNdb)
   // them one by one
   int                  retryAttempt = 0;
   const int            retryMax = 10;
-  int fetchedRows = 0;
-  int check;
   NdbError              err;
   NdbTransaction	*myTrans;
   NdbScanOperation	*myScanOp;
-  /* Result of reading attribute value, three columns:
-     REG_NO, BRAND, and COLOR
-     */
-  // NdbRecAttr *    	myRecAttr[14];   
-  NdbRecAttr* myRecAttr;   
 
   const NdbDictionary::Dictionary* myDict= myNdb->getDictionary();
   const NdbDictionary::Table *myTable= myDict->getTable("api_scan");
@@ -387,94 +380,93 @@ int scan_aggregation(Ndb * myNdb)
       return -1;
     }
 
-    /**
-     * Read without locks, without being placed in lock queue
+    /*
+     * Define an aggregator
      */
-    if( myScanOp->readTuples(NdbOperation::LM_CommittedRead) == -1)
-    {
-      std::cout << myTrans->getNdbError().message << std::endl;
-      myNdb->closeTransaction(myTrans);
-      return -1;
-    } 
-
     NdbAggregator aggregator(myTable);
-    myScanOp->setAggregationCode(&aggregator);
+    assert(aggregator.GroupBy("CCHAR"));
+    assert(aggregator.LoadColumn("CUBIGINT", kReg1));
+    assert(aggregator.LoadColumn("CUTINYINT", kReg2));
+    assert(aggregator.Add(kReg1, kReg2));
+    assert(aggregator.Sum(0, kReg1));
+    assert(aggregator.LoadColumn("CDOUBLE", kReg1));
+    assert(aggregator.Min(1, kReg1));
+    assert(aggregator.LoadColumn("CUMEDIUMINT", kReg1));
+    assert(aggregator.Max(2, kReg1));
 
-    /**
-     * Define storage for fetched attributes.
-     * E.g., the resulting attributes of executing
-     * myOp->getValue("REG_NO") is placed in myRecAttr[0].
-     * No data exists in myRecAttr until transaction has committed!
-     */
-    Uint32 col = 0xFF00;
-    myRecAttr = myScanOp->getValue(col);
-    // myRecAttr[1] = myScanOp->getValue("CTINYINT");
-    // myRecAttr[2] = myScanOp->getValue("CSMALLINT");
-    // myRecAttr[3] = myScanOp->getValue("CMEDIUMINT");
-    // myRecAttr[4] = myScanOp->getValue("CBIGINT");
-    // myRecAttr[5] = myScanOp->getValue("CUTINYINT");
-    // myRecAttr[6] = myScanOp->getValue("CUSMALLINT");
-    // myRecAttr[7] = myScanOp->getValue("CUMEDIUMINT");
-    // myRecAttr[8] = myScanOp->getValue("CUINT");
-    // myRecAttr[9] = myScanOp->getValue("CUBIGINT");
-    // myRecAttr[10] = myScanOp->getValue("CFLOAT");
-    // myRecAttr[11] = myScanOp->getValue("CDOUBLE");
-    // myRecAttr[12] = myScanOp->getValue("CCHAR");
-    // if(myRecAttr[0] ==NULL || myRecAttr[1] == NULL || myRecAttr[2]==NULL ||
-    //    myRecAttr[3] ==NULL || myRecAttr[4] == NULL || myRecAttr[5]==NULL ||
-    //    myRecAttr[6] ==NULL || myRecAttr[7] == NULL || myRecAttr[8]==NULL ||
-    //    myRecAttr[9] ==NULL || myRecAttr[10] == NULL || myRecAttr[11]==NULL ||
-    //    myRecAttr[12] ==NULL)
-    if (myRecAttr == NULL)
-    {
+    /* Example of how to catch an error
+    int ret = aggregator.Sum(0, kReg1);
+    if (!ret) {
+      fprintf(stderr, "Error: %u, %s\n",
+                      aggregator.GetError().errno_,
+                      aggregator.GetError().err_msg_);
+    }
+    */
+
+    assert(aggregator.Finalize());
+    if (myScanOp->setAggregationCode(&aggregator) == -1) {
       std::cout << myTrans->getNdbError().message << std::endl;
       myNdb->closeTransaction(myTrans);
       return -1;
     }
-    /**
-     * Start scan   (NoCommit since we are only reading at this stage);
-     */     
-    if(myTrans->execute(NdbTransaction::NoCommit) != 0){      
-      err = myTrans->getNdbError();    
-      if(err.status == NdbError::TemporaryError){
+
+    if (myScanOp->DoAggregation() == -1) {
+      err = myTrans->getNdbError();
+      if(err.status == NdbError::TemporaryError) {
         std::cout << myTrans->getNdbError().message << std::endl;
         myNdb->closeTransaction(myTrans);
         milliSleep(50);
         continue;
       }
-      std::cout << err.code << std::endl;
-      std::cout << myTrans->getNdbError().code << std::endl;
+      std::cout << err.message << std::endl;
       myNdb->closeTransaction(myTrans);
       return -1;
     }
 
-    /**
-     * start of loop: nextResult(true) means that "parallelism" number of
-     * rows are fetched from NDB and cached in NDBAPI
-     */    
-    while((check = myScanOp->nextResult(true)) == 0) {
-      do {
-
-        fetchedRows++;
-
-        int32_t len = aggregator.ProcessRes(myRecAttr->aRef());
-        fprintf(stderr, "Process length: %u\n", len);
-        
-        /**
-         * nextResult(false) means that the records 
-         * cached in the NDBAPI are modified before
-         * fetching more rows from NDB.
-         */    
-      } while((check = myScanOp->nextResult(false)) == 0);
-
-    }
     fprintf(stderr, "---FINAL RESULT---\n");
-    aggregator.Print();
+    // aggregator.Print();
+    NdbAggregator::ResultRecord record = aggregator.FetchResultRecord();
+    while (!record.end()) {
+      NdbAggregator::Column column = record.FetchGroupbyColumn();
+      while (!column.end()) {
+        fprintf(stderr,
+            "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %s]:",
+            column.id(), column.type(), column.byte_size(),
+            column.is_null(), column.data());
+        column = record.FetchGroupbyColumn();
+      }
+
+      NdbAggregator::Result result = record.FetchAggregationResult();
+      while (!result.end()) {
+        switch (result.type()) {
+          case NdbDictionary::Column::Bigint:
+            fprintf(stderr,
+                " (type: %u, is_null: %u, data: %ld)",
+                result.type(), result.is_null(), result.data_int64());
+            break;
+          case NdbDictionary::Column::Bigunsigned:
+            fprintf(stderr,
+                " (type: %u, is_null: %u, data: %lu)",
+                result.type(), result.is_null(), result.data_uint64());
+            break;
+          case NdbDictionary::Column::Double:
+            fprintf(stderr,
+                " (type: %u, is_null: %u, data: %lf)",
+                result.type(), result.is_null(), result.data_double());
+            break;
+          default:
+            assert(0);
+        }
+        result = record.FetchAggregationResult();
+      }
+      fprintf(stderr, "\n");
+      record = aggregator.FetchResultRecord();
+    }
+
     myNdb->closeTransaction(myTrans);
     return 1;
   }
   return -1;
-
 }
 
 void mysql_connect_and_create(MYSQL & mysql, const char *socket)

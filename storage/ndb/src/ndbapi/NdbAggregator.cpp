@@ -7,11 +7,18 @@
 #include "AttributeHeader.hpp"
 #include "../../src/ndbapi/NdbDictionaryImpl.hpp"
 
+#define PROGRAM_HEADER_SIZE 2
+
 NdbAggregator::NdbAggregator(const NdbDictionary::Table* table) :
-  table_impl_(nullptr), agg_results_(nullptr), gb_map_(nullptr) {
+  table_impl_(nullptr), n_gb_cols_(0), n_agg_results_(0),
+  agg_results_(nullptr), gb_map_(nullptr),
+  finalized_(false), finished_(false),
+  curr_prog_pos_(PROGRAM_HEADER_SIZE),
+  instructions_length_(PROGRAM_HEADER_SIZE) {
     if (table != nullptr) {
       table_impl_ = & NdbTableImpl::getImpl(*table);
     }
+    /*
     n_gb_cols_ = 1;
     n_agg_results_ = 4;
     if (n_gb_cols_) {
@@ -27,14 +34,18 @@ NdbAggregator::NdbAggregator(const NdbDictionary::Table* table) :
         agg_results_[i].is_null = true;
       }
     }
-    memset(agg_ops_, kOpUnknown, 256 * 4);
+    */
+    memset(agg_ops_, kOpUnknown, MAX_AGGREGATION_OP_SIZE * 4);
+    /*
     agg_ops_[0] = kOpSum;
     agg_ops_[1] = kOpMax;
     agg_ops_[2] = kOpMin;
     agg_ops_[3] = kOpCount;
+    */
 
     // Program
-    memset(buffer_, 0, 1024 * sizeof(uint32));
+    /*
+    memset(buffer_, 0, MAX_PROGRAM_OP_SIZE * sizeof(uint32));
     instructions_length_ = 25;
     uint32_t curr_pos = 0;
     buffer_[curr_pos++] = (0x0721) << 16 | instructions_length_;
@@ -142,6 +153,7 @@ NdbAggregator::NdbAggregator(const NdbDictionary::Table* table) :
       (kOpCount) << 26 |                                        // "AGG OP"
       (kReg1 & 0x0F) << 16 |                                    // Register
       3;                                                        // agg_result 
+    */
   }
 
 NdbAggregator::~NdbAggregator() {
@@ -301,6 +313,26 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
   return parse_pos;
 }
 
+bool NdbAggregator::TypeSupported(NdbDictionary::Column::Type type) {
+  switch(type) {
+    case NdbDictionary::Column::Tinyint:
+    case NdbDictionary::Column::Tinyunsigned:
+    case NdbDictionary::Column::Smallint:
+    case NdbDictionary::Column::Smallunsigned:
+    case NdbDictionary::Column::Mediumint:
+    case NdbDictionary::Column::Mediumunsigned:
+    case NdbDictionary::Column::Int:
+    case NdbDictionary::Column::Unsigned:
+    case NdbDictionary::Column::Bigint:
+    case NdbDictionary::Column::Bigunsigned:
+    case NdbDictionary::Column::Float:
+    case NdbDictionary::Column::Double:
+      return true;
+    default:
+      return false;
+  }
+}
+
 void NdbAggregator::Print() {
   if (n_gb_cols_) {
     assert(gb_map_ != nullptr);
@@ -330,4 +362,318 @@ void NdbAggregator::Print() {
   } else {
     // TODO(Zhao)
   }
+}
+
+bool NdbAggregator::LoadColumn(const char* name, uint32_t reg_id) {
+  if (name == nullptr) {
+    SetError(kErrInvalidColumnName);
+    return false;
+  }
+  const NdbDictionary::Column* col = table_impl_->getColumn(name);
+  if (col == nullptr) {
+    SetError(kErrInvalidColumnName);
+    return false;
+  }
+  NdbDictionary::Column::Type type = col->getType();
+  if (!TypeSupported(type)) {
+    SetError(kErrUnSupportedColumn);
+    return false;
+  }
+  if (reg_id >= kRegTotal) {
+    SetError(kErrInvalidRegNo);
+    return false;
+  }
+
+  int32_t col_id = col->getAttrId();
+  buffer_[curr_prog_pos_++] =
+    (kOpLoadCol) << 26 |
+    (type & 0x1F) << 21 |
+    (reg_id & 0x0F) << 16 |
+    col_id;
+  return true;
+}
+
+bool NdbAggregator::CheckRegs(uint32_t reg_1, uint32_t reg_2) {
+  if (reg_1 >= kRegTotal || reg_2 >= kRegTotal) {
+    SetError(kErrInvalidRegNo);
+    return false;
+  }
+
+  return true;
+}
+
+bool NdbAggregator::Add(uint32_t reg_1, uint32_t reg_2) {
+  if (!CheckRegs(reg_1, reg_2)) {
+    return false;
+  }
+  buffer_[curr_prog_pos_++] =
+    (kOpPlus) << 26 |
+    (reg_1 & 0x0F) << 12 |
+    (reg_2 & 0x0F) << 8;
+
+  return true;
+}
+
+bool NdbAggregator::Minus(uint32_t reg_1, uint32_t reg_2) {
+  if (!CheckRegs(reg_1, reg_2)) {
+    return false;
+  }
+  buffer_[curr_prog_pos_++] =
+    (kOpMinus) << 26 |
+    (reg_1 & 0x0F) << 12 |
+    (reg_2 & 0x0F) << 8;
+
+  return true;
+}
+
+bool NdbAggregator::Mul(uint32_t reg_1, uint32_t reg_2) {
+  if (!CheckRegs(reg_1, reg_2)) {
+    return false;
+  }
+  buffer_[curr_prog_pos_++] =
+    (kOpMul) << 26 |
+    (reg_1 & 0x0F) << 12 |
+    (reg_2 & 0x0F) << 8;
+
+  return true;
+}
+
+bool NdbAggregator::Div(uint32_t reg_1, uint32_t reg_2) {
+  if (!CheckRegs(reg_1, reg_2)) {
+    return false;
+  }
+  buffer_[curr_prog_pos_++] =
+    (kOpDiv) << 26 |
+    (reg_1 & 0x0F) << 12 |
+    (reg_2 & 0x0F) << 8;
+
+  return true;
+}
+
+bool NdbAggregator::Mod(uint32_t reg_1, uint32_t reg_2) {
+  if (!CheckRegs(reg_1, reg_2)) {
+    return false;
+  }
+  buffer_[curr_prog_pos_++] =
+    (kOpMod) << 26 |
+    (reg_1 & 0x0F) << 12 |
+    (reg_2 & 0x0F) << 8;
+
+  return true;
+}
+
+bool NdbAggregator::CheckAggAndReg(uint32_t agg_id, uint32_t reg_id) {
+  if (agg_id >= MAX_AGGREGATION_OP_SIZE) {
+    SetError(kErrInvalidAggNo);
+  }
+
+  if (agg_ops_[agg_id] != kOpUnknown) {
+    SetError(kErrAggNoUsed);
+    return false;
+  }
+  if (reg_id >= kRegTotal) {
+    SetError(kErrInvalidRegNo);
+    return false;
+  }
+  return true;
+}
+
+bool NdbAggregator::Sum(uint32_t agg_id, uint32_t reg_id) {
+  if (!CheckAggAndReg(agg_id, reg_id)) {
+    return false;
+  }
+
+  buffer_[curr_prog_pos_++] =
+    (kOpSum) << 26 |
+    (reg_id & 0x0F) << 16 |
+    agg_id;
+
+  agg_ops_[agg_id] = kOpSum;
+  n_agg_results_++;
+
+  return true;
+}
+
+bool NdbAggregator::Max(uint32_t agg_id, uint32_t reg_id) {
+  if (!CheckAggAndReg(agg_id, reg_id)) {
+    return false;
+  }
+
+  buffer_[curr_prog_pos_++] =
+    (kOpMax) << 26 |
+    (reg_id & 0x0F) << 16 |
+    agg_id;
+
+  agg_ops_[agg_id] = kOpMax;
+  n_agg_results_++;
+
+  return true;
+}
+
+bool NdbAggregator::Min(uint32_t agg_id, uint32_t reg_id) {
+  if (!CheckAggAndReg(agg_id, reg_id)) {
+    return false;
+  }
+
+  buffer_[curr_prog_pos_++] =
+    (kOpMin) << 26 |
+    (reg_id & 0x0F) << 16 |
+    agg_id;
+
+  agg_ops_[agg_id] = kOpMin;
+  n_agg_results_++;
+
+  return true;
+}
+
+bool NdbAggregator::Count(uint32_t agg_id, uint32_t reg_id) {
+  if (!CheckAggAndReg(agg_id, reg_id)) {
+    return false;
+  }
+
+  buffer_[curr_prog_pos_++] =
+    (kOpCount) << 26 |
+    (reg_id & 0x0F) << 16 |
+    agg_id;
+
+  agg_ops_[agg_id] = kOpCount;
+  n_agg_results_++;
+
+  return true;
+}
+
+bool NdbAggregator::GroupBy(const char* name) {
+  if (name == nullptr) {
+    SetError(kErrInvalidColumnName);
+    return false;
+  }
+  const NdbDictionary::Column* col = table_impl_->getColumn(name);
+  if (col == nullptr) {
+    SetError(kErrInvalidColumnName);
+    return false;
+  }
+  int32_t col_id = col->getAttrId();
+  buffer_[curr_prog_pos_++] = col_id << 16;
+
+  n_gb_cols_++;
+  
+  return true;
+}
+
+bool NdbAggregator::Finalize() {
+  if (curr_prog_pos_ == PROGRAM_HEADER_SIZE) {
+    SetError(kErrEmptyProgram);
+    return false;
+  }
+  if (finalized_) {
+    SetError(kErrAlreadyFinalized);
+    return false;
+  }
+  instructions_length_ = curr_prog_pos_;
+  buffer_[0] = (0x0721) << 16 | curr_prog_pos_;
+  buffer_[1] = n_gb_cols_ << 16 | n_agg_results_;
+
+  if (n_gb_cols_) {
+    gb_map_ = new std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>;
+  }
+  if (n_agg_results_) {
+    agg_results_ = new AggResItem[n_agg_results_];
+    uint32_t i = 0;
+    while (i < n_agg_results_) {
+      agg_results_[i].type = NDB_TYPE_UNDEFINED;
+      agg_results_[i++].value.val_int64 = 0;
+      agg_results_[i].is_unsigned = false;
+      agg_results_[i].is_null = true;
+    }
+  }
+  finalized_ = true;
+  return true;
+}
+
+void NdbAggregator::PrepareResults() {
+  if (n_gb_cols_) {
+    iter_ = gb_map_->begin();
+  }
+  finished_ = true;
+}
+
+NdbAggregator::ResultRecord NdbAggregator::FetchResultRecord() {
+  assert(finished_);
+  if (!finished_) {
+    return ResultRecord(nullptr, {nullptr, 0}, {nullptr, 0}, true);
+  }
+
+  if (n_gb_cols_) {
+    if (iter_ != gb_map_->end()) {
+      NdbAggregator::ResultRecord rec(this, iter_->first, iter_->second, false);
+      iter_++;
+      return rec;
+    }
+  } else {
+    // TODO(Zhao)
+  }
+  return ResultRecord(nullptr, {nullptr, 0}, {nullptr, 0}, true);
+}
+
+NdbAggregator::Column NdbAggregator::ResultRecord::FetchGroupbyColumn() {
+  if (aggregator_->n_gb_cols() == 0) {
+    return Column(0, NdbDictionary::Column::Undefined,
+                  0, true, nullptr, true);
+  }
+  if (curr_group_pos_ == group_records_.len) {
+    return Column(0, NdbDictionary::Column::Undefined,
+                  0, true, nullptr, true);
+  }
+  assert(curr_group_pos_ < group_records_.len);
+  AttributeHeader header(
+      *reinterpret_cast<uint32_t*>(group_records_.ptr + curr_group_pos_));
+  curr_group_pos_ += sizeof(AttributeHeader);
+
+  uint32_t id = header.getAttributeId();
+  const NdbDictionary::Column* col =
+                      aggregator_->table_impl()->getColumn(id);
+  NdbDictionary::Column::Type type = col->getType();
+  bool is_null = header.isNULL();
+  uint32_t byte_size = header.getByteSize();
+  char* ptr = is_null ? nullptr : group_records_.ptr + curr_group_pos_;
+  if (is_null) {
+    assert(byte_size == 0 && ptr == nullptr);
+  }
+
+  Column column(id, type, byte_size, is_null, ptr, false);
+  curr_group_pos_ += byte_size;
+  return column;
+}
+
+NdbAggregator::Result NdbAggregator::ResultRecord::FetchAggregationResult() {
+  if (curr_result_pos_ == result_records_.len) {
+    return Result(nullptr, true);
+  }
+  assert(curr_result_pos_ < result_records_.len);
+  Result result(
+      reinterpret_cast<AggResItem*>(result_records_.ptr + curr_result_pos_),
+      false);
+  curr_result_pos_ += sizeof(AggResItem);
+
+  return result;
+}
+
+#define sint3korr(A)  ((int32_t) ((((uint8_t) (A)[2]) & 128) ? \
+                                  (((uint32_t) 255L << 24) | \
+                                  (((uint32_t) (uint8_t) (A)[2]) << 16) |\
+                                  (((uint32_t) (uint8_t) (A)[1]) << 8) | \
+                                   ((uint32_t) (uint8_t) (A)[0])) : \
+                                 (((uint32_t) (uint8_t) (A)[2]) << 16) |\
+                                 (((uint32_t) (uint8_t) (A)[1]) << 8) | \
+                                  ((uint32_t) (uint8_t) (A)[0])))
+
+#define uint3korr(A)  (uint32_t) (((uint32_t) ((uint8_t) (A)[0])) +\
+                                  (((uint32_t) ((uint8_t) (A)[1])) << 8) +\
+                                  (((uint32_t) ((uint8_t) (A)[2])) << 16))
+
+int32_t NdbAggregator::Column::data_medium() {
+	return sint3korr(ptr_);
+}
+uint32_t NdbAggregator::Column::data_umedium() {
+	return uint3korr(ptr_);
 }
