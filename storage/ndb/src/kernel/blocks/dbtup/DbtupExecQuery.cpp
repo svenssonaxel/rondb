@@ -213,49 +213,30 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
     }
     cinBuffer[4] = paramLen;
     // Moz
-    if (prepare_fragptr.p->fragTableId == 17)
-    {
-      assert(prepare_fragptr.p->fragTableId == 17);
-      ScanOpPtr scanPtr;
-      scanPtr.i = scan_op_i;
-      ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
-      ScanOp& scan = *scanPtr.p;
+    ScanOpPtr scanPtr;
+    scanPtr.i = scan_op_i;
+    ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
+    ScanOp& scan = *scanPtr.p;
+
+    if (scan.m_aggregation == true && scan.agg_interpreter == nullptr) {
       ndbrequire(scan.m_tableId == prepare_fragptr.p->fragTableId &&
-                 scan.m_fragId == prepare_fragptr.p->fragmentId);
+          scan.m_fragId == prepare_fragptr.p->fragmentId);
+      // Initialize agg_interpreter resources
+      // 1. get 1st program word to verify Magic number
+      ndbrequire(reader.getWord(pos));
+      ndbrequire((*(pos) >> 16) == 0x0721);
+      Uint32 proc_len = *(pos) & 0xFFFF;
+      ndbrequire(intmax_t{readerLen - proc_len} == (pos - cinBuffer));
+      Uint32 proc_start = (pos - cinBuffer);
+      pos++;
 
-      if (scan.m_aggregation == true && scan.agg_interpreter == nullptr) {
-        // Initialize agg_interpreter resources
-        // 1. get 1st program word to verify Magic number
-        ndbrequire(reader.getWord(pos));
-        ndbrequire((*(pos) >> 16) == 0x0721);
-        Uint32 proc_len = *(pos) & 0xFFFF;
-        ndbrequire(intmax_t{readerLen - proc_len} == (pos - cinBuffer));
-        Uint32 proc_start = (pos - cinBuffer);
-        pos++;
+      // 2. get remaining program words
+      ndbrequire(reader.getWords(pos, proc_len - 1));
+      ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
 
-        // 2. get remaining program words
-        ndbrequire(reader.getWords(pos, proc_len - 1));
-        ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
-
-        // 3. construct agg_interpreter
-        if (scan.m_fragId == 1) {
-          scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
-        } else {
-          scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
-        }
-        ndbrequire(scan.agg_interpreter->Init());
-
-        if (prepare_fragptr.p->fragmentId == 1) {
-          fprintf(stderr, "Moz, Initialize agg_interpreter by aggregation proc from %u on fragment %u, proc_len %u\n",
-              proc_start, prepare_fragptr.p->fragmentId, proc_len);
-        }
-      } else {
-        if (prepare_fragptr.p->fragmentId == 1 &&
-            AggInterpreter::g_debug == true) {
-          fprintf(stderr, "Moz, Already initialized agg_interpreter on fragment %u, Skip\n",
-              prepare_fragptr.p->fragmentId);
-        }
-      }
+      // 3. construct agg_interpreter
+      scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
+      ndbrequire(scan.agg_interpreter->Init());
     }
   }
   else
@@ -4038,44 +4019,17 @@ int Dbtup::interpreterStartLab(Signal* signal,
       scanPtr.i = req_struct->scan_op_i;
       ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
       ScanOp& scan = *scanPtr.p;
-      if (scan.m_tableId == 17 && scan.m_fragId == 1 &&
-          AggInterpreter::g_debug == true) {
-        fprintf(stderr, "Moz, interpreterStartLab, get scan_op_i %u for fragment %u\n",
-            scanPtr.i, scan.m_fragId);
-      }
-      if (scan.m_tableId == 17 && scan.m_fragId == 1 &&
-          AggInterpreter::g_debug == true) {
-        fprintf(stderr, "Moz, RattroutCounter: %u, start_index: %u, data: ",
-                RattroutCounter, start_index);
-        char* ptr = (char*)(&(signal->theData[0]));
-        for (Uint8 i = 0; i < (start_index * 4); i++) {
-          fprintf(stderr, " %x", *(ptr + i));
-        }
-        fprintf(stderr, " -- ");
-        ptr += (start_index * 4);
-        for (Uint8 i = 0; i < RattroutCounter * 4; i++) {
-          fprintf(stderr, " %x", *(ptr + i));
-        }
-        fprintf(stderr, "\n");
-      }
       // Moz
       if (scan.m_aggregation == true) {
         ndbrequire(scan.agg_interpreter != nullptr);
         scan.agg_interpreter->ProcessRec(this, req_struct);
         uint32_t res_len = scan.agg_interpreter->PrepareAggResIfNeeded(signal, false);
-        // fprintf(stderr, "HAHA agg connectPtr: %u, trans1: %u,"
-        //         " trans2: %u rec_blockref: %u, res_len: %u, read_len: %u\n",
-        //         req_struct->tc_operation_ptr,
-        //         req_struct->trans_id1,
-        //         req_struct->trans_id2,
-        //         req_struct->rec_blockref,
-        //         res_len,
-        //         req_struct->read_length);
         if (res_len != 0) {
-          // Moz
-          // We need to req_struct->read_length here, which will update
-          // the Dblqh::ScanRecord::m_curr_batch_size_bytes later in
-          // the Dblqh::scanTupkeyConfLab
+          /*
+           * We need to req_struct->read_length here, which will update
+           * the Dblqh::ScanRecord::m_curr_batch_size_bytes later in
+           * the Dblqh::scanTupkeyConfLab
+          */
           req_struct->read_length = res_len;
           TransIdAI * transIdAI=  (TransIdAI *)signal->getDataPtrSend();
           transIdAI->connectPtr = req_struct->tc_operation_ptr;

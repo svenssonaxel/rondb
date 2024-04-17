@@ -380,12 +380,6 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                           Uint32* outBuf,
                           Uint32  maxRead)
 {
-  if (req_struct->fragPtrP->fragTableId == 17 &&
-      req_struct->fragPtrP->fragmentId == 1 &&
-      AggInterpreter::g_debug == true) {
-    fprintf(stderr, "Moz, inBufLen: %u, scan_op_i: %u\n", inBufLen,
-            req_struct->scan_op_i);
-  }
   Uint32 attributeId, descr_index, tmpAttrBufIndex, tmpAttrBufBits, inBufIndex;
   AttributeHeader* ahOut;
 

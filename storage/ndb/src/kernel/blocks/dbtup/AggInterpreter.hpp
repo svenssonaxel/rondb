@@ -20,7 +20,7 @@ class AggInterpreter {
     n_agg_results_(0),
     agg_results_(nullptr), agg_prog_start_pos_(0),
     gb_map_(nullptr), n_groups_(0),
-    buf_pos_(0), print_(print) {
+    buf_pos_(0), print_(print), processed_rows_(0) {
       prog_ = new uint32_t[prog_len];
       memcpy(prog_, prog, prog_len * sizeof(uint32_t));
       memset(buf_, 0, 2048 * sizeof(uint32_t));
@@ -65,5 +65,6 @@ class AggInterpreter {
   uint32_t buf_pos_;
   static uint32_t g_buf_len_;
   bool print_;
+  uint64_t processed_rows_;
 };
 #endif  // AGGINTERPRETER_H_

@@ -304,7 +304,8 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
           agg_res_ptr);
        */
       assert(ah.getDataPtr() != &data_buf[parse_pos]);
-      assert(4 + ah.getByteSize() == gb_cols_len);
+      assert(sizeof(AttributeHeader) + ah.getDataSize() * sizeof(int32_t)
+             == gb_cols_len);
       parse_pos += ((gb_cols_len + agg_res_len) >> 2);
     }
   } else {
@@ -581,9 +582,10 @@ bool NdbAggregator::Finalize() {
     uint32_t i = 0;
     while (i < n_agg_results_) {
       agg_results_[i].type = NDB_TYPE_UNDEFINED;
-      agg_results_[i++].value.val_int64 = 0;
       agg_results_[i].is_unsigned = false;
       agg_results_[i].is_null = true;
+      agg_results_[i].value.val_int64 = 0;
+      i++;
     }
   }
   finalized_ = true;
@@ -635,13 +637,14 @@ NdbAggregator::Column NdbAggregator::ResultRecord::FetchGroupbyColumn() {
   NdbDictionary::Column::Type type = col->getType();
   bool is_null = header.isNULL();
   uint32_t byte_size = header.getByteSize();
+  uint32_t word_size = header.getDataSize() * sizeof(int32_t);
   char* ptr = is_null ? nullptr : group_records_.ptr + curr_group_pos_;
   if (is_null) {
     assert(byte_size == 0 && ptr == nullptr);
   }
 
   Column column(id, type, byte_size, is_null, ptr, false);
-  curr_group_pos_ += byte_size;
+  curr_group_pos_ += word_size;
   return column;
 }
 

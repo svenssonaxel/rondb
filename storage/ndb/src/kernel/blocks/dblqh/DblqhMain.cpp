@@ -17361,16 +17361,6 @@ void Dblqh::execSCAN_NEXTREQ(Signal* signal)
     scanPtr->m_max_batch_size_rows = max_rows;
   }
 
-  // Moz
-  // if (tcConnectptr.p->tableref == 17) {
-  //   fprintf(stderr, "Moz Dblqh::execSCAN_NEXTREQ, batch_size_rows: %u, batch_size_bytes: %u, "
-  //                   "m_max_batch_size_rows: %u, m_max_batch_size_bytes: %u, "
-  //                   "m_curr_batch_size_rows: %u, m_curr_batch_size_bytes: %u\n",
-  //                   nextReq->batch_size_rows, nextReq->batch_size_bytes,
-  //                   scanPtr->m_max_batch_size_rows, scanPtr->m_max_batch_size_bytes,
-  //                   scanPtr->m_curr_batch_size_rows, scanPtr->m_curr_batch_size_bytes);
-  // }
-  
   /* --------------------------------------------------------------------
    * If scanLockHold = true we need to unlock previous round of
    * scanned records.
@@ -18707,30 +18697,12 @@ void Dblqh::accScanConfScanLab(Signal* signal,
 // theData[4] is not used
     signal->theData[5] = sig5;
     signal->theData[6] = sig6;
-    // Moz
-    // Indicator to inject aggregation program
-    // temporary solution, just for hardcode agg program
-    // remove later
-    // signal->theData[7] = regTcPtr->opAgg;
-    signal->theData[7] = 0;
-    if (regTcPtr->tableref != 17) {
-      ndbrequire(regTcPtr->opAgg == 0);
-    } else {
-      // ndbrequire(regTcPtr->opAgg == 1);
-    }
     /* Pass ATTRINFO as long section, we don't need
      * it after this
      */
     regTcPtr->attrInfoIVal= RNIL;
 
     c_tup->execSTORED_PROCREQ(signal); // ZHAO 17
-    // Moz
-    // temporary solution, just for hardcode agg program
-    // remove later
-    if (regTcPtr->tableref == 17 && bool(regTcPtr->opExec)) {
-      // assert(regTcPtr->opAgg);
-      // scanptr.p->scanAiLength += 25;
-    }
     if (likely(signal->theData[0] == 0))
     {
       /* STORED_PROCCONF */
@@ -19610,11 +19582,13 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
 
   regTcPtr->transactionState = TcConnectionrec::SCAN_STATE_USED;
 
+  // Moz DEBUG
+  const Uint32 rows = scanPtr->m_curr_batch_size_rows;
+  Uint32 tmp = scanPtr->m_aggregation ?
+                  get_acc_ptr_from_scan_record(scanPtr, 0, false) :
+                  get_acc_ptr_from_scan_record(scanPtr, rows, false);
 
-  const Uint32 rows = scanPtr->m_aggregation ? 0 :
-                        scanPtr->m_curr_batch_size_rows;
-
-  const Uint32 accOpPtr= get_acc_ptr_from_scan_record(scanPtr, rows, false);
+  const Uint32 accOpPtr= tmp;
   if (accOpPtr != (Uint32)-1)
   {
     c_acc->execACCKEY_ORD_no_ptr(signal, accOpPtr);
@@ -19647,7 +19621,10 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
     // Inform API about keyinfo len as well
     read_len += sendKeyinfo20(signal, scanPtr, regTcPtr);
   }//if
-  ndbrequire(scanPtr->m_curr_batch_size_rows < MAX_PARALLEL_OP_PER_SCAN);
+  // Moz
+  if (!scanPtr->m_aggregation) {
+    ndbrequire(scanPtr->m_curr_batch_size_rows < MAX_PARALLEL_OP_PER_SCAN);
+  }
   scanPtr->m_exec_direct_batch_size_words += read_len;
   scanPtr->m_curr_batch_size_bytes+= read_len * sizeof(Uint32);
   scanPtr->m_curr_batch_size_rows = rows + 1;
@@ -20133,11 +20110,6 @@ Uint32 Dblqh::initScanrec(const ScanFragReq* scanFragReq,
   const Uint32 scanApiOpPtr = scanFragReq->clientOpPtr;
   const Uint32 max_rows = scanFragReq->batch_size_rows;
   const Uint32 max_bytes = scanFragReq->batch_size_bytes;
-  // Moz
-  // if (scanFragReq->tableId == 17) {
-  //   fprintf(stderr, "Moz batch_size_rows: %u, batch_size_bytes: %u\n",
-  //                   max_rows, max_bytes);
-  // }
 
   jamDebug(); // ZHAO 5
   scanPtr->lcpScan = lcpScan;

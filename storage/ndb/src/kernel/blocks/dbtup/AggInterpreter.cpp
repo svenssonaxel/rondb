@@ -49,7 +49,6 @@ bool AggInterpreter::Init() {
     while (i < n_gb_cols_ && cur_pos_ < prog_len_) {
       gb_cols_[i++] = prog_[cur_pos_++];
     }
-
     gb_map_ = new std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>;
   }
 
@@ -61,9 +60,10 @@ bool AggInterpreter::Init() {
     uint32_t i = 0;
     while (i < n_agg_results_) {
       agg_results_[i].type = NDB_TYPE_UNDEFINED;
-      agg_results_[i++].value.val_int64 = 0;
+      agg_results_[i].value.val_int64 = 0;
       agg_results_[i].is_unsigned = false;
       agg_results_[i].is_null = true;
+      i++;
     }
   }
 
@@ -1066,8 +1066,7 @@ static int32_t Count(const Register& a, AggResItem* res, bool print) {
 
 bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         Dbtup::KeyReqStruct* req_struct) {
-  assert(inited_ && n_agg_results_ == 3 &&
-         n_gb_cols_ == 1 && prog_len_ == 11 && agg_prog_start_pos_ == 3);
+  assert(inited_);
 
   AggResItem* agg_res_ptr = nullptr;
   if (n_gb_cols_) {
@@ -1373,6 +1372,7 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         assert(0);
     }
   }
+  processed_rows_++;
   return true;
 }
 
@@ -1677,9 +1677,7 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
       (n_gb_cols_ != 0 && (gb_map_ == nullptr || gb_map_->size() == 0))) {
     return 0;
   }
-  // Uint32* data_buf = (signal->getDataPtrSend() + TransIdAI::HeaderLength);
   Uint32* data_buf = (&signal->theData[25]);
-  // Uint32 data_buf[4096];
   uint32_t pos = 0;
   assert(n_gb_cols_ < 0xFFFF);
   assert(n_agg_results_ < 0xFFFF);
@@ -1721,46 +1719,47 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
     uint32_t n_gb_cols = data_buf[parse_pos] >> 16;
     uint32_t n_agg_results = data_buf[parse_pos++] & 0xFFFF;
     uint32_t n_res_items = data_buf[parse_pos++];
-    fprintf(stderr, "Moz, GB cols: %u, AGG results: %u, RES items: %u\n",
-            n_gb_cols, n_agg_results, n_res_items);
+    // fprintf(stderr, "Moz, GB cols: %u, AGG results: %u, RES items: %u\n",
+    //         n_gb_cols, n_agg_results, n_res_items);
 
     if (n_gb_cols) {
       for (uint32_t i = 0; i < n_res_items; i++) {
         uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
         uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
         AttributeHeader ah(data_buf[parse_pos++]);
-        fprintf(stderr,
-                "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
-                "res_len: %u, value: ",
-                ah.getAttributeId(), ah.getByteSize(),
-                ah.getDataSize(), gb_cols_len, agg_res_len);
+        // fprintf(stderr,
+        //         "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
+        //         "res_len: %u, value: ",
+        //         ah.getAttributeId(), ah.getByteSize(),
+        //         ah.getDataSize(), gb_cols_len, agg_res_len);
         assert(ah.getDataPtr() != &data_buf[parse_pos]);
-        char* ptr = (char*)(&data_buf[parse_pos]);
-        for (uint32_t i = 0; i < ah.getByteSize(); i++) {
-          fprintf(stderr, " %x", ptr[i]);
-        }
+        // char* ptr = (char*)(&data_buf[parse_pos]);
+        // for (uint32_t i = 0; i < ah.getByteSize(); i++) {
+        //   fprintf(stderr, " %x", ptr[i]);
+        // }
         parse_pos += ah.getDataSize();
-        fprintf(stderr, "]");
+        // fprintf(stderr, "]");
         for (uint32_t i = 0; i < n_agg_results; i++) {
-          AggResItem* ptr = (AggResItem*)(&data_buf[parse_pos]);
-          fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
-                  ptr->type, ptr->is_unsigned, ptr->is_null);
-          switch (ptr->type) {
-            case NDB_TYPE_BIGINT:
-              fprintf(stderr, "%15ld", ptr->value.val_int64);
-              break;
-            case NDB_TYPE_DOUBLE:
-              fprintf(stderr, "%31.16f", ptr->value.val_double);
-              break;
-            default:
-              assert(0);
-          }
-          fprintf(stderr, ")");
+          // AggResItem* ptr = (AggResItem*)(&data_buf[parse_pos]);
+          // fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
+          //         ptr->type, ptr->is_unsigned, ptr->is_null);
+          // switch (ptr->type) {
+          //   case NDB_TYPE_BIGINT:
+          //     fprintf(stderr, "%15ld", ptr->value.val_int64);
+          //     break;
+          //   case NDB_TYPE_DOUBLE:
+          //     fprintf(stderr, "%31.16f", ptr->value.val_double);
+          //     break;
+          //   default:
+          //     assert(0);
+          // }
+          // fprintf(stderr, ")");
           parse_pos += (sizeof(AggResItem) >> 2);
         }
-        fprintf(stderr, "\n");
+        // fprintf(stderr, "\n");
       }
     } else {
+      // TODO Zhao
     }
   }
   assert(parse_pos == data_len);

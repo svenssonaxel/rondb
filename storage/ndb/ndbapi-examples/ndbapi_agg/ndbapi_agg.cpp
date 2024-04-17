@@ -162,7 +162,7 @@ void create_table(MYSQL &mysql)
         "CUBIGINT BIGINT UNSIGNED NOT NULL,"
         "CFLOAT FLOAT NOT NULL,"
         "CDOUBLE DOUBLE NOT NULL,"
-        "CCHAR CHAR(20) NOT NULL,"
+        "CCHAR CHAR(19) NOT NULL,"
         "PRIMARY KEY USING HASH (CINT)) ENGINE=NDB CHARSET=latin1"))
   {
     if (mysql_errno(&mysql) != ER_TABLE_EXISTS_ERROR)
@@ -195,7 +195,8 @@ std::uniform_int_distribution<int64_t> g_bigint(-3147483648, 3147483648);
 std::uniform_int_distribution<uint64_t> g_ubigint(0, 5294967295);
 std::uniform_int_distribution<int32_t> g_int(-2147483648, 2147483647);
 std::uniform_int_distribution<uint32_t> g_uint(0, 4294967295);
-std::uniform_int_distribution<int32_t> g_mediumint(-8388608, 8388607);
+// std::uniform_int_distribution<int32_t> g_mediumint(-8388608, 8388607);
+std::uniform_int_distribution<int32_t> g_mediumint(-2, 2);
 std::uniform_int_distribution<uint32_t> g_umediumint(0, -2147483648);
 std::uniform_int_distribution<int16_t> g_smallint(-32768, 32767);
 std::uniform_int_distribution<uint16_t> g_usmallint(0, 32768);
@@ -384,7 +385,7 @@ int scan_aggregation(Ndb * myNdb)
      * Define an aggregator
      */
     NdbAggregator aggregator(myTable);
-    assert(aggregator.GroupBy("CCHAR"));
+    assert(aggregator.GroupBy("CMEDIUMINT"));
     assert(aggregator.LoadColumn("CUBIGINT", kReg1));
     assert(aggregator.LoadColumn("CUTINYINT", kReg2));
     assert(aggregator.Add(kReg1, kReg2));
@@ -430,9 +431,9 @@ int scan_aggregation(Ndb * myNdb)
       NdbAggregator::Column column = record.FetchGroupbyColumn();
       while (!column.end()) {
         fprintf(stderr,
-            "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %s]:",
+            "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %d]:",
             column.id(), column.type(), column.byte_size(),
-            column.is_null(), column.data());
+            column.is_null(), column.data_medium());
         column = record.FetchGroupbyColumn();
       }
 

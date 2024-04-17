@@ -277,11 +277,6 @@ Dbtup::execACC_SCANREQ(Signal* signal)
     // conf
     AccScanConf* const conf = (AccScanConf*)signal->getDataPtrSend();
     conf->scanPtr = req->senderData;
-    if (scan.m_tableId == 17 && scan.m_fragId == 1 &&
-        AggInterpreter::g_debug == true) {
-      fprintf(stderr, "Moz, execACC_SCANREQ, get scan_op_i %u for fragment %u\n",
-              scanPtr.i, scan.m_fragId);
-    }
     conf->accPtr = scanPtr.i;
     conf->flag = AccScanConf::ZNOT_EMPTY_FRAGMENT;
     signal->theData[8] = 0;
@@ -3582,11 +3577,6 @@ Dbtup::stop_lcp_scan(Uint32 tableId, Uint32 fragId)
   scanPtr.p->m_tableId = RNIL;
 }
 
-// Moz
-// TODO(Zhao) remove them later
-extern std::mutex g_agg_mutex;
-extern AggInterpreter* g_agg_results[2];
-
 void Dbtup::releaseScanOp(ScanOpPtr& scanPtr)
 {
   FragrecordPtr fragPtr;
@@ -3611,30 +3601,9 @@ void Dbtup::releaseScanOp(ScanOpPtr& scanPtr)
   else
   {
     jam();
-    if (scanPtr.p->m_tableId == 17) {
-      g_agg_mutex.lock();
-      fprintf(stderr, "Moz, Link aggregation result on fragment %u to g_agg_results\n",
-          scanPtr.p->m_fragId);
-      g_agg_results[scanPtr.p->m_fragId] = scanPtr.p->agg_interpreter;
-      // TODO(Zhao) handle interpreter resources
+    if (scanPtr.p->agg_interpreter) {
+      delete scanPtr.p->agg_interpreter;
       scanPtr.p->agg_interpreter = nullptr;
-
-      if (g_agg_results[0] != nullptr && g_agg_results[1] != nullptr) {
-        fprintf(stderr, "Aggregation result on Fragment 0: \n");
-        g_agg_results[0]->Print();
-        fprintf(stderr, "Aggregation result on Fragment 1: \n");
-        g_agg_results[1]->Print();
-
-        fprintf(stderr, "Final aggregation result: \n");
-        AggInterpreter::MergePrint(g_agg_results[0], g_agg_results[1]);
-        fprintf(stderr, "Moz, Destory aggregation interpreters\n");
-        // TODO(Zhao) Should delete here
-        // delete scanPtr.p->agg_interpreter;
-        delete g_agg_results[0];
-        delete g_agg_results[1];
-        g_agg_results[0] = g_agg_results[1] = nullptr;
-      }
-      g_agg_mutex.unlock();
     }
     c_scanOpPool.release(scanPtr);
     checkPoolShrinkNeed(DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX,

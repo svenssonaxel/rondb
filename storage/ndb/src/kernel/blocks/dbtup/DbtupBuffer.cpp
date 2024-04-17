@@ -493,23 +493,22 @@ void Dbtup::SendAggResToAPI(Signal* signal, const void* lqhTcConnectrec,
   ScanOp& scan = *scanPtr.p;
   ndbrequire(scan.agg_interpreter != nullptr);
   uint32_t res_len = scan.agg_interpreter->PrepareAggResIfNeeded(signal, true);
-  // fprintf(stderr, "Hello table %u frag %u, res_len: %u,"
-  //         " trans[0]: %u, trans[2]: %u, connectPtr: %u, blockref: %u"
-  //         ", size_bytes: %u, size_rows: %u\n",
-  //         scan.m_tableId, scan.m_fragId, res_len,
-  //         lqhOpPtrP->transid[0], lqhOpPtrP->transid[1],
-  //         lqhScanPtrP->scanApiOpPtr, lqhScanPtrP->scanApiBlockref,
-  //         lqhScanPtrP->m_curr_batch_size_bytes, lqhScanPtrP->m_curr_batch_size_rows);
+  fprintf(stderr, "Hello table %u frag %u, res_len: %u,"
+          " trans[0]: %u, trans[2]: %u, connectPtr: %u, blockref: %u"
+          ", size_bytes: %u, size_rows: %u\n",
+          scan.m_tableId, scan.m_fragId, res_len,
+          lqhOpPtrP->transid[0], lqhOpPtrP->transid[1],
+          lqhScanPtrP->scanApiOpPtr, lqhScanPtrP->scanApiBlockref,
+          lqhScanPtrP->m_curr_batch_size_bytes, lqhScanPtrP->m_curr_batch_size_rows);
   if (res_len != 0) {
     TransIdAI * transIdAI=  (TransIdAI *)signal->getDataPtrSend();
     transIdAI->connectPtr = lqhScanPtrP->scanApiOpPtr;
     transIdAI->transId[0] = lqhOpPtrP->transid[0];
     transIdAI->transId[1] = lqhOpPtrP->transid[1];
-    ndbrequire(lqhScanPtrP->m_curr_batch_size_bytes == 0);
+    // ndbrequire(lqhScanPtrP->m_curr_batch_size_bytes == 0);
     // ndbrequire(lqhScanPtrP->m_curr_batch_size_rows == 0);
     lqhScanPtrP->m_curr_batch_size_bytes = res_len * sizeof(Uint32);
     lqhScanPtrP->m_curr_batch_size_rows = 1;
     SendAggregationResult(signal, res_len, lqhScanPtrP->scanApiBlockref);
   }
-
 }
