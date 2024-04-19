@@ -2122,6 +2122,8 @@ struct KeyReqStruct {
   Dblqh *m_lqh;
 
   Uint32 scan_op_i;
+  Uint32 agg_curr_batch_size_rows;
+  Uint32 agg_curr_batch_size_bytes;
 };
 
   friend struct Undo_buffer;

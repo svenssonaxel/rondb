@@ -597,7 +597,9 @@ public:
       m_takeOverRefCount(0),
       m_reserved(0),
       m_send_early_hbrep(0),
-      m_aggregation(0)
+      m_aggregation(0),
+      m_agg_curr_batch_size_rows(0),
+      m_agg_curr_batch_size_bytes(0)
     {
     }
 
@@ -655,7 +657,7 @@ public:
 
     Uint32 m_exec_direct_batch_size_words;
 
-    bool check_scan_batch_completed() const;
+    bool check_scan_batch_completed(bool print=false) const;
     
     UintR copyPtr;
     union {
@@ -721,6 +723,10 @@ public:
     Uint8 m_first_match_flag;
     Uint8 m_send_early_hbrep;
     Uint8 m_aggregation;
+    // Aggregation
+    Uint32 m_agg_curr_batch_size_rows;
+    Uint32 m_agg_curr_batch_size_bytes;
+
   };
   static constexpr Uint32 DBLQH_SCAN_RECORD_TRANSIENT_POOL_INDEX = 1;
   typedef Ptr<ScanRecord> ScanRecordPtr;
@@ -5348,12 +5354,31 @@ Dblqh::is_restore_phase_done()
 
 inline
 bool
-Dblqh::ScanRecord::check_scan_batch_completed() const
+Dblqh::ScanRecord::check_scan_batch_completed(bool print) const
 {
   // Moz
   // Don't break aggregation
   if (m_aggregation == true) {
-    return false;
+    // if m_agg_curr_batch_size_bytes != 0, means some aggregation
+    // results have been sent to API as a batch because of group hash
+    // is going to be full. so we return true here to make sure that we
+    // call sendScanFragConf to send GSN_SCAN_FRAGCONF to TC
+    if (m_agg_curr_batch_size_bytes) {
+      // MOZ DEBUG PRINT
+      if (print) {
+        fprintf(stderr, "CHECK batch complete:true, rows[%u, %u], bytes[%u, %u]\n",
+            m_agg_curr_batch_size_rows, m_curr_batch_size_rows,
+            m_agg_curr_batch_size_bytes, m_curr_batch_size_bytes);
+      }
+      return true;
+    } else {
+      if (print) {
+        fprintf(stderr, "CHECK batch complete:false, rows[%u, %u], bytes[%u, %u]\n",
+            m_agg_curr_batch_size_rows, m_curr_batch_size_rows,
+            m_agg_curr_batch_size_bytes, m_curr_batch_size_bytes);
+      }
+      return false;
+    }
   }
   Uint32 max_rows = m_max_batch_size_rows;
   Uint32 max_bytes = m_max_batch_size_bytes;

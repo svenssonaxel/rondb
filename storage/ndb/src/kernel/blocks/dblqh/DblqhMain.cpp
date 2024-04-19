@@ -17476,6 +17476,16 @@ void Dblqh::scanLockReleasedLab(Signal* signal,
                                 TcConnectionrec* const regTcPtr)
 {
   ScanRecord * const scanPtr = scanptr.p;
+  // MOZ DEBUG PRINT
+  {
+  FragrecordPtr regFragptr;
+  regFragptr.i = regTcPtr->fragmentptr;
+  ndbrequire(c_fragment_pool.getPtr(regFragptr));
+  if (regFragptr.p->fragId == 0) {
+    // fprintf(stderr, "MOZ %u : %u\n",
+    //           scanPtr->scanReleaseCounter, scanPtr->m_curr_batch_size_rows);
+  }
+  }
   if (scanPtr->scanReleaseCounter == scanPtr->m_curr_batch_size_rows)
   {
     if ((scanPtr->scanErrorCounter > 0) ||
@@ -17547,10 +17557,20 @@ void Dblqh::scanReleaseLocksLab(Signal* signal,
   check_send_scan_hb_rep(signal, scanPtr, regTcPtr);
   while (true)
   {
-    const Uint32 sig1 = 
-      get_acc_ptr_from_scan_record(scanPtr, 
-                                   scanPtr->scanReleaseCounter-1,
-                                   false);
+    Uint32 tmp = 0;
+    // Moz
+    if (scanPtr->m_aggregation) {
+      tmp =
+        get_acc_ptr_from_scan_record(scanPtr,
+                                     0,
+                                     false);
+    } else {
+      tmp =
+        get_acc_ptr_from_scan_record(scanPtr,
+                                     scanPtr->scanReleaseCounter-1,
+                                     false);
+    }
+    const Uint32 sig1 = tmp;
     const Uint32 sig0 = scanPtr->scanAccPtr;
     SimulatedBlock *block = scanPtr->scanBlock;
     ExecFunction f = scanPtr->scanFunction_NEXT_SCANREQ;
@@ -19582,7 +19602,7 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
 
   regTcPtr->transactionState = TcConnectionrec::SCAN_STATE_USED;
 
-  // Moz DEBUG
+  // Moz
   const Uint32 rows = scanPtr->m_curr_batch_size_rows;
   Uint32 tmp = scanPtr->m_aggregation ?
                   get_acc_ptr_from_scan_record(scanPtr, 0, false) :
@@ -19621,8 +19641,20 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
     // Inform API about keyinfo len as well
     read_len += sendKeyinfo20(signal, scanPtr, regTcPtr);
   }//if
-  // Moz
-  if (!scanPtr->m_aggregation) {
+
+  if (scanPtr->m_aggregation) {
+    if (conf->agg_batch_size_bytes) {
+      ndbrequire(conf->agg_batch_size_rows == 1)
+      ndbrequire(scanPtr->m_agg_curr_batch_size_bytes == 0);
+      ndbrequire(scanPtr->m_agg_curr_batch_size_rows == 0);
+    }
+    scanPtr->m_agg_curr_batch_size_bytes = conf->agg_batch_size_bytes;
+    scanPtr->m_agg_curr_batch_size_rows = conf->agg_batch_size_rows;
+  } else {
+    // Moz
+    // In aggregation mode, since we don't follow batch strategy 100%,
+    // in the situation which has small group, m_curr_batch_size_rows
+    // could be bigger than MAX_PARALLEL_OP_PER_SCAN
     ndbrequire(scanPtr->m_curr_batch_size_rows < MAX_PARALLEL_OP_PER_SCAN);
   }
   scanPtr->m_exec_direct_batch_size_words += read_len;
@@ -19645,8 +19677,18 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
     }
   }
 
-  // TODO(Zhao) Skip here
-  if (scanPtr->check_scan_batch_completed() || last_row)
+  // MOZ DEBUG PRINT
+  bool print = false;
+  {
+  FragrecordPtr regFragptr;
+  regFragptr.i = regTcPtr->fragmentptr;
+  ndbrequire(c_fragment_pool.getPtr(regFragptr));
+  if (regFragptr.p->fragId == 0) {
+    print = true;
+  }
+  }
+  // TODO(Zhao) Skip here(DONE!)
+  if (scanPtr->check_scan_batch_completed(print) || last_row)
   {
     if (scanPtr->scanLockHold == ZTRUE)
     {
@@ -19678,6 +19720,7 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
   {
     jamDebug(); // ZHAO 53
     scanPtr->scanFlag = NextScanReq::ZSCAN_NEXT_COMMIT;
+    // Moz DEBUG
     Uint32 index = scanPtr->m_aggregation ? 0 :
                    scanPtr->m_curr_batch_size_rows-1;
     Uint32 accOpPtr= get_acc_ptr_from_scan_record(scanPtr,
@@ -20963,11 +21006,33 @@ void Dblqh::sendScanFragConf(Signal* signal,
 {
   jamDebug();
   ScanRecord * const scanPtr = scanptr.p;
+  // MOZ DEBUG PRINT
+  bool print = false;
+  {
+    FragrecordPtr regFragptr;
+    regFragptr.i = regTcPtr->fragmentptr;
+    ndbrequire(c_fragment_pool.getPtr(regFragptr));
+    if (regFragptr.p->fragId == 0) {
+    print = true;
+    fprintf(stderr, "MOZ sendScanFragConf, rows:[%u, %u], bytes: [%u, %u]\n",
+                                  scanPtr->m_agg_curr_batch_size_rows,
+                                  scanPtr->m_curr_batch_size_rows,
+                                  scanPtr->m_agg_curr_batch_size_bytes,
+                                  scanPtr->m_curr_batch_size_bytes);
+    }
+  }
   // Moz
   // Make sure that we send correct m_curr_batch_size_XXX, otherwise
   // the API cannot start to parse the TRANSID_AI message
-  const Uint32 completed_ops= scanPtr->m_curr_batch_size_rows;
-  const Uint32 total_len= scanPtr->m_curr_batch_size_bytes / sizeof(Uint32);
+  Uint32 tmp_completed_ops = scanPtr->m_aggregation ?
+                                    scanPtr->m_agg_curr_batch_size_rows :
+                                    scanPtr->m_curr_batch_size_rows;
+  Uint32 tmp_total_len = scanPtr->m_aggregation ?
+                                scanPtr->m_agg_curr_batch_size_bytes :
+                                scanPtr->m_curr_batch_size_bytes;
+  ndbassert((scanPtr->m_agg_curr_batch_size_bytes % sizeof(Uint32)) == 0);
+  const Uint32 completed_ops= tmp_completed_ops;
+  const Uint32 total_len= tmp_total_len / sizeof(Uint32);
 
   ndbassert((scanPtr->m_curr_batch_size_bytes % sizeof(Uint32)) == 0);
 
@@ -20999,8 +21064,18 @@ void Dblqh::sendScanFragConf(Signal* signal,
   if (!scanPtr->scanLockHold)
   {
     jamDebug();
+    // Moz DEBUG PRINT
+    if (print) {
+      fprintf(stderr, "reset rows: [%u, %u], bytes: [%u, %u]\n",
+                                  scanPtr->m_agg_curr_batch_size_rows,
+                                  scanPtr->m_curr_batch_size_rows,
+                                  scanPtr->m_agg_curr_batch_size_bytes,
+                                  scanPtr->m_curr_batch_size_bytes);
+    }
     scanPtr->m_curr_batch_size_rows = 0;
     scanPtr->m_curr_batch_size_bytes= 0;
+    scanPtr->m_agg_curr_batch_size_rows = 0;
+    scanPtr->m_agg_curr_batch_size_bytes= 0;
     // Moz statemach
     ndbrequire(scanPtr->scanState == ScanRecord::WAIT_NEXT_SCAN ||
                (scanPtr->scanState == ScanRecord::WAIT_CLOSE_SCAN &&

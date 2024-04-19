@@ -196,7 +196,7 @@ std::uniform_int_distribution<uint64_t> g_ubigint(0, 5294967295);
 std::uniform_int_distribution<int32_t> g_int(-2147483648, 2147483647);
 std::uniform_int_distribution<uint32_t> g_uint(0, 4294967295);
 // std::uniform_int_distribution<int32_t> g_mediumint(-8388608, 8388607);
-std::uniform_int_distribution<int32_t> g_mediumint(-2, 2);
+std::uniform_int_distribution<int32_t> g_mediumint(-2000, 2000);
 std::uniform_int_distribution<uint32_t> g_umediumint(0, -2147483648);
 std::uniform_int_distribution<int16_t> g_smallint(-32768, 32767);
 std::uniform_int_distribution<uint16_t> g_usmallint(0, 32768);

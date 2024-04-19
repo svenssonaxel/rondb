@@ -1240,6 +1240,9 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
   req_struct.read_length= 0;
   req_struct.last_row= false;
   req_struct.m_is_lcp = false;
+  // MOZ Aggregation batch
+  req_struct.agg_curr_batch_size_rows = 0;
+  req_struct.agg_curr_batch_size_bytes = 0;
 
   if (unlikely(trans_state != TRANS_IDLE))
   {
@@ -2034,6 +2037,8 @@ void Dbtup::returnTUPKEYCONF(Signal* signal,
   tupKeyConf->lastRow= last_row;
   tupKeyConf->rowid = Rcreate_rowid;
   tupKeyConf->noExecInstructions = RnoExecInstructions;
+  tupKeyConf->agg_batch_size_rows = req_struct->agg_curr_batch_size_rows;
+  tupKeyConf->agg_batch_size_bytes = req_struct->agg_curr_batch_size_bytes;
   set_tuple_state(regOperPtr, TUPLE_PREPARED);
   set_trans_state(regOperPtr, trans_state);
 }
@@ -4022,15 +4027,36 @@ int Dbtup::interpreterStartLab(Signal* signal,
       // Moz
       if (scan.m_aggregation == true) {
         ndbrequire(scan.agg_interpreter != nullptr);
+        /*
+         * update req_struct->read_length here, which will update the
+         * Dblqh::ScanRecord::m_curr_batch_size_bytes later in the
+         * Dblqh::scanTupkeyConfLab, even we don't use that variable
+         * to decide whether reaches batch limitation. For aggregation,
+         * we use Dblqh::ScanRecord::m_agg_curr_batch_size_bytes.
+         * req_struct->read_length would be updated in ProcessRec().
+         */
         scan.agg_interpreter->ProcessRec(this, req_struct);
         uint32_t res_len = scan.agg_interpreter->PrepareAggResIfNeeded(signal, false);
         if (res_len != 0) {
+          ndbrequire(req_struct->agg_curr_batch_size_rows == 0);
+          ndbrequire(req_struct->agg_curr_batch_size_bytes == 0);
+          req_struct->agg_curr_batch_size_rows = 1;
+          req_struct->agg_curr_batch_size_bytes = res_len * sizeof(Uint32);
           /*
+           * NEW:
+           * We don't need to update req_struct->read_length here.
+           * Instead, we update req_struct->agg_curr_batch_size_bytes,
+           * it would return to LQH by TupKeyConf from returnTUPKEYCONF(),
+           * which will finally update scanPtr->m_agg_curr_batch_size_bytes.
+           * And we use scanPtr->m_agg_curr_batch_size_bytes to indicate
+           * the batch size for aggregation.
+           *
+           * OLD COMMENT:
            * We need to req_struct->read_length here, which will update
            * the Dblqh::ScanRecord::m_curr_batch_size_bytes later in
            * the Dblqh::scanTupkeyConfLab
+           * // req_struct->read_length = res_len;
           */
-          req_struct->read_length = res_len;
           TransIdAI * transIdAI=  (TransIdAI *)signal->getDataPtrSend();
           transIdAI->connectPtr = req_struct->tc_operation_ptr;
           transIdAI->transId[0] = req_struct->trans_id1;

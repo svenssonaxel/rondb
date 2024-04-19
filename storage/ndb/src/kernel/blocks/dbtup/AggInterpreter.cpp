@@ -12,6 +12,8 @@
 #include "AggInterpreter.hpp"
 
 uint32_t AggInterpreter::g_buf_len_ = 2048;
+uint32_t AggInterpreter::g_result_header_size_ = 3 * sizeof(uint32_t);
+uint32_t AggInterpreter::g_result_header_size_per_group_ = sizeof(uint32_t);
 
 // TODO(zhao) Remove them later
 std::mutex g_agg_mutex;
@@ -1067,6 +1069,7 @@ static int32_t Count(const Register& a, AggResItem* res, bool print) {
 bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         Dbtup::KeyReqStruct* req_struct) {
   assert(inited_);
+  assert(req_struct->read_length == 0);
 
   AggResItem* agg_res_ptr = nullptr;
   if (n_gb_cols_) {
@@ -1095,6 +1098,25 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
             header->getDataSize(), header->isNULL());
       }
     } else {
+      /*
+       * update req_struct->read_length here, which will update the
+       * Dblqh::ScanRecord::m_curr_batch_size_bytes later in the
+       * Dblqh::scanTupkeyConfLab, even we don't use that variable
+       * to decide whether reaches batch limitation. Only increase
+       * Dblqh::ScanRecord::m_curr_batch_size_bytes when new group
+       * item is inserted into gb_map_.
+       * For aggregation,
+       * we use Dblqh::ScanRecord::m_agg_curr_batch_size_bytes to
+       * indicate batch limitation
+       */
+      req_struct->read_length = (len_in_char +
+                       n_agg_results_ * sizeof(AggResItem)) / sizeof(int32_t);
+
+      // we use result_size_ to decide whether need to send some aggregation
+      // results to API.
+      result_size_ += len_in_char +
+                       n_agg_results_ * sizeof(AggResItem);
+
       agg_rec = new char[len_in_char +
                         n_agg_results_ * sizeof(AggResItem)];
       memset(agg_rec, 0, len_in_char +
@@ -1668,13 +1690,20 @@ void AggInterpreter::MergePrint(const AggInterpreter* in1,
   }
 }
 
+
 uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
   // TODO(Zhao) new limitation
-  if (!force && (gb_map_ == nullptr || gb_map_->size() < 10)) {
+  // if (!force && (gb_map_ == nullptr || gb_map_->size() < 10)) {
+  uint32_t total_size = result_size_ +
+                  (gb_map_ ?
+                   gb_map_->size() * g_result_header_size_per_group_ : 0) +
+                  g_result_header_size_;
+  if (!force && (gb_map_ == nullptr || total_size < 2048)) {
     return 0;
   }
   if (force &&
       (n_gb_cols_ != 0 && (gb_map_ == nullptr || gb_map_->size() == 0))) {
+    assert(result_size_ == 0);
     return 0;
   }
   Uint32* data_buf = (&signal->theData[25]);
@@ -1697,6 +1726,7 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
       pos += ((iter->first.len + iter->second.len) >> 2);
       delete[] iter->first.ptr;
       gb_map_->erase(iter++);
+      result_size_ = 0;
     }
   } else {
     data_buf[pos++] = AttributeHeader::AGG_RESULT << 16 | 0x0721;
