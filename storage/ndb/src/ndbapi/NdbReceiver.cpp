@@ -662,8 +662,9 @@ Uint32 packed_rowsize(const NdbRecord *result_record,
     } else {
       // Moz
       // Aggregation
-      sizeInWords += MAX_AGG_RESULT_BATCH_BYTES / 4;
+      // sizeInWords += MAX_AGG_RESULT_BATCH_BYTES / 4;
       ra= ra->next();
+      assert(ra == nullptr);
     }
   }
 
@@ -1194,22 +1195,30 @@ NdbReceiver::unpackRow(const Uint32* aDataPtr, Uint32 aLength, char* row)
       for (uint32_t i = 0; i < n_res_items; i++) {
         uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
         uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
-        AttributeHeader ah(data_buf[parse_pos++]);
-        assert(gb_cols_len + agg_res_len == sizeof(AttributeHeader) + 
-               ah.getDataSize() * sizeof(int32_t) + sizeof(AggResItem)
-               * n_agg_results);
-        // fprintf(stderr,
-        //     "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
-        //     "res_len: %u, value: ",
-        //     ah.getAttributeId(), ah.getByteSize(),
-        //     ah.getDataSize(), gb_cols_len, agg_res_len);
-        // assert(ah.getDataPtr() != &data_buf[parse_pos]);
-        // const char* ptr = (const char*)(&data_buf[parse_pos]);
-        // for (uint32_t i = 0; i < ah.getByteSize(); i++) {
-        //   fprintf(stderr, " %x", ptr[i]);
-        // }
-        parse_pos += ah.getDataSize();
-        // fprintf(stderr, "]");
+        uint32_t len = 0;
+        for (uint32_t j = 0; j < n_gb_cols; j++) {
+          AttributeHeader ah(data_buf[parse_pos++]);
+
+          {
+            len += sizeof(AttributeHeader) + ah.getDataSize() * sizeof (int32_t);
+            if (j == n_gb_cols - 1) {
+              len += sizeof(AggResItem) * n_agg_results;
+              assert(gb_cols_len + agg_res_len == len);
+            }
+          }
+          // fprintf(stderr,
+          //     "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
+          //     "res_len: %u, value: ",
+          //     ah.getAttributeId(), ah.getByteSize(),
+          //     ah.getDataSize(), gb_cols_len, agg_res_len);
+          // assert(ah.getDataPtr() != &data_buf[parse_pos]);
+          // const char* ptr = (const char*)(&data_buf[parse_pos]);
+          // for (uint32_t i = 0; i < ah.getByteSize(); i++) {
+          //   fprintf(stderr, " %x", ptr[i]);
+          // }
+          parse_pos += ah.getDataSize();
+          // fprintf(stderr, "]");
+        }
         for (uint32_t i = 0; i < n_agg_results; i++) {
           // const AggResItem* ptr = (const AggResItem*)(&data_buf[parse_pos]);
           // fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",

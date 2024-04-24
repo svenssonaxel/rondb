@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #define MAX_AGG_RESULT_BATCH_BYTES 8192
+#define DEF_AGG_RESULT_BATCH_BYTES 4096
 enum InterpreterOp {
   kOpUnknown = 0,
   kOpPlus,

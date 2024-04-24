@@ -3347,7 +3347,7 @@ private:
                               SimulatedBlock* block,
                               ExecFunction f,
                               ScanRecord * const scanPtr,
-                              Uint32 clientPtrI);
+                              Uint32 clientPtrI, bool debug_print = false);
 
   void initCopyrec(Signal* signal);
   void initCopyTc(Signal* signal, Operation_t, TcConnectionrec*);

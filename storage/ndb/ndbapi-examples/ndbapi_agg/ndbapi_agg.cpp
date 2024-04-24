@@ -137,7 +137,7 @@ struct Row {
   float cfloat;
   double cdouble;
 
-  char cchar[20];
+  char cchar[32];
 };
 
 void drop_table(MYSQL &mysql)
@@ -162,7 +162,7 @@ void create_table(MYSQL &mysql)
         "CUBIGINT BIGINT UNSIGNED NOT NULL,"
         "CFLOAT FLOAT NOT NULL,"
         "CDOUBLE DOUBLE NOT NULL,"
-        "CCHAR CHAR(19) NOT NULL,"
+        "CCHAR VARCHAR(29) NOT NULL,"
         "PRIMARY KEY USING HASH (CINT)) ENGINE=NDB CHARSET=latin1"))
   {
     if (mysql_errno(&mysql) != ER_TABLE_EXISTS_ERROR)
@@ -196,7 +196,7 @@ std::uniform_int_distribution<uint64_t> g_ubigint(0, 5294967295);
 std::uniform_int_distribution<int32_t> g_int(-2147483648, 2147483647);
 std::uniform_int_distribution<uint32_t> g_uint(0, 4294967295);
 // std::uniform_int_distribution<int32_t> g_mediumint(-8388608, 8388607);
-std::uniform_int_distribution<int32_t> g_mediumint(-2000, 2000);
+std::uniform_int_distribution<int32_t> g_mediumint(-2, 2);
 std::uniform_int_distribution<uint32_t> g_umediumint(0, -2147483648);
 std::uniform_int_distribution<int16_t> g_smallint(-32768, 32767);
 std::uniform_int_distribution<uint16_t> g_usmallint(0, 32768);
@@ -264,18 +264,19 @@ int populate(Ndb * myNdb)
     // column in aggregation interpreter would be undefined.
     memset(rows[i].cchar, 0, sizeof(rows[i].cchar));
 
+    rows[i].cchar[0] = 10;
     switch (i % 4) {
       case 0:
-        sprintf(rows[i].cchar, "GROUP_1");
+        sprintf(&(rows[i].cchar[1]), "GROUPxxx_1");
         break;
       case 1:
-        sprintf(rows[i].cchar, "GROUP_2");
+        sprintf(&(rows[i].cchar[1]), "GROUPxxx_2");
         break;
       case 2:
-        sprintf(rows[i].cchar, "GROUP_3");
+        sprintf(&(rows[i].cchar[1]), "GROUPxxx_3");
         break;
       case 3:
-        sprintf(rows[i].cchar, "GROUP_4");
+        sprintf(&(rows[i].cchar[1]), "GROUPxxx_4");
         break;
       default:
         assert(0);
@@ -385,6 +386,7 @@ int scan_aggregation(Ndb * myNdb)
      * Define an aggregator
      */
     NdbAggregator aggregator(myTable);
+    assert(aggregator.GroupBy("CCHAR"));
     assert(aggregator.GroupBy("CMEDIUMINT"));
     assert(aggregator.LoadColumn("CUBIGINT", kReg1));
     assert(aggregator.LoadColumn("CUTINYINT", kReg2));
@@ -429,11 +431,20 @@ int scan_aggregation(Ndb * myNdb)
     NdbAggregator::ResultRecord record = aggregator.FetchResultRecord();
     while (!record.end()) {
       NdbAggregator::Column column = record.FetchGroupbyColumn();
+      int n = 0;
       while (!column.end()) {
+        if (n == 0) {
+        fprintf(stderr,
+            "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %s]:",
+            column.id(), column.type(), column.byte_size(),
+            column.is_null(), &column.data()[1]);
+        } else {
         fprintf(stderr,
             "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %d]:",
             column.id(), column.type(), column.byte_size(),
             column.is_null(), column.data_medium());
+        }
+        n++;
         column = record.FetchGroupbyColumn();
       }
 

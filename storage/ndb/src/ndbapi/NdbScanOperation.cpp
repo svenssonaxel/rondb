@@ -2496,6 +2496,17 @@ int NdbScanOperation::prepareSendScan(Uint32 /*aTC_ConnectPtr*/,
   Uint32 full_rowsize= NdbReceiver::ndbrecord_rowsize(m_attribute_record,
                                                  m_read_range_no);
 
+  fprintf(stderr, "[1]batch_size: %u, batch_byte_size: %u, bufsize: %u\n",
+          batch_size, batch_byte_size, bufsize);
+  if (m_aggregation_code != nullptr) {
+    // In aggregation mode, we redefine the batch
+    batch_size = 1;
+    batch_byte_size = DEF_AGG_RESULT_BATCH_BYTES;
+    bufsize = MAX_AGG_RESULT_BATCH_BYTES;
+  }
+  fprintf(stderr, "[2]batch_size: %u, batch_byte_size: %u, bufsize: %u, full_rowsize: %u\n",
+          batch_size, batch_byte_size, bufsize, full_rowsize);
+
   /**
    * Allocate total buffers for all fragments in one big chunk. 
    * Allocated as Uint32 to fulfill alignment req for NdbReceiveBuffers.

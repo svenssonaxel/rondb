@@ -17445,11 +17445,12 @@ void Dblqh::scanNextLoopLab(Signal* signal,
   scanPtr->scan_lastSeen = __LINE__;
   if (unlikely(in_send_next_scan == 0))
   {
+    // MOZ DEBUG PRINT
     send_next_NEXT_SCANREQ(signal,
                            block,
                            f,
                            scanPtr,
-                           clientPtrI);
+                           clientPtrI, fragPtr->fragId == 0);
     return;
   }
   /**
@@ -18833,13 +18834,23 @@ void Dblqh::storedProcConfScanLab(Signal* signal,
     ndbrequire(scanPtr->scanState == ScanRecord::WAIT_ACC_SCAN);
     scanPtr->scanState = ScanRecord::WAIT_NEXT_SCAN;
     scanPtr->scan_lastSeen = __LINE__;
+    // MOZ DEBUG PRINT
+    bool print = false;
+    {
+    FragrecordPtr regFragptr;
+    regFragptr.i = tcConnectptr.p->fragmentptr;
+    ndbrequire(c_fragment_pool.getPtr(regFragptr));
+    if (regFragptr.p->fragId == 0) {
+      print = true;
+    }
+    }
     if (likely(in_send_next_scan == 0))
     {
       send_next_NEXT_SCANREQ(signal,
                              block,
                              f,
                              scanPtr,
-                             tcConnectptr.p->clientConnectrec); // ZHAO 21
+                             tcConnectptr.p->clientConnectrec, print); // ZHAO 21
       return;
     }
     ndbassert(in_send_next_scan == 1);
@@ -20770,7 +20781,7 @@ void Dblqh::send_next_NEXT_SCANREQ(Signal* signal,
                                    SimulatedBlock* block,
                                    ExecFunction f,
                                    ScanRecord * const scanPtr,
-                                   Uint32 clientPtrI)
+                                   Uint32 clientPtrI, bool debug_print)
 {
   (void)clientPtrI;
   /**
@@ -20905,6 +20916,12 @@ void Dblqh::send_next_NEXT_SCANREQ(Signal* signal,
           prim_tab_fragptr.p->m_cond_write_key_waiters == 0 &&
           prim_tab_fragptr.p->m_cond_exclusive_waiters == 0)
       {
+        // MOZ DEBUG PRINT
+        if (debug_print) {
+        fprintf(stderr, "No-break, max_scan_direct_count: %u, scan_direct_count: %u, "
+            "tot_scan_direct_count: %u, tot_scan_limit: %u\n",
+            max_scan_direct_count, scan_direct_count, tot_scan_direct_count, tot_scan_limit);
+        }
         scan_direct_count = 1;
         m_tot_scan_direct_count = tot_scan_direct_count;
         /**
@@ -20914,6 +20931,12 @@ void Dblqh::send_next_NEXT_SCANREQ(Signal* signal,
       }
       else
       {
+        // MOZ DEBUG PRINT
+        if (debug_print) {
+        fprintf(stderr, "Realtime-break, max_scan_direct_count: %u, scan_direct_count: %u, "
+            "tot_scan_direct_count: %u, tot_scan_limit: %u\n",
+            max_scan_direct_count, scan_direct_count, tot_scan_direct_count, tot_scan_limit);
+        }
         scanPtr->m_exec_direct_batch_size_words = 0;
         BlockReference resultRef = scanPtr->scanApiBlockref;
 
@@ -20971,6 +20994,10 @@ void Dblqh::send_next_NEXT_SCANREQ(Signal* signal,
     }
     jamDebug(); // ZHAO 21
     m_scan_direct_count = scan_direct_count + 1;
+    // MOZ DEBUG PRINT
+    if (debug_print) {
+    fprintf(stderr, "m_scan_direct_count: %u\n", m_scan_direct_count);
+    }
     m_in_send_next_scan = 1;
     /**
      * To ensure that the scheduler behave differently with more

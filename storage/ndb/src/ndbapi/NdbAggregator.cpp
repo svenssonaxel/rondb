@@ -294,18 +294,26 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
           }
         }
       }
-      AttributeHeader ah(data_buf[parse_pos]);
-      /*
-      fprintf(stderr,
-          "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
-          "res_len: %u, value: %p]\n",
-          ah.getAttributeId(), ah.getByteSize(),
-          ah.getDataSize(), gb_cols_len, agg_res_len,
-          agg_res_ptr);
-       */
-      assert(ah.getDataPtr() != &data_buf[parse_pos]);
-      assert(sizeof(AttributeHeader) + ah.getDataSize() * sizeof(int32_t)
-             == gb_cols_len);
+      {
+        // CHECK
+        uint32_t pos = parse_pos;
+        for (uint32_t i = 0; i < n_gb_cols_; i++) {
+          AttributeHeader ah(data_buf[pos]);
+          /*
+             fprintf(stderr,
+             "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
+             "res_len: %u, value: %p]\n",
+             ah.getAttributeId(), ah.getByteSize(),
+             ah.getDataSize(), gb_cols_len, agg_res_len,
+             agg_res_ptr);
+             */
+          assert(ah.getDataPtr() != &data_buf[pos]);
+          pos += sizeof(AttributeHeader) + ah.getDataSize() * sizeof(int32_t);
+          if (i == gb_cols_len - 1) {
+            assert(pos == gb_cols_len);
+          }
+        }
+      }
       parse_pos += ((gb_cols_len + agg_res_len) >> 2);
     }
   } else {
@@ -555,6 +563,9 @@ bool NdbAggregator::GroupBy(const char* name) {
   }
   int32_t col_id = col->getAttrId();
   buffer_[curr_prog_pos_++] = col_id << 16;
+
+  fprintf(stderr, "Group by %s, getSizeInBytes: %u,getArrayType: %u, getSize: %u, getLength: %u\n",
+      name, col->getSizeInBytes(), col->getArrayType(), col->getSize(), col->getLength());
 
   n_gb_cols_++;
   

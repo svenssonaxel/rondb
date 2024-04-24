@@ -1693,12 +1693,12 @@ void AggInterpreter::MergePrint(const AggInterpreter* in1,
 
 uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
   // TODO(Zhao) new limitation
-  // if (!force && (gb_map_ == nullptr || gb_map_->size() < 10)) {
   uint32_t total_size = result_size_ +
                   (gb_map_ ?
                    gb_map_->size() * g_result_header_size_per_group_ : 0) +
                   g_result_header_size_;
-  if (!force && (gb_map_ == nullptr || total_size < 2048)) {
+  if (!force && (gb_map_ == nullptr ||
+        total_size < DEF_AGG_RESULT_BATCH_BYTES)) {
     return 0;
   }
   if (force &&
@@ -1756,19 +1756,21 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
       for (uint32_t i = 0; i < n_res_items; i++) {
         uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
         uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
-        AttributeHeader ah(data_buf[parse_pos++]);
-        // fprintf(stderr,
-        //         "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
-        //         "res_len: %u, value: ",
-        //         ah.getAttributeId(), ah.getByteSize(),
-        //         ah.getDataSize(), gb_cols_len, agg_res_len);
-        assert(ah.getDataPtr() != &data_buf[parse_pos]);
-        // char* ptr = (char*)(&data_buf[parse_pos]);
-        // for (uint32_t i = 0; i < ah.getByteSize(); i++) {
-        //   fprintf(stderr, " %x", ptr[i]);
-        // }
-        parse_pos += ah.getDataSize();
-        // fprintf(stderr, "]");
+        for (uint32_t j = 0; j < n_gb_cols; j++) {
+          AttributeHeader ah(data_buf[parse_pos++]);
+          // fprintf(stderr,
+          //     "[id: %u, sizeB: %u, sizeW: %u, gb_len: %u, "
+          //     "res_len: %u, value: ",
+          //     ah.getAttributeId(), ah.getByteSize(),
+          //     ah.getDataSize(), gb_cols_len, agg_res_len);
+          assert(ah.getDataPtr() != &data_buf[parse_pos]);
+          // char* ptr = (char*)(&data_buf[parse_pos]);
+          // for (uint32_t i = 0; i < ah.getByteSize(); i++) {
+          //   fprintf(stderr, " %x", ptr[i]);
+          // }
+          parse_pos += ah.getDataSize();
+          // fprintf(stderr, "]");
+        }
         for (uint32_t i = 0; i < n_agg_results; i++) {
           // AggResItem* ptr = (AggResItem*)(&data_buf[parse_pos]);
           // fprintf(stderr, "(type: %u, is_unsigned: %u, is_null: %u, value: ",
