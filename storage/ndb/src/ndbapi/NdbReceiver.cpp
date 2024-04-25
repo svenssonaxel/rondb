@@ -1239,7 +1239,12 @@ NdbReceiver::unpackRow(const Uint32* aDataPtr, Uint32 aLength, char* row)
         // fprintf(stderr, "\n");
       }
     } else {
-      // TODO(Zhao)
+      uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
+      uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
+      assert(gb_cols_len == 0);
+      for (uint32_t i = 0; i < n_agg_results; i++) {
+          parse_pos += (sizeof(AggResItem) >> 2);
+      }
     }
     assert(parse_pos == aLength);
 

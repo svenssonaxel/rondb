@@ -1732,13 +1732,14 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
     data_buf[pos++] = AttributeHeader::AGG_RESULT << 16 | 0x0721;
     data_buf[pos++] = n_gb_cols_ << 16 | n_agg_results_;
     data_buf[pos++] = 0;
-    data_buf[pos++] = 0;
+    data_buf[pos++] = 0 << 16 | (n_agg_results_ * sizeof(AggResItem));
     assert(gb_map_ == nullptr);
     MEMCOPY_NO_WORDS(&data_buf[pos], agg_results_,
         (n_agg_results_ * sizeof(AggResItem)) >> 2);
     pos += ((n_agg_results_ * sizeof(AggResItem)) >> 2);
   }
 
+  // CHECK
   uint32_t data_len = pos;
   uint32_t parse_pos = 0;
 
@@ -1791,7 +1792,14 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
         // fprintf(stderr, "\n");
       }
     } else {
-      // TODO Zhao
+      assert(n_gb_cols == 0);
+      assert(n_agg_results == n_agg_results_);
+      assert(n_res_items == 0);
+      uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
+      uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
+      assert(gb_cols_len == 0);
+      assert(agg_res_len == n_agg_results_ * sizeof(AggResItem));
+      parse_pos += (agg_res_len >> 2);
     }
   }
   assert(parse_pos == data_len);

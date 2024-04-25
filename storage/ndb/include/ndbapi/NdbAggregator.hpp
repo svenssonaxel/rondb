@@ -28,6 +28,7 @@ enum NdbAggregatorError {
   kErrAggNoUsed,
   kErrEmptyProgram,
   kErrAlreadyFinalized,
+  kErrTooBigResult,
   kErrMaxErrno
 };
 
@@ -39,6 +40,7 @@ static AggregationError g_errors_[] = {
   {kErrAggNoUsed, "Aggregation id is already used"},
   {kErrEmptyProgram, "Empty program"},
   {kErrAlreadyFinalized, "Already finalized"},
+  {kErrTooBigResult, "single aggregation result could be larger than 8K"},
   {kErrMaxErrno, ""}
 };
 
@@ -256,5 +258,7 @@ class NdbAggregator {
   }
   bool CheckRegs(uint32_t reg_1, uint32_t reg_2);
   bool CheckAggAndReg(uint32_t agg_id, uint32_t reg_id);
+  bool result_record_fetched_;
+  uint32_t result_size_est_;
 };
 #endif  // NDBAGGREGATOR_H_

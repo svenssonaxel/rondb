@@ -8,13 +8,18 @@
 #include "../../src/ndbapi/NdbDictionaryImpl.hpp"
 
 #define PROGRAM_HEADER_SIZE 2
+#define RESULT_HEADER_SIZE 3
+#define RESULT_ITEM_HEADER_SIZE 1
 
 NdbAggregator::NdbAggregator(const NdbDictionary::Table* table) :
   table_impl_(nullptr), n_gb_cols_(0), n_agg_results_(0),
   agg_results_(nullptr), gb_map_(nullptr),
   finalized_(false), finished_(false),
   curr_prog_pos_(PROGRAM_HEADER_SIZE),
-  instructions_length_(PROGRAM_HEADER_SIZE) {
+  instructions_length_(PROGRAM_HEADER_SIZE),
+  result_record_fetched_(false),
+  result_size_est_(RESULT_HEADER_SIZE * sizeof(uint32_t) +
+               RESULT_ITEM_HEADER_SIZE * sizeof(uint32_t)) {
     if (table != nullptr) {
       table_impl_ = & NdbTableImpl::getImpl(*table);
     }
@@ -317,7 +322,87 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
       parse_pos += ((gb_cols_len + agg_res_len) >> 2);
     }
   } else {
-    // TODO(Zhao)
+    uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
+    uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
+    assert(gb_cols_len == 0);
+    assert(agg_res_len == n_agg_results_ * sizeof(AggResItem));
+    assert(agg_results_ != nullptr);
+    AggResItem* agg_res_ptr = agg_results_;
+    const AggResItem* res = reinterpret_cast<const AggResItem*>(
+                         &data_buf[parse_pos/* + (gb_cols_len >> 2)*/]);
+    for (uint32_t i = 0; i < n_agg_results; i++) {
+      assert((((res[i].type == NDB_TYPE_BIGINT &&
+              res[i].is_unsigned == agg_res_ptr[i].is_unsigned) ||
+              res[i].type == NDB_TYPE_DOUBLE) &&
+              res[i].type == agg_res_ptr[i].type) ||
+              agg_res_ptr[i].type == NDB_TYPE_UNDEFINED);
+      if (res[i].is_null) {
+      } else if (agg_res_ptr[i].is_null) {
+        agg_res_ptr[i] = res[i];
+      } else {
+        agg_res_ptr[i].type = res[i].type;
+        agg_res_ptr[i].is_unsigned = res[i].is_unsigned;
+        switch (agg_ops_[i]) {
+          case kOpSum:
+            if (res[i].type == NDB_TYPE_BIGINT) {
+              if (res[i].is_unsigned) {
+                agg_res_ptr[i].value.val_uint64 += res[i].value.val_uint64;
+              } else {
+                agg_res_ptr[i].value.val_int64 += res[i].value.val_int64;
+              }
+            } else {
+              assert(res[i].type == NDB_TYPE_DOUBLE);
+              agg_res_ptr[i].value.val_double += res[i].value.val_double;
+            }
+            break;
+          case kOpCount:
+            assert(res[i].type == NDB_TYPE_BIGINT);
+            assert(res[i].is_unsigned == 1);
+            agg_res_ptr[i].value.val_int64 += res[i].value.val_int64;
+            break;
+          case kOpMax:
+            if (res[i].type == NDB_TYPE_BIGINT) {
+              if (res[i].is_unsigned) {
+                agg_res_ptr[i].value.val_uint64 =
+                  agg_res_ptr[i].value.val_uint64 >= res[i].value.val_uint64 ?
+                  agg_res_ptr[i].value.val_uint64 : res[i].value.val_uint64;
+              } else {
+                agg_res_ptr[i].value.val_int64 =
+                  agg_res_ptr[i].value.val_int64 >= res[i].value.val_int64 ?
+                  agg_res_ptr[i].value.val_int64 : res[i].value.val_int64;
+              }
+            } else {
+              assert(res[i].type == NDB_TYPE_DOUBLE);
+              agg_res_ptr[i].value.val_double =
+                agg_res_ptr[i].value.val_double >= res[i].value.val_double ?
+                agg_res_ptr[i].value.val_double : res[i].value.val_double;
+            }
+            break;
+          case kOpMin:
+            if (res[i].type == NDB_TYPE_BIGINT) {
+              if (res[i].is_unsigned) {
+                agg_res_ptr[i].value.val_uint64 =
+                  agg_res_ptr[i].value.val_uint64 <= res[i].value.val_uint64 ?
+                  agg_res_ptr[i].value.val_uint64 : res[i].value.val_uint64;
+              } else {
+                agg_res_ptr[i].value.val_int64 =
+                  agg_res_ptr[i].value.val_int64 <= res[i].value.val_int64 ?
+                  agg_res_ptr[i].value.val_int64 : res[i].value.val_int64;
+              }
+            } else {
+              assert(res[i].type == NDB_TYPE_DOUBLE);
+              agg_res_ptr[i].value.val_double =
+                agg_res_ptr[i].value.val_double <= res[i].value.val_double ?
+                agg_res_ptr[i].value.val_double : res[i].value.val_double;
+            }
+            break;
+          default:
+            assert(0);
+            break;
+        }
+      }
+    }
+    parse_pos += ((/*gb_cols_len + */agg_res_len) >> 2);
   }
   return parse_pos;
 }
@@ -564,8 +649,10 @@ bool NdbAggregator::GroupBy(const char* name) {
   int32_t col_id = col->getAttrId();
   buffer_[curr_prog_pos_++] = col_id << 16;
 
-  fprintf(stderr, "Group by %s, getSizeInBytes: %u,getArrayType: %u, getSize: %u, getLength: %u\n",
-      name, col->getSizeInBytes(), col->getArrayType(), col->getSize(), col->getLength());
+  result_size_est_ += (sizeof(AttributeHeader) + ((col->getSizeInBytes() + 3) & (~3)));
+  // fprintf(stderr, "Group by %s, getSizeInBytes: %u,getArrayType: %u, getSize: %u, getLength: %u, est: %u\n",
+  //     name, col->getSizeInBytes(), col->getArrayType(), col->getSize(), col->getLength(),
+  //     result_size_est_);
 
   n_gb_cols_++;
   
@@ -599,6 +686,13 @@ bool NdbAggregator::Finalize() {
       i++;
     }
   }
+
+  result_size_est_ += sizeof(AggResItem) * n_agg_results_;
+
+  if (result_size_est_ >= MAX_AGG_RESULT_BATCH_BYTES - 128) {
+    SetError(kErrTooBigResult);
+    return false;
+  }
   finalized_ = true;
   return true;
 }
@@ -623,7 +717,13 @@ NdbAggregator::ResultRecord NdbAggregator::FetchResultRecord() {
       return rec;
     }
   } else {
-    // TODO(Zhao)
+    if (!result_record_fetched_) {
+      result_record_fetched_ = true;
+      return ResultRecord(this, {nullptr, 0},
+          {reinterpret_cast<char*>(agg_results_),
+                          n_agg_results_ * sizeof(AggResItem)},
+                          false);
+    }
   }
   return ResultRecord(nullptr, {nullptr, 0}, {nullptr, 0}, true);
 }
