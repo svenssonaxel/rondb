@@ -19779,7 +19779,12 @@ void Dblqh::scanTupkeyRefLab(Signal* signal,
   }
 
   Uint32 rows = scanPtr->m_curr_batch_size_rows;
-  Uint32 accOpPtr= get_acc_ptr_from_scan_record(scanPtr, rows, false);
+  Uint32 accOpPtr = (Uint32)-1;
+  if (!scanPtr->m_aggregation) {
+    accOpPtr = get_acc_ptr_from_scan_record(scanPtr, rows, false);
+  } else {
+    accOpPtr = get_acc_ptr_from_scan_record(scanPtr, 0, false);
+  }
   if (accOpPtr != (Uint32)-1)
   {
     c_acc->execACCKEY_ORD_no_ptr(signal, accOpPtr);

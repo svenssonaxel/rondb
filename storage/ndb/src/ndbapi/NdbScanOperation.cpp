@@ -1467,7 +1467,12 @@ NdbScanOperation::processTableScanDefs(NdbScanOperation::LockMode lm,
     setErrorCodeAbort(4000);
     return -1;
   }//if
-  
+
+  if (m_aggregation_code != nullptr && lm != LM_CommittedRead) {
+    setErrorCodeAbort(4561);
+    return -1;
+  }
+
   theSCAN_TABREQ->setSignal(GSN_SCAN_TABREQ, refToBlock(theNdbCon->m_tcRef));
   ScanTabReq * req = CAST_PTR(ScanTabReq, theSCAN_TABREQ->getDataPtrSend());
   req->apiConnectPtr = theNdbCon->theTCConPtr;

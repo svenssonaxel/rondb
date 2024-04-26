@@ -200,7 +200,8 @@ std::uniform_int_distribution<int32_t> g_mediumint(-2, 2);
 std::uniform_int_distribution<uint32_t> g_umediumint(0, -2147483648);
 std::uniform_int_distribution<int16_t> g_smallint(-32768, 32767);
 std::uniform_int_distribution<uint16_t> g_usmallint(0, 32768);
-std::uniform_int_distribution<int8_t> g_tinyint(-128, 127);
+// std::uniform_int_distribution<int8_t> g_tinyint(-128, 127);
+std::uniform_int_distribution<int8_t> g_tinyint(60, 70);
 std::uniform_int_distribution<uint8_t> g_utinyint(0, 255);
 std::uniform_real_distribution<float> g_float(-32768, 32767);
 std::uniform_real_distribution<double> g_double(-8388608, 8388607);
@@ -382,6 +383,16 @@ int scan_aggregation(Ndb * myNdb)
       return -1;
     }
 
+    uint8_t val = 66;
+    NdbScanFilter filter(myScanOp);
+    if (filter.begin(NdbScanFilter::AND) < 0  ||
+        filter.cmp(NdbScanFilter::COND_EQ, 1, &val, sizeof(val)) < 0 ||
+        filter.end() < 0) {
+      std::cout <<  myTrans->getNdbError().message << std::endl;
+      myNdb->closeTransaction(myTrans);
+      return -1;
+    }
+
     /*
      * Define an aggregator
      */
@@ -421,7 +432,7 @@ int scan_aggregation(Ndb * myNdb)
         milliSleep(50);
         continue;
       }
-      std::cout << err.message << std::endl;
+      std::cout << "DoAggregation failed: " << err.message << std::endl;
       myNdb->closeTransaction(myTrans);
       return -1;
     }
@@ -465,6 +476,12 @@ int scan_aggregation(Ndb * myNdb)
             fprintf(stderr,
                 " (type: %u, is_null: %u, data: %lf)",
                 result.type(), result.is_null(), result.data_double());
+            break;
+          case NdbDictionary::Column::Undefined:
+            // Aggregation on empty table or all rows are filtered out.
+            fprintf(stderr,
+                " (type: %u, is_null: %u, data: %ld)",
+                result.type(), result.is_null(), result.data_int64());
             break;
           default:
             assert(0);
