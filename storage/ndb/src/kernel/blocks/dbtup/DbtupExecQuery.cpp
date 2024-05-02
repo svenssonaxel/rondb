@@ -154,7 +154,7 @@ void Dbtup::copyAttrinfo(Uint32 expectedLen,
 
 Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
                            bool interpretedFlag,
-                           Uint32 scan_op_i)
+                           void* scan_rec)
 {
   /* Get stored procedure */
   StoredProcPtr storedPtr;
@@ -213,30 +213,32 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
     }
     cinBuffer[4] = paramLen;
     // Moz
-    ScanOpPtr scanPtr;
-    scanPtr.i = scan_op_i;
-    ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
-    ScanOp& scan = *scanPtr.p;
+    if (scan_rec != nullptr) {
+      // TODO doublecheck prepare_fragptr.p->fragTableId and 
+      // prepare_fragptr.p->fragmentId with ScanRecord
+      Dblqh::ScanRecord* scan_rec_ptr =
+                        reinterpret_cast<Dblqh::ScanRecord*>(scan_rec);
+      if (scan_rec_ptr->m_aggregation &&
+          scan_rec_ptr->m_agg_interpreter == nullptr) {
+        // Initialize agg_interpreter resources
+        // 1. get 1st program word to verify Magic number
+        ndbrequire(reader.getWord(pos));
+        ndbrequire((*(pos) >> 16) == 0x0721);
+        Uint32 proc_len = *(pos) & 0xFFFF;
+        ndbrequire(intmax_t{readerLen - proc_len} == (pos - cinBuffer));
+        Uint32 proc_start = (pos - cinBuffer);
+        pos++;
 
-    if (scan.m_aggregation == true && scan.agg_interpreter == nullptr) {
-      ndbrequire(scan.m_tableId == prepare_fragptr.p->fragTableId &&
-          scan.m_fragId == prepare_fragptr.p->fragmentId);
-      // Initialize agg_interpreter resources
-      // 1. get 1st program word to verify Magic number
-      ndbrequire(reader.getWord(pos));
-      ndbrequire((*(pos) >> 16) == 0x0721);
-      Uint32 proc_len = *(pos) & 0xFFFF;
-      ndbrequire(intmax_t{readerLen - proc_len} == (pos - cinBuffer));
-      Uint32 proc_start = (pos - cinBuffer);
-      pos++;
+        // 2. get remaining program words
+        ndbrequire(reader.getWords(pos, proc_len - 1));
+        ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
 
-      // 2. get remaining program words
-      ndbrequire(reader.getWords(pos, proc_len - 1));
-      ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
-
-      // 3. construct agg_interpreter
-      scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
-      ndbrequire(scan.agg_interpreter->Init());
+        // 3. construct agg_interpreter
+        // scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
+        scan_rec_ptr->m_agg_interpreter =
+          new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
+        ndbrequire(scan_rec_ptr->m_agg_interpreter->Init());
+      }
     }
   }
   else
@@ -1282,7 +1284,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
     req_struct.m_row_id.m_page_no = RNIL;
     req_struct.m_row_id.m_page_idx = ZNIL;
 #endif
-    req_struct.scan_op_i = lqhScanPtrP->scanAccPtr;
+    req_struct.scan_rec = lqhScanPtrP;
   }
   else
   {
@@ -1314,7 +1316,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
     const Uint32 row_id_page_idx = tupKeyReq->m_row_id_page_idx;
     req_struct.m_row_id.m_page_no = row_id_page_no;
     req_struct.m_row_id.m_page_idx = row_id_page_idx;
-    req_struct.scan_op_i = RNIL;
+    req_struct.scan_rec = nullptr;
   }
   req_struct.m_deferred_constraints = deferred_constraints;
   req_struct.m_disable_fk_checks = disable_fk_checks;
@@ -4019,14 +4021,12 @@ int Dbtup::interpreterStartLab(Signal* signal,
      */
     req_struct->log_size+= RlogSize;
 
-    if (req_struct->scan_op_i != RNIL) {
-      ScanOpPtr scanPtr;
-      scanPtr.i = req_struct->scan_op_i;
-      ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
-      ScanOp& scan = *scanPtr.p;
+    if (req_struct->scan_rec != nullptr) {
+      Dblqh::ScanRecord* scan_rec_ptr =
+                    reinterpret_cast<Dblqh::ScanRecord*>(req_struct->scan_rec);
       // Moz
-      if (scan.m_aggregation == true) {
-        ndbrequire(scan.agg_interpreter != nullptr);
+      if (scan_rec_ptr->m_aggregation == true) {
+        ndbrequire(scan_rec_ptr->m_agg_interpreter != nullptr);
         /*
          * update req_struct->read_length here, which will update the
          * Dblqh::ScanRecord::m_curr_batch_size_bytes later in the
@@ -4035,8 +4035,9 @@ int Dbtup::interpreterStartLab(Signal* signal,
          * we use Dblqh::ScanRecord::m_agg_curr_batch_size_bytes.
          * req_struct->read_length would be updated in ProcessRec().
          */
-        scan.agg_interpreter->ProcessRec(this, req_struct);
-        uint32_t res_len = scan.agg_interpreter->PrepareAggResIfNeeded(signal, false);
+        scan_rec_ptr->m_agg_interpreter->ProcessRec(this, req_struct);
+        uint32_t res_len = scan_rec_ptr->m_agg_interpreter->
+                                    PrepareAggResIfNeeded(signal, false);
         if (res_len != 0) {
           ndbrequire(req_struct->agg_curr_batch_size_rows == 0);
           ndbrequire(req_struct->agg_curr_batch_size_bytes == 0);

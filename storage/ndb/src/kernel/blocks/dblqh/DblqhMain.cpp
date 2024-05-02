@@ -104,6 +104,7 @@
 
 #include "../backup/Backup.hpp"
 #include "../dbtux/Dbtux.hpp"
+#include "../dbtup/AggInterpreter.hpp"
 
 /**
  * overload handling...
@@ -16945,7 +16946,7 @@ void Dblqh::setup_scan_pointers_from_tc_con(TcConnectionrecPtr tcConnectptr,
     Uint32 storedProcLen =
       c_tup->copyAttrinfo(loc_scanptr.p->scanStoredProcId,
                           bool(tcConnectptr.p->opExec),
-                          loc_scanptr.p->scanAccPtr);
+                          loc_scanptr.p);
     (void)storedProcLen;
     ndbassert(loc_scanptr.p->scanAiLength == storedProcLen);
   }
@@ -17012,7 +17013,7 @@ void Dblqh::setup_scan_pointers(Uint32 scanPtrI, Uint32 line)
     Uint32 storedProcLen =
       c_tup->copyAttrinfo(loc_scanptr.p->scanStoredProcId,
                           bool(loc_tcConnectptr.p->opExec),
-                          loc_scanptr.p->scanAccPtr);
+                          loc_scanptr.p);
     (void)storedProcLen;
     ndbassert(loc_scanptr.p->scanAiLength == storedProcLen);
   }
@@ -18731,7 +18732,7 @@ void Dblqh::accScanConfScanLab(Signal* signal,
       Uint32 storedProcId = signal->theData[1];
       scanPtr->scanStoredProcId = storedProcId;
       c_tup->copyAttrinfo(storedProcId, bool(regTcPtr->opExec),
-                          scanPtr->scanAccPtr); // ZHAO 20
+                          scanPtr); // ZHAO 20
       storedProcConfScanLab(signal, tcConnectptr); // ZHAO 21
       return;
     }
@@ -18759,7 +18760,7 @@ void Dblqh::accScanConfScanLab(Signal* signal,
       c_tup->nextAttrInfoParam(scanPtr->scanStoredProcId);
     }
     c_tup->copyAttrinfo(scanPtr->scanStoredProcId, bool(regTcPtr->opExec),
-                        scanPtr->scanAccPtr);
+                        scanPtr);
     storedProcConfScanLab(signal, tcConnectptr);
     return;
   }
@@ -20629,6 +20630,12 @@ void Dblqh::init_release_scanrec(ScanRecord* scanPtr)
   scanPtr->scanType = ScanRecord::ST_IDLE;
   scanPtr->scanTcWaiting = 0;
   scanPtr->scan_lastSeen = __LINE__;
+  // Moz release aggregation interpreter
+  if (scanPtr->m_agg_interpreter != nullptr) {
+    AggInterpreter* ptr = scanPtr->m_agg_interpreter;
+    delete ptr;
+    scanPtr->m_agg_interpreter = nullptr;
+  }
 }
 
 /* ------------------------------------------------------------------------
@@ -21110,6 +21117,7 @@ void Dblqh::sendScanFragConf(Signal* signal,
     scanPtr->m_agg_curr_batch_size_bytes= 0;
     // Moz statemach
     ndbrequire(scanPtr->scanState == ScanRecord::WAIT_NEXT_SCAN ||
+               scanPtr->scanState == ScanRecord::WAIT_ACC_SCAN ||
                (scanPtr->scanState == ScanRecord::WAIT_CLOSE_SCAN &&
                 scanCompleted == ZSCAN_FRAG_CLOSED));
     if (!scanCompleted)
@@ -40018,6 +40026,15 @@ TraceLCP::restore(SimulatedBlock& lqh, Signal* sig){
 }
 #endif
 #endif
+
+Dblqh::ScanRecord::~ScanRecord() {
+
+  AggInterpreter* ptr = m_agg_interpreter;
+  if (ptr != nullptr) {
+    delete ptr;
+  }
+  m_agg_interpreter = nullptr;
+}
 
 void Dblqh::writeDbgInfoPageHeader(LogPageRecordPtr logP,
                                    LogFileRecord *logFilePtrP,

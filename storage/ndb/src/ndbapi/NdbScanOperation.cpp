@@ -1590,10 +1590,15 @@ int NdbScanOperation::DoAggregation() {
     setErrorCodeAbort(4560); //  NdbAggregatior::Finalise() not called.
     return -1;
   }
+
+  // TODO (Zhao)
+  Uint32 scanFlags= 
+    NdbScanOperation::SF_OrderBy; 
   /**
    * Read without locks, without being placed in lock queue
    */
-  if (readTuples(NdbOperation::LM_CommittedRead) != 0) {
+  if (readTuples(NdbOperation::LM_CommittedRead, scanFlags) != 0) {
+  // if (readTuples(NdbOperation::LM_CommittedRead) != 0) {
     return -1;
   } 
 

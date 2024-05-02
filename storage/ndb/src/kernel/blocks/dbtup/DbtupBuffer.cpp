@@ -485,19 +485,16 @@ void Dbtup::SendAggResToAPI(Signal* signal, const void* lqhTcConnectrec,
                             void* lqhScanRecord) {
   const Dblqh::TcConnectionrec* lqhOpPtrP =
                               (Dblqh::TcConnectionrec*)lqhTcConnectrec;
+  // Moz
   Dblqh::ScanRecord* lqhScanPtrP = (Dblqh::ScanRecord*)lqhScanRecord;
-  ndbrequire(lqhScanPtrP->scanAccPtr != RNIL);
-  ScanOpPtr scanPtr;
-  scanPtr.i = lqhScanPtrP->scanAccPtr;
-  ndbrequire(c_scanOpPool.getValidPtr(scanPtr));
-  ScanOp& scan = *scanPtr.p;
-  ndbrequire(scan.agg_interpreter != nullptr);
-  uint32_t res_len = scan.agg_interpreter->PrepareAggResIfNeeded(signal, true);
+  ndbrequire(lqhScanPtrP->m_aggregation == true &&
+             lqhScanPtrP->m_agg_interpreter != nullptr);
+  uint32_t res_len = lqhScanPtrP->m_agg_interpreter->PrepareAggResIfNeeded(signal, true);
   // MOZ DEBUG PRINT
-  fprintf(stderr, "End-scan, send at last, table %u frag %u, res_len: %u,"
+  fprintf(stderr, "End-scan, send at last, res_len: %u,"
           " trans[0]: %u, trans[2]: %u, connectPtr: %u, blockref: %u"
           ", size_rows[%u, %u], size_bytes: [%u, %u]\n",
-          scan.m_tableId, scan.m_fragId, res_len,
+          /*scan.m_tableId, scan.m_fragId, */res_len,
           lqhOpPtrP->transid[0], lqhOpPtrP->transid[1],
           lqhScanPtrP->scanApiOpPtr, lqhScanPtrP->scanApiBlockref,
           lqhScanPtrP->m_agg_curr_batch_size_rows,

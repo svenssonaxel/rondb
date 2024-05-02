@@ -171,6 +171,14 @@ void create_table(MYSQL &mysql)
       << "Dropping it..." << std::endl; 
     drop_table(mysql);
   }
+
+  if (mysql_query(&mysql,
+                  "CREATE INDEX"
+                  "  INDEX_CBIGINT"
+                  "  ON api_scan"
+                  "  (CBIGINT)")) {
+    MYSQLERROR(mysql);
+  }
 }
 
 std::random_device rd;
@@ -498,80 +506,195 @@ int scan_aggregation(Ndb * myNdb)
   return -1;
 }
 
+int scan_index_aggregation(Ndb *myNdb) {
+  NdbDictionary::Dictionary* myDict = myNdb->getDictionary();
+  const NdbDictionary::Index *myPIndex = myDict->getIndex("INDEX_CBIGINT", "api_scan");
+  if (myPIndex == NULL) {
+    APIERROR(myDict->getNdbError());
+  }
+
+  NdbTransaction *myTrans = myNdb->startTransaction();
+  if (myTrans == NULL) {
+    APIERROR(myNdb->getNdbError());
+  }
+
+  NdbIndexScanOperation *myIndexScanOp = myTrans->getNdbIndexScanOperation(myPIndex);
+  // Uint32 scanFlags=
+  //   NdbScanOperation::SF_OrderBy;
+  // if (myIndexScanOp->readTuples(NdbOperation::LM_Read,
+  //                      scanFlags,
+  //                      (Uint32) 0,            // batch
+  //                      (Uint32) 0) != 0) {    // parallel
+  //   APIERROR (myTrans->getNdbError());
+  // }
+
+  const NdbDictionary::Table *myTable= myDict->getTable("api_scan");
+
+  if (myTable == NULL) {
+    APIERROR(myDict->getNdbError());
+  }
+
+  NdbAggregator aggregator(myTable);
+  assert(aggregator.GroupBy("CCHAR"));
+  assert(aggregator.GroupBy("CMEDIUMINT"));
+  assert(aggregator.LoadColumn("CUBIGINT", kReg1));
+  assert(aggregator.LoadColumn("CUTINYINT", kReg2));
+  assert(aggregator.Add(kReg1, kReg2));
+  assert(aggregator.Sum(0, kReg1));
+  assert(aggregator.LoadColumn("CDOUBLE", kReg1));
+  assert(aggregator.Min(1, kReg1));
+  assert(aggregator.LoadColumn("CUMEDIUMINT", kReg1));
+  assert(aggregator.Max(2, kReg1));
+
+  assert(aggregator.Finalize());
+  if (myIndexScanOp->setAggregationCode(&aggregator) == -1) {
+    std::cout << myTrans->getNdbError().message << std::endl;
+    myNdb->closeTransaction(myTrans);
+    return -1;
+  }
+
+  NdbError err;
+  if (myIndexScanOp->DoAggregation() == -1) {
+    err = myTrans->getNdbError();
+    std::cout << "DoAggregation failed: " << err.message << std::endl;
+    myNdb->closeTransaction(myTrans);
+    return -1;
+  }
+
+  fprintf(stderr, "---FINAL RESULT---\n");
+  NdbAggregator::ResultRecord record = aggregator.FetchResultRecord();
+  while (!record.end()) {
+    NdbAggregator::Column column = record.FetchGroupbyColumn();
+    int n = 0;
+    while (!column.end()) {
+      if (n == 0) {
+      fprintf(stderr,
+          "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %s]:",
+          column.id(), column.type(), column.byte_size(),
+          column.is_null(), &column.data()[1]);
+      } else {
+      fprintf(stderr,
+          "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %d]:",
+          column.id(), column.type(), column.byte_size(),
+          column.is_null(), column.data_medium());
+      }
+      n++;
+      column = record.FetchGroupbyColumn();
+    }
+
+    NdbAggregator::Result result = record.FetchAggregationResult();
+    while (!result.end()) {
+      switch (result.type()) {
+        case NdbDictionary::Column::Bigint:
+          fprintf(stderr,
+              " (type: %u, is_null: %u, data: %ld)",
+              result.type(), result.is_null(), result.data_int64());
+          break;
+        case NdbDictionary::Column::Bigunsigned:
+          fprintf(stderr,
+              " (type: %u, is_null: %u, data: %lu)",
+              result.type(), result.is_null(), result.data_uint64());
+          break;
+        case NdbDictionary::Column::Double:
+          fprintf(stderr,
+              " (type: %u, is_null: %u, data: %lf)",
+              result.type(), result.is_null(), result.data_double());
+          break;
+        case NdbDictionary::Column::Undefined:
+          // Aggregation on empty table or all rows are filtered out.
+          fprintf(stderr,
+              " (type: %u, is_null: %u, data: %ld)",
+              result.type(), result.is_null(), result.data_int64());
+          break;
+        default:
+          assert(0);
+      }
+      result = record.FetchAggregationResult();
+    }
+    fprintf(stderr, "\n");
+    record = aggregator.FetchResultRecord();
+  }
+
+  myNdb->closeTransaction(myTrans);
+  return 1;
+}
+
 void mysql_connect_and_create(MYSQL & mysql, const char *socket)
 {
-  bool ok;
+bool ok;
 
-  ok = mysql_real_connect(&mysql, "localhost", "root", "", "", 0, socket, 0);
-  if(ok) {
-    mysql_query(&mysql, "CREATE DATABASE agg");
-    ok = ! mysql_select_db(&mysql, "agg");
-  }
-  if(ok) {
-    create_table(mysql);
-  }
+ok = mysql_real_connect(&mysql, "localhost", "root", "", "", 0, socket, 0);
+if(ok) {
+  mysql_query(&mysql, "CREATE DATABASE agg");
+  ok = ! mysql_select_db(&mysql, "agg");
+}
+if(ok) {
+  create_table(mysql);
+}
 
-  if(! ok) MYSQLERROR(mysql);
+if(! ok) MYSQLERROR(mysql);
 }
 
 void ndb_run_scan(const char * connectstring)
 {
 
-  /**************************************************************
-   * Connect to ndb cluster                                     *
-   **************************************************************/
+/**************************************************************
+ * Connect to ndb cluster                                     *
+ **************************************************************/
 
-  Ndb_cluster_connection cluster_connection(connectstring);
-  if (cluster_connection.connect(4, 5, 1))
-  {
-    std::cout << "Unable to connect to cluster within 30 secs." << std::endl;
-    exit(-1);
+Ndb_cluster_connection cluster_connection(connectstring);
+if (cluster_connection.connect(4, 5, 1))
+{
+  std::cout << "Unable to connect to cluster within 30 secs." << std::endl;
+  exit(-1);
+}
+// Optionally connect and wait for the storage nodes (ndbd's)
+if (cluster_connection.wait_until_ready(30,0) < 0)
+{
+  std::cout << "Cluster was not ready within 30 secs.\n";
+  exit(-1);
+}
+
+Ndb myNdb(&cluster_connection,"agg");
+if (myNdb.init(1024) == -1) {      // Set max 1024  parallel transactions
+  APIERROR(myNdb.getNdbError());
+  exit(-1);
+}
+
+for (int i = 0; i < 1; i++) {
+  if (populate(&myNdb) != 1) {
+    // std::cout << "populate: Failed!" << std::endl;
   }
-  // Optionally connect and wait for the storage nodes (ndbd's)
-  if (cluster_connection.wait_until_ready(30,0) < 0)
-  {
-    std::cout << "Cluster was not ready within 30 secs.\n";
-    exit(-1);
-  }
+}
 
-  Ndb myNdb(&cluster_connection,"agg");
-  if (myNdb.init(1024) == -1) {      // Set max 1024  parallel transactions
-    APIERROR(myNdb.getNdbError());
-    exit(-1);
-  }
+std::cout << "Intialize table and data done!" << std::endl;
 
-  for (int i = 0; i < 1; i++) {
-    if (populate(&myNdb) != 1) {
-      // std::cout << "populate: Failed!" << std::endl;
-    }
-  }
+// if(scan_aggregation(&myNdb) > 0)
+//   std::cout << "scan_aggregation: Success!" << std::endl  << std::endl;
 
-  std::cout << "Intialize table and data done!" << std::endl;
-
-  if(scan_aggregation(&myNdb) > 0)
-    std::cout << "scan_aggregation: Success!" << std::endl  << std::endl;
-
+if(scan_index_aggregation(&myNdb) > 0)
+  std::cout << "scan_index_aggregation: Success!" << std::endl  << std::endl;
 }
 
 int main(int argc, char** argv)
 {
-  if (argc != 3)
-  {
-    std::cout << "Arguments are <socket mysqld> <connect_string cluster>.\n";
-    exit(-1);
-  }
-  char * mysqld_sock  = argv[1];
-  const char *connectstring = argv[2];
-  MYSQL mysql;
+if (argc != 3)
+{
+  std::cout << "Arguments are <socket mysqld> <connect_string cluster>.\n";
+  exit(-1);
+}
+char * mysqld_sock  = argv[1];
+const char *connectstring = argv[2];
+MYSQL mysql;
 
-  mysql_init(& mysql);
-  mysql_connect_and_create(mysql, mysqld_sock);
+mysql_init(& mysql);
+mysql_connect_and_create(mysql, mysqld_sock);
 
-  ndb_init();
-  ndb_run_scan(connectstring);
-  ndb_end(0);
+ndb_init();
+ndb_run_scan(connectstring);
+ndb_end(0);
 
-  mysql_close(&mysql);
+mysql_close(&mysql);
 
-  return 0;
+return 0;
 }

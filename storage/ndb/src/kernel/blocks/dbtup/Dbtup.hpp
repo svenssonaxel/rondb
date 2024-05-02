@@ -479,8 +479,7 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
       m_transId2(0),
       m_savePointId(0),
       m_accLockOp(RNIL),
-      m_aggregation(0),
-      agg_interpreter(nullptr)
+      m_aggregation(0)
     {}
 
     enum State {
@@ -540,7 +539,6 @@ typedef Ptr<Fragoperrec> FragoperrecPtr;
 
     // Aggregation
     Uint32 m_aggregation;
-    AggInterpreter* agg_interpreter;
   };
   static constexpr Uint32 DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX = 3;
   typedef Ptr<ScanOp> ScanOpPtr;
@@ -2122,6 +2120,7 @@ struct KeyReqStruct {
   Dblqh *m_lqh;
 
   Uint32 scan_op_i;
+  void* scan_rec;
   Uint32 agg_curr_batch_size_rows;
   Uint32 agg_curr_batch_size_bytes;
 };
@@ -3278,7 +3277,7 @@ private:
 public:
   Uint32 copyAttrinfo(Uint32 storedProcId,
                       bool interpretedFlag,
-                      Uint32 scan_op_i = RNIL);
+                      void* scan_rec = nullptr);
   void copyAttrinfo(Uint32 expectedLen,
                     Uint32 attrInfoIVal);
 

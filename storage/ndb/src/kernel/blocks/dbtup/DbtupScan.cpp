@@ -3601,10 +3601,6 @@ void Dbtup::releaseScanOp(ScanOpPtr& scanPtr)
   else
   {
     jam();
-    if (scanPtr.p->agg_interpreter) {
-      delete scanPtr.p->agg_interpreter;
-      scanPtr.p->agg_interpreter = nullptr;
-    }
     c_scanOpPool.release(scanPtr);
     checkPoolShrinkNeed(DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX,
                         c_scanOpPool);

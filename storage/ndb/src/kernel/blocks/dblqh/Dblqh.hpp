@@ -470,6 +470,7 @@ class FsReadWriteReq;
  */
 
 
+class AggInterpreter;
 class Dblqh 
   : public SimulatedBlock
 {
@@ -599,13 +600,11 @@ public:
       m_send_early_hbrep(0),
       m_aggregation(0),
       m_agg_curr_batch_size_rows(0),
-      m_agg_curr_batch_size_bytes(0)
+      m_agg_curr_batch_size_bytes(0),
+      m_agg_interpreter(nullptr)
     {
     }
-
-    ~ScanRecord()
-    {
-    }
+    ~ScanRecord();
 
     Uint64 fragPtrI;
     enum ScanState {
@@ -722,11 +721,11 @@ public:
     Uint8 prioAFlag;
     Uint8 m_first_match_flag;
     Uint8 m_send_early_hbrep;
-    Uint8 m_aggregation;
     // Aggregation
+    Uint8 m_aggregation;
     Uint32 m_agg_curr_batch_size_rows;
     Uint32 m_agg_curr_batch_size_bytes;
-
+    AggInterpreter* m_agg_interpreter;
   };
   static constexpr Uint32 DBLQH_SCAN_RECORD_TRANSIENT_POOL_INDEX = 1;
   typedef Ptr<ScanRecord> ScanRecordPtr;
