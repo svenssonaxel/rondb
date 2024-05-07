@@ -1757,6 +1757,10 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
       for (uint32_t i = 0; i < n_res_items; i++) {
         uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
         uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
+        // TODO (ZHAO) temporary fix for compiler. Remove them
+        // in the final version.
+        (void)gb_cols_len;
+        (void)agg_res_len;
         for (uint32_t j = 0; j < n_gb_cols; j++) {
           AttributeHeader ah(data_buf[parse_pos++]);
           // fprintf(stderr,

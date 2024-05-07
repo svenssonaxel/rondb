@@ -721,7 +721,7 @@ NdbAggregator::ResultRecord NdbAggregator::FetchResultRecord() {
       result_record_fetched_ = true;
       return ResultRecord(this, {nullptr, 0},
           {reinterpret_cast<char*>(agg_results_),
-                          n_agg_results_ * sizeof(AggResItem)},
+           static_cast<uint32_t>(n_agg_results_ * sizeof(AggResItem))},
                           false);
     }
   }
