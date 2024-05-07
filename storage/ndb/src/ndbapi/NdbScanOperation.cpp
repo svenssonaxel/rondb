@@ -1591,17 +1591,6 @@ int NdbScanOperation::DoAggregation() {
     return -1;
   }
 
-  // TODO (Zhao)
-  Uint32 scanFlags= 
-    NdbScanOperation::SF_OrderBy; 
-  /**
-   * Read without locks, without being placed in lock queue
-   */
-  if (readTuples(NdbOperation::LM_CommittedRead, scanFlags) != 0) {
-  // if (readTuples(NdbOperation::LM_CommittedRead) != 0) {
-    return -1;
-  } 
-
   NdbRecAttr* myRecAttr;
   Uint32 col = 0xFF00;
   myRecAttr = getValue(col);

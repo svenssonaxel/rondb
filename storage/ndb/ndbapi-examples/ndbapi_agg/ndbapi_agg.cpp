@@ -174,9 +174,9 @@ void create_table(MYSQL &mysql)
 
   if (mysql_query(&mysql,
                   "CREATE INDEX"
-                  "  INDEX_CBIGINT"
+                  "  INDEX_CMEDIUMINT"
                   "  ON api_scan"
-                  "  (CBIGINT)")) {
+                  "  (CMEDIUMINT)")) {
     MYSQLERROR(mysql);
   }
 }
@@ -204,7 +204,7 @@ std::uniform_int_distribution<uint64_t> g_ubigint(0, 5294967295);
 std::uniform_int_distribution<int32_t> g_int(-2147483648, 2147483647);
 std::uniform_int_distribution<uint32_t> g_uint(0, 4294967295);
 // std::uniform_int_distribution<int32_t> g_mediumint(-8388608, 8388607);
-std::uniform_int_distribution<int32_t> g_mediumint(-2, 2);
+std::uniform_int_distribution<int32_t> g_mediumint(-10, 10);
 std::uniform_int_distribution<uint32_t> g_umediumint(0, -2147483648);
 std::uniform_int_distribution<int16_t> g_smallint(-32768, 32767);
 std::uniform_int_distribution<uint16_t> g_usmallint(0, 32768);
@@ -391,6 +391,11 @@ int scan_aggregation(Ndb * myNdb)
       return -1;
     }
 
+    if (myScanOp->readTuples(NdbOperation::LM_CommittedRead) != 0) {
+      APIERROR (myTrans->getNdbError());
+    }
+
+    /* Filter CTINYINT = 66 */
     uint8_t val = 66;
     NdbScanFilter filter(myScanOp);
     if (filter.begin(NdbScanFilter::AND) < 0  ||
@@ -508,7 +513,7 @@ int scan_aggregation(Ndb * myNdb)
 
 int scan_index_aggregation(Ndb *myNdb) {
   NdbDictionary::Dictionary* myDict = myNdb->getDictionary();
-  const NdbDictionary::Index *myPIndex = myDict->getIndex("INDEX_CBIGINT", "api_scan");
+  const NdbDictionary::Index *myPIndex = myDict->getIndex("INDEX_CMEDIUMINT", "api_scan");
   if (myPIndex == NULL) {
     APIERROR(myDict->getNdbError());
   }
@@ -519,15 +524,48 @@ int scan_index_aggregation(Ndb *myNdb) {
   }
 
   NdbIndexScanOperation *myIndexScanOp = myTrans->getNdbIndexScanOperation(myPIndex);
-  // Uint32 scanFlags=
-  //   NdbScanOperation::SF_OrderBy;
-  // if (myIndexScanOp->readTuples(NdbOperation::LM_Read,
-  //                      scanFlags,
-  //                      (Uint32) 0,            // batch
-  //                      (Uint32) 0) != 0) {    // parallel
-  //   APIERROR (myTrans->getNdbError());
-  // }
 
+
+  /* Index Scan */
+  Uint32 scanFlags= NdbScanOperation::SF_OrderBy |
+                    NdbScanOperation::SF_MultiRange;
+  /**
+   * Read without locks, without being placed in lock queue
+   */
+  if (myIndexScanOp->readTuples(NdbOperation::LM_CommittedRead,
+                                scanFlags
+                                /*(Uint32) 0 // batch */
+                                /*(Uint32) 0 // parallel */
+                                ) != 0) {
+    APIERROR (myTrans->getNdbError());
+  }
+
+  /* Index range: CMEDIUMINT >= 6 and CMEDIUMINT < 8 */
+  Uint32 low=6;
+  Uint32 high=8;
+
+  if (myIndexScanOp->setBound("CMEDIUMINT", NdbIndexScanOperation::BoundLE, (char*)&low)) {
+    APIERROR(myTrans->getNdbError());
+  }
+  if (myIndexScanOp->setBound("CMEDIUMINT", NdbIndexScanOperation::BoundGT, (char*)&high)) {
+    APIERROR(myTrans->getNdbError());
+  }
+  if (myIndexScanOp->end_of_bound(0)) {
+    APIERROR(myIndexScanOp->getNdbError());
+  }
+
+  /* Filter: CTINYINT = 66 */
+  uint8_t val = 66;
+  NdbScanFilter filter(myIndexScanOp);
+  if (filter.begin(NdbScanFilter::AND) < 0  ||
+      filter.cmp(NdbScanFilter::COND_EQ, 1, &val, sizeof(val)) < 0 ||
+      filter.end() < 0) {
+    std::cout <<  myTrans->getNdbError().message << std::endl;
+    myNdb->closeTransaction(myTrans);
+    return -1;
+  }
+
+  /* Aggregation program */
   const NdbDictionary::Table *myTable= myDict->getTable("api_scan");
 
   if (myTable == NULL) {
@@ -621,80 +659,97 @@ int scan_index_aggregation(Ndb *myNdb) {
 
 void mysql_connect_and_create(MYSQL & mysql, const char *socket)
 {
-bool ok;
+  bool ok;
 
-ok = mysql_real_connect(&mysql, "localhost", "root", "", "", 0, socket, 0);
-if(ok) {
-  mysql_query(&mysql, "CREATE DATABASE agg");
-  ok = ! mysql_select_db(&mysql, "agg");
-}
-if(ok) {
-  create_table(mysql);
-}
+  ok = mysql_real_connect(&mysql, "localhost", "root", "", "", 0, socket, 0);
+  if(ok) {
+    mysql_query(&mysql, "CREATE DATABASE agg");
+    ok = ! mysql_select_db(&mysql, "agg");
+  }
+  if(ok) {
+    create_table(mysql);
+  }
 
-if(! ok) MYSQLERROR(mysql);
+  if(! ok) MYSQLERROR(mysql);
 }
 
 void ndb_run_scan(const char * connectstring)
 {
 
-/**************************************************************
- * Connect to ndb cluster                                     *
- **************************************************************/
+  /**************************************************************
+   * Connect to ndb cluster                                     *
+   **************************************************************/
 
-Ndb_cluster_connection cluster_connection(connectstring);
-if (cluster_connection.connect(4, 5, 1))
-{
-  std::cout << "Unable to connect to cluster within 30 secs." << std::endl;
-  exit(-1);
-}
-// Optionally connect and wait for the storage nodes (ndbd's)
-if (cluster_connection.wait_until_ready(30,0) < 0)
-{
-  std::cout << "Cluster was not ready within 30 secs.\n";
-  exit(-1);
-}
-
-Ndb myNdb(&cluster_connection,"agg");
-if (myNdb.init(1024) == -1) {      // Set max 1024  parallel transactions
-  APIERROR(myNdb.getNdbError());
-  exit(-1);
-}
-
-for (int i = 0; i < 1; i++) {
-  if (populate(&myNdb) != 1) {
-    // std::cout << "populate: Failed!" << std::endl;
+  Ndb_cluster_connection cluster_connection(connectstring);
+  if (cluster_connection.connect(4, 5, 1))
+  {
+    std::cout << "Unable to connect to cluster within 30 secs." << std::endl;
+    exit(-1);
   }
-}
+  // Optionally connect and wait for the storage nodes (ndbd's)
+  if (cluster_connection.wait_until_ready(30,0) < 0)
+  {
+    std::cout << "Cluster was not ready within 30 secs.\n";
+    exit(-1);
+  }
 
-std::cout << "Intialize table and data done!" << std::endl;
+  Ndb myNdb(&cluster_connection,"agg");
+  if (myNdb.init(1024) == -1) {      // Set max 1024  parallel transactions
+    APIERROR(myNdb.getNdbError());
+    exit(-1);
+  }
 
-// if(scan_aggregation(&myNdb) > 0)
-//   std::cout << "scan_aggregation: Success!" << std::endl  << std::endl;
+  for (int i = 0; i < 1; i++) {
+    if (populate(&myNdb) != 1) {
+      // std::cout << "populate: Failed!" << std::endl;
+    }
+  }
 
-if(scan_index_aggregation(&myNdb) > 0)
-  std::cout << "scan_index_aggregation: Success!" << std::endl  << std::endl;
+  std::cout << "Intialize table and data done!" << std::endl;
+
+  fprintf(stderr, "1. TABLE SCAN:\n");
+  fprintf(stderr, "SELECT CCHAR, CMEDIUMINT, "
+                  "SUM(CUBIGINT+CUTINYINT), "
+                  "MIN(CDOUBLE), MAX(CUMEDIUMINT) "
+                  "FROM agg.api_scan "
+                  "WHERE CTINYINT = 66 "                      // Filter
+                  "GROUP BY CCHAR, CMEDIUMINT;\n");
+  if(scan_aggregation(&myNdb) > 0) {
+    std::cout << "Table scan aggregation Success!" << std::endl  << std::endl;
+  }
+
+  fprintf(stderr, "2. INDEX SCAN:\n");
+  fprintf(stderr, "SELECT CCHAR, CMEDIUMINT, "
+                  "SUM(CUBIGINT+CUTINYINT), "
+                  "MIN(CDOUBLE), MAX(CUMEDIUMINT) "
+                  "FROM agg.api_scan "
+                  "WHERE CMEDIUMINT >= 6 AND CMEDIUMINT < 8 " // Index range scan
+                  " AND CTINYINT = 66 "                       // Filter
+                  "GROUP BY CCHAR, CMEDIUMINT;\n");
+  if(scan_index_aggregation(&myNdb) > 0) {
+    std::cout << "Index scan aggregation Success!" << std::endl  << std::endl;
+  }
 }
 
 int main(int argc, char** argv)
 {
-if (argc != 3)
-{
-  std::cout << "Arguments are <socket mysqld> <connect_string cluster>.\n";
-  exit(-1);
-}
-char * mysqld_sock  = argv[1];
-const char *connectstring = argv[2];
-MYSQL mysql;
+  if (argc != 3)
+  {
+    std::cout << "Arguments are <socket mysqld> <connect_string cluster>.\n";
+    exit(-1);
+  }
+  char * mysqld_sock  = argv[1];
+  const char *connectstring = argv[2];
+  MYSQL mysql;
 
-mysql_init(& mysql);
-mysql_connect_and_create(mysql, mysqld_sock);
+  mysql_init(& mysql);
+  mysql_connect_and_create(mysql, mysqld_sock);
 
-ndb_init();
-ndb_run_scan(connectstring);
-ndb_end(0);
+  ndb_init();
+  ndb_run_scan(connectstring);
+  ndb_end(0);
 
-mysql_close(&mysql);
+  mysql_close(&mysql);
 
-return 0;
+  return 0;
 }
