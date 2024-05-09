@@ -34,9 +34,9 @@ AggregationAPICompiler::AggregationAPICompiler
     (std::function<int(LexString)> column_name_to_idx,
      std::function<LexString(int)> column_idx_to_name,
      ArenaAllocator* aalloc):
+  m_aalloc(aalloc),
   m_column_name_to_idx(column_name_to_idx),
   m_column_idx_to_name(column_idx_to_name),
-  m_aalloc(aalloc),
   m_exprs(aalloc),
   m_aggs(aalloc),
   m_constants(aalloc),
@@ -280,7 +280,7 @@ AggregationAPICompiler::public_aggregate_function_helper(AggType agg_type,
  * compilation and to prove correctness of the produced program.
  */
 
-#define assert_reg(REG) assert(0 <= (REG) && (REG) < REGS)
+#define assert_reg(REG) assert((REG) < REGS)
 
 void
 AggregationAPICompiler::svm_init()
@@ -761,7 +761,8 @@ AggregationAPICompiler::dead_code_elimination()
   {
     reg_needed[i] = false;
   }
-  bool instr_useful[m_program.size()];
+  bool* instr_useful =
+    static_cast<bool*>(m_aalloc->alloc(m_program.size() * sizeof(bool)));
   for (uint i=0; i<m_program.size(); i++)
   {
     instr_useful[i] = false;
@@ -953,7 +954,6 @@ AggregationAPICompiler::print(Expr* expr)
 void
 AggregationAPICompiler::print(Instr* instr)
 {
-  SVMInstrType type = instr->type;
   uint dest = instr->dest;
   uint src = instr->src;
   static const char* relstr_Add = "+";

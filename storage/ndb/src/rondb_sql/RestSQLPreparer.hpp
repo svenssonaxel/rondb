@@ -178,8 +178,8 @@ private:
   yyscan_t m_scanner;
   YY_BUFFER_STATE m_buf;
   AggregationAPICompiler* m_agg = NULL;
-  int column_name_to_idx(LexString);
-  LexString column_idx_to_name(int);
+  uint column_name_to_idx(LexString);
+  LexString column_idx_to_name(uint);
   bool has_width(uint pos);
 
 public:
