@@ -28,8 +28,6 @@
  * file.
  */
 
-%defines "RestSQLParser.y.hpp"
-%output "RestSQLParser.y.raw.cpp"
 %define api.pure full
 %parse-param {yyscan_t scanner}
 %lex-param {yyscan_t scanner}
@@ -91,11 +89,17 @@ while (0)
 #include "RestSQLLexer.l.hpp"
 extern void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t yyscanner, const char* s);
 #define context (rsqlp_get_extra(scanner))
+/* Unfortunately initptr got a little complex. It just means that we assume THIS
+ * to be of type SOMETYPE*&, allocate new memory of the correct size and set
+ * THIS to the address of the new allocation. In other words, it should be
+ * equivalent to:
+ * THIS = static_cast<SOMETYPE*>(
+ *   context->get_allocator()->alloc(sizeof(SOMETYPE)));
+ */
 #define initptr(THIS) do \
   { \
-    THIS = ((typeof(THIS)) \
-            context->get_allocator()->alloc( \
-              sizeof(*(THIS)))); \
+    THIS = static_cast<std::remove_reference<decltype(THIS)>::type>( \
+      context->get_allocator()->alloc(sizeof(*(THIS)))); \
   } while (0)
 #define init_aggfun(RES,LOC,FUN,ARG) do \
   { \
@@ -372,6 +376,7 @@ orderby_col:
 
 void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t scanner, const char *s)
 {
+  (void)s;
   // Get the location of the last lexer match. This is not the same as the last
   // token, but lex_end should match with the end of the last token.
   char* lex_begin = rsqlp_get_text(scanner);

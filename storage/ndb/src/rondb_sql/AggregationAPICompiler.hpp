@@ -109,8 +109,8 @@ public:
     long int long_int;
   };
 private:
-  std::function<int(LexString)> m_column_name_to_idx = NULL;
-  std::function<LexString(int)> m_column_idx_to_name = NULL;
+  std::function<int(LexString)> m_column_name_to_idx;
+  std::function<LexString(int)> m_column_idx_to_name;
   DynamicArray<Expr> m_exprs;
   Expr* new_expr(ExprOp op, Expr* left, Expr* right, uint idx);
 #define AGG_ENUM(Name) Name,

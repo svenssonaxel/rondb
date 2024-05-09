@@ -31,7 +31,7 @@
 #include "ArenaAllocator.hpp"
 
 int
-main(int argc, char** argv)
+main()
 {
 
   ArenaAllocator aalloc;
