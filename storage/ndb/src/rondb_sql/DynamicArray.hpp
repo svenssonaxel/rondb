@@ -58,10 +58,10 @@ private:
   ArenaAllocator* allocator;
 public:
   DynamicArray(ArenaAllocator* alloc) :
+    pages(NULL),
     item_count(0),
     pages_capacity(0),
-    allocator(alloc),
-    pages(NULL)
+    allocator(alloc)
   {}
   ~DynamicArray()
   {
@@ -106,7 +106,7 @@ public:
    */
   T& operator[](uint index)
   {
-    assert(0 <= index && index < item_count);
+    assert(index < item_count);
     return pages[index >> BITS][index & IDX_MASK];
   }
   const T& operator[](uint index) const

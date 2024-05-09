@@ -32,8 +32,6 @@
 %option warn
 %option nodefault
 %option reentrant
-%option outfile="RestSQLLexer.l.with-hold_char.cpp"
-%option header="RestSQLLexer.l.hpp"
 %option bison-bridge
 %option bison-locations
 %option extra-type="RestSQLPreparer::Context*"
@@ -288,8 +286,8 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
   char cword[19];
   memcpy(cword, yytext, yyleng);
   cword[yyleng] = char(0); // The difference between char(0) and '\0' is that
-                           // the former escapes post-editing. See the rule for
-                           // RestSQLLexer.l.cpp in Makefile.
+                           // the former escapes post-editing, see
+                           // build_lexer.sh.
   for (int i = 0; i < yyleng; i++)
   {
     cword[i] &= 0xdf; // This works for uppercasing [A-Za-z_] but not digits. So
@@ -519,10 +517,18 @@ rsqlp_alloc(size_t bytes, void * scanner)
 void*
 rsqlp_realloc(void * ptr, size_t bytes, void * scanner)
 {
-  // If realloc is needed, we need to keep track of allocation size.
+  (void)ptr;
+  (void)bytes;
+  (void)scanner;
+  // realloc should not be needed in the lexer.
   assert(false);
+  // If it is needed, we need to keep track of allocation size.
 }
 
 void
 rsqlp_free(void * ptr, void * scanner)
-{}
+{
+    (void)ptr;
+    (void)scanner;
+    // Do nothing. ArenaAllocator will free everything at end of its lifetime.
+}

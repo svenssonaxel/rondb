@@ -34,9 +34,9 @@ using std::endl;
 RestSQLPreparer::RestSQLPreparer(char* sql_buffer,
                                  size_t sql_len,
                                  ArenaAllocator* aalloc):
-  m_identifiers(aalloc),
   m_aalloc(aalloc),
-  m_context(*this)
+  m_context(*this),
+  m_identifiers(aalloc)
 {
   /*
    * Both `yy_scan_string' and `yy_scan_bytes' create and scan a copy of the
@@ -691,10 +691,10 @@ const char* interval_type_name(int interval_type)
   }
 }
 
-int
+uint
 RestSQLPreparer::column_name_to_idx(LexString col_name)
 {
-  for (int i=0; i<m_identifiers.size(); i++)
+  for (uint i=0; i < m_identifiers.size(); i++)
   {
     if (m_identifiers[i] == col_name)
     {
@@ -706,7 +706,7 @@ RestSQLPreparer::column_name_to_idx(LexString col_name)
 }
 
 LexString
-RestSQLPreparer::column_idx_to_name(int col_idx)
+RestSQLPreparer::column_idx_to_name(uint col_idx)
 {
   assert(col_idx < m_identifiers.size());
   return m_identifiers[col_idx];
@@ -752,9 +752,9 @@ RestSQLPreparer::Context::get_agg()
   }
   RestSQLPreparer* _this = &m_parser;
   std::function<int(LexString)> column_name_to_idx =
-    [_this](LexString ls) -> int
+    [_this](LexString ls) -> uint
     {
-      for (int i=0; i<_this->m_identifiers.size(); i++)
+      for (uint i=0; i < _this->m_identifiers.size(); i++)
       {
         if (ls == LexString(_this->m_identifiers[i]))
         {
@@ -764,10 +764,10 @@ RestSQLPreparer::Context::get_agg()
       _this->m_identifiers.push(ls);
       return _this->m_identifiers.size()-1;
     };
-  std::function<LexString(int)> column_idx_to_name =
-    [_this](int idx) -> LexString
+  std::function<LexString(uint)> column_idx_to_name =
+    [_this](uint idx) -> LexString
     {
-      assert(idx >= 0 && idx < _this->m_identifiers.size());
+      assert(idx < _this->m_identifiers.size());
       return _this->m_identifiers[idx];
     };
 

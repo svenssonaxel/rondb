@@ -1,7 +1,7 @@
 #include "Keywords.hpp"
 
 int
-main(int argc, char** argv)
+main()
 {
   // Test that the list of implemented keywords is correctly sorted and only
   // contains strings with uppercase A-Z and underscore characters of correct

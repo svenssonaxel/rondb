@@ -105,7 +105,7 @@ ArenaAllocator::alloc(size_t size)
 void*
 ArenaAllocator::realloc(const void* ptr, size_t size, size_t original_size)
 {
-  byte* byte_ptr = (byte*)ptr;
+  const byte* byte_ptr = static_cast<const byte*>(ptr);
   if (&byte_ptr[original_size] == m_point &&
      size >= original_size &&
      &byte_ptr[size] <= m_stop)
