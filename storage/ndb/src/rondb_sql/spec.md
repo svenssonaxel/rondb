@@ -1,7 +1,7 @@
-# RonDB REST SQL
+# RonDB SQL
 
-RonDB REST SQL is a subset of MySQL.
-A query that is accepted by RonDB REST SQL should hopefully execute faster than via MySQL, but always produce the same result as MySQL.
+RonDB SQL is a subset of MySQL.
+A query that is accepted by RonDB SQL should hopefully execute faster than via MySQL, but always produce the same result as MySQL.
 This document only details the supported subset of MySQL.
 For the meaning of functions, operators and other keywords, refer to the MySQL documentation.
 
@@ -29,7 +29,7 @@ For the meaning of functions, operators and other keywords, refer to the MySQL d
 
 ## Data types
 
-RonDB REST SQL does not support all data types.
+RonDB SQL does not support all data types.
 
 The data types supported depend on the context:
 - **SELECT-col**: columns in select expressions without aggregation.
@@ -60,7 +60,7 @@ Refer to the following table for what data types are supported in each context.
 - Column names, table names and aliases can be unquoted or use backtick quotes.
   However, unquoted identifiers may not coincide with a MySQL keyword, even if
   such unquoted identifier is allowed by MySQL, and even if the keyword is not
-  implemented by RonDB REST SQL.
+  implemented by RonDB SQL.
 - Aliases after `AS` are limited to 64 bytes rather than 256. Similar to MySQL,
   the length limits for other identifiers are 64 bytes. However, providing a
   longer identifier produces an error rather than truncation. Even without an
@@ -76,6 +76,6 @@ Refer to the following table for what data types are supported in each context.
 
 ## Encoding
 
-- RonDB REST SQL supports and requires UTF-8 encoding.
+- RonDB SQL supports and requires UTF-8 encoding.
 - NUL characters are not allowed anywhere, but can be represented in strings by means of escape sequence.
 - No Unicode normalization will be performed by the server.

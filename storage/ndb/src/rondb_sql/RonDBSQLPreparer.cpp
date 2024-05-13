@@ -24,14 +24,14 @@
 
 #include <assert.h>
 #include "AggregationAPICompiler.hpp"
-#include "RestSQLParser.y.hpp"
-#include "RestSQLLexer.l.hpp"
-#include "RestSQLPreparer.hpp"
+#include "RonDBSQLParser.y.hpp"
+#include "RonDBSQLLexer.l.hpp"
+#include "RonDBSQLPreparer.hpp"
 using std::cout;
 using std::cerr;
 using std::endl;
 
-RestSQLPreparer::RestSQLPreparer(char* sql_buffer,
+RonDBSQLPreparer::RonDBSQLPreparer(char* sql_buffer,
                                  size_t sql_len,
                                  ArenaAllocator* aalloc):
   m_aalloc(aalloc),
@@ -53,7 +53,7 @@ RestSQLPreparer::RestSQLPreparer(char* sql_buffer,
   // The non-const sql_buffer is only used to initialize the flex scanner. The
   // flex scanner shouldn't modify it either, but only because we have removed
   // the buffer-modifying code from the generated output (see Makefile rule
-  // RestSQLLexer.l.cpp: RestSQLLexer.l.with-hold_char.cpp). For this reason,
+  // RonDBSQLLexer.l.cpp: RonDBSQLLexer.l.with-hold_char.cpp). For this reason,
   // the lexer still declares the buffer as non-const.
   m_buf = rsqlp__scan_buffer(sql_buffer, sql_len, m_scanner);
   // We don't want the NUL bytes that flex requires.
@@ -64,7 +64,7 @@ RestSQLPreparer::RestSQLPreparer(char* sql_buffer,
 #define assert_status(name) assert(m_status == Status::name)
 
 bool
-RestSQLPreparer::parse()
+RonDBSQLPreparer::parse()
 {
   if (m_status == Status::FAILED)
   {
@@ -87,7 +87,7 @@ RestSQLPreparer::parse()
      * Bison parser reports OOM. Generally, this can happen in three situations:
      * 1) Stack depth would exceed YYINITDEPTH but bison doesn't know how to
      *    expand the stack. Since RSQLP_LTYPE_IS_TRIVIAL and
-     *    RSQLP_STYPE_IS_TRIVIAL are defined in RestSQLParser.y, this case does
+     *    RSQLP_STYPE_IS_TRIVIAL are defined in RonDBSQLParser.y, this case does
      *    not apply to us.
      * 2) Stack depth would exceed YYMAXDEPTH.
      * 3) The allocator used by the parser returns NULL, indicating OOM. Since
@@ -267,7 +267,7 @@ RestSQLPreparer::parse()
  * prefix of a correct UTF-8 multi-byte sequence, otherwise true.
  */
 bool
-RestSQLPreparer::has_width(uint pos)
+RonDBSQLPreparer::has_width(uint pos)
 {
   const char* s = m_sql.str;
   char c = s[pos];
@@ -290,7 +290,7 @@ RestSQLPreparer::has_width(uint pos)
 }
 
 bool
-RestSQLPreparer::load()
+RonDBSQLPreparer::load()
 {
   if (m_status == Status::FAILED)
   {
@@ -357,7 +357,7 @@ RestSQLPreparer::load()
 }
 
 bool
-RestSQLPreparer::compile()
+RonDBSQLPreparer::compile()
 {
   if (m_status == Status::FAILED)
   {
@@ -385,7 +385,7 @@ RestSQLPreparer::compile()
 }
 
 bool
-RestSQLPreparer::print()
+RonDBSQLPreparer::print()
 {
   if (m_status == Status::FAILED)
   {
@@ -491,7 +491,7 @@ RestSQLPreparer::print()
 }
 
 void
-RestSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
+RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
 {
   const char* opstr = NULL;
   bool prefix_op = false;
@@ -692,7 +692,7 @@ const char* interval_type_name(int interval_type)
 }
 
 uint
-RestSQLPreparer::column_name_to_idx(LexString col_name)
+RonDBSQLPreparer::column_name_to_idx(LexString col_name)
 {
   for (uint i=0; i < m_identifiers.size(); i++)
   {
@@ -706,20 +706,20 @@ RestSQLPreparer::column_name_to_idx(LexString col_name)
 }
 
 LexString
-RestSQLPreparer::column_idx_to_name(uint col_idx)
+RonDBSQLPreparer::column_idx_to_name(uint col_idx)
 {
   assert(col_idx < m_identifiers.size());
   return m_identifiers[col_idx];
 }
 
-RestSQLPreparer::~RestSQLPreparer()
+RonDBSQLPreparer::~RonDBSQLPreparer()
 {
   rsqlp__delete_buffer(m_buf, m_scanner);
   rsqlp_lex_destroy(m_scanner);
 }
 
 void
-RestSQLPreparer::Context::set_err_state(ErrState state,
+RonDBSQLPreparer::Context::set_err_state(ErrState state,
                                   char* err_pos,
                                   uint err_len)
 {
@@ -744,13 +744,13 @@ RestSQLPreparer::Context::set_err_state(ErrState state,
 }
 
 AggregationAPICompiler*
-RestSQLPreparer::Context::get_agg()
+RonDBSQLPreparer::Context::get_agg()
 {
   if (m_parser.m_agg)
   {
     return m_parser.m_agg;
   }
-  RestSQLPreparer* _this = &m_parser;
+  RonDBSQLPreparer* _this = &m_parser;
   std::function<int(LexString)> column_name_to_idx =
     [_this](LexString ls) -> uint
     {
@@ -772,7 +772,7 @@ RestSQLPreparer::Context::get_agg()
     };
 
   /*
-   * The aggregator uses the same arena allocator as the RestSQLPreparer object
+   * The aggregator uses the same arena allocator as the RonDBSQLPreparer object
    * because they are both working in the prepare phase. After loading and
    * compilation, a new object will be crafted that holds the information
    * necessary for execution and post-processing.
@@ -784,7 +784,7 @@ RestSQLPreparer::Context::get_agg()
 }
 
 ArenaAllocator*
-RestSQLPreparer::Context::get_allocator()
+RonDBSQLPreparer::Context::get_allocator()
 {
   return m_parser.m_aalloc;
 }
