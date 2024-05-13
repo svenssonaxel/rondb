@@ -28,7 +28,7 @@
 ArenaAllocator::ArenaAllocator()
 {
   m_point = &m_initial_stack_allocated_page[0];
-  m_stop = ((byte*)this) + sizeof(*this);
+  m_stop = &m_initial_stack_allocated_page[INITIAL_PAGE_SIZE];
 }
 
 ArenaAllocator::~ArenaAllocator()
