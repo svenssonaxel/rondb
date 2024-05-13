@@ -25,11 +25,11 @@
 #ifndef keywords_hpp
 #define keywords_hpp 1
 
-#include "RestSQLParser.y.hpp"
+#include "RonDBSQLParser.y.hpp"
 
 #define kwdef(KEYWORD) { # KEYWORD, T_ ## KEYWORD }
 
-static const struct { const char* text; const int value; } keywords_implemented_in_rest_sql[] =
+static const struct { const char* text; const int value; } keywords_implemented_in_rondb_sql[] =
 {
   kwdef(AND),
   kwdef(AS),
@@ -79,11 +79,11 @@ static const struct { const char* text; const int value; } keywords_implemented_
 
 #undef kwdef
 
-// Keep this in sync with the line `[a-z_]{1,18} {` in RestSQLLexer.l
-static const int max_strlen_for_keyword_implemented_in_rest_sql = 18;
+// Keep this in sync with the line `[a-z_]{1,18} {` in RonDBSQLLexer.l
+static const int max_strlen_for_keyword_implemented_in_rondb_sql = 18;
 
-static const int number_of_keywords_implemented_in_rest_sql =
-  sizeof(keywords_implemented_in_rest_sql) / sizeof(keywords_implemented_in_rest_sql[0]);
+static const int number_of_keywords_implemented_in_rondb_sql =
+  sizeof(keywords_implemented_in_rondb_sql) / sizeof(keywords_implemented_in_rondb_sql[0]);
 
 static const char* keywords_defined_in_mysql[] = {
   "ACCESSIBLE",

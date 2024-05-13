@@ -23,8 +23,8 @@
 */
 
 /*
- * RestSQLParser.y is the parser file. The "GNU Project parser generator",
- * `bison', will generate RestSQLParser.y.hpp and RestSQLParser.y.cpp from this
+ * RonDBSQLParser.y is the parser file. The "GNU Project parser generator",
+ * `bison', will generate RonDBSQLParser.y.hpp and RonDBSQLParser.y.cpp from this
  * file.
  */
 
@@ -35,15 +35,15 @@
 %locations
 %define api.location.type {LexLocation}
 
-/* This section will go into RestSQLParser.y.hpp, near the top. */
+/* This section will go into RonDBSQLParser.y.hpp, near the top. */
 %code requires
 {
 typedef void * yyscan_t;
 #include "LexString.hpp"
-#include "RestSQLPreparer.hpp"
+#include "RonDBSQLPreparer.hpp"
 #include "AggregationAPICompiler.hpp"
 
-// Let bison use RestSQLPreparer's arena allocator
+// Let bison use RonDBSQLPreparer's arena allocator
 #define YYMALLOC(SIZE) context->get_allocator()->alloc(SIZE)
 #define YYFREE(PTR) void()
 
@@ -80,13 +80,13 @@ while (0)
 #define yytranslate rsqlp_translate
 }
 
-/* This section will go into RestSQLParser.y.cpp, near the top. */
+/* This section will go into RonDBSQLParser.y.cpp, near the top. */
 %code top
 {
 #include <stdio.h>
 #include <stdlib.h>
-#include "RestSQLParser.y.hpp"
-#include "RestSQLLexer.l.hpp"
+#include "RonDBSQLParser.y.hpp"
+#include "RonDBSQLLexer.l.hpp"
 extern void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t yyscanner, const char* s);
 #define context (rsqlp_get_extra(scanner))
 /* Unfortunately initptr got a little complex. It just means that we assume THIS
@@ -231,7 +231,7 @@ output:
     if ($1->output_name.len > 64)
     {
       context->set_err_state(
-        RestSQLPreparer::ErrState::TOO_LONG_UNALIASED_OUTPUT,
+        RonDBSQLPreparer::ErrState::TOO_LONG_UNALIASED_OUTPUT,
         (@$).begin,
         (@$).end - (@$).begin
       );
@@ -393,7 +393,7 @@ void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t scanner, const char *s)
   if (loc_end == lex_end)
   {
     context->set_err_state(
-      RestSQLPreparer::ErrState::PARSER_ERROR,
+      RonDBSQLPreparer::ErrState::PARSER_ERROR,
       loc_begin,
       loc_len);
     return;
@@ -405,7 +405,7 @@ void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t scanner, const char *s)
   {
     assert(lex_len == 1);
     context->set_err_state(
-      RestSQLPreparer::ErrState::PARSER_ERROR,
+      RonDBSQLPreparer::ErrState::PARSER_ERROR,
       lex_begin,
       lex_len);
     return;
@@ -414,7 +414,7 @@ void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t scanner, const char *s)
   assert(false);
 }
 
-// See comment near `#ifndef YYMAXDEPTH` in RestSQLParser.y.cpp
+// See comment near `#ifndef YYMAXDEPTH` in RonDBSQLParser.y.cpp
 static_assert(((unsigned long int)(YYSTACK_ALLOC_MAXIMUM)) >=
               ((unsigned long int)(YYSTACK_BYTES(((unsigned long int)(YYMAXDEPTH))))),
               "YYMAXDEPTH too large");

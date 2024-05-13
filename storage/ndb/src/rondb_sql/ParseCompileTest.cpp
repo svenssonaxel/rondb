@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <stdexcept>
 #include <assert.h>
-#include "RestSQLPreparer.hpp"
+#include "RonDBSQLPreparer.hpp"
 #include "ArenaAllocator.hpp"
 using std::cout;
 using std::endl;
@@ -55,7 +55,7 @@ main(int argc, char** argv)
 
   try
   {
-    RestSQLPreparer prepare(parse_str, parse_len, &aalloc);
+    RonDBSQLPreparer prepare(parse_str, parse_len, &aalloc);
     if (!prepare.parse())
     {
       printf("Failed to parse.\n");
