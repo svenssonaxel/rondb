@@ -23,8 +23,8 @@
 */
 
 /*
- * RestSQLLexer.l is the lexer file. The "fast lexical analyser generator",
- * `flex', will generate RestSQLLexer.l.hpp and RestSQLLexer.l.cpp from this
+ * RonDBSQLLexer.l is the lexer file. The "fast lexical analyser generator",
+ * `flex', will generate RonDBSQLLexer.l.hpp and RonDBSQLLexer.l.cpp from this
  * file.
  */
 
@@ -34,7 +34,7 @@
 %option reentrant
 %option bison-bridge
 %option bison-locations
-%option extra-type="RestSQLPreparer::Context*"
+%option extra-type="RonDBSQLPreparer::Context*"
 %option prefix="rsqlp_"
 %option case-insensitive
 %option batch
@@ -70,11 +70,11 @@
 %option noyyset_out
 
 /*
- * This section will go into both RestSQLLexer.l.hpp and RestSQLLexer.l.cpp,
+ * This section will go into both RonDBSQLLexer.l.hpp and RonDBSQLLexer.l.cpp,
  * near the top.
  */
 %top{
-#include "RestSQLPreparer.hpp"
+#include "RonDBSQLPreparer.hpp"
 #define YYSTYPE RSQLP_STYPE
 #define YYLTYPE RSQLP_LTYPE
 #define yy_accept rsqlp__accept
@@ -87,11 +87,11 @@
 }
 
 /*
- * This section will go into RestSQLLexer.l.cpp only, somewhere in the middle.
+ * This section will go into RonDBSQLLexer.l.cpp only, somewhere in the middle.
  */
 %{
 #include <stdio.h>
-#include "RestSQLParser.y.hpp"
+#include "RonDBSQLParser.y.hpp"
 #include "Keywords.hpp"
 #define YY_DECL int yylex(RSQLP_STYPE* yylval_param, RSQLP_LTYPE* yylloc_param, yyscan_t yyscanner)
 #define lloc_this_rule() do \
@@ -105,7 +105,7 @@
 } while (0)
 #define return_err(ERR_TOKEN) do { \
   context->set_err_state( \
-    RestSQLPreparer::ErrState::LEX_ ## ERR_TOKEN, \
+    RonDBSQLPreparer::ErrState::LEX_ ## ERR_TOKEN, \
     yylloc->begin, yylloc->end - yylloc->begin); \
   return T_ERR; \
 } while (0)
@@ -278,7 +278,7 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
 "||"      keyword(OR);
 
 [a-z_]{1,18} {
-  assert(yyleng <= max_strlen_for_keyword_implemented_in_rest_sql);
+  assert(yyleng <= max_strlen_for_keyword_implemented_in_rondb_sql);
   lloc_this_rule();
   // This rule matches all keywords that use [a-z_] characters and some unquoted identifiers.
   //
@@ -293,14 +293,14 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
     cword[i] &= 0xdf; // This works for uppercasing [A-Za-z_] but not digits. So
                       // far, no implemented keyword has digits.
   }
-  // Binary search for cword in keywords_implemented_in_rest_sql list, returning
+  // Binary search for cword in keywords_implemented_in_rondb_sql list, returning
   // value if found
   int low = 0;
-  int high = number_of_keywords_implemented_in_rest_sql - 1;
+  int high = number_of_keywords_implemented_in_rondb_sql - 1;
   while (low <= high)
   {
     int mid = (low + high) / 2;
-    int cmp = strcmp(cword, keywords_implemented_in_rest_sql[mid].text);
+    int cmp = strcmp(cword, keywords_implemented_in_rondb_sql[mid].text);
     if (cmp < 0)
     {
       high = mid - 1;
@@ -311,7 +311,7 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
     }
     else
     {
-      return keywords_implemented_in_rest_sql[mid].value;
+      return keywords_implemented_in_rondb_sql[mid].value;
     }
   }
   /*
@@ -326,7 +326,7 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
    * even before the keyword is implemented. Note that MySQL differs between
    * reserved and non-reserved keywords, where only reserved keywords are
    * invalid as unquoted identifiers. For the sake of simplicity, we make no
-   * such distinction for RonDB REST SQL, and instead disallow the use of all
+   * such distinction for RonDB SQL, and instead disallow the use of all
    * keywords - both reserved and not, both implemented and not - as unquoted
    * identifiers.
    */
@@ -501,7 +501,7 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
    * priority, so flex will automatically shrink the scope appropriately.
    */
   context->set_err_state(
-    RestSQLPreparer::ErrState::LEX_ILLEGAL_TOKEN,
+    RonDBSQLPreparer::ErrState::LEX_ILLEGAL_TOKEN,
     yytext, 1);
   return T_ERR;
 }

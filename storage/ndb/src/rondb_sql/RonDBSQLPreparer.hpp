@@ -22,8 +22,8 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#ifndef RestSQLPreparer_hpp_included
-#define RestSQLPreparer_hpp_included 1
+#ifndef RonDBSQLPreparer_hpp_included
+#define RonDBSQLPreparer_hpp_included 1
 
 #include <cstddef>
 #include <cstdint>
@@ -32,7 +32,7 @@
 #include "ArenaAllocator.hpp"
 #include "DynamicArray.hpp"
 
-// Definitions from RestSQLLexer.l.hpp that are needed here. We can't include
+// Definitions from RonDBSQLLexer.l.hpp that are needed here. We can't include
 // the whole file because it would create a circular dependency.
 typedef void* yyscan_t;
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
@@ -115,7 +115,7 @@ struct SelectStatement
   struct OrderbyColumns* orderby_columns = NULL;
 };
 
-class RestSQLPreparer
+class RonDBSQLPreparer
 {
 public:
   enum class ErrState
@@ -143,14 +143,14 @@ public:
    */
   class Context
   {
-    friend class RestSQLPreparer;
+    friend class RonDBSQLPreparer;
   private:
-    RestSQLPreparer& m_parser;
+    RonDBSQLPreparer& m_parser;
     ErrState m_err_state = ErrState::NONE;
     const char* m_err_pos = NULL;
     uint m_err_len = 0;
   public:
-    Context(RestSQLPreparer& parser):
+    Context(RonDBSQLPreparer& parser):
       m_parser(parser)
     {}
     void set_err_state(ErrState state, char* err_pos, uint err_len);
@@ -183,13 +183,13 @@ private:
   bool has_width(uint pos);
 
 public:
-  RestSQLPreparer(char* sql_buffer, size_t sql_len, ArenaAllocator* aalloc);
+  RonDBSQLPreparer(char* sql_buffer, size_t sql_len, ArenaAllocator* aalloc);
   bool parse();
   bool load();
   bool compile();
   bool print();
   void print(struct ConditionalExpression* ce, LexString prefix);
-  ~RestSQLPreparer();
+  ~RonDBSQLPreparer();
 };
 
 #endif
