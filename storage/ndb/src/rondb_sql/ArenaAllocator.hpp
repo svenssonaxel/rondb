@@ -56,7 +56,7 @@ private:
   unsigned long int m_allocated_by_us = sizeof(ArenaAllocator);
   unsigned long int m_allocated_by_user = 0;
 # endif
-  byte m_initial_stack_allocated_page[INITIAL_PAGE_SIZE]; // MUST be last!
+  byte m_initial_stack_allocated_page[INITIAL_PAGE_SIZE];
 public:
   ArenaAllocator();
   ~ArenaAllocator();
