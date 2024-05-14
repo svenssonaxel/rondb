@@ -34,6 +34,7 @@
 // todo order and remove superfluous includes
 using std::string;
 
+// todo Use regTotal from NdbAggregator, or at least assert they're the same.
 #define REGS 16
 
 #define FORALL_ARITHMETIC_OPS(X) \

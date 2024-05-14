@@ -384,6 +384,7 @@ RonDBSQLPreparer::compile()
   return true;
 }
 
+// todo check with nm that name not exported
 /*
  * WARNING: Return value valid only until the next call using the same buffer
  *
@@ -408,6 +409,7 @@ c_str(LexString src, char** c_str_buf, uint* c_str_buf_len, ArenaAllocator* allo
   return *c_str_buf;
 }
 
+// todo fold to aggregator_do_or_fail
 #define programAggregatorFail(STR) \
   do { \
     m_status = Status::FAILED; \
@@ -804,6 +806,7 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
   }
 }
 
+// todo does this function get exported?
 const char* interval_type_name(int interval_type)
 {
   switch (interval_type)
@@ -892,6 +895,7 @@ RonDBSQLPreparer::Context::get_agg()
     return m_parser.m_agg;
   }
   RonDBSQLPreparer* _this = &m_parser;
+  // todo aren't these already implemented in RonDBSQLPreparer::column_name_to_idx etc?
   std::function<int(LexString)> column_name_to_idx =
     [_this](LexString ls) -> uint
     {
