@@ -96,3 +96,7 @@ FOREACH(EXAMPLE ${EXAMPLES})
   TARGET_LINK_LIBRARIES(${EXAMPLE} libmysql)
   TARGET_LINK_LIBRARIES(${EXAMPLE} ndbclient_so)
 ENDFOREACH()
+
+# rondb_sql is not part of public API, and needs explicit inclusion for ndb_rondb_sql example.
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/storage/ndb/src/rondb_sql)
+TARGET_LINK_LIBRARIES(ndb_rondb_sql rondb_sql)

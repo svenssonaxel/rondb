@@ -31,6 +31,7 @@
 #include "LexString.hpp"
 #include "ArenaAllocator.hpp"
 #include "DynamicArray.hpp"
+#include <NdbApi.hpp>
 
 // Definitions from RonDBSQLLexer.l.hpp that are needed here. We can't include
 // the whole file because it would create a circular dependency.
@@ -187,6 +188,7 @@ public:
   bool parse();
   bool load();
   bool compile();
+  bool programAggregator(NdbAggregator* aggregator);
   bool print();
   void print(struct ConditionalExpression* ce, LexString prefix);
   ~RonDBSQLPreparer();

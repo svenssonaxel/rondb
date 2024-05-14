@@ -52,6 +52,6 @@ ADD_CONVENIENCE_LIBRARY(rondb_sql
   ${CMAKE_CURRENT_BINARY_DIR}/RonDBSQLLexer.l.cpp
   )
 
-NDB_ADD_TEST(ParseCompileTest ParseCompileTest.cpp LIBS rondb_sql)
-NDB_ADD_TEST(KeywordsUnitTest KeywordsUnitTest.cpp LIBS rondb_sql)
-NDB_ADD_TEST(APICompileTest APICompileTest.cpp LIBS rondb_sql)
+NDB_ADD_TEST(ParseCompileTest ParseCompileTest.cpp LIBS rondb_sql ndbclient_so)
+NDB_ADD_TEST(KeywordsUnitTest KeywordsUnitTest.cpp LIBS rondb_sql ndbclient_so)
+NDB_ADD_TEST(APICompileTest APICompileTest.cpp LIBS rondb_sql ndbclient_so)

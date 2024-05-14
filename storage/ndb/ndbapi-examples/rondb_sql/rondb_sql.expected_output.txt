@@ -1,7 +1,29 @@
 MySQL Cluster already has example table: api_scan. Dropping it...
 Intialize table and data done!
 1. TABLE SCAN:
-SELECT CCHAR, CMEDIUMINT, SUM(CUBIGINT+CUTINYINT), MIN(CDOUBLE), MAX(CUMEDIUMINT) FROM agg.api_scan WHERE CTINYINT = 66 GROUP BY CCHAR, CMEDIUMINT;
+SELECT sum(CUBIGINT+CUTINYINT)
+     , min(CDOUBLE)
+     , max(CUMEDIUMINT)
+FROM ignored_table_name
+WHERE CTINYINT = 66
+GROUP BY CCHAR
+       , CMEDIUMINT;
+SELECT
+  Out_0:`sum(CUBIGINT+CUTINYINT)`
+   = A0:Sum((`CUBIGINT` + `CUTINYINT`))
+  Out_1:`min(CDOUBLE)`
+   = A1:Min(`CDOUBLE`)
+  Out_2:`max(CUMEDIUMINT)`
+   = A2:Max(`CUMEDIUMINT`)
+FROM ignored_table_name
+WHERE
+=
++- CTINYINT
+\- 66
+GROUP BY
+  C4:`CCHAR`
+  C5:`CMEDIUMINT`
+
 ---FINAL RESULT---
 group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 0]: (type: 10, is_null: 0, data: 27240458800) (type: 12, is_null: 0, data: -7891782.189155) (type: 10, is_null: 0, data: 15724990)
 group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 1]: (type: 10, is_null: 0, data: 18914601411) (type: 12, is_null: 0, data: -7320498.585482) (type: 10, is_null: 0, data: 15419427)
@@ -87,6 +109,17 @@ group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id:
 group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -3]: (type: 10, is_null: 0, data: 29515718029) (type: 12, is_null: 0, data: -8037449.910332) (type: 10, is_null: 0, data: 15445986)
 group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -2]: (type: 10, is_null: 0, data: 34183461112) (type: 12, is_null: 0, data: -6052588.462031) (type: 10, is_null: 0, data: 15510611)
 group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -1]: (type: 10, is_null: 0, data: 38739333921) (type: 12, is_null: 0, data: -3068073.460151) (type: 10, is_null: 0, data: 15174835)
+Aggregation program (8 instructions):
+Instr. DEST SRC DESCRIPTION
+Load   r00  C00 r00 = C00:`CUBIGINT`
+Load   r01  C01 r01 = C01:`CUTINYINT`
+Add    r00  r01 r00:`CUBIGINT` += r01:`CUTINYINT`
+Sum    A00  r00 A00:SUM <- r00:(`CUBIGINT` + `CUTINYINT`)
+Load   r00  C02 r00 = C02:`CDOUBLE`
+Min    A01  r00 A01:MIN <- r00:`CDOUBLE`
+Load   r00  C03 r00 = C03:`CUMEDIUMINT`
+Max    A02  r00 A02:MAX <- r00:`CUMEDIUMINT`
+
 Table scan aggregation Success!
 
 2. INDEX SCAN:

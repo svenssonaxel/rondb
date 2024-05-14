@@ -54,6 +54,7 @@ Refer to the following table for what data types are supported in each context.
 
 ## Syntax elements
 
+- Column names are case sensitive.
 - Single-quoted strings are supported in the `WHERE` condition, but not as the alias after `AS`.
   Therefore, aliases cannot contain characters with code points higher than U+FFFF.
   Character set introducer and `COLLATE` clause are not supported.
