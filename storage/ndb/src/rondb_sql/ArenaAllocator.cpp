@@ -29,6 +29,7 @@ ArenaAllocator::ArenaAllocator()
 {
   m_point = &m_initial_stack_allocated_page[0];
   m_stop = &m_initial_stack_allocated_page[INITIAL_PAGE_SIZE];
+  m_loop_buffer = &m_initial_loop_buffer[0];
 }
 
 ArenaAllocator::~ArenaAllocator()
@@ -38,6 +39,10 @@ ArenaAllocator::~ArenaAllocator()
     Page* next = (Page*)m_current_page->next;
     free(m_current_page);
     m_current_page = next;
+  }
+  if (m_loop_buffer_is_external)
+  {
+    free(m_loop_buffer);
   }
 # ifdef ARENA_ALLOCATOR_DEBUG
   printf("In ~ArenaAllocator\n"
@@ -125,4 +130,45 @@ ArenaAllocator::realloc(const void* ptr, size_t size, size_t original_size)
   size_t cplen = size < original_size ? size : original_size;
   memcpy(new_alloc, ptr, cplen);
   return new_alloc;
+}
+
+/*
+ * The loop buffer is a special memory area for very short-lived memory. It is
+ * allocated or reallocated by set_loop_buffer_size. The address is returned by
+ * get_loop_buffer, and the memory is valid until the next call to
+ * set_loop_buffer_size.
+ */
+
+void*
+ArenaAllocator::get_loop_buffer()
+{
+  return m_loop_buffer;
+}
+
+void
+ArenaAllocator::set_loop_buffer_size(size_t new_size)
+{
+  if (new_size <= m_loop_buffer_size)
+  {
+    return;
+  }
+  size_t alloc_size = m_loop_buffer_size;
+  while (alloc_size < new_size)
+  {
+    alloc_size *= 2;
+  }
+  assert(alloc_size >= new_size); // Guard against overflow
+  if (m_loop_buffer_is_external)
+  {
+    free(m_loop_buffer);
+  }
+  m_loop_buffer = malloc(alloc_size);
+  if (!m_loop_buffer)
+  {
+    m_loop_buffer_size = 0;
+    m_loop_buffer_is_external = false;
+    throw std::runtime_error("ArenaAllocator: Out of memory");
+  }
+  m_loop_buffer_size = alloc_size;
+  m_loop_buffer_is_external = true;
 }
