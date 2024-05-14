@@ -180,6 +180,9 @@ private:
   uint column_name_to_idx(LexString);
   LexString column_idx_to_name(uint);
   bool has_width(uint pos);
+  bool applyFilter(NdbScanFilter* filter,
+                   struct ConditionalExpression* ce,
+                   const NdbDictionary::Table* myTable);
 
 public:
   RonDBSQLPreparer(char* sql_buffer, size_t sql_len, ArenaAllocator* aalloc);
@@ -187,6 +190,7 @@ public:
   bool load();
   bool compile();
   const NdbDictionary::Table* get_table(const NdbDictionary::Dictionary* myDict);
+  bool applyFilter(NdbScanFilter* filter, const NdbDictionary::Table* myTable);
   bool programAggregator(NdbAggregator* aggregator);
   bool print();
   void print(struct ConditionalExpression* ce, LexString prefix);

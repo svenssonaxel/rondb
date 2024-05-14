@@ -412,6 +412,137 @@ RonDBSQLPreparer::get_table(const NdbDictionary::Dictionary* myDict)
   return myDict->getTable(c_str(ast_root.table, m_aalloc));
 }
 
+bool
+RonDBSQLPreparer::applyFilter(NdbScanFilter* filter, const NdbDictionary::Table* myTable)
+{
+  if (m_status == Status::FAILED)
+  {
+    return false;
+  }
+  assert_status(COMPILED);
+  struct ConditionalExpression* ce = m_context.ast_root.where_expression;
+  assert(ce != NULL);
+  /* ndbapi filter has unary AND and OR operators, i.e. they take an arbitrary
+   * number of operands. In a number of places, it is required to have at least
+   * one "group", i.e. containing AND or OR expression, active. Unless the
+   * top-level expression is an AND or OR operation, we wrap it in an AND group
+   * with a single argument.
+   */
+  bool ret = false;
+  if (ce->op == T_AND || ce->op == T_OR)
+  {
+    ret = applyFilter(filter, ce, myTable);
+  }
+  else
+  {
+    ret = (filter->begin(NdbScanFilter::AND) >= 0 &&
+           applyFilter(filter, ce, myTable) &&
+           filter->end() >= 0);
+  }
+  if (!ret)
+  {
+    m_status = Status::FAILED;
+  }
+  return ret;
+}
+
+bool
+RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
+                              struct ConditionalExpression* ce,
+                              const NdbDictionary::Table* myTable)
+{
+  assert_status(COMPILED);
+  assert (ce != NULL);
+  switch(ce->op)
+  {
+  case T_IDENTIFIER:
+    assert(false); // Not implemented
+  case T_STRING:
+    assert(false); // Not implemented
+  case T_INT:
+    assert(false); // Not implemented
+  case T_OR:
+    return (filter->begin(NdbScanFilter::OR) >= 0 &&
+            applyFilter(filter, ce->args.left, myTable) &&
+            applyFilter(filter, ce->args.right, myTable) &&
+            filter->end() >= 0);
+  case T_XOR:
+    assert(false); // Not implemented
+  case T_AND:
+    return (filter->begin(NdbScanFilter::AND) >= 0 &&
+            applyFilter(filter, ce->args.left, myTable) &&
+            applyFilter(filter, ce->args.right, myTable) &&
+            filter->end() >= 0);
+  case T_NOT:
+    return (applyFilter(filter, ce->args.left, myTable) &&
+            // todo no idea if this is correct
+            filter->isfalse() >= 0);
+  case T_EQUALS:
+  {
+    if (ce->args.left->op == T_IDENTIFIER &&
+        ce->args.right->op == T_INT)
+    {
+      const NdbDictionary::Column* col = myTable->getColumn(c_str(ce->args.left->identifier, m_aalloc));
+      if (col == NULL)
+      {
+        return false;
+      }
+      int col_id = col->getColumnNo();
+      uint8_t* val = static_cast<uint8_t*>(m_aalloc->alloc(sizeof(uint8_t)));
+      *val = static_cast<uint8_t>(ce->args.right->constant_integer);
+      return (filter->cmp(NdbScanFilter::COND_EQ, col_id, val, sizeof(*val)) >= 0);
+    }
+    assert(false); // Not implemented
+    break;
+  }
+  case T_GE:
+    assert(false); // Not implemented
+  case T_GT:
+    assert(false); // Not implemented
+  case T_LE:
+    assert(false); // Not implemented
+  case T_LT:
+    assert(false); // Not implemented
+  case T_NOT_EQUALS:
+    assert(false); // Not implemented
+  case T_IS:
+    assert(false); // Not implemented
+  case T_BITWISE_OR:
+    assert(false); // Not implemented
+  case T_BITWISE_AND:
+    assert(false); // Not implemented
+  case T_BITSHIFT_LEFT:
+    assert(false); // Not implemented
+  case T_BITSHIFT_RIGHT:
+    assert(false); // Not implemented
+  case T_PLUS:
+    assert(false); // Not implemented
+  case T_MINUS:
+    assert(false); // Not implemented
+  case T_MULTIPLY:
+    assert(false); // Not implemented
+  case T_DIVIDE:
+    assert(false); // Not implemented
+  case T_MODULO:
+    assert(false); // Not implemented
+  case T_BITWISE_XOR:
+    assert(false); // Not implemented
+  case T_EXCLAMATION:
+    assert(false); // Not implemented
+  case T_INTERVAL:
+    assert(false); // Not implemented
+  case T_DATE_ADD:
+    assert(false); // Not implemented
+  case T_DATE_SUB:
+    assert(false); // Not implemented
+  case T_EXTRACT:
+    assert(false); // Not implemented
+  default:
+    // Unknown operator
+    assert(false);
+  }
+}
+
 // todo fold to aggregator_do_or_fail
 #define programAggregatorFail(STR) \
   do { \
