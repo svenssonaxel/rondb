@@ -182,8 +182,10 @@ void create_table(MYSQL &mysql)
   }
 }
 
-std::random_device rd;
-std::mt19937 gen(rd());
+// std::random_device rd;
+// std::mt19937 gen(rd());
+constexpr uint FOURTY_TWO = 42; // Killing magic with more magic
+std::mt19937 gen(FOURTY_TWO); // We want reproducible data
 
 /*
    std::uniform_int_distribution<int64_t> g_bigint(0xFFFFFFFF, 0x7FFFFFFF);
