@@ -92,8 +92,6 @@ struct ConditionalExpression
   };
 };
 
-const char* interval_type_name(int interval_type);
-
 struct GroupbyColumns
 {
   LexString col_name;
