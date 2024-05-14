@@ -384,6 +384,147 @@ RonDBSQLPreparer::compile()
   return true;
 }
 
+/*
+ * WARNING: Return value valid only until the next call using the same buffer
+ *
+ * Write a null-terminated string representation of src to c_str_buf, given
+ * the current buffer size and a memory allocator. Also return the (potentially
+ * new) buffer.
+ */
+char*
+c_str(LexString src, char** c_str_buf, uint* c_str_buf_len, ArenaAllocator* allocator)
+{
+  uint c_str_len = src.len + 1;
+  if (*c_str_buf_len < c_str_len)
+  {
+    *c_str_buf =
+      static_cast<char*>(allocator->realloc(static_cast<void*>(*c_str_buf),
+                                            *c_str_buf_len,
+                                            c_str_len));
+  }
+  memcpy(*c_str_buf, src.str, src.len);
+  (*c_str_buf)[src.len] = '\0';
+  *c_str_buf_len = c_str_len;
+  return *c_str_buf;
+}
+
+#define programAggregatorFail(STR) \
+  do { \
+    m_status = Status::FAILED; \
+    cout << "RonDBSQLPreparer::programAggregator failed because " STR ".\n"; \
+    return false; \
+  } while (0)
+bool
+RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
+{
+  if (m_status == Status::FAILED)
+  {
+    programAggregatorFail("status is already set to failed");
+  }
+  assert_status(COMPILED);
+  SelectStatement& ast_root = m_context.ast_root;
+  char* c_str_buf = NULL;
+  uint c_str_buf_len = 0;
+  // Program groupby columns
+  struct GroupbyColumns* groupby = ast_root.groupby_columns;
+  while (groupby != NULL)
+  {
+    c_str(groupby->col_name, &c_str_buf, &c_str_buf_len, m_aalloc);
+    if (!aggregator->GroupBy(c_str_buf))
+    {
+      programAggregatorFail("NdbAggregator::Groupby returned false");
+    }
+    groupby = groupby->next;
+  }
+  // Program aggregations
+  DynamicArray<AggregationAPICompiler::Instr> program = m_agg->m_program;
+  for (uint i=0; i<program.size(); i++)
+  {
+    AggregationAPICompiler::Instr* instr = &program[i];
+    uint dest = instr->dest;
+    uint src = instr->src;
+    switch (instr->type)
+    {
+    case AggregationAPICompiler::SVMInstrType::Load:
+      c_str(m_identifiers[src], &c_str_buf, &c_str_buf_len, m_aalloc);
+      if (!aggregator->LoadColumn(c_str_buf, dest))
+      {
+        programAggregatorFail(
+          "NdbAggregator::LoadColumn returned false when trying to load column "
+          << c_str_buf << );
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::LoadConstantInteger:
+      assert(false); // not implemented
+      // todo: load m_constants[src].long_int into register `dest'
+      break;
+    case AggregationAPICompiler::SVMInstrType::Mov:
+      assert(false); // not implemented
+      // todo: copy register `src' into register `dest'
+      break;
+    case AggregationAPICompiler::SVMInstrType::Add:
+      if (!aggregator->Add(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Add returned false");
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::Minus:
+      if (!aggregator->Minus(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Sub returned false");
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::Mul:
+      if (!aggregator->Mul(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Mul returned false");
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::Div:
+      if (!aggregator->Div(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Div returned false");
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::Rem:
+      if (!aggregator->Mod(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Rem returned false");
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::Sum:
+      if (!aggregator->Sum(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Sum returned false");
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::Min:
+      if (!aggregator->Min(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Min returned false");
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::Max:
+      if (!aggregator->Max(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Max returned false");
+      }
+      break;
+    case AggregationAPICompiler::SVMInstrType::Count:
+      if (!aggregator->Count(dest, src))
+      {
+        programAggregatorFail("NdbAggregator::Count returned false");
+      }
+      break;
+    default:
+      // Unknown instruction
+      assert(false);
+    }
+  }
+  return true;
+}
+#undef programAggregatorFail
+
 bool
 RonDBSQLPreparer::print()
 {
