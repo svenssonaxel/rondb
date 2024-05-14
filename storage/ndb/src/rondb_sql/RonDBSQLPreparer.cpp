@@ -31,6 +31,9 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+static const char* interval_type_name(int interval_type);
+static char* c_str(LexString src, char** c_str_buf, uint* c_str_buf_len, ArenaAllocator* allocator);
+
 RonDBSQLPreparer::RonDBSQLPreparer(char* sql_buffer,
                                  size_t sql_len,
                                  ArenaAllocator* aalloc):
@@ -384,7 +387,6 @@ RonDBSQLPreparer::compile()
   return true;
 }
 
-// todo check with nm that name not exported
 /*
  * WARNING: Return value valid only until the next call using the same buffer
  *
@@ -392,7 +394,7 @@ RonDBSQLPreparer::compile()
  * the current buffer size and a memory allocator. Also return the (potentially
  * new) buffer.
  */
-char*
+static char*
 c_str(LexString src, char** c_str_buf, uint* c_str_buf_len, ArenaAllocator* allocator)
 {
   uint c_str_len = src.len + 1;
@@ -806,8 +808,7 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
   }
 }
 
-// todo does this function get exported?
-const char* interval_type_name(int interval_type)
+static const char* interval_type_name(int interval_type)
 {
   switch (interval_type)
   {
