@@ -32,7 +32,7 @@ using std::cerr;
 using std::endl;
 
 static const char* interval_type_name(int interval_type);
-static char* c_str(LexString src, char** c_str_buf, uint* c_str_buf_len, ArenaAllocator* allocator);
+static char* c_str(LexString src, ArenaAllocator* allocator);
 
 RonDBSQLPreparer::RonDBSQLPreparer(char* sql_buffer,
                                  size_t sql_len,
@@ -388,27 +388,20 @@ RonDBSQLPreparer::compile()
 }
 
 /*
- * WARNING: Return value valid only until the next call using the same buffer
+ * WARNING: Return value valid only until the next call using the same allocator
  *
- * Write a null-terminated string representation of src to c_str_buf, given
- * the current buffer size and a memory allocator. Also return the (potentially
- * new) buffer.
+ * Write a null-terminated string representation of src to the allocator's loop
+ * buffer and return it.
  */
 static char*
-c_str(LexString src, char** c_str_buf, uint* c_str_buf_len, ArenaAllocator* allocator)
+c_str(LexString src, ArenaAllocator* allocator)
 {
   uint c_str_len = src.len + 1;
-  if (*c_str_buf_len < c_str_len)
-  {
-    *c_str_buf =
-      static_cast<char*>(allocator->realloc(static_cast<void*>(*c_str_buf),
-                                            *c_str_buf_len,
-                                            c_str_len));
-  }
-  memcpy(*c_str_buf, src.str, src.len);
-  (*c_str_buf)[src.len] = '\0';
-  *c_str_buf_len = c_str_len;
-  return *c_str_buf;
+  allocator->set_loop_buffer_size(c_str_len);
+  char* ret = static_cast<char*>(allocator->get_loop_buffer());
+  memcpy(ret, src.str, src.len);
+  ret[src.len] = '\0';
+  return ret;
 }
 
 // todo fold to aggregator_do_or_fail
@@ -427,14 +420,12 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
   }
   assert_status(COMPILED);
   SelectStatement& ast_root = m_context.ast_root;
-  char* c_str_buf = NULL;
-  uint c_str_buf_len = 0;
   // Program groupby columns
   struct GroupbyColumns* groupby = ast_root.groupby_columns;
   while (groupby != NULL)
   {
-    c_str(groupby->col_name, &c_str_buf, &c_str_buf_len, m_aalloc);
-    if (!aggregator->GroupBy(c_str_buf))
+    ;
+    if (!aggregator->GroupBy(c_str(groupby->col_name, m_aalloc)))
     {
       programAggregatorFail("NdbAggregator::Groupby returned false");
     }
@@ -450,14 +441,16 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
     switch (instr->type)
     {
     case AggregationAPICompiler::SVMInstrType::Load:
-      c_str(m_identifiers[src], &c_str_buf, &c_str_buf_len, m_aalloc);
-      if (!aggregator->LoadColumn(c_str_buf, dest))
+    {
+      char* col_name = c_str(m_identifiers[src], m_aalloc);
+      if (!aggregator->LoadColumn(col_name, dest))
       {
         programAggregatorFail(
           "NdbAggregator::LoadColumn returned false when trying to load column "
-          << c_str_buf << );
+          << col_name << );
       }
       break;
+    }
     case AggregationAPICompiler::SVMInstrType::LoadConstantInteger:
       assert(false); // not implemented
       // todo: load m_constants[src].long_int into register `dest'
