@@ -186,6 +186,7 @@ public:
   bool parse();
   bool load();
   bool compile();
+  const NdbDictionary::Table* get_table(const NdbDictionary::Dictionary* myDict);
   bool programAggregator(NdbAggregator* aggregator);
   bool print();
   void print(struct ConditionalExpression* ce, LexString prefix);

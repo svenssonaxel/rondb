@@ -346,10 +346,6 @@ int scan_aggregation(Ndb * myNdb)
   NdbScanOperation	*myScanOp;
 
   const NdbDictionary::Dictionary* myDict= myNdb->getDictionary();
-  const NdbDictionary::Table *myTable= myDict->getTable("api_scan");
-
-  if (myTable == NULL) 
-    APIERROR(myDict->getNdbError());
 
   /**
    * Loop as long as :
@@ -384,46 +380,16 @@ int scan_aggregation(Ndb * myNdb)
       std::cout << err.message << std::endl;
       return -1;
     }
-    /*
-     * Define a scan operation. 
-     * NDBAPI.
-     */
-    myScanOp = myTrans->getNdbScanOperation(myTable);	
-    if (myScanOp == NULL) 
-    {
-      std::cout << myTrans->getNdbError().message << std::endl;
-      myNdb->closeTransaction(myTrans);
-      return -1;
-    }
-
-    if (myScanOp->readTuples(NdbOperation::LM_CommittedRead) != 0) {
-      APIERROR (myTrans->getNdbError());
-    }
-
-    /* Filter CTINYINT = 66 */
-    uint8_t val = 66;
-    NdbScanFilter filter(myScanOp);
-    if (filter.begin(NdbScanFilter::AND) < 0  ||
-        filter.cmp(NdbScanFilter::COND_EQ, 1, &val, sizeof(val)) < 0 ||
-        filter.end() < 0) {
-      std::cout <<  myTrans->getNdbError().message << std::endl;
-      myNdb->closeTransaction(myTrans);
-      return -1;
-    }
-
-    /*
-     * Define an aggregator
-     */
-    NdbAggregator aggregator(myTable);
 
     try
     {
+      // Prepare query
       ArenaAllocator aalloc;
       const char* sql_query =
         "SELECT sum(CUBIGINT+CUTINYINT)\n"
         "     , min(CDOUBLE)\n"
         "     , max(CUMEDIUMINT)\n"
-        "FROM ignored_table_name\n"
+        "FROM api_scan\n"
         "WHERE CTINYINT = 66\n"
         "GROUP BY CCHAR\n"
         "       , CMEDIUMINT;";
@@ -455,11 +421,135 @@ int scan_aggregation(Ndb * myNdb)
         printf("Failed to print.\n");
         return -1;
       }
+      // Get table
+      const NdbDictionary::Table* myTable = prepare.get_table(myDict);
+      if (myTable == NULL)
+        APIERROR(myDict->getNdbError());
+
+      /*
+       * Define a scan operation. 
+       * NDBAPI.
+       */
+      myScanOp = myTrans->getNdbScanOperation(myTable);	
+      if (myScanOp == NULL) 
+      {
+        std::cout << myTrans->getNdbError().message << std::endl;
+        myNdb->closeTransaction(myTrans);
+        return -1;
+      }
+
+      if (myScanOp->readTuples(NdbOperation::LM_CommittedRead) != 0) {
+        APIERROR (myTrans->getNdbError());
+      }
+
+      /* Filter CTINYINT = 66 */
+      uint8_t val = 66;
+      NdbScanFilter filter(myScanOp);
+      if (filter.begin(NdbScanFilter::AND) < 0  ||
+          filter.cmp(NdbScanFilter::COND_EQ, 1, &val, sizeof(val)) < 0 ||
+          filter.end() < 0) {
+        std::cout <<  myTrans->getNdbError().message << std::endl;
+        myNdb->closeTransaction(myTrans);
+        return -1;
+      }
+
+      /*
+       * Define an aggregator
+       */
+      NdbAggregator aggregator(myTable);
+
       if (!prepare.programAggregator(&aggregator))
       {
         printf("Failed to program aggregator.\n");
         return -1;
       }
+
+      /* Example of how to catch an error
+      int ret = aggregator.Sum(0, kReg1);
+      if (!ret) {
+        fprintf(stderr, "Error: %u, %s\n",
+                        aggregator.GetError().errno_,
+                        aggregator.GetError().err_msg_);
+      }
+      */
+
+      assert(aggregator.Finalize());
+      if (myScanOp->setAggregationCode(&aggregator) == -1) {
+        std::cout << myTrans->getNdbError().message << std::endl;
+        myNdb->closeTransaction(myTrans);
+        return -1;
+      }
+
+      if (myScanOp->DoAggregation() == -1) {
+        err = myTrans->getNdbError();
+        if(err.status == NdbError::TemporaryError) {
+          std::cout << myTrans->getNdbError().message << std::endl;
+          myNdb->closeTransaction(myTrans);
+          milliSleep(50);
+          continue;
+        }
+        std::cout << "DoAggregation failed: " << err.message << std::endl;
+        myNdb->closeTransaction(myTrans);
+        return -1;
+      }
+
+      fprintf(stderr, "---FINAL RESULT---\n");
+      // aggregator.Print();
+      NdbAggregator::ResultRecord record = aggregator.FetchResultRecord();
+      while (!record.end()) {
+        NdbAggregator::Column column = record.FetchGroupbyColumn();
+        int n = 0;
+        while (!column.end()) {
+          if (n == 0) {
+          fprintf(stderr,
+              "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %s]:",
+              column.id(), column.type(), column.byte_size(),
+              column.is_null(), &column.data()[1]);
+          } else {
+          fprintf(stderr,
+              "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %d]:",
+              column.id(), column.type(), column.byte_size(),
+              column.is_null(), column.data_medium());
+          }
+          n++;
+          column = record.FetchGroupbyColumn();
+        }
+
+        NdbAggregator::Result result = record.FetchAggregationResult();
+        while (!result.end()) {
+          switch (result.type()) {
+            case NdbDictionary::Column::Bigint:
+              fprintf(stderr,
+                  " (type: %u, is_null: %u, data: %ld)",
+                  result.type(), result.is_null(), result.data_int64());
+              break;
+            case NdbDictionary::Column::Bigunsigned:
+              fprintf(stderr,
+                  " (type: %u, is_null: %u, data: %lu)",
+                  result.type(), result.is_null(), result.data_uint64());
+              break;
+            case NdbDictionary::Column::Double:
+              fprintf(stderr,
+                  " (type: %u, is_null: %u, data: %lf)",
+                  result.type(), result.is_null(), result.data_double());
+              break;
+            case NdbDictionary::Column::Undefined:
+              // Aggregation on empty table or all rows are filtered out.
+              fprintf(stderr,
+                  " (type: %u, is_null: %u, data: %ld)",
+                  result.type(), result.is_null(), result.data_int64());
+              break;
+            default:
+              assert(0);
+          }
+          result = record.FetchAggregationResult();
+        }
+        fprintf(stderr, "\n");
+        record = aggregator.FetchResultRecord();
+      }
+
+      myNdb->closeTransaction(myTrans);
+      return 1;
     }
     // todoas catch temporary errors
     catch (std::runtime_error& e)
@@ -467,93 +557,6 @@ int scan_aggregation(Ndb * myNdb)
       printf("Caught exception: %s\n", e.what());
       return -1;
     }
-
-    /* Example of how to catch an error
-    int ret = aggregator.Sum(0, kReg1);
-    if (!ret) {
-      fprintf(stderr, "Error: %u, %s\n",
-                      aggregator.GetError().errno_,
-                      aggregator.GetError().err_msg_);
-    }
-    */
-
-    assert(aggregator.Finalize());
-    if (myScanOp->setAggregationCode(&aggregator) == -1) {
-      std::cout << myTrans->getNdbError().message << std::endl;
-      myNdb->closeTransaction(myTrans);
-      return -1;
-    }
-
-    if (myScanOp->DoAggregation() == -1) {
-      err = myTrans->getNdbError();
-      if(err.status == NdbError::TemporaryError) {
-        std::cout << myTrans->getNdbError().message << std::endl;
-        myNdb->closeTransaction(myTrans);
-        milliSleep(50);
-        continue;
-      }
-      std::cout << "DoAggregation failed: " << err.message << std::endl;
-      myNdb->closeTransaction(myTrans);
-      return -1;
-    }
-
-    fprintf(stderr, "---FINAL RESULT---\n");
-    // aggregator.Print();
-    NdbAggregator::ResultRecord record = aggregator.FetchResultRecord();
-    while (!record.end()) {
-      NdbAggregator::Column column = record.FetchGroupbyColumn();
-      int n = 0;
-      while (!column.end()) {
-        if (n == 0) {
-        fprintf(stderr,
-            "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %s]:",
-            column.id(), column.type(), column.byte_size(),
-            column.is_null(), &column.data()[1]);
-        } else {
-        fprintf(stderr,
-            "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %d]:",
-            column.id(), column.type(), column.byte_size(),
-            column.is_null(), column.data_medium());
-        }
-        n++;
-        column = record.FetchGroupbyColumn();
-      }
-
-      NdbAggregator::Result result = record.FetchAggregationResult();
-      while (!result.end()) {
-        switch (result.type()) {
-          case NdbDictionary::Column::Bigint:
-            fprintf(stderr,
-                " (type: %u, is_null: %u, data: %ld)",
-                result.type(), result.is_null(), result.data_int64());
-            break;
-          case NdbDictionary::Column::Bigunsigned:
-            fprintf(stderr,
-                " (type: %u, is_null: %u, data: %lu)",
-                result.type(), result.is_null(), result.data_uint64());
-            break;
-          case NdbDictionary::Column::Double:
-            fprintf(stderr,
-                " (type: %u, is_null: %u, data: %lf)",
-                result.type(), result.is_null(), result.data_double());
-            break;
-          case NdbDictionary::Column::Undefined:
-            // Aggregation on empty table or all rows are filtered out.
-            fprintf(stderr,
-                " (type: %u, is_null: %u, data: %ld)",
-                result.type(), result.is_null(), result.data_int64());
-            break;
-          default:
-            assert(0);
-        }
-        result = record.FetchAggregationResult();
-      }
-      fprintf(stderr, "\n");
-      record = aggregator.FetchResultRecord();
-    }
-
-    myNdb->closeTransaction(myTrans);
-    return 1;
   }
   return -1;
 }

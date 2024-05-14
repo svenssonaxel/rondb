@@ -4,7 +4,7 @@ Intialize table and data done!
 SELECT sum(CUBIGINT+CUTINYINT)
      , min(CDOUBLE)
      , max(CUMEDIUMINT)
-FROM ignored_table_name
+FROM api_scan
 WHERE CTINYINT = 66
 GROUP BY CCHAR
        , CMEDIUMINT;
@@ -15,7 +15,7 @@ SELECT
    = A1:Min(`CDOUBLE`)
   Out_2:`max(CUMEDIUMINT)`
    = A2:Max(`CUMEDIUMINT`)
-FROM ignored_table_name
+FROM api_scan
 WHERE
 =
 +- CTINYINT

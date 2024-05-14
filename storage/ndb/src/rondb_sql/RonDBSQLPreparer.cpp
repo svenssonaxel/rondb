@@ -404,6 +404,14 @@ c_str(LexString src, ArenaAllocator* allocator)
   return ret;
 }
 
+const NdbDictionary::Table*
+RonDBSQLPreparer::get_table(const NdbDictionary::Dictionary* myDict)
+{
+  assert_status(COMPILED);
+  SelectStatement& ast_root = m_context.ast_root;
+  return myDict->getTable(c_str(ast_root.table, m_aalloc));
+}
+
 // todo fold to aggregator_do_or_fail
 #define programAggregatorFail(STR) \
   do { \
