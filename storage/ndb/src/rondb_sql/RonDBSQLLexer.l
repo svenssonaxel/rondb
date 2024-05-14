@@ -330,25 +330,25 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
    * keywords - both reserved and not, both implemented and not - as unquoted
    * identifiers.
    */
-    low = 0;
-    high = number_of_keywords_defined_in_mysql - 1;
-    while (low <= high)
+  low = 0;
+  high = number_of_keywords_defined_in_mysql - 1;
+  while (low <= high)
+  {
+    int mid = (low + high) / 2;
+    int cmp = strcmp(cword, keywords_defined_in_mysql[mid]);
+    if (cmp < 0)
     {
-      int mid = (low + high) / 2;
-      int cmp = strcmp(cword, keywords_defined_in_mysql[mid]);
-      if (cmp < 0)
-      {
-        high = mid - 1;
-      }
-      else if (cmp > 0)
-      {
-        low = mid + 1;
-      }
-      else
-      {
-        return_err(UNIMPLEMENTED_KEYWORD);
-      }
+      high = mid - 1;
     }
+    else if (cmp > 0)
+    {
+      low = mid + 1;
+    }
+    else
+    {
+      return_err(UNIMPLEMENTED_KEYWORD);
+    }
+  }
   // cword is not a keyword, therefore it is an unquoted identifier.
   // todo: Decide whether to disallow unquoted identifiers altogether.
   yylval->str = LexString{yytext, size_t(yyleng)};
