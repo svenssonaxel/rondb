@@ -442,12 +442,10 @@ int scan_aggregation(Ndb * myNdb)
         APIERROR (myTrans->getNdbError());
       }
 
-      /* Filter CTINYINT = 66 */
-      uint8_t val = 66;
       NdbScanFilter filter(myScanOp);
-      if (filter.begin(NdbScanFilter::AND) < 0  ||
-          filter.cmp(NdbScanFilter::COND_EQ, 1, &val, sizeof(val)) < 0 ||
-          filter.end() < 0) {
+      if (!prepare.applyFilter(&filter, myTable))
+      {
+        printf("Failed to apply filter.\n");
         std::cout <<  myTrans->getNdbError().message << std::endl;
         myNdb->closeTransaction(myTrans);
         return -1;
