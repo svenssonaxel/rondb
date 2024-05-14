@@ -94,6 +94,8 @@
 #include <sys/select.h>
 #endif
 #include <random>
+#include <RonDBSQLPreparer.hpp>
+#include <ArenaAllocator.hpp>
 // #include <AttributeHeader.hpp>
 
 /**
@@ -413,16 +415,58 @@ int scan_aggregation(Ndb * myNdb)
      * Define an aggregator
      */
     NdbAggregator aggregator(myTable);
-    assert(aggregator.GroupBy("CCHAR"));
-    assert(aggregator.GroupBy("CMEDIUMINT"));
-    assert(aggregator.LoadColumn("CUBIGINT", kReg1));
-    assert(aggregator.LoadColumn("CUTINYINT", kReg2));
-    assert(aggregator.Add(kReg1, kReg2));
-    assert(aggregator.Sum(0, kReg1));
-    assert(aggregator.LoadColumn("CDOUBLE", kReg1));
-    assert(aggregator.Min(1, kReg1));
-    assert(aggregator.LoadColumn("CUMEDIUMINT", kReg1));
-    assert(aggregator.Max(2, kReg1));
+
+    try
+    {
+      ArenaAllocator aalloc;
+      const char* sql_query =
+        "SELECT sum(CUBIGINT+CUTINYINT)\n"
+        "     , min(CDOUBLE)\n"
+        "     , max(CUMEDIUMINT)\n"
+        "FROM ignored_table_name\n"
+        "WHERE CTINYINT = 66\n"
+        "GROUP BY CCHAR\n"
+        "       , CMEDIUMINT;";
+      printf("%s\n", sql_query);
+      uint sql_query_len = strlen(sql_query);
+      char* parse_str = static_cast<char*>(aalloc.alloc((sql_query_len+2) * sizeof(char)));
+      size_t parse_len = (sql_query_len+2) * sizeof(char);
+      memcpy(parse_str, sql_query, sql_query_len);
+      parse_str[sql_query_len] = '\0';
+      parse_str[sql_query_len+1] = '\0';
+      RonDBSQLPreparer prepare(parse_str, parse_len, &aalloc);
+      if (!prepare.parse())
+      {
+        printf("Failed to parse.\n");
+        return -1;
+      }
+      if (!prepare.load())
+      {
+        printf("Failed to load.\n");
+        return -1;
+      }
+      if (!prepare.compile())
+      {
+        printf("Failed to compile.\n");
+        return -1;
+      }
+      if (!prepare.print())
+      {
+        printf("Failed to print.\n");
+        return -1;
+      }
+      if (!prepare.programAggregator(&aggregator))
+      {
+        printf("Failed to program aggregator.\n");
+        return -1;
+      }
+    }
+    // todoas catch temporary errors
+    catch (std::runtime_error& e)
+    {
+      printf("Caught exception: %s\n", e.what());
+      return -1;
+    }
 
     /* Example of how to catch an error
     int ret = aggregator.Sum(0, kReg1);
@@ -711,12 +755,6 @@ void ndb_run_scan(const char * connectstring)
   std::cout << "Intialize table and data done!" << std::endl;
 
   fprintf(stderr, "1. TABLE SCAN:\n");
-  fprintf(stderr, "SELECT CCHAR, CMEDIUMINT, "
-                  "SUM(CUBIGINT+CUTINYINT), "
-                  "MIN(CDOUBLE), MAX(CUMEDIUMINT) "
-                  "FROM agg.api_scan "
-                  "WHERE CTINYINT = 66 "                      // Filter
-                  "GROUP BY CCHAR, CMEDIUMINT;\n");
   if(scan_aggregation(&myNdb) > 0) {
     std::cout << "Table scan aggregation Success!" << std::endl  << std::endl;
   }

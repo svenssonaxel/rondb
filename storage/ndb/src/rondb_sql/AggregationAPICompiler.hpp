@@ -186,6 +186,7 @@ private:
 private:
   Expr* r[REGS];
   void svm_init();
+public:
 #define INSTR_ENUM(Name) Name,
   enum class SVMInstrType
   {
@@ -198,12 +199,14 @@ private:
     uint dest;
     uint src;
   };
+private:
   void svm_execute(Instr* instr, bool is_first_compilation);
   void svm_use(uint reg, bool is_first_compilation);
 
   // Aggregation Compiler:
-private:
+public:
   DynamicArray<Instr> m_program;
+private:
   int m_locked[REGS];
 public:
   bool compile();
