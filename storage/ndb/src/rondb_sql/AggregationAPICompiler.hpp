@@ -34,8 +34,8 @@
 // todo order and remove superfluous includes
 using std::string;
 
-// todo Use regTotal from NdbAggregator, or at least assert they're the same.
-#define REGS 16
+// todo Increase to 16 if possible
+#define REGS 8
 
 #define FORALL_ARITHMETIC_OPS(X) \
   X(Add) \
@@ -58,9 +58,10 @@ using std::string;
 class AggregationAPICompiler
 {
 public:
-  AggregationAPICompiler(std::function<int(LexString)> column_name_to_idx,
-             std::function<LexString(int)> column_idx_to_name,
-             ArenaAllocator* aalloc);
+  AggregationAPICompiler(std::function<const char*(uint)> column_idx_to_name,
+                         std::basic_ostream<char>& out,
+                         std::basic_ostream<char>& err,
+                         ArenaAllocator* aalloc);
   enum class Status
   {
     PROGRAMMING, // High-level API available only in this state
@@ -70,6 +71,8 @@ public:
   };
   Status getStatus();
 private:
+  std::basic_ostream<char>& m_out;
+  std::basic_ostream<char>& m_err;
   Status m_status = Status::PROGRAMMING;
   ArenaAllocator* m_aalloc;
 
@@ -110,8 +113,7 @@ public:
     long int long_int;
   };
 private:
-  std::function<int(LexString)> m_column_name_to_idx;
-  std::function<LexString(int)> m_column_idx_to_name;
+  std::function<const char*(uint)> m_column_idx_to_name;
   DynamicArray<Expr> m_exprs;
   Expr* new_expr(ExprOp op, Expr* left, Expr* right, uint idx);
 #define AGG_ENUM(Name) Name,
@@ -130,54 +132,28 @@ private:
   DynamicArray<Constant> m_constants;
 public:
   // Load operations
-  Expr* Load(LexString col_name);
-  Expr* Load(const char* col_name);
+  Expr* Load(uint col_idx);
   Expr* ConstantInteger(long int long_int);
   // Arithmetic and aggregation operations could easily have been defined using
   // templates, but we prefer doing it without templates and with better
   // argument names.
   // Arithmetic operations
-#define DEFINE_ARITH_FUNC(OP, OP_ARG1, OP_ARG2, EXPR_ARG1, EXPR_ARG2) \
-  Expr* OP(OP_ARG1, OP_ARG2) \
+#define DEFINE_ARITH_FUNC(OP) \
+  Expr* OP(Expr* expr_x, Expr* expr_y) \
   { \
     return public_arithmetic_expression_helper(ExprOp::OP, \
-                                               EXPR_ARG1, \
-                                               EXPR_ARG2); \
+                                               expr_x, \
+                                               expr_y); \
   }
-#define DEFINE_ARITH_FUNCS(OP) \
-  DEFINE_ARITH_FUNC(OP, Expr* expr_x,           Expr* expr_y,           \
-                        expr_x,                 expr_y)                 \
-  DEFINE_ARITH_FUNC(OP, Expr* expr_x,           LexString col_name_y,   \
-                        expr_x,                 Load(col_name_y))       \
-  DEFINE_ARITH_FUNC(OP, Expr* expr_x,           const char* col_name_y, \
-                        expr_x,                 Load(col_name_y))       \
-  DEFINE_ARITH_FUNC(OP, LexString col_name_x,   Expr* expr_y,           \
-                        Load(col_name_x),       expr_y)                 \
-  DEFINE_ARITH_FUNC(OP, LexString col_name_x,   LexString col_name_y,   \
-                        Load(col_name_x),       Load(col_name_y))       \
-  DEFINE_ARITH_FUNC(OP, LexString col_name_x,   const char* col_name_y, \
-                        Load(col_name_x),       Load(col_name_y))       \
-  DEFINE_ARITH_FUNC(OP, const char* col_name_x, Expr* expr_y,           \
-                        Load(col_name_x),       expr_y)                 \
-  DEFINE_ARITH_FUNC(OP, const char* col_name_x, LexString col_name_y,   \
-                        Load(col_name_x),       Load(col_name_y))       \
-  DEFINE_ARITH_FUNC(OP, const char* col_name_x, const char* col_name_y, \
-                        Load(col_name_x),       Load(col_name_y))
-  FORALL_ARITHMETIC_OPS(DEFINE_ARITH_FUNCS)
-#undef DEFINE_ARITH_FUNCS
+  FORALL_ARITHMETIC_OPS(DEFINE_ARITH_FUNC)
 #undef DEFINE_ARITH_FUNC
   // Aggregation operations
-#define DEFINE_AGG_FUNC(OP, OP_ARG, EXPR_ARG) \
-  int OP(OP_ARG) \
+#define DEFINE_AGG_FUNC(OP) \
+  int OP(Expr* expr) \
   { \
-    return public_aggregate_function_helper(AggType::OP, EXPR_ARG); \
+    return public_aggregate_function_helper(AggType::OP, expr); \
   }
-#define DEFINE_AGG_FUNCS(OP) \
-  DEFINE_AGG_FUNC(OP, Expr*       expr,     expr) \
-  DEFINE_AGG_FUNC(OP, LexString  col_name, Load(col_name)) \
-  DEFINE_AGG_FUNC(OP, const char* col_idx,  Load(col_idx))
-  FORALL_AGGS(DEFINE_AGG_FUNCS)
-#undef DEFINE_AGG_FUNCS
+  FORALL_AGGS(DEFINE_AGG_FUNC)
 #undef DEFINE_AGG_FUNC
 private:
   Expr* public_arithmetic_expression_helper(ExprOp op, Expr* x, Expr* y);
@@ -231,18 +207,6 @@ public:
   void print(Expr* expr);
   void print_program();
   void print(Instr* instr);
-  // Wrapper class for printing quoted identifiers
-  class QuotedIdentifier {
-  public:
-    const LexString m_id;
-    QuotedIdentifier(const LexString identifier) : m_id(identifier) {}
-    friend std::ostream& operator<< (std::ostream& out,
-                                     const QuotedIdentifier& identifier);
-  };
-  QuotedIdentifier quoted_identifier(LexString id) const
-  {
-    return QuotedIdentifier(id);
-  }
 
 }; // End of class AggregationAPICompiler
 

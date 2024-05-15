@@ -30,18 +30,35 @@
 #include <iostream>
 #include "ArenaAllocator.hpp"
 
+class LexCString;
+
 class LexString
 {
 public:
   const char *str;
   size_t len;
   LexString() = default;
-  LexString(const LexString& other) = default;
+  LexString(const char* str, size_t len);
+  LexString(const LexCString& other);
   LexString& operator= (const LexString& other) = default;
   ~LexString() = default;
   friend std::ostream& operator<< (std::ostream& out, const LexString& ls);
   bool operator== (const LexString& other) const;
-  LexString concat(const LexString other, ArenaAllocator* allocator);
+  LexString concat(const LexString other, ArenaAllocator* allocator) const;
+  LexCString to_LexCString(ArenaAllocator* allocator) const;
+};
+
+class LexCString
+{
+public:
+  const char *str;
+  size_t len;
+  LexCString() = default;
+  LexCString(const LexCString& other) = default;
+  LexCString& operator= (const LexCString& other) = default;
+  ~LexCString() = default;
+  bool operator== (const LexCString& other) const;
+  const char* c_str() const;
 };
 
 #endif

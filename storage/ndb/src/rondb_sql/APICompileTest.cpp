@@ -29,6 +29,9 @@
 #include "RonDBSQLPreparer.hpp"
 #include "AggregationAPICompiler.hpp"
 #include "ArenaAllocator.hpp"
+using std::cout;
+using std::cerr;
+using std::endl;
 
 int
 main()
@@ -36,38 +39,24 @@ main()
 
   ArenaAllocator aalloc;
 
-  printf("Compilation example 1:\n\n");
-  char apples[10]; strcpy(apples, "apples");
-  char oranges[10]; strcpy(oranges, "oranges");
-  char kiwis[10]; strcpy(kiwis, "kiwis");
-  LexString col_names_a[] =
-  {
-    LexString{apples, strlen(apples)},
-    LexString{oranges, strlen(oranges)},
-    LexString{kiwis, strlen(kiwis)}
-  };
+  cout << "Compilation example 1:" << endl << endl;
   AggregationAPICompiler a(
-    [col_names_a](LexString ls) -> int
+    [](uint col_idx) -> const char*
     {
-      for (int i = 0; i < 3; i++)
-      {
-        if (ls == col_names_a[i])
-        {
-          return i;
-        }
-      }
-      return -1;
+      static const char* col_names[3] = {"apples", "oranges", "kiwis"};
+      assert(col_idx<3);
+      return col_names[col_idx];
     },
-    [col_names_a](int idx) -> LexString
-    {
-      assert(idx>=0 && idx<3);
-      return col_names_a[idx];
-    },
+    cout,
+    cerr,
     &aalloc);
+  AggregationAPICompiler::Expr* apples = a.Load(0);
+  AggregationAPICompiler::Expr* oranges = a.Load(1);
+  AggregationAPICompiler::Expr* kiwis = a.Load(2);
   a.Max(apples);
   a.Sum(a.Add(apples,a.Mul(oranges, kiwis)));
   a.Min(a.Minus(apples,a.Mul(oranges, kiwis)));
-  auto orki = a.Mul(oranges, kiwis);
+  AggregationAPICompiler::Expr* orki = a.Mul(oranges, kiwis);
   a.Sum(a.Add(apples,orki));
   a.Min(a.Minus(apples,orki));
   a.Count(a.Add(apples,apples));
@@ -78,45 +67,38 @@ main()
   a.Count(a.Add(apples,a.Add(apples,apples)));
   if (!a.compile())
   {
-    printf("Failed to compile.\n");
+    cout << "Failed to compile." << endl;
     return 1;
   }
   a.print_aggregates();
-  printf("\n");
+  cout << endl;
   a.print_program();
 
-  printf("\nCompilation example 2:\n\n");
-  char c_cstr[10]; strcpy(c_cstr, "c");
-  LexString c{c_cstr, strlen(c_cstr)};
+  cout << endl << "Compilation example 2:" << endl << endl;
   AggregationAPICompiler b(
-    [c](LexString ls) -> int
+    [](uint col_idx) -> const char*
     {
-      if (ls == c)
-      {
-        return 0;
-      }
-      return -1;
+      assert(col_idx == 0);
+      return "c";
     },
-    [c](int idx) -> LexString
-    {
-      assert(idx==0);
-      return c;
-    },
+    cout,
+    cerr,
     &aalloc);
-  b.Sum(b.Add("c","c"));
-  b.Sum(b.Minus("c","c"));
-  b.Sum(b.Add(b.Add("c","c"),b.Add("c","c")));
-  b.Sum(b.Minus(b.Add("c","c"),b.Add("c","c")));
-  b.Sum(b.Add(b.Add("c","c"),"c"));
-  b.Sum(b.Add("c",b.Add("c",b.Add("c",b.Add("c",b.Add("c",b.Add("c",b.Add("c",b.Add("c",b.Add("c",b.Add("c","c")))))))))));
-  b.Sum(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add("c","c"),"c"),"c"),"c"),"c"),"c"),"c"),"c"),"c"),"c"));
+  auto c = b.Load(0);
+  b.Sum(b.Add(c,c));
+  b.Sum(b.Minus(c,c));
+  b.Sum(b.Add(b.Add(c,c),b.Add(c,c)));
+  b.Sum(b.Minus(b.Add(c,c),b.Add(c,c)));
+  b.Sum(b.Add(b.Add(c,c),c));
+  b.Sum(b.Add(c,b.Add(c,b.Add(c,b.Add(c,b.Add(c,b.Add(c,b.Add(c,b.Add(c,b.Add(c,b.Add(c,c)))))))))));
+  b.Sum(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(b.Add(c,c),c),c),c),c),c),c),c),c),c));
   if (!b.compile())
   {
-    printf("Failed to compile.\n");
+    cout << "Failed to compile." << endl;
     return 1;
   }
   b.print_aggregates();
-  printf("\n");
+  cout << endl;
   b.print_program();
 
   return 0;
