@@ -192,6 +192,7 @@ public:
   const NdbDictionary::Table* get_table(const NdbDictionary::Dictionary* myDict);
   bool applyFilter(NdbScanFilter* filter, const NdbDictionary::Table* myTable);
   bool programAggregator(NdbAggregator* aggregator);
+  void print_result(NdbAggregator* aggregator, std::basic_ostream<char>& out);
   bool print();
   void print(struct ConditionalExpression* ce, LexString prefix);
   ~RonDBSQLPreparer();

@@ -27,6 +27,8 @@
 #include "RonDBSQLParser.y.hpp"
 #include "RonDBSQLLexer.l.hpp"
 #include "RonDBSQLPreparer.hpp"
+#include <iostream>
+#include <iomanip>
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -660,6 +662,63 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
   return true;
 }
 #undef programAggregatorFail
+
+void
+RonDBSQLPreparer::print_result(NdbAggregator* aggregator, std::basic_ostream<char>& out)
+{
+  for (NdbAggregator::ResultRecord record = aggregator->FetchResultRecord();
+       !record.end();
+       record = aggregator->FetchResultRecord())
+  {
+    for (NdbAggregator::Column column = record.FetchGroupbyColumn();
+         !column.end();
+         column = record.FetchGroupbyColumn())
+    {
+      out << "group [id: " << column.id() <<
+        ", type: " << column.type() <<
+        ", byte_size: " << column.byte_size() <<
+        ", is_null: " << column.is_null() <<
+        ", data: ";
+      if (column.type() == 15)
+      {
+        out << &column.data()[1];
+      }
+      else
+      {
+        out << column.data_medium();
+      }
+      out << "]:";
+    }
+    for (NdbAggregator::Result result = record.FetchAggregationResult();
+         !result.end();
+         result = record.FetchAggregationResult())
+    {
+      out << " (type: " << result.type() <<
+        ", is_null: " << result.is_null() <<
+        ", data: ";
+      switch (result.type())
+      {
+      case NdbDictionary::Column::Bigint:
+        out << result.data_int64();
+        break;
+      case NdbDictionary::Column::Bigunsigned:
+        out << result.data_uint64();
+        break;
+      case NdbDictionary::Column::Double:
+        out << std::fixed << std::setprecision(6) << result.data_double();
+        break;
+      case NdbDictionary::Column::Undefined:
+        // Aggregation on empty table or all rows are filtered out.
+        out << result.data_int64();
+        break;
+      default:
+        assert(0);
+      }
+      out << ")";
+    }
+    out << endl;
+  }
+}
 
 bool
 RonDBSQLPreparer::print()

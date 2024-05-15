@@ -482,60 +482,10 @@ int scan_aggregation(Ndb * myNdb)
         return -1;
       }
 
-      fprintf(stderr, "---FINAL RESULT---\n");
+      printf("---FINAL RESULT---\n");
       // aggregator.Print();
-      NdbAggregator::ResultRecord record = aggregator.FetchResultRecord();
-      while (!record.end()) {
-        NdbAggregator::Column column = record.FetchGroupbyColumn();
-        int n = 0;
-        while (!column.end()) {
-          if (n == 0) {
-          fprintf(stderr,
-              "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %s]:",
-              column.id(), column.type(), column.byte_size(),
-              column.is_null(), &column.data()[1]);
-          } else {
-          fprintf(stderr,
-              "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %d]:",
-              column.id(), column.type(), column.byte_size(),
-              column.is_null(), column.data_medium());
-          }
-          n++;
-          column = record.FetchGroupbyColumn();
-        }
-
-        NdbAggregator::Result result = record.FetchAggregationResult();
-        while (!result.end()) {
-          switch (result.type()) {
-            case NdbDictionary::Column::Bigint:
-              fprintf(stderr,
-                  " (type: %u, is_null: %u, data: %ld)",
-                  result.type(), result.is_null(), result.data_int64());
-              break;
-            case NdbDictionary::Column::Bigunsigned:
-              fprintf(stderr,
-                  " (type: %u, is_null: %u, data: %lu)",
-                  result.type(), result.is_null(), result.data_uint64());
-              break;
-            case NdbDictionary::Column::Double:
-              fprintf(stderr,
-                  " (type: %u, is_null: %u, data: %lf)",
-                  result.type(), result.is_null(), result.data_double());
-              break;
-            case NdbDictionary::Column::Undefined:
-              // Aggregation on empty table or all rows are filtered out.
-              fprintf(stderr,
-                  " (type: %u, is_null: %u, data: %ld)",
-                  result.type(), result.is_null(), result.data_int64());
-              break;
-            default:
-              assert(0);
-          }
-          result = record.FetchAggregationResult();
-        }
-        fprintf(stderr, "\n");
-        record = aggregator.FetchResultRecord();
-      }
+      prepare.print_result(&aggregator, std::cout);
+      std::cout.flush();
 
       myNdb->closeTransaction(myTrans);
       return 1;
