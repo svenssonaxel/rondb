@@ -36,90 +36,91 @@ Load   r00  C03 r00 = C03:`CUMEDIUMINT`
 Max    A02  r00 A02:MAX <- r00:`CUMEDIUMINT`
 
 ---FINAL RESULT---
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 0]: (type: 10, is_null: 0, data: 27240458800) (type: 12, is_null: 0, data: -7891782.189155) (type: 10, is_null: 0, data: 15724990)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 1]: (type: 10, is_null: 0, data: 18914601411) (type: 12, is_null: 0, data: -7320498.585482) (type: 10, is_null: 0, data: 15419427)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 2]: (type: 10, is_null: 0, data: 22037351218) (type: 12, is_null: 0, data: -7533697.201609) (type: 10, is_null: 0, data: 15973779)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 3]: (type: 10, is_null: 0, data: 32432082968) (type: 12, is_null: 0, data: -6991668.973914) (type: 10, is_null: 0, data: 13903576)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 4]: (type: 10, is_null: 0, data: 31576854843) (type: 12, is_null: 0, data: -7860843.810773) (type: 10, is_null: 0, data: 13865452)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 5]: (type: 10, is_null: 0, data: 38517688025) (type: 12, is_null: 0, data: -7847476.510406) (type: 10, is_null: 0, data: 13486843)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 6]: (type: 10, is_null: 0, data: 32255134695) (type: 12, is_null: 0, data: -7899034.908636) (type: 10, is_null: 0, data: 14121284)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 7]: (type: 10, is_null: 0, data: 34447699222) (type: 12, is_null: 0, data: -8029429.124135) (type: 10, is_null: 0, data: 15066597)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 8]: (type: 10, is_null: 0, data: 46711984788) (type: 12, is_null: 0, data: -7779962.166529) (type: 10, is_null: 0, data: 16742783)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 9]: (type: 10, is_null: 0, data: 44930856221) (type: 12, is_null: 0, data: -7879030.821656) (type: 10, is_null: 0, data: 15784088)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 10]: (type: 10, is_null: 0, data: 14406302667) (type: 12, is_null: 0, data: -7857647.867557) (type: 10, is_null: 0, data: 16721778)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -10]: (type: 10, is_null: 0, data: 20389413452) (type: 12, is_null: 0, data: -5537151.503334) (type: 10, is_null: 0, data: 12497470)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -9]: (type: 10, is_null: 0, data: 43774982754) (type: 12, is_null: 0, data: -6567357.173047) (type: 10, is_null: 0, data: 16493265)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -8]: (type: 10, is_null: 0, data: 29186958751) (type: 12, is_null: 0, data: -6975641.692218) (type: 10, is_null: 0, data: 16611942)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -7]: (type: 10, is_null: 0, data: 18661252686) (type: 12, is_null: 0, data: -4344219.627697) (type: 10, is_null: 0, data: 16352486)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -6]: (type: 10, is_null: 0, data: 23659273345) (type: 12, is_null: 0, data: -7356948.994305) (type: 10, is_null: 0, data: 16153178)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -5]: (type: 10, is_null: 0, data: 14746396594) (type: 12, is_null: 0, data: -7549947.034560) (type: 10, is_null: 0, data: 16470061)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -4]: (type: 10, is_null: 0, data: 21490057187) (type: 12, is_null: 0, data: -5158417.839277) (type: 10, is_null: 0, data: 16738982)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -3]: (type: 10, is_null: 0, data: 37205131629) (type: 12, is_null: 0, data: -5356282.514346) (type: 10, is_null: 0, data: 16192923)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -2]: (type: 10, is_null: 0, data: 15437654118) (type: 12, is_null: 0, data: -8280936.091280) (type: 10, is_null: 0, data: 12205873)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -1]: (type: 10, is_null: 0, data: 25349508351) (type: 12, is_null: 0, data: -5770311.042215) (type: 10, is_null: 0, data: 16412281)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 0]: (type: 10, is_null: 0, data: 48241970857) (type: 12, is_null: 0, data: -8109191.714092) (type: 10, is_null: 0, data: 16297532)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 1]: (type: 10, is_null: 0, data: 18872079256) (type: 12, is_null: 0, data: -4133983.653664) (type: 10, is_null: 0, data: 14895239)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 2]: (type: 10, is_null: 0, data: 23242578731) (type: 12, is_null: 0, data: -7850671.478286) (type: 10, is_null: 0, data: 16291693)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 3]: (type: 10, is_null: 0, data: 24092567427) (type: 12, is_null: 0, data: -6764259.275114) (type: 10, is_null: 0, data: 15538231)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 4]: (type: 10, is_null: 0, data: 24931968972) (type: 12, is_null: 0, data: -7425005.348942) (type: 10, is_null: 0, data: 16503324)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 5]: (type: 10, is_null: 0, data: 33468936892) (type: 12, is_null: 0, data: -7105520.501927) (type: 10, is_null: 0, data: 15780630)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 6]: (type: 10, is_null: 0, data: 14039762772) (type: 12, is_null: 0, data: -8035078.358160) (type: 10, is_null: 0, data: 16691193)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 7]: (type: 10, is_null: 0, data: 30496758747) (type: 12, is_null: 0, data: -7570564.776284) (type: 10, is_null: 0, data: 14635612)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 8]: (type: 10, is_null: 0, data: 36552230703) (type: 12, is_null: 0, data: -7409745.227307) (type: 10, is_null: 0, data: 16095700)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 9]: (type: 10, is_null: 0, data: 26579456292) (type: 12, is_null: 0, data: -7705844.872739) (type: 10, is_null: 0, data: 15406674)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 10]: (type: 10, is_null: 0, data: 32392245502) (type: 12, is_null: 0, data: -8125290.678598) (type: 10, is_null: 0, data: 15616207)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -10]: (type: 10, is_null: 0, data: 27617980114) (type: 12, is_null: 0, data: -8167442.415166) (type: 10, is_null: 0, data: 14558918)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -9]: (type: 10, is_null: 0, data: 26219154051) (type: 12, is_null: 0, data: -6357887.079047) (type: 10, is_null: 0, data: 16675221)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -8]: (type: 10, is_null: 0, data: 41909547257) (type: 12, is_null: 0, data: -8253882.872738) (type: 10, is_null: 0, data: 16418262)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -7]: (type: 10, is_null: 0, data: 34351972621) (type: 12, is_null: 0, data: -7445495.260084) (type: 10, is_null: 0, data: 14582367)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -6]: (type: 10, is_null: 0, data: 32927769610) (type: 12, is_null: 0, data: -8342474.291902) (type: 10, is_null: 0, data: 16618153)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -5]: (type: 10, is_null: 0, data: 25635933837) (type: 12, is_null: 0, data: -8098758.903079) (type: 10, is_null: 0, data: 13190292)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -4]: (type: 10, is_null: 0, data: 46126366590) (type: 12, is_null: 0, data: -8187619.874856) (type: 10, is_null: 0, data: 14790111)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -3]: (type: 10, is_null: 0, data: 24096506125) (type: 12, is_null: 0, data: -7377756.021797) (type: 10, is_null: 0, data: 15993238)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -2]: (type: 10, is_null: 0, data: 35348496169) (type: 12, is_null: 0, data: -8205983.193619) (type: 10, is_null: 0, data: 16392927)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -1]: (type: 10, is_null: 0, data: 23380863381) (type: 12, is_null: 0, data: -6620358.164307) (type: 10, is_null: 0, data: 14080727)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 0]: (type: 10, is_null: 0, data: 41085020429) (type: 12, is_null: 0, data: -7609580.630100) (type: 10, is_null: 0, data: 15516220)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 1]: (type: 10, is_null: 0, data: 50270652248) (type: 12, is_null: 0, data: -6164384.255011) (type: 10, is_null: 0, data: 16755132)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 2]: (type: 10, is_null: 0, data: 23625603975) (type: 12, is_null: 0, data: -7902914.836207) (type: 10, is_null: 0, data: 15104088)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 3]: (type: 10, is_null: 0, data: 27293388262) (type: 12, is_null: 0, data: -7491719.713112) (type: 10, is_null: 0, data: 15638055)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 4]: (type: 10, is_null: 0, data: 35971676015) (type: 12, is_null: 0, data: -7907551.256861) (type: 10, is_null: 0, data: 16490268)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 5]: (type: 10, is_null: 0, data: 16192275112) (type: 12, is_null: 0, data: -1869116.958613) (type: 10, is_null: 0, data: 16701723)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 6]: (type: 10, is_null: 0, data: 32133381587) (type: 12, is_null: 0, data: -7709297.981786) (type: 10, is_null: 0, data: 14269359)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 7]: (type: 10, is_null: 0, data: 46516614595) (type: 12, is_null: 0, data: -8334428.545402) (type: 10, is_null: 0, data: 15996049)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 8]: (type: 10, is_null: 0, data: 25963983855) (type: 12, is_null: 0, data: -7300115.356663) (type: 10, is_null: 0, data: 16199514)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 9]: (type: 10, is_null: 0, data: 37377742794) (type: 12, is_null: 0, data: -5709139.663334) (type: 10, is_null: 0, data: 13173520)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 10]: (type: 10, is_null: 0, data: 9895212995) (type: 12, is_null: 0, data: -7037421.035792) (type: 10, is_null: 0, data: 14286317)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -10]: (type: 10, is_null: 0, data: 57067963684) (type: 12, is_null: 0, data: -7902003.374836) (type: 10, is_null: 0, data: 16753234)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -9]: (type: 10, is_null: 0, data: 20467971379) (type: 12, is_null: 0, data: -6926687.212906) (type: 10, is_null: 0, data: 13157779)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -8]: (type: 10, is_null: 0, data: 25638290210) (type: 12, is_null: 0, data: -7825801.729832) (type: 10, is_null: 0, data: 16696826)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -7]: (type: 10, is_null: 0, data: 21086953454) (type: 12, is_null: 0, data: -3057053.820998) (type: 10, is_null: 0, data: 16284028)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -6]: (type: 10, is_null: 0, data: 24108119179) (type: 12, is_null: 0, data: -5857184.071909) (type: 10, is_null: 0, data: 16722573)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -5]: (type: 10, is_null: 0, data: 23279876159) (type: 12, is_null: 0, data: -7863024.744788) (type: 10, is_null: 0, data: 14812143)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -4]: (type: 10, is_null: 0, data: 25902050246) (type: 12, is_null: 0, data: -8197046.108588) (type: 10, is_null: 0, data: 16702725)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -3]: (type: 10, is_null: 0, data: 32003125920) (type: 12, is_null: 0, data: -6860845.358973) (type: 10, is_null: 0, data: 16276380)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -2]: (type: 10, is_null: 0, data: 17038393075) (type: 12, is_null: 0, data: -6394592.662148) (type: 10, is_null: 0, data: 14925508)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -1]: (type: 10, is_null: 0, data: 25582492179) (type: 12, is_null: 0, data: -8209556.683226) (type: 10, is_null: 0, data: 13580414)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 0]: (type: 10, is_null: 0, data: 23998285540) (type: 12, is_null: 0, data: -7131121.004691) (type: 10, is_null: 0, data: 14882316)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 1]: (type: 10, is_null: 0, data: 20059537963) (type: 12, is_null: 0, data: -7145859.667449) (type: 10, is_null: 0, data: 16436976)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 2]: (type: 10, is_null: 0, data: 50984738217) (type: 12, is_null: 0, data: -6802678.695358) (type: 10, is_null: 0, data: 16681188)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 3]: (type: 10, is_null: 0, data: 12896274298) (type: 12, is_null: 0, data: -3993003.485452) (type: 10, is_null: 0, data: 12579651)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 4]: (type: 10, is_null: 0, data: 37802587586) (type: 12, is_null: 0, data: -7918121.181047) (type: 10, is_null: 0, data: 15982595)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 5]: (type: 10, is_null: 0, data: 18007515798) (type: 12, is_null: 0, data: -6744313.913562) (type: 10, is_null: 0, data: 13216630)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 6]: (type: 10, is_null: 0, data: 24331662004) (type: 12, is_null: 0, data: -7656341.238635) (type: 10, is_null: 0, data: 15702028)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 7]: (type: 10, is_null: 0, data: 42271072396) (type: 12, is_null: 0, data: -8176156.036264) (type: 10, is_null: 0, data: 16472967)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 8]: (type: 10, is_null: 0, data: 31093318918) (type: 12, is_null: 0, data: -7743808.852109) (type: 10, is_null: 0, data: 15732016)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 9]: (type: 10, is_null: 0, data: 24496002700) (type: 12, is_null: 0, data: -2785750.348825) (type: 10, is_null: 0, data: 14456936)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 10]: (type: 10, is_null: 0, data: 15545991013) (type: 12, is_null: 0, data: -7996595.900601) (type: 10, is_null: 0, data: 14722657)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -10]: (type: 10, is_null: 0, data: 28775725904) (type: 12, is_null: 0, data: -7835112.681941) (type: 10, is_null: 0, data: 16752285)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -9]: (type: 10, is_null: 0, data: 30070174654) (type: 12, is_null: 0, data: -6236922.370062) (type: 10, is_null: 0, data: 15397148)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -8]: (type: 10, is_null: 0, data: 26121683550) (type: 12, is_null: 0, data: -8149210.444390) (type: 10, is_null: 0, data: 14031498)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -7]: (type: 10, is_null: 0, data: 11007662774) (type: 12, is_null: 0, data: -7261545.606406) (type: 10, is_null: 0, data: 16434255)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -6]: (type: 10, is_null: 0, data: 12460233609) (type: 12, is_null: 0, data: -4918998.214584) (type: 10, is_null: 0, data: 14631501)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -5]: (type: 10, is_null: 0, data: 29361375347) (type: 12, is_null: 0, data: -8200135.732674) (type: 10, is_null: 0, data: 16040082)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -4]: (type: 10, is_null: 0, data: 36160224521) (type: 12, is_null: 0, data: -8078960.683035) (type: 10, is_null: 0, data: 16398274)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -3]: (type: 10, is_null: 0, data: 29515718029) (type: 12, is_null: 0, data: -8037449.910332) (type: 10, is_null: 0, data: 15445986)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -2]: (type: 10, is_null: 0, data: 34183461112) (type: 12, is_null: 0, data: -6052588.462031) (type: 10, is_null: 0, data: 15510611)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: -1]: (type: 10, is_null: 0, data: 38739333921) (type: 12, is_null: 0, data: -3068073.460151) (type: 10, is_null: 0, data: 15174835)
+[{"group_12":"GROUPxxx_1","group_3":0,"agg_0":27240458800,"agg_1":-7891782.189155,"agg_2":15724990}
+,{"group_12":"GROUPxxx_1","group_3":1,"agg_0":18914601411,"agg_1":-7320498.585482,"agg_2":15419427}
+,{"group_12":"GROUPxxx_1","group_3":2,"agg_0":22037351218,"agg_1":-7533697.201609,"agg_2":15973779}
+,{"group_12":"GROUPxxx_1","group_3":3,"agg_0":32432082968,"agg_1":-6991668.973914,"agg_2":13903576}
+,{"group_12":"GROUPxxx_1","group_3":4,"agg_0":31576854843,"agg_1":-7860843.810773,"agg_2":13865452}
+,{"group_12":"GROUPxxx_1","group_3":5,"agg_0":38517688025,"agg_1":-7847476.510406,"agg_2":13486843}
+,{"group_12":"GROUPxxx_1","group_3":6,"agg_0":32255134695,"agg_1":-7899034.908636,"agg_2":14121284}
+,{"group_12":"GROUPxxx_1","group_3":7,"agg_0":34447699222,"agg_1":-8029429.124135,"agg_2":15066597}
+,{"group_12":"GROUPxxx_1","group_3":8,"agg_0":46711984788,"agg_1":-7779962.166529,"agg_2":16742783}
+,{"group_12":"GROUPxxx_1","group_3":9,"agg_0":44930856221,"agg_1":-7879030.821656,"agg_2":15784088}
+,{"group_12":"GROUPxxx_1","group_3":10,"agg_0":14406302667,"agg_1":-7857647.867557,"agg_2":16721778}
+,{"group_12":"GROUPxxx_1","group_3":-10,"agg_0":20389413452,"agg_1":-5537151.503334,"agg_2":12497470}
+,{"group_12":"GROUPxxx_1","group_3":-9,"agg_0":43774982754,"agg_1":-6567357.173047,"agg_2":16493265}
+,{"group_12":"GROUPxxx_1","group_3":-8,"agg_0":29186958751,"agg_1":-6975641.692218,"agg_2":16611942}
+,{"group_12":"GROUPxxx_1","group_3":-7,"agg_0":18661252686,"agg_1":-4344219.627697,"agg_2":16352486}
+,{"group_12":"GROUPxxx_1","group_3":-6,"agg_0":23659273345,"agg_1":-7356948.994305,"agg_2":16153178}
+,{"group_12":"GROUPxxx_1","group_3":-5,"agg_0":14746396594,"agg_1":-7549947.034560,"agg_2":16470061}
+,{"group_12":"GROUPxxx_1","group_3":-4,"agg_0":21490057187,"agg_1":-5158417.839277,"agg_2":16738982}
+,{"group_12":"GROUPxxx_1","group_3":-3,"agg_0":37205131629,"agg_1":-5356282.514346,"agg_2":16192923}
+,{"group_12":"GROUPxxx_1","group_3":-2,"agg_0":15437654118,"agg_1":-8280936.091280,"agg_2":12205873}
+,{"group_12":"GROUPxxx_1","group_3":-1,"agg_0":25349508351,"agg_1":-5770311.042215,"agg_2":16412281}
+,{"group_12":"GROUPxxx_2","group_3":0,"agg_0":48241970857,"agg_1":-8109191.714092,"agg_2":16297532}
+,{"group_12":"GROUPxxx_2","group_3":1,"agg_0":18872079256,"agg_1":-4133983.653664,"agg_2":14895239}
+,{"group_12":"GROUPxxx_2","group_3":2,"agg_0":23242578731,"agg_1":-7850671.478286,"agg_2":16291693}
+,{"group_12":"GROUPxxx_2","group_3":3,"agg_0":24092567427,"agg_1":-6764259.275114,"agg_2":15538231}
+,{"group_12":"GROUPxxx_2","group_3":4,"agg_0":24931968972,"agg_1":-7425005.348942,"agg_2":16503324}
+,{"group_12":"GROUPxxx_2","group_3":5,"agg_0":33468936892,"agg_1":-7105520.501927,"agg_2":15780630}
+,{"group_12":"GROUPxxx_2","group_3":6,"agg_0":14039762772,"agg_1":-8035078.358160,"agg_2":16691193}
+,{"group_12":"GROUPxxx_2","group_3":7,"agg_0":30496758747,"agg_1":-7570564.776284,"agg_2":14635612}
+,{"group_12":"GROUPxxx_2","group_3":8,"agg_0":36552230703,"agg_1":-7409745.227307,"agg_2":16095700}
+,{"group_12":"GROUPxxx_2","group_3":9,"agg_0":26579456292,"agg_1":-7705844.872739,"agg_2":15406674}
+,{"group_12":"GROUPxxx_2","group_3":10,"agg_0":32392245502,"agg_1":-8125290.678598,"agg_2":15616207}
+,{"group_12":"GROUPxxx_2","group_3":-10,"agg_0":27617980114,"agg_1":-8167442.415166,"agg_2":14558918}
+,{"group_12":"GROUPxxx_2","group_3":-9,"agg_0":26219154051,"agg_1":-6357887.079047,"agg_2":16675221}
+,{"group_12":"GROUPxxx_2","group_3":-8,"agg_0":41909547257,"agg_1":-8253882.872738,"agg_2":16418262}
+,{"group_12":"GROUPxxx_2","group_3":-7,"agg_0":34351972621,"agg_1":-7445495.260084,"agg_2":14582367}
+,{"group_12":"GROUPxxx_2","group_3":-6,"agg_0":32927769610,"agg_1":-8342474.291902,"agg_2":16618153}
+,{"group_12":"GROUPxxx_2","group_3":-5,"agg_0":25635933837,"agg_1":-8098758.903079,"agg_2":13190292}
+,{"group_12":"GROUPxxx_2","group_3":-4,"agg_0":46126366590,"agg_1":-8187619.874856,"agg_2":14790111}
+,{"group_12":"GROUPxxx_2","group_3":-3,"agg_0":24096506125,"agg_1":-7377756.021797,"agg_2":15993238}
+,{"group_12":"GROUPxxx_2","group_3":-2,"agg_0":35348496169,"agg_1":-8205983.193619,"agg_2":16392927}
+,{"group_12":"GROUPxxx_2","group_3":-1,"agg_0":23380863381,"agg_1":-6620358.164307,"agg_2":14080727}
+,{"group_12":"GROUPxxx_3","group_3":0,"agg_0":41085020429,"agg_1":-7609580.630100,"agg_2":15516220}
+,{"group_12":"GROUPxxx_3","group_3":1,"agg_0":50270652248,"agg_1":-6164384.255011,"agg_2":16755132}
+,{"group_12":"GROUPxxx_3","group_3":2,"agg_0":23625603975,"agg_1":-7902914.836207,"agg_2":15104088}
+,{"group_12":"GROUPxxx_3","group_3":3,"agg_0":27293388262,"agg_1":-7491719.713112,"agg_2":15638055}
+,{"group_12":"GROUPxxx_3","group_3":4,"agg_0":35971676015,"agg_1":-7907551.256861,"agg_2":16490268}
+,{"group_12":"GROUPxxx_3","group_3":5,"agg_0":16192275112,"agg_1":-1869116.958613,"agg_2":16701723}
+,{"group_12":"GROUPxxx_3","group_3":6,"agg_0":32133381587,"agg_1":-7709297.981786,"agg_2":14269359}
+,{"group_12":"GROUPxxx_3","group_3":7,"agg_0":46516614595,"agg_1":-8334428.545402,"agg_2":15996049}
+,{"group_12":"GROUPxxx_3","group_3":8,"agg_0":25963983855,"agg_1":-7300115.356663,"agg_2":16199514}
+,{"group_12":"GROUPxxx_3","group_3":9,"agg_0":37377742794,"agg_1":-5709139.663334,"agg_2":13173520}
+,{"group_12":"GROUPxxx_3","group_3":10,"agg_0":9895212995,"agg_1":-7037421.035792,"agg_2":14286317}
+,{"group_12":"GROUPxxx_3","group_3":-10,"agg_0":57067963684,"agg_1":-7902003.374836,"agg_2":16753234}
+,{"group_12":"GROUPxxx_3","group_3":-9,"agg_0":20467971379,"agg_1":-6926687.212906,"agg_2":13157779}
+,{"group_12":"GROUPxxx_3","group_3":-8,"agg_0":25638290210,"agg_1":-7825801.729832,"agg_2":16696826}
+,{"group_12":"GROUPxxx_3","group_3":-7,"agg_0":21086953454,"agg_1":-3057053.820998,"agg_2":16284028}
+,{"group_12":"GROUPxxx_3","group_3":-6,"agg_0":24108119179,"agg_1":-5857184.071909,"agg_2":16722573}
+,{"group_12":"GROUPxxx_3","group_3":-5,"agg_0":23279876159,"agg_1":-7863024.744788,"agg_2":14812143}
+,{"group_12":"GROUPxxx_3","group_3":-4,"agg_0":25902050246,"agg_1":-8197046.108588,"agg_2":16702725}
+,{"group_12":"GROUPxxx_3","group_3":-3,"agg_0":32003125920,"agg_1":-6860845.358973,"agg_2":16276380}
+,{"group_12":"GROUPxxx_3","group_3":-2,"agg_0":17038393075,"agg_1":-6394592.662148,"agg_2":14925508}
+,{"group_12":"GROUPxxx_3","group_3":-1,"agg_0":25582492179,"agg_1":-8209556.683226,"agg_2":13580414}
+,{"group_12":"GROUPxxx_4","group_3":0,"agg_0":23998285540,"agg_1":-7131121.004691,"agg_2":14882316}
+,{"group_12":"GROUPxxx_4","group_3":1,"agg_0":20059537963,"agg_1":-7145859.667449,"agg_2":16436976}
+,{"group_12":"GROUPxxx_4","group_3":2,"agg_0":50984738217,"agg_1":-6802678.695358,"agg_2":16681188}
+,{"group_12":"GROUPxxx_4","group_3":3,"agg_0":12896274298,"agg_1":-3993003.485452,"agg_2":12579651}
+,{"group_12":"GROUPxxx_4","group_3":4,"agg_0":37802587586,"agg_1":-7918121.181047,"agg_2":15982595}
+,{"group_12":"GROUPxxx_4","group_3":5,"agg_0":18007515798,"agg_1":-6744313.913562,"agg_2":13216630}
+,{"group_12":"GROUPxxx_4","group_3":6,"agg_0":24331662004,"agg_1":-7656341.238635,"agg_2":15702028}
+,{"group_12":"GROUPxxx_4","group_3":7,"agg_0":42271072396,"agg_1":-8176156.036264,"agg_2":16472967}
+,{"group_12":"GROUPxxx_4","group_3":8,"agg_0":31093318918,"agg_1":-7743808.852109,"agg_2":15732016}
+,{"group_12":"GROUPxxx_4","group_3":9,"agg_0":24496002700,"agg_1":-2785750.348825,"agg_2":14456936}
+,{"group_12":"GROUPxxx_4","group_3":10,"agg_0":15545991013,"agg_1":-7996595.900601,"agg_2":14722657}
+,{"group_12":"GROUPxxx_4","group_3":-10,"agg_0":28775725904,"agg_1":-7835112.681941,"agg_2":16752285}
+,{"group_12":"GROUPxxx_4","group_3":-9,"agg_0":30070174654,"agg_1":-6236922.370062,"agg_2":15397148}
+,{"group_12":"GROUPxxx_4","group_3":-8,"agg_0":26121683550,"agg_1":-8149210.444390,"agg_2":14031498}
+,{"group_12":"GROUPxxx_4","group_3":-7,"agg_0":11007662774,"agg_1":-7261545.606406,"agg_2":16434255}
+,{"group_12":"GROUPxxx_4","group_3":-6,"agg_0":12460233609,"agg_1":-4918998.214584,"agg_2":14631501}
+,{"group_12":"GROUPxxx_4","group_3":-5,"agg_0":29361375347,"agg_1":-8200135.732674,"agg_2":16040082}
+,{"group_12":"GROUPxxx_4","group_3":-4,"agg_0":36160224521,"agg_1":-8078960.683035,"agg_2":16398274}
+,{"group_12":"GROUPxxx_4","group_3":-3,"agg_0":29515718029,"agg_1":-8037449.910332,"agg_2":15445986}
+,{"group_12":"GROUPxxx_4","group_3":-2,"agg_0":34183461112,"agg_1":-6052588.462031,"agg_2":15510611}
+,{"group_12":"GROUPxxx_4","group_3":-1,"agg_0":38739333921,"agg_1":-3068073.460151,"agg_2":15174835}
+]
 Table scan aggregation Success!
 
 2. INDEX SCAN:
