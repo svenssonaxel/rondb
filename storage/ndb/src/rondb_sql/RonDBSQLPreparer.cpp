@@ -35,6 +35,7 @@ using std::endl;
 
 static const char* interval_type_name(int interval_type);
 static char* c_str(LexString src, ArenaAllocator* allocator);
+static void print_json_string(std::basic_ostream<char>& out, const char* str);
 
 RonDBSQLPreparer::RonDBSQLPreparer(char* sql_buffer,
                                  size_t sql_len,
@@ -666,36 +667,42 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
 void
 RonDBSQLPreparer::print_result(NdbAggregator* aggregator, std::basic_ostream<char>& out)
 {
+  cout << '[';
+  bool first_record = true;
   for (NdbAggregator::ResultRecord record = aggregator->FetchResultRecord();
        !record.end();
        record = aggregator->FetchResultRecord())
   {
+    if (first_record) first_record = false; else out << ',';
+    cout << '{';
+    bool first_column = true;
     for (NdbAggregator::Column column = record.FetchGroupbyColumn();
          !column.end();
          column = record.FetchGroupbyColumn())
     {
-      out << "group [id: " << column.id() <<
-        ", type: " << column.type() <<
-        ", byte_size: " << column.byte_size() <<
-        ", is_null: " << column.is_null() <<
-        ", data: ";
+      if (first_column) first_column = false; else out << ',';
+      out << "\"group_" << column.id() << "\":";
       if (column.type() == 15)
       {
-        out << &column.data()[1];
+        print_json_string(out, &column.data()[1]);
       }
       else
       {
         out << column.data_medium();
       }
-      out << "]:";
     }
+    int aggidx = 0;
     for (NdbAggregator::Result result = record.FetchAggregationResult();
          !result.end();
          result = record.FetchAggregationResult())
     {
-      out << " (type: " << result.type() <<
-        ", is_null: " << result.is_null() <<
-        ", data: ";
+      if (first_column) first_column = false; else out << ',';
+      out << "\"agg_" << aggidx++ << "\":";
+      if(result.is_null())
+      {
+        out << "null";
+        continue;
+      }
       switch (result.type())
       {
       case NdbDictionary::Column::Bigint:
@@ -708,16 +715,37 @@ RonDBSQLPreparer::print_result(NdbAggregator* aggregator, std::basic_ostream<cha
         out << std::fixed << std::setprecision(6) << result.data_double();
         break;
       case NdbDictionary::Column::Undefined:
-        // Aggregation on empty table or all rows are filtered out.
-        out << result.data_int64();
+        // Already handled above
+        assert(0);
         break;
       default:
         assert(0);
       }
-      out << ")";
     }
-    out << endl;
+    out << '}' << endl;
   }
+  out << ']' << endl;
+}
+
+static void
+print_json_string(std::basic_ostream<char>& out, const char* str)
+{
+  out << '"';
+  for (; *str != '\0'; str++)
+  {
+    char c = *str;
+    switch (c)
+    {
+    case '"':
+      out << "\\\"";
+      break;
+    // todo better handling, perhaps even UTF-8 validation
+    default:
+      out << c;
+      break;
+    }
+  }
+  out << '"';
 }
 
 bool
