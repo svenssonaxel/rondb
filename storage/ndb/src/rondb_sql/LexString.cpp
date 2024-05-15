@@ -24,12 +24,28 @@
 
 #include "LexString.hpp"
 
+/*
+ * LexString is a pointer and length representation of a string. LexCString is
+ * the same, except it also guarantees the presence of a terminating NUL byte.
+ * Note that the length is that of the contents in both cases, not including
+ * the terminating NUL.
+ */
+
+LexString::LexString(const char* str, size_t len):
+  str(str),
+  len(len)
+{}
+LexString::LexString(const LexCString& other):
+  str(other.str),
+  len(other.len)
+{}
+
 std::ostream&
 operator<< (std::ostream& os, const LexString& ls)
 {
   os.write(ls.str, ls.len);
   return os;
-};
+}
 
 /*
  * Byte by byte comparison. This can still return false for two equivalent UTF-8
@@ -55,28 +71,59 @@ LexString::operator== (const LexString& other) const
   if (len == 0) return true;
   return memcmp(str, other.str, len) == 0;
 }
+bool
+LexCString::operator== (const LexCString& other) const
+{
+  if (len != other.len) return false;
+  if (len == 0) return true;
+  return memcmp(str, other.str, len) == 0;
+}
 
 /*
  * Return a concatenation of two LexStrings. The lifetime of the returned
  * LexString will end when the lifetime of either argument or the allocator
-  * ends.
+ * ends.
  */
 LexString
-LexString::concat(const LexString other, ArenaAllocator* allocator)
+LexString::concat(const LexString other, ArenaAllocator* allocator) const
 {
-  if (this->str == NULL)
+  if (this->str == NULL || this->len == 0)
   {
-    assert(this->len == 0);
+    assert(this->str == NULL && this->len == 0);
     return other;
   }
   size_t concatenated_len = this->len + other.len;
   // It's possible that concatenated_str == this->str. The lifetime of the
   // returned LexString will end when the lifetime of either argument or the
   // allocator ends.
-  char* concatenated_str = (char*)allocator->realloc(this->str,
-                                                     concatenated_len,
-                                                     this->len);
-  memcpy(concatenated_str, this->str, this->len);
+  char* concatenated_str = static_cast<char*>
+    (allocator->realloc(this->str, concatenated_len, this->len));
   memcpy(&concatenated_str[this->len], other.str, other.len);
   return LexString{concatenated_str, concatenated_len};
+}
+
+/*
+ * Convert to LexCString, the lifetime of which will end when the lifetime of
+ * the LexString or the allocator ends.
+ *
+ * WARNING: The LexString must not contain a NUL byte.
+ */
+LexCString
+LexString::to_LexCString(ArenaAllocator* allocator) const
+{
+  if (this->str == NULL || this->len == 0)
+  {
+    assert(this->str == NULL && this->len == 0);
+    return LexCString{ NULL, 0 };
+  }
+  char* c_str = static_cast<char*>
+    (allocator->realloc(this->str, this->len + 1, this->len));
+  c_str[this->len] = '\0';
+  return LexCString{ c_str, this->len };
+}
+
+const char*
+LexCString::c_str() const
+{
+  return this->str;
 }

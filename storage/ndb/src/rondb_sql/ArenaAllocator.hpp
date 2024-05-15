@@ -41,7 +41,6 @@ private:
    */
   static const size_t DEFAULT_PAGE_SIZE = 256;
   static const size_t INITIAL_PAGE_SIZE = 80;
-  static const size_t INITIAL_LOOP_BUFFER = 128;
   size_t m_page_data_size = DEFAULT_PAGE_SIZE;
   struct Page
   {
@@ -58,17 +57,11 @@ private:
   unsigned long int m_allocated_by_user = 0;
 # endif
   byte m_initial_stack_allocated_page[INITIAL_PAGE_SIZE];
-  byte m_initial_loop_buffer[INITIAL_LOOP_BUFFER];
-  void* m_loop_buffer = NULL;
-  size_t m_loop_buffer_size = INITIAL_LOOP_BUFFER;
-  bool m_loop_buffer_is_external = false;
 public:
   ArenaAllocator();
   ~ArenaAllocator();
   void* alloc(size_t size);
   void* realloc(const void* ptr, size_t size, size_t original_size);
-  void* get_loop_buffer();
-  void set_loop_buffer_size(size_t new_size);
 };
 
 #endif

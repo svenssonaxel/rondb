@@ -18,11 +18,11 @@ SELECT
 FROM api_scan
 WHERE
 =
-+- CTINYINT
++- `CTINYINT`
 \- 66
 GROUP BY
-  C4:`CCHAR`
-  C5:`CMEDIUMINT`
+  C5:`CCHAR`
+  C6:`CMEDIUMINT`
 
 Aggregation program (8 instructions):
 Instr. DEST SRC DESCRIPTION

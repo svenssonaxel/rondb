@@ -98,6 +98,10 @@
 #include <ArenaAllocator.hpp>
 // #include <AttributeHeader.hpp>
 
+using std::cout;
+using std::cerr;
+using std::endl;
+
 /**
  * Helper sleep function
  */
@@ -114,9 +118,9 @@ milliSleep(int milliseconds){
  * Helper debugging macros
  */
 #define PRINT_ERROR(code,msg) \
-  std::cout << "Error in " << __FILE__ << ", line: " << __LINE__ \
+  cout << "Error in " << __FILE__ << ", line: " << __LINE__ \
   << ", code: " << code \
-  << ", msg: " << msg << "." << std::endl
+  << ", msg: " << msg << "." << endl
 #define MYSQLERROR(mysql) { \
   PRINT_ERROR(mysql_errno(&mysql),mysql_error(&mysql)); \
   exit(-1); }
@@ -170,8 +174,8 @@ void create_table(MYSQL &mysql)
   {
     if (mysql_errno(&mysql) != ER_TABLE_EXISTS_ERROR)
       MYSQLERROR(mysql);
-    std::cout << "MySQL Cluster already has example table: api_scan. "
-      << "Dropping it..." << std::endl; 
+    cout << "MySQL Cluster already has example table: api_scan. "
+      << "Dropping it..." << endl; 
     drop_table(mysql);
   }
 
@@ -327,7 +331,7 @@ int populate(Ndb * myNdb)
 
   int check = myTrans->execute(NdbTransaction::Commit);
   if (check != 0) {
-    std::cout <<  myTrans->getNdbError().message << std::endl;
+    cout <<  myTrans->getNdbError().message << endl;
   }
 
   myTrans->close();
@@ -337,163 +341,65 @@ int populate(Ndb * myNdb)
 
 int scan_aggregation(Ndb * myNdb)
 {
-  // Scan all records exclusive and update
-  // them one by one
-  int                  retryAttempt = 0;
-  const int            retryMax = 10;
-  NdbError              err;
-  NdbTransaction	*myTrans;
-  NdbScanOperation	*myScanOp;
-
-  const NdbDictionary::Dictionary* myDict= myNdb->getDictionary();
-
-  /**
-   * Loop as long as :
-   *  retryMax not reached
-   *  failed operations due to TEMPORARY errors
-   *
-   * Exit loop;
-   *  retyrMax reached
-   *  Permanent error (return -1)
-   */
+  // Prepare query
+  ArenaAllocator aalloc;
+  const char* sql_query =
+    "SELECT sum(CUBIGINT+CUTINYINT)\n"
+    "     , min(CDOUBLE)\n"
+    "     , max(CUMEDIUMINT)\n"
+    "FROM api_scan\n"
+    "WHERE CTINYINT = 66\n"
+    "GROUP BY CCHAR\n"
+    "       , CMEDIUMINT;";
+  cout << sql_query << endl;
+  uint sql_query_len = strlen(sql_query);
+  char* parse_str = static_cast<char*>(aalloc.alloc((sql_query_len+2) * sizeof(char)));
+  size_t parse_len = (sql_query_len+2) * sizeof(char);
+  memcpy(parse_str, sql_query, sql_query_len);
+  parse_str[sql_query_len] = '\0';
+  parse_str[sql_query_len+1] = '\0';
+  ExecutionParameters params;
+  params.sql_buffer = parse_str;
+  params.sql_len = parse_len;
+  params.aalloc = &aalloc;
+  params.ndb = myNdb;
+  params.data_output_stream = &cout;
+  params.data_output_format = ExecutionParameters::QueryOutputFormat::JSON;
+  params.explain_output_stream = &cout;
+  params.err_output_stream = &cout;
+  // Explain and execute query
+  int retryAttempt = 0;
+  const int retryMax = 10;
   while (true)
   {
 
     if (retryAttempt >= retryMax)
     {
-      std::cout << "ERROR: has retried this operation " << retryAttempt 
-        << " times, failing!" << std::endl;
+      cout << "ERROR: has retried this operation " << retryAttempt
+        << " times, failing!" << endl;
       return -1;
     }
-
-    myTrans = myNdb->startTransaction();
-    if (myTrans == NULL) 
-    {
-      const NdbError err = myNdb->getNdbError();
-
-      if (err.status == NdbError::TemporaryError)
-      {
-        milliSleep(50);
-        retryAttempt++;
-        continue;
-      }
-      std::cout << err.message << std::endl;
-      return -1;
-    }
-
     try
     {
-      // Prepare query
-      ArenaAllocator aalloc;
-      const char* sql_query =
-        "SELECT sum(CUBIGINT+CUTINYINT)\n"
-        "     , min(CDOUBLE)\n"
-        "     , max(CUMEDIUMINT)\n"
-        "FROM api_scan\n"
-        "WHERE CTINYINT = 66\n"
-        "GROUP BY CCHAR\n"
-        "       , CMEDIUMINT;";
-      printf("%s\n", sql_query);
-      uint sql_query_len = strlen(sql_query);
-      char* parse_str = static_cast<char*>(aalloc.alloc((sql_query_len+2) * sizeof(char)));
-      size_t parse_len = (sql_query_len+2) * sizeof(char);
-      memcpy(parse_str, sql_query, sql_query_len);
-      parse_str[sql_query_len] = '\0';
-      parse_str[sql_query_len+1] = '\0';
-      RonDBSQLPreparer prepare(parse_str, parse_len, &aalloc);
-      if (!prepare.parse())
-      {
-        printf("Failed to parse.\n");
-        return -1;
-      }
-      if (!prepare.load())
-      {
-        printf("Failed to load.\n");
-        return -1;
-      }
-      if (!prepare.compile())
-      {
-        printf("Failed to compile.\n");
-        return -1;
-      }
-      if (!prepare.print())
-      {
-        printf("Failed to print.\n");
-        return -1;
-      }
-      // Get table
-      const NdbDictionary::Table* myTable = prepare.get_table(myDict);
-      if (myTable == NULL)
-        APIERROR(myDict->getNdbError());
-
-      /*
-       * Define a scan operation. 
-       * NDBAPI.
-       */
-      myScanOp = myTrans->getNdbScanOperation(myTable);	
-      if (myScanOp == NULL) 
-      {
-        std::cout << myTrans->getNdbError().message << std::endl;
-        myNdb->closeTransaction(myTrans);
-        return -1;
-      }
-
-      if (myScanOp->readTuples(NdbOperation::LM_CommittedRead) != 0) {
-        APIERROR (myTrans->getNdbError());
-      }
-
-      NdbScanFilter filter(myScanOp);
-      if (!prepare.applyFilter(&filter, myTable))
-      {
-        printf("Failed to apply filter.\n");
-        std::cout <<  myTrans->getNdbError().message << std::endl;
-        myNdb->closeTransaction(myTrans);
-        return -1;
-      }
-
-      /*
-       * Define an aggregator
-       */
-      NdbAggregator aggregator(myTable);
-
-      if (!prepare.programAggregator(&aggregator))
-      {
-        printf("Failed to program aggregator.\n");
-        return -1;
-      }
-
-      assert(aggregator.Finalize());
-      if (myScanOp->setAggregationCode(&aggregator) == -1) {
-        std::cout << myTrans->getNdbError().message << std::endl;
-        myNdb->closeTransaction(myTrans);
-        return -1;
-      }
-
-      if (myScanOp->DoAggregation() == -1) {
-        err = myTrans->getNdbError();
-        if(err.status == NdbError::TemporaryError) {
-          std::cout << myTrans->getNdbError().message << std::endl;
-          myNdb->closeTransaction(myTrans);
-          milliSleep(50);
-          continue;
-        }
-        std::cout << "DoAggregation failed: " << err.message << std::endl;
-        myNdb->closeTransaction(myTrans);
-        return -1;
-      }
-
-      printf("---FINAL RESULT---\n");
-      // aggregator.Print();
-      prepare.print_result(&aggregator, std::cout);
-      std::cout.flush();
-
-      myNdb->closeTransaction(myTrans);
+      params.mode = ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE;
+      RonDBSQLPreparer explainer(params);
+      explainer.execute();
+      cout << "---FINAL RESULT---" << endl;
+      params.mode = ExecutionParameters::ExecutionMode::QUERY_OVERRIDE;
+      RonDBSQLPreparer executor(params);
+      executor.execute();
       return 1;
     }
-    // todoas catch temporary errors
+    catch (RonDBSQLPreparer::TemporaryError& e)
+    {
+      cerr << "Caught temporary error: " << e.what() << endl;
+      milliSleep(50);
+      retryAttempt++;
+      continue;
+    }
     catch (std::runtime_error& e)
     {
-      printf("Caught exception: %s\n", e.what());
+      cerr << "Caught exception: " << e.what() << endl;
       return -1;
     }
   }
@@ -549,7 +455,7 @@ int scan_index_aggregation(Ndb *myNdb) {
   if (filter.begin(NdbScanFilter::AND) < 0  ||
       filter.cmp(NdbScanFilter::COND_EQ, 1, &val, sizeof(val)) < 0 ||
       filter.end() < 0) {
-    std::cout <<  myTrans->getNdbError().message << std::endl;
+    cout <<  myTrans->getNdbError().message << endl;
     myNdb->closeTransaction(myTrans);
     return -1;
   }
@@ -575,7 +481,7 @@ int scan_index_aggregation(Ndb *myNdb) {
 
   assert(aggregator.Finalize());
   if (myIndexScanOp->setAggregationCode(&aggregator) == -1) {
-    std::cout << myTrans->getNdbError().message << std::endl;
+    cout << myTrans->getNdbError().message << endl;
     myNdb->closeTransaction(myTrans);
     return -1;
   }
@@ -583,27 +489,27 @@ int scan_index_aggregation(Ndb *myNdb) {
   NdbError err;
   if (myIndexScanOp->DoAggregation() == -1) {
     err = myTrans->getNdbError();
-    std::cout << "DoAggregation failed: " << err.message << std::endl;
+    cout << "DoAggregation failed: " << err.message << endl;
     myNdb->closeTransaction(myTrans);
     return -1;
   }
 
-  fprintf(stderr, "---FINAL RESULT---\n");
+  cerr << "---FINAL RESULT---" << endl;
   NdbAggregator::ResultRecord record = aggregator.FetchResultRecord();
   while (!record.end()) {
     NdbAggregator::Column column = record.FetchGroupbyColumn();
     int n = 0;
     while (!column.end()) {
       if (n == 0) {
-      fprintf(stderr,
-          "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %s]:",
-          column.id(), column.type(), column.byte_size(),
-          column.is_null(), &column.data()[1]);
+        cerr << "group [id: " << column.id() << ", type: " << column.type()
+             << ", byte_size: " << column.byte_size()
+             << ", is_null: " << column.is_null()
+             << ", data: " << &column.data()[1] << "]:";
       } else {
-      fprintf(stderr,
-          "group [id: %u, type: %u, byte_size: %u, is_null: %u, data: %d]:",
-          column.id(), column.type(), column.byte_size(),
-          column.is_null(), column.data_medium());
+        cerr << "group [id: " << column.id() << ", type: " << column.type()
+             << ", byte_size: " << column.byte_size()
+             << ", is_null: " << column.is_null()
+             << ", data: " << column.data_medium() << "]:";
       }
       n++;
       column = record.FetchGroupbyColumn();
@@ -613,32 +519,33 @@ int scan_index_aggregation(Ndb *myNdb) {
     while (!result.end()) {
       switch (result.type()) {
         case NdbDictionary::Column::Bigint:
-          fprintf(stderr,
-              " (type: %u, is_null: %u, data: %ld)",
-              result.type(), result.is_null(), result.data_int64());
+          cerr << " (type: " << result.type()
+               << ", is_null: " << result.is_null()
+               << ", data: " << result.data_int64() << ")";
           break;
         case NdbDictionary::Column::Bigunsigned:
-          fprintf(stderr,
-              " (type: %u, is_null: %u, data: %lu)",
-              result.type(), result.is_null(), result.data_uint64());
+          cerr << " (type: " << result.type()
+               << ", is_null: " << result.is_null()
+               << ", data: " << result.data_uint64() << ")";
           break;
         case NdbDictionary::Column::Double:
-          fprintf(stderr,
-              " (type: %u, is_null: %u, data: %lf)",
-              result.type(), result.is_null(), result.data_double());
+          cerr << " (type: " << result.type()
+               << ", is_null: " << result.is_null()
+               << ", data: " << std::fixed << std::setprecision(6)
+               << result.data_double() << ")";
           break;
         case NdbDictionary::Column::Undefined:
           // Aggregation on empty table or all rows are filtered out.
-          fprintf(stderr,
-              " (type: %u, is_null: %u, data: %ld)",
-              result.type(), result.is_null(), result.data_int64());
+          cerr << " (type: " << result.type()
+               << ", is_null: " << result.is_null()
+               << ", data: " << result.data_int64() << ")";
           break;
         default:
           assert(0);
       }
       result = record.FetchAggregationResult();
     }
-    fprintf(stderr, "\n");
+    cerr << endl;
     record = aggregator.FetchResultRecord();
   }
 
@@ -672,13 +579,13 @@ void ndb_run_scan(const char * connectstring)
   Ndb_cluster_connection cluster_connection(connectstring);
   if (cluster_connection.connect(4, 5, 1))
   {
-    std::cout << "Unable to connect to cluster within 30 secs." << std::endl;
+    cout << "Unable to connect to cluster within 30 secs." << endl;
     exit(-1);
   }
   // Optionally connect and wait for the storage nodes (ndbd's)
   if (cluster_connection.wait_until_ready(30,0) < 0)
   {
-    std::cout << "Cluster was not ready within 30 secs.\n";
+    cout << "Cluster was not ready within 30 secs.\n";
     exit(-1);
   }
 
@@ -690,27 +597,28 @@ void ndb_run_scan(const char * connectstring)
 
   for (int i = 0; i < 1; i++) {
     if (populate(&myNdb) != 1) {
-      // std::cout << "populate: Failed!" << std::endl;
+      // cout << "populate: Failed!" << endl;
     }
   }
 
-  std::cout << "Intialize table and data done!" << std::endl;
+  cout << "Intialize table and data done!" << endl;
 
-  fprintf(stderr, "1. TABLE SCAN:\n");
+  cerr << "1. TABLE SCAN:" << endl;
   if(scan_aggregation(&myNdb) > 0) {
-    std::cout << "Table scan aggregation Success!" << std::endl  << std::endl;
+    cout << "Table scan aggregation Success!" << endl  << endl;
   }
 
-  fprintf(stderr, "2. INDEX SCAN:\n");
-  fprintf(stderr, "SELECT CCHAR, CMEDIUMINT, "
-                  "SUM(CUBIGINT+CUTINYINT), "
-                  "MIN(CDOUBLE), MAX(CUMEDIUMINT) "
-                  "FROM agg.api_scan "
-                  "WHERE CMEDIUMINT >= 6 AND CMEDIUMINT < 8 " // Index range scan
-                  " AND CTINYINT = 66 "                       // Filter
-                  "GROUP BY CCHAR, CMEDIUMINT;\n");
+  cerr << "2. INDEX SCAN:" << endl;
+  cerr << "SELECT CCHAR, CMEDIUMINT, "
+          "SUM(CUBIGINT+CUTINYINT), "
+          "MIN(CDOUBLE), MAX(CUMEDIUMINT) "
+          "FROM agg.api_scan "
+          "WHERE CMEDIUMINT >= 6 AND CMEDIUMINT < 8 " // Index range scan
+          " AND CTINYINT = 66 "                       // Filter
+          "GROUP BY CCHAR, CMEDIUMINT;"
+        << endl;
   if(scan_index_aggregation(&myNdb) > 0) {
-    std::cout << "Index scan aggregation Success!" << std::endl  << std::endl;
+    cout << "Index scan aggregation Success!" << endl  << endl;
   }
 }
 
@@ -718,7 +626,7 @@ int main(int argc, char** argv)
 {
   if (argc != 3)
   {
-    std::cout << "Arguments are <socket mysqld> <connect_string cluster>.\n";
+    cout << "Arguments are <socket mysqld> <connect_string cluster>.\n";
     exit(-1);
   }
   char * mysqld_sock  = argv[1];
