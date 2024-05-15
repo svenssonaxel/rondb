@@ -28,6 +28,7 @@
 #include "AggregationAPICompiler.hpp"
 #define UINT_MAX ((uint)0xffffffff)
 using std::cout;
+using std::endl;
 using std::max;
 
 AggregationAPICompiler::AggregationAPICompiler
