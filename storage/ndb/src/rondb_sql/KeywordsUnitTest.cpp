@@ -1,5 +1,8 @@
 #include "Keywords.hpp"
 
+using std::cout;
+using std::endl;
+
 int
 main()
 {
@@ -39,5 +42,5 @@ main()
       assert(strcmp(prev_word, this_word) < 0);
     }
   }
-  printf("OK\n");
+  cout << "OK" << endl;
 }

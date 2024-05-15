@@ -51,7 +51,7 @@ struct Outputs
   LexString output_name;
   union
   {
-    LexString col_name;
+    uint col_idx;
     struct
     {
       int fun;
@@ -71,7 +71,7 @@ struct ConditionalExpression
       struct ConditionalExpression* left;
       struct ConditionalExpression* right;
     } args;
-    LexString identifier;
+    uint col_idx;
     long int constant_integer;
     struct
     {
@@ -94,24 +94,68 @@ struct ConditionalExpression
 
 struct GroupbyColumns
 {
-  LexString col_name;
+  uint col_idx;
   struct GroupbyColumns* next;
 };
 
 struct OrderbyColumns
 {
-  LexString col_name;
+  uint col_idx;
   bool ascending;
   struct OrderbyColumns* next;
 };
 
 struct SelectStatement
 {
+  bool do_explain = false;
   Outputs* outputs = NULL;
-  LexString table = {NULL, 0};
+  LexCString table = { NULL, 0};
   struct ConditionalExpression* where_expression = NULL;
   struct GroupbyColumns* groupby_columns = NULL;
   struct OrderbyColumns* orderby_columns = NULL;
+};
+
+struct ExecutionParameters
+{
+  char* sql_buffer = NULL;
+  size_t sql_len = 0;
+  ArenaAllocator* aalloc;
+  Ndb* ndb = NULL;
+  enum class ExecutionMode
+  {
+    ALLOW_BOTH_QUERY_AND_EXPLAIN, // Explain if EXPLAIN keyword is present in
+                                  // SQL code, otherwise query.
+    ALLOW_QUERY_ONLY,             // Throw an exception if EXPLAIN keyword is
+                                  // present in SQL code, otherwise query.
+    ALLOW_EXPLAIN_ONLY,           // Explain if EXPLAIN keyword is present in
+                                  // SQL code, otherwise throw an exception.
+    QUERY_OVERRIDE,               // Query regardless of whether EXPLAIN keyword
+                                  // is present in SQL code.
+    EXPLAIN_OVERRIDE,             // Explain regardless of whether EXPLAIN
+                                  // keyword is present in SQL code.
+  };
+  ExecutionMode mode = ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN;
+  std::basic_ostream<char>* data_output_stream = NULL;
+  enum class QueryOutputFormat
+  {
+    CSV,
+    JSON,
+  };
+  QueryOutputFormat data_output_format = QueryOutputFormat::CSV;
+  std::basic_ostream<char>* explain_output_stream = NULL;
+  enum class ExplainOutputFormat
+  {
+    TEXT,
+    JSON,
+  };
+  ExplainOutputFormat explain_output_format = ExplainOutputFormat::TEXT;
+  std::basic_ostream<char>* err_output_stream = NULL;
+};
+
+struct Column
+{
+  LexCString name = LexCString{ NULL, 0};
+  uint col_id_in_table;
 };
 
 class RonDBSQLPreparer
@@ -136,6 +180,7 @@ public:
     TOO_LONG_UNALIASED_OUTPUT,
     PARSER_ERROR,
   };
+  class TemporaryError : public std::exception {};
   /*
    * The context class is used to expose parser internals to flex and bison code
    * without making them public.
@@ -155,46 +200,54 @@ public:
     void set_err_state(ErrState state, char* err_pos, uint err_len);
     AggregationAPICompiler* get_agg();
     ArenaAllocator* get_allocator();
+    uint column_name_to_idx(LexCString);
     SelectStatement ast_root;
   };
 private:
+  // m_conf is a value rather than a pointer to prevent the caller from altering
+  // it during the lifetime of RonDBSQLPreparer.
+  ExecutionParameters m_conf;
   enum class Status
   {
-    INITIALIZED,
-    PARSING,
-    PARSED,
-    LOADING,
-    LOADED,
-    COMPILING,
-    COMPILED,
+    BEGIN,
+    PREPARED,
     FAILED,
   };
-  Status m_status = Status::INITIALIZED;
+  Status m_status = Status::BEGIN;
   LexString m_sql = {NULL, 0};
   ArenaAllocator* m_aalloc;
   Context m_context;
-  DynamicArray<LexString> m_identifiers;
+  DynamicArray<Column> m_columns;
   yyscan_t m_scanner;
   YY_BUFFER_STATE m_buf;
   AggregationAPICompiler* m_agg = NULL;
-  uint column_name_to_idx(LexString);
-  LexString column_idx_to_name(uint);
+  LexCString column_idx_to_name(uint);
+
+  // Functions used in preparation phase
+public:
+  RonDBSQLPreparer(ExecutionParameters conf);
+private:
+  void configure();
+  void parse();
   bool has_width(uint pos);
+  void load();
+  void compile();
+
+  // Functions used in execution phase
+public:
+  void execute();
+private:
+  void applyFilter(NdbScanFilter* filter, const NdbDictionary::Table* myTable);
   bool applyFilter(NdbScanFilter* filter,
                    struct ConditionalExpression* ce,
                    const NdbDictionary::Table* myTable);
+  void programAggregator(NdbAggregator* aggregator);
+  void print_result(NdbAggregator* aggregator);
+  void print();
+  void print(struct ConditionalExpression* ce,
+             LexString prefix);
 
 public:
-  RonDBSQLPreparer(char* sql_buffer, size_t sql_len, ArenaAllocator* aalloc);
-  bool parse();
-  bool load();
-  bool compile();
-  const NdbDictionary::Table* get_table(const NdbDictionary::Dictionary* myDict);
-  bool applyFilter(NdbScanFilter* filter, const NdbDictionary::Table* myTable);
-  bool programAggregator(NdbAggregator* aggregator);
-  void print_result(NdbAggregator* aggregator, std::basic_ostream<char>& out);
-  bool print();
-  void print(struct ConditionalExpression* ce, LexString prefix);
   ~RonDBSQLPreparer();
 };
 

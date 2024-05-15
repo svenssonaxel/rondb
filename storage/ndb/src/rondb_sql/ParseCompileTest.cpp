@@ -55,37 +55,25 @@ main(int argc, char** argv)
 
   try
   {
-    RonDBSQLPreparer prepare(parse_str, parse_len, &aalloc);
-    if (!prepare.parse())
-    {
-      printf("Failed to parse.\n");
-      return 1;
-    }
-    if (!prepare.load())
-    {
-      printf("Failed to load.\n");
-      return 1;
-    }
-    if (!prepare.compile())
-    {
-      printf("Failed to compile.\n");
-      return 1;
-    }
-    if (!prepare.print())
-    {
-      printf("Failed to print.\n");
-      return 1;
-    }
+    struct ExecutionParameters params;
+    params.sql_buffer = parse_str;
+    params.sql_len = parse_len;
+    params.aalloc = &aalloc;
+    params.mode = ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE;
+    params.explain_output_stream = &std::cout;
+    params.err_output_stream = &cout;
+    RonDBSQLPreparer preparer(params);
+    preparer.execute();
   }
   catch (std::runtime_error& e)
   {
-    printf("Caught exception: %s\n", e.what());
+    cout << "Error: " << e.what() << endl;
     return 1;
   }
 
   if (argc == 1)
   {
-    printf("Usage: %s SQL_QUERY_1 [ SQL_QUERY_2 ... ]\n", argv[0]);
+    cout << "Usage: " << argv[0] << " SQL_QUERY_1 [ SQL_QUERY_2 ... ]" << endl;
   }
 
   return 0;

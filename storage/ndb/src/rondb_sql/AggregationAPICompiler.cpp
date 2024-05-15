@@ -23,20 +23,22 @@
 */
 
 #include <iostream>
+#include "define_formatter.hpp"
 #include <assert.h>
 #include <cstring>
 #include "AggregationAPICompiler.hpp"
 #define UINT_MAX ((uint)0xffffffff)
-using std::cout;
 using std::endl;
 using std::max;
 
 AggregationAPICompiler::AggregationAPICompiler
-    (std::function<int(LexString)> column_name_to_idx,
-     std::function<LexString(int)> column_idx_to_name,
+    (std::function<const char*(uint)> column_idx_to_name,
+     std::basic_ostream<char>& out,
+     std::basic_ostream<char>& err,
      ArenaAllocator* aalloc):
+  m_out(out),
+  m_err(err),
   m_aalloc(aalloc),
-  m_column_name_to_idx(column_name_to_idx),
   m_column_idx_to_name(column_idx_to_name),
   m_exprs(aalloc),
   m_aggs(aalloc),
@@ -204,29 +206,14 @@ AggregationAPICompiler::new_agg(AggregationAPICompiler::AggType agg_type,
 }
 
 AggregationAPICompiler::Expr*
-AggregationAPICompiler::Load(LexString col_name)
+AggregationAPICompiler::Load(uint col_idx)
 {
   if (m_status == Status::FAILED)
   {
     return NULL;
   }
   assert_status(PROGRAMMING);
-  int col_idx = m_column_name_to_idx(col_name);
-  if (col_idx == -1)
-  {
-    m_status = Status::FAILED;
-    return NULL;
-  }
   return new_expr(ExprOp::Load, 0, 0, col_idx);
-}
-
-AggregationAPICompiler::Expr*
-AggregationAPICompiler::Load(const char* col_name)
-{
-  void* mem = m_aalloc->alloc(strlen(col_name));
-  memcpy(mem, col_name, strlen(col_name));
-  LexString ls = {(char*)mem, (size_t)strlen(col_name)};
-  return Load(ls);
 }
 
 AggregationAPICompiler::Expr*
@@ -393,7 +380,7 @@ AggregationAPICompiler::compile()
     bool res = compile(&m_aggs[i], i);
     if (!res)
     {
-      printf("Failed to compile aggregation %i.\n", i);
+      m_err << "Failed to compile aggregation " << i << endl;
       m_status = Status::FAILED;
       return false;
     }
@@ -640,7 +627,7 @@ AggregationAPICompiler::seize_register(uint* reg, uint max_cost)
     *reg = ret;
     return true;
   }
-  printf("No suitable registers.\n");
+  m_err << "No suitable registers." << endl;
   return false;
 }
 
@@ -852,20 +839,20 @@ void
 AggregationAPICompiler::print_aggregates()
 {
   assert_status(COMPILED);
-  printf("Aggregations:\n");
+  m_out << "Aggregations:" << endl;
   for (uint i=0; i<m_aggs.size(); i++)
   {
-    printf("A%i=", i);
+    m_out << 'A' << i << '=';
     print_aggregate(i);
-    printf("\n");
+    m_out << endl;
   }
 }
 
 #define AGG_CASE(Name) \
   case AggType::Name: \
-    printf(#Name "("); \
+    m_out << #Name "("; \
     print(m_aggs[idx].expr); \
-    printf(")"); \
+    m_out << ')'; \
     break;
 void
 AggregationAPICompiler::print_aggregate(int idx)
@@ -885,71 +872,93 @@ AggregationAPICompiler::print_program()
 {
   if (m_program.size() == 0)
   {
-    printf("No aggregation program.\n\n");
+    m_out << "No aggregation program." << endl << endl;
     return;
   }
   svm_init();
-  printf(
-    "Aggregation program (%i instructions):\nInstr. DEST SRC DESCRIPTION\n",
-    m_program.size());
+  m_out << "Aggregation program (" << m_program.size() <<
+    " instructions):" << endl <<
+    "Instr. DEST SRC DESCRIPTION" << endl;
   for (uint i=0; i<m_program.size(); i++)
   {
     print(&m_program[i]);
     svm_execute(&m_program[i], false);
   }
-  printf("\n");
+  m_out << endl;
 }
+
+DEFINE_FORMATTER(quoted_identifier, char*, {
+  const char* iter = value;
+  os.put('`');
+  while (*iter != '\0')
+  {
+    if (*iter == '`')
+      os.write("``", 2);
+    else
+      os.put(*iter);
+    iter++;
+  }
+  os.put('`');
+})
 
 void
 AggregationAPICompiler::print(Expr* expr)
 {
   if (expr == NULL)
   {
-    printf("<EMPTY>");
+    m_out << "<EMPTY>";
     return;
   }
   if (expr->op == AggregationAPICompiler::ExprOp::Load)
   {
-    cout << quoted_identifier(m_column_idx_to_name(expr->idx));
+    m_out << quoted_identifier(m_column_idx_to_name(expr->idx));
     return;
   }
   if (expr->op == AggregationAPICompiler::ExprOp::LoadConstantInt)
   {
-    printf("%ld", m_constants[expr->idx].long_int);
+    m_out << m_constants[expr->idx].long_int;
     return;
   }
-  printf("(");
+  m_out << '(';
   print(expr->left);
   switch (expr->op)
   {
-  case ExprOp::Add: printf(" + "); break;
-  case ExprOp::Minus: printf(" - "); break;
-  case ExprOp::Mul: printf(" * "); break;
-  case ExprOp::Div: printf(" / "); break;
-  case ExprOp::Rem: printf(" %% "); break;
+  case ExprOp::Add: m_out << " + "; break;
+  case ExprOp::Minus: m_out << " - "; break;
+  case ExprOp::Mul: m_out << " * "; break;
+  case ExprOp::Div: m_out << " / "; break;
+  case ExprOp::Rem: m_out << " %% "; break;
   default:
-    printf("Unknown operation.");
-    return;
+    assert(false); // Unknown operation
   }
   print(expr->right);
-  printf(")");
+  m_out << ')';
 }
+
+DEFINE_FORMATTER(s5, char*, {
+  os << value;
+  for (int i = strlen(value); i < 5; i++) os << ' ';
+})
+DEFINE_FORMATTER(d2, uint, {
+  if (value < 10) os << '0';
+  os << value;
+})
 
 #define OPERATOR_CASE(Name) \
   case SVMInstrType::Name: \
     assert_reg(dest); assert_reg(src); \
-    printf("%-5s  r%02d  r%02d r%02d:", \
-           #Name, dest, src, dest); \
+    m_out << s5(#Name) << "  r" << d2(dest) << "  r" << d2(src) << " r" << \
+      d2(dest) << ":"; \
     print(r[dest]); \
-    printf(" %s= r%02d:", relstr_##Name, src); \
+    m_out << ' ' << relstr_##Name << "= r" << d2(src) << ':'; \
     print(r[src]); \
     break;
 #define AGG_CASE(Name) \
   case SVMInstrType::Name: \
     assert(dest < m_aggs.size()); \
     assert_reg(src); \
-    printf("%-5s  A%02d  r%02d A%02d:%s <- r%02d:", \
-           #Name, dest, src, dest, ucasestr_##Name, src);        \
+    m_out << s5(#Name) << "  A" << d2(dest) << "  r" << d2(src) << " A" << \
+      d2(dest) << ":" << ucasestr_##Name << " <- r" << d2(src) << ':'; \
     print(r[src]); \
     break;
 void
@@ -970,20 +979,18 @@ AggregationAPICompiler::print(Instr* instr)
   {
   case SVMInstrType::Load:
     assert_reg(dest);
-    printf("Load   r%02d  C%02d r%02d = C%02d:",
-           dest, src, dest, src);
-    cout << quoted_identifier(m_column_idx_to_name(src));
+    m_out << "Load   r" << d2(dest) << "  C" << d2(src) << " r" << d2(dest) <<
+      " = C" << d2(src) << ':' << quoted_identifier(m_column_idx_to_name(src));
     break;
   case SVMInstrType::LoadConstantInteger:
     assert_reg(dest);
-    printf("LoadI  r%02d  I%02d r%02d = I%02d:",
-           dest, src, dest, src);
-    cout << m_constants[src].long_int;
+    m_out << "LoadI  r" << d2(dest) << "  I" << d2(src) << " r" << d2(dest) <<
+      " = I" << d2(src) << ':' << m_constants[src].long_int;
     break;
   case SVMInstrType::Mov:
     assert_reg(dest); assert_reg(src);
-    printf("Mov    r%02d  r%02d r%02d = r%02d:",
-           dest, src, dest, src);
+    m_out << "Mov    r" << d2(dest) << "  r" << d2(src) << " r" << d2(dest) <<
+      " = r" << d2(src) << ':';
     print(r[src]);
     break;
   FORALL_ARITHMETIC_OPS(OPERATOR_CASE)
@@ -992,31 +999,10 @@ AggregationAPICompiler::print(Instr* instr)
     // Unknown instruction
     assert(false);
   }
-  printf("\n");
+  m_out << endl;
 }
 #undef OPERATOR_CASE
 #undef AGG_CASE
-
-std::ostream &
-operator<< (std::ostream& os,
-            const AggregationAPICompiler::QuotedIdentifier& identifier)
-{
-  const LexString& id = identifier.m_id;
-  os.put('`');
-  for (uint i=0; i < id.len; i++)
-  {
-    if (id.str[i] == '`')
-    {
-      os.write("``", 2);
-    }
-    else
-    {
-      os.put(id.str[i]);
-    }
-  }
-  os.put('`');
-  return os;
-}
 
 /*
  * End of Aggregation Program Printer

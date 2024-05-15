@@ -495,10 +495,11 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
   /*
    * We have no default rule. Instead, this rule is carefully maintained to
    * catch anything that other rules won't. This is mostly for documentation
-   * purposes. If this rule catches too little, flex will warn and our makefile
-   * will treat that warning as an error. If it catches too much, the fact that
-   * it is placed last and only matches one byte will put it strictly lowest in
-   * priority, so flex will automatically shrink the scope appropriately.
+   * purposes. If this rule catches too little, flex will warn and our build
+   * script (build_lexer.sh) will treat that warning as an error. If it catches
+   * too much, the fact that it is placed last and only matches one byte will
+   * put it strictly lowest in priority, so flex will automatically shrink the
+   * scope appropriately.
    */
   context->set_err_state(
     RonDBSQLPreparer::ErrState::LEX_ILLEGAL_TOKEN,

@@ -29,21 +29,81 @@
 #include "RonDBSQLPreparer.hpp"
 #include <iostream>
 #include <iomanip>
-using std::cout;
-using std::cerr;
+#include "define_formatter.hpp"
 using std::endl;
+using std::runtime_error;
 
 static const char* interval_type_name(int interval_type);
-static char* c_str(LexString src, ArenaAllocator* allocator);
-static void print_json_string(std::basic_ostream<char>& out, const char* str);
+static void print_json_string(std::basic_ostream<char> &out, const char *str);
 
-RonDBSQLPreparer::RonDBSQLPreparer(char* sql_buffer,
-                                 size_t sql_len,
-                                 ArenaAllocator* aalloc):
-  m_aalloc(aalloc),
+// Make sure that the number of registers in AggregationAPICompiler.hpp matches
+// that in ../../include/ndbapi/NdbAggregationCommon.hpp
+static_assert(REGS == kRegTotal);
+
+RonDBSQLPreparer::RonDBSQLPreparer(ExecutionParameters conf):
+  m_conf(conf),
+  m_aalloc(conf.aalloc),
   m_context(*this),
-  m_identifiers(aalloc)
+  m_columns(conf.aalloc)
 {
+  assert(m_status == Status::BEGIN);
+  try
+  {
+    configure();
+    parse();
+    load();
+    compile();
+    m_status = Status::PREPARED;
+  }
+  catch(...)
+  {
+    m_status = Status::FAILED;
+    throw;
+  }
+}
+
+static inline void
+soft_assert(bool condition, const char* msg)
+{
+  if (!condition)
+  {
+    throw runtime_error(msg);
+  }
+}
+
+void
+RonDBSQLPreparer::configure()
+{
+  // Validate m_conf
+  assert(m_conf.sql_buffer != NULL);
+  assert(m_conf.sql_len > 0);
+  assert(m_conf.aalloc != NULL);
+  ExecutionParameters::ExecutionMode mode = m_conf.mode;
+  bool may_query =
+    (mode == ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN ||
+     mode == ExecutionParameters::ExecutionMode::ALLOW_QUERY_ONLY ||
+     mode == ExecutionParameters::ExecutionMode::QUERY_OVERRIDE);
+  bool may_explain =
+    (mode == ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN ||
+     mode == ExecutionParameters::ExecutionMode::ALLOW_EXPLAIN_ONLY ||
+     mode == ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE);
+  assert(may_query || may_explain);
+  if (may_query)
+  {
+    assert(m_conf.ndb != NULL);
+    assert(m_conf.query_output_stream != NULL);
+    assert(m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::CSV ||
+           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_UTF8 ||
+           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_ASCII);
+  }
+  if (may_explain)
+  {
+    assert(m_conf.explain_output_stream != NULL);
+    assert(m_conf.explain_output_format == ExecutionParameters::ExplainOutputFormat::TEXT ||
+           m_conf.explain_output_format == ExecutionParameters::ExplainOutputFormat::JSON);
+  }
+  assert(m_conf.err_output_stream != NULL);
+
   /*
    * Both `yy_scan_string' and `yy_scan_bytes' create and scan a copy of the
    * input. This may be desirable, since `yylex()' modifies the contents of the
@@ -52,40 +112,33 @@ RonDBSQLPreparer::RonDBSQLPreparer(char* sql_buffer,
    * bytes are not scanned.
    * See https://ftp.gnu.org/old-gnu/Manuals/flex-2.5.4/html_node/flex_12.html
    */
-  assert(sql_len >= 2);
-  assert(sql_buffer[sql_len-1] == '\0');
-  assert(sql_buffer[sql_len-2] == '\0');
+  char* sql_buffer = m_conf.sql_buffer;
+  size_t sql_len = m_conf.sql_len;
+  // SQL buffer must be double NUL-terminated
+  assert(sql_len >= 2 &&
+         sql_buffer[sql_len-1] == '\0' &&
+         sql_buffer[sql_len-2] == '\0');
   rsqlp_lex_init_extra(&m_context, &m_scanner);
   // The non-const sql_buffer is only used to initialize the flex scanner. The
   // flex scanner shouldn't modify it either, but only because we have removed
-  // the buffer-modifying code from the generated output (see Makefile rule
-  // RonDBSQLLexer.l.cpp: RonDBSQLLexer.l.with-hold_char.cpp). For this reason,
-  // the lexer still declares the buffer as non-const.
+  // the buffer-modifying code from the generated output (see build_lexer.sh).
+  // For this reason, the lexer still declares the buffer as non-const.
   m_buf = rsqlp__scan_buffer(sql_buffer, sql_len, m_scanner);
   // We don't want the NUL bytes that flex requires.
   uint our_buffer_len = sql_len - 2;
-  m_sql = { (const char*)(sql_buffer), our_buffer_len };
+  m_sql = { static_cast<const char*>(sql_buffer), our_buffer_len };
 }
 
-#define assert_status(name) assert(m_status == Status::name)
-
-bool
+void
 RonDBSQLPreparer::parse()
 {
-  if (m_status == Status::FAILED)
-  {
-    return false;
-  }
-  assert_status(INITIALIZED);
-  m_status = Status::PARSING;
+  std::basic_ostream<char>& err = *m_conf.err_output_stream;
   int parse_result = rsqlp_parse(m_scanner);
   if (parse_result == 0)
   {
     assert(m_context.m_err_state == ErrState::NONE);
-    m_status = Status::PARSED;
-    return true;
+    return;
   }
-  m_status = Status::FAILED;
   // The rest is error handling.
   if (parse_result == 2)
   {
@@ -101,9 +154,7 @@ RonDBSQLPreparer::parse()
      *    on OOM, this case does not apply to us.
      * Therefore, we know that if we end up here, we are in case 2).
      */
-    cerr << "Parser stack exceeded its maximum depth." << endl;
-    m_status = Status::FAILED;
-    return false;
+    throw runtime_error("Parser stack exceeded its maximum depth.");
   }
   assert(parse_result == 1);
   assert(m_context.m_err_state != ErrState::NONE);
@@ -179,7 +230,7 @@ RonDBSQLPreparer::parse()
   case ErrState::PARSER_ERROR:
     if (m_sql.len == 0)
     {
-      fprintf(stderr, "Syntax error in SQL statement: Empty input\n");
+      err << "Syntax error in SQL statement: Empty input" << endl;
       print_statement = false;
     }
     else if (err_pos == m_sql.len)
@@ -200,13 +251,13 @@ RonDBSQLPreparer::parse()
      * Explain the syntax error by showing the message followed by a print of
      * the SQL statement with the problematic section underlined with carets.
      */
-    cerr << "Syntax error in SQL statement: " << msg << endl;
+    err << "Syntax error in SQL statement: " << msg << endl;
     uint line_started_at = 0;
     for (uint pos = 0; pos <= m_sql.len; pos++)
     {
       if (line_started_at == pos)
       {
-        cerr << "> ";
+        err << "> ";
       }
       char c = m_sql.str[pos];
       bool is_eol = c == '\n';
@@ -214,19 +265,19 @@ RonDBSQLPreparer::parse()
       {
         if (m_sql.str[pos-1] != '\n')
         {
-          cerr << '\n';
+          err << '\n';
           is_eol = true;
         }
       }
       else if ( c != '\r')
       {
-        cerr << c;
+        err << c;
       }
       if (is_eol &&
          err_pos <= pos &&
          line_started_at <= err_stop)
       {
-        cerr << "! ";
+        err << "! ";
         uint err_marker_pos = line_started_at;
         // We use has_width to find the number of code points in the string
         // before and inside the error. This is a quite crude approximation of
@@ -242,7 +293,7 @@ RonDBSQLPreparer::parse()
         {
           if (has_width(err_marker_pos))
           {
-            cerr << " ";
+            err << " ";
           }
           err_marker_pos++;
         }
@@ -253,11 +304,11 @@ RonDBSQLPreparer::parse()
         {
           if (has_width(err_marker_pos))
           {
-            cerr << "^";
+            err << "^";
           }
           err_marker_pos++;
         }
-        cerr << endl;
+        err << endl;
       }
       if (is_eol)
       {
@@ -265,7 +316,7 @@ RonDBSQLPreparer::parse()
       }
     }
   }
-  return false;
+  throw runtime_error("Syntax error.");
 }
 
 /*
@@ -295,15 +346,9 @@ RonDBSQLPreparer::has_width(uint pos)
   return true;
 }
 
-bool
+void
 RonDBSQLPreparer::load()
 {
-  if (m_status == Status::FAILED)
-  {
-    return false;
-  }
-  assert_status(PARSED);
-  m_status = Status::LOADING;
   /*
    * todo: During parsing, strings that are claimed to be column names were
    * assigned consecutive indexes as they were found. These indexes have already
@@ -352,77 +397,141 @@ RonDBSQLPreparer::load()
   }
   if (m_agg != NULL)
   {
-    if (m_agg->getStatus() != AggregationAPICompiler::Status::PROGRAMMING)
-    {
-      m_status = Status::FAILED;
-      return false;
-    }
+    assert (m_agg->getStatus() == AggregationAPICompiler::Status::PROGRAMMING);
   }
-  m_status = Status::LOADED;
-  return true;
 }
 
-bool
+void
 RonDBSQLPreparer::compile()
 {
-  if (m_status == Status::FAILED)
+  if (m_agg == NULL)
   {
-    return false;
+    return;
   }
-  assert_status(LOADED);
-  m_status = Status::COMPILING;
-  if (m_agg != NULL)
+  if (m_agg->compile())
   {
-    if (m_agg->compile())
-    {
-      assert(m_agg->getStatus() == AggregationAPICompiler::Status::COMPILED);
-      m_status = Status::COMPILED;
-      return true;
-    }
-    else
-    {
-      assert(m_agg->getStatus() == AggregationAPICompiler::Status::FAILED);
-      m_status = Status::FAILED;
-      return false;
-    }
+    assert(m_agg->getStatus() == AggregationAPICompiler::Status::COMPILED);
+    return;
   }
-  m_status = Status::COMPILED;
-  return true;
+  assert(m_agg->getStatus() == AggregationAPICompiler::Status::FAILED);
+  throw runtime_error("Failed to compile aggregation program.");
 }
 
-/*
- * WARNING: Return value valid only until the next call using the same allocator
- *
- * Write a null-terminated string representation of src to the allocator's loop
- * buffer and return it.
- */
-static char*
-c_str(LexString src, ArenaAllocator* allocator)
+void
+RonDBSQLPreparer::execute()
 {
-  uint c_str_len = src.len + 1;
-  allocator->set_loop_buffer_size(c_str_len);
-  char* ret = static_cast<char*>(allocator->get_loop_buffer());
-  memcpy(ret, src.str, src.len);
-  ret[src.len] = '\0';
-  return ret;
+  soft_assert(m_status != Status::FAILED,
+              "Attempting RonDBSQLPreparer::execute while in failed state.");
+  assert(m_status == Status::PREPARED);
+  Ndb* myNdb = NULL;
+  NdbTransaction* myTrans = NULL;
+  try
+  {
+    bool do_explain = m_context.ast_root.do_explain;
+    switch (m_conf.mode)
+    {
+    case ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN:
+      break;
+    case ExecutionParameters::ExecutionMode::ALLOW_QUERY_ONLY:
+      soft_assert(!do_explain, "Execution mode does not allow EXPLAIN.");
+      break;
+    case ExecutionParameters::ExecutionMode::ALLOW_EXPLAIN_ONLY:
+      soft_assert(do_explain, "Execution mode does not allow query, only EXPLAIN.");
+      break;
+    case ExecutionParameters::ExecutionMode::QUERY_OVERRIDE:
+      do_explain = false;
+      break;
+    case ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE:
+      do_explain = true;
+      break;
+    default:
+      throw runtime_error("Invalid execution mode.");
+    }
+    if (do_explain)
+    {
+      switch (m_conf.explain_output_format)
+      {
+      case ExecutionParameters::ExplainOutputFormat::TEXT:
+        print();
+        break;
+      default:
+        assert(false); // Not implemented
+      }
+      return;
+    }
+    myNdb = m_conf.ndb;
+    soft_assert(myNdb != NULL, "Cannot query without ndb object.");
+    myTrans = myNdb->startTransaction();
+    soft_assert(myTrans != NULL, "Failed to start transaction.");
+    const NdbDictionary::Dictionary* myDict = myNdb->getDictionary();
+    const NdbDictionary::Table* myTable =
+      myDict->getTable(m_context.ast_root.table.c_str());
+    soft_assert(myTable != NULL, "Failed to get table.");
+    NdbScanOperation* myScanOp = myTrans->getNdbScanOperation(myTable);
+    soft_assert(myScanOp != NULL, "Failed to get scan operation.");
+    soft_assert(myScanOp->readTuples(NdbOperation::LM_CommittedRead) == 0,
+                "Failed to initialize scan operation.");
+    NdbScanFilter filter(myScanOp);
+    applyFilter(&filter, myTable);
+    NdbAggregator aggregator(myTable);
+    programAggregator(&aggregator);
+    assert(aggregator.Finalize());
+    soft_assert(myScanOp->setAggregationCode(&aggregator) >= 0,
+                "Failed to set aggregation code.");
+    soft_assert(myScanOp->DoAggregation() >= 0,
+                "Failed to execute aggregation.");
+    print_result(&aggregator);
+    myNdb->closeTransaction(myTrans);
+  }
+  catch (const std::exception& e)
+  {
+    if (myTrans == NULL)
+    {
+      // Rethrow since error not from ndb
+      throw;
+    }
+    NdbError ndb_err = myNdb->getNdbError();
+    std::basic_ostream<char>& err = *m_conf.err_output_stream;
+    switch (ndb_err.status)
+    {
+    case NdbError::Status::Success:
+      myNdb->closeTransaction(myTrans);
+      // Rethrow since error not from ndb
+      throw;
+    case NdbError::Status::TemporaryError:
+      err << "NDB temporary error: " << ndb_err.code << " " << ndb_err.message
+          << endl;
+      err << "Caught exception, probably caused by the temporary error above: "
+          << e.what() << endl;
+      myNdb->closeTransaction(myTrans);
+      throw TemporaryError();
+    case NdbError::Status::PermanentError:
+      err << "NDB permanent error: " << ndb_err.code << " " << ndb_err.message
+          << endl;
+      myNdb->closeTransaction(myTrans);
+      // Now that the ndb error is described on err stream, we'll rethrow the
+      // original exception.
+      throw;
+    case NdbError::Status::UnknownResult:
+      err << "NDB unknown result: " << ndb_err.code << " " << ndb_err.message
+          << endl;
+      myNdb->closeTransaction(myTrans);
+      // Now that the ndb error is described on err stream, we'll rethrow the
+      // original exception.
+      throw;
+    }
+    assert(false);
+  }
+  catch (...)
+  {
+    // All exceptions thrown should be instances of runtime_error.
+    assert(false);
+  }
 }
 
-const NdbDictionary::Table*
-RonDBSQLPreparer::get_table(const NdbDictionary::Dictionary* myDict)
-{
-  assert_status(COMPILED);
-  SelectStatement& ast_root = m_context.ast_root;
-  return myDict->getTable(c_str(ast_root.table, m_aalloc));
-}
-
-bool
+void
 RonDBSQLPreparer::applyFilter(NdbScanFilter* filter, const NdbDictionary::Table* myTable)
 {
-  if (m_status == Status::FAILED)
-  {
-    return false;
-  }
-  assert_status(COMPILED);
   struct ConditionalExpression* ce = m_context.ast_root.where_expression;
   assert(ce != NULL);
   /* ndbapi filter has unary AND and OR operators, i.e. they take an arbitrary
@@ -431,22 +540,21 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter, const NdbDictionary::Table*
    * top-level expression is an AND or OR operation, we wrap it in an AND group
    * with a single argument.
    */
-  bool ret = false;
+  bool success = false;
   if (ce->op == T_AND || ce->op == T_OR)
   {
-    ret = applyFilter(filter, ce, myTable);
+    success = applyFilter(filter, ce, myTable);
   }
   else
   {
-    ret = (filter->begin(NdbScanFilter::AND) >= 0 &&
-           applyFilter(filter, ce, myTable) &&
-           filter->end() >= 0);
+    success = (filter->begin(NdbScanFilter::AND) >= 0 &&
+               applyFilter(filter, ce, myTable) &&
+               filter->end() >= 0);
   }
-  if (!ret)
+  if (!success)
   {
-    m_status = Status::FAILED;
+    throw runtime_error("Failed to apply filter.");
   }
-  return ret;
 }
 
 bool
@@ -454,7 +562,6 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
                               struct ConditionalExpression* ce,
                               const NdbDictionary::Table* myTable)
 {
-  assert_status(COMPILED);
   assert (ce != NULL);
   switch(ce->op)
   {
@@ -485,7 +592,10 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
     if (ce->args.left->op == T_IDENTIFIER &&
         ce->args.right->op == T_INT)
     {
-      const NdbDictionary::Column* col = myTable->getColumn(c_str(ce->args.left->identifier, m_aalloc));
+      uint col_idx = ce->args.left->col_idx;
+      const char* col_name = column_idx_to_name(col_idx).c_str();
+      // todo Do column lookups in an earlier phase, then use only attrId or col_id for later phases.
+      const NdbDictionary::Column* col = myTable->getColumn(col_name);
       if (col == NULL)
       {
         return false;
@@ -546,31 +656,52 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
   }
 }
 
-// todo fold to aggregator_do_or_fail
-#define programAggregatorFail(STR) \
+DEFINE_FORMATTER(quoted_identifier, LexString, {
+  os.put('`');
+  for (uint i = 0; i < value.len; i++)
+  {
+    char ch = value.str[i];
+    if (ch == '`')
+      os.write("``", 2);
+    else
+      os.put(ch);
+  }
+  os.put('`');
+})
+
+DEFINE_FORMATTER(quoted_identifier, char*, {
+  const char* iter = value;
+  os.put('`');
+  while (*iter != '\0')
+  {
+    if (*iter == '`')
+      os.write("``", 2);
+    else
+      os.put(*iter);
+    iter++;
+  }
+  os.put('`');
+})
+
+#define programAggregator_do_or_fail(CALL) \
   do { \
-    m_status = Status::FAILED; \
-    cout << "RonDBSQLPreparer::programAggregator failed because " STR ".\n"; \
-    return false; \
+    if (!(CALL)) \
+    { \
+      err << "Failed writing aggregation program at " #CALL << endl; \
+      throw runtime_error("Failed writing aggregation program"); \
+    } \
   } while (0)
-bool
+void
 RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
 {
-  if (m_status == Status::FAILED)
-  {
-    programAggregatorFail("status is already set to failed");
-  }
-  assert_status(COMPILED);
+  std::basic_ostream<char>& err = *m_conf.err_output_stream;
   SelectStatement& ast_root = m_context.ast_root;
   // Program groupby columns
   struct GroupbyColumns* groupby = ast_root.groupby_columns;
   while (groupby != NULL)
   {
-    ;
-    if (!aggregator->GroupBy(c_str(groupby->col_name, m_aalloc)))
-    {
-      programAggregatorFail("NdbAggregator::Groupby returned false");
-    }
+    programAggregator_do_or_fail
+      (aggregator->GroupBy(column_idx_to_name(groupby->col_idx).c_str()));
     groupby = groupby->next;
   }
   // Program aggregations
@@ -584,12 +715,15 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
     {
     case AggregationAPICompiler::SVMInstrType::Load:
     {
-      char* col_name = c_str(m_identifiers[src], m_aalloc);
+      const char* col_name = m_columns[src].name.c_str();
+      // todo If the low-level API could be programmed using colId rather than
+      // name, then we could avoid converting both ways.
       if (!aggregator->LoadColumn(col_name, dest))
       {
-        programAggregatorFail(
-          "NdbAggregator::LoadColumn returned false when trying to load column "
-          << col_name << );
+        err << "Failed writing aggregation program "
+               "when attempting to load column "
+            << quoted_identifier(col_name) << endl;
+        throw runtime_error("Failed writing aggregation program");
       }
       break;
     }
@@ -602,79 +736,52 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
       // todo: copy register `src' into register `dest'
       break;
     case AggregationAPICompiler::SVMInstrType::Add:
-      if (!aggregator->Add(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Add returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Add(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Minus:
-      if (!aggregator->Minus(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Sub returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Minus(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Mul:
-      if (!aggregator->Mul(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Mul returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Mul(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Div:
-      if (!aggregator->Div(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Div returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Div(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Rem:
-      if (!aggregator->Mod(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Rem returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Mod(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Sum:
-      if (!aggregator->Sum(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Sum returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Sum(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Min:
-      if (!aggregator->Min(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Min returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Min(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Max:
-      if (!aggregator->Max(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Max returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Max(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Count:
-      if (!aggregator->Count(dest, src))
-      {
-        programAggregatorFail("NdbAggregator::Count returned false");
-      }
+      programAggregator_do_or_fail(aggregator->Count(dest, src));
       break;
     default:
       // Unknown instruction
       assert(false);
     }
   }
-  return true;
 }
-#undef programAggregatorFail
+#undef programAggregator_do_or_fail
 
 void
-RonDBSQLPreparer::print_result(NdbAggregator* aggregator, std::basic_ostream<char>& out)
+RonDBSQLPreparer::print_result(NdbAggregator* aggregator)
 {
-  cout << '[';
+  std::basic_ostream<char>& out = *m_conf.data_output_stream;
+  out << '[';
   bool first_record = true;
   for (NdbAggregator::ResultRecord record = aggregator->FetchResultRecord();
        !record.end();
        record = aggregator->FetchResultRecord())
   {
     if (first_record) first_record = false; else out << ',';
-    cout << '{';
+    out << '{';
     bool first_column = true;
     for (NdbAggregator::Column column = record.FetchGroupbyColumn();
          !column.end();
@@ -748,22 +855,18 @@ print_json_string(std::basic_ostream<char>& out, const char* str)
   out << '"';
 }
 
-bool
+void
 RonDBSQLPreparer::print()
 {
-  if (m_status == Status::FAILED)
-  {
-    return false;
-  }
-  assert_status(COMPILED);
+  std::basic_ostream<char>& out = *m_conf.explain_output_stream;
   SelectStatement& ast_root = m_context.ast_root;
-  cout << "SELECT\n";
+  out << "SELECT\n";
   Outputs* outputs = ast_root.outputs;
   int out_count = 0;
   while (outputs != NULL)
   {
-    cout << "  Out_" << out_count << ":" <<
-      m_agg->quoted_identifier(outputs->output_name) << endl <<
+    out << "  Out_" << out_count << ":" <<
+      quoted_identifier(outputs->output_name) << endl <<
       "   = ";
     if (outputs->is_agg)
     {
@@ -771,11 +874,11 @@ RonDBSQLPreparer::print()
       switch (outputs->aggregate.fun)
       {
       case T_AVG:
-        cout << "CLIENT-SIDE CALCULATION: ";
+        out << "CLIENT-SIDE CALCULATION: ";
         pr = m_agg->Sum(outputs->aggregate.arg);
-        cout << "A" << pr << ":";
+        out << "A" << pr << ":";
         m_agg->print_aggregate(pr);
-        cout << " / ";
+        out << " / ";
         pr = m_agg->Count(outputs->aggregate.arg);
         break;
       case T_COUNT:
@@ -794,97 +897,96 @@ RonDBSQLPreparer::print()
         // Unknown aggregate function
         assert(false);
       }
-      cout << "A" << pr << ":";
+      out << "A" << pr << ":";
       m_agg->print_aggregate(pr);
-      cout << endl;
+      out << endl;
     }
     else
     {
-      LexString col_name = outputs->col_name;
-      int col_idx = column_name_to_idx(col_name);
-      cout << "C" << col_idx << ":" <<
-        m_agg->quoted_identifier(col_name) << endl;
+      int col_idx = outputs->col_idx;
+      out << "C" << col_idx << ":" <<
+        quoted_identifier(column_idx_to_name(col_idx)) << endl;
     }
     out_count++;
     outputs = outputs->next;
   }
-  cout << "FROM " << ast_root.table << endl;
+  out << "FROM " << ast_root.table.c_str() << endl;
   struct ConditionalExpression* where = ast_root.where_expression;
   if (where != NULL)
   {
-    cout << "WHERE" << endl;
+    out << "WHERE" << endl;
     print(where, LexString{NULL, 0});
   }
   struct GroupbyColumns* groupby = ast_root.groupby_columns;
   if (groupby != NULL)
   {
-    cout << "GROUP BY" << endl;
+    out << "GROUP BY" << endl;
     while (groupby != NULL)
     {
-      auto col_name = groupby->col_name;
-      auto col_idx = column_name_to_idx(col_name);
-      cout << "  C" << col_idx << ":" << m_agg->quoted_identifier(col_name) <<
-        endl;
+      uint col_idx = groupby->col_idx;
+      out << "  C" << col_idx << ":"
+          << quoted_identifier(column_idx_to_name(col_idx)) << endl;
       groupby = groupby->next;
     }
   }
   struct OrderbyColumns* orderby = ast_root.orderby_columns;
   if (orderby != NULL)
   {
-    cout << "ORDER BY" << endl;
+    out << "ORDER BY" << endl;
     while (orderby != NULL)
     {
-      LexString col_name = orderby->col_name;
-      int col_idx = column_name_to_idx(col_name);
+      uint col_idx = orderby->col_idx;
       bool ascending = orderby->ascending;
-      cout << "  C" << col_idx << ":" << m_agg->quoted_identifier(col_name) <<
+      out << "  C" << col_idx << ":" <<
+        quoted_identifier(column_idx_to_name(col_idx)) <<
         (ascending ? " ASC" : " DESC") << endl;
       orderby = orderby->next;
     }
   }
-  cout << endl;
+  out << endl;
   if (m_agg != NULL)
   {
     m_agg->print_program();
   }
   else
   {
-    printf("No aggregation program.\n\n");
+    out << "No aggregation program." << endl << endl;
   }
-  return true;
 }
 
 void
-RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
+RonDBSQLPreparer::print(struct ConditionalExpression* ce,
+                        LexString prefix)
 {
+  std::basic_ostream<char>& out = *m_conf.explain_output_stream;
   const char* opstr = NULL;
   bool prefix_op = false;
   switch (ce->op)
   {
   case T_IDENTIFIER:
-    cout << ce->identifier << endl;
+    out << quoted_identifier(column_idx_to_name(ce->col_idx)) << endl;
     return;
   case T_STRING:
     {
-      cout << "STRING: ";
+      out << "STRING: ";
       for (uint i = 0; i < ce->string.len; i++)
       {
         char c = ce->string.str[i];
         if ( 0x21 <= c && c <= 0x7E && c != '<' && c != '>')
         {
-          cout << c;
+          out << c;
         }
         else
         {
           static const char* hex = "0123456789ABCDEF";
-          cout << "<" << hex[(c >> 4) & 0xF] << hex[c & 0xF] << ">";
+          out << "<" << hex[(c >> 4) & 0xF] << hex[c & 0xF] << ">";
         }
       }
-      cout << endl;
+      out << endl;
       return;
     }
   case T_INT:
-    cout << ce->constant_integer << endl;
+    out << ce->constant_integer << endl;
     return;
   case T_OR:
     opstr = "OR";
@@ -919,19 +1021,19 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
     break;
   case T_IS:
     {
-      cout << "IS" << endl <<
+      out << "IS" << endl <<
         prefix << "+- ";
       LexString prefix_arg = prefix.concat(LexString{"|  ", 3}, m_aalloc);
       print(ce->is.arg, prefix_arg);
-      cout << prefix << "\\- ";
+      out << prefix << "\\- ";
       if (ce->is.null == true)
       {
-        cout << "NULL" << endl;
+        out << "NULL" << endl;
         return;
       }
       if (ce->is.null == false)
       {
-        cout << "NOT NULL" << endl;
+        out << "NOT NULL" << endl;
         return;
       }
       assert(false);
@@ -954,7 +1056,7 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
   case T_MINUS:
     if (ce->args.left == NULL)
     {
-      cout << "NEGATION" << endl <<
+      out << "NEGATION" << endl <<
         prefix << "\\- ";
       LexString prefix_arg = prefix.concat(LexString{"   ", 3}, m_aalloc);
       print(ce->args.right, prefix_arg);
@@ -980,11 +1082,11 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
     break;
   case T_INTERVAL:
     {
-      cout << "INTERVAL" << endl <<
+      out << "INTERVAL" << endl <<
         prefix << "+- ";
       LexString prefix_arg = prefix.concat(LexString{"|  ", 3}, m_aalloc);
       print(ce->interval.arg, prefix_arg);
-      cout << prefix << "\\- " <<
+      out << prefix << "\\- " <<
         interval_type_name(ce->interval.interval_type) << endl;
       return;
     }
@@ -996,7 +1098,7 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
     break;
   case T_EXTRACT:
     {
-      cout << "EXTRACT" << endl <<
+      out << "EXTRACT" << endl <<
         prefix << "+- " <<
         interval_type_name(ce->extract.interval_type) << endl <<
         prefix << "\\- ";
@@ -1010,18 +1112,18 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce, LexString prefix)
   }
   if (prefix_op)
   {
-    cout << opstr << endl <<
+    out << opstr << endl <<
          prefix << "\\- ";
     LexString prefix_arg = prefix.concat(LexString{"   ", 3}, m_aalloc);
     print(ce->args.left, prefix_arg);
   }
   else
   {
-    cout << opstr << endl <<
+    out << opstr << endl <<
       prefix << "+- ";
     LexString prefix_left = prefix.concat(LexString{"|  ", 3}, m_aalloc);
     print(ce->args.left, prefix_left);
-    cout << prefix << "\\- ";
+    out << prefix << "\\- ";
     LexString prefix_right = prefix.concat(LexString{"   ", 3}, m_aalloc);
     print(ce->args.right, prefix_right);
   }
@@ -1056,24 +1158,30 @@ static const char* interval_type_name(int interval_type)
 }
 
 uint
-RonDBSQLPreparer::column_name_to_idx(LexString col_name)
+RonDBSQLPreparer::Context::column_name_to_idx(LexCString col_name)
 {
-  for (uint i=0; i < m_identifiers.size(); i++)
+  DynamicArray<Column>& columns = m_parser.m_columns;
+  uint sz = columns.size();
+  for (uint i=0; i < sz; i++)
   {
-    if (m_identifiers[i] == col_name)
+    if (columns[i].name == col_name)
     {
       return i;
     }
   }
-  m_identifiers.push(col_name);
-  return m_identifiers.size()-1;
+  columns.push(Column{
+      col_name,
+      // We don't know the actual col_id_in_table yet. Until then, we pretend.
+      sz,
+    });
+  return sz;
 }
 
-LexString
+LexCString
 RonDBSQLPreparer::column_idx_to_name(uint col_idx)
 {
-  assert(col_idx < m_identifiers.size());
-  return m_identifiers[col_idx];
+  assert(col_idx < m_columns.size());
+  return m_columns[col_idx].name;
 }
 
 RonDBSQLPreparer::~RonDBSQLPreparer()
@@ -1115,25 +1223,10 @@ RonDBSQLPreparer::Context::get_agg()
     return m_parser.m_agg;
   }
   RonDBSQLPreparer* _this = &m_parser;
-  // todo aren't these already implemented in RonDBSQLPreparer::column_name_to_idx etc?
-  std::function<int(LexString)> column_name_to_idx =
-    [_this](LexString ls) -> uint
+  std::function<const char*(uint)> column_idx_to_name =
+    [_this](uint idx) -> const char*
     {
-      for (uint i=0; i < _this->m_identifiers.size(); i++)
-      {
-        if (ls == LexString(_this->m_identifiers[i]))
-        {
-          return i;
-        }
-      }
-      _this->m_identifiers.push(ls);
-      return _this->m_identifiers.size()-1;
-    };
-  std::function<LexString(uint)> column_idx_to_name =
-    [_this](uint idx) -> LexString
-    {
-      assert(idx < _this->m_identifiers.size());
-      return _this->m_identifiers[idx];
+      return _this->column_idx_to_name(idx).c_str();
     };
 
   /*
@@ -1142,9 +1235,11 @@ RonDBSQLPreparer::Context::get_agg()
    * compilation, a new object will be crafted that holds the information
    * necessary for execution and post-processing.
    */
-  m_parser.m_agg = new AggregationAPICompiler(column_name_to_idx,
-                                  column_idx_to_name,
-                                  m_parser.m_aalloc);
+  m_parser.m_agg = new (get_allocator()->alloc(sizeof(AggregationAPICompiler)))
+    AggregationAPICompiler(column_idx_to_name,
+                           *m_parser.m_conf.explain_output_stream,
+                           *m_parser.m_conf.err_output_stream,
+                           m_parser.m_aalloc);
   return m_parser.m_agg;
 }
 
