@@ -462,15 +462,6 @@ int scan_aggregation(Ndb * myNdb)
         return -1;
       }
 
-      /* Example of how to catch an error
-      int ret = aggregator.Sum(0, kReg1);
-      if (!ret) {
-        fprintf(stderr, "Error: %u, %s\n",
-                        aggregator.GetError().errno_,
-                        aggregator.GetError().err_msg_);
-      }
-      */
-
       assert(aggregator.Finalize());
       if (myScanOp->setAggregationCode(&aggregator) == -1) {
         std::cout << myTrans->getNdbError().message << std::endl;
