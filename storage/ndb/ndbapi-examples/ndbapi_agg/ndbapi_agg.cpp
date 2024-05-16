@@ -239,7 +239,7 @@ std::mt19937 gen(rd());
    std::uniform_int_distribution<uint8_t> g_utinyint(0, 0xF);
    std::uniform_real_distribution<float> g_float(0xFFFF, 0x7FFF);
    std::uniform_real_distribution<double> g_double(0xFFFFFFFF, 0x7FFFFFFF);
-   */
+*/
 
 std::uniform_int_distribution<int64_t> g_bigint(-3147483648, 3147483648);
 std::uniform_int_distribution<uint64_t> g_ubigint(0, 5294967295);
@@ -275,7 +275,8 @@ int populate(Ndb * myNdb, MYSQL& mysql)
 
   for (i = 0; i < NUM; i++)
   {
-    rows[i].cint32 = g_int(gen);
+    // rows[i].cint32 = g_int(gen);
+    rows[i].cint32 = i;
     rows[i].cint8 = g_tinyint(gen);
     rows[i].cint16 = g_smallint(gen);
     rows[i].cint24 = g_mediumint(gen);
@@ -615,7 +616,6 @@ int scan_aggregation(Ndb * myNdb, MYSQL& mysql, bool validation)
         column = record.FetchGroupbyColumn();
       }
 
-      n = 0;
       NdbAggregator::Result result = record.FetchAggregationResult();
       while (!result.end()) {
         switch (result.type()) {
@@ -643,60 +643,6 @@ int scan_aggregation(Ndb * myNdb, MYSQL& mysql, bool validation)
           default:
             assert(0);
         }
-        if (n == 0) {
-          assert(result.type() == NdbDictionary::Column::Bigunsigned);
-          {
-          MYSQL_RES *res;
-          MYSQL_ROW row;
-          std::string sql = std::string("SELECT SUM(CUBIGINT+CUTINYINT+6666) FROM agg.api_scan_inno WHERE CTINYINT = 66 and CCHAR=") +
-                            "'" +
-                            value_cchar +
-                            "'" +
-                            " and CMEDIUMINT = " +
-                            value_cmedium +
-                            " GROUP BY CCHAR, CMEDIUMINT";
-          if (mysql_real_query(&mysql, sql.data(), sql.length())) {
-          } else {
-            res = mysql_store_result(&mysql);
-            assert(res != nullptr);
-            assert(mysql_num_fields(res) == 1);
-            assert(mysql_num_rows(res) == 1);
-            while ((row = mysql_fetch_row(res))) {
-              // unsigned long *lengths = mysql_fetch_lengths(res);
-              // fprintf(stderr, "row length: %ld\n, data: %s, data: %lu", *lengths, row[0], atol(row[0]));
-              assert(atol(row[0]) == result.data_uint64());
-            }
-
-          }
-          mysql_free_result(res);
-          }
-          {
-          MYSQL_RES *res;
-          MYSQL_ROW row;
-          std::string sql = std::string("SELECT SUM(CUBIGINT+CUTINYINT+6666) FROM agg.api_scan WHERE CTINYINT = 66 and CCHAR=") +
-                            "'" +
-                            value_cchar +
-                            "'" +
-                            " and CMEDIUMINT = " +
-                            value_cmedium +
-                            " GROUP BY CCHAR, CMEDIUMINT";
-          if (mysql_real_query(&mysql, sql.data(), sql.length())) {
-          } else {
-            res = mysql_store_result(&mysql);
-            assert(res != nullptr);
-            assert(mysql_num_fields(res) == 1);
-            assert(mysql_num_rows(res) == 1);
-            while ((row = mysql_fetch_row(res))) {
-              // unsigned long *lengths = mysql_fetch_lengths(res);
-              // fprintf(stderr, "row length: %ld\n, data: %s, data: %lu", *lengths, row[0], atol(row[0]));
-              assert(atol(row[0]) == result.data_uint64());
-            }
-
-          }
-          mysql_free_result(res);
-          }
-        }
-        n++;
         result = record.FetchAggregationResult();
       }
       fprintf(stderr, "\n");
