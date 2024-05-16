@@ -216,6 +216,9 @@ class NdbAggregator {
   void Print();
 
   bool LoadColumn(const char* name, uint32_t reg_id);
+  bool LoadUint64(uint64_t value, uint32_t reg_id);
+  bool LoadInt64(int64_t value, uint32_t reg_id);
+  bool LoadDouble(double value, uint32_t reg_id);
   bool Add(uint32_t reg_1, uint32_t reg_2);
   bool Minus(uint32_t reg_1, uint32_t reg_2);
   bool Mul(uint32_t reg_1, uint32_t reg_2);
@@ -234,6 +237,9 @@ class NdbAggregator {
   void PrepareResults();
   ResultRecord FetchResultRecord();
 
+  const std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>* gb_map() {
+    return gb_map_;
+  }
 
  private:
   bool TypeSupported(NdbDictionary::Column::Type type);

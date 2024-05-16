@@ -20,6 +20,11 @@ std::mutex g_agg_mutex;
 AggInterpreter* g_agg_results[2] = {nullptr};
 bool AggInterpreter::g_debug = false;
 
+// std::mutex AggInterpreter::g_mutex;
+// uint32_t AggInterpreter::g_count_ = 0;
+// uint64_t AggInterpreter::g_res_ = 0;
+// uint32_t AggInterpreter::g_pcount_ = 0;
+
 bool AggInterpreter::Init() {
   if (inited_) {
     return true;
@@ -1716,6 +1721,46 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
     data_buf[pos++] = n_gb_cols_ << 16 | n_agg_results_;
     data_buf[pos++] = gb_map_->size();
     for (auto iter = gb_map_->begin(); iter != gb_map_->end();) {
+      /*
+      std::string cchar(iter->first.ptr + sizeof(AttributeHeader) + 1, 10);
+      int32_t cmedium = sint3korr(iter->first.ptr + sizeof(AttributeHeader) + 12 +
+                                  sizeof(AttributeHeader));
+      uint8_t len = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader));
+      assert(len == 10);
+      AttributeHeader* header = reinterpret_cast<AttributeHeader*>(iter->first.ptr);
+      // fprintf(stderr, "CHECK1[%u, %u, %u]\n", header->getAttributeId(), header->getByteSize(), header->getDataSize());
+      assert(header->getAttributeId() == 12 && header->getByteSize() == 11 &&
+          header->getDataSize() == 3);
+      header = reinterpret_cast<AttributeHeader*>(iter->first.ptr + sizeof(AttributeHeader) + 12);
+      // fprintf(stderr, "CHECK2[%u, %u, %u]\n", header->getAttributeId(), header->getByteSize(), header->getDataSize());
+      assert(header->getAttributeId() == 3 && header->getByteSize() == 3 &&
+          header->getDataSize() == 1);
+      assert(iter->first.ptr + 2 * sizeof(AttributeHeader) + 12 + 4 == iter->second.ptr);
+      uint8_t last = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
+                      12 + sizeof(AttributeHeader) + 3);
+      assert(last == 0);
+
+      if (cchar == "GROUPxxx_1" && cmedium == 8) {
+        uint8_t byte = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
+                        12 + sizeof(AttributeHeader) + 0);
+        assert(byte == 8);
+        byte = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
+                        12 + sizeof(AttributeHeader) + 1);
+        assert(byte == 0);
+        byte = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
+                        12 + sizeof(AttributeHeader) + 2);
+        assert(byte == 0);
+        byte = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
+                        12 + sizeof(AttributeHeader) + 3);
+        assert(byte == 0);
+
+        AggResItem* item = reinterpret_cast<AggResItem*>(iter->second.ptr);
+        assert(item->type == NDB_TYPE_BIGINT && item->is_unsigned == true && item->is_null == false);
+        g_mutex.lock();
+        g_res_ += item[0].value.val_uint64;
+        g_mutex.unlock();
+      }
+      */
       assert(iter->first.len % 4 == 0 && iter->first.len < 0xFFFF);
       assert(iter->second.len % 4 == 0 && iter->second.len < 0xFFFF);
       data_buf[pos++] = iter->first.len << 16 | iter->second.len;
@@ -1728,6 +1773,7 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
       gb_map_->erase(iter++);
       result_size_ = 0;
     }
+    assert(gb_map_->empty());
   } else {
     data_buf[pos++] = AttributeHeader::AGG_RESULT << 16 | 0x0721;
     data_buf[pos++] = n_gb_cols_ << 16 | n_agg_results_;
@@ -1808,4 +1854,12 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
   }
   assert(parse_pos == data_len);
   return pos;
+}
+
+uint32_t AggInterpreter::NumOfResRecords() {
+  if (gb_map_) {
+    return gb_map_->size();
+  } else {
+    return 1;
+  }
 }

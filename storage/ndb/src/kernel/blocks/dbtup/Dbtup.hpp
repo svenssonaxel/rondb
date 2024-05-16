@@ -2123,6 +2123,7 @@ struct KeyReqStruct {
   void* scan_rec;
   Uint32 agg_curr_batch_size_rows;
   Uint32 agg_curr_batch_size_bytes;
+  Uint32 agg_n_res_recs;
 };
 
   friend struct Undo_buffer;

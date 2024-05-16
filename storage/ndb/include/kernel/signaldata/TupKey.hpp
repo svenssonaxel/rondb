@@ -154,6 +154,7 @@ private:
   // return Aggregation batch info
   Uint32 agg_batch_size_rows;
   Uint32 agg_batch_size_bytes;
+  Uint32 agg_n_res_recs;
 };
 
 class TupKeyRef {

@@ -487,6 +487,42 @@ bool NdbAggregator::LoadColumn(const char* name, uint32_t reg_id) {
   return true;
 }
 
+bool NdbAggregator::LoadUint64(uint64_t value, uint32_t reg_id) {
+  buffer_[curr_prog_pos_++] =
+    (kOpLoadConst) << 26 |
+    (NDB_TYPE_BIGUNSIGNED & 0x1F) << 21 |
+    (reg_id & 0x0F) << 16 |
+    0;
+  int8store(reinterpret_cast<char*>(&buffer_[curr_prog_pos_]),
+              value);
+  curr_prog_pos_ += 2;
+  return true;
+}
+
+bool NdbAggregator::LoadInt64(int64_t value, uint32_t reg_id) {
+  buffer_[curr_prog_pos_++] =
+    (kOpLoadConst) << 26 |
+    (NDB_TYPE_BIGINT & 0x1F) << 21 |
+    (reg_id & 0x0F) << 16 |
+    0;
+  int8store(reinterpret_cast<char*>(&buffer_[curr_prog_pos_]),
+              value);
+  curr_prog_pos_ += 2;
+  return true;
+}
+
+bool NdbAggregator::LoadDouble(double value, uint32_t reg_id) {
+  buffer_[curr_prog_pos_++] =
+    (kOpLoadConst) << 26 |
+    (NDB_TYPE_DOUBLE & 0x1F) << 21 |
+    (reg_id & 0x0F) << 16 |
+    0;
+  float8store(reinterpret_cast<char*>(&buffer_[curr_prog_pos_]),
+              value);
+  curr_prog_pos_ += 2;
+  return true;
+}
+
 bool NdbAggregator::CheckRegs(uint32_t reg_1, uint32_t reg_2) {
   if (reg_1 >= kRegTotal || reg_2 >= kRegTotal) {
     SetError(kErrInvalidRegNo);

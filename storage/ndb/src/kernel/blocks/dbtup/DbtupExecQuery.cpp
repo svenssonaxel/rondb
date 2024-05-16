@@ -236,7 +236,8 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
         // 3. construct agg_interpreter
         // scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
         scan_rec_ptr->m_agg_interpreter =
-          new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
+          new AggInterpreter(&cinBuffer[proc_start], proc_len, false,
+                              prepare_fragptr.p->fragmentId);
         ndbrequire(scan_rec_ptr->m_agg_interpreter->Init());
       }
     }
@@ -1245,6 +1246,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
   // MOZ Aggregation batch
   req_struct.agg_curr_batch_size_rows = 0;
   req_struct.agg_curr_batch_size_bytes = 0;
+  req_struct.agg_n_res_recs = 0;
 
   if (unlikely(trans_state != TRANS_IDLE))
   {
@@ -2041,6 +2043,7 @@ void Dbtup::returnTUPKEYCONF(Signal* signal,
   tupKeyConf->noExecInstructions = RnoExecInstructions;
   tupKeyConf->agg_batch_size_rows = req_struct->agg_curr_batch_size_rows;
   tupKeyConf->agg_batch_size_bytes = req_struct->agg_curr_batch_size_bytes;
+  tupKeyConf->agg_n_res_recs = req_struct->agg_n_res_recs;
   set_tuple_state(regOperPtr, TUPLE_PREPARED);
   set_trans_state(regOperPtr, trans_state);
 }
@@ -4064,6 +4067,8 @@ int Dbtup::interpreterStartLab(Signal* signal,
           transIdAI->transId[1] = req_struct->trans_id2;
           SendAggregationResult(signal, res_len, req_struct->rec_blockref);
         }
+        req_struct->agg_n_res_recs = scan_rec_ptr->
+                                      m_agg_interpreter->NumOfResRecords();
       } else {
         sendReadAttrinfo(signal, req_struct, RattroutCounter); // ZHAO 49
       }

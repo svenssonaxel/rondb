@@ -490,18 +490,9 @@ void Dbtup::SendAggResToAPI(Signal* signal, const void* lqhTcConnectrec,
   ndbrequire(lqhScanPtrP->m_aggregation == true &&
              lqhScanPtrP->m_agg_interpreter != nullptr);
   uint32_t res_len = lqhScanPtrP->m_agg_interpreter->PrepareAggResIfNeeded(signal, true);
-  // MOZ DEBUG PRINT
-  fprintf(stderr, "End-scan, send at last, res_len: %u,"
-          " trans[0]: %u, trans[2]: %u, connectPtr: %u, blockref: %u"
-          ", size_rows[%u, %u], size_bytes: [%u, %u]\n",
-          /*scan.m_tableId, scan.m_fragId, */res_len,
-          lqhOpPtrP->transid[0], lqhOpPtrP->transid[1],
-          lqhScanPtrP->scanApiOpPtr, lqhScanPtrP->scanApiBlockref,
-          lqhScanPtrP->m_agg_curr_batch_size_rows,
-          lqhScanPtrP->m_curr_batch_size_rows,
-          lqhScanPtrP->m_agg_curr_batch_size_bytes,
-          lqhScanPtrP->m_curr_batch_size_bytes);
+  lqhScanPtrP->m_agg_n_res_recs = lqhScanPtrP->m_agg_interpreter->NumOfResRecords();
   if (res_len != 0) {
+    ndbrequire(lqhScanPtrP->m_agg_n_res_recs == 0);
     TransIdAI * transIdAI=  (TransIdAI *)signal->getDataPtrSend();
     transIdAI->connectPtr = lqhScanPtrP->scanApiOpPtr;
     transIdAI->transId[0] = lqhOpPtrP->transid[0];
@@ -511,5 +502,19 @@ void Dbtup::SendAggResToAPI(Signal* signal, const void* lqhTcConnectrec,
     lqhScanPtrP->m_agg_curr_batch_size_bytes = res_len * sizeof(Uint32);
     lqhScanPtrP->m_agg_curr_batch_size_rows = 1;
     SendAggregationResult(signal, res_len, lqhScanPtrP->scanApiBlockref);
+  }
+  // MOZ DEBUG PRINT
+  if (lqhScanPtrP->m_agg_interpreter->frag_id() == 0) {
+    fprintf(stderr, "End-scan, send at last, res_len: %u,"
+        " trans[0]: %u, trans[2]: %u, connectPtr: %u, blockref: %u"
+        ", size_rows[%u, %u], size_bytes: [%u, %u], n_res_recs: %u\n",
+        /*scan.m_tableId, scan.m_fragId, */res_len,
+        lqhOpPtrP->transid[0], lqhOpPtrP->transid[1],
+        lqhScanPtrP->scanApiOpPtr, lqhScanPtrP->scanApiBlockref,
+        lqhScanPtrP->m_agg_curr_batch_size_rows,
+        lqhScanPtrP->m_curr_batch_size_rows,
+        lqhScanPtrP->m_agg_curr_batch_size_bytes,
+        lqhScanPtrP->m_curr_batch_size_bytes,
+        lqhScanPtrP->m_agg_n_res_recs);
   }
 }

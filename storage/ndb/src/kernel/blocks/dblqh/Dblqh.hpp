@@ -601,6 +601,7 @@ public:
       m_aggregation(0),
       m_agg_curr_batch_size_rows(0),
       m_agg_curr_batch_size_bytes(0),
+      m_agg_n_res_recs(0),
       m_agg_interpreter(nullptr)
     {
     }
@@ -723,8 +724,19 @@ public:
     Uint8 m_send_early_hbrep;
     // Aggregation
     Uint8 m_aggregation;
-    Uint32 m_agg_curr_batch_size_rows;
-    Uint32 m_agg_curr_batch_size_bytes;
+    Uint32 m_agg_curr_batch_size_rows; // [0, 1], 1 indicates a "aggregation
+                                       // batch completed", which means either
+                                       // size of group map in aggregation
+                                       // interpreter reached limitation or the
+                                       // scan process on this fragment done, so
+                                       // it's going to send aggregation results
+                                       // to API
+    Uint32 m_agg_curr_batch_size_bytes; // [0, non-0], same as up.
+    Uint32 m_agg_n_res_recs; // [0, non-0], non-0 indicates that some aggregation
+                             // results are cached in the interpreter which hasn't
+                             // been send to the API. We use this variable to make sure
+                             // that we won't send a scanfragconf with 0 completed_ops
+                             // to the TC, which could cause incorrect aggregation result.
     AggInterpreter* m_agg_interpreter;
   };
   static constexpr Uint32 DBLQH_SCAN_RECORD_TRANSIENT_POOL_INDEX = 1;
@@ -5365,16 +5377,18 @@ Dblqh::ScanRecord::check_scan_batch_completed(bool print) const
     if (m_agg_curr_batch_size_bytes) {
       // MOZ DEBUG PRINT
       if (print) {
-        fprintf(stderr, "CHECK batch complete:true, rows[%u, %u], bytes[%u, %u]\n",
+        fprintf(stderr, "CHECK batch complete:true, rows[%u, %u], bytes[%u, %u], n_res_recs: %u\n",
             m_agg_curr_batch_size_rows, m_curr_batch_size_rows,
-            m_agg_curr_batch_size_bytes, m_curr_batch_size_bytes);
+            m_agg_curr_batch_size_bytes, m_curr_batch_size_bytes,
+            m_agg_n_res_recs);
       }
       return true;
     } else {
       if (print) {
-        fprintf(stderr, "CHECK batch complete:false, rows[%u, %u], bytes[%u, %u]\n",
+        fprintf(stderr, "CHECK batch complete:false, rows[%u, %u], bytes[%u, %u], n_res_recs: %u\n",
             m_agg_curr_batch_size_rows, m_curr_batch_size_rows,
-            m_agg_curr_batch_size_bytes, m_curr_batch_size_bytes);
+            m_agg_curr_batch_size_bytes, m_curr_batch_size_bytes,
+            m_agg_n_res_recs);
       }
       return false;
     }

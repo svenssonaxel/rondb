@@ -17451,7 +17451,9 @@ void Dblqh::scanNextLoopLab(Signal* signal,
                            block,
                            f,
                            scanPtr,
-                           clientPtrI, fragPtr->fragId == 0);
+                           clientPtrI,
+                           (fragPtr->fragId == 0 &&
+                            scanPtr->m_aggregation));
     return;
   }
   /**
@@ -17536,6 +17538,19 @@ void Dblqh::scanLockReleasedLab(Signal* signal,
     the record we didn't want, but now we are returning all found records to
     the API.
     */
+
+    /*
+     * Moz
+     * In pushdown aggregation mode, before we send
+     * scanfragconf to TC, we need to make sure that
+     * there is no agg results cached in aggregation
+     * interpreter.
+     * See more details at Dblqh::scanTupkeyConfLab(),
+     * search for [MOZ-COMMENT] there.
+     */
+    if (scanPtr->m_aggregation) {
+      ndbrequire(scanPtr->m_agg_n_res_recs == 0);
+    }
     scanPtr->scan_lastSeen = __LINE__;
     sendScanFragConf(signal, ZFALSE, regTcPtr);
   }
@@ -18841,7 +18856,7 @@ void Dblqh::storedProcConfScanLab(Signal* signal,
     FragrecordPtr regFragptr;
     regFragptr.i = tcConnectptr.p->fragmentptr;
     ndbrequire(c_fragment_pool.getPtr(regFragptr));
-    if (regFragptr.p->fragId == 0) {
+    if (regFragptr.p->fragId == 0 && scanPtr->m_aggregation) {
       print = true;
     }
     }
@@ -19656,12 +19671,14 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
 
   if (scanPtr->m_aggregation) {
     if (conf->agg_batch_size_bytes) {
-      ndbrequire(conf->agg_batch_size_rows == 1)
+      ndbrequire(conf->agg_batch_size_rows == 1);
+      ndbrequire(conf->agg_n_res_recs == 0);
       ndbrequire(scanPtr->m_agg_curr_batch_size_bytes == 0);
       ndbrequire(scanPtr->m_agg_curr_batch_size_rows == 0);
     }
     scanPtr->m_agg_curr_batch_size_bytes = conf->agg_batch_size_bytes;
     scanPtr->m_agg_curr_batch_size_rows = conf->agg_batch_size_rows;
+    scanPtr->m_agg_n_res_recs = conf->agg_n_res_recs;
   } else {
     // Moz
     // In aggregation mode, since we don't follow batch strategy 100%,
@@ -19695,7 +19712,7 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
   FragrecordPtr regFragptr;
   regFragptr.i = regTcPtr->fragmentptr;
   ndbrequire(c_fragment_pool.getPtr(regFragptr));
-  if (regFragptr.p->fragId == 0) {
+  if (regFragptr.p->fragId == 0 && scanPtr->m_aggregation) {
     print = true;
   }
   }
@@ -19845,8 +19862,22 @@ void Dblqh::scanTupkeyRefLab(Signal* signal,
   // 'time_passed' is in slices of 10ms
   const Uint32 time_passed = cLqhTimeOutCount - tcConnectptr.p->tcTimer;
   if (unlikely(rows && time_passed > 1) &&
-      (refToMain(scanPtr->scanApiBlockref) != DBSPJ || time_passed > 10 ))
+      (refToMain(scanPtr->scanApiBlockref) != DBSPJ || time_passed > 10 ) &&
+      (!scanPtr->m_aggregation || scanPtr->m_agg_n_res_recs == 0))
   {
+    /* Moz explain up if
+     * [MOZ-COMMENT]
+     * In pushdown aggregation mode, if we are using filter, then time_pased &&
+     * rows > 0 could be true, but it doesn't represent that there are no remaining
+     * aggregation results left in the aggregation_interpreter since the agg batch
+     * size limitation hasn't been reached and the results are cached in interpreter
+     * temporarily, if we don't skip here, it would send a scanfragconf to TC and the
+     * completed ops in scanfragconf is 0, it seems that if the TC received all scanfragconf
+     * with ops=0 from all fragments, TC would regard the scan process is completed(but
+     * actually it isn't) and tell completed status to API, API would stop without waiting for
+     * the remaining results, which could cause incorrect error in the final results.
+     */
+
     /* -----------------------------------------------------------------------
      *  WE NEED TO ENSURE THAT WE DO NOT SEARCH FOR THE NEXT TUPLE FOR A
      *  LONG TIME WHILE WE KEEP A LOCK ON A FOUND TUPLE. WE RATHER REPORT
@@ -19857,6 +19888,13 @@ void Dblqh::scanTupkeyRefLab(Signal* signal,
     scanPtr->scanReleaseCounter = rows + 1;
     scanReleaseLocksLab(signal, tcConnectptr.p);
     return;
+  } else {
+    // MOZ DEBUG PRINT
+    if (scanPtr->m_aggregation && scanPtr->m_agg_n_res_recs > 0 &&
+        scanPtr->m_agg_interpreter->frag_id() == 0) {
+      fprintf(stderr, "Moz-SKIP send scanfragconf, scanPtr->m_agg_n_res_recs: %u\n",
+              scanPtr->m_agg_n_res_recs);
+    }
   }
   scanPtr->scanFlag = NextScanReq::ZSCAN_NEXT_COMMIT;
   scanPtr->scan_acc_index--;
@@ -20630,9 +20668,21 @@ void Dblqh::init_release_scanrec(ScanRecord* scanPtr)
   scanPtr->scanType = ScanRecord::ST_IDLE;
   scanPtr->scanTcWaiting = 0;
   scanPtr->scan_lastSeen = __LINE__;
+  // Moz reset aggregation variables
+  scanPtr->m_aggregation = false;
+  scanPtr->m_agg_curr_batch_size_rows = 0;
+  scanPtr->m_agg_curr_batch_size_bytes = 0;
+  scanPtr->m_agg_n_res_recs = 0;
   // Moz release aggregation interpreter
   if (scanPtr->m_agg_interpreter != nullptr) {
     AggInterpreter* ptr = scanPtr->m_agg_interpreter;
+    if (ptr != nullptr) {
+      // TODO(Zhao)
+      // potential crash here.
+      // gb_map may be non-empty if API closes scan
+      // while lqh is processing. double check here.
+      ndbrequire(ptr->gb_map()->empty());
+    }
     delete ptr;
     scanPtr->m_agg_interpreter = nullptr;
   }
@@ -21051,14 +21101,28 @@ void Dblqh::sendScanFragConf(Signal* signal,
     FragrecordPtr regFragptr;
     regFragptr.i = regTcPtr->fragmentptr;
     ndbrequire(c_fragment_pool.getPtr(regFragptr));
-    if (regFragptr.p->fragId == 0) {
-    print = true;
-    fprintf(stderr, "MOZ sendScanFragConf, rows:[%u, %u], bytes: [%u, %u]\n",
-                                  scanPtr->m_agg_curr_batch_size_rows,
-                                  scanPtr->m_curr_batch_size_rows,
-                                  scanPtr->m_agg_curr_batch_size_bytes,
-                                  scanPtr->m_curr_batch_size_bytes);
+    if (regFragptr.p->fragId == 0 && scanPtr->m_aggregation) {
+      print = true;
+      ndbrequire(regFragptr.p->fragId == scanPtr->m_agg_interpreter->frag_id());
+      fprintf(stderr, "MOZ sendScanFragConf, rows:[%u, %u], bytes: [%u, %u], n_res_recs: %u\n",
+                                    scanPtr->m_agg_curr_batch_size_rows,
+                                    scanPtr->m_curr_batch_size_rows,
+                                    scanPtr->m_agg_curr_batch_size_bytes,
+                                    scanPtr->m_curr_batch_size_bytes,
+                                    scanPtr->m_agg_n_res_recs);
     }
+  }
+  /*
+   * Moz
+   * In pushdown aggregation mode, before we send
+   * scanfragconf to TC, we need to make sure that
+   * there is no agg results cached in aggregation
+   * interpreter.
+   * See more details at Dblqh::scanTupkeyConfLab(),
+   * search for [MOZ-COMMENT] there.
+   */
+  if (scanPtr->m_aggregation) {
+    ndbrequire(scanPtr->m_agg_n_res_recs == 0);
   }
   // Moz
   // Make sure that we send correct m_curr_batch_size_XXX, otherwise
@@ -21070,6 +21134,14 @@ void Dblqh::sendScanFragConf(Signal* signal,
                                 scanPtr->m_agg_curr_batch_size_bytes :
                                 scanPtr->m_curr_batch_size_bytes;
   ndbassert((scanPtr->m_agg_curr_batch_size_bytes % sizeof(Uint32)) == 0);
+  if (scanPtr->m_aggregation) {
+    // TODO(ZHAO)
+    // potential crash here? double check.
+    // 1. API quits while scanning. scanPtr->scanState == WAIT_CLOSE_SCAN
+    // and scanPtr->m_agg_curr_batch_size_bytes maybe 0.
+    assert(scanPtr->m_agg_curr_batch_size_bytes ||
+           scanPtr->scanState == ScanRecord::WAIT_CLOSE_SCAN);
+  }
   const Uint32 completed_ops= tmp_completed_ops;
   const Uint32 total_len= tmp_total_len / sizeof(Uint32);
 
@@ -21105,16 +21177,18 @@ void Dblqh::sendScanFragConf(Signal* signal,
     jamDebug();
     // Moz DEBUG PRINT
     if (print) {
-      fprintf(stderr, "reset rows: [%u, %u], bytes: [%u, %u]\n",
+      fprintf(stderr, "reset rows: [%u, %u], bytes: [%u, %u], n_res_recs: %u\n",
                                   scanPtr->m_agg_curr_batch_size_rows,
                                   scanPtr->m_curr_batch_size_rows,
                                   scanPtr->m_agg_curr_batch_size_bytes,
-                                  scanPtr->m_curr_batch_size_bytes);
+                                  scanPtr->m_curr_batch_size_bytes,
+                                  scanPtr->m_agg_n_res_recs);
     }
     scanPtr->m_curr_batch_size_rows = 0;
     scanPtr->m_curr_batch_size_bytes= 0;
     scanPtr->m_agg_curr_batch_size_rows = 0;
     scanPtr->m_agg_curr_batch_size_bytes= 0;
+    scanPtr->m_agg_n_res_recs = 0;
     // Moz statemach
     ndbrequire(scanPtr->scanState == ScanRecord::WAIT_NEXT_SCAN ||
                scanPtr->scanState == ScanRecord::WAIT_ACC_SCAN ||
