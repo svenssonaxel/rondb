@@ -135,6 +135,7 @@ struct ExecutionParameters
                                   // keyword is present in SQL code.
   };
   ExecutionMode mode = ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN;
+  NdbOperation::LockMode lock_mode = NdbOperation::LockMode::LM_CommittedRead;
   std::basic_ostream<char>* query_output_stream = NULL;
   enum class QueryOutputFormat
   {

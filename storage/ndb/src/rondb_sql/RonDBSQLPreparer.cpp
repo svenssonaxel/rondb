@@ -119,6 +119,10 @@ RonDBSQLPreparer::configure()
   if (may_query)
   {
     assert(m_conf.ndb != NULL);
+    assert(m_conf.lock_mode == NdbOperation::LockMode::LM_Read ||
+           m_conf.lock_mode == NdbOperation::LockMode::LM_Exclusive ||
+           m_conf.lock_mode == NdbOperation::LockMode::LM_CommittedRead ||
+           m_conf.lock_mode == NdbOperation::LockMode::LM_SimpleRead);
     assert(m_conf.query_output_stream != NULL);
     assert(m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::CSV ||
            m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_UTF8 ||
@@ -518,7 +522,7 @@ RonDBSQLPreparer::execute()
     assert(m_table != NULL);
     NdbScanOperation* myScanOp = myTrans->getNdbScanOperation(m_table);
     soft_assert(myScanOp != NULL, "Failed to get scan operation.");
-    soft_assert(myScanOp->readTuples(NdbOperation::LM_CommittedRead) == 0,
+    soft_assert(myScanOp->readTuples(m_conf.lock_mode) == 0,
                 "Failed to initialize scan operation.");
     NdbScanFilter filter(myScanOp);
     applyFilter(&filter);
