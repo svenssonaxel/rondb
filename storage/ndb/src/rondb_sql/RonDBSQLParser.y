@@ -44,7 +44,8 @@ typedef void * yyscan_t;
 #include "AggregationAPICompiler.hpp"
 
 // Let bison use RonDBSQLPreparer's arena allocator
-#define YYMALLOC(SIZE) context->get_allocator()->alloc(SIZE)
+// todo find out what alignment we need here
+#define YYMALLOC(SIZE) context->get_allocator()->alloc_bytes(SIZE, 16)
 #define YYFREE(PTR) void()
 
 // Let bison know it's okay to move the stack using memcpy. This could otherwise
@@ -90,16 +91,14 @@ while (0)
 extern void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t yyscanner, const char* s);
 #define context (rsqlp_get_extra(scanner))
 /* Unfortunately initptr got a little complex. It just means that we assume THIS
- * to be of type SOMETYPE*&, allocate new memory of the correct size and set
- * THIS to the address of the new allocation. In other words, it should be
- * equivalent to:
- * THIS = static_cast<SOMETYPE*>(
- *   context->get_allocator()->alloc(sizeof(SOMETYPE)));
+ * to be of type SOMETYPE*&, allocate sizeof(SOMETYPE) new memory and set THIS
+ * to the address of the new allocation. In other words, it should be equivalent
+ * to:
+ * THIS = context->get_allocator()->alloc<SOMETYPE>(1);
  */
 #define initptr(THIS) do \
   { \
-    THIS = static_cast<std::remove_reference<decltype(THIS)>::type>( \
-      context->get_allocator()->alloc(sizeof(*(THIS)))); \
+    THIS = context->get_allocator()->alloc<std::remove_pointer<std::remove_reference<decltype(THIS)>::type>::type>(1); \
   } while (0)
 #define init_aggfun(RES,LOC,FUN,ARG) do \
   { \

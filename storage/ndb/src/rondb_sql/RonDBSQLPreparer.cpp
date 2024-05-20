@@ -399,8 +399,7 @@ RonDBSQLPreparer::load()
     m_dict = ndb->getDictionary();
     m_table = m_dict->getTable(m_context.ast_root.table.c_str());
     soft_assert(m_table != NULL, "Failed to get table.");
-    int32_t* col_id_map = static_cast<int32_t*>
-      (m_aalloc->alloc(m_columns.size() * sizeof(int32_t)));
+    int32_t* col_id_map = m_aalloc->alloc<int32_t>(m_columns.size());
     for(uint col_idx = 0; col_idx < m_columns.size(); col_idx++)
     {
       const char* col_name = m_columns[col_idx].c_str();
@@ -664,7 +663,7 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
         return false;
       }
       int col_id = col->getColumnNo();
-      uint8_t* val = static_cast<uint8_t*>(m_aalloc->alloc(sizeof(uint8_t)));
+      uint8_t* val = m_aalloc->alloc<uint8_t>(1);
       *val = static_cast<uint8_t>(ce->args.right->constant_integer);
       return (filter->cmp(NdbScanFilter::COND_EQ, col_id, val, sizeof(*val)) >= 0);
     }
@@ -1365,7 +1364,7 @@ RonDBSQLPreparer::Context::get_agg()
    * compilation, a new object will be crafted that holds the information
    * necessary for execution and post-processing.
    */
-  m_parser.m_agg = new (get_allocator()->alloc(sizeof(AggregationAPICompiler)))
+  m_parser.m_agg = new (get_allocator()->alloc<AggregationAPICompiler>(1))
     AggregationAPICompiler(column_idx_to_name,
                            *m_parser.m_conf.explain_output_stream,
                            *m_parser.m_conf.err_output_stream,

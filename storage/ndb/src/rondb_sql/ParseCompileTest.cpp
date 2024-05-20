@@ -42,7 +42,7 @@ main(int argc, char** argv)
   // bison requires two NUL bytes at end
   char* cmdline_arg = argv[1];
   int cmdline_arg_len = strlen(cmdline_arg);
-  char* parse_str = static_cast<char*>(aalloc.alloc((cmdline_arg_len+2) * sizeof(char)));
+  char* parse_str = aalloc.alloc<char>(cmdline_arg_len + 2);
   size_t parse_len = (cmdline_arg_len+2) * sizeof(char);
   memcpy(parse_str, cmdline_arg, cmdline_arg_len);
   parse_str[cmdline_arg_len] = '\0';

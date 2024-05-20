@@ -512,7 +512,8 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
 void*
 rsqlp_alloc(size_t bytes, void * scanner)
 {
-  return rsqlp_get_extra(scanner)->get_allocator()->alloc(bytes);
+  // todo find out what alignment we need here
+  return rsqlp_get_extra(scanner)->get_allocator()->alloc_bytes(bytes, 16);
 }
 
 void*
