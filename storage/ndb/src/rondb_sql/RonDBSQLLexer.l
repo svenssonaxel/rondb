@@ -509,11 +509,18 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
 
 %%
 
+union rsqlp_alloc_align
+{
+  struct yy_buffer_state ignore1;
+  char ignore2;
+  yyguts_t ignore3;
+};
+
 void*
 rsqlp_alloc(size_t bytes, void * scanner)
 {
-  // todo find out what alignment we need here
-  return rsqlp_get_extra(scanner)->get_allocator()->alloc_bytes(bytes, 16);
+  return rsqlp_get_extra(scanner)->get_allocator()->
+    alloc_bytes(bytes, alignof(union rsqlp_alloc_align));
 }
 
 void*
