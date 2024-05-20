@@ -28,12 +28,13 @@
 #include <assert.h>
 #include <stdexcept>
 
+using std::byte;
+
 //#define ARENA_ALLOCATOR_DEBUG 1
 
 class ArenaAllocator
 {
 private:
-  enum class byte : uint8_t {};
   /*
    * todo: These two parameters could be dynamic. With some statistics, we
    * should be able to tune these as a function of SQL statement length, which
@@ -41,7 +42,7 @@ private:
    */
   static const size_t DEFAULT_PAGE_SIZE = 256;
   static const size_t INITIAL_PAGE_SIZE = 80;
-  size_t m_page_data_size = DEFAULT_PAGE_SIZE;
+  size_t m_page_size = DEFAULT_PAGE_SIZE;
   struct Page
   {
     struct Page* next = NULL;
@@ -50,8 +51,8 @@ private:
   static const size_t OVERHEAD = offsetof(struct Page, data);
   static_assert(OVERHEAD < DEFAULT_PAGE_SIZE, "default page size too small");
   struct Page* m_current_page = NULL;
-  byte* m_point = NULL;
-  byte* m_stop = NULL;
+  uintptr_t m_point = 0;
+  uintptr_t m_stop = 0;
 # ifdef ARENA_ALLOCATOR_DEBUG
   unsigned long int m_allocated_by_us = sizeof(ArenaAllocator);
   unsigned long int m_allocated_by_user = 0;
@@ -60,8 +61,28 @@ private:
 public:
   ArenaAllocator();
   ~ArenaAllocator();
-  void* alloc(size_t size);
-  void* realloc(const void* ptr, size_t size, size_t original_size);
+  void* alloc_bytes(size_t size, size_t alignment);
+  template<typename T> inline T* alloc(uint items);
+  void* realloc_bytes(const void* ptr, size_t size, size_t original_size, size_t alignment);
+  template<typename T> inline T* realloc(const T* ptr, uint items, uint original_items);
 };
+
+template <typename T>
+inline T*
+ArenaAllocator::alloc(uint items)
+{
+  return static_cast<T*>(alloc_bytes(items * sizeof(T), alignof(T)));
+}
+template <typename T>
+inline T*
+ArenaAllocator::realloc(const T* ptr, uint items, uint original_items)
+{
+  return static_cast<T*>
+    (realloc_bytes
+     (static_cast<const void*>(ptr),
+      sizeof(T) * items,
+      sizeof(T) * original_items,
+      alignof(T)));
+}
 
 #endif

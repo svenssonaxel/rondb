@@ -353,7 +353,7 @@ int scan_aggregation(Ndb * myNdb)
     "       , CMEDIUMINT;";
   cout << sql_query << endl;
   uint sql_query_len = strlen(sql_query);
-  char* parse_str = static_cast<char*>(aalloc.alloc((sql_query_len+2) * sizeof(char)));
+  char* parse_str = aalloc.alloc<char>(sql_query_len + 2);
   size_t parse_len = (sql_query_len+2) * sizeof(char);
   memcpy(parse_str, sql_query, sql_query_len);
   parse_str[sql_query_len] = '\0';

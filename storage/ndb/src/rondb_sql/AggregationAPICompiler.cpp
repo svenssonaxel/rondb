@@ -749,8 +749,7 @@ AggregationAPICompiler::dead_code_elimination()
   {
     reg_needed[i] = false;
   }
-  bool* instr_useful =
-    static_cast<bool*>(m_aalloc->alloc(m_program.size() * sizeof(bool)));
+  bool* instr_useful = m_aalloc->alloc<bool>(m_program.size());
   for (uint i=0; i<m_program.size(); i++)
   {
     instr_useful[i] = false;
