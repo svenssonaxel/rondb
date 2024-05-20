@@ -37,6 +37,33 @@ static const char* interval_type_name(int interval_type);
 static void print_json_string_utf8_to_utf8(std::basic_ostream<char>& out, const char* str);
 static void print_json_string_utf8_to_ascii(std::basic_ostream<char>& out, const char* str);
 
+DEFINE_FORMATTER(quoted_identifier, LexString, {
+  os.put('`');
+  for (uint i = 0; i < value.len; i++)
+  {
+    char ch = value.str[i];
+    if (ch == '`')
+      os.write("``", 2);
+    else
+      os.put(ch);
+  }
+  os.put('`');
+})
+
+DEFINE_FORMATTER(quoted_identifier, char*, {
+  const char* iter = value;
+  os.put('`');
+  while (*iter != '\0')
+  {
+    if (*iter == '`')
+      os.write("``", 2);
+    else
+      os.put(*iter);
+    iter++;
+  }
+  os.put('`');
+})
+
 // Make sure that the number of registers in AggregationAPICompiler.hpp matches
 // that in ../../include/ndbapi/NdbAggregationCommon.hpp
 static_assert(REGS == kRegTotal);
@@ -350,18 +377,43 @@ RonDBSQLPreparer::has_width(uint pos)
 void
 RonDBSQLPreparer::load()
 {
+  std::basic_ostream<char>& err = *m_conf.err_output_stream;
   /*
-   * todo: During parsing, strings that are claimed to be column names were
-   * assigned consecutive indexes as they were found. These indexes have already
-   * been used to construct expressions in m_agg. Now that parsing is done and
-   * we know the table name, we should look up the real column indexes in the
-   * schema, check that the table and columns exist, and remap the indexes
-   * inside both m_ast_root and m_agg.
+   * During parsing, strings that were claimed to be column names were inserted
+   * into m_columns. The element indexes in m_columns, usually called col_idx,
+   * have already been used to construct Load instructions in m_agg, as well as
+   * the parse tree in ast_root. Now that parsing is done and we know the table
+   * name, we look up the column attrIds in the schema and check that the table
+   * and columns exist. RonDBSQLPreparer keeps the col_idx around and relies on
+   * m_column_attrId_map to map col_idx to column attrId, e.g. when programming
+   * the aggregator. This also means we don't need to change anything in m_agg;
+   * instead, RonDBSQLPreparer::programAggregator will read the program from
+   * m_agg and map col_idx to attrId before speaking to NdbAggregator.
    */
-
-  // Load schema information and check that the table and columns exist.
-
-  // Remap column indexes in m_ast_root and m_agg.
+  // Populate m_dict, m_table and m_column_attrId_map, on the condition that
+  // m_conf.ndb is available. If m_conf.ndb is not available, we'll still be
+  // able to do a (partial) EXPLAIN SELECT, so no need to fail yet.
+  Ndb* ndb = m_conf.ndb;
+  if (ndb != NULL)
+  {
+    m_dict = ndb->getDictionary();
+    m_table = m_dict->getTable(m_context.ast_root.table.c_str());
+    soft_assert(m_table != NULL, "Failed to get table.");
+    int32_t* col_id_map = static_cast<int32_t*>
+      (m_aalloc->alloc(m_columns.size() * sizeof(int32_t)));
+    for(uint col_idx = 0; col_idx < m_columns.size(); col_idx++)
+    {
+      const char* col_name = m_columns[col_idx].c_str();
+      const NdbDictionary::Column* col = m_table->getColumn(col_name);
+      if (col == NULL)
+      {
+        err << "Failed to get column: " << quoted_identifier(col_name) << endl;
+        throw runtime_error("Failed to get column.");
+      }
+      col_id_map[col_idx] = col->getAttrId();
+    }
+    m_column_attrId_map = col_id_map;
+  }
 
   // Load aggregates
   Outputs* outputs = m_context.ast_root.outputs;
@@ -424,7 +476,7 @@ RonDBSQLPreparer::execute()
   soft_assert(m_status != Status::FAILED,
               "Attempting RonDBSQLPreparer::execute while in failed state.");
   assert(m_status == Status::PREPARED);
-  Ndb* myNdb = NULL;
+  Ndb* ndb = m_conf.ndb;
   NdbTransaction* myTrans = NULL;
   try
   {
@@ -460,21 +512,18 @@ RonDBSQLPreparer::execute()
       }
       return;
     }
-    myNdb = m_conf.ndb;
-    soft_assert(myNdb != NULL, "Cannot query without ndb object.");
-    myTrans = myNdb->startTransaction();
+    soft_assert(ndb != NULL, "Cannot query without ndb object.");
+    myTrans = ndb->startTransaction();
     soft_assert(myTrans != NULL, "Failed to start transaction.");
-    const NdbDictionary::Dictionary* myDict = myNdb->getDictionary();
-    const NdbDictionary::Table* myTable =
-      myDict->getTable(m_context.ast_root.table.c_str());
-    soft_assert(myTable != NULL, "Failed to get table.");
-    NdbScanOperation* myScanOp = myTrans->getNdbScanOperation(myTable);
+    // Since ndb exists, m_table should have been initialized in load()
+    assert(m_table != NULL);
+    NdbScanOperation* myScanOp = myTrans->getNdbScanOperation(m_table);
     soft_assert(myScanOp != NULL, "Failed to get scan operation.");
     soft_assert(myScanOp->readTuples(NdbOperation::LM_CommittedRead) == 0,
                 "Failed to initialize scan operation.");
     NdbScanFilter filter(myScanOp);
-    applyFilter(&filter, myTable);
-    NdbAggregator aggregator(myTable);
+    applyFilter(&filter);
+    NdbAggregator aggregator(m_table);
     programAggregator(&aggregator);
     assert(aggregator.Finalize());
     soft_assert(myScanOp->setAggregationCode(&aggregator) >= 0,
@@ -494,7 +543,7 @@ RonDBSQLPreparer::execute()
       print_result_json(&aggregator);
       break;
     }
-    myNdb->closeTransaction(myTrans);
+    ndb->closeTransaction(myTrans);
   }
   catch (const std::exception& e)
   {
@@ -503,12 +552,12 @@ RonDBSQLPreparer::execute()
       // Rethrow since error not from ndb
       throw;
     }
-    NdbError ndb_err = myNdb->getNdbError();
+    NdbError ndb_err = ndb->getNdbError();
     std::basic_ostream<char>& err = *m_conf.err_output_stream;
     switch (ndb_err.status)
     {
     case NdbError::Status::Success:
-      myNdb->closeTransaction(myTrans);
+      ndb->closeTransaction(myTrans);
       // Rethrow since error not from ndb
       throw;
     case NdbError::Status::TemporaryError:
@@ -516,19 +565,19 @@ RonDBSQLPreparer::execute()
           << endl;
       err << "Caught exception, probably caused by the temporary error above: "
           << e.what() << endl;
-      myNdb->closeTransaction(myTrans);
+      ndb->closeTransaction(myTrans);
       throw TemporaryError();
     case NdbError::Status::PermanentError:
       err << "NDB permanent error: " << ndb_err.code << " " << ndb_err.message
           << endl;
-      myNdb->closeTransaction(myTrans);
+      ndb->closeTransaction(myTrans);
       // Now that the ndb error is described on err stream, we'll rethrow the
       // original exception.
       throw;
     case NdbError::Status::UnknownResult:
       err << "NDB unknown result: " << ndb_err.code << " " << ndb_err.message
           << endl;
-      myNdb->closeTransaction(myTrans);
+      ndb->closeTransaction(myTrans);
       // Now that the ndb error is described on err stream, we'll rethrow the
       // original exception.
       throw;
@@ -543,7 +592,7 @@ RonDBSQLPreparer::execute()
 }
 
 void
-RonDBSQLPreparer::applyFilter(NdbScanFilter* filter, const NdbDictionary::Table* myTable)
+RonDBSQLPreparer::applyFilter(NdbScanFilter* filter)
 {
   struct ConditionalExpression* ce = m_context.ast_root.where_expression;
   assert(ce != NULL);
@@ -556,12 +605,12 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter, const NdbDictionary::Table*
   bool success = false;
   if (ce->op == T_AND || ce->op == T_OR)
   {
-    success = applyFilter(filter, ce, myTable);
+    success = applyFilter(filter, ce);
   }
   else
   {
     success = (filter->begin(NdbScanFilter::AND) >= 0 &&
-               applyFilter(filter, ce, myTable) &&
+               applyFilter(filter, ce) &&
                filter->end() >= 0);
   }
   if (!success)
@@ -572,8 +621,7 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter, const NdbDictionary::Table*
 
 bool
 RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
-                              struct ConditionalExpression* ce,
-                              const NdbDictionary::Table* myTable)
+                              struct ConditionalExpression* ce)
 {
   assert (ce != NULL);
   switch(ce->op)
@@ -586,18 +634,18 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
     assert(false); // Not implemented
   case T_OR:
     return (filter->begin(NdbScanFilter::OR) >= 0 &&
-            applyFilter(filter, ce->args.left, myTable) &&
-            applyFilter(filter, ce->args.right, myTable) &&
+            applyFilter(filter, ce->args.left) &&
+            applyFilter(filter, ce->args.right) &&
             filter->end() >= 0);
   case T_XOR:
     assert(false); // Not implemented
   case T_AND:
     return (filter->begin(NdbScanFilter::AND) >= 0 &&
-            applyFilter(filter, ce->args.left, myTable) &&
-            applyFilter(filter, ce->args.right, myTable) &&
+            applyFilter(filter, ce->args.left) &&
+            applyFilter(filter, ce->args.right) &&
             filter->end() >= 0);
   case T_NOT:
-    return (applyFilter(filter, ce->args.left, myTable) &&
+    return (applyFilter(filter, ce->args.left) &&
             // todo no idea if this is correct
             filter->isfalse() >= 0);
   case T_EQUALS:
@@ -606,9 +654,11 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
         ce->args.right->op == T_INT)
     {
       uint col_idx = ce->args.left->col_idx;
-      const char* col_name = column_idx_to_name(col_idx).c_str();
-      // todo Do column lookups in an earlier phase, then use only attrId or col_id for later phases.
-      const NdbDictionary::Column* col = myTable->getColumn(col_name);
+      // col_idx refers to the index in m_columns. To fetch the column object,
+      // we need the column name or attrId. We get the attrId from
+      // m_column_attrId_map.
+      assert(m_column_attrId_map != NULL);
+      const NdbDictionary::Column* col = m_table->getColumn(m_column_attrId_map[col_idx]);
       if (col == NULL)
       {
         return false;
@@ -669,33 +719,6 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
   }
 }
 
-DEFINE_FORMATTER(quoted_identifier, LexString, {
-  os.put('`');
-  for (uint i = 0; i < value.len; i++)
-  {
-    char ch = value.str[i];
-    if (ch == '`')
-      os.write("``", 2);
-    else
-      os.put(ch);
-  }
-  os.put('`');
-})
-
-DEFINE_FORMATTER(quoted_identifier, char*, {
-  const char* iter = value;
-  os.put('`');
-  while (*iter != '\0')
-  {
-    if (*iter == '`')
-      os.write("``", 2);
-    else
-      os.put(*iter);
-    iter++;
-  }
-  os.put('`');
-})
-
 #define programAggregator_do_or_fail(CALL) \
   do { \
     if (!(CALL)) \
@@ -714,7 +737,7 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
   while (groupby != NULL)
   {
     programAggregator_do_or_fail
-      (aggregator->GroupBy(column_idx_to_name(groupby->col_idx).c_str()));
+      (aggregator->GroupBy(m_column_attrId_map[groupby->col_idx]));
     groupby = groupby->next;
   }
   // Program aggregations
@@ -728,14 +751,13 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
     {
     case AggregationAPICompiler::SVMInstrType::Load:
     {
-      const char* col_name = m_columns[src].name.c_str();
-      // todo If the low-level API could be programmed using colId rather than
-      // name, then we could avoid converting both ways.
-      if (!aggregator->LoadColumn(col_name, dest))
+      assert(m_column_attrId_map != NULL);
+      int32_t col_id = m_column_attrId_map[src];
+      if (!aggregator->LoadColumn(col_id, dest))
       {
         err << "Failed writing aggregation program "
                "when attempting to load column "
-            << quoted_identifier(col_name) << endl;
+            << quoted_identifier(m_columns[src]) << endl;
         throw runtime_error("Failed writing aggregation program");
       }
       break;
@@ -1272,20 +1294,16 @@ static const char* interval_type_name(int interval_type)
 uint
 RonDBSQLPreparer::Context::column_name_to_idx(LexCString col_name)
 {
-  DynamicArray<Column>& columns = m_parser.m_columns;
+  DynamicArray<LexCString>& columns = m_parser.m_columns;
   uint sz = columns.size();
   for (uint i=0; i < sz; i++)
   {
-    if (columns[i].name == col_name)
+    if (columns[i] == col_name)
     {
       return i;
     }
   }
-  columns.push(Column{
-      col_name,
-      // We don't know the actual col_id_in_table yet. Until then, we pretend.
-      sz,
-    });
+  columns.push(col_name);
   return sz;
 }
 
@@ -1293,7 +1311,7 @@ LexCString
 RonDBSQLPreparer::column_idx_to_name(uint col_idx)
 {
   assert(col_idx < m_columns.size());
-  return m_columns[col_idx].name;
+  return m_columns[col_idx];
 }
 
 RonDBSQLPreparer::~RonDBSQLPreparer()

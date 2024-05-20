@@ -153,12 +153,6 @@ struct ExecutionParameters
   std::basic_ostream<char>* err_output_stream = NULL;
 };
 
-struct Column
-{
-  LexCString name = LexCString{ NULL, 0};
-  uint col_id_in_table;
-};
-
 class RonDBSQLPreparer
 {
 public:
@@ -218,7 +212,10 @@ private:
   LexString m_sql = {NULL, 0};
   ArenaAllocator* m_aalloc;
   Context m_context;
-  DynamicArray<Column> m_columns;
+  DynamicArray<LexCString> m_columns;
+  int32_t* m_column_attrId_map = NULL;
+  const NdbDictionary::Dictionary* m_dict = NULL;
+  const NdbDictionary::Table* m_table = NULL;
   yyscan_t m_scanner;
   YY_BUFFER_STATE m_buf;
   AggregationAPICompiler* m_agg = NULL;
@@ -239,10 +236,9 @@ private:
 public:
   void execute();
 private:
-  void applyFilter(NdbScanFilter* filter, const NdbDictionary::Table* myTable);
+  void applyFilter(NdbScanFilter* filter);
   bool applyFilter(NdbScanFilter* filter,
-                   struct ConditionalExpression* ce,
-                   const NdbDictionary::Table* myTable);
+                   struct ConditionalExpression* ce);
   void programAggregator(NdbAggregator* aggregator);
   void print_result_json(NdbAggregator* aggregator);
   void print();
