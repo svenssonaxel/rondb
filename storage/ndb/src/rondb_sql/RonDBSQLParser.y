@@ -44,8 +44,7 @@ typedef void * yyscan_t;
 #include "AggregationAPICompiler.hpp"
 
 // Let bison use RonDBSQLPreparer's arena allocator
-// todo find out what alignment we need here
-#define YYMALLOC(SIZE) context->get_allocator()->alloc_bytes(SIZE, 16)
+#define YYMALLOC(SIZE) context->get_allocator()->alloc_bytes(SIZE, alignof(union yyalloc))
 #define YYFREE(PTR) void()
 
 // Let bison know it's okay to move the stack using memcpy. This could otherwise
