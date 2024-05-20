@@ -928,4 +928,13 @@ ndbd_handle_new_hash_function(Uint32 x)
   return false;
 }
 
+#define NDBD_PUSHDOWN_AGGREGATION NDB_MAKE_VERSION(22, 10, 2)
+static
+inline
+bool
+ndbd_pushdown_aggregation_supported(Uint32 v)
+{
+  return v >= NDBD_PUSHDOWN_AGGREGATION;
+}
+
 #endif

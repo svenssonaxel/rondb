@@ -242,6 +242,12 @@ NdbScanOperation::addInterpretedCode()
 }
 
 int NdbScanOperation::addAggregationCode() {
+  NdbTransaction *tNdbCon = theNdbCon;
+  if (!ndbd_pushdown_aggregation_supported(
+          theNdbCon->getNdb()->getMinDbNodeVersion())) {
+    setErrorCode(4562);
+    return -1;
+  }
   const NdbAggregator* code = m_aggregation_code;
   int res = insertATTRINFOData_NdbRecord((const char*)code->buffer(),
                                           code->instructions_length() << 2);
