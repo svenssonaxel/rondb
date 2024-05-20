@@ -86,8 +86,7 @@ public:
         uint newCapacity = (INITIAL_PAGES_CAPACITY) > (pages_capacity * 2)
                            ? (INITIAL_PAGES_CAPACITY)
                            : (pages_capacity * 2);
-        T** newPages =
-          static_cast<T**>(allocator->alloc(newCapacity * sizeof(T*)));
+        T** newPages = allocator->alloc<T*>(newCapacity);
         if (pages_capacity > 0)
         {
           memcpy(newPages, pages, pages_capacity * sizeof(T*));
@@ -95,8 +94,7 @@ public:
         pages = newPages;
         pages_capacity = newCapacity;
       }
-      pages[page] =
-        static_cast<T*>(allocator->alloc(ITEMS_PER_PAGE * sizeof(T)));
+      pages[page] = allocator->alloc<T>(ITEMS_PER_PAGE);
     }
     pages[page][idx] = item;
     item_count++;
