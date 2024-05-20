@@ -34,7 +34,8 @@ using std::endl;
 using std::runtime_error;
 
 static const char* interval_type_name(int interval_type);
-static void print_json_string(std::basic_ostream<char> &out, const char *str);
+static void print_json_string_utf8_to_utf8(std::basic_ostream<char>& out, const char* str);
+static void print_json_string_utf8_to_ascii(std::basic_ostream<char>& out, const char* str);
 
 // Make sure that the number of registers in AggregationAPICompiler.hpp matches
 // that in ../../include/ndbapi/NdbAggregationCommon.hpp
@@ -480,7 +481,19 @@ RonDBSQLPreparer::execute()
                 "Failed to set aggregation code.");
     soft_assert(myScanOp->DoAggregation() >= 0,
                 "Failed to execute aggregation.");
-    print_result(&aggregator);
+    switch (m_conf.query_output_format)
+    {
+    case ExecutionParameters::QueryOutputFormat::CSV:
+      assert(false); // Not implemented
+    case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
+      m_print_json_string = print_json_string_utf8_to_utf8;
+      print_result_json(&aggregator);
+      break;
+    case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
+      m_print_json_string = print_json_string_utf8_to_ascii;
+      print_result_json(&aggregator);
+      break;
+    }
     myNdb->closeTransaction(myTrans);
   }
   catch (const std::exception& e)
@@ -771,9 +784,9 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
 #undef programAggregator_do_or_fail
 
 void
-RonDBSQLPreparer::print_result(NdbAggregator* aggregator)
+RonDBSQLPreparer::print_result_json(NdbAggregator* aggregator)
 {
-  std::basic_ostream<char>& out = *m_conf.data_output_stream;
+  std::basic_ostream<char>& out = *m_conf.query_output_stream;
   out << '[';
   bool first_record = true;
   for (NdbAggregator::ResultRecord record = aggregator->FetchResultRecord();
@@ -791,7 +804,7 @@ RonDBSQLPreparer::print_result(NdbAggregator* aggregator)
       out << "\"group_" << column.id() << "\":";
       if (column.type() == 15)
       {
-        print_json_string(out, &column.data()[1]);
+        m_print_json_string(out, &column.data()[1]);
       }
       else
       {
@@ -834,23 +847,122 @@ RonDBSQLPreparer::print_result(NdbAggregator* aggregator)
   out << ']' << endl;
 }
 
+// Print a JSON representation of str to out using UTF-8 encoding, assuming str
+// is correctly UTF-8 encoded. If it is not, the output will likewise be invalid.
 static void
-print_json_string(std::basic_ostream<char>& out, const char* str)
+print_json_string_utf8_to_utf8(std::basic_ostream<char>& out, const char* str)
 {
   out << '"';
   for (; *str != '\0'; str++)
   {
-    char c = *str;
-    switch (c)
+    char ch = *str;
+    switch (ch)
     {
-    case '"':
-      out << "\\\"";
-      break;
-    // todo better handling, perhaps even UTF-8 validation
-    default:
-      out << c;
-      break;
+    case '"':  out << "\\\""; break;
+    case '\\': out << "\\\\"; break;
+    case '/':  out << "\\/";  break;
+    case '\b': out << "\\b";  break;
+    case '\f': out << "\\f";  break;
+    case '\n': out << "\\n";  break;
+    case '\r': out << "\\r";  break;
+    case '\t': out << "\\t";  break;
+    default:   out << ch;     break;
     }
+  }
+  out << '"';
+}
+
+// Print a JSON representation of str to out using ASCII encoding, assuming str
+// is correctly UTF-8 encoded. Use \u escape for characters with code point
+// U+0080 and above. Crash if str is not valid UTF-8.
+static void
+print_json_string_utf8_to_ascii(std::basic_ostream<char>& out, const char* str)
+{
+  out << '"';
+  while (*str != '\0')
+  {
+    static const char* hex = "0123456789abcdef";
+    char ch = *str;
+    if ((ch & 0x80) == 0x00)
+    {
+      // 1-byte encoding for values 0-7 bits in length
+      switch (ch)
+      {
+      case '"':  out << "\\\""; break;
+      case '\\': out << "\\\\"; break;
+      case '/':  out << "\\/";  break;
+      case '\b': out << "\\b";  break;
+      case '\f': out << "\\f";  break;
+      case '\n': out << "\\n";  break;
+      case '\r': out << "\\r";  break;
+      case '\t': out << "\\t";  break;
+      default:   out << ch;     break;
+      }
+      str++;
+      continue;
+    }
+    if ((ch & 0xe0) == 0xc0)
+    {
+      // 2-byte encoding for values 8-11 bits in length
+      char ch2 = str[1];
+      assert((ch  & 0xfc) != 0xc0 &&
+             (ch2 & 0xc0) == 0x80);
+      Uint32 codepoint = ((ch  & 0x1f) << 6) |
+                          (ch2 & 0x3f);
+      out << "\\u0"
+          << hex[codepoint >> 8]
+          << hex[(codepoint >> 4) & 0x0f]
+          << hex[codepoint & 0x0f];
+      str += 2;
+      continue;
+    }
+    if ((ch & 0xf0) == 0xe0)
+    {
+      // 3-byte encoding for values 12-16 bits in length
+      char ch2 = str[1];
+      char ch3 = str[2];
+      assert((ch2 & 0xc0) == 0x80 &&
+             (ch3 & 0xc0) == 0x80);
+      Uint32 codepoint = ((ch  & 0x0f) << 12) |
+                         ((ch2 & 0x3f) <<  6) |
+                          (ch3 & 0x3f);
+      assert((codepoint & 0xf800) != 0xd800);
+      out << "\\u"
+          << hex[codepoint >> 12]
+          << hex[(codepoint >> 8) & 0xf]
+          << hex[(codepoint >> 4) & 0xf]
+          << hex[codepoint & 0xf];
+      str += 3;
+      continue;
+    }
+    if ((ch & 0xf8) == 0xf0)
+    {
+      // 4-byte encoding for values 17-21 bits in length
+      char ch2 = str[1];
+      char ch3 = str[2];
+      char ch4 = str[3];
+      assert((ch2 & 0xc0) == 0x80 &&
+             (ch3 & 0xc0) == 0x80 &&
+             (ch4 & 0xc0) == 0x80);
+      Uint32 codepoint = ((ch  & 0x07) << 18) |
+                         ((ch2 & 0x3f) << 12) |
+                         ((ch3 & 0x3f) <<  6) |
+                          (ch4 & 0x3f);
+      assert((codepoint & 0x1f0000) != 0x000000);
+      Uint32 sp = codepoint - 0x10000;
+      assert((sp & 0x100000) == 0);
+      out << "\\ud"
+          << hex[(sp >> 18) | 0x8]
+          << hex[(sp >> 14) & 0xf]
+          << hex[(sp >> 10) & 0xf]
+          << "\\ud"
+          << hex[((sp >> 8) & 0x3) | 0xc]
+          << hex[(sp >> 4) & 0xf]
+          << hex[sp & 0xf];
+      str += 4;
+      continue;
+    }
+    assert(false);
   }
   out << '"';
 }

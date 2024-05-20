@@ -363,8 +363,8 @@ int scan_aggregation(Ndb * myNdb)
   params.sql_len = parse_len;
   params.aalloc = &aalloc;
   params.ndb = myNdb;
-  params.data_output_stream = &cout;
-  params.data_output_format = ExecutionParameters::QueryOutputFormat::JSON;
+  params.query_output_stream = &cout;
+  params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII;
   params.explain_output_stream = &cout;
   params.err_output_stream = &cout;
   // Explain and execute query

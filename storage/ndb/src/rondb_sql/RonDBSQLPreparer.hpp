@@ -135,13 +135,14 @@ struct ExecutionParameters
                                   // keyword is present in SQL code.
   };
   ExecutionMode mode = ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN;
-  std::basic_ostream<char>* data_output_stream = NULL;
+  std::basic_ostream<char>* query_output_stream = NULL;
   enum class QueryOutputFormat
   {
     CSV,
-    JSON,
+    JSON_UTF8,
+    JSON_ASCII,
   };
-  QueryOutputFormat data_output_format = QueryOutputFormat::CSV;
+  QueryOutputFormat query_output_format = QueryOutputFormat::JSON_UTF8;
   std::basic_ostream<char>* explain_output_stream = NULL;
   enum class ExplainOutputFormat
   {
@@ -222,6 +223,7 @@ private:
   YY_BUFFER_STATE m_buf;
   AggregationAPICompiler* m_agg = NULL;
   LexCString column_idx_to_name(uint);
+  void (*m_print_json_string)(std::basic_ostream<char>& out, const char* str) = NULL;
 
   // Functions used in preparation phase
 public:
@@ -242,7 +244,7 @@ private:
                    struct ConditionalExpression* ce,
                    const NdbDictionary::Table* myTable);
   void programAggregator(NdbAggregator* aggregator);
-  void print_result(NdbAggregator* aggregator);
+  void print_result_json(NdbAggregator* aggregator);
   void print();
   void print(struct ConditionalExpression* ce,
              LexString prefix);
