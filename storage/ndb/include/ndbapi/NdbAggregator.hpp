@@ -23,6 +23,7 @@ typedef struct AggregationError {
 enum NdbAggregatorError {
   kErrUnSupportedColumn = 0,
   kErrInvalidColumnName,
+  kErrInvalidColumnId,
   kErrInvalidRegNo,
   kErrInvalidAggNo,
   kErrAggNoUsed,
@@ -35,6 +36,7 @@ enum NdbAggregatorError {
 static AggregationError g_errors_[] = {
   {kErrUnSupportedColumn, "Column type hasn't been supported"},
   {kErrInvalidColumnName, "Column name is invalid"},
+  {kErrInvalidColumnId, "Column id is invalid"},
   {kErrInvalidRegNo, "Register id is invalid"},
   {kErrInvalidAggNo, "Aggregation id is invalid"},
   {kErrAggNoUsed, "Aggregation id is already used"},
@@ -216,6 +218,7 @@ class NdbAggregator {
   void Print();
 
   bool LoadColumn(const char* name, uint32_t reg_id);
+  bool LoadColumn(int32_t col_id, uint32_t reg_id);
   bool LoadUint64(uint64_t value, uint32_t reg_id);
   bool LoadInt64(int64_t value, uint32_t reg_id);
   bool LoadDouble(double value, uint32_t reg_id);
@@ -231,6 +234,7 @@ class NdbAggregator {
   bool Count(uint32_t agg_id, uint32_t reg_id);
 
   bool GroupBy(const char* name);
+  bool GroupBy(int32_t col_id);
 
   bool Finalize();
 
