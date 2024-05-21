@@ -30,6 +30,7 @@ using std::max;
 using std::runtime_error;
 
 static void print_json_string_from_utf8(std::ostream* output_stream, LexString ls, bool utf8_output);
+static void append_json_string_from_utf8(StringBuilder& sb, LexString ls, bool utf8_output);
 
 ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
                              struct SelectStatement* query,
@@ -385,6 +386,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
 //                       be invalid.
 // utf8_output == false: Use \u escape for characters with code point U+0080 and
 //                       above. Crash if ls contains invalid UTF-8.
+// Note the similarity to append_json_string_utf8_to_utf8.
 static void
 print_json_string_from_utf8(std::ostream* output_stream,
                             LexString ls,
@@ -482,4 +484,146 @@ print_json_string_from_utf8(std::ostream* output_stream,
     assert(false);
   }
   out << '"';
+}
+
+// Append a JSON representation of ls to sb, assuming ls is correctly UTF-8
+// encoded. utf8_output determines the output encoding:
+// utf8_output == true:  If ls contains invalid UTF-8, the output will likewise
+//                       be invalid.
+// utf8_output == false: Use \u escape for characters with code point U+0080 and
+//                       above. Crash if ls contains invalid UTF-8.
+// Note the similarity to print_json_string_from_utf8.
+static void
+append_json_string_from_utf8
+(StringBuilder& sb,
+ LexString ls,
+ bool utf8_output)
+{
+  const char* str = ls.str;
+  const char* end = &ls.str[ls.len];
+  sb.add('"');
+  while (str < end)
+  {
+    static const char* hex = "0123456789abcdef";
+    char ch = *str;
+    if (utf8_output || (ch & 0x80) == 0x00)
+    {
+      // 1-byte encoding for values 0-7 bits in length if utf8_output == true,
+      // or all bytes if utf8_output == false.
+      switch (ch)
+      {
+      case '"':  sb.add("\\\"", 2); break;
+      case '\\': sb.add("\\\\", 2); break;
+      case '/':  sb.add("\\/", 2);  break;
+      case '\b': sb.add("\\b", 2);  break;
+      case '\f': sb.add("\\f", 2);  break;
+      case '\n': sb.add("\\n", 2);  break;
+      case '\r': sb.add("\\r", 2);  break;
+      case '\t': sb.add("\\t", 2);  break;
+      default:   sb.add(ch);        break;
+      }
+      str++;
+      continue;
+    }
+    if ((ch & 0xe0) == 0xc0)
+    {
+      // 2-byte encoding for values 8-11 bits in length
+      char ch2 = str[1];
+      assert((ch  & 0x3e) != 0x00 &&
+             (ch2 & 0xc0) == 0x80);
+      Uint32 codepoint = ((ch  & 0x1f) << 6) |
+                          (ch2 & 0x3f);
+      sb.add("\\u0", 3);
+      sb.add(hex[codepoint >> 8]);
+      sb.add(hex[(codepoint >> 4) & 0x0f]);
+      sb.add(hex[codepoint & 0x0f]);
+      str += 2;
+      continue;
+    }
+    if ((ch & 0xf0) == 0xe0)
+    {
+      // 3-byte encoding for values 12-16 bits in length
+      char ch2 = str[1];
+      char ch3 = str[2];
+      assert((ch2 & 0xc0) == 0x80 &&
+             (ch3 & 0xc0) == 0x80);
+      Uint32 codepoint = ((ch  & 0x0f) << 12) |
+                         ((ch2 & 0x3f) <<  6) |
+                          (ch3 & 0x3f);
+      assert((codepoint & 0xf800) != 0xd800);
+      sb.add("\\u", 2);
+      sb.add(hex[codepoint >> 12]);
+      sb.add(hex[(codepoint >> 8) & 0xf]);
+      sb.add(hex[(codepoint >> 4) & 0xf]);
+      sb.add(hex[codepoint & 0xf]);
+      str += 3;
+      continue;
+    }
+    if ((ch & 0xf8) == 0xf0)
+    {
+      // 4-byte encoding for values 17-21 bits in length
+      char ch2 = str[1];
+      char ch3 = str[2];
+      char ch4 = str[3];
+      assert((ch2 & 0xc0) == 0x80 &&
+             (ch3 & 0xc0) == 0x80 &&
+             (ch4 & 0xc0) == 0x80);
+      Uint32 codepoint = ((ch  & 0x07) << 18) |
+                         ((ch2 & 0x3f) << 12) |
+                         ((ch3 & 0x3f) <<  6) |
+                          (ch4 & 0x3f);
+      assert((codepoint & 0x1f0000) != 0x000000);
+      Uint32 sp = codepoint - 0x10000;
+      assert((sp & 0x100000) == 0);
+      sb.add("\\ud", 3);
+      sb.add(hex[(sp >> 18) | 0x8]);
+      sb.add(hex[(sp >> 14) & 0xf]);
+      sb.add(hex[(sp >> 10) & 0xf]);
+      sb.add("\\ud", 3);
+      sb.add(hex[((sp >> 8) & 0x3) | 0xc]);
+      sb.add(hex[(sp >> 4) & 0xf]);
+      sb.add(hex[sp & 0xf]);
+      str += 4;
+      continue;
+    }
+    assert(false);
+  }
+  sb.add('"');
+}
+
+StringBuilder::StringBuilder(LexString prefix, ArenaAllocator* alloc):
+  m_aalloc(alloc),
+  cursor(prefix.len)
+{
+  alloclen = prefix.len + 2;
+  buf = m_aalloc->realloc<char>(prefix.str, alloclen, prefix.len);
+}
+
+void
+StringBuilder::add(const char* str, uint len)
+{
+  if (cursor + len > alloclen)
+  {
+    buf = m_aalloc->realloc<char>(buf, alloclen * 2, alloclen);
+    alloclen *= 2;
+  }
+  memcpy(&buf[cursor], str, len);
+  cursor += len;
+}
+
+void
+StringBuilder::add(char ch)
+{
+  if (cursor + 1 > alloclen)
+  {
+    buf = m_aalloc->realloc<char>(buf, alloclen * 2, alloclen);
+    alloclen *= 2;
+  }
+  buf[cursor++] = ch;
+}
+
+LexString
+StringBuilder::to_LexString()
+{
+  return LexString{ buf, cursor };
 }

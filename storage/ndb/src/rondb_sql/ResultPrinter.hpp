@@ -113,4 +113,19 @@ public:
   void explain(std::basic_ostream<char>* out);
 };
 
+
+class StringBuilder
+{
+private:
+  ArenaAllocator* m_aalloc;
+  char* buf;
+  uint cursor;
+  uint alloclen;
+public:
+  StringBuilder(LexString prefix, ArenaAllocator* alloc);
+  void add(const char* str, uint len);
+  void add(char ch);
+  LexString to_LexString();
+};
+
 #endif
