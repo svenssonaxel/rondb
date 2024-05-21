@@ -94,7 +94,7 @@ private:
   DynamicArray<uint> m_groupby_cols;
   DynamicArray<Outputs*> m_outputs;
   DynamicArray<uint> m_col_idx_groupby_map;
-  void (*m_print_json_string)(std::basic_ostream<char>* out, LexString ls);
+  bool m_utf8_output = true;
   // Program state
   NdbAggregator::Column* m_regs_g;
   NdbAggregator::Result* m_regs_a;
