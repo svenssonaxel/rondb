@@ -49,6 +49,7 @@ ADD_CONVENIENCE_LIBRARY(rondb_sql
   AggregationAPICompiler.cpp
   ArenaAllocator.cpp
   LexString.cpp
+  ResultPrinter.cpp
   RonDBSQLPreparer.cpp
   ${CMAKE_CURRENT_BINARY_DIR}/RonDBSQLParser.y.cpp
   ${CMAKE_CURRENT_BINARY_DIR}/RonDBSQLLexer.l.cpp

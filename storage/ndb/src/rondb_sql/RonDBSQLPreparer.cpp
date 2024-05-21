@@ -24,18 +24,16 @@
 
 #include <assert.h>
 #include "AggregationAPICompiler.hpp"
+#include "ResultPrinter.hpp"
 #include "RonDBSQLParser.y.hpp"
 #include "RonDBSQLLexer.l.hpp"
 #include "RonDBSQLPreparer.hpp"
 #include <iostream>
-#include <iomanip>
 #include "define_formatter.hpp"
 using std::endl;
 using std::runtime_error;
 
 static const char* interval_type_name(int interval_type);
-static void print_json_string_utf8_to_utf8(std::basic_ostream<char>& out, const char* str);
-static void print_json_string_utf8_to_ascii(std::basic_ostream<char>& out, const char* str);
 
 DEFINE_FORMATTER(quoted_identifier, LexString, {
   os.put('`');
@@ -410,7 +408,8 @@ RonDBSQLPreparer::load()
       const NdbDictionary::Column* col = m_table->getColumn(col_name);
       if (col == NULL)
       {
-        err << "Failed to get column: " << quoted_identifier(col_name) << endl;
+        err << "Failed to get column " << quoted_identifier(col_name) << "."
+            << endl << "Note that column names are case sensitive." << endl;
         throw runtime_error("Failed to get column.");
       }
       col_id_map[col_idx] = col->getAttrId();
@@ -422,32 +421,40 @@ RonDBSQLPreparer::load()
   Outputs* outputs = m_context.ast_root.outputs;
   while (outputs != NULL)
   {
-    if (outputs->is_agg)
+    switch(outputs->type)
+    {
+    case Outputs::Type::COLUMN:
+      break;
+    case Outputs::Type::AGGREGATE:
     {
       assert(m_agg != NULL);
       int fun = outputs->aggregate.fun;
       AggregationAPICompiler::Expr* expr = outputs->aggregate.arg;
       switch (fun)
       {
-      case T_AVG:
-        m_agg->Sum(expr);
-        m_agg->Count(expr);
-        break;
       case T_COUNT:
-        m_agg->Count(expr);
+        outputs->aggregate.agg_index = m_agg->Count(expr);
         break;
       case T_MAX:
-        m_agg->Max(expr);
+        outputs->aggregate.agg_index = m_agg->Max(expr);
         break;
       case T_MIN:
-        m_agg->Min(expr);
+        outputs->aggregate.agg_index = m_agg->Min(expr);
         break;
       case T_SUM:
-        m_agg->Sum(expr);
+        outputs->aggregate.agg_index = m_agg->Sum(expr);
         break;
       default:
         assert(false);
       }
+      break;
+    }
+    case Outputs::Type::AVG:
+      outputs->avg.agg_index_sum = m_agg->Sum(outputs->avg.arg);
+      outputs->avg.agg_index_count = m_agg->Count(outputs->avg.arg);
+      break;
+    default:
+      assert(false);
     }
     outputs = outputs->next;
   }
@@ -531,21 +538,20 @@ RonDBSQLPreparer::execute()
     assert(aggregator.Finalize());
     soft_assert(myScanOp->setAggregationCode(&aggregator) >= 0,
                 "Failed to set aggregation code.");
+    ResultPrinter printer = ResultPrinter(m_aalloc,
+                                          &m_context.ast_root,
+                                          &m_columns,
+                                          m_conf.query_output_format,
+                                          m_conf.err_output_stream);
+    // End of preparation
+
+    // Execute aggregation
     soft_assert(myScanOp->DoAggregation() >= 0,
                 "Failed to execute aggregation.");
-    switch (m_conf.query_output_format)
-    {
-    case ExecutionParameters::QueryOutputFormat::CSV:
-      assert(false); // Not implemented
-    case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
-      m_print_json_string = print_json_string_utf8_to_utf8;
-      print_result_json(&aggregator);
-      break;
-    case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
-      m_print_json_string = print_json_string_utf8_to_ascii;
-      print_result_json(&aggregator);
-      break;
-    }
+
+    // Print results
+    printer.print_result(&aggregator, m_conf.query_output_stream);
+
     ndb->closeTransaction(myTrans);
   }
   catch (const std::exception& e)
@@ -809,190 +815,6 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
 #undef programAggregator_do_or_fail
 
 void
-RonDBSQLPreparer::print_result_json(NdbAggregator* aggregator)
-{
-  std::basic_ostream<char>& out = *m_conf.query_output_stream;
-  out << '[';
-  bool first_record = true;
-  for (NdbAggregator::ResultRecord record = aggregator->FetchResultRecord();
-       !record.end();
-       record = aggregator->FetchResultRecord())
-  {
-    if (first_record) first_record = false; else out << ',';
-    out << '{';
-    bool first_column = true;
-    for (NdbAggregator::Column column = record.FetchGroupbyColumn();
-         !column.end();
-         column = record.FetchGroupbyColumn())
-    {
-      if (first_column) first_column = false; else out << ',';
-      out << "\"group_" << column.id() << "\":";
-      if (column.type() == 15)
-      {
-        m_print_json_string(out, &column.data()[1]);
-      }
-      else
-      {
-        out << column.data_medium();
-      }
-    }
-    int aggidx = 0;
-    for (NdbAggregator::Result result = record.FetchAggregationResult();
-         !result.end();
-         result = record.FetchAggregationResult())
-    {
-      if (first_column) first_column = false; else out << ',';
-      out << "\"agg_" << aggidx++ << "\":";
-      if(result.is_null())
-      {
-        out << "null";
-        continue;
-      }
-      switch (result.type())
-      {
-      case NdbDictionary::Column::Bigint:
-        out << result.data_int64();
-        break;
-      case NdbDictionary::Column::Bigunsigned:
-        out << result.data_uint64();
-        break;
-      case NdbDictionary::Column::Double:
-        out << std::fixed << std::setprecision(6) << result.data_double();
-        break;
-      case NdbDictionary::Column::Undefined:
-        // Already handled above
-        assert(0);
-        break;
-      default:
-        assert(0);
-      }
-    }
-    out << '}' << endl;
-  }
-  out << ']' << endl;
-}
-
-// Print a JSON representation of str to out using UTF-8 encoding, assuming str
-// is correctly UTF-8 encoded. If it is not, the output will likewise be invalid.
-static void
-print_json_string_utf8_to_utf8(std::basic_ostream<char>& out, const char* str)
-{
-  out << '"';
-  for (; *str != '\0'; str++)
-  {
-    char ch = *str;
-    switch (ch)
-    {
-    case '"':  out << "\\\""; break;
-    case '\\': out << "\\\\"; break;
-    case '/':  out << "\\/";  break;
-    case '\b': out << "\\b";  break;
-    case '\f': out << "\\f";  break;
-    case '\n': out << "\\n";  break;
-    case '\r': out << "\\r";  break;
-    case '\t': out << "\\t";  break;
-    default:   out << ch;     break;
-    }
-  }
-  out << '"';
-}
-
-// Print a JSON representation of str to out using ASCII encoding, assuming str
-// is correctly UTF-8 encoded. Use \u escape for characters with code point
-// U+0080 and above. Crash if str is not valid UTF-8.
-static void
-print_json_string_utf8_to_ascii(std::basic_ostream<char>& out, const char* str)
-{
-  out << '"';
-  while (*str != '\0')
-  {
-    static const char* hex = "0123456789abcdef";
-    char ch = *str;
-    if ((ch & 0x80) == 0x00)
-    {
-      // 1-byte encoding for values 0-7 bits in length
-      switch (ch)
-      {
-      case '"':  out << "\\\""; break;
-      case '\\': out << "\\\\"; break;
-      case '/':  out << "\\/";  break;
-      case '\b': out << "\\b";  break;
-      case '\f': out << "\\f";  break;
-      case '\n': out << "\\n";  break;
-      case '\r': out << "\\r";  break;
-      case '\t': out << "\\t";  break;
-      default:   out << ch;     break;
-      }
-      str++;
-      continue;
-    }
-    if ((ch & 0xe0) == 0xc0)
-    {
-      // 2-byte encoding for values 8-11 bits in length
-      char ch2 = str[1];
-      assert((ch  & 0xfc) != 0xc0 &&
-             (ch2 & 0xc0) == 0x80);
-      Uint32 codepoint = ((ch  & 0x1f) << 6) |
-                          (ch2 & 0x3f);
-      out << "\\u0"
-          << hex[codepoint >> 8]
-          << hex[(codepoint >> 4) & 0x0f]
-          << hex[codepoint & 0x0f];
-      str += 2;
-      continue;
-    }
-    if ((ch & 0xf0) == 0xe0)
-    {
-      // 3-byte encoding for values 12-16 bits in length
-      char ch2 = str[1];
-      char ch3 = str[2];
-      assert((ch2 & 0xc0) == 0x80 &&
-             (ch3 & 0xc0) == 0x80);
-      Uint32 codepoint = ((ch  & 0x0f) << 12) |
-                         ((ch2 & 0x3f) <<  6) |
-                          (ch3 & 0x3f);
-      assert((codepoint & 0xf800) != 0xd800);
-      out << "\\u"
-          << hex[codepoint >> 12]
-          << hex[(codepoint >> 8) & 0xf]
-          << hex[(codepoint >> 4) & 0xf]
-          << hex[codepoint & 0xf];
-      str += 3;
-      continue;
-    }
-    if ((ch & 0xf8) == 0xf0)
-    {
-      // 4-byte encoding for values 17-21 bits in length
-      char ch2 = str[1];
-      char ch3 = str[2];
-      char ch4 = str[3];
-      assert((ch2 & 0xc0) == 0x80 &&
-             (ch3 & 0xc0) == 0x80 &&
-             (ch4 & 0xc0) == 0x80);
-      Uint32 codepoint = ((ch  & 0x07) << 18) |
-                         ((ch2 & 0x3f) << 12) |
-                         ((ch3 & 0x3f) <<  6) |
-                          (ch4 & 0x3f);
-      assert((codepoint & 0x1f0000) != 0x000000);
-      Uint32 sp = codepoint - 0x10000;
-      assert((sp & 0x100000) == 0);
-      out << "\\ud"
-          << hex[(sp >> 18) | 0x8]
-          << hex[(sp >> 14) & 0xf]
-          << hex[(sp >> 10) & 0xf]
-          << "\\ud"
-          << hex[((sp >> 8) & 0x3) | 0xc]
-          << hex[(sp >> 4) & 0xf]
-          << hex[sp & 0xf];
-      str += 4;
-      continue;
-    }
-    assert(false);
-  }
-  out << '"';
-}
-
-void
 RonDBSQLPreparer::print()
 {
   std::basic_ostream<char>& out = *m_conf.explain_output_stream;
@@ -1002,47 +824,61 @@ RonDBSQLPreparer::print()
   int out_count = 0;
   while (outputs != NULL)
   {
-    out << "  Out_" << out_count << ":" <<
-      quoted_identifier(outputs->output_name) << endl <<
-      "   = ";
-    if (outputs->is_agg)
+    out << "  Out_" << out_count << ":"
+        << quoted_identifier(outputs->output_name)
+        << endl
+        << "   = ";
+    switch (outputs->type)
     {
-      int pr;
-      switch (outputs->aggregate.fun)
+    case Outputs::Type::AGGREGATE:
       {
-      case T_AVG:
+        int pr;
+        switch (outputs->aggregate.fun)
+        {
+        case T_COUNT:
+          pr = m_agg->Count(outputs->aggregate.arg);
+          break;
+        case T_MAX:
+          pr = m_agg->Max(outputs->aggregate.arg);
+          break;
+        case T_MIN:
+          pr = m_agg->Min(outputs->aggregate.arg);
+          break;
+        case T_SUM:
+          pr = m_agg->Sum(outputs->aggregate.arg);
+          break;
+        default:
+          // Unknown aggregate function
+          assert(false);
+        }
+        out << "A" << pr << ":";
+        m_agg->print_aggregate(pr);
+        out << endl;
+      }
+      break;
+    case Outputs::Type::AVG:
+      {
+        int pr;
         out << "CLIENT-SIDE CALCULATION: ";
-        pr = m_agg->Sum(outputs->aggregate.arg);
+        pr = m_agg->Sum(outputs->avg.arg);
         out << "A" << pr << ":";
         m_agg->print_aggregate(pr);
         out << " / ";
-        pr = m_agg->Count(outputs->aggregate.arg);
-        break;
-      case T_COUNT:
-        pr = m_agg->Count(outputs->aggregate.arg);
-        break;
-      case T_MAX:
-        pr = m_agg->Max(outputs->aggregate.arg);
-        break;
-      case T_MIN:
-        pr = m_agg->Min(outputs->aggregate.arg);
-        break;
-      case T_SUM:
-        pr = m_agg->Sum(outputs->aggregate.arg);
-        break;
-      default:
-        // Unknown aggregate function
-        assert(false);
+        pr = m_agg->Count(outputs->avg.arg);
+        out << "A" << pr << ":";
+        m_agg->print_aggregate(pr);
+        out << endl;
       }
-      out << "A" << pr << ":";
-      m_agg->print_aggregate(pr);
-      out << endl;
-    }
-    else
-    {
-      int col_idx = outputs->col_idx;
-      out << "C" << col_idx << ":" <<
-        quoted_identifier(column_idx_to_name(col_idx)) << endl;
+      break;
+    case Outputs::Type::COLUMN:
+      {
+        int col_idx = outputs->column.col_idx;
+        out << "C" << col_idx << ":"
+            << quoted_identifier(column_idx_to_name(col_idx)) << endl;
+      }
+      break;
+    default:
+      assert(false);
     }
     out_count++;
     outputs = outputs->next;

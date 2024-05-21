@@ -102,7 +102,7 @@ extern void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t yyscanner, const char* s);
 #define init_aggfun(RES,LOC,FUN,ARG) do \
   { \
     initptr(RES); \
-    RES->is_agg = true; \
+    RES->type = Outputs::Type::AGGREGATE; \
     RES->aggregate.fun = FUN; \
     RES->aggregate.arg = ARG; \
     RES->output_name = LexString{(LOC).begin, size_t((LOC).end - (LOC).begin)}; \
@@ -246,8 +246,8 @@ output:
 nonaliased_output:
   identifier_c                          {
                                           initptr($$);
-                                          $$->is_agg = false;
-                                          $$->col_idx = context->column_name_to_idx($1);
+                                          $$->type = Outputs::Type::COLUMN;
+                                          $$->column.col_idx = context->column_name_to_idx($1);
                                           $$->output_name = $1;
                                           $$->next = NULL;
                                         }
@@ -264,11 +264,16 @@ nonaliased_output:
                                                       T_COUNT,
                                                       context->get_agg()->ConstantInteger(1));
                                         }
+| T_AVG T_LEFT arith_expr T_RIGHT       { initptr($$);
+                                          $$->type = Outputs::Type::AVG;
+                                          $$->avg.arg = $3;
+                                          $$->output_name = LexString{(@$).begin, size_t((@$).end - (@$).begin)};
+                                          $$->next = NULL;
+                                        }
 
 /* T_COUNT not included here, in order to implement COUNT(*) */
 aggfun:
-  T_AVG                                 { $$ = T_AVG; }
-| T_MAX                                 { $$ = T_MAX; }
+  T_MAX                                 { $$ = T_MAX; }
 | T_MIN                                 { $$ = T_MIN; }
 | T_SUM                                 { $$ = T_SUM; }
 
