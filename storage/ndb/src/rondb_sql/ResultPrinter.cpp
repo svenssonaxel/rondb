@@ -29,8 +29,7 @@ using std::endl;
 using std::max;
 using std::runtime_error;
 
-static void print_json_string_utf8_to_utf8(std::basic_ostream<char>* output_stream, LexString ls);
-static void print_json_string_utf8_to_ascii(std::basic_ostream<char>* output_stream, LexString ls);
+static void print_json_string_from_utf8(std::ostream* output_stream, LexString ls, bool utf8_output);
 
 ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
                              struct SelectStatement* query,
@@ -167,10 +166,10 @@ ResultPrinter::compile()
     assert(false); // Not implemented
     break;
   case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
-    m_print_json_string = print_json_string_utf8_to_utf8;
+    m_utf8_output = true;
     break;
   case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
-    m_print_json_string = print_json_string_utf8_to_ascii;
+    m_utf8_output = false;
     break;
   default:
     assert(false);
@@ -302,9 +301,10 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
           NdbAggregator::Column column = m_regs_g[cmd.print_group_by_column.reg_g];
           if (column.type() == 15)
           {
-            m_print_json_string(query_output_stream,
-                                LexString{ &column.data()[1],
-                                           (size_t)column.data()[0] });
+            print_json_string_from_utf8(query_output_stream,
+                                        LexString{ &column.data()[1],
+                                                   (size_t)column.data()[0] },
+                                        m_utf8_output);
           }
           else
           {
@@ -366,7 +366,9 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
         out.write(cmd.print_str.content.str, cmd.print_str.content.len);
         break;
       case Cmd::Type::PRINT_STR_JSON:
-        m_print_json_string(query_output_stream, cmd.print_str.content);
+        print_json_string_from_utf8(query_output_stream,
+                                    cmd.print_str.content,
+                                    m_utf8_output);
         break;
       default:
         assert(false);
@@ -377,40 +379,16 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
   // todo remove endl everywhere since it destroys buffering.
 }
 
-// Print a JSON representation of str to out using UTF-8 encoding, assuming str
-// is correctly UTF-8 encoded. If it is not, the output will likewise be invalid.
+// Print a JSON representation of ls to output_stream, assuming ls is correctly
+// UTF-8 encoded. utf8_output determines the output encoding:
+// utf8_output == true:  If ls contains invalid UTF-8, the output will likewise
+//                       be invalid.
+// utf8_output == false: Use \u escape for characters with code point U+0080 and
+//                       above. Crash if ls contains invalid UTF-8.
 static void
-print_json_string_utf8_to_utf8(std::basic_ostream<char>* output_stream, LexString ls)
-{
-  assert(output_stream != NULL);
-  std::ostream& out = *output_stream;
-  const char* str = ls.str;
-  const char* end = &ls.str[ls.len];
-  out << '"';
-  for (; str < end; str++)
-  {
-    char ch = *str;
-    switch (ch)
-    {
-    case '"':  out << "\\\""; break;
-    case '\\': out << "\\\\"; break;
-    case '/':  out << "\\/";  break;
-    case '\b': out << "\\b";  break;
-    case '\f': out << "\\f";  break;
-    case '\n': out << "\\n";  break;
-    case '\r': out << "\\r";  break;
-    case '\t': out << "\\t";  break;
-    default:   out << ch;     break;
-    }
-  }
-  out << '"';
-}
-
-// Print a JSON representation of str to out using ASCII encoding, assuming str
-// is correctly UTF-8 encoded. Use \u escape for characters with code point
-// U+0080 and above. Crash if str is not valid UTF-8.
-static void
-print_json_string_utf8_to_ascii(std::basic_ostream<char>* output_stream, LexString ls)
+print_json_string_from_utf8(std::ostream* output_stream,
+                            LexString ls,
+                            bool utf8_output)
 {
   assert(output_stream != NULL);
   std::ostream& out = *output_stream;
@@ -421,9 +399,10 @@ print_json_string_utf8_to_ascii(std::basic_ostream<char>* output_stream, LexStri
   {
     static const char* hex = "0123456789abcdef";
     char ch = *str;
-    if ((ch & 0x80) == 0x00)
+    if (utf8_output || (ch & 0x80) == 0x00)
     {
-      // 1-byte encoding for values 0-7 bits in length
+      // 1-byte encoding for values 0-7 bits in length if utf8_output == true,
+      // or all bytes if utf8_output == false.
       switch (ch)
       {
       case '"':  out << "\\\""; break;
@@ -443,7 +422,7 @@ print_json_string_utf8_to_ascii(std::basic_ostream<char>* output_stream, LexStri
     {
       // 2-byte encoding for values 8-11 bits in length
       char ch2 = str[1];
-      assert((ch  & 0xfc) != 0xc0 &&
+      assert((ch  & 0x3e) != 0x00 &&
              (ch2 & 0xc0) == 0x80);
       Uint32 codepoint = ((ch  & 0x1f) << 6) |
                           (ch2 & 0x3f);
