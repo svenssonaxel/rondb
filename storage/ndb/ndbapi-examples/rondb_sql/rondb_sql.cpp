@@ -344,9 +344,11 @@ int scan_aggregation(Ndb * myNdb)
   // Prepare query
   ArenaAllocator aalloc;
   const char* sql_query =
-    "SELECT sum(CUBIGINT+CUTINYINT)\n"
-    "     , min(CDOUBLE)\n"
-    "     , max(CUMEDIUMINT)\n"
+    "SELECT CCHAR as group_12\n"
+    "     , CMEDIUMINT as group_3\n"
+    "     , sum(CUBIGINT+CUTINYINT) as agg_0\n"
+    "     , min(CDOUBLE) AS agg_1\n"
+    "     , max(CUMEDIUMINT) as agg_2\n"
     "FROM api_scan\n"
     "WHERE CTINYINT = 66\n"
     "GROUP BY CCHAR\n"

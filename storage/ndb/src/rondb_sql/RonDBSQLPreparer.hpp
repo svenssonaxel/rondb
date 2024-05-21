@@ -47,16 +47,32 @@ struct LexLocation
 
 struct Outputs
 {
-  bool is_agg;
+  enum class Type
+  {
+    COLUMN,
+    AGGREGATE,
+    AVG,
+  };
+  Type type;
   LexString output_name;
   union
   {
-    uint col_idx;
+    struct
+    {
+      uint col_idx;
+    } column;
     struct
     {
       int fun;
       AggregationAPICompiler::Expr* arg;
+      uint agg_index;
     } aggregate;
+    struct
+    {
+      AggregationAPICompiler::Expr* arg;
+      uint agg_index_sum;
+      uint agg_index_count;
+    } avg;
   };
   struct Outputs* next;
 };

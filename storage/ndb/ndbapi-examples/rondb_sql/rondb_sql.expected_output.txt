@@ -1,19 +1,25 @@
 MySQL Cluster already has example table: api_scan. Dropping it...
 Intialize table and data done!
 1. TABLE SCAN:
-SELECT sum(CUBIGINT+CUTINYINT)
-     , min(CDOUBLE)
-     , max(CUMEDIUMINT)
+SELECT CCHAR as group_12
+     , CMEDIUMINT as group_3
+     , sum(CUBIGINT+CUTINYINT) as agg_0
+     , min(CDOUBLE) AS agg_1
+     , max(CUMEDIUMINT) as agg_2
 FROM api_scan
 WHERE CTINYINT = 66
 GROUP BY CCHAR
        , CMEDIUMINT;
 SELECT
-  Out_0:`sum(CUBIGINT+CUTINYINT)`
+  Out_0:`group_12`
+   = C0:`CCHAR`
+  Out_1:`group_3`
+   = C1:`CMEDIUMINT`
+  Out_2:`agg_0`
    = A0:Sum((`CUBIGINT` + `CUTINYINT`))
-  Out_1:`min(CDOUBLE)`
+  Out_3:`agg_1`
    = A1:Min(`CDOUBLE`)
-  Out_2:`max(CUMEDIUMINT)`
+  Out_4:`agg_2`
    = A2:Max(`CUMEDIUMINT`)
 FROM api_scan
 WHERE
@@ -21,18 +27,18 @@ WHERE
 +- `CTINYINT`
 \- 66
 GROUP BY
-  C5:`CCHAR`
-  C6:`CMEDIUMINT`
+  C0:`CCHAR`
+  C1:`CMEDIUMINT`
 
 Aggregation program (8 instructions):
 Instr. DEST SRC DESCRIPTION
-Load   r00  C00 r00 = C00:`CUBIGINT`
-Load   r01  C01 r01 = C01:`CUTINYINT`
+Load   r00  C02 r00 = C02:`CUBIGINT`
+Load   r01  C03 r01 = C03:`CUTINYINT`
 Add    r00  r01 r00:`CUBIGINT` += r01:`CUTINYINT`
 Sum    A00  r00 A00:SUM <- r00:(`CUBIGINT` + `CUTINYINT`)
-Load   r00  C02 r00 = C02:`CDOUBLE`
+Load   r00  C04 r00 = C04:`CDOUBLE`
 Min    A01  r00 A01:MIN <- r00:`CDOUBLE`
-Load   r00  C03 r00 = C03:`CUMEDIUMINT`
+Load   r00  C05 r00 = C05:`CUMEDIUMINT`
 Max    A02  r00 A02:MAX <- r00:`CUMEDIUMINT`
 
 ---FINAL RESULT---

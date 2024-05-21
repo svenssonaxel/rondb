@@ -62,7 +62,9 @@ public:
     item_count(0),
     pages_capacity(0),
     allocator(alloc)
-  {}
+  {
+    assert(alloc != NULL);
+  }
   ~DynamicArray()
   {
     // No deallocation needed
