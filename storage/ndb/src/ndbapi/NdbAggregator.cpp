@@ -487,6 +487,30 @@ bool NdbAggregator::LoadColumn(const char* name, uint32_t reg_id) {
   return true;
 }
 
+bool NdbAggregator::LoadColumn(int32_t col_id, uint32_t reg_id) {
+  const NdbDictionary::Column* col = table_impl_->getColumn(col_id);
+  if (col == nullptr) {
+    SetError(kErrInvalidColumnId);
+    return false;
+  }
+  NdbDictionary::Column::Type type = col->getType();
+  if (!TypeSupported(type)) {
+    SetError(kErrUnSupportedColumn);
+    return false;
+  }
+  if (reg_id >= kRegTotal) {
+    SetError(kErrInvalidRegNo);
+    return false;
+  }
+
+  buffer_[curr_prog_pos_++] =
+    (kOpLoadCol) << 26 |
+    (type & 0x1F) << 21 |
+    (reg_id & 0x0F) << 16 |
+    col_id;
+  return true;
+}
+
 bool NdbAggregator::LoadUint64(uint64_t value, uint32_t reg_id) {
   buffer_[curr_prog_pos_++] =
     (kOpLoadConst) << 26 |
@@ -692,6 +716,21 @@ bool NdbAggregator::GroupBy(const char* name) {
 
   n_gb_cols_++;
   
+  return true;
+}
+
+bool NdbAggregator::GroupBy(int32_t col_id) {
+  const NdbDictionary::Column* col = table_impl_->getColumn(col_id);
+  if (col == nullptr) {
+    SetError(kErrInvalidColumnId);
+    return false;
+  }
+  buffer_[curr_prog_pos_++] = col_id << 16;
+
+  result_size_est_ += (sizeof(AttributeHeader) + ((col->getSizeInBytes() + 3) & (~3)));
+
+  n_gb_cols_++;
+
   return true;
 }
 
