@@ -48,7 +48,7 @@ ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
 {
   assert(query != NULL);
   assert(aalloc != NULL);
-  switch(output_format)
+  switch (output_format)
   {
   case ExecutionParameters::QueryOutputFormat::CSV:
     assert(false); // Not implemented
@@ -95,7 +95,7 @@ ResultPrinter::compile()
         {
           // Validate that the column appears in the GROUP BY clause
           uint col_idx = o->column.col_idx;
-          if(i >= m_groupby_cols.size())
+          if (i >= m_groupby_cols.size())
           {
             assert(m_column_names->size() > col_idx);
             err << "Syntax error: Column " << column_names[col_idx].c_str()
@@ -161,7 +161,7 @@ ResultPrinter::compile()
     cmd.type = Cmd::Type::END_OF_AGGREGATES;
     m_program.push(cmd);
   }
-  switch(m_output_format)
+  switch (m_output_format)
   {
   case ExecutionParameters::QueryOutputFormat::CSV:
     assert(false); // Not implemented
@@ -262,7 +262,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
       case Cmd::Type::STORE_GROUP_BY_COLUMN:
         {
           NdbAggregator::Column column = record.FetchGroupbyColumn();
-          if(column.end())
+          if (column.end())
           {
             throw std::runtime_error("Got record with fewer GROUP BY columns than expected.");
           }
@@ -272,7 +272,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
       case Cmd::Type::END_OF_GROUP_BY_COLUMNS:
         {
           NdbAggregator::Column column = record.FetchGroupbyColumn();
-          if(!column.end())
+          if (!column.end())
           {
             throw std::runtime_error("Got record with more GROUP BY columns than expected.");
           }
@@ -281,7 +281,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
       case Cmd::Type::STORE_AGGREGATE:
         {
           NdbAggregator::Result result = record.FetchAggregationResult();
-          if(result.end())
+          if (result.end())
           {
             throw std::runtime_error("Got record with fewer aggregates than expected.");
           }
@@ -291,7 +291,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
       case Cmd::Type::END_OF_AGGREGATES:
         {
           NdbAggregator::Result result = record.FetchAggregationResult();
-          if(!result.end())
+          if (!result.end())
           {
             throw std::runtime_error("Got record with more aggregates than expected.");
           }
@@ -343,7 +343,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
           // todo this must be tested thoroughly against MySQL.
           double numerator;
           unsigned long denominator;
-          switch(result_sum.type())
+          switch (result_sum.type())
           {
           case NdbDictionary::Column::Bigint:
             numerator = result_sum.data_int64();
@@ -351,7 +351,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
           default:
             assert(false);
           }
-          switch(result_count.type())
+          switch (result_count.type())
           {
           case NdbDictionary::Column::Bigint:
             denominator = result_count.data_uint64();

@@ -153,8 +153,7 @@ main()
       else
         flags |= p_other;
     }
-    switch(flags)
-    {
+    switch (flags)    {
     case p_rondb_impl | p_rondb_resv | p_mysql_curr | p_AZ09_:
       // Implemented keywords should appear in reserved list, be supported in
       // current MySQL, consist of capital A-Z, digits 0-9 and underscore.

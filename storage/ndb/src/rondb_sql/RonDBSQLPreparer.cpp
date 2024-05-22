@@ -81,7 +81,7 @@ RonDBSQLPreparer::RonDBSQLPreparer(ExecutionParameters conf):
     compile();
     m_status = Status::PREPARED;
   }
-  catch(...)
+  catch (...)
   {
     m_status = Status::FAILED;
     throw;
@@ -402,7 +402,7 @@ RonDBSQLPreparer::load()
     m_table = m_dict->getTable(m_context.ast_root.table.c_str());
     soft_assert(m_table != NULL, "Failed to get table.");
     int32_t* col_id_map = m_aalloc->alloc<int32_t>(m_columns.size());
-    for(uint col_idx = 0; col_idx < m_columns.size(); col_idx++)
+    for (uint col_idx = 0; col_idx < m_columns.size(); col_idx++)
     {
       const char* col_name = m_columns[col_idx].c_str();
       const NdbDictionary::Column* col = m_table->getColumn(col_name);
@@ -421,7 +421,7 @@ RonDBSQLPreparer::load()
   Outputs* outputs = m_context.ast_root.outputs;
   while (outputs != NULL)
   {
-    switch(outputs->type)
+    switch (outputs->type)
     {
     case Outputs::Type::COLUMN:
       break;
@@ -633,7 +633,7 @@ RonDBSQLPreparer::applyFilter(NdbScanFilter* filter,
                               struct ConditionalExpression* ce)
 {
   assert (ce != NULL);
-  switch(ce->op)
+  switch (ce->op)
   {
   case T_IDENTIFIER:
     assert(false); // Not implemented
