@@ -10,6 +10,8 @@ FROM api_scan
 WHERE CTINYINT = 66
 GROUP BY CCHAR
        , CMEDIUMINT;
+
+Query parse tree:
 SELECT
   Out_0:`group_12`
    = C0:`CCHAR`
@@ -40,6 +42,9 @@ Load   r00  C04 r00 = C04:`CDOUBLE`
 Min    A01  r00 A01:MIN <- r00:`CDOUBLE`
 Load   r00  C05 r00 = C05:`CUMEDIUMINT`
 Max    A02  r00 A02:MAX <- r00:`CUMEDIUMINT`
+
+Output in ASCII encoded JSON format.
+The program for post-processing and output has 28 instructions.
 
 ---FINAL RESULT---
 [{"group_12":"GROUPxxx_1","group_3":0,"agg_0":27240458800,"agg_1":-7891782.189155,"agg_2":15724990}

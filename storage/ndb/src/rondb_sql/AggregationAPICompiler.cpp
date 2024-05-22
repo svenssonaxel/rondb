@@ -882,7 +882,6 @@ AggregationAPICompiler::print_program()
     print(&m_program[i]);
     svm_execute(&m_program[i], false);
   }
-  m_out << '\n';
 }
 
 DEFINE_FORMATTER(quoted_identifier, char*, {

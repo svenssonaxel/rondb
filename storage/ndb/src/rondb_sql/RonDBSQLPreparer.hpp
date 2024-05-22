@@ -27,11 +27,15 @@
 
 #include <cstddef>
 #include <cstdint>
+
+#include <NdbApi.hpp>
+
 #include "AggregationAPICompiler.hpp"
-#include "LexString.hpp"
 #include "ArenaAllocator.hpp"
 #include "DynamicArray.hpp"
-#include <NdbApi.hpp>
+#include "LexString.hpp"
+#include "ResultPrinter.hpp"
+#include "RonDBSQLCommon.hpp"
 
 // Definitions from RonDBSQLLexer.l.hpp that are needed here. We can't include
 // the whole file because it would create a circular dependency.
@@ -43,131 +47,6 @@ struct LexLocation
 {
   char* begin = NULL;
   char* end = NULL;
-};
-
-struct Outputs
-{
-  enum class Type
-  {
-    COLUMN,
-    AGGREGATE,
-    AVG,
-  };
-  Type type;
-  LexString output_name;
-  union
-  {
-    struct
-    {
-      uint col_idx;
-    } column;
-    struct
-    {
-      int fun;
-      AggregationAPICompiler::Expr* arg;
-      uint agg_index;
-    } aggregate;
-    struct
-    {
-      AggregationAPICompiler::Expr* arg;
-      uint agg_index_sum;
-      uint agg_index_count;
-    } avg;
-  };
-  struct Outputs* next;
-};
-
-struct ConditionalExpression
-{
-  int op;
-  union
-  {
-    struct
-    {
-      struct ConditionalExpression* left;
-      struct ConditionalExpression* right;
-    } args;
-    uint col_idx;
-    long int constant_integer;
-    struct
-    {
-      struct ConditionalExpression* arg;
-      bool null;
-    } is;
-    struct
-    {
-      struct ConditionalExpression* arg;
-      int interval_type;
-    } interval;
-    struct
-    {
-      int interval_type;
-      struct ConditionalExpression* arg;
-    } extract;
-    LexString string;
-  };
-};
-
-struct GroupbyColumns
-{
-  uint col_idx;
-  struct GroupbyColumns* next;
-};
-
-struct OrderbyColumns
-{
-  uint col_idx;
-  bool ascending;
-  struct OrderbyColumns* next;
-};
-
-struct SelectStatement
-{
-  bool do_explain = false;
-  Outputs* outputs = NULL;
-  LexCString table = { NULL, 0};
-  struct ConditionalExpression* where_expression = NULL;
-  struct GroupbyColumns* groupby_columns = NULL;
-  struct OrderbyColumns* orderby_columns = NULL;
-};
-
-struct ExecutionParameters
-{
-  char* sql_buffer = NULL;
-  size_t sql_len = 0;
-  ArenaAllocator* aalloc;
-  Ndb* ndb = NULL;
-  enum class ExecutionMode
-  {
-    ALLOW_BOTH_QUERY_AND_EXPLAIN, // Explain if EXPLAIN keyword is present in
-                                  // SQL code, otherwise query.
-    ALLOW_QUERY_ONLY,             // Throw an exception if EXPLAIN keyword is
-                                  // present in SQL code, otherwise query.
-    ALLOW_EXPLAIN_ONLY,           // Explain if EXPLAIN keyword is present in
-                                  // SQL code, otherwise throw an exception.
-    QUERY_OVERRIDE,               // Query regardless of whether EXPLAIN keyword
-                                  // is present in SQL code.
-    EXPLAIN_OVERRIDE,             // Explain regardless of whether EXPLAIN
-                                  // keyword is present in SQL code.
-  };
-  ExecutionMode mode = ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN;
-  NdbOperation::LockMode lock_mode = NdbOperation::LockMode::LM_CommittedRead;
-  std::basic_ostream<char>* query_output_stream = NULL;
-  enum class QueryOutputFormat
-  {
-    CSV,
-    JSON_UTF8,
-    JSON_ASCII,
-  };
-  QueryOutputFormat query_output_format = QueryOutputFormat::JSON_UTF8;
-  std::basic_ostream<char>* explain_output_stream = NULL;
-  enum class ExplainOutputFormat
-  {
-    TEXT,
-    JSON,
-  };
-  ExplainOutputFormat explain_output_format = ExplainOutputFormat::TEXT;
-  std::basic_ostream<char>* err_output_stream = NULL;
 };
 
 class RonDBSQLPreparer
@@ -236,6 +115,7 @@ private:
   yyscan_t m_scanner;
   YY_BUFFER_STATE m_buf;
   AggregationAPICompiler* m_agg = NULL;
+  ResultPrinter* m_resultprinter = NULL;
   LexCString column_idx_to_name(uint);
   void (*m_print_json_string)(std::basic_ostream<char>& out, const char* str) = NULL;
 

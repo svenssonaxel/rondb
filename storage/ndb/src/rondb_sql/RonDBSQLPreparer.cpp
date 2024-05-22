@@ -24,7 +24,6 @@
 
 #include <assert.h>
 #include "AggregationAPICompiler.hpp"
-#include "ResultPrinter.hpp"
 #include "RonDBSQLParser.y.hpp"
 #include "RonDBSQLLexer.l.hpp"
 #include "RonDBSQLPreparer.hpp"
@@ -379,6 +378,75 @@ RonDBSQLPreparer::has_width(uint pos)
 void
 RonDBSQLPreparer::load()
 {
+  /* The parser has already provided columns and expressions to the
+   * AggregationAPICompiler. E.g. in `SELECT Max(col1 + col2)`, m_agg already
+   * knows about `col1`, `col2` and `col1 + col2`. Here, we let m_agg know about
+   * the aggregate expressions themselves, e.g. `Max(col1 + col2)`, making sure
+   * they are provided in the correct order.
+   */
+  Outputs* outputs = m_context.ast_root.outputs;
+  bool has_aggregate_outputs = false;
+  while (outputs != NULL)
+  {
+    switch (outputs->type)
+    {
+    case Outputs::Type::COLUMN:
+      break;
+    case Outputs::Type::AGGREGATE:
+    {
+      has_aggregate_outputs = true;
+      assert(m_agg != NULL);
+      int fun = outputs->aggregate.fun;
+      AggregationAPICompiler::Expr* expr = outputs->aggregate.arg;
+      switch (fun)
+      {
+      case T_COUNT:
+        outputs->aggregate.agg_index = m_agg->Count(expr);
+        break;
+      case T_MAX:
+        outputs->aggregate.agg_index = m_agg->Max(expr);
+        break;
+      case T_MIN:
+        outputs->aggregate.agg_index = m_agg->Min(expr);
+        break;
+      case T_SUM:
+        outputs->aggregate.agg_index = m_agg->Sum(expr);
+        break;
+      default:
+        assert(false);
+      }
+      break;
+    }
+    case Outputs::Type::AVG:
+      has_aggregate_outputs = true;
+      outputs->avg.agg_index_sum = m_agg->Sum(outputs->avg.arg);
+      outputs->avg.agg_index_count = m_agg->Count(outputs->avg.arg);
+      break;
+    default:
+      assert(false);
+    }
+    outputs = outputs->next;
+  }
+  if (m_agg == NULL)
+  {
+    assert(!has_aggregate_outputs);
+  }
+  else
+  {
+    assert(has_aggregate_outputs);
+    assert(m_agg->getStatus() == AggregationAPICompiler::Status::PROGRAMMING);
+  }
+  bool has_groupby_columns = (m_context.ast_root.groupby_columns != NULL);
+  if (!has_aggregate_outputs && !has_groupby_columns)
+  {
+    assert(m_conf.err_output_stream != NULL);
+    std::basic_ostream<char>& err = *m_conf.err_output_stream;
+    err << "This query has no aggregate expression and no GROUP BY clause,"
+           " so it is not an aggregate query.\n"
+           "Currently, RonDB SQL only supports aggregate queries.\n";
+    throw runtime_error("Not an aggregate query.");
+  }
+
   std::basic_ostream<char>& err = *m_conf.err_output_stream;
   /*
    * During parsing, strings that were claimed to be column names were inserted
@@ -416,68 +484,31 @@ RonDBSQLPreparer::load()
     }
     m_column_attrId_map = col_id_map;
   }
-
-  // Load aggregates
-  Outputs* outputs = m_context.ast_root.outputs;
-  while (outputs != NULL)
-  {
-    switch (outputs->type)
-    {
-    case Outputs::Type::COLUMN:
-      break;
-    case Outputs::Type::AGGREGATE:
-    {
-      assert(m_agg != NULL);
-      int fun = outputs->aggregate.fun;
-      AggregationAPICompiler::Expr* expr = outputs->aggregate.arg;
-      switch (fun)
-      {
-      case T_COUNT:
-        outputs->aggregate.agg_index = m_agg->Count(expr);
-        break;
-      case T_MAX:
-        outputs->aggregate.agg_index = m_agg->Max(expr);
-        break;
-      case T_MIN:
-        outputs->aggregate.agg_index = m_agg->Min(expr);
-        break;
-      case T_SUM:
-        outputs->aggregate.agg_index = m_agg->Sum(expr);
-        break;
-      default:
-        assert(false);
-      }
-      break;
-    }
-    case Outputs::Type::AVG:
-      outputs->avg.agg_index_sum = m_agg->Sum(outputs->avg.arg);
-      outputs->avg.agg_index_count = m_agg->Count(outputs->avg.arg);
-      break;
-    default:
-      assert(false);
-    }
-    outputs = outputs->next;
-  }
-  if (m_agg != NULL)
-  {
-    assert (m_agg->getStatus() == AggregationAPICompiler::Status::PROGRAMMING);
-  }
 }
 
 void
 RonDBSQLPreparer::compile()
 {
-  if (m_agg == NULL)
+  // Compile aggregation program if applicable
+  if (m_agg != NULL)
   {
-    return;
+    if (m_agg->compile())
+    {
+      assert(m_agg->getStatus() == AggregationAPICompiler::Status::COMPILED);
+    }
+    else
+    {
+      assert(m_agg->getStatus() == AggregationAPICompiler::Status::FAILED);
+      throw runtime_error("Failed to compile aggregation program.");
+    }
   }
-  if (m_agg->compile())
-  {
-    assert(m_agg->getStatus() == AggregationAPICompiler::Status::COMPILED);
-    return;
-  }
-  assert(m_agg->getStatus() == AggregationAPICompiler::Status::FAILED);
-  throw runtime_error("Failed to compile aggregation program.");
+  // Compile post-processing/printer program
+  m_resultprinter = new (m_aalloc->alloc<ResultPrinter>(1))
+    ResultPrinter(m_aalloc,
+                  &m_context.ast_root,
+                  &m_columns,
+                  m_conf.query_output_format,
+                  m_conf.err_output_stream);
 }
 
 void
@@ -538,11 +569,6 @@ RonDBSQLPreparer::execute()
     assert(aggregator.Finalize());
     soft_assert(myScanOp->setAggregationCode(&aggregator) >= 0,
                 "Failed to set aggregation code.");
-    ResultPrinter printer = ResultPrinter(m_aalloc,
-                                          &m_context.ast_root,
-                                          &m_columns,
-                                          m_conf.query_output_format,
-                                          m_conf.err_output_stream);
     // End of preparation
 
     // Execute aggregation
@@ -550,7 +576,7 @@ RonDBSQLPreparer::execute()
                 "Failed to execute aggregation.");
 
     // Print results
-    printer.print_result(&aggregator, m_conf.query_output_stream);
+    m_resultprinter->print_result(&aggregator, m_conf.query_output_stream);
 
     ndb->closeTransaction(myTrans);
   }
@@ -819,7 +845,8 @@ RonDBSQLPreparer::print()
 {
   std::basic_ostream<char>& out = *m_conf.explain_output_stream;
   SelectStatement& ast_root = m_context.ast_root;
-  out << "SELECT\n";
+  out << "Query parse tree:\n"
+      << "SELECT\n";
   Outputs* outputs = ast_root.outputs;
   int out_count = 0;
   while (outputs != NULL)
@@ -922,8 +949,13 @@ RonDBSQLPreparer::print()
   }
   else
   {
-    out << "No aggregation program.\n\n";
+    out << "No aggregation program.\n";
   }
+  out << '\n';
+  assert(m_resultprinter != NULL);
+  assert(m_conf.explain_output_stream != NULL);
+  m_resultprinter->explain(m_conf.explain_output_stream);
+  out << '\n';
 }
 
 void

@@ -24,10 +24,24 @@
 
 #include <iomanip>
 #include "ResultPrinter.hpp"
+#include "define_formatter.hpp"
 #include "RonDBSQLPreparer.hpp"
 using std::endl;
 using std::max;
 using std::runtime_error;
+
+DEFINE_FORMATTER(quoted_identifier, LexCString, {
+  os.put('`');
+  for (uint i = 0; i < value.len; i++)
+  {
+    char ch = value.str[i];
+    if (ch == '`')
+      os.write("``", 2);
+    else
+      os.put(ch);
+  }
+  os.put('`');
+})
 
 static void print_json_string_from_utf8(std::ostream* output_stream, LexString ls, bool utf8_output);
 
@@ -98,10 +112,15 @@ ResultPrinter::compile()
           if (i >= m_groupby_cols.size())
           {
             assert(m_column_names->size() > col_idx);
-            err << "Syntax error: Column " << column_names[col_idx].c_str()
-                << " appears in a SELECT expression but not in the GROUP BY clause." << endl;
-            throw runtime_error("Column in SELECT expression must appear in GROUP BY expression.");
-            // todo We should detect much earlier if we are given a non-aggregation query, i.e. with no aggregates and no group by columns. Also, we should test for aggregates without groups and groups without aggregates.
+            err << "Syntax error: SELECT expression refers to ungrouped column "
+                << quoted_identifier(column_names[col_idx])
+                << " outside of aggregate function." << endl
+                << "You can either add this column to the GROUP BY clause, "
+                << "or use it within an aggregate function e.g. Sum("
+                << quoted_identifier(column_names[col_idx])
+                << ")." << endl;
+            throw runtime_error("Ungrouped column in non-aggregated SELECT expression.");
+            // todo Test for aggregates without groups and groups without aggregates.
           }
           if (m_groupby_cols[i] == col_idx)
           {
@@ -482,4 +501,28 @@ print_json_string_from_utf8(std::ostream* output_stream,
     assert(false);
   }
   out << '"';
+}
+
+void
+ResultPrinter::explain(std::basic_ostream<char>* explain_output_stream)
+{
+  std::ostream& out = *explain_output_stream;
+  const char* format_description = "";
+  switch(m_output_format)
+  {
+  case ExecutionParameters::QueryOutputFormat::CSV:
+    assert(false); // Not implemented
+    break;
+  case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
+    format_description = "UTF-8 encoded JSON";
+    break;
+  case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
+    format_description = "ASCII encoded JSON";
+    break;
+  default:
+    assert(false);
+  }
+  out << "Output in " << format_description << " format.\n"
+      << "The program for post-processing and output has " << m_program.size()
+      << " instructions.\n";
 }

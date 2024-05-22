@@ -385,6 +385,7 @@ int scan_aggregation(Ndb * myNdb)
     {
       params.mode = ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE;
       RonDBSQLPreparer explainer(params);
+      cout << endl;
       explainer.execute();
       cout << "---FINAL RESULT---" << endl;
       params.mode = ExecutionParameters::ExecutionMode::QUERY_OVERRIDE;

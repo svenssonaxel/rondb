@@ -74,7 +74,8 @@ main()
   cout << endl;
   a.print_program();
 
-  cout << endl << "Compilation example 2:" << endl << endl;
+  cout << endl << endl
+       << "Compilation example 2:" << endl << endl;
   AggregationAPICompiler b(
     [](uint col_idx) -> const char*
     {
@@ -100,6 +101,8 @@ main()
   b.print_aggregates();
   cout << endl;
   b.print_program();
+
+  cout << endl;
 
   return 0;
 }
