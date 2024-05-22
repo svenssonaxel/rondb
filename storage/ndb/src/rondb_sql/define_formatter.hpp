@@ -67,9 +67,9 @@
 
      int main()
      {
-       std::cout << "Padded 2: " << pad2(1) << std::endl
-                 << "Padded 4: " << pad4(23) << std::endl
-                 << "Padded 4: " << pad4("abc") << std::endl;
+       std::cout << "Padded 2: " << pad2(1) << '\n'
+                 << "Padded 4: " << pad4(23) << '\n'
+                 << "Padded 4: " << pad4("abc") << '\n';
      }
  ***********************************************************
  *
