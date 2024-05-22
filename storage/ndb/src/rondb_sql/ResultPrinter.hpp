@@ -22,13 +22,15 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
+#ifndef ResultPrinter_hpp_included
+#define ResultPrinter_hpp_included 1
+
 #include "NdbAggregator.hpp"
-#ifndef PostzprocessingCompiler_hpp_included
-#define PostzprocessingCompiler_hpp_included 1
 
 #include "ArenaAllocator.hpp"
-#include "RonDBSQLPreparer.hpp"
+#include "DynamicArray.hpp"
 #include "LexString.hpp"
+#include "RonDBSQLCommon.hpp"
 
 class ResultPrinter
 {
@@ -110,7 +112,7 @@ public:
                 std::basic_ostream<char>* err);
   void print_result(NdbAggregator* aggregator,
                     std::basic_ostream<char>* query_output_stream);
-  void explain(std::basic_ostream<char>* out);
+  void explain(std::basic_ostream<char>* explain_output_stream);
 };
 
 #endif

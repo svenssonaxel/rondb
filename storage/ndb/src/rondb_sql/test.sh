@@ -167,31 +167,37 @@ runtest "Too long quoted identifier in ORDER BY" ParseCompileTest $'
 select a from tbl ORDER BY `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`;'
 runtest "Too long unaliased select expression" ParseCompileTest $'
 select max ((((((((((((((((((((((((((((((a)))))))))))))))))))))))))))))) from tbl;'
+runtest "Select a column that is not in group by clause" ParseCompileTest $'select a, b from tbl group by a;'
+runtest "Non-aggregation query" ParseCompileTest $'select a, b from tbl;'
 
 # Test successes
 
 runtest "APICompileTest" APICompileTest
-runtest "Simple" ParseCompileTest 'select a from tbl;'
-runtest "Arithmetics" ParseCompileTest 'select a, count(b), min((b+c)/(d-e)), max(d*e/f-b/c/f), count(b/c/f+d*e/f*(b+c)) from tbl;'
-runtest "Quoted ID" ParseCompileTest $'select a, `b`, `c``c`, count(`d`), min((`e``e`+`f`)/(g-`h`)) from tbl;'
+runtest "Simple" ParseCompileTest 'select a from tbl group by a;'
+runtest "Arithmetics" ParseCompileTest 'select a, count(b), min((b+c)/(d-e)), max(d*e/f-b/c/f), count(b/c/f+d*e/f*(b+c)) from tbl group by a;'
+runtest "Quoted ID" ParseCompileTest $'select a, `b`, `c``c`, count(`d`), min((`e``e`+`f`)/(g-`h`)) from tbl group by a, b, `c``c`;'
 # å = U+00e5 = c3 a5
-runtest "UTF-8 2-byte character in unquoted identifier" ParseCompileTest $'select a\xc3\xa5 from tbl;'
-runtest "UTF-8 2-byte character in quoted identifier" ParseCompileTest $'select `a\xc3\xa5` from tbl;'
+runtest "UTF-8 2-byte character in unquoted identifier" ParseCompileTest $'select a\xc3\xa5 from tbl group by a\xc3\xa5;'
+runtest "UTF-8 2-byte character in quoted identifier" ParseCompileTest $'select `a\xc3\xa5` from tbl group by `a\xc3\xa5`;'
 # ᚱ = U+16b1 = 11100001 10011010 10110001 = e1 9a b1
-runtest "UTF-8 3-byte character in unquoted identifier" ParseCompileTest $'select a\xe1\x9a\xb1 from tbl;'
-runtest "UTF-8 3-byte character in quoted identifier" ParseCompileTest $'select `a\xe1\x9a\xb1` from tbl;'
-runtest "Control character in quoted identifier" ParseCompileTest $'select `a\005` from tbl;'
+runtest "UTF-8 3-byte character in unquoted identifier" ParseCompileTest $'select a\xe1\x9a\xb1 from tbl group by a\xe1\x9a\xb1;'
+runtest "UTF-8 3-byte character in quoted identifier" ParseCompileTest $'select `a\xe1\x9a\xb1` from tbl group by `a\xe1\x9a\xb1`;'
+runtest "Control character in quoted identifier" ParseCompileTest $'select `a\005` from tbl group by `a\005`;'
+runtest "Select and group by with different quotation" ParseCompileTest $'
+select    a\xc3\xa5 ,  a\xe1\x9a\xb1 , `b\xc3\xa5`, `b\xe1\x9a\xb1` from tbl
+group by `a\xc3\xa5`, `a\xe1\x9a\xb1`,  b\xc3\xa5 ,  b\xe1\x9a\xb1  ;'
 runtest "has_item regression" ParseCompileTest '
 select count(a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a)
       ,max(d*e/f-b/c/f)
       ,min((ee+f)/(g-h))
 from tbl;'
-runtest "Alias" ParseCompileTest $'select a, b as c, `d` as `e``e`, `f``f` as g, count(h+i/`j``j`) as k from tbl;'
+runtest "Alias" ParseCompileTest $'select a, b as c, `d` as `e``e`, `f``f` as g, count(h+i/`j``j`) as k from tbl group by a, b, d, f, `f``f`;'
 runtest "Integer constants" ParseCompileTest $'
 select col1
       ,sum(col2+543)
       ,max(col3-792) as subtraction
-from tbl;'
+from tbl
+group by col1;'
 runtest "Avg" ParseCompileTest $'
 select col1
       ,sum(col2)
@@ -222,7 +228,7 @@ from tbl
 where col2=col3+5 xor
   col2 <> col4 and
   !(col2 >= 57)
-group by col1, col3;'
+group by col1, col4;'
 runtest "Complex operator precedence" ParseCompileTest $'
 select a
 from tbl
@@ -230,24 +236,26 @@ where (
 a or a || a xor a and a && not a = a >= a > a <= a < a != a <> a is null | a & a << a >> a + a - a * a / a % a ^ ! a
 ) AND (
 ! a ^ a % a / a * a - a + a >> a << a & a | a is not null <> a != a < a <= a > a >= a = not a && a and a xor a || a or a
-);'
+)
+group by a;'
 cat > "$tmpfile" <<"EOF"
 select col from tbl where
 '0x00=\0,0x27=\',0x08=\b,0x0a=\n,0x0d=\r,0x09=\t,0x1a=\Z,bs=\\,bs_perc=\%,bs_ul=\_,Q=\Q,7=\7'
-is not null;
+is not null
+group by col;
 EOF
 runtest "Single quoted strings" ParseCompileTest "$(cat "$tmpfile")"
 runtest "Compound strings" ParseCompileTest "
 select col from tbl where 'hello'
-  ' world';"
-runtest "date_add" ParseCompileTest $'select col from tbl where date_add(col1, interval 1 day) is not null;'
-runtest "date_sub" ParseCompileTest $'select col from tbl where date_add(\x272024-05-06\x27, interval 23 microsecond) > col2;'
-runtest "extract" ParseCompileTest $'select col from tbl where extract(year from \x272024-05-06\x27) <= col2;'
-runtest "order by" ParseCompileTest $'select col1 from tbl order by col1;'
-runtest "order by 2 columns" ParseCompileTest $'select col1 from tbl order by col1, col2;'
-runtest "group and order by" ParseCompileTest $'select col1, `col #2`, max(col3) from tbl group by col1, `col #2` order by col1, `col #2`;'
-runtest "order by ASC/DESC" ParseCompileTest $'select col1 from tbl order by col1, col2 ASC, col3 DESC, col4;'
-runtest "Unimplemented keyword used as quoted identifier" ParseCompileTest $'select `zone` from tbl;'
+  ' world'
+group by col;"
+runtest "date_add" ParseCompileTest $'select col from tbl where date_add(col1, interval 1 day) is not null group by col;'
+runtest "date_sub" ParseCompileTest $'select col from tbl where date_add(\x272024-05-06\x27, interval 23 microsecond) > col2 group by col;'
+runtest "extract" ParseCompileTest $'select col from tbl where extract(year from \x272024-05-06\x27) <= col2 group by col;'
+runtest "order by" ParseCompileTest $'select col1 from tbl group by col1 order by col1;'
+runtest "group and order by 2 columns" ParseCompileTest $'select col1, `col #2`, max(col3) from tbl group by col1, `col #2` order by col1, `col #2`;'
+runtest "order by ASC/DESC" ParseCompileTest $'select col1 from tbl group by col1 order by col1, col2 ASC, col3 DESC, col4;'
+runtest "Unimplemented keyword used as quoted identifier" ParseCompileTest $'select `zone` from tbl group by `zone`;'
 runtest "Negation" ParseCompileTest $'
 select col1
       ,min(-543)
@@ -257,7 +265,8 @@ select col1
 from tbl
 where col1 < -45
 and col2 > -----col3
-and col3 > ----7;'
+and col3 > ----7
+group by col1;'
 runtest "Almost too long unaliased select expression" ParseCompileTest $'
 select max((((((((((((((((((((((((((((((a)))))))))))))))))))))))))))))) from tbl;'
 runtest "Aliased expression that would be too long without alias" ParseCompileTest $'

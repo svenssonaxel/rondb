@@ -464,6 +464,18 @@ Syntax error in SQL statement: Unaliased select expression too long. Use `AS` to
 Error: Syntax error.
 => Exit code: 1
 
+===== Select a column that is not in group by clause =====
+Syntax error: SELECT expression refers to ungrouped column `b` outside of aggregate function.
+You can either add this column to the GROUP BY clause, or use it within an aggregate function e.g. Sum(`b`).
+Error: Ungrouped column in non-aggregated SELECT expression.
+=> Exit code: 1
+
+===== Non-aggregation query =====
+This query has no aggregate expression and no GROUP BY clause, so it is not an aggregate query.
+Currently, RonDB SQL only supports aggregate queries.
+Error: Not an aggregate query.
+=> Exit code: 1
+
 ===== APICompileTest =====
 Compilation example 1:
 
@@ -594,16 +606,23 @@ Sum    A06  r00 A06:SUM <- r00:((((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) 
 => Exit code: 0
 
 ===== Simple =====
+Query parse tree:
 SELECT
   Out_0:`a`
    = C0:`a`
 FROM tbl
+GROUP BY
+  C0:`a`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== Arithmetics =====
+Query parse tree:
 SELECT
   Out_0:`a`
    = C0:`a`
@@ -616,6 +635,8 @@ SELECT
   Out_4:`count(b/c/f+d*e/f*(b+c))`
    = A3:Count((((`b` / `c`) / `f`) + (((`d` * `e`) / `f`) * (`b` + `c`))))
 FROM tbl
+GROUP BY
+  C0:`a`
 
 Aggregation program (23 instructions):
 Instr. DEST SRC DESCRIPTION
@@ -643,9 +664,13 @@ Mul    r00  r06 r00:((`d` * `e`) / `f`) *= r06:(`b` + `c`)
 Add    r02  r00 r02:((`b` / `c`) / `f`) += r00:(((`d` * `e`) / `f`) * (`b` + `c`))
 Count  A03  r02 A03:COUNT <- r02:(((`b` / `c`) / `f`) + (((`d` * `e`) / `f`) * (`b` + `c`)))
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 28 instructions.
+
 => Exit code: 0
 
 ===== Quoted ID =====
+Query parse tree:
 SELECT
   Out_0:`a`
    = C0:`a`
@@ -658,6 +683,10 @@ SELECT
   Out_4:`min((``e````e``+``f``)/(g-``h``))`
    = A1:Min(((`e``e` + `f`) / (`g` - `h`)))
 FROM tbl
+GROUP BY
+  C0:`a`
+  C1:`b`
+  C2:`c``c`
 
 Aggregation program (10 instructions):
 Instr. DEST SRC DESCRIPTION
@@ -672,59 +701,118 @@ Minus  r01  r02 r01:`g` -= r02:`h`
 Div    r00  r01 r00:(`e``e` + `f`) /= r01:(`g` - `h`)
 Min    A01  r00 A01:MIN <- r00:((`e``e` + `f`) / (`g` - `h`))
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 28 instructions.
+
 => Exit code: 0
 
 ===== UTF-8 2-byte character in unquoted identifier =====
+Query parse tree:
 SELECT
   Out_0:`aå`
    = C0:`aå`
 FROM tbl
+GROUP BY
+  C0:`aå`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== UTF-8 2-byte character in quoted identifier =====
+Query parse tree:
 SELECT
   Out_0:`aå`
    = C0:`aå`
 FROM tbl
+GROUP BY
+  C0:`aå`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== UTF-8 3-byte character in unquoted identifier =====
+Query parse tree:
 SELECT
   Out_0:`aᚱ`
    = C0:`aᚱ`
 FROM tbl
+GROUP BY
+  C0:`aᚱ`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== UTF-8 3-byte character in quoted identifier =====
+Query parse tree:
 SELECT
   Out_0:`aᚱ`
    = C0:`aᚱ`
 FROM tbl
+GROUP BY
+  C0:`aᚱ`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== Control character in quoted identifier =====
+Query parse tree:
 SELECT
   Out_0:`a`
    = C0:`a`
 FROM tbl
+GROUP BY
+  C0:`a`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
+
+=> Exit code: 0
+
+===== Select and group by with different quotation =====
+Query parse tree:
+SELECT
+  Out_0:`aå`
+   = C0:`aå`
+  Out_1:`aᚱ`
+   = C1:`aᚱ`
+  Out_2:`bå`
+   = C2:`bå`
+  Out_3:`bᚱ`
+   = C3:`bᚱ`
+FROM tbl
+GROUP BY
+  C0:`aå`
+  C1:`aᚱ`
+  C2:`bå`
+  C3:`bᚱ`
+
+No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 23 instructions.
 
 => Exit code: 0
 
 ===== has_item regression =====
+Query parse tree:
 SELECT
   Out_0:`count(a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a)`
    = A0:Count(((((((((((((((((`a` + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`) + `a`))
@@ -774,9 +862,13 @@ Minus  r01  r02 r01:`g` -= r02:`h`
 Div    r00  r01 r00:(`ee` + `f`) /= r01:(`g` - `h`)
 Min    A02  r00 A02:MIN <- r00:((`ee` + `f`) / (`g` - `h`))
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 18 instructions.
+
 => Exit code: 0
 
 ===== Alias =====
+Query parse tree:
 SELECT
   Out_0:`a`
    = C0:`a`
@@ -789,6 +881,12 @@ SELECT
   Out_4:`k`
    = A0:Count((`h` + (`i` / `j``j`)))
 FROM tbl
+GROUP BY
+  C0:`a`
+  C1:`b`
+  C2:`d`
+  C7:`f`
+  C3:`f``f`
 
 Aggregation program (6 instructions):
 Instr. DEST SRC DESCRIPTION
@@ -799,9 +897,13 @@ Load   r01  C04 r01 = C04:`h`
 Add    r01  r00 r01:`h` += r00:(`i` / `j``j`)
 Count  A00  r01 A00:COUNT <- r01:(`h` + (`i` / `j``j`))
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 29 instructions.
+
 => Exit code: 0
 
 ===== Integer constants =====
+Query parse tree:
 SELECT
   Out_0:`col1`
    = C0:`col1`
@@ -810,6 +912,8 @@ SELECT
   Out_2:`subtraction`
    = A1:Max((`col3` - 792))
 FROM tbl
+GROUP BY
+  C0:`col1`
 
 Aggregation program (8 instructions):
 Instr. DEST SRC DESCRIPTION
@@ -822,9 +926,13 @@ LoadI  r01  I01 r01 = I01:792
 Minus  r00  r01 r00:`col3` -= r01:792
 Max    A01  r00 A01:MAX <- r00:(`col3` - 792)
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 18 instructions.
+
 => Exit code: 0
 
 ===== Avg =====
+Query parse tree:
 SELECT
   Out_0:`col1`
    = C0:`col1`
@@ -853,9 +961,13 @@ Max    A01  r00 A01:MAX <- r00:`col2`
 Count  A02  r00 A02:COUNT <- r00:`col2`
 Min    A03  r00 A03:MIN <- r00:`col2`
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 37 instructions.
+
 => Exit code: 0
 
 ===== Count all =====
+Query parse tree:
 SELECT
   Out_0:`col1`
    = C0:`col1`
@@ -888,9 +1000,13 @@ Max    A02  r00 A02:MAX <- r00:`col2`
 Count  A03  r00 A03:COUNT <- r00:`col2`
 Min    A04  r00 A04:MIN <- r00:`col2`
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 42 instructions.
+
 => Exit code: 0
 
 ===== Condition =====
+Query parse tree:
 SELECT
   Out_0:`col1`
    = C0:`col1`
@@ -918,7 +1034,7 @@ XOR
          \- 57
 GROUP BY
   C0:`col1`
-  C2:`col3`
+  C3:`col4`
 
 Aggregation program (4 instructions):
 Instr. DEST SRC DESCRIPTION
@@ -927,9 +1043,13 @@ Sum    A00  r00 A00:SUM <- r00:`col2`
 Load   r00  C02 r00 = C02:`col3`
 Max    A01  r00 A01:MAX <- r00:`col3`
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 23 instructions.
+
 => Exit code: 0
 
 ===== Complex operator precedence =====
+Query parse tree:
 SELECT
   Out_0:`a`
    = C0:`a`
@@ -1034,12 +1154,18 @@ AND
    |  |  \- `a`
    |  \- `a`
    \- `a`
+GROUP BY
+  C0:`a`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== Single quoted strings =====
+Query parse tree:
 SELECT
   Out_0:`col`
    = C0:`col`
@@ -1048,24 +1174,36 @@ WHERE
 IS
 +- STRING: 0x00=<00>,0x27=',0x08=<08>,0x0a=<0A>,0x0d=<0D>,0x09=<09>,0x1a=<1A>,bs=\,bs_perc=\%,bs_ul=\_,Q=Q,7=7
 \- NOT NULL
+GROUP BY
+  C0:`col`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== Compound strings =====
+Query parse tree:
 SELECT
   Out_0:`col`
    = C0:`col`
 FROM tbl
 WHERE
 STRING: hello<20>world
+GROUP BY
+  C0:`col`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== date_add =====
+Query parse tree:
 SELECT
   Out_0:`col`
    = C0:`col`
@@ -1078,12 +1216,18 @@ IS
 |     +- 1
 |     \- DAY
 \- NOT NULL
+GROUP BY
+  C0:`col`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== date_sub =====
+Query parse tree:
 SELECT
   Out_0:`col`
    = C0:`col`
@@ -1096,12 +1240,18 @@ WHERE
 |     +- 23
 |     \- MICROSECOND
 \- `col2`
+GROUP BY
+  C0:`col`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== extract =====
+Query parse tree:
 SELECT
   Out_0:`col`
    = C0:`col`
@@ -1112,37 +1262,36 @@ WHERE
 |  +- YEAR
 |  \- STRING: 2024-05-06
 \- `col2`
+GROUP BY
+  C0:`col`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== order by =====
+Query parse tree:
 SELECT
   Out_0:`col1`
    = C0:`col1`
 FROM tbl
+GROUP BY
+  C0:`col1`
 ORDER BY
   C0:`col1` ASC
 
 No aggregation program.
 
-=> Exit code: 0
-
-===== order by 2 columns =====
-SELECT
-  Out_0:`col1`
-   = C0:`col1`
-FROM tbl
-ORDER BY
-  C0:`col1` ASC
-  C1:`col2` ASC
-
-No aggregation program.
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
-===== group and order by =====
+===== group and order by 2 columns =====
+Query parse tree:
 SELECT
   Out_0:`col1`
    = C0:`col1`
@@ -1163,13 +1312,19 @@ Instr. DEST SRC DESCRIPTION
 Load   r00  C02 r00 = C02:`col3`
 Max    A00  r00 A00:MAX <- r00:`col3`
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 18 instructions.
+
 => Exit code: 0
 
 ===== order by ASC/DESC =====
+Query parse tree:
 SELECT
   Out_0:`col1`
    = C0:`col1`
 FROM tbl
+GROUP BY
+  C0:`col1`
 ORDER BY
   C0:`col1` ASC
   C1:`col2` ASC
@@ -1178,19 +1333,29 @@ ORDER BY
 
 No aggregation program.
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
+
 => Exit code: 0
 
 ===== Unimplemented keyword used as quoted identifier =====
+Query parse tree:
 SELECT
   Out_0:`zone`
    = C0:`zone`
 FROM tbl
+GROUP BY
+  C0:`zone`
 
 No aggregation program.
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
 
 => Exit code: 0
 
 ===== Negation =====
+Query parse tree:
 SELECT
   Out_0:`col1`
    = C0:`col1`
@@ -1220,6 +1385,8 @@ AND
 \- >
    +- `col3`
    \- 7
+GROUP BY
+  C0:`col1`
 
 Aggregation program (20 instructions):
 Instr. DEST SRC DESCRIPTION
@@ -1244,9 +1411,13 @@ Load   r00  C03 r00 = C03:`a`
 Minus  r00  r02 r00:`a` -= r02:(0 - (0 - (`b` - 1)))
 Count  A03  r00 A03:COUNT <- r00:(`a` - (0 - (0 - (`b` - 1))))
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 28 instructions.
+
 => Exit code: 0
 
 ===== Almost too long unaliased select expression =====
+Query parse tree:
 SELECT
   Out_0:`max((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))`
    = A0:Max(`a`)
@@ -1257,9 +1428,13 @@ Instr. DEST SRC DESCRIPTION
 Load   r00  C00 r00 = C00:`a`
 Max    A00  r00 A00:MAX <- r00:`a`
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
+
 => Exit code: 0
 
 ===== Aliased expression that would be too long without alias =====
+Query parse tree:
 SELECT
   Out_0:`max(a)`
    = A0:Max(`a`)
@@ -1270,9 +1445,13 @@ Instr. DEST SRC DESCRIPTION
 Load   r00  C00 r00 = C00:`a`
 Max    A00  r00 A00:MAX <- r00:`a`
 
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 8 instructions.
+
 => Exit code: 0
 
 ===== dbt3-1.10/queries/mysql/1_2.sql =====
+Query parse tree:
 SELECT
   Out_0:`l_returnflag`
    = C0:`l_returnflag`
@@ -1333,5 +1512,8 @@ Count  A05  r05 A05:COUNT <- r05:`l_extendedprice`
 Sum    A06  r03 A06:SUM <- r03:`l_discount`
 Count  A07  r03 A07:COUNT <- r03:`l_discount`
 Count  A08  r06 A08:COUNT <- r06:1
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 54 instructions.
 
 => Exit code: 0

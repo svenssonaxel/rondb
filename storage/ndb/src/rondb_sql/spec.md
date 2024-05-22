@@ -25,8 +25,8 @@ For the meaning of functions, operators and other keywords, refer to the MySQL d
   - Parentheses
   - Operators `OR`, `||`, `XOR`, `AND`, `&&`, `NOT`, `=`, `>=`, `>`, `<=`, `<`, `!=`, `<>`, `IS NULL`, `IS NOT NULL`, `|`, `&`, `<<`, `>>`, `+`, `-`, `*`, `/`, `%`, `^`, `!`
   - Functions `DATE_ADD`, `DATE_SUB` and `EXTRACT` with constant-only arguments, e.g. `DATE_ADD('2024-05-07', INTERVAL '75' MICROSECOND)`.
-- `GROUP BY`: Supported, but only for column names, no expressions.
-- `ORDER BY`, `ASC`, `DESC`: Supported, but only for column names, no expressions.
+- `GROUP BY`: Supported, but only for column names. Expressions and aliases are both unsupported.
+- `ORDER BY`, `ASC`, `DESC`: Supported, but only for column names and aliases. Expressions are unsupported.
 
 ## Data types
 

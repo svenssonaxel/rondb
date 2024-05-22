@@ -55,6 +55,41 @@ using std::string;
   FORALL_ARITHMETIC_OPS(X) \
   FORALL_AGGS(X)
 
+// This class is called AggregationAPICompiler::Expr everywhere except in
+// RonDBSQLCommon.hpp. It needs to be defined in the top level since nested
+// classes cannot be forward-declared.
+class AggregationAPICompiler_Expr
+{
+#define ARITHMETIC_ENUM(Name) Name,
+  enum class ExprOp
+  {
+    Load,
+    LoadConstantInt,
+    FORALL_ARITHMETIC_OPS(ARITHMETIC_ENUM)
+  };
+#undef ARITHMETIC_ENUM
+  using Expr = AggregationAPICompiler_Expr;
+  friend class AggregationAPICompiler;
+private:
+  ExprOp op; // Binary operation or Load
+  Expr* left = NULL; // Left argument to binary operation
+  Expr* right = NULL; // Right argument to binary operation
+  uint idx = 0; // Column number for load operation, or index in constant list
+                // for loadconstant operations
+  int usage = 0; // Reference count from Expr and AggExpr.
+                 // Only used for asserts.
+  uint est_regs = 0; // Estimated number of registers necessary to calculate
+                     // the expression.
+  bool eval_left_first = false; // True if we should evaluate left before
+                                // right.
+  // The following values belong to compiler (below). They are placed in this
+  // struct for convenience.
+  int program_usage = 0; // Reference count in program, including uses so far
+                         // in calculation but excluding uses in
+                         // re-calculation. Only used for asserts.
+  bool has_been_compiled = false; // Only used to determine program_usage.
+};
+
 class AggregationAPICompiler
 {
 public:
@@ -78,36 +113,8 @@ private:
 
   // High-level API:
 public:
-#define ARITHMETIC_ENUM(Name) Name,
-  enum class ExprOp
-  {
-    Load,
-    LoadConstantInt,
-    FORALL_ARITHMETIC_OPS(ARITHMETIC_ENUM)
-  };
-#undef ARITHMETIC_ENUM
-  struct Expr
-  {
-    friend class AggregationAPICompiler;
-  private:
-    ExprOp op; // Binary operation or Load
-    Expr* left = NULL; // Left argument to binary operation
-    Expr* right = NULL; // Right argument to binary operation
-    uint idx = 0; // Column number for load operation, or index in constant list
-                  // for loadconstant operations
-    int usage = 0; // Reference count from Expr and AggExpr.
-                   // Only used for asserts.
-    uint est_regs = 0; // Estimated number of registers necessary to calculate
-                       // the expression.
-    bool eval_left_first = false; // True if we should evaluate left before
-                                  // right.
-    // The following values belong to compiler (below). They are placed in this
-    // struct for convenience.
-    int program_usage = 0; // Reference count in program, including uses so far
-                           // in calculation but excluding uses in
-                           // re-calculation. Only used for asserts.
-    bool has_been_compiled = false; // Only used to determine program_usage.
-  };
+  using Expr = AggregationAPICompiler_Expr;
+  using ExprOp = AggregationAPICompiler_Expr::ExprOp;
   union Constant
   {
     long int long_int;
