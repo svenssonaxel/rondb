@@ -98,7 +98,8 @@ ResultPrinter::compile()
           if(i >= m_groupby_cols.size())
           {
             assert(m_column_names->size() > col_idx);
-            err << "Syntax error: Column " << column_names[col_idx].c_str() << " appears in a SELECT expression but not in the GROUP BY clause." << endl;
+            err << "Syntax error: Column " << column_names[col_idx].c_str()
+                << " appears in a SELECT expression but not in the GROUP BY clause." << endl;
             throw runtime_error("Column in SELECT expression must appear in GROUP BY expression.");
             // todo We should detect much earlier if we are given a non-aggregation query, i.e. with no aggregates and no group by columns. Also, we should test for aggregates without groups and groups without aggregates.
           }
@@ -375,8 +376,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
       }
     }
   }
-  out << "]" << endl;
-  // todo remove endl everywhere since it destroys buffering.
+  out << "]\n";
 }
 
 // Print a JSON representation of ls to output_stream, assuming ls is correctly

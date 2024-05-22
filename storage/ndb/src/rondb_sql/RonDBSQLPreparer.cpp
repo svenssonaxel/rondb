@@ -826,8 +826,7 @@ RonDBSQLPreparer::print()
   {
     out << "  Out_" << out_count << ":"
         << quoted_identifier(outputs->output_name)
-        << endl
-        << "   = ";
+        << "\n   = ";
     switch (outputs->type)
     {
     case Outputs::Type::AGGREGATE:
@@ -853,7 +852,7 @@ RonDBSQLPreparer::print()
         }
         out << "A" << pr << ":";
         m_agg->print_aggregate(pr);
-        out << endl;
+        out << '\n';
       }
       break;
     case Outputs::Type::AVG:
@@ -867,14 +866,14 @@ RonDBSQLPreparer::print()
         pr = m_agg->Count(outputs->avg.arg);
         out << "A" << pr << ":";
         m_agg->print_aggregate(pr);
-        out << endl;
+        out << '\n';
       }
       break;
     case Outputs::Type::COLUMN:
       {
         int col_idx = outputs->column.col_idx;
         out << "C" << col_idx << ":"
-            << quoted_identifier(column_idx_to_name(col_idx)) << endl;
+            << quoted_identifier(column_idx_to_name(col_idx)) << '\n';
       }
       break;
     default:
@@ -883,47 +882,47 @@ RonDBSQLPreparer::print()
     out_count++;
     outputs = outputs->next;
   }
-  out << "FROM " << ast_root.table.c_str() << endl;
+  out << "FROM " << ast_root.table.c_str() << '\n';
   struct ConditionalExpression* where = ast_root.where_expression;
   if (where != NULL)
   {
-    out << "WHERE" << endl;
+    out << "WHERE\n";
     print(where, LexString{NULL, 0});
   }
   struct GroupbyColumns* groupby = ast_root.groupby_columns;
   if (groupby != NULL)
   {
-    out << "GROUP BY" << endl;
+    out << "GROUP BY\n";
     while (groupby != NULL)
     {
       uint col_idx = groupby->col_idx;
       out << "  C" << col_idx << ":"
-          << quoted_identifier(column_idx_to_name(col_idx)) << endl;
+          << quoted_identifier(column_idx_to_name(col_idx)) << '\n';
       groupby = groupby->next;
     }
   }
   struct OrderbyColumns* orderby = ast_root.orderby_columns;
   if (orderby != NULL)
   {
-    out << "ORDER BY" << endl;
+    out << "ORDER BY\n";
     while (orderby != NULL)
     {
       uint col_idx = orderby->col_idx;
       bool ascending = orderby->ascending;
       out << "  C" << col_idx << ":" <<
         quoted_identifier(column_idx_to_name(col_idx)) <<
-        (ascending ? " ASC" : " DESC") << endl;
+        (ascending ? " ASC" : " DESC") << '\n';
       orderby = orderby->next;
     }
   }
-  out << endl;
+  out << '\n';
   if (m_agg != NULL)
   {
     m_agg->print_program();
   }
   else
   {
-    out << "No aggregation program." << endl << endl;
+    out << "No aggregation program.\n\n";
   }
 }
 
@@ -937,7 +936,7 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
   switch (ce->op)
   {
   case T_IDENTIFIER:
-    out << quoted_identifier(column_idx_to_name(ce->col_idx)) << endl;
+    out << quoted_identifier(column_idx_to_name(ce->col_idx)) << '\n';
     return;
   case T_STRING:
     {
@@ -955,11 +954,11 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
           out << "<" << hex[(c >> 4) & 0xF] << hex[c & 0xF] << ">";
         }
       }
-      out << endl;
+      out << '\n';
       return;
     }
   case T_INT:
-    out << ce->constant_integer << endl;
+    out << ce->constant_integer << '\n';
     return;
   case T_OR:
     opstr = "OR";
@@ -994,19 +993,19 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
     break;
   case T_IS:
     {
-      out << "IS" << endl <<
-        prefix << "+- ";
+      out << "IS\n"
+          << prefix << "+- ";
       LexString prefix_arg = prefix.concat(LexString{"|  ", 3}, m_aalloc);
       print(ce->is.arg, prefix_arg);
       out << prefix << "\\- ";
       if (ce->is.null == true)
       {
-        out << "NULL" << endl;
+        out << "NULL\n";
         return;
       }
       if (ce->is.null == false)
       {
-        out << "NOT NULL" << endl;
+        out << "NOT NULL\n";
         return;
       }
       assert(false);
@@ -1029,8 +1028,8 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
   case T_MINUS:
     if (ce->args.left == NULL)
     {
-      out << "NEGATION" << endl <<
-        prefix << "\\- ";
+      out << "NEGATION\n"
+          << prefix << "\\- ";
       LexString prefix_arg = prefix.concat(LexString{"   ", 3}, m_aalloc);
       print(ce->args.right, prefix_arg);
       return;
@@ -1055,12 +1054,12 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
     break;
   case T_INTERVAL:
     {
-      out << "INTERVAL" << endl <<
-        prefix << "+- ";
+      out << "INTERVAL\n"
+          << prefix << "+- ";
       LexString prefix_arg = prefix.concat(LexString{"|  ", 3}, m_aalloc);
       print(ce->interval.arg, prefix_arg);
       out << prefix << "\\- " <<
-        interval_type_name(ce->interval.interval_type) << endl;
+        interval_type_name(ce->interval.interval_type) << '\n';
       return;
     }
   case T_DATE_ADD:
@@ -1071,10 +1070,10 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
     break;
   case T_EXTRACT:
     {
-      out << "EXTRACT" << endl <<
-        prefix << "+- " <<
-        interval_type_name(ce->extract.interval_type) << endl <<
-        prefix << "\\- ";
+    out << "EXTRACT\n"
+        << prefix << "+- "
+        << interval_type_name(ce->extract.interval_type) << '\n'
+        << prefix << "\\- ";
       LexString prefix_arg = prefix.concat(LexString{"   ", 3}, m_aalloc);
       print(ce->extract.arg, prefix_arg);
       return;
@@ -1085,15 +1084,15 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
   }
   if (prefix_op)
   {
-    out << opstr << endl <<
-         prefix << "\\- ";
+    out << opstr << '\n'
+        << prefix << "\\- ";
     LexString prefix_arg = prefix.concat(LexString{"   ", 3}, m_aalloc);
     print(ce->args.left, prefix_arg);
   }
   else
   {
-    out << opstr << endl <<
-      prefix << "+- ";
+    out << opstr << '\n'
+        << prefix << "+- ";
     LexString prefix_left = prefix.concat(LexString{"|  ", 3}, m_aalloc);
     print(ce->args.left, prefix_left);
     out << prefix << "\\- ";

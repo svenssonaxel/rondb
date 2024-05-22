@@ -838,12 +838,12 @@ void
 AggregationAPICompiler::print_aggregates()
 {
   assert_status(COMPILED);
-  m_out << "Aggregations:" << endl;
+  m_out << "Aggregations:\n";
   for (uint i=0; i<m_aggs.size(); i++)
   {
     m_out << 'A' << i << '=';
     print_aggregate(i);
-    m_out << endl;
+    m_out << '\n';
   }
 }
 
@@ -871,19 +871,18 @@ AggregationAPICompiler::print_program()
 {
   if (m_program.size() == 0)
   {
-    m_out << "No aggregation program." << endl << endl;
+    m_out << "No aggregation program.\n\n";
     return;
   }
   svm_init();
-  m_out << "Aggregation program (" << m_program.size() <<
-    " instructions):" << endl <<
-    "Instr. DEST SRC DESCRIPTION" << endl;
+  m_out << "Aggregation program (" << m_program.size() << " instructions):\n"
+        << "Instr. DEST SRC DESCRIPTION\n";
   for (uint i=0; i<m_program.size(); i++)
   {
     print(&m_program[i]);
     svm_execute(&m_program[i], false);
   }
-  m_out << endl;
+  m_out << '\n';
 }
 
 DEFINE_FORMATTER(quoted_identifier, char*, {
@@ -998,7 +997,7 @@ AggregationAPICompiler::print(Instr* instr)
     // Unknown instruction
     assert(false);
   }
-  m_out << endl;
+  m_out << '\n';
 }
 #undef OPERATOR_CASE
 #undef AGG_CASE
