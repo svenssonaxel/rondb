@@ -242,7 +242,6 @@ NdbScanOperation::addInterpretedCode()
 }
 
 int NdbScanOperation::addAggregationCode() {
-  NdbTransaction *tNdbCon = theNdbCon;
   if (!ndbd_pushdown_aggregation_supported(
           theNdbCon->getNdb()->getMinDbNodeVersion())) {
     setErrorCode(4562);
