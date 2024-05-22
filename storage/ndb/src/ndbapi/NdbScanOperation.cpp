@@ -242,7 +242,6 @@ NdbScanOperation::addInterpretedCode()
 }
 
 int NdbScanOperation::addAggregationCode() {
-  NdbTransaction *tNdbCon = theNdbCon;
   if (!ndbd_pushdown_aggregation_supported(
           theNdbCon->getNdb()->getMinDbNodeVersion())) {
     setErrorCode(4562);
@@ -1584,6 +1583,10 @@ int NdbScanOperation::setAggregationCode(const NdbAggregator *code)
   }
 
   m_aggregation_code = const_cast<NdbAggregator*>(code);
+
+  if (code->disk_columns()) {
+    m_flags &= ~Uint8(OF_NO_DISK);
+  }
 
   return 0;
 }

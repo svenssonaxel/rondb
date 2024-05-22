@@ -213,6 +213,9 @@ class NdbAggregator {
   const NdbTableImpl* table_impl() const {
     return table_impl_;
   }
+  bool disk_columns() const {
+    return disk_columns_;
+  }
 
   int32_t ProcessRes(char* buf);
   void Print();
@@ -270,5 +273,6 @@ class NdbAggregator {
   bool CheckAggAndReg(uint32_t agg_id, uint32_t reg_id);
   bool result_record_fetched_;
   uint32_t result_size_est_;
+  bool disk_columns_;
 };
 #endif  // NDBAGGREGATOR_H_

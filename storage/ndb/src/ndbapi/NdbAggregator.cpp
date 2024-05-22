@@ -19,7 +19,8 @@ NdbAggregator::NdbAggregator(const NdbDictionary::Table* table) :
   instructions_length_(PROGRAM_HEADER_SIZE),
   result_record_fetched_(false),
   result_size_est_(RESULT_HEADER_SIZE * sizeof(uint32_t) +
-               RESULT_ITEM_HEADER_SIZE * sizeof(uint32_t)) {
+               RESULT_ITEM_HEADER_SIZE * sizeof(uint32_t)),
+  disk_columns_(false) {
     if (table != nullptr) {
       table_impl_ = & NdbTableImpl::getImpl(*table);
     }
@@ -477,6 +478,9 @@ bool NdbAggregator::LoadColumn(const char* name, uint32_t reg_id) {
     SetError(kErrInvalidRegNo);
     return false;
   }
+  if (col->getStorageType() == NDB_STORAGETYPE_DISK) {
+    disk_columns_ = true;
+  }
 
   int32_t col_id = col->getAttrId();
   buffer_[curr_prog_pos_++] =
@@ -501,6 +505,9 @@ bool NdbAggregator::LoadColumn(int32_t col_id, uint32_t reg_id) {
   if (reg_id >= kRegTotal) {
     SetError(kErrInvalidRegNo);
     return false;
+  }
+  if (col->getStorageType() == NDB_STORAGETYPE_DISK) {
+    disk_columns_ = true;
   }
 
   buffer_[curr_prog_pos_++] =
@@ -715,6 +722,10 @@ bool NdbAggregator::GroupBy(const char* name) {
   //     result_size_est_);
 
   n_gb_cols_++;
+
+  if (col->getStorageType() == NDB_STORAGETYPE_DISK) {
+    disk_columns_ = true;
+  }
   
   return true;
 }
@@ -730,6 +741,10 @@ bool NdbAggregator::GroupBy(int32_t col_id) {
   result_size_est_ += (sizeof(AttributeHeader) + ((col->getSizeInBytes() + 3) & (~3)));
 
   n_gb_cols_++;
+
+  if (col->getStorageType() == NDB_STORAGETYPE_DISK) {
+    disk_columns_ = true;
+  }
 
   return true;
 }
