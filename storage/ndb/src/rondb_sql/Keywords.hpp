@@ -86,7 +86,8 @@ static const int max_strlen_for_keyword_implemented_in_rondb_sql = 18;
 static const int number_of_keywords_implemented_in_rondb_sql =
   sizeof(keywords_implemented_in_rondb_sql) / sizeof(keywords_implemented_in_rondb_sql[0]);
 
-static const char* keywords_defined_in_mysql[] = {
+static const char* keywords_defined_in_mysql[] =
+{
   "ACCESSIBLE",
   "ACCOUNT",
   "ACTION",
