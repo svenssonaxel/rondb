@@ -710,14 +710,16 @@ RonDBSQLPreparer::execute()
       // Prepare and execute full table scan
       assert(!m_do_index_scan &&
              m_index_scan_config == NULL &&
-             m_index_scan_index == NULL &&
-             m_table_scan_filter != NULL);
+             m_index_scan_index == NULL);
       NdbScanOperation* myScanOp = myTrans->getNdbScanOperation(m_table);
       soft_assert(myScanOp != NULL, "Failed to get scan operation.");
       soft_assert(myScanOp->readTuples(m_conf.lock_mode) == 0,
                   "Failed to initialize scan operation.");
-      NdbScanFilter filter(myScanOp);
-      apply_filter_top_level(&filter, m_table_scan_filter);
+      if (m_table_scan_filter != NULL)
+      {
+        NdbScanFilter filter(myScanOp);
+        apply_filter_top_level(&filter, m_table_scan_filter);
+      }
       soft_assert(myScanOp->setAggregationCode(&aggregator) >= 0,
                   "Failed to set aggregation code.");
       soft_assert(myScanOp->DoAggregation() >= 0,
@@ -814,8 +816,11 @@ RonDBSQLPreparer::execute()
         soft_assert(myIndexScanOp->end_of_bound(i) == 0,
                     "Failed to set end of bound.");
       }
-      NdbScanFilter filter(myIndexScanOp);
-      apply_filter_top_level(&filter, isc.filter);
+      if (isc.filter != NULL)
+      {
+        NdbScanFilter filter(myIndexScanOp);
+        apply_filter_top_level(&filter, isc.filter);
+      }
       soft_assert(myIndexScanOp->setAggregationCode(&aggregator) >= 0,
                   "Failed to set aggregation code.");
       soft_assert(myIndexScanOp->DoAggregation() >= 0,
