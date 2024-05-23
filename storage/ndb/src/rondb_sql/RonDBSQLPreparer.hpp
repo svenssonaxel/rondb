@@ -114,6 +114,33 @@ private:
   const NdbDictionary::Table* m_table = NULL;
   yyscan_t m_scanner;
   YY_BUFFER_STATE m_buf;
+
+  // Index scan
+  bool m_do_index_scan = false;
+  class IndexScanConfig
+  {
+  public:
+    uint col_idx;
+    struct Range
+    {
+      enum class Type { NONE, INCLUSIVE, EXCLUSIVE };
+      Type ltype;
+      long lvalue;
+      Type htype;
+      long hvalue;
+    };
+    Range* ranges;
+    uint range_count;
+    ConditionalExpression* filter;
+  };
+  DynamicArray<IndexScanConfig> m_index_scan_config_candidates;
+  IndexScanConfig* m_index_scan_config = NULL;
+  const NdbDictionary::Index* m_index_scan_index = NULL;
+
+  // Table scan
+  bool m_do_table_scan = false;
+  ConditionalExpression* m_table_scan_filter = NULL;
+
   AggregationAPICompiler* m_agg = NULL;
   ResultPrinter* m_resultprinter = NULL;
   LexCString column_idx_to_name(uint);
@@ -127,20 +154,23 @@ private:
   void parse();
   bool has_width(uint pos);
   void load();
+  void generate_index_scan_config_candidates();
+  void choose_index_scan_config();
   void compile();
 
   // Functions used in execution phase
 public:
   void execute();
 private:
-  void applyFilter(NdbScanFilter* filter);
-  bool applyFilter(NdbScanFilter* filter,
-                   struct ConditionalExpression* ce);
+  void apply_filter_top_level(NdbScanFilter* filter,
+                              struct ConditionalExpression* ce);
+  bool apply_filter(NdbScanFilter* filter, struct ConditionalExpression* ce);
   void programAggregator(NdbAggregator* aggregator);
   void print_result_json(NdbAggregator* aggregator);
   void print();
   void print(struct ConditionalExpression* ce,
              LexString prefix);
+  void print(struct IndexScanConfig::Range& range, const char* col_name);
 
 public:
   ~RonDBSQLPreparer();

@@ -616,6 +616,9 @@ GROUP BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -664,6 +667,9 @@ Mul    r00  r06 r00:((`d` * `e`) / `f`) *= r06:(`b` + `c`)
 Add    r02  r00 r02:((`b` / `c`) / `f`) += r00:(((`d` * `e`) / `f`) * (`b` + `c`))
 Count  A03  r02 A03:COUNT <- r02:(((`b` / `c`) / `f`) + (((`d` * `e`) / `f`) * (`b` + `c`)))
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 28 instructions.
 
@@ -701,6 +707,9 @@ Minus  r01  r02 r01:`g` -= r02:`h`
 Div    r00  r01 r00:(`e``e` + `f`) /= r01:(`g` - `h`)
 Min    A01  r00 A01:MIN <- r00:((`e``e` + `f`) / (`g` - `h`))
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 28 instructions.
 
@@ -716,6 +725,9 @@ GROUP BY
   C0:`aå`
 
 No aggregation program.
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
@@ -733,6 +745,9 @@ GROUP BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -748,6 +763,9 @@ GROUP BY
   C0:`aᚱ`
 
 No aggregation program.
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
@@ -765,6 +783,9 @@ GROUP BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -780,6 +801,9 @@ GROUP BY
   C0:`a`
 
 No aggregation program.
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
@@ -805,6 +829,9 @@ GROUP BY
   C3:`bᚱ`
 
 No aggregation program.
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 23 instructions.
@@ -862,6 +889,9 @@ Minus  r01  r02 r01:`g` -= r02:`h`
 Div    r00  r01 r00:(`ee` + `f`) /= r01:(`g` - `h`)
 Min    A02  r00 A02:MIN <- r00:((`ee` + `f`) / (`g` - `h`))
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 18 instructions.
 
@@ -897,6 +927,9 @@ Load   r01  C04 r01 = C04:`h`
 Add    r01  r00 r01:`h` += r00:(`i` / `j``j`)
 Count  A00  r01 A00:COUNT <- r01:(`h` + (`i` / `j``j`))
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 29 instructions.
 
@@ -925,6 +958,9 @@ Load   r00  C02 r00 = C02:`col3`
 LoadI  r01  I01 r01 = I01:792
 Minus  r00  r01 r00:`col3` -= r01:792
 Max    A01  r00 A01:MAX <- r00:(`col3` - 792)
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 18 instructions.
@@ -960,6 +996,9 @@ Sum    A00  r00 A00:SUM <- r00:`col2`
 Max    A01  r00 A01:MAX <- r00:`col2`
 Count  A02  r00 A02:COUNT <- r00:`col2`
 Min    A03  r00 A03:MIN <- r00:`col2`
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 37 instructions.
@@ -999,6 +1038,9 @@ Count  A01  r01 A01:COUNT <- r01:1
 Max    A02  r00 A02:MAX <- r00:`col2`
 Count  A03  r00 A03:COUNT <- r00:`col2`
 Min    A04  r00 A04:MIN <- r00:`col2`
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 42 instructions.
@@ -1042,6 +1084,9 @@ Load   r00  C01 r00 = C01:`col2`
 Sum    A00  r00 A00:SUM <- r00:`col2`
 Load   r00  C02 r00 = C02:`col3`
 Max    A01  r00 A01:MAX <- r00:`col3`
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 23 instructions.
@@ -1159,6 +1204,9 @@ GROUP BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -1179,6 +1227,9 @@ GROUP BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -1196,6 +1247,9 @@ GROUP BY
   C0:`col`
 
 No aggregation program.
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
@@ -1221,6 +1275,9 @@ GROUP BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -1245,6 +1302,9 @@ GROUP BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -1267,6 +1327,9 @@ GROUP BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -1284,6 +1347,9 @@ ORDER BY
   C0:`col1` ASC
 
 No aggregation program.
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
@@ -1312,6 +1378,9 @@ Instr. DEST SRC DESCRIPTION
 Load   r00  C02 r00 = C02:`col3`
 Max    A00  r00 A00:MAX <- r00:`col3`
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 18 instructions.
 
@@ -1333,6 +1402,9 @@ ORDER BY
 
 No aggregation program.
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -1348,6 +1420,9 @@ GROUP BY
   C0:`zone`
 
 No aggregation program.
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
@@ -1411,6 +1486,9 @@ Load   r00  C03 r00 = C03:`a`
 Minus  r00  r02 r00:`a` -= r02:(0 - (0 - (`b` - 1)))
 Count  A03  r00 A03:COUNT <- r00:(`a` - (0 - (0 - (`b` - 1))))
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 28 instructions.
 
@@ -1428,6 +1506,9 @@ Instr. DEST SRC DESCRIPTION
 Load   r00  C00 r00 = C00:`a`
 Max    A00  r00 A00:MAX <- r00:`a`
 
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
@@ -1444,6 +1525,9 @@ Aggregation program (2 instructions):
 Instr. DEST SRC DESCRIPTION
 Load   r00  C00 r00 = C00:`a`
 Max    A00  r00 A00:MAX <- r00:`a`
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
@@ -1512,6 +1596,9 @@ Count  A05  r05 A05:COUNT <- r05:`l_extendedprice`
 Sum    A06  r03 A06:SUM <- r03:`l_discount`
 Count  A07  r03 A07:COUNT <- r03:`l_discount`
 Count  A08  r06 A08:COUNT <- r06:1
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the WHERE clause.)
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 54 instructions.

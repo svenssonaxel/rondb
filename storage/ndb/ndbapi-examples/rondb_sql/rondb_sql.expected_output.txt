@@ -43,6 +43,9 @@ Min    A01  r00 A01:MIN <- r00:`CDOUBLE`
 Load   r00  C05 r00 = C05:`CUMEDIUMINT`
 Max    A02  r00 A02:MAX <- r00:`CUMEDIUMINT`
 
+Execute as table scan.
+(No candidate plans for index scan.)
+
 Output in ASCII encoded JSON format.
 The program for post-processing and output has 28 instructions.
 
@@ -135,15 +138,78 @@ The program for post-processing and output has 28 instructions.
 Table scan aggregation Success!
 
 2. INDEX SCAN:
-SELECT CCHAR, CMEDIUMINT, SUM(CUBIGINT+CUTINYINT), MIN(CDOUBLE), MAX(CUMEDIUMINT) FROM agg.api_scan WHERE CMEDIUMINT >= 6 AND CMEDIUMINT < 8  AND CTINYINT = 66 GROUP BY CCHAR, CMEDIUMINT;
+SELECT CCHAR as group_12
+     , CMEDIUMINT as group_3
+     , sum(CUBIGINT+CUTINYINT) as agg_0
+     , min(CDOUBLE) AS agg_1
+     , max(CUMEDIUMINT) as agg_2
+FROM api_scan
+WHERE CMEDIUMINT >= 6 AND CMEDIUMINT < 8 AND CTINYINT = 66
+GROUP BY CCHAR
+       , CMEDIUMINT;
+
+Query parse tree:
+SELECT
+  Out_0:`group_12`
+   = C0:`CCHAR`
+  Out_1:`group_3`
+   = C1:`CMEDIUMINT`
+  Out_2:`agg_0`
+   = A0:Sum((`CUBIGINT` + `CUTINYINT`))
+  Out_3:`agg_1`
+   = A1:Min(`CDOUBLE`)
+  Out_4:`agg_2`
+   = A2:Max(`CUMEDIUMINT`)
+FROM api_scan
+WHERE
+AND
++- AND
+|  +- >=
+|  |  +- `CMEDIUMINT`
+|  |  \- 6
+|  \- <
+|     +- `CMEDIUMINT`
+|     \- 8
+\- =
+   +- `CTINYINT`
+   \- 66
+GROUP BY
+  C0:`CCHAR`
+  C1:`CMEDIUMINT`
+
+Aggregation program (8 instructions):
+Instr. DEST SRC DESCRIPTION
+Load   r00  C02 r00 = C02:`CUBIGINT`
+Load   r01  C03 r01 = C03:`CUTINYINT`
+Add    r00  r01 r00:`CUBIGINT` += r01:`CUTINYINT`
+Sum    A00  r00 A00:SUM <- r00:(`CUBIGINT` + `CUTINYINT`)
+Load   r00  C04 r00 = C04:`CDOUBLE`
+Min    A01  r00 A01:MIN <- r00:`CDOUBLE`
+Load   r00  C05 r00 = C05:`CUMEDIUMINT`
+Max    A02  r00 A02:MAX <- r00:`CUMEDIUMINT`
+
+Execute as index scan.
+Indexed column: `CMEDIUMINT`
+Index name: `INDEX_CMEDIUMINT`
+Ranges:
+- 6 <= CMEDIUMINT < 8
+Filter:
+=
++- `CTINYINT`
+\- 66
+
+Output in ASCII encoded JSON format.
+The program for post-processing and output has 28 instructions.
+
 ---FINAL RESULT---
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 6]: (type: 10, is_null: 0, data: 32255134695) (type: 12, is_null: 0, data: -7899034.908636) (type: 10, is_null: 0, data: 14121284)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_1]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 7]: (type: 10, is_null: 0, data: 34447699222) (type: 12, is_null: 0, data: -8029429.124135) (type: 10, is_null: 0, data: 15066597)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 6]: (type: 10, is_null: 0, data: 14039762772) (type: 12, is_null: 0, data: -8035078.358160) (type: 10, is_null: 0, data: 16691193)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_2]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 7]: (type: 10, is_null: 0, data: 30496758747) (type: 12, is_null: 0, data: -7570564.776284) (type: 10, is_null: 0, data: 14635612)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 6]: (type: 10, is_null: 0, data: 32133381587) (type: 12, is_null: 0, data: -7709297.981786) (type: 10, is_null: 0, data: 14269359)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_3]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 7]: (type: 10, is_null: 0, data: 46516614595) (type: 12, is_null: 0, data: -8334428.545402) (type: 10, is_null: 0, data: 15996049)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 6]: (type: 10, is_null: 0, data: 24331662004) (type: 12, is_null: 0, data: -7656341.238635) (type: 10, is_null: 0, data: 15702028)
-group [id: 12, type: 15, byte_size: 11, is_null: 0, data: GROUPxxx_4]:group [id: 3, type: 5, byte_size: 3, is_null: 0, data: 7]: (type: 10, is_null: 0, data: 42271072396) (type: 12, is_null: 0, data: -8176156.036264) (type: 10, is_null: 0, data: 16472967)
+[{"group_12":"GROUPxxx_1","group_3":6,"agg_0":32255134695,"agg_1":-7899034.908636,"agg_2":14121284}
+,{"group_12":"GROUPxxx_1","group_3":7,"agg_0":34447699222,"agg_1":-8029429.124135,"agg_2":15066597}
+,{"group_12":"GROUPxxx_2","group_3":6,"agg_0":14039762772,"agg_1":-8035078.358160,"agg_2":16691193}
+,{"group_12":"GROUPxxx_2","group_3":7,"agg_0":30496758747,"agg_1":-7570564.776284,"agg_2":14635612}
+,{"group_12":"GROUPxxx_3","group_3":6,"agg_0":32133381587,"agg_1":-7709297.981786,"agg_2":14269359}
+,{"group_12":"GROUPxxx_3","group_3":7,"agg_0":46516614595,"agg_1":-8334428.545402,"agg_2":15996049}
+,{"group_12":"GROUPxxx_4","group_3":6,"agg_0":24331662004,"agg_1":-7656341.238635,"agg_2":15702028}
+,{"group_12":"GROUPxxx_4","group_3":7,"agg_0":42271072396,"agg_1":-8176156.036264,"agg_2":16472967}
+]
 Index scan aggregation Success!
 

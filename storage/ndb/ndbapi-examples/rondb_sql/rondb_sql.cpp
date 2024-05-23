@@ -409,151 +409,74 @@ int scan_aggregation(Ndb * myNdb)
   return -1;
 }
 
-int scan_index_aggregation(Ndb *myNdb) {
-  NdbDictionary::Dictionary* myDict = myNdb->getDictionary();
-  const NdbDictionary::Index *myPIndex = myDict->getIndex("INDEX_CMEDIUMINT", "api_scan");
-  if (myPIndex == NULL) {
-    APIERROR(myDict->getNdbError());
-  }
+int scan_index_aggregation(Ndb * myNdb)
+{
+  // Prepare query
+  ArenaAllocator aalloc;
+  const char* sql_query =
+    "SELECT CCHAR as group_12\n"
+    "     , CMEDIUMINT as group_3\n"
+    "     , sum(CUBIGINT+CUTINYINT) as agg_0\n"
+    "     , min(CDOUBLE) AS agg_1\n"
+    "     , max(CUMEDIUMINT) as agg_2\n"
+    "FROM api_scan\n"
+    "WHERE CMEDIUMINT >= 6 AND CMEDIUMINT < 8 AND CTINYINT = 66\n"
+    "GROUP BY CCHAR\n"
+    "       , CMEDIUMINT;";
+  cout << sql_query << endl;
+  uint sql_query_len = strlen(sql_query);
+  char* parse_str = aalloc.alloc<char>(sql_query_len + 2);
+  size_t parse_len = (sql_query_len+2) * sizeof(char);
+  memcpy(parse_str, sql_query, sql_query_len);
+  parse_str[sql_query_len] = '\0';
+  parse_str[sql_query_len+1] = '\0';
+  ExecutionParameters params;
+  params.sql_buffer = parse_str;
+  params.sql_len = parse_len;
+  params.aalloc = &aalloc;
+  params.ndb = myNdb;
+  params.query_output_stream = &cout;
+  params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII;
+  params.explain_output_stream = &cout;
+  params.err_output_stream = &cout;
+  // Explain and execute query
+  int retryAttempt = 0;
+  const int retryMax = 10;
+  while (true)
+  {
 
-  NdbTransaction *myTrans = myNdb->startTransaction();
-  if (myTrans == NULL) {
-    APIERROR(myNdb->getNdbError());
-  }
-
-  NdbIndexScanOperation *myIndexScanOp = myTrans->getNdbIndexScanOperation(myPIndex);
-
-
-  /* Index Scan */
-  Uint32 scanFlags= NdbScanOperation::SF_OrderBy |
-                    NdbScanOperation::SF_MultiRange;
-  /**
-   * Read without locks, without being placed in lock queue
-   */
-  if (myIndexScanOp->readTuples(NdbOperation::LM_CommittedRead,
-                                scanFlags
-                                /*(Uint32) 0 // batch */
-                                /*(Uint32) 0 // parallel */
-                                ) != 0) {
-    APIERROR (myTrans->getNdbError());
-  }
-
-  /* Index range: CMEDIUMINT >= 6 and CMEDIUMINT < 8 */
-  Uint32 low=6;
-  Uint32 high=8;
-
-  if (myIndexScanOp->setBound("CMEDIUMINT", NdbIndexScanOperation::BoundLE, (char*)&low)) {
-    APIERROR(myTrans->getNdbError());
-  }
-  if (myIndexScanOp->setBound("CMEDIUMINT", NdbIndexScanOperation::BoundGT, (char*)&high)) {
-    APIERROR(myTrans->getNdbError());
-  }
-  if (myIndexScanOp->end_of_bound(0)) {
-    APIERROR(myIndexScanOp->getNdbError());
-  }
-
-  /* Filter: CTINYINT = 66 */
-  uint8_t val = 66;
-  NdbScanFilter filter(myIndexScanOp);
-  if (filter.begin(NdbScanFilter::AND) < 0  ||
-      filter.cmp(NdbScanFilter::COND_EQ, 1, &val, sizeof(val)) < 0 ||
-      filter.end() < 0) {
-    cout <<  myTrans->getNdbError().message << endl;
-    myNdb->closeTransaction(myTrans);
-    return -1;
-  }
-
-  /* Aggregation program */
-  const NdbDictionary::Table *myTable= myDict->getTable("api_scan");
-
-  if (myTable == NULL) {
-    APIERROR(myDict->getNdbError());
-  }
-
-  NdbAggregator aggregator(myTable);
-  assert(aggregator.GroupBy("CCHAR"));
-  assert(aggregator.GroupBy("CMEDIUMINT"));
-  assert(aggregator.LoadColumn("CUBIGINT", kReg1));
-  assert(aggregator.LoadColumn("CUTINYINT", kReg2));
-  assert(aggregator.Add(kReg1, kReg2));
-  assert(aggregator.Sum(0, kReg1));
-  assert(aggregator.LoadColumn("CDOUBLE", kReg1));
-  assert(aggregator.Min(1, kReg1));
-  assert(aggregator.LoadColumn("CUMEDIUMINT", kReg1));
-  assert(aggregator.Max(2, kReg1));
-
-  assert(aggregator.Finalize());
-  if (myIndexScanOp->setAggregationCode(&aggregator) == -1) {
-    cout << myTrans->getNdbError().message << endl;
-    myNdb->closeTransaction(myTrans);
-    return -1;
-  }
-
-  NdbError err;
-  if (myIndexScanOp->DoAggregation() == -1) {
-    err = myTrans->getNdbError();
-    cout << "DoAggregation failed: " << err.message << endl;
-    myNdb->closeTransaction(myTrans);
-    return -1;
-  }
-
-  cerr << "---FINAL RESULT---" << endl;
-  NdbAggregator::ResultRecord record = aggregator.FetchResultRecord();
-  while (!record.end()) {
-    NdbAggregator::Column column = record.FetchGroupbyColumn();
-    int n = 0;
-    while (!column.end()) {
-      if (n == 0) {
-        cerr << "group [id: " << column.id() << ", type: " << column.type()
-             << ", byte_size: " << column.byte_size()
-             << ", is_null: " << column.is_null()
-             << ", data: " << &column.data()[1] << "]:";
-      } else {
-        cerr << "group [id: " << column.id() << ", type: " << column.type()
-             << ", byte_size: " << column.byte_size()
-             << ", is_null: " << column.is_null()
-             << ", data: " << column.data_medium() << "]:";
-      }
-      n++;
-      column = record.FetchGroupbyColumn();
+    if (retryAttempt >= retryMax)
+    {
+      cout << "ERROR: has retried this operation " << retryAttempt
+        << " times, failing!" << endl;
+      return -1;
     }
-
-    NdbAggregator::Result result = record.FetchAggregationResult();
-    while (!result.end()) {
-      switch (result.type()) {
-        case NdbDictionary::Column::Bigint:
-          cerr << " (type: " << result.type()
-               << ", is_null: " << result.is_null()
-               << ", data: " << result.data_int64() << ")";
-          break;
-        case NdbDictionary::Column::Bigunsigned:
-          cerr << " (type: " << result.type()
-               << ", is_null: " << result.is_null()
-               << ", data: " << result.data_uint64() << ")";
-          break;
-        case NdbDictionary::Column::Double:
-          cerr << " (type: " << result.type()
-               << ", is_null: " << result.is_null()
-               << ", data: " << std::fixed << std::setprecision(6)
-               << result.data_double() << ")";
-          break;
-        case NdbDictionary::Column::Undefined:
-          // Aggregation on empty table or all rows are filtered out.
-          cerr << " (type: " << result.type()
-               << ", is_null: " << result.is_null()
-               << ", data: " << result.data_int64() << ")";
-          break;
-        default:
-          assert(0);
-      }
-      result = record.FetchAggregationResult();
+    try
+    {
+      params.mode = ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE;
+      RonDBSQLPreparer explainer(params);
+      cout << endl;
+      explainer.execute();
+      cout << "---FINAL RESULT---" << endl;
+      params.mode = ExecutionParameters::ExecutionMode::QUERY_OVERRIDE;
+      RonDBSQLPreparer executor(params);
+      executor.execute();
+      return 1;
     }
-    cerr << endl;
-    record = aggregator.FetchResultRecord();
+    catch (RonDBSQLPreparer::TemporaryError& e)
+    {
+      cerr << "Caught temporary error: " << e.what() << endl;
+      milliSleep(50);
+      retryAttempt++;
+      continue;
+    }
+    catch (std::runtime_error& e)
+    {
+      cerr << "Caught exception: " << e.what() << endl;
+      return -1;
+    }
   }
-
-  myNdb->closeTransaction(myTrans);
-  return 1;
+  return -1;
 }
 
 void mysql_connect_and_create(MYSQL & mysql, const char *socket)
@@ -612,14 +535,6 @@ void ndb_run_scan(const char * connectstring)
   }
 
   cerr << "2. INDEX SCAN:" << endl;
-  cerr << "SELECT CCHAR, CMEDIUMINT, "
-          "SUM(CUBIGINT+CUTINYINT), "
-          "MIN(CDOUBLE), MAX(CUMEDIUMINT) "
-          "FROM agg.api_scan "
-          "WHERE CMEDIUMINT >= 6 AND CMEDIUMINT < 8 " // Index range scan
-          " AND CTINYINT = 66 "                       // Filter
-          "GROUP BY CCHAR, CMEDIUMINT;"
-        << endl;
   if(scan_index_aggregation(&myNdb) > 0) {
     cout << "Index scan aggregation Success!" << endl  << endl;
   }
