@@ -1,5 +1,5 @@
 /*
- * Copyright [2024] <Copyright Hopsworks AB>
+ * Copyright (c) 2023, 2024, Hopsworks and/or its affiliates.
  *
  * Author: Zhao Song
  */

@@ -504,6 +504,7 @@ void Dbtup::SendAggResToAPI(Signal* signal, const void* lqhTcConnectrec,
     SendAggregationResult(signal, res_len, lqhScanPtrP->scanApiBlockref);
   }
   // MOZ DEBUG PRINT
+#ifdef MOZ_AGG_DEBUG
   if (lqhScanPtrP->m_agg_interpreter->frag_id() == 0) {
     fprintf(stderr, "End-scan, send at last, res_len: %u,"
         " trans[0]: %u, trans[2]: %u, connectPtr: %u, blockref: %u"
@@ -517,4 +518,5 @@ void Dbtup::SendAggResToAPI(Signal* signal, const void* lqhTcConnectrec,
         lqhScanPtrP->m_curr_batch_size_bytes,
         lqhScanPtrP->m_agg_n_res_recs);
   }
+#endif // MOZ_AGG_DEBUG
 }

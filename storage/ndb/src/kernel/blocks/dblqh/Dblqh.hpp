@@ -70,6 +70,13 @@ class FsReadWriteReq;
 #undef DEBUG_USAGE_COUNT
 //#define DEBUG_USAGE_COUNT 1
 
+/*
+ * Turn on the MOZ_AGG_DEBUG
+ * to trace lqh hehavious on partition 0
+ */
+#undef MOZ_AGG_DEBUG
+// #define MOZ_AGG_DEBUG 1
+
 #ifdef DBLQH_C
 // Constants
 /* ------------------------------------------------------------------------- */
@@ -5368,6 +5375,9 @@ bool
 Dblqh::ScanRecord::check_scan_batch_completed(bool print) const
 {
   // Moz
+#ifndef MOZ_AGG_DEBUG
+  (void)print;
+#endif // !MOZ_AGG_DEBUG
   // Don't break aggregation
   if (m_aggregation == true) {
     // if m_agg_curr_batch_size_bytes != 0, means some aggregation
@@ -5376,20 +5386,24 @@ Dblqh::ScanRecord::check_scan_batch_completed(bool print) const
     // call sendScanFragConf to send GSN_SCAN_FRAGCONF to TC
     if (m_agg_curr_batch_size_bytes) {
       // MOZ DEBUG PRINT
+#ifdef MOZ_AGG_DEBUG
       if (print) {
         fprintf(stderr, "CHECK batch complete:true, rows[%u, %u], bytes[%u, %u], n_res_recs: %u\n",
             m_agg_curr_batch_size_rows, m_curr_batch_size_rows,
             m_agg_curr_batch_size_bytes, m_curr_batch_size_bytes,
             m_agg_n_res_recs);
       }
+#endif // MOZ_AGG_DEBUG
       return true;
     } else {
+#ifdef MOZ_AGG_DEBUG
       if (print) {
         fprintf(stderr, "CHECK batch complete:false, rows[%u, %u], bytes[%u, %u], n_res_recs: %u\n",
             m_agg_curr_batch_size_rows, m_curr_batch_size_rows,
             m_agg_curr_batch_size_bytes, m_curr_batch_size_bytes,
             m_agg_n_res_recs);
       }
+#endif // MOZ_AGG_DEBUG
       return false;
     }
   }

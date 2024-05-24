@@ -1613,7 +1613,7 @@ int NdbScanOperation::DoAggregation() {
 
   int check = -1;
   while ((check = nextResult(true)) == 0) {
-    // TODO(Zhao) handle return value;
+    // TODO (Zhao) handle return value;
     if (!m_aggregation_code->ProcessRes(myRecAttr->aRef())) {
       return -1;
     }

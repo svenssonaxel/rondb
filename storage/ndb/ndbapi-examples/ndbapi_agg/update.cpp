@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2023, 2024, Hopsworks and/or its affiliates.
+ *
+ * Author: Zhao Song
+ */
 #include <mysql.h>
 #include <mysqld_error.h>
 #include <random>

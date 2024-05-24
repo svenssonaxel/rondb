@@ -1,78 +1,8 @@
 /*
-   Copyright (c) 2005, 2023, Oracle and/or its affiliates.
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License, version 2.0,
-   as published by the Free Software Foundation.
-
-   This program is also distributed with certain software (including
-   but not limited to OpenSSL) that is licensed under separate terms,
-   as designated in a particular file or component or in included license
-   documentation.  The authors of MySQL hereby grant you an additional
-   permission to link the program and your derivative works with the
-   separately licensed software that they have included with MySQL.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License, version 2.0, for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
-*/
-
-
-/*
- * ndbapi_scan.cpp: 
- * Illustrates how to use the scan api in the NDBAPI.
- * The example shows how to do scan, scan for update and scan for delete
- * using NdbScanFilter and NdbScanOperation
+ * Copyright (c) 2023, 2024, Hopsworks and/or its affiliates.
  *
- * Classes and methods used in this example:
- *
- *  Ndb_cluster_connection
- *       connect()
- *       wait_until_ready()
- *
- *  Ndb
- *       init()
- *       getDictionary()
- *       startTransaction()
- *       closeTransaction()
- *
- *  NdbTransaction
- *       getNdbScanOperation()
- *       execute()
- *
- *  NdbScanOperation
- *       getValue() 
- *       readTuples()
- *       nextResult()
- *       deleteCurrentTuple()
- *       updateCurrentTuple()
- *
- *  const NdbDictionary::Dictionary
- *       getTable()
- *
- *  const NdbDictionary::Table
- *       getColumn()
- *
- *  const NdbDictionary::Column
- *       getLength()
- *
- *  NdbOperation
- *       insertTuple()
- *       equal()
- *       setValue()
- *
- *  NdbScanFilter
- *       begin()
- *	 eq()
- *	 end()
- *
+ * Author: Zhao Song
  */
-
 #include "config.h"
 
 #ifdef _WIN32
@@ -155,6 +85,24 @@ void drop_table_inno(MYSQL &mysql)
 
 void create_table(MYSQL &mysql)
 {
+  /* Disk column table
+  while (mysql_query(&mysql,
+        "CREATE TABLE agg.api_scan ("
+        "CINT INT NOT NULL,"
+        "CTINYINT TINYINT NOT NULL,"
+        "CSMALLINT SMALLINT NOT NULL,"
+        "CMEDIUMINT MEDIUMINT NOT NULL,"
+        "CBIGINT BIGINT NOT NULL,"
+        "CUTINYINT TINYINT UNSIGNED NOT NULL,"
+        "CUSMALLINT SMALLINT UNSIGNED NOT NULL,"
+        "CUMEDIUMINT MEDIUMINT UNSIGNED NOT NULL,"
+        "CUINT INT UNSIGNED NOT NULL,"
+        "CUBIGINT BIGINT UNSIGNED NOT NULL,"
+        "CFLOAT FLOAT NOT NULL,"
+        "CDOUBLE DOUBLE NOT NULL STORAGE DISK,"
+        "CCHAR VARCHAR(29) NOT NULL,"
+        "PRIMARY KEY USING HASH (CINT)) TABLESPACE ts_1 ENGINE=NDB CHARSET=latin1"))
+  */
   while (mysql_query(&mysql,
         "CREATE TABLE agg.api_scan ("
         "CINT INT NOT NULL,"

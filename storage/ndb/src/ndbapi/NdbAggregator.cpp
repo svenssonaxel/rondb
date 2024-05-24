@@ -1,5 +1,5 @@
 /*
- * Copyright [2024] <Copyright Hopsworks AB>
+ * Copyright (c) 2023, 2024, Hopsworks and/or its affiliates.
  *
  * Author: Zhao Song
  */
@@ -24,143 +24,8 @@ NdbAggregator::NdbAggregator(const NdbDictionary::Table* table) :
     if (table != nullptr) {
       table_impl_ = & NdbTableImpl::getImpl(*table);
     }
-    /*
-    n_gb_cols_ = 1;
-    n_agg_results_ = 4;
-    if (n_gb_cols_) {
-      gb_map_ = new std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>;
-    }
-    if (n_agg_results_) {
-      agg_results_ = new AggResItem[n_agg_results_];
-      uint32_t i = 0;
-      while (i < n_agg_results_) {
-        agg_results_[i].type = NDB_TYPE_UNDEFINED;
-        agg_results_[i++].value.val_int64 = 0;
-        agg_results_[i].is_unsigned = false;
-        agg_results_[i].is_null = true;
-      }
-    }
-    */
     memset(agg_ops_, kOpUnknown, MAX_AGGREGATION_OP_SIZE * 4);
-    /*
-    agg_ops_[0] = kOpSum;
-    agg_ops_[1] = kOpMax;
-    agg_ops_[2] = kOpMin;
-    agg_ops_[3] = kOpCount;
-    */
-
-    // Program
-    /*
-    memset(buffer_, 0, MAX_PROGRAM_OP_SIZE * sizeof(uint32));
-    instructions_length_ = 25;
-    uint32_t curr_pos = 0;
-    buffer_[curr_pos++] = (0x0721) << 16 | instructions_length_;
-    buffer_[curr_pos++] = 1 << 16 | 4;                // Num of group by cols | Num of agg results
-    buffer_[curr_pos++] = 12 << 16;                   // Group by col
-
-    // 1. SUM(UBIGINT + UTINYINT)
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_BIGUNSIGNED & 0x1F) << 21 |                     // "TYPE"
-      (kReg1 & 0x0F) << 16 |                                    // Register
-      9;                                                        // Column
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_TINYUNSIGNED & 0x1F) << 21 |                    // "TYPE"
-      (kReg2 & 0x0F) << 16 |                                    // Register
-      5;                                                        // Column
-    buffer_[curr_pos++] =
-      (kOpPlus) << 26 |                                         // "MATH OP"
-      (kReg1 & 0x0F) << 12 |                                    // Register
-      (kReg2 & 0x0F) << 8;                                      // Register
-    buffer_[curr_pos++] =
-      (kOpSum) << 26 |                                          // "AGG OP"
-      (kReg1 & 0x0F) << 16 |                                    // Register
-      0;                                                        // agg_result 
-
-    // 2. MAX(SMALLINT - MEDIUMINT)
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_SMALLINT & 0x1F) << 21 |                        // "TYPE"
-      (kReg1 & 0x0F) << 16 |                                    // Register
-      2;                                                        // Column
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_MEDIUMINT & 0x1F) << 21 |                       // "TYPE"
-      (kReg2 & 0x0F) << 16 |                                    // Register
-      3;                                                        // Column
-    buffer_[curr_pos++] =
-      (kOpMinus) << 26 |                                        // "MATH OP"
-      (kReg1 & 0x0F) << 12 |                                    // Register
-      (kReg2 & 0x0F) << 8;                                      // Register
-    buffer_[curr_pos++] =
-      (kOpMax) << 26 |                                          // "AGG OP"
-      (kReg1 & 0x0F) << 16 |                                    // Register
-      1;                                                        // agg_result 
-
-    // 3. MIN((DOUBLE / INT) * (FLOAT + 3.5))
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_DOUBLE & 0x1F) << 21 |                          // "TYPE"
-      (kReg1 & 0x0F) << 16 |                                    // Register
-      11;                                                       // Column
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_INT & 0x1F) << 21 |                             // "TYPE"
-      (kReg2 & 0x0F) << 16 |                                    // Register
-      0;                                                        // Column
-    buffer_[curr_pos++] =
-      (kOpDiv) << 26 |                                          // "MATH OP"
-      (kReg1 & 0x0F) << 12 |                                    // Register
-      (kReg2 & 0x0F) << 8;                                      // Register
-
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_FLOAT & 0x1F) << 21 |                           // "TYPE"
-      (kReg2 & 0x0F) << 16 |                                    // Register
-      10;                                                       // Column
-    buffer_[curr_pos++] =
-      (kOpLoadConst) << 26 |                                    // LOADCONST
-      (NDB_TYPE_DOUBLE & 0x1F) << 21 |                          // "TYPE"
-      (kReg3 & 0x0F) << 16;                                     // Register
-                                                                // longlongstore() for BIGINT
-    doublestore(reinterpret_cast<unsigned char*>(
-          &(buffer_[curr_pos])), 3.5);
-    curr_pos += 2;
-    buffer_[curr_pos++] =
-      (kOpPlus) << 26 |                                         // "MATH OP"
-      (kReg2 & 0x0F) << 12 |                                    // Register
-      (kReg3 & 0x0F) << 8;                                      // Register
-    buffer_[curr_pos++] =
-      (kOpMul) << 26 |                                          // "MATH OP"
-      (kReg1 & 0x0F) << 12 |                                    // Register
-      (kReg2 & 0x0F) << 8;                                      // Register
-    buffer_[curr_pos++] =
-      (kOpMin) << 26 |                                          // "AGG OP"
-      (kReg1 & 0x0F) << 16 |                                    // Register
-      2;                                                        // agg_result 
-
-    // 4. COUNT(UBIGINT % USMALLINT)
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_BIGUNSIGNED & 0x1F) << 21 |                     // "TYPE"
-      (kReg1 & 0x0F) << 16 |                                    // Register
-      9;                                                        // Column
-    buffer_[curr_pos++] =
-      (kOpLoadCol) << 26 |                                      // LOADCOL
-      (NDB_TYPE_SMALLUNSIGNED & 0x1F) << 21 |                   // "TYPE"
-      (kReg2 & 0x0F) << 16 |                                    // Register
-      6;                                                        // Column
-    buffer_[curr_pos++] =
-      (kOpMod) << 26 |                                          // "MATH OP"
-      (kReg1 & 0x0F) << 12 |                                    // Register
-      (kReg2 & 0x0F) << 8;                                      // Register
-    buffer_[curr_pos++] =
-      (kOpCount) << 26 |                                        // "AGG OP"
-      (kReg1 & 0x0F) << 16 |                                    // Register
-      3;                                                        // agg_result 
-    */
-  }
+}
 
 NdbAggregator::~NdbAggregator() {
   delete[] agg_results_;
@@ -425,37 +290,6 @@ bool NdbAggregator::TypeSupported(NdbDictionary::Column::Type type) {
       return true;
     default:
       return false;
-  }
-}
-
-void NdbAggregator::Print() {
-  if (n_gb_cols_) {
-    assert(gb_map_ != nullptr);
-    for (auto iter = gb_map_->begin(); iter != gb_map_->end(); iter++) {
-      fprintf(stderr, "(%p): ", iter->first.ptr);
-      AggResItem* item = reinterpret_cast<AggResItem*>(iter->second.ptr);
-      for (uint32_t i = 0; i < n_agg_results_; i++) {
-        fprintf(stderr, "(%u, %u, %u)", item[i].type,
-            item[i].is_unsigned, item[i].is_null);
-        if (item[i].is_null) {
-          fprintf(stderr, "[NULL]");
-        } else {
-          switch (item[i].type) {
-            case NDB_TYPE_BIGINT:
-              fprintf(stderr, "[%15ld]", item[i].value.val_int64);
-              break;
-            case NDB_TYPE_DOUBLE:
-              fprintf(stderr, "[%31.16f]", item[i].value.val_double);
-              break;
-            default:
-              assert(0);
-          }
-        }
-      }
-      fprintf(stderr, "\n");
-    }
-  } else {
-    // TODO(Zhao)
   }
 }
 

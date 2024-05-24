@@ -42,10 +42,16 @@
 
 #define JAM_FILE_ID 402
 
-// Moz
-// TODO (ZHAO) remove them later
+/*
+ * Moz
+ * Turn on MOZ_AGG_TUP_DEBUG to debug
+ * attributes
+ */
+// #define MOZ_AGG_TUP_DEBUG 1
+#ifdef MOZ_AGG_TUP_DEBUG
 #include "include/my_byteorder.h"
 #include "AggInterpreter.hpp"
+#endif // MOZ_AGG_TUP_DEBUG
 
 void
 Dbtup::setUpQueryRoutines(Tablerec *regTabPtr)
@@ -402,9 +408,10 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
     AttributeHeader ahIn(inBuffer[inBufIndex]);
     inBufIndex++;
     attributeId= ahIn.getAttributeId();
-    if (req_struct->fragPtrP->fragTableId == 17 &&
-        req_struct->fragPtrP->fragmentId == 1 &&
-        AggInterpreter::g_debug == true) {
+ #ifdef MOZ_AGG_TUP_DEBUG
+    if (/*req_struct->fragPtrP->fragTableId == 17 &&
+        req_struct->fragPtrP->fragmentId == 0 && */
+        true) {
       const Uint32* attrDescriptor = req_struct->tablePtrP->tabDescriptor +
         (attributeId * ZAD_SIZE);
       const Uint32 TattrDesc1 = attrDescriptor[0];
@@ -427,6 +434,7 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
              attributeId, type_id, size, size_in_bytes, size_in_words, array_type,
              array_size, nullable, distri_key, primary_key, dynamic, disk_based);
     }
+#endif // MOZ_AGG_TUP_DEBUG
     descr_index= attributeId * ZAD_SIZE;
 
     tmpAttrBufIndex = pad32(tmpAttrBufIndex, tmpAttrBufBits);
@@ -450,9 +458,10 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
                       ahOut,
                       attrDes))) // ZHAO 49
       {
-        if (req_struct->fragPtrP->fragTableId == 17 &&
-            req_struct->fragPtrP->fragmentId == 1 &&
-            AggInterpreter::g_debug == true) {
+ #ifdef MOZ_AGG_TUP_DEBUG
+        if (/*req_struct->fragPtrP->fragTableId == 17 &&
+            req_struct->fragPtrP->fragmentId == 1 && */
+            true) {
           fprintf(stderr, "Moz-AttributeHeader, attributeId: %u, byte_size: %u, "
                   "data_size: %u, is_null: %u. 4B: %x %x %x %x.",
               ahOut->getAttributeId(), ahOut->getByteSize(), ahOut->getDataSize(),
@@ -513,7 +522,7 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
             }
           }
         }
-
+#endif // MOZ_AGG_TUP_DEBUG
         continue;
       }
       else

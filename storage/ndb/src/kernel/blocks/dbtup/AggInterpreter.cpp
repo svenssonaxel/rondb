@@ -15,16 +15,6 @@ uint32_t AggInterpreter::g_buf_len_ = 2048;
 uint32_t AggInterpreter::g_result_header_size_ = 3 * sizeof(uint32_t);
 uint32_t AggInterpreter::g_result_header_size_per_group_ = sizeof(uint32_t);
 
-// TODO(zhao) Remove them later
-std::mutex g_agg_mutex;
-AggInterpreter* g_agg_results[2] = {nullptr};
-bool AggInterpreter::g_debug = false;
-
-// std::mutex AggInterpreter::g_mutex;
-// uint32_t AggInterpreter::g_count_ = 0;
-// uint64_t AggInterpreter::g_res_ = 0;
-// uint32_t AggInterpreter::g_pcount_ = 0;
-
 bool AggInterpreter::Init() {
   if (inited_) {
     return true;
@@ -1478,6 +1468,7 @@ void AggInterpreter::Print() {
   }
 }
 
+// NOTICE: Need to define agg_ops[] before using this func.
 void AggInterpreter::MergePrint(const AggInterpreter* in1,
                                    const AggInterpreter* in2) {
   assert(in1 != nullptr && in2 != nullptr);
@@ -1566,45 +1557,81 @@ void AggInterpreter::MergePrint(const AggInterpreter* in1,
       AggResItem* item1 = reinterpret_cast<AggResItem*>(iter1->second.ptr);
       AggResItem* item2 = reinterpret_cast<AggResItem*>(iter2->second.ptr);
       AggResItem result;
+      // NOTICE: Need to define agg_ops[] first.
+      Uint32 agg_ops[32];
       for (uint32_t i = 0; i < in1->n_agg_results_; i++) {
-        assert(item1[i].type == item2[i].type);
-        assert(item1[i].is_unsigned == item2[i].is_unsigned);
-        if (item1[i].is_null && item2[i].is_null) {
-          result = *item1;
-        } else if (item1[i].is_null) {
-          result = *item2;
+        assert(((item1[i].type == NDB_TYPE_BIGINT &&
+                item1[i].is_unsigned == item2[i].is_unsigned) ||
+                item1[i].type == NDB_TYPE_DOUBLE) &&
+                item1[i].type == item2[i].type);
+        if (item1[i].is_null) {
+          result = item2[i];
         } else if (item2[i].is_null) {
-          result = *item1;
+          result = item1[i];
         } else {
           result.type = item1[i].type;
           result.is_unsigned = item1[i].is_unsigned;
-          switch (i) {
-            case 0:
-              // SUM
-            case 3:
-              // COUNT
+          switch (agg_ops[i]) {
+            case kOpSum:
+              if (item1[i].type == NDB_TYPE_BIGINT) {
+                if (item1[i].is_unsigned) {
+                  result.value.val_uint64 = (item1[i].value.val_uint64 +
+                                                 item2[i].value.val_uint64);
+                } else {
+                  result.value.val_int64 = (item1[i].value.val_int64 +
+                                                 item2[i].value.val_int64);
+                }
+              } else {
+                assert(item1[i].type == NDB_TYPE_DOUBLE);
+                result.value.val_double = (item1[i].value.val_double +
+                                               item2[i].value.val_double);
+              }
+              break;
+            case kOpCount:
               assert(item1[i].type == NDB_TYPE_BIGINT);
               assert(item1[i].is_unsigned == 1);
-              result.value.val_uint64 =
-                item1[i].value.val_uint64 + item2[i].value.val_uint64;
+              result.value.val_int64 = (item1[i].value.val_int64 +
+                                             item2[i].value.val_int64);
               break;
-            case 1:
-              // MAX
-              assert(item1[i].type == NDB_TYPE_BIGINT);
-              assert(item1[i].is_unsigned == 0);
-              result.value.val_int64 =
-                item1[i].value.val_int64 >= item2[i].value.val_int64 ?
-                  item1[i].value.val_int64 : item2[i].value.val_int64;
-              break;
-            case 2:
-              // MIN
-              assert(item1[i].type == NDB_TYPE_DOUBLE);
-              result.value.val_double =
-                item1[i].value.val_double <= item2[i].value.val_double ?
+            case kOpMax:
+              if (item1[i].type == NDB_TYPE_BIGINT) {
+                if (item1[i].is_unsigned) {
+                  result.value.val_uint64 =
+                    item1[i].value.val_uint64 >= item2[i].value.val_uint64 ?
+                    item1[i].value.val_uint64 : item2[i].value.val_uint64;
+                } else {
+                  result.value.val_int64 =
+                    item1[i].value.val_int64 >= item2[i].value.val_int64 ?
+                    item1[i].value.val_int64 : item2[i].value.val_int64;
+                }
+              } else {
+                assert(item1[i].type == NDB_TYPE_DOUBLE);
+                result.value.val_double =
+                  item1[i].value.val_double >= item2[i].value.val_double ?
                   item1[i].value.val_double : item2[i].value.val_double;
+              }
               break;
-             default:
+            case kOpMin:
+              if (item1[i].type == NDB_TYPE_BIGINT) {
+                if (item1[i].is_unsigned) {
+                  result.value.val_uint64 =
+                    item1[i].value.val_uint64 <= item2[i].value.val_uint64 ?
+                    item1[i].value.val_uint64 : item2[i].value.val_uint64;
+                } else {
+                  result.value.val_int64 =
+                    item1[i].value.val_int64 <= item2[i].value.val_int64 ?
+                    item1[i].value.val_int64 : item2[i].value.val_int64;
+                }
+              } else {
+                assert(item1[i].type == NDB_TYPE_DOUBLE);
+                result.value.val_double =
+                  item1[i].value.val_double <= item2[i].value.val_double ?
+                  item1[i].value.val_double : item2[i].value.val_double;
+              }
+              break;
+            default:
               assert(0);
+              break;
           }
         }
         fprintf(stderr, "(%u, %u, %u)", result.type,
@@ -1697,7 +1724,7 @@ void AggInterpreter::MergePrint(const AggInterpreter* in1,
 
 
 uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
-  // TODO(Zhao) new limitation
+  // Limitation
   uint32_t total_size = result_size_ +
                   (gb_map_ ?
                    gb_map_->size() * g_result_header_size_per_group_ : 0) +
@@ -1721,46 +1748,6 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
     data_buf[pos++] = n_gb_cols_ << 16 | n_agg_results_;
     data_buf[pos++] = gb_map_->size();
     for (auto iter = gb_map_->begin(); iter != gb_map_->end();) {
-      /*
-      std::string cchar(iter->first.ptr + sizeof(AttributeHeader) + 1, 10);
-      int32_t cmedium = sint3korr(iter->first.ptr + sizeof(AttributeHeader) + 12 +
-                                  sizeof(AttributeHeader));
-      uint8_t len = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader));
-      assert(len == 10);
-      AttributeHeader* header = reinterpret_cast<AttributeHeader*>(iter->first.ptr);
-      // fprintf(stderr, "CHECK1[%u, %u, %u]\n", header->getAttributeId(), header->getByteSize(), header->getDataSize());
-      assert(header->getAttributeId() == 12 && header->getByteSize() == 11 &&
-          header->getDataSize() == 3);
-      header = reinterpret_cast<AttributeHeader*>(iter->first.ptr + sizeof(AttributeHeader) + 12);
-      // fprintf(stderr, "CHECK2[%u, %u, %u]\n", header->getAttributeId(), header->getByteSize(), header->getDataSize());
-      assert(header->getAttributeId() == 3 && header->getByteSize() == 3 &&
-          header->getDataSize() == 1);
-      assert(iter->first.ptr + 2 * sizeof(AttributeHeader) + 12 + 4 == iter->second.ptr);
-      uint8_t last = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
-                      12 + sizeof(AttributeHeader) + 3);
-      assert(last == 0);
-
-      if (cchar == "GROUPxxx_1" && cmedium == 8) {
-        uint8_t byte = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
-                        12 + sizeof(AttributeHeader) + 0);
-        assert(byte == 8);
-        byte = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
-                        12 + sizeof(AttributeHeader) + 1);
-        assert(byte == 0);
-        byte = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
-                        12 + sizeof(AttributeHeader) + 2);
-        assert(byte == 0);
-        byte = *reinterpret_cast<uint8_t*>(iter->first.ptr + sizeof(AttributeHeader) +
-                        12 + sizeof(AttributeHeader) + 3);
-        assert(byte == 0);
-
-        AggResItem* item = reinterpret_cast<AggResItem*>(iter->second.ptr);
-        assert(item->type == NDB_TYPE_BIGINT && item->is_unsigned == true && item->is_null == false);
-        g_mutex.lock();
-        g_res_ += item[0].value.val_uint64;
-        g_mutex.unlock();
-      }
-      */
       assert(iter->first.len % 4 == 0 && iter->first.len < 0xFFFF);
       assert(iter->second.len % 4 == 0 && iter->second.len < 0xFFFF);
       data_buf[pos++] = iter->first.len << 16 | iter->second.len;
@@ -1803,8 +1790,7 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
       for (uint32_t i = 0; i < n_res_items; i++) {
         uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
         uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
-        // TODO (ZHAO) temporary fix for compiler. Remove them
-        // in the final version.
+        // remove compile warnings
         (void)gb_cols_len;
         (void)agg_res_len;
         for (uint32_t j = 0; j < n_gb_cols; j++) {

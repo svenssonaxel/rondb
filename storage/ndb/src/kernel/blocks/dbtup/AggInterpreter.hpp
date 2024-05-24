@@ -1,5 +1,5 @@
 /*
- * Copyright [2024] <Copyright Hopsworks AB>
+ * Copyright (c) 2023, 2024, Hopsworks and/or its affiliates.
  *
  * Author: Zhao Song
  */
@@ -25,30 +25,22 @@ class AggInterpreter {
       prog_ = new uint32_t[prog_len];
       memcpy(prog_, prog, prog_len * sizeof(uint32_t));
       memset(buf_, 0, 2048 * sizeof(uint32_t));
-      // g_mutex.lock();
-      // g_count_++;
-      // g_mutex.unlock();
-      // fprintf(stderr, "construct AggInterpreter on fragment: %ld, count: %u\n", frag_id_, g_count_);
   }
   ~AggInterpreter() {
-    // g_mutex.lock();
-    // g_count_--;
-    // g_pcount_+= pcount_;
-    // if (g_count_ == 0) {
-    //   fprintf(stderr, "MOZ-FINAL: %lu, processed %u\n", g_res_, g_pcount_);
-    //   g_res_ = 0;
-    //   g_pcount_ = 0;
-    // }
-    // g_mutex.unlock();
     delete[] prog_;
     delete[] gb_cols_;
     delete[] agg_results_;
     if (gb_map_) {
       // MOZ debug
       if (!gb_map_->empty()) {
-        // TODO (ZHAO)
-        // potential crash here if the API closes scan
-        // while lqh is processing, double check.
+        /*
+         * Moz
+         * TODO (Zhao)
+         * potential crash here if the API closes scan
+         * while lqh is processing, double check.
+         *
+         * (CHECKED)
+         */
         assert(gb_map_->empty());
       }
       for (auto iter = gb_map_->begin(); iter != gb_map_->end(); iter++) {
@@ -65,7 +57,6 @@ class AggInterpreter {
   uint32_t PrepareAggResIfNeeded(Signal* signal, bool force);
   uint32_t NumOfResRecords();
   static void MergePrint(const AggInterpreter* in1, const AggInterpreter* in2);
-  static bool g_debug;
   const std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>* gb_map() {
     return gb_map_;
   }
@@ -98,10 +89,5 @@ class AggInterpreter {
   static uint32_t g_result_header_size_per_group_;
 
   int64_t frag_id_;
-  // uint32_t pcount_;
-  // static std::mutex g_mutex;
-  // static uint32_t g_count_;
-  // static uint64_t g_res_;
-  // static uint32_t g_pcount_;
 };
 #endif  // AGGINTERPRETER_H_

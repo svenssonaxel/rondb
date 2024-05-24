@@ -660,8 +660,11 @@ Uint32 packed_rowsize(const NdbRecord *result_record,
       sizeInWords+= 1 + ((ra->getColumn()->getSizeInBytes() + 3) / 4);
       ra= ra->next();
     } else {
-      // Moz
-      // Aggregation
+      /*
+       * Moz
+       * Aggregation
+       * No need to add sizeInWords here
+       */
       // sizeInWords += MAX_AGG_RESULT_BATCH_BYTES / 4;
       ra= ra->next();
       assert(ra == nullptr);
@@ -1242,8 +1245,11 @@ NdbReceiver::unpackRow(const Uint32* aDataPtr, Uint32 aLength, char* row)
       uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
       uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
       assert(gb_cols_len == 0);
-      // TODO (ZHAO) temporary fix for compiler. Remove them
-      // in the final version.
+      /*
+       * Moz
+       * TODO (Zhao) temporary fix for compiler. Remove them
+       * in the final version.
+       */
       (void)agg_res_len;
       for (uint32_t i = 0; i < n_agg_results; i++) {
           parse_pos += (sizeof(AggResItem) >> 2);
@@ -1384,9 +1390,6 @@ NdbReceiver::handle_rec_attrs(NdbRecAttr* rec_attr_list,
     const Uint32 attrId= ah.getAttributeId();
     const Uint32 attrSize= ah.getByteSize();
     aLength--;
-    // Moz
-    // TODO (Zhao) handle 0x0721 as a legal size
-    // assert(aLength >= (attrSize / sizeof(Uint32)));
 
     {
       if (attrId == AttributeHeader::AGG_RESULT) {
@@ -1394,6 +1397,11 @@ NdbReceiver::handle_rec_attrs(NdbRecAttr* rec_attr_list,
         // Only 1 NdbRecAttr per aggregation result
         assert(currRecAttr->theNext == nullptr &&
                currRecAttr->theAttrId == AttributeHeader::AGG_RESULT);
+        /*
+         * Moz
+         * TODO (Zhao) handle 0x0721 as a legal size
+         * assert(aLength >= (attrSize / sizeof(Uint32)));
+         */
         assert(attrSize == 0x0721);
         // aLength here is in word size...
         currRecAttr->receive_data(aDataPtr, aLength * sizeof(uint32_t));

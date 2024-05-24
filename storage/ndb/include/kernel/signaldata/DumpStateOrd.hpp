@@ -82,7 +82,6 @@ public:
     TCSetSchedNumLqhKeyReqCount = 101000,
     TCSetSchedNumScanFragReqCount = 101001,
     TCSetLoadRefreshCount = 101002,
-    TCSetDebug = 101003,
     _TCMax       = 101999,
 
     _LQHMin = 102000,

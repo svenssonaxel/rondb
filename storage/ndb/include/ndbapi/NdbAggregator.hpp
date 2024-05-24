@@ -1,5 +1,5 @@
 /*
- * Copyright [2024] <Copyright Hopsworks AB>
+ * Copyright (c) 2023, 2024, Hopsworks and/or its affiliates.
  *
  * Author: Zhao Song
  */
@@ -12,7 +12,7 @@
 
 class NdbTableImpl;
 
-#define MAX_PROGRAM_SIZE 1024
+#define MAX_PROGRAM_SIZE 4096
 #define MAX_AGGREGATION_OP_SIZE 256
 
 typedef struct AggregationError {
@@ -218,7 +218,6 @@ class NdbAggregator {
   }
 
   int32_t ProcessRes(char* buf);
-  void Print();
 
   bool LoadColumn(const char* name, uint32_t reg_id);
   bool LoadColumn(int32_t col_id, uint32_t reg_id);
