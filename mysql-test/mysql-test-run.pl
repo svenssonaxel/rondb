@@ -3176,6 +3176,7 @@ sub environment_setup {
       ndb_waiter
       ndbxfrm
       ndb_secretsfile_reader
+      rondb_sql_cli
     );
 
     foreach my $tool ( @ndb_tools)

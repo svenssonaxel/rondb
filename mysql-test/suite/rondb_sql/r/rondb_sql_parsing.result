@@ -1,298 +1,205 @@
-
-===== Keywords unit test =====
-OK
-=> Exit code: 0
-
 ===== Null byte at beginning =====
-Syntax error in SQL statement: Unexpected null byte.
-> Nelect a from tbl;
-! ^
-Error: Syntax error.
-=> Exit code: 1
-
+Input contains null byte at position 0.
+Caught exception: Syntax error.
 ===== Null byte in identifier =====
-Syntax error in SQL statement: Unexpected null byte.
-> select aN from tbl;
-!         ^
-Error: Syntax error.
-=> Exit code: 1
-
+Input contains null byte at position 8.
+Caught exception: Syntax error.
 ===== Null byte at end =====
-Syntax error in SQL statement: Unexpected null byte.
-> select a from tblN
-!                  ^
-Error: Syntax error.
-=> Exit code: 1
-
+Input contains null byte at position 17.
+Caught exception: Syntax error.
 ===== Illegal UTF-8 byte =====
 Syntax error in SQL statement: Bytes 0xf8-0xff are illegal in UTF-8.
 > select aú from tbl;
 !         ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Illegal 0xc0 UTF-8 byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select aÀ from tbl;
 !         ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Illegal 0xc1 UTF-8 byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select aÁ from tbl;
 !         ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 overlong 2-byte sequence =====
 Syntax error in SQL statement: Overlong UTF-8 encoding.
 > select aÁ¡ from tbl;
 !         ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 overlong 3-byte sequence =====
 Syntax error in SQL statement: Overlong UTF-8 encoding.
 > select aàƒ¶ from tbl;
 !         ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too high code point (U+123456) =====
 Syntax error in SQL statement: Unicode code points above U+10FFFF are invalid.
 > select `aô£‘–` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Surrogate (U+dead) =====
 Syntax error in SQL statement: Unicode code points U+D800 -- U+DFFF are invalid, as they correspond to UTF-16 surrogate pairs.
 > select `aíº­` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Non-BMP UTF-8 in identifier =====
 Syntax error in SQL statement: Unicode code points above U+FFFF are not allowed in MySQL identifiers.
 > select `að “—` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unimplemented keyword used as unquoted identifier =====
 Syntax error in SQL statement: Unimplemented keyword. If this was intended as an identifier, use backtick quotation.
 > select zone from tbl;
 !        ^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Incomplete escape sequence in single-quoted string =====
 Syntax error in SQL statement: Incomplete escape sequence in single-quoted string
 > select a from tbl where 'hello\
 !                               ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected EOI in single-quoted string =====
 Syntax error in SQL statement: Unexpected end of input inside single-quoted string
 > select a from tbl where 'hello
 !                         ^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Illegal token =====
 Syntax error in SQL statement: Illegal token
 > select #a from tbl;
 !        ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== EOI inside quoted identifier =====
 Syntax error in SQL statement: Unexpected end of input inside quoted identifier
 > select `a
 !        ^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== EOI inside escaped identifier =====
 Syntax error in SQL statement: Unexpected end of input inside quoted identifier
 > select `bc``de
 !        ^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 2-byte sequence with illegal 2nd byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `aÃ` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 2-byte sequence at EOI with 2nd byte missing =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `a` from `tableÃ
 !                       ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 3-byte sequence with illegal 2nd byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `aá` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 3-byte sequence with illegal 3rd byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `aáš` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 3-byte sequence at EOI with 2nd byte missing =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `a` from `tableá
 !                       ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 3-byte sequence at EOI with 3rd byte missing =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `a` from `tableáš
 !                       ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 4-byte sequence with illegal 2nd byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `að` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 4-byte sequence with illegal 3rd byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `að ` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 4-byte sequence with illegal 4th byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `að “` from tbl;
 !          ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 4-byte sequence at EOI with 2nd byte missing =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `a` from `tableð
 !                       ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 4-byte sequence at EOI with 3rd byte missing =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `a` from `tableð 
 !                       ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== UTF-8 4-byte sequence at EOI with 4th byte missing =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select `a` from `tableð “
 !                       ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Rogue UTF-8 continuation byte =====
 Syntax error in SQL statement: Invalid UTF-8 encoding.
 > select a‰ from tbl;
 !         ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Empty input =====
 Syntax error in SQL statement: Empty input
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Invalid token at beginning =====
 Syntax error in SQL statement: Illegal token
 > select a from tbl;
 ! ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Control character in unquoted identifier =====
 Syntax error in SQL statement: Illegal token
 > select a from tbl;
 !         ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Invalid token at end =====
 Syntax error in SQL statement: Illegal token
 > select a from tbl;
 !                   ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected end of input =====
 Syntax error in SQL statement: Unexpected end of input
 > select a from tbl
 !                  ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected at this point =====
 Syntax error in SQL statement: Unexpected at this point
 > select a `bcde` from tbl;
 !          ^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected before newline =====
 Syntax error in SQL statement: Unexpected at this point
 > select a `bcde`
 !          ^^^^^^
->  from tbl;
-Error: Syntax error.
-=> Exit code: 1
-
+> from tbl;
+Caught exception: Syntax error.
 ===== Unexpected after newline =====
 Syntax error in SQL statement: Unexpected at this point
-> select a 
+> select a
 > `bcde` from tbl;
 ! ^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected with ending newline =====
 Syntax error in SQL statement: Unexpected at this point
 > select a `bcde` from tbl;
 !          ^^^^^^
-> Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected with newline at start =====
 Syntax error in SQL statement: Unexpected at this point
 > 
 > select a `bcde` from tbl;
 !          ^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected containing newline =====
 Syntax error in SQL statement: Unexpected at this point
 > select a `bc
 !          ^^^
 > de` from tbl;
 ! ^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected containing two newlines =====
 Syntax error in SQL statement: Unexpected at this point
 > select a `b
@@ -301,310 +208,121 @@ Syntax error in SQL statement: Unexpected at this point
 ! ^^
 > e` from tbl;
 ! ^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected escaped identifier =====
 Syntax error in SQL statement: Unexpected at this point
 > select a `bc``de` from tbl;
 !          ^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Two escaped identifiers, 1st unexpected =====
 Syntax error in SQL statement: Unexpected at this point
 > select a `bc``de` from `fg``h``i`;
 !          ^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Two escaped identifiers, 2nd unexpected =====
 Syntax error in SQL statement: Unexpected at this point
 > select a, `bc``de` from tbl `fg``h``i`;
 !                             ^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Error marker alignment after 2-byte UTF-8 characters =====
 Syntax error in SQL statement: Unexpected at this point
 > select a
 >       ,rÃ¤ksmÃ¶rgÃ¥s rÃ¤ksmÃ¶rgÃ¥s
 !                   ^^^^^^^^^^
 > from tbl;
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Error marker alignment after 3-byte UTF-8 character =====
 Syntax error in SQL statement: Unexpected at this point
 > select a
 >       ,áš±ab áš±ab
 !            ^^^
 > from tbl;
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Incomplete escape sequence in single-quoted string =====
 Syntax error in SQL statement: Incomplete escape sequence in single-quoted string
 > select a from tbl where 'word\
 !                              ^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Unexpected end of input inside single-quoted string =====
 Syntax error in SQL statement: Unexpected end of input inside single-quoted string
 > select a from tbl where 'word
 !                         ^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== date_add not supported in output =====
 Syntax error in SQL statement: Unexpected at this point
 > select date_add(col1, interval 1 day) from tbl;
 !        ^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Parser stack exhausted =====
-Error: Parser stack exceeded its maximum depth.
-=> Exit code: 1
-
+Caught exception: Parser stack exceeded its maximum depth.
 ===== Too long unquoted identifier in column name =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from tbl;
 !        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long quoted identifier in column name =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` from tbl;
 !        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long quoted identifier in column name, although characters < 64 =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaÃ¶Ã¶Ã¶Ã¶Ã¶Ã¶Ã¶Ã¶Ã¶Ã¶` from tbl;
 !        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long unquoted alias =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select a as aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from tbl;
 !             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long quoted alias =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select a as `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` from tbl;
 !             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long unquoted identifier in WHERE =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select a from tbl where aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
 !                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long quoted identifier in WHERE =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select a from tbl where `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`;
 !                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long unquoted identifier in GROUP BY =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select a from tbl group by aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
 !                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long quoted identifier in GROUP BY =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select a from tbl group by `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`;
 !                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long unquoted identifier in ORDER BY =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select a from tbl ORDER BY aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
 !                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long quoted identifier in ORDER BY =====
 Syntax error in SQL statement: This identifier is too long. The limit is 64 bytes encoded as UTF-8.
-> 
 > select a from tbl ORDER BY `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`;
 !                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Too long unaliased select expression =====
 Syntax error in SQL statement: Unaliased select expression too long. Use `AS` to add an alias no more than 64 bytes long.
-> 
 > select max ((((((((((((((((((((((((((((((a)))))))))))))))))))))))))))))) from tbl;
 !        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: Syntax error.
-=> Exit code: 1
-
+Caught exception: Syntax error.
 ===== Select a column that is not in group by clause =====
 Syntax error: SELECT expression refers to ungrouped column `b` outside of aggregate function.
 You can either add this column to the GROUP BY clause, or use it within an aggregate function e.g. Sum(`b`).
-Error: Ungrouped column in non-aggregated SELECT expression.
-=> Exit code: 1
-
+Caught exception: Ungrouped column in non-aggregated SELECT expression.
 ===== Non-aggregation query =====
 This query has no aggregate expression and no GROUP BY clause, so it is not an aggregate query.
 Currently, RonDB SQL only supports aggregate queries.
-Error: Not an aggregate query.
-=> Exit code: 1
-
-===== APICompileTest =====
-Compilation example 1:
-
-Aggregations:
-A0=Max(`apples`)
-A1=Sum((`apples` + (`oranges` * `kiwis`)))
-A2=Min((`apples` - (`oranges` * `kiwis`)))
-A3=Count((`apples` + `apples`))
-A4=Count((`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))))))))))
-A5=Min((`apples` + (`apples` + (`apples` + `apples`))))
-A6=Max((((`apples` + `apples`) + `apples`) + `apples`))
-A7=Count((`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))
-A8=Count((`apples` + (`apples` + `apples`)))
-
-Aggregation program (51 instructions):
-Instr. DEST SRC DESCRIPTION
-Load   r00  C00 r00 = C00:`apples`
-Max    A00  r00 A00:MAX <- r00:`apples`
-Load   r01  C01 r01 = C01:`oranges`
-Load   r02  C02 r02 = C02:`kiwis`
-Mul    r01  r02 r01:`oranges` *= r02:`kiwis`
-Mov    r02  r00 r02 = r00:`apples`
-Add    r00  r01 r00:`apples` += r01:(`oranges` * `kiwis`)
-Sum    A01  r00 A01:SUM <- r00:(`apples` + (`oranges` * `kiwis`))
-Mov    r00  r02 r00 = r02:`apples`
-Minus  r02  r01 r02:`apples` -= r01:(`oranges` * `kiwis`)
-Min    A02  r02 A02:MIN <- r02:(`apples` - (`oranges` * `kiwis`))
-Mov    r01  r00 r01 = r00:`apples`
-Add    r00  r00 r00:`apples` += r00:`apples`
-Count  A03  r00 A03:COUNT <- r00:(`apples` + `apples`)
-Mov    r02  r01 r02 = r01:`apples`
-Add    r01  r00 r01:`apples` += r00:(`apples` + `apples`)
-Mov    r03  r02 r03 = r02:`apples`
-Add    r02  r01 r02:`apples` += r01:(`apples` + (`apples` + `apples`))
-Mov    r04  r03 r04 = r03:`apples`
-Add    r03  r02 r03:`apples` += r02:(`apples` + (`apples` + (`apples` + `apples`)))
-Mov    r05  r04 r05 = r04:`apples`
-Add    r04  r03 r04:`apples` += r03:(`apples` + (`apples` + (`apples` + (`apples` + `apples`))))
-Mov    r03  r05 r03 = r05:`apples`
-Add    r05  r04 r05:`apples` += r04:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))
-Mov    r04  r03 r04 = r03:`apples`
-Add    r03  r05 r03:`apples` += r05:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))
-Mov    r06  r04 r06 = r04:`apples`
-Add    r04  r03 r04:`apples` += r03:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))
-Mov    r03  r06 r03 = r06:`apples`
-Add    r06  r04 r06:`apples` += r04:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))
-Mov    r04  r03 r04 = r03:`apples`
-Add    r03  r06 r03:`apples` += r06:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))
-Mov    r06  r04 r06 = r04:`apples`
-Add    r04  r03 r04:`apples` += r03:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))))
-Mov    r03  r06 r03 = r06:`apples`
-Add    r06  r04 r06:`apples` += r04:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))))
-Mov    r04  r03 r04 = r03:`apples`
-Add    r03  r06 r03:`apples` += r06:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))))))
-Mov    r06  r04 r06 = r04:`apples`
-Add    r04  r03 r04:`apples` += r03:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))))))
-Mov    r03  r06 r03 = r06:`apples`
-Add    r06  r04 r06:`apples` += r04:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))))))))
-Mov    r04  r03 r04 = r03:`apples`
-Add    r03  r06 r03:`apples` += r06:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))))))))
-Count  A04  r03 A04:COUNT <- r03:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))))))))))
-Min    A05  r02 A05:MIN <- r02:(`apples` + (`apples` + (`apples` + `apples`)))
-Add    r00  r04 r00:(`apples` + `apples`) += r04:`apples`
-Add    r00  r04 r00:((`apples` + `apples`) + `apples`) += r04:`apples`
-Max    A06  r00 A06:MAX <- r00:(((`apples` + `apples`) + `apples`) + `apples`)
-Count  A07  r05 A07:COUNT <- r05:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))
-Count  A08  r01 A08:COUNT <- r01:(`apples` + (`apples` + `apples`))
-
-
-Compilation example 2:
-
-Aggregations:
-A0=Sum((`c` + `c`))
-A1=Sum((`c` - `c`))
-A2=Sum(((`c` + `c`) + (`c` + `c`)))
-A3=Sum(((`c` + `c`) - (`c` + `c`)))
-A4=Sum(((`c` + `c`) + `c`))
-A5=Sum((`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`)))))))))))
-A6=Sum(((((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`))
-
-Aggregation program (44 instructions):
-Instr. DEST SRC DESCRIPTION
-Load   r00  C00 r00 = C00:`c`
-Mov    r01  r00 r01 = r00:`c`
-Add    r00  r00 r00:`c` += r00:`c`
-Sum    A00  r00 A00:SUM <- r00:(`c` + `c`)
-Mov    r02  r01 r02 = r01:`c`
-Minus  r01  r01 r01:`c` -= r01:`c`
-Sum    A01  r01 A01:SUM <- r01:(`c` - `c`)
-Mov    r01  r00 r01 = r00:(`c` + `c`)
-Add    r00  r00 r00:(`c` + `c`) += r00:(`c` + `c`)
-Sum    A02  r00 A02:SUM <- r00:((`c` + `c`) + (`c` + `c`))
-Mov    r00  r01 r00 = r01:(`c` + `c`)
-Minus  r01  r01 r01:(`c` + `c`) -= r01:(`c` + `c`)
-Sum    A03  r01 A03:SUM <- r01:((`c` + `c`) - (`c` + `c`))
-Mov    r01  r00 r01 = r00:(`c` + `c`)
-Add    r00  r02 r00:(`c` + `c`) += r02:`c`
-Sum    A04  r00 A04:SUM <- r00:((`c` + `c`) + `c`)
-Mov    r03  r02 r03 = r02:`c`
-Add    r02  r01 r02:`c` += r01:(`c` + `c`)
-Mov    r01  r03 r01 = r03:`c`
-Add    r03  r02 r03:`c` += r02:(`c` + (`c` + `c`))
-Mov    r02  r01 r02 = r01:`c`
-Add    r01  r03 r01:`c` += r03:(`c` + (`c` + (`c` + `c`)))
-Mov    r03  r02 r03 = r02:`c`
-Add    r02  r01 r02:`c` += r01:(`c` + (`c` + (`c` + (`c` + `c`))))
-Mov    r01  r03 r01 = r03:`c`
-Add    r03  r02 r03:`c` += r02:(`c` + (`c` + (`c` + (`c` + (`c` + `c`)))))
-Mov    r02  r01 r02 = r01:`c`
-Add    r01  r03 r01:`c` += r03:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`))))))
-Mov    r03  r02 r03 = r02:`c`
-Add    r02  r01 r02:`c` += r01:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`)))))))
-Mov    r01  r03 r01 = r03:`c`
-Add    r03  r02 r03:`c` += r02:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`))))))))
-Mov    r02  r01 r02 = r01:`c`
-Add    r01  r03 r01:`c` += r03:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`)))))))))
-Sum    A05  r01 A05:SUM <- r01:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`))))))))))
-Add    r00  r02 r00:((`c` + `c`) + `c`) += r02:`c`
-Add    r00  r02 r00:(((`c` + `c`) + `c`) + `c`) += r02:`c`
-Add    r00  r02 r00:((((`c` + `c`) + `c`) + `c`) + `c`) += r02:`c`
-Add    r00  r02 r00:(((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
-Add    r00  r02 r00:((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
-Add    r00  r02 r00:(((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
-Add    r00  r02 r00:((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
-Add    r00  r02 r00:(((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
-Sum    A06  r00 A06:SUM <- r00:((((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`)
-
-=> Exit code: 0
-
+Caught exception: Not an aggregate query.
 ===== Simple =====
 Query parse tree:
 SELECT
@@ -621,8 +339,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
-
-=> Exit code: 0
 
 ===== Arithmetics =====
 Query parse tree:
@@ -673,8 +389,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 28 instructions.
 
-=> Exit code: 0
-
 ===== Quoted ID =====
 Query parse tree:
 SELECT
@@ -713,8 +427,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 28 instructions.
 
-=> Exit code: 0
-
 ===== UTF-8 2-byte character in unquoted identifier =====
 Query parse tree:
 SELECT
@@ -731,8 +443,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
-
-=> Exit code: 0
 
 ===== UTF-8 2-byte character in quoted identifier =====
 Query parse tree:
@@ -751,8 +461,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
-
 ===== UTF-8 3-byte character in unquoted identifier =====
 Query parse tree:
 SELECT
@@ -769,8 +477,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
-
-=> Exit code: 0
 
 ===== UTF-8 3-byte character in quoted identifier =====
 Query parse tree:
@@ -789,8 +495,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
-
 ===== Control character in quoted identifier =====
 Query parse tree:
 SELECT
@@ -807,8 +511,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
-
-=> Exit code: 0
 
 ===== Select and group by with different quotation =====
 Query parse tree:
@@ -835,8 +537,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 23 instructions.
-
-=> Exit code: 0
 
 ===== has_item regression =====
 Query parse tree:
@@ -895,8 +595,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 18 instructions.
 
-=> Exit code: 0
-
 ===== Alias =====
 Query parse tree:
 SELECT
@@ -933,8 +631,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 29 instructions.
 
-=> Exit code: 0
-
 ===== Integer constants =====
 Query parse tree:
 SELECT
@@ -964,8 +660,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 18 instructions.
-
-=> Exit code: 0
 
 ===== Avg =====
 Query parse tree:
@@ -1002,8 +696,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 37 instructions.
-
-=> Exit code: 0
 
 ===== Count all =====
 Query parse tree:
@@ -1044,8 +736,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 42 instructions.
-
-=> Exit code: 0
 
 ===== Condition =====
 Query parse tree:
@@ -1090,8 +780,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 23 instructions.
-
-=> Exit code: 0
 
 ===== Complex operator precedence =====
 Query parse tree:
@@ -1210,8 +898,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
-
 ===== Single quoted strings =====
 Query parse tree:
 SELECT
@@ -1233,8 +919,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
-
 ===== Compound strings =====
 Query parse tree:
 SELECT
@@ -1253,8 +937,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
-
-=> Exit code: 0
 
 ===== date_add =====
 Query parse tree:
@@ -1281,8 +963,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
-
 ===== date_sub =====
 Query parse tree:
 SELECT
@@ -1308,8 +988,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
-
 ===== extract =====
 Query parse tree:
 SELECT
@@ -1333,8 +1011,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
-
 ===== order by =====
 Query parse tree:
 SELECT
@@ -1353,8 +1029,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
-
-=> Exit code: 0
 
 ===== group and order by 2 columns =====
 Query parse tree:
@@ -1384,8 +1058,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 18 instructions.
 
-=> Exit code: 0
-
 ===== order by ASC/DESC =====
 Query parse tree:
 SELECT
@@ -1408,8 +1080,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
-
 ===== Unimplemented keyword used as quoted identifier =====
 Query parse tree:
 SELECT
@@ -1426,8 +1096,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
-
-=> Exit code: 0
 
 ===== Negation =====
 Query parse tree:
@@ -1492,8 +1160,6 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 28 instructions.
 
-=> Exit code: 0
-
 ===== Almost too long unaliased select expression =====
 Query parse tree:
 SELECT
@@ -1511,8 +1177,6 @@ Execute as table scan.
 
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
-
-=> Exit code: 0
 
 ===== Aliased expression that would be too long without alias =====
 Query parse tree:
@@ -1532,7 +1196,164 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 8 instructions.
 
-=> Exit code: 0
+===== Compiler test 1 =====
+Query parse tree:
+SELECT
+  Out_0:`max(apples)`
+   = A0:Max(`apples`)
+  Out_1:`sum(apples + oranges * kiwis)`
+   = A1:Sum((`apples` + (`oranges` * `kiwis`)))
+  Out_2:`min(apples - oranges * kiwis)`
+   = A2:Min((`apples` - (`oranges` * `kiwis`)))
+  Out_3:`sum(apples + oranges * kiwis)`
+   = A1:Sum((`apples` + (`oranges` * `kiwis`)))
+  Out_4:`min(apples - oranges * kiwis)`
+   = A2:Min((`apples` - (`oranges` * `kiwis`)))
+  Out_5:`count(apples + apples)`
+   = A3:Count((`apples` + `apples`))
+  Out_6:`count_of_seventeen_apples`
+   = A4:Count((`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))))))))))
+  Out_7:`min(apples + (apples + (apples + apples)))`
+   = A5:Min((`apples` + (`apples` + (`apples` + `apples`))))
+  Out_8:`max(((apples + apples) + apples) + apples)`
+   = A6:Max((((`apples` + `apples`) + `apples`) + `apples`))
+  Out_9:`count_of_seven_apples`
+   = A7:Count((`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))
+  Out_10:`count(apples + (apples + apples))`
+   = A8:Count((`apples` + (`apples` + `apples`)))
+FROM tbl
+
+Aggregation program (51 instructions):
+Instr. DEST SRC DESCRIPTION
+Load   r00  C00 r00 = C00:`apples`
+Max    A00  r00 A00:MAX <- r00:`apples`
+Load   r01  C01 r01 = C01:`oranges`
+Load   r02  C02 r02 = C02:`kiwis`
+Mul    r01  r02 r01:`oranges` *= r02:`kiwis`
+Mov    r02  r00 r02 = r00:`apples`
+Add    r00  r01 r00:`apples` += r01:(`oranges` * `kiwis`)
+Sum    A01  r00 A01:SUM <- r00:(`apples` + (`oranges` * `kiwis`))
+Mov    r00  r02 r00 = r02:`apples`
+Minus  r02  r01 r02:`apples` -= r01:(`oranges` * `kiwis`)
+Min    A02  r02 A02:MIN <- r02:(`apples` - (`oranges` * `kiwis`))
+Mov    r01  r00 r01 = r00:`apples`
+Add    r00  r00 r00:`apples` += r00:`apples`
+Count  A03  r00 A03:COUNT <- r00:(`apples` + `apples`)
+Mov    r02  r01 r02 = r01:`apples`
+Add    r01  r00 r01:`apples` += r00:(`apples` + `apples`)
+Mov    r03  r02 r03 = r02:`apples`
+Add    r02  r01 r02:`apples` += r01:(`apples` + (`apples` + `apples`))
+Mov    r04  r03 r04 = r03:`apples`
+Add    r03  r02 r03:`apples` += r02:(`apples` + (`apples` + (`apples` + `apples`)))
+Mov    r05  r04 r05 = r04:`apples`
+Add    r04  r03 r04:`apples` += r03:(`apples` + (`apples` + (`apples` + (`apples` + `apples`))))
+Mov    r03  r05 r03 = r05:`apples`
+Add    r05  r04 r05:`apples` += r04:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))
+Mov    r04  r03 r04 = r03:`apples`
+Add    r03  r05 r03:`apples` += r05:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))
+Mov    r06  r04 r06 = r04:`apples`
+Add    r04  r03 r04:`apples` += r03:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))
+Mov    r03  r06 r03 = r06:`apples`
+Add    r06  r04 r06:`apples` += r04:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))
+Mov    r04  r03 r04 = r03:`apples`
+Add    r03  r06 r03:`apples` += r06:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))
+Mov    r06  r04 r06 = r04:`apples`
+Add    r04  r03 r04:`apples` += r03:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))))
+Mov    r03  r06 r03 = r06:`apples`
+Add    r06  r04 r06:`apples` += r04:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))))
+Mov    r04  r03 r04 = r03:`apples`
+Add    r03  r06 r03:`apples` += r06:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))))))
+Mov    r06  r04 r06 = r04:`apples`
+Add    r04  r03 r04:`apples` += r03:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))))))
+Mov    r03  r06 r03 = r06:`apples`
+Add    r06  r04 r06:`apples` += r04:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))))))))
+Mov    r04  r03 r04 = r03:`apples`
+Add    r03  r06 r03:`apples` += r06:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`)))))))))))))))
+Count  A04  r03 A04:COUNT <- r03:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))))))))))))
+Min    A05  r02 A05:MIN <- r02:(`apples` + (`apples` + (`apples` + `apples`)))
+Add    r00  r04 r00:(`apples` + `apples`) += r04:`apples`
+Add    r00  r04 r00:((`apples` + `apples`) + `apples`) += r04:`apples`
+Max    A06  r00 A06:MAX <- r00:(((`apples` + `apples`) + `apples`) + `apples`)
+Count  A07  r05 A07:COUNT <- r05:(`apples` + (`apples` + (`apples` + (`apples` + (`apples` + (`apples` + `apples`))))))
+Count  A08  r01 A08:COUNT <- r01:(`apples` + (`apples` + `apples`))
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 56 instructions.
+
+===== Compiler test 2 =====
+Query parse tree:
+SELECT
+  Out_0:`sum(c + c)`
+   = A0:Sum((`c` + `c`))
+  Out_1:`sum(c - c)`
+   = A1:Sum((`c` - `c`))
+  Out_2:`sum((c + c) + (c + c))`
+   = A2:Sum(((`c` + `c`) + (`c` + `c`)))
+  Out_3:`sum((c + c) - (c + c))`
+   = A3:Sum(((`c` + `c`) - (`c` + `c`)))
+  Out_4:`sum((c + c) + c)`
+   = A4:Sum(((`c` + `c`) + `c`))
+  Out_5:`sum(c + (c + (c + (c + (c + (c + (c + (c + (c + (c + c))))))))))`
+   = A5:Sum((`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`)))))))))))
+  Out_6:`sum((((((((((c + c) + c) + c) + c) + c) + c) + c) + c) + c) + c)`
+   = A6:Sum(((((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`))
+FROM tbl
+
+Aggregation program (44 instructions):
+Instr. DEST SRC DESCRIPTION
+Load   r00  C00 r00 = C00:`c`
+Mov    r01  r00 r01 = r00:`c`
+Add    r00  r00 r00:`c` += r00:`c`
+Sum    A00  r00 A00:SUM <- r00:(`c` + `c`)
+Mov    r02  r01 r02 = r01:`c`
+Minus  r01  r01 r01:`c` -= r01:`c`
+Sum    A01  r01 A01:SUM <- r01:(`c` - `c`)
+Mov    r01  r00 r01 = r00:(`c` + `c`)
+Add    r00  r00 r00:(`c` + `c`) += r00:(`c` + `c`)
+Sum    A02  r00 A02:SUM <- r00:((`c` + `c`) + (`c` + `c`))
+Mov    r00  r01 r00 = r01:(`c` + `c`)
+Minus  r01  r01 r01:(`c` + `c`) -= r01:(`c` + `c`)
+Sum    A03  r01 A03:SUM <- r01:((`c` + `c`) - (`c` + `c`))
+Mov    r01  r00 r01 = r00:(`c` + `c`)
+Add    r00  r02 r00:(`c` + `c`) += r02:`c`
+Sum    A04  r00 A04:SUM <- r00:((`c` + `c`) + `c`)
+Mov    r03  r02 r03 = r02:`c`
+Add    r02  r01 r02:`c` += r01:(`c` + `c`)
+Mov    r01  r03 r01 = r03:`c`
+Add    r03  r02 r03:`c` += r02:(`c` + (`c` + `c`))
+Mov    r02  r01 r02 = r01:`c`
+Add    r01  r03 r01:`c` += r03:(`c` + (`c` + (`c` + `c`)))
+Mov    r03  r02 r03 = r02:`c`
+Add    r02  r01 r02:`c` += r01:(`c` + (`c` + (`c` + (`c` + `c`))))
+Mov    r01  r03 r01 = r03:`c`
+Add    r03  r02 r03:`c` += r02:(`c` + (`c` + (`c` + (`c` + (`c` + `c`)))))
+Mov    r02  r01 r02 = r01:`c`
+Add    r01  r03 r01:`c` += r03:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`))))))
+Mov    r03  r02 r03 = r02:`c`
+Add    r02  r01 r02:`c` += r01:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`)))))))
+Mov    r01  r03 r01 = r03:`c`
+Add    r03  r02 r03:`c` += r02:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`))))))))
+Mov    r02  r01 r02 = r01:`c`
+Add    r01  r03 r01:`c` += r03:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`)))))))))
+Sum    A05  r01 A05:SUM <- r01:(`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + (`c` + `c`))))))))))
+Add    r00  r02 r00:((`c` + `c`) + `c`) += r02:`c`
+Add    r00  r02 r00:(((`c` + `c`) + `c`) + `c`) += r02:`c`
+Add    r00  r02 r00:((((`c` + `c`) + `c`) + `c`) + `c`) += r02:`c`
+Add    r00  r02 r00:(((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
+Add    r00  r02 r00:((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
+Add    r00  r02 r00:(((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
+Add    r00  r02 r00:((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
+Add    r00  r02 r00:(((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) += r02:`c`
+Sum    A06  r00 A06:SUM <- r00:((((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`) + `c`)
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 38 instructions.
 
 ===== dbt3-1.10/queries/mysql/1_2.sql =====
 Query parse tree:
@@ -1603,4 +1424,3 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 54 instructions.
 
-=> Exit code: 0
