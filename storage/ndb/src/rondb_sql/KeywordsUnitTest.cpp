@@ -1,6 +1,8 @@
 #include "Keywords.hpp"
 #include "../../../../sql/lex.h"
 
+// todo: Make sure this test gets run in the standard way
+
 using std::cout;
 using std::endl;
 

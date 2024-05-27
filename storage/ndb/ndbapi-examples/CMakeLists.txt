@@ -58,7 +58,6 @@ ADD_EXECUTABLE(ndb_ndbapi_simple_dual ndbapi_simple_dual/main.cpp)
 ADD_EXECUTABLE(ndb_ndbapi_simple_index ndbapi_simple_index/main.cpp)
 ADD_EXECUTABLE(ndb_ndbapi_agg ndbapi_agg/ndbapi_agg.cpp)
 ADD_EXECUTABLE(ndb_ndbapi_agg_update ndbapi_agg/update.cpp)
-ADD_EXECUTABLE(ndb_rondb_sql rondb_sql/rondb_sql.cpp)
 
 # MgmApi examples
 ADD_EXECUTABLE(ndb_mgmapi_logevent mgmapi_logevent/main.cpp)
@@ -86,7 +85,6 @@ SET(EXAMPLES
   ndb_ndbapi_simple_index
   ndb_ndbapi_agg
   ndb_ndbapi_agg_update
-  ndb_rondb_sql
 
   ndb_mgmapi_logevent
   ndb_mgmapi_logevent2
@@ -96,7 +94,3 @@ FOREACH(EXAMPLE ${EXAMPLES})
   TARGET_LINK_LIBRARIES(${EXAMPLE} libmysql)
   TARGET_LINK_LIBRARIES(${EXAMPLE} ndbclient_so)
 ENDFOREACH()
-
-# rondb_sql is not part of public API, and needs explicit inclusion for ndb_rondb_sql example.
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/storage/ndb/src/rondb_sql)
-TARGET_LINK_LIBRARIES(ndb_rondb_sql rondb_sql)
