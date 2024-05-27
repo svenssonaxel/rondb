@@ -165,6 +165,7 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
           }
         }
       }
+#ifdef MOZ_AGG_CHECK
       {
         // CHECK
         uint32_t pos = parse_pos;
@@ -185,6 +186,7 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
           }
         }
       }
+#endif // MOZ_AGG_CHECK
       parse_pos += ((gb_cols_len + agg_res_len) >> 2);
     }
   } else {
@@ -593,13 +595,28 @@ bool NdbAggregator::Finalize() {
     return false;
   }
   instructions_length_ = curr_prog_pos_;
+  if (instructions_length_ >= MAX_AGG_PROGRAM_WORD_SIZE) {
+    SetError(kErrTooBigProgram);
+    return false;
+  }
+
   buffer_[0] = (0x0721) << 16 | curr_prog_pos_;
   buffer_[1] = n_gb_cols_ << 16 | n_agg_results_;
 
   if (n_gb_cols_) {
+    if (n_gb_cols_ >= MAX_AGG_N_GROUPBY_COLS) {
+      SetError(kErrTooManyGroupbyCols);
+      return false;
+    }
     gb_map_ = new std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>;
   }
-  if (n_agg_results_) {
+  if (n_agg_results_ == 0) {
+    SetError(kErrEmptyAggResult);
+    return false;
+  } else if (n_agg_results_ >= MAX_AGG_N_RESULTS) {
+    SetError(kErrTooManyAggResult);
+    return false;
+  } else {
     agg_results_ = new AggResItem[n_agg_results_];
     uint32_t i = 0;
     while (i < n_agg_results_) {
@@ -615,6 +632,17 @@ bool NdbAggregator::Finalize() {
 
   if (result_size_est_ >= MAX_AGG_RESULT_BATCH_BYTES - 128) {
     SetError(kErrTooBigResult);
+    /*
+     * Moz
+     * No need to release memory here.
+     * Distruction will do it.
+     * if (gb_map_) {
+     *   delete gb_map_;
+     * }
+     * if (agg_results_) {
+     *   delete agg_results_;
+     * }
+     */
     return false;
   }
   finalized_ = true;

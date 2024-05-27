@@ -11,7 +11,7 @@
 #include "include/my_byteorder.h"
 #include "AggInterpreter.hpp"
 
-uint32_t AggInterpreter::g_buf_len_ = 2048;
+uint32_t AggInterpreter::g_buf_len_ = READ_BUF_WORD_SIZE;
 uint32_t AggInterpreter::g_result_header_size_ = 3 * sizeof(uint32_t);
 uint32_t AggInterpreter::g_result_header_size_per_group_ = sizeof(uint32_t);
 
@@ -40,20 +40,34 @@ bool AggInterpreter::Init() {
    * 3. Get all the group by columns id.
    */
   if (n_gb_cols_) {
+#ifdef MOZ_AGG_MALLOC
+    assert(n_gb_cols_ <= MAX_AGG_N_GROUPBY_COLS);
+    gb_cols_ = gb_cols_buf_;
+#else
     gb_cols_ = new uint32_t[n_gb_cols_];
+#endif // MOZ_AGG_MALLOC
 
     uint32_t i = 0;
     while (i < n_gb_cols_ && cur_pos_ < prog_len_) {
       gb_cols_[i++] = prog_[cur_pos_++];
     }
+#ifdef MOZ_AGG_MALLOC
+    gb_map_ = &gb_map_buf_;
+#else
     gb_map_ = new std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>;
+#endif // MOZ_AGG_MALLOC
   }
 
   /*
    * 4. Reset all aggregation results
    */
   if (n_agg_results_) {
+#ifdef MOZ_AGG_MALLOC
+    assert(n_agg_results_ <= MAX_AGG_N_RESULTS);
+    agg_results_ = agg_results_buf_;
+#else
     agg_results_ = new AggResItem[n_agg_results_];
+#endif // MOZ_AGG_MALLOC
     uint32_t i = 0;
     while (i < n_agg_results_) {
       agg_results_[i].type = NDB_TYPE_UNDEFINED;
@@ -1111,9 +1125,13 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
       // results to API.
       result_size_ += len_in_char +
                        n_agg_results_ * sizeof(AggResItem);
-
+#ifdef MOZ_AGG_MALLOC
+      agg_rec = MemAlloc(len_in_char +
+                          n_agg_results_ * sizeof(AggResItem));
+#else
       agg_rec = new char[len_in_char +
                         n_agg_results_ * sizeof(AggResItem)];
+#endif // MOZ_AGG_MALLOC
       memset(agg_rec, 0, len_in_char +
                         n_agg_results_ * sizeof(AggResItem));
       memcpy(agg_rec, reinterpret_cast<char*>(buf_), len_in_char);
@@ -1756,10 +1774,15 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
       MEMCOPY_NO_WORDS(&data_buf[pos], iter->first.ptr,
           (iter->first.len + iter->second.len) >> 2);
       pos += ((iter->first.len + iter->second.len) >> 2);
+#ifndef MOZ_AGG_MALLOC
       delete[] iter->first.ptr;
+#endif // !MOZ_AGG_MALLOC
       gb_map_->erase(iter++);
       result_size_ = 0;
     }
+#ifdef MOZ_AGG_MALLOC
+    alloc_len_ = 0;
+#endif // MOZ_AGG_MALLOC
     assert(gb_map_->empty());
   } else {
     data_buf[pos++] = AttributeHeader::AGG_RESULT << 16 | 0x0721;
@@ -1773,6 +1796,7 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
   }
 
   // CHECK
+#ifdef MOZ_AGG_CHECK
   uint32_t data_len = pos;
   uint32_t parse_pos = 0;
 
@@ -1839,6 +1863,7 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
     }
   }
   assert(parse_pos == data_len);
+#endif // MOZ_AGG_CHECK
   return pos;
 }
 
@@ -1849,3 +1874,24 @@ uint32_t AggInterpreter::NumOfResRecords() {
     return 1;
   }
 }
+
+#ifdef MOZ_AGG_MALLOC
+char* AggInterpreter::MemAlloc(uint32_t len) {
+  if (alloc_len_ + len >= MAX_AGG_RESULT_BATCH_BYTES) {
+    return nullptr;
+  } else {
+    char* ptr = &(mem_buf_[alloc_len_]);
+    alloc_len_ += len;
+    return ptr;
+  }
+}
+
+void AggInterpreter::Distruct(AggInterpreter* ptr) {
+  if (ptr == nullptr) {
+    return;
+  }
+  Ndbd_mem_manager* _mm = ptr->mm();
+  uint32_t _page_ref = ptr->page_ref();
+  _mm->release_page(RT_DBTUP_PAGE, _page_ref);
+}
+#endif // MOZ_AGG_MALLOC

@@ -20701,17 +20701,19 @@ void Dblqh::init_release_scanrec(ScanRecord* scanPtr)
   // Moz release aggregation interpreter
   if (scanPtr->m_agg_interpreter != nullptr) {
     AggInterpreter* ptr = scanPtr->m_agg_interpreter;
-    if (ptr != nullptr) {
-      /*
-       * TODO (Zhao)
-       * potential crash here.
-       * gb_map may be non-empty if API closes scan
-       * while lqh is processing. double check here.
-       * (CHECKED).
-       */
-      ndbrequire(ptr->gb_map()->empty());
-    }
+    /*
+     * TODO (Zhao)
+     * potential crash here.
+     * gb_map may be non-empty if API closes scan
+     * while lqh is processing. double check here.
+     * (CHECKED).
+     */
+    ndbrequire(ptr->gb_map()->empty());
+#ifdef MOZ_AGG_MALLOC
+    AggInterpreter::Distruct(ptr);
+#else
     delete ptr;
+#endif // MOZ_AGG_MALLOC
     scanPtr->m_agg_interpreter = nullptr;
   }
 }
@@ -40151,7 +40153,11 @@ Dblqh::ScanRecord::~ScanRecord() {
 
   AggInterpreter* ptr = m_agg_interpreter;
   if (ptr != nullptr) {
+#ifdef MOZ_AGG_MALLOC
+    AggInterpreter::Distruct(ptr);
+#else
     delete ptr;
+#endif // MOZ_AGG_MALLOC
   }
   m_agg_interpreter = nullptr;
 }

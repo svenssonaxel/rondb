@@ -7,9 +7,19 @@
 #define NDBAGGREGATIONCOMMON_H_
 #include <cstring>
 #include <cstdint>
+/*
+ * MOZ
+ * Turn on the MOZ_AGG_CHECK to validate aggregation
+ * network package on both data node and API node
+ */
+#undef MOZ_AGG_CHECK
+// #define MOZ_AGG_CHECK 1
 
 #define MAX_AGG_RESULT_BATCH_BYTES 8192
 #define DEF_AGG_RESULT_BATCH_BYTES 4096
+#define MAX_AGG_N_GROUPBY_COLS 128
+#define MAX_AGG_N_RESULTS 256
+#define MAX_AGG_PROGRAM_WORD_SIZE 1024
 enum InterpreterOp {
   kOpUnknown = 0,
   kOpPlus,

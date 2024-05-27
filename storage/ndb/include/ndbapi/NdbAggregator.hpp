@@ -30,6 +30,10 @@ enum NdbAggregatorError {
   kErrEmptyProgram,
   kErrAlreadyFinalized,
   kErrTooBigResult,
+  kErrTooBigProgram,
+  kErrTooManyGroupbyCols,
+  kErrEmptyAggResult,
+  kErrTooManyAggResult,
   kErrMaxErrno
 };
 
@@ -42,7 +46,11 @@ static AggregationError g_errors_[] = {
   {kErrAggNoUsed, "Aggregation id is already used"},
   {kErrEmptyProgram, "Empty program"},
   {kErrAlreadyFinalized, "Already finalized"},
-  {kErrTooBigResult, "single aggregation result could be larger than 8K"},
+  {kErrTooBigResult, "Single aggregation result could be larger than 8K bytes"},
+  {kErrTooBigProgram, "Aggregation program should be less than 4K bytes"},
+  {kErrTooManyGroupbyCols, "Number of group by columns should be less than 128"},
+  {kErrEmptyAggResult, "Empty aggregation"},
+  {kErrTooManyAggResult, "Number of aggregation results should be less than 256"},
   {kErrMaxErrno, ""}
 };
 
@@ -250,12 +258,12 @@ class NdbAggregator {
  private:
   bool TypeSupported(NdbDictionary::Column::Type type);
   const NdbTableImpl* table_impl_;
-  uint32_t buffer_[MAX_PROGRAM_SIZE];
+  uint32_t buffer_[MAX_AGG_PROGRAM_WORD_SIZE];
 
   uint32_t n_gb_cols_;
   uint32_t n_agg_results_;
   AggResItem* agg_results_;
-  uint32_t agg_ops_[MAX_AGGREGATION_OP_SIZE];
+  uint32_t agg_ops_[MAX_AGG_N_RESULTS];
   std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>* gb_map_;
 
   bool finalized_;
