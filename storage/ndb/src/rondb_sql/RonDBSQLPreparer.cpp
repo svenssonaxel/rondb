@@ -199,6 +199,8 @@ RonDBSQLPreparer::parse()
   switch (m_context.m_err_state)
   {
   case ErrState::LEX_NUL:
+    err << "Input contains null byte at position " << err_pos << ".\n";
+    print_statement = false;
     msg = "Unexpected null byte.";
     break;
   case ErrState::LEX_U_ILLEGAL_BYTE:
