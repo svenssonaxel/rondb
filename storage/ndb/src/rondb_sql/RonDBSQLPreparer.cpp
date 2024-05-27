@@ -122,9 +122,9 @@ RonDBSQLPreparer::configure()
            m_conf.lock_mode == NdbOperation::LockMode::LM_CommittedRead ||
            m_conf.lock_mode == NdbOperation::LockMode::LM_SimpleRead);
     assert(m_conf.query_output_stream != NULL);
-    assert(m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::CSV ||
-           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_UTF8 ||
-           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_ASCII);
+    assert(m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_UTF8 ||
+           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_ASCII ||
+           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::TSV);
   }
   if (may_explain)
   {

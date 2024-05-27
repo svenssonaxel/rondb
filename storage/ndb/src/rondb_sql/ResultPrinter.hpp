@@ -96,14 +96,17 @@ private:
   DynamicArray<uint> m_groupby_cols;
   DynamicArray<Outputs*> m_outputs;
   DynamicArray<uint> m_col_idx_groupby_map;
-  bool m_utf8_output = true;
+  bool m_json_output;
+  bool m_utf8_output;
+  bool m_tsv_output;
   // Program state
   NdbAggregator::Column* m_regs_g;
   NdbAggregator::Result* m_regs_a;
 
   void compile();
   void optimize();
-  void print_row(NdbAggregator::ResultRecord* record);
+  void print_record(NdbAggregator::ResultRecord& record,
+                    std::ostream& out);
 public:
   ResultPrinter(ArenaAllocator* aalloc,
                 struct SelectStatement* query,

@@ -43,7 +43,7 @@ DEFINE_FORMATTER(quoted_identifier, LexCString, {
   os.put('`');
 })
 
-static void print_json_string_from_utf8(std::ostream* output_stream, LexString ls, bool utf8_output);
+static void print_json_string_from_utf8(std::ostream& output_stream, LexString ls, bool utf8_output);
 
 ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
                              struct SelectStatement* query,
@@ -64,12 +64,11 @@ ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
   assert(aalloc != NULL);
   switch (output_format)
   {
-  case ExecutionParameters::QueryOutputFormat::CSV:
-    assert(false); // Not implemented
-    break;
   case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
     break;
   case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
+    break;
+  case ExecutionParameters::QueryOutputFormat::TSV:
     break;
   default:
     assert(false);
@@ -182,14 +181,20 @@ ResultPrinter::compile()
   }
   switch (m_output_format)
   {
-  case ExecutionParameters::QueryOutputFormat::CSV:
-    assert(false); // Not implemented
+  case ExecutionParameters::QueryOutputFormat::TSV:
+    m_json_output = false;
+    m_utf8_output = true;
+    m_tsv_output = true;
     break;
   case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
+    m_json_output = true;
     m_utf8_output = true;
+    m_tsv_output = false;
     break;
   case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
+    m_json_output = true;
     m_utf8_output = false;
+    m_tsv_output = false;
     break;
   default:
     assert(false);
@@ -199,16 +204,35 @@ ResultPrinter::compile()
     {
       Cmd cmd;
       cmd.type = Cmd::Type::PRINT_STR;
-      cmd.print_str.content = LexString{ i == 0 ? "{" : ",", 1 };
-      m_program.push(cmd);
+      bool is_first = i == 0;
+      if (m_json_output)
+      {
+        cmd.print_str.content = LexString{ is_first ? "{" : ",", 1 };
+        m_program.push(cmd);
+      }
+      else if (m_tsv_output && !is_first)
+      {
+        cmd.print_str.content = LexString{ "\t", 1 };
+        m_program.push(cmd);
+      }
+      else if (m_tsv_output && is_first)
+      {
+        // The first column is not preceded by a tab.
+      }
+      else
+      {
+        assert(false);
+      }
     }
     Outputs* o = m_outputs[i];
+    if (m_json_output)
     {
       Cmd cmd;
       cmd.type = Cmd::Type::PRINT_STR_JSON;
       cmd.print_str.content = o->output_name;
       m_program.push(cmd);
     }
+    if (m_json_output)
     {
       Cmd cmd;
       cmd.type = Cmd::Type::PRINT_STR;
@@ -246,11 +270,23 @@ ResultPrinter::compile()
       assert(false);
     }
   }
+  if (m_json_output)
   {
     Cmd cmd;
     cmd.type = Cmd::Type::PRINT_STR;
     cmd.print_str.content = LexString{ "}\n", 2 };
     m_program.push(cmd);
+  }
+  else if (m_tsv_output)
+  {
+    Cmd cmd;
+    cmd.type = Cmd::Type::PRINT_STR;
+    cmd.print_str.content = LexString{ "\n", 1 };
+    m_program.push(cmd);
+  }
+  else
+  {
+    assert(false);
   }
 }
 
@@ -266,136 +302,240 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
 {
   assert(query_output_stream != NULL);
   std::ostream& out = *query_output_stream;
-  out << '[';
-  bool first_record = true;
-  for (NdbAggregator::ResultRecord record = aggregator->FetchResultRecord();
-       !record.end();
-       record = aggregator->FetchResultRecord())
+  if (m_json_output)
   {
-    if (first_record) first_record = false; else out << ',';
-    for (uint cmd_index = 0; cmd_index < m_program.size(); cmd_index++)
+    out << '[';
+    bool first_record = true;
+    for (NdbAggregator::ResultRecord record = aggregator->FetchResultRecord();
+         !record.end();
+         record = aggregator->FetchResultRecord())
     {
-      Cmd& cmd = m_program[cmd_index];
-      switch (cmd.type)
+      if (first_record)
       {
-      case Cmd::Type::STORE_GROUP_BY_COLUMN:
+        first_record = false;
+      }
+      else
+      {
+        out << ',';
+      }
+      print_record(record, out);
+    }
+    out << "]\n";
+  }
+  else if (m_tsv_output)
+  {
+    bool first_record = true;
+    for (NdbAggregator::ResultRecord record = aggregator->FetchResultRecord();
+         !record.end();
+         record = aggregator->FetchResultRecord())
+    {
+      if (first_record)
+      {
+        // Print the column names.
+        bool first_column = true;
+        for (uint i = 0; i < m_outputs.size(); i++)
         {
-          NdbAggregator::Column column = record.FetchGroupbyColumn();
-          if (column.end())
-          {
-            throw std::runtime_error("Got record with fewer GROUP BY columns than expected.");
-          }
-          m_regs_g[cmd.store_group_by_column.reg_g] = column;
+          Outputs* o = m_outputs[i];
+          if (first_column) first_column = false; else out << '\t';
+          out << o->output_name;
         }
-        break;
-      case Cmd::Type::END_OF_GROUP_BY_COLUMNS:
+        out << '\n';
+        first_record = false;
+      }
+      print_record(record, out);
+    }
+  }
+  else
+  {
+    assert(false);
+  }
+  // ================================================================================
+}
+
+inline void
+ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& out)
+{
+  for (uint cmd_index = 0; cmd_index < m_program.size(); cmd_index++)
+  {
+    Cmd& cmd = m_program[cmd_index];
+    switch (cmd.type)
+    {
+    case Cmd::Type::STORE_GROUP_BY_COLUMN:
+      {
+        NdbAggregator::Column column = record.FetchGroupbyColumn();
+        if (column.end())
         {
-          NdbAggregator::Column column = record.FetchGroupbyColumn();
-          if (!column.end())
-          {
-            throw std::runtime_error("Got record with more GROUP BY columns than expected.");
-          }
+          throw std::runtime_error("Got record with fewer GROUP BY columns than expected.");
         }
-        break;
-      case Cmd::Type::STORE_AGGREGATE:
+        m_regs_g[cmd.store_group_by_column.reg_g] = column;
+      }
+      break;
+    case Cmd::Type::END_OF_GROUP_BY_COLUMNS:
+      {
+        NdbAggregator::Column column = record.FetchGroupbyColumn();
+        if (!column.end())
         {
-          NdbAggregator::Result result = record.FetchAggregationResult();
-          if (result.end())
-          {
-            throw std::runtime_error("Got record with fewer aggregates than expected.");
-          }
-          m_regs_a[cmd.store_aggregate.reg_a] = result;
+          throw std::runtime_error("Got record with more GROUP BY columns than expected.");
         }
-        break;
-      case Cmd::Type::END_OF_AGGREGATES:
+      }
+      break;
+    case Cmd::Type::STORE_AGGREGATE:
+      {
+        NdbAggregator::Result result = record.FetchAggregationResult();
+        if (result.end())
         {
-          NdbAggregator::Result result = record.FetchAggregationResult();
-          if (!result.end())
-          {
-            throw std::runtime_error("Got record with more aggregates than expected.");
-          }
+          throw std::runtime_error("Got record with fewer aggregates than expected.");
         }
-        break;
-      case Cmd::Type::PRINT_GROUP_BY_COLUMN:
+        m_regs_a[cmd.store_aggregate.reg_a] = result;
+      }
+      break;
+    case Cmd::Type::END_OF_AGGREGATES:
+      {
+        NdbAggregator::Result result = record.FetchAggregationResult();
+        if (!result.end())
         {
-          NdbAggregator::Column column = m_regs_g[cmd.print_group_by_column.reg_g];
-          if (column.type() == 15)
+          throw std::runtime_error("Got record with more aggregates than expected.");
+        }
+      }
+      break;
+    case Cmd::Type::PRINT_GROUP_BY_COLUMN:
+      {
+        NdbAggregator::Column column = m_regs_g[cmd.print_group_by_column.reg_g];
+        if (column.type() == 15)
+        {
+          LexString content = LexString{ &column.data()[1],
+                                         (size_t)column.data()[0] };
+          if (m_json_output)
           {
-            print_json_string_from_utf8(query_output_stream,
-                                        LexString{ &column.data()[1],
-                                                   (size_t)column.data()[0] },
+            print_json_string_from_utf8(out,
+                                        content,
                                         m_utf8_output);
+          }
+          else if (m_tsv_output)
+          {
+            out << content; // todo mysql-like escape
           }
           else
           {
-            out << column.data_medium();
+            assert(false);
           }
         }
-        break;
-      case Cmd::Type::PRINT_AGGREGATE:
+        else
         {
-          NdbAggregator::Result result = m_regs_a[cmd.print_aggregate.reg_a];
-          switch (result.type())
-          {
-          case NdbDictionary::Column::Bigint:
-            out << result.data_int64();
-            break;
-          case NdbDictionary::Column::Bigunsigned:
-            out << result.data_uint64();
-            break;
-          case NdbDictionary::Column::Double:
-            out << std::fixed << std::setprecision(6) << result.data_double();
-            break;
-          case NdbDictionary::Column::Undefined:
-            // Already handled above
-            assert(0);
-            break;
-          default:
-            assert(false);
-          }
+          out << column.data_medium();
         }
-        break;
-      case Cmd::Type::PRINT_AVG:
-        {
-          NdbAggregator::Result result_sum = m_regs_a[cmd.print_avg.reg_a_sum];
-          NdbAggregator::Result result_count = m_regs_a[cmd.print_avg.reg_a_count];
-          // todo this must be tested thoroughly against MySQL.
-          double numerator;
-          unsigned long denominator;
-          switch (result_sum.type())
-          {
-          case NdbDictionary::Column::Bigint:
-            numerator = result_sum.data_int64();
-            break;
-          default:
-            assert(false);
-          }
-          switch (result_count.type())
-          {
-          case NdbDictionary::Column::Bigint:
-            denominator = result_count.data_uint64();
-            break;
-          default:
-            assert(false);
-          }
-          double result = numerator / denominator;
-          out << std::fixed << std::setprecision(6) << result;
-        }
-        break;
-      case Cmd::Type::PRINT_STR:
-        out.write(cmd.print_str.content.str, cmd.print_str.content.len);
-        break;
-      case Cmd::Type::PRINT_STR_JSON:
-        print_json_string_from_utf8(query_output_stream,
-                                    cmd.print_str.content,
-                                    m_utf8_output);
-        break;
-      default:
-        assert(false);
       }
+      break;
+    case Cmd::Type::PRINT_AGGREGATE:
+      {
+        NdbAggregator::Result result = m_regs_a[cmd.print_aggregate.reg_a];
+        switch (result.type())
+        {
+        case NdbDictionary::Column::Bigint:
+          out << result.data_int64();
+          break;
+        case NdbDictionary::Column::Bigunsigned:
+          out << result.data_uint64();
+          break;
+        case NdbDictionary::Column::Double:
+          // todo perhaps do not evaluate this branch every time
+          if (m_json_output)
+          {
+            out << std::fixed << std::setprecision(6) << result.data_double();
+          }
+          else if (m_tsv_output)
+          {
+            // In mimicking mysql's output format for double, the following is
+            // getting close.
+            // todo probably need to use my_gcvt from ../../../../strings/dtoa.cc
+            double rdd = result.data_double();
+            if (rdd == 0)
+            {
+              out << "0";
+              break;
+            }
+            char buffer[100];
+            sprintf(buffer, "%.14e", rdd);
+            // Remove any '+' after 'e' and '0' before 'e'
+            for (char *p = buffer; *p != '\0'; p++)
+            {
+              if (*p == 'e')
+              {
+                while (buffer < p && p[-1] == '0')
+                {
+                  // Shift the string to the left to remove the '0' before the e
+                  for (char *q = p - 1; *q != '\0'; q++)
+                  {
+                    *q = *(q + 1);
+                  }
+                  p--;
+                }
+                while (*p != '\0' && p[1] == '+')
+                {
+                  // Shift the string to the left to remove the '+' after the e
+                  for (char *q = p + 1; *q != '\0'; q++)
+                  {
+                    *q = *(q + 1);
+                  }
+                }
+                break;
+              }
+            }
+            out << buffer;
+          }
+          else
+          {
+            assert(false);
+          }
+          break;
+        case NdbDictionary::Column::Undefined:
+          // Already handled above
+          assert(0);
+          break;
+        default:
+          assert(false);
+        }
+      }
+      break;
+    case Cmd::Type::PRINT_AVG:
+      {
+        NdbAggregator::Result result_sum = m_regs_a[cmd.print_avg.reg_a_sum];
+        NdbAggregator::Result result_count = m_regs_a[cmd.print_avg.reg_a_count];
+        // todo this must be tested thoroughly against MySQL.
+        double numerator;
+        unsigned long denominator;
+        switch (result_sum.type())
+        {
+        case NdbDictionary::Column::Bigint:
+          numerator = result_sum.data_int64();
+          break;
+        default:
+          assert(false);
+        }
+        switch (result_count.type())
+        {
+        case NdbDictionary::Column::Bigint:
+          denominator = result_count.data_uint64();
+          break;
+        default:
+          assert(false);
+        }
+        double result = numerator / denominator;
+        out << std::fixed << std::setprecision(6) << result;
+      }
+      break;
+    case Cmd::Type::PRINT_STR:
+      out.write(cmd.print_str.content.str, cmd.print_str.content.len);
+      break;
+    case Cmd::Type::PRINT_STR_JSON:
+      print_json_string_from_utf8(out,
+                                  cmd.print_str.content,
+                                  m_utf8_output);
+      break;
+    default:
+      assert(false);
     }
   }
-  out << "]\n";
 }
 
 // Print a JSON representation of ls to output_stream, assuming ls is correctly
@@ -405,12 +545,10 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
 // utf8_output == false: Use \u escape for characters with code point U+0080 and
 //                       above. Crash if ls contains invalid UTF-8.
 static void
-print_json_string_from_utf8(std::ostream* output_stream,
+print_json_string_from_utf8(std::ostream& out,
                             LexString ls,
                             bool utf8_output)
 {
-  assert(output_stream != NULL);
-  std::ostream& out = *output_stream;
   const char* str = ls.str;
   const char* end = &ls.str[ls.len];
   out << '"';
@@ -510,14 +648,14 @@ ResultPrinter::explain(std::basic_ostream<char>* explain_output_stream)
   const char* format_description = "";
   switch(m_output_format)
   {
-  case ExecutionParameters::QueryOutputFormat::CSV:
-    assert(false); // Not implemented
-    break;
   case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
     format_description = "UTF-8 encoded JSON";
     break;
   case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
     format_description = "ASCII encoded JSON";
+    break;
+  case ExecutionParameters::QueryOutputFormat::TSV:
+    format_description = "mysql-style tab separated";
     break;
   default:
     assert(false);
