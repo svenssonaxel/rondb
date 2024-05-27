@@ -285,7 +285,7 @@ RonDBSQLPreparer::parse()
     uint line_started_at = 0;
     for (uint pos = 0; pos <= m_sql.len; pos++)
     {
-      if (line_started_at == pos)
+      if (line_started_at == pos && pos < m_sql.len)
       {
         err << "> ";
       }
