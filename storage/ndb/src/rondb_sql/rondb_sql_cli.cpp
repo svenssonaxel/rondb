@@ -142,9 +142,9 @@ print_help(const char* argv0)
     "                                  release lock directly.\n"
     // See RonDBSQLCommon.hpp for comment about query output format
     "  --query-output-format <FMT>   Set query output format. <FMT> can be one of:\n"
-    "                                - JSON_ASCII\n"
     "                                - JSON_UTF8 (default)\n"
-    "                                - CSV\n"
+    "                                - JSON_ASCII\n"
+    "                                - TSV (mimic mysql)\n" // todo mimic what cmdline flag exactly?
     // See RonDBSQLCommon.hpp for comment about explain output format
     "  --explain-output-format <FMT> Set explain output format. <FMT> can be one of:\n"
     "                                - TEXT (default)\n"
@@ -279,12 +279,12 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
         ARG_FAIL("Invalid lock mode.");
       break;
     case OPT_QUERY_OUTPUT_FORMAT:
-      if (strcmp(optarg, "JSON_ASCII") == 0)
-        params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII;
-      else if (strcmp(optarg, "JSON_UTF8") == 0)
+      if (strcmp(optarg, "JSON_UTF8") == 0)
         params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_UTF8;
-      else if (strcmp(optarg, "CSV") == 0)
-        params.query_output_format = ExecutionParameters::QueryOutputFormat::CSV;
+      else if (strcmp(optarg, "JSON_ASCII") == 0)
+        params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII;
+      else if (strcmp(optarg, "TSV") == 0)
+        params.query_output_format = ExecutionParameters::QueryOutputFormat::TSV;
       else
         ARG_FAIL("Invalid query output format.");
       break;
