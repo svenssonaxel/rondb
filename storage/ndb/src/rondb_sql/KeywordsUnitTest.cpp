@@ -1,5 +1,5 @@
 #include "Keywords.hpp"
-#include "lex.h"
+#include "../../../../sql/lex.h"
 
 using std::cout;
 using std::endl;
