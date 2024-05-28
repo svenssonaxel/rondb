@@ -53,7 +53,7 @@ ADD_CONVENIENCE_LIBRARY(rondb_sql
   ${CMAKE_CURRENT_BINARY_DIR}/RonDBSQLLexer.l.cpp
   )
 
-ADD_EXECUTABLE(rondb_sql_cli rondb_sql_cli.cpp)
+NDB_ADD_EXECUTABLE(rondb_sql_cli rondb_sql_cli.cpp)
 TARGET_LINK_LIBRARIES(rondb_sql_cli rondb_sql)
 TARGET_LINK_LIBRARIES(rondb_sql_cli ndbclient_so)
 
