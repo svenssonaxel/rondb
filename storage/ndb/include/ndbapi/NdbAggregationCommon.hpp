@@ -9,11 +9,11 @@
 #include <cstdint>
 /*
  * MOZ
- * Turn on the MOZ_AGG_CHECK to validate aggregation
+ * Turn off the MOZ_AGG_CHECK to stop validate aggregation
  * network package on both data node and API node
+ * in DEBUG binary
  */
-#undef MOZ_AGG_CHECK
-// #define MOZ_AGG_CHECK 1
+#define MOZ_AGG_CHECK 1
 
 #define MAX_AGG_RESULT_BATCH_BYTES 8192
 #define DEF_AGG_RESULT_BATCH_BYTES 4096

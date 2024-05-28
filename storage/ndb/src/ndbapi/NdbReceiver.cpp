@@ -1180,8 +1180,12 @@ NdbReceiver::unpackRow(const Uint32* aDataPtr, Uint32 aLength, char* row)
   const AttributeHeader agg_checker_ah(*aDataPtr);
   if (aLength > 0 &&
       agg_checker_ah.getAttributeId() == AttributeHeader::AGG_RESULT) {
-    // Moz
-    // Aggregation result
+#if defined(MOZ_AGG_CHECK) && !defined(NDEBUG)
+    /*
+     * Moz
+     * Validation
+     * Aggregation result
+     */
     uint32_t parse_pos = 0;
     const uint32_t* data_buf = aDataPtr;
 
@@ -1256,6 +1260,7 @@ NdbReceiver::unpackRow(const Uint32* aDataPtr, Uint32 aLength, char* row)
       }
     }
     assert(parse_pos == aLength);
+#endif // MOZ_AGG_CHECK && !NDEBUG
 
     if (aLength > 0) {
       assert(m_type == NDB_SCANRECEIVER);

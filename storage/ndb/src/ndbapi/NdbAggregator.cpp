@@ -165,9 +165,12 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
           }
         }
       }
-#ifdef MOZ_AGG_CHECK
+#if defined(MOZ_AGG_CHECK) && !defined(NDEBUG)
       {
-        // CHECK
+        /*
+         * Moz
+         * Validation
+         */
         uint32_t pos = parse_pos;
         for (uint32_t i = 0; i < n_gb_cols_; i++) {
           AttributeHeader ah(data_buf[pos]);
@@ -186,13 +189,15 @@ int32_t NdbAggregator::ProcessRes(char* buf) {
           }
         }
       }
-#endif // MOZ_AGG_CHECK
+#endif // MOZ_AGG_CHECK && !NDEBUG
       parse_pos += ((gb_cols_len + agg_res_len) >> 2);
     }
   } else {
     uint32_t gb_cols_len = data_buf[parse_pos] >> 16;
     uint32_t agg_res_len = data_buf[parse_pos++] & 0xFFFF;
     assert(gb_cols_len == 0);
+    // Get rid of warning in release-binary
+    (void)gb_cols_len;
     assert(agg_res_len == n_agg_results_ * sizeof(AggResItem));
     assert(agg_results_ != nullptr);
     AggResItem* agg_res_ptr = agg_results_;

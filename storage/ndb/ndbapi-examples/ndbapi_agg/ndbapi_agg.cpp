@@ -317,6 +317,24 @@ int populate(Ndb * myNdb, MYSQL& mysql)
     if (myNdbOperation == NULL) 
       APIERROR(myTrans->getNdbError());
     myNdbOperation->insertTuple();
+#ifdef NDEBUG
+    myNdbOperation->equal("CINT", rows[i].cint32);
+    myNdbOperation->setValue("CTINYINT", rows[i].cint8);
+    myNdbOperation->setValue("CSMALLINT", rows[i].cint16);
+    myNdbOperation->setValue("CMEDIUMINT", rows[i].cint24);
+    myNdbOperation->setValue("CBIGINT", rows[i].cint64);
+
+    myNdbOperation->setValue("CUTINYINT", rows[i].cuint8);
+    myNdbOperation->setValue("CUSMALLINT", rows[i].cuint16);
+    myNdbOperation->setValue("CUMEDIUMINT", rows[i].cuint24);
+    myNdbOperation->setValue("CUINT", rows[i].cuint32);
+    myNdbOperation->setValue("CUBIGINT", rows[i].cuint64);
+
+    myNdbOperation->setValue("CFLOAT", rows[i].cfloat);
+    myNdbOperation->setValue("CDOUBLE", rows[i].cdouble);
+
+    myNdbOperation->setValue("CCHAR", rows[i].cchar);
+#else
     assert(myNdbOperation->equal("CINT", rows[i].cint32) != -1);
     assert(myNdbOperation->setValue("CTINYINT", rows[i].cint8) != -1);
     assert(myNdbOperation->setValue("CSMALLINT", rows[i].cint16) != -1);
@@ -333,6 +351,7 @@ int populate(Ndb * myNdb, MYSQL& mysql)
     assert(myNdbOperation->setValue("CDOUBLE", rows[i].cdouble) != -1);
 
     assert(myNdbOperation->setValue("CCHAR", rows[i].cchar) != -1);
+#endif // NDEBUG
   }
 
   int check = myTrans->execute(NdbTransaction::Commit);
@@ -438,6 +457,24 @@ int scan_aggregation(Ndb * myNdb, MYSQL& mysql, bool validation)
      * Define an aggregator
      */
     NdbAggregator aggregator(myTable);
+#ifdef NDEBUG
+    aggregator.GroupBy("CCHAR");
+    aggregator.GroupBy("CMEDIUMINT");
+    aggregator.LoadColumn("CUBIGINT", kReg1);
+    aggregator.LoadColumn("CUTINYINT", kReg2);
+    aggregator.Add(kReg1, kReg2);
+    aggregator.LoadUint64(6666, kReg2);
+    aggregator.Add(kReg1, kReg2);
+    aggregator.Sum(0, kReg1);
+    aggregator.LoadColumn("CDOUBLE", kReg1);
+    aggregator.LoadInt64(-8888, kReg2);
+    aggregator.Minus(kReg1, kReg2);
+    aggregator.Min(1, kReg1);
+    aggregator.LoadColumn("CUMEDIUMINT", kReg1);
+    aggregator.LoadDouble(6.6, kReg2);
+    aggregator.Mul(kReg1, kReg2);
+    aggregator.Max(2, kReg1);
+#else
     assert(aggregator.GroupBy("CCHAR"));
     assert(aggregator.GroupBy("CMEDIUMINT"));
     assert(aggregator.LoadColumn("CUBIGINT", kReg1));
@@ -454,6 +491,7 @@ int scan_aggregation(Ndb * myNdb, MYSQL& mysql, bool validation)
     assert(aggregator.LoadDouble(6.6, kReg2));
     assert(aggregator.Mul(kReg1, kReg2));
     assert(aggregator.Max(2, kReg1));
+#endif // NDEBUG
 
     /* Example of how to catch an error
     int ret = aggregator.Sum(0, kReg1);
@@ -464,7 +502,11 @@ int scan_aggregation(Ndb * myNdb, MYSQL& mysql, bool validation)
     }
     */
 
+#ifdef NDEBUG
+    aggregator.Finalize();
+#else
     assert(aggregator.Finalize());
+#endif // NDEBUG
     if (myScanOp->setAggregationCode(&aggregator) == -1) {
       std::cout << myTrans->getNdbError().message << std::endl;
       myNdb->closeTransaction(myTrans);
@@ -665,6 +707,24 @@ int scan_index_aggregation(Ndb *myNdb, MYSQL& mysql, bool validation) {
   }
 
   NdbAggregator aggregator(myTable);
+#ifdef NDEBUG
+  aggregator.GroupBy("CCHAR");
+  aggregator.GroupBy("CMEDIUMINT");
+  aggregator.LoadColumn("CUBIGINT", kReg1);
+  aggregator.LoadColumn("CUTINYINT", kReg2);
+  aggregator.Add(kReg1, kReg2);
+  aggregator.LoadUint64(6666, kReg2);
+  aggregator.Add(kReg1, kReg2);
+  aggregator.Sum(0, kReg1);
+  aggregator.LoadColumn("CDOUBLE", kReg1);
+  aggregator.LoadInt64(-8888, kReg2);
+  aggregator.Minus(kReg1, kReg2);
+  aggregator.Min(1, kReg1);
+  aggregator.LoadColumn("CUMEDIUMINT", kReg1);
+  aggregator.LoadDouble(6.6, kReg2);
+  aggregator.Mul(kReg1, kReg2);
+  aggregator.Max(2, kReg1);
+#else
   assert(aggregator.GroupBy("CCHAR"));
   assert(aggregator.GroupBy("CMEDIUMINT"));
   assert(aggregator.LoadColumn("CUBIGINT", kReg1));
@@ -681,8 +741,13 @@ int scan_index_aggregation(Ndb *myNdb, MYSQL& mysql, bool validation) {
   assert(aggregator.LoadDouble(6.6, kReg2));
   assert(aggregator.Mul(kReg1, kReg2));
   assert(aggregator.Max(2, kReg1));
+#endif // NDEBUG
 
+#ifdef NDEBUG
+  aggregator.Finalize();
+#else
   assert(aggregator.Finalize());
+#endif // NDEBUG
   if (myIndexScanOp->setAggregationCode(&aggregator) == -1) {
     std::cout << myTrans->getNdbError().message << std::endl;
     myNdb->closeTransaction(myTrans);

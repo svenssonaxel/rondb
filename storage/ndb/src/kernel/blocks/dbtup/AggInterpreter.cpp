@@ -1089,6 +1089,9 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
     for (uint32_t i = 0; i < n_gb_cols_; i++) {
       int ret = block_tup->readAttributes(req_struct, &(gb_cols_[i]), 1,
                     buf_ + buf_pos_, g_buf_len_ - buf_pos_);
+#ifdef NDEBUG
+      (void)ret;
+#endif // NDEBUG
       assert(ret >= 0);
       header = reinterpret_cast<AttributeHeader*>(buf_ + buf_pos_);
       buf_pos_ += (1 + header->getDataSize());
@@ -1244,6 +1247,10 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         assert(header->getAttributeId() == (col_index >> 16));
 
         assert(type == AttributeDescriptor::getType(attrDescriptor[0]));
+        if (!TypeSupported(type)) {
+          // TODO (Zhao)
+          // Catch error
+        }
         assert(TypeSupported(type));
 
         ResetRegister(&registers_[reg_index]);
@@ -1497,6 +1504,9 @@ void AggInterpreter::MergePrint(const AggInterpreter* in1,
   while (iter1 != in1->gb_map_->end() && iter2 != in2->gb_map_->end()) {
     uint32_t len1 = iter1->first.len;
     uint32_t len2 = iter2->first.len;
+#ifdef NDEBUG
+    (void)len2;
+#endif // NDEBUG
     assert(len1 == len2);
 
     int ret = memcmp(iter1->first.ptr, iter2->first.ptr, len1);
@@ -1795,8 +1805,11 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
     pos += ((n_agg_results_ * sizeof(AggResItem)) >> 2);
   }
 
-  // CHECK
-#ifdef MOZ_AGG_CHECK
+#if defined(MOZ_AGG_CHECK) && !defined(NDEBUG)
+  /*
+   * Moz
+   * Validation
+   */
   uint32_t data_len = pos;
   uint32_t parse_pos = 0;
 
@@ -1863,7 +1876,7 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
     }
   }
   assert(parse_pos == data_len);
-#endif // MOZ_AGG_CHECK
+#endif // MOZ_AGG_CHECK && !NDEBUG
   return pos;
 }
 
