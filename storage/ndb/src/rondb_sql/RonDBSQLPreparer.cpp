@@ -130,7 +130,7 @@ RonDBSQLPreparer::configure()
   {
     assert(m_conf.explain_output_stream != NULL);
     assert(m_conf.explain_output_format == ExecutionParameters::ExplainOutputFormat::TEXT ||
-           m_conf.explain_output_format == ExecutionParameters::ExplainOutputFormat::JSON);
+           m_conf.explain_output_format == ExecutionParameters::ExplainOutputFormat::JSON_UTF8);
   }
   assert(m_conf.err_output_stream != NULL);
 

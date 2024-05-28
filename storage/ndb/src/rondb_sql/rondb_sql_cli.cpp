@@ -23,7 +23,8 @@
 */
 
 #include <RonDBSQLPreparer.hpp>
-#include <my_sys.h> // Needed for MY_GIVE_INFO
+#include <my_sys.h> // Only needed for MY_GIVE_INFO
+#include <getopt.h>
 
 using std::cerr;
 using std::cout;
@@ -32,18 +33,16 @@ using std::endl;
 struct Config
 {
   bool help = false;
-  bool connect_ndb = true;
   ExecutionParameters params;
   int infoflag = 0;
-  int retry_max = 0;
-  const char* connectstring = "localhost::1186";
+  const char* connectstring = NULL;
+  const char* database = NULL;
   char* sql_query = NULL;
 };
 
 static void print_help(const char* argv0);
 static int parse_cmdline_arguments(int argc, char** argv, Config& config);
-static int run_rondb_sql(ExecutionParameters& params, const int retryMax);
-static void milliSleep(int milliseconds);
+static int run_rondb_sql(ExecutionParameters& params);
 
 int
 main(int argc, char** argv)
@@ -67,9 +66,9 @@ main(int argc, char** argv)
     return exit_code;
   }
 
-  if (!config.connect_ndb)
+  if (config.connectstring == NULL)
   {
-    return run_rondb_sql(params, config.retry_max);
+    return run_rondb_sql(params);
   }
 
   ndb_init();
@@ -88,7 +87,7 @@ main(int argc, char** argv)
       cerr << "Cluster was not ready within 30 secs." << endl;
       return 1;
     }
-    Ndb myNdb(&cluster_connection,"agg");
+    Ndb myNdb(&cluster_connection, config.database);
     // Set max 1024  parallel transactions
     if (myNdb.init(1024) == -1) {
       auto error = myNdb.getNdbError();
@@ -97,9 +96,9 @@ main(int argc, char** argv)
     }
     params.ndb = &myNdb;
     // Execute
-    exit_code = run_rondb_sql(params, config.retry_max);
+    exit_code = run_rondb_sql(params);
   }
-  // End of nested scope. This is necessary to clean up the cluster connection
+  // End of block scope. This is necessary to clean up the cluster connection
   // before calling ndb_end.
   ndb_end(config.infoflag);
 
@@ -110,138 +109,234 @@ static void
 print_help(const char* argv0)
 {
   cout <<
-    "Usage: " << argv0 << " [OPTIONS] SQL_QUERY\n"
+    "Usage: " << argv0 << " [OPTIONS]\n"
     "\n"
-    "Options:\n"
-    "  -h    Display this help message\n"
-    "  -C <CONNECTION-STRING>\n"
-    "        Connection string (default: localhost:1186)\n"
-    "  -i    Give time info about process\n"
-    "  -I    Do not give time info about process (default)\n"
-    "  -r <RETRY-MAX>\n"
-    "        Maximum number of retries (default: 0)\n"
-    "  -N    No Ndb cluster connection (supports no queries and only limited EXPLAIN.\n"
-    "                                   Use together with -e or -E)\n"
-    "  -n    Connect to Ndb cluster (default)\n"
-    "    Execution mode:\n"
-    "  -b    Allow both query and explain (default)\n"
-    "  -q    Allow query only\n"
-    "  -e    Allow explain only\n"
-    "  -Q    Query override\n"
-    "  -E    Explain override\n"
-    "    Lock mode:\n"
-    "  -R    LM_Read:          Read with shared lock\n"
-    "  -X    LM_Exclusive:     Read with exclusive lock\n"
-    "  -D    LM_CommittedRead: Ignore locks, read last committed value, a.k.a.\n"
-    "                          Dirty (default)\n"
-    "  -S    LM_SimpleRead:    Read with shared lock, but release lock directly\n"
-    "    Query output format:\n"
-    "  -a    JSON ASCII\n"
-    "  -u    JSON UTF8 (default)\n"
-    "  -c    CSV\n"
-    "    Explain output format:\n"
-    "  -j    JSON\n"
-    "  -t    TEXT (default)\n";
+    "Options that mimic mysql:\n"
+    "  -?, --help                    Display this help message\n"
+    "  -T, --debug-info              Print some debug info at exit, e.g. timing\n"
+    "  -D, --database name           Database name. Required if --connect-string is\n"
+    "                                given.\n"
+    "  -e, --execute query           Execute query and output results.\n"
+    "Options specific to RonDB SQL:\n"
+    "  --execute-file <FILE>         Execute query from file.\n"
+    "  --connect-string <STRING>     Ndb connection string (If not given, then no\n"
+    "                                connection is made. Without a connection,\n"
+    "                                queries are not supported and explain output\n"
+    "                                will be somewhat limited. Execution mode must be\n"
+    "                                set to either ALLOW_EXPLAIN_ONLY or\n"
+    "                                EXPLAIN_OVERRIDE.)\n"
+    // See RonDBSQLCommon.hpp for comment about execution mode
+    "  --execution-mode <MODE>       Set execution mode. <MODE> can be one of:\n"
+    "                                - ALLOW_BOTH_QUERY_AND_EXPLAIN (default)\n"
+    "                                - ALLOW_QUERY_ONLY\n"
+    "                                - ALLOW_EXPLAIN_ONLY\n"
+    "                                - QUERY_OVERRIDE\n"
+    "                                - EXPLAIN_OVERRIDE\n"
+    // See ../../include/ndbapi/NdbOperation.hpp for comment about lock mode
+    "  --lock-mode <MODE>            Set lock mode. <MODE> can be one of:\n"
+    "                                - LM_Read: Read with shared lock.\n"
+    "                                - LM_Exclusive: Read with exclusive lock.\n"
+    "                                - LM_CommittedRead: Ignore locks, read last\n"
+    "                                  committed value, a.k.a. Dirty. (default)\n"
+    "                                - LM_SimpleRead:    Read with shared lock, but\n"
+    "                                  release lock directly.\n"
+    // See RonDBSQLCommon.hpp for comment about query output format
+    "  --query-output-format <FMT>   Set query output format. <FMT> can be one of:\n"
+    "                                - JSON_ASCII\n"
+    "                                - JSON_UTF8 (default)\n"
+    "                                - CSV\n"
+    // See RonDBSQLCommon.hpp for comment about explain output format
+    "  --explain-output-format <FMT> Set explain output format. <FMT> can be one of:\n"
+    "                                - TEXT (default)\n"
+    "                                - JSON_UTF8\n"
+    ;
 }
+
+#define ARG_FAIL(EXPLANATION) do \
+  { \
+    cerr << "Error parsing command line arguments: " << EXPLANATION << endl; \
+    config.help = true; \
+    return 1; \
+  } while (0);
 
 static int
 parse_cmdline_arguments(int argc, char** argv, Config& config)
 {
   ExecutionParameters& params = config.params;
   int opt;
-  while ((opt = getopt(argc, argv, "hC:iIr:NnbqeQERXDSaucjt")) != -1)
+
+  // Unique values for long-only options
+  enum {
+    OPT_EXECUTE_FILE = 256,
+    OPT_CONNECT_STRING,
+    OPT_EXECUTION_MODE,
+    OPT_LOCK_MODE,
+    OPT_QUERY_OUTPUT_FORMAT,
+    OPT_EXPLAIN_OUTPUT_FORMAT,
+  };
+
+  static struct option long_options[] = {
+    {"help", no_argument, 0, '?'},
+    {"debug-info", no_argument, 0, 'T'},
+    {"database", required_argument, 0, 'D'},
+    {"execute", required_argument, 0, 'e'},
+    {"execute-file", required_argument, 0, OPT_EXECUTE_FILE},
+    {"connect-string", required_argument, 0, OPT_CONNECT_STRING},
+    {"execution-mode", required_argument, 0, OPT_EXECUTION_MODE},
+    {"lock-mode", required_argument, 0, OPT_LOCK_MODE},
+    {"query-output-format", required_argument, 0, OPT_QUERY_OUTPUT_FORMAT},
+    {"explain-output-format", required_argument, 0, OPT_EXPLAIN_OUTPUT_FORMAT},
+    {0, 0, 0, 0}
+  };
+
+  while ((opt = getopt_long(argc, argv, "?TD:e:", long_options, NULL)) != -1)
   {
     switch (opt)
     {
-    case 'h': config.help = true; return 0;
-    case 'C': config.connectstring = optarg; break;
-    case 'i': config.infoflag = MY_GIVE_INFO; break;
-    case 'I': config.infoflag = 0; break;
-    case 'r': config.retry_max = atoi(optarg); break;
-    case 'N': config.connect_ndb = false; break;
-    case 'n': config.connect_ndb = true; break;
-    case 'b': params.mode = ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN; break;
-    case 'q': params.mode = ExecutionParameters::ExecutionMode::ALLOW_QUERY_ONLY; break;
-    case 'e': params.mode = ExecutionParameters::ExecutionMode::ALLOW_EXPLAIN_ONLY; break;
-    case 'Q': params.mode = ExecutionParameters::ExecutionMode::QUERY_OVERRIDE; break;
-    case 'E': params.mode = ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE; break;
-    case 'R': params.lock_mode = NdbOperation::LockMode::LM_Read; break;
-    case 'X': params.lock_mode = NdbOperation::LockMode::LM_Exclusive; break;
-    case 'D': params.lock_mode = NdbOperation::LockMode::LM_CommittedRead; break;
-    case 'S': params.lock_mode = NdbOperation::LockMode::LM_SimpleRead; break;
-    case 'a': params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII; break;
-    case 'u': params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_UTF8; break;
-    case 'c': params.query_output_format = ExecutionParameters::QueryOutputFormat::CSV; break;
-    case 'j': params.explain_output_format = ExecutionParameters::ExplainOutputFormat::JSON; break;
-    case 't': params.explain_output_format = ExecutionParameters::ExplainOutputFormat::TEXT; break;
+    case '?': config.help = true; return 0;
+    case 'T': config.infoflag = MY_GIVE_INFO; break;
+    case 'D':
+      config.database = optarg;
+      break;
+    case 'e':
+      if (params.sql_buffer != NULL)
+      {
+        ARG_FAIL("Only one query may be specified.");
+      }
+      else
+      {
+        static_assert(sizeof(char) == 1);
+        char* sql_query = optarg;
+        uint sql_query_len = strlen(sql_query);
+        size_t parse_len = sql_query_len + 2;
+        char* parse_str = params.aalloc->alloc<char>(parse_len);
+        memcpy(parse_str, sql_query, sql_query_len);
+        parse_str[sql_query_len] = '\0';
+        parse_str[sql_query_len+1] = '\0';
+        params.sql_buffer = parse_str;
+        params.sql_len = parse_len;
+      }
+      break;
+    case OPT_EXECUTE_FILE:
+      if (params.sql_buffer != NULL)
+      {
+        ARG_FAIL("Only one query may be specified.");
+      }
+      else
+      {
+        static_assert(sizeof(char) == 1);
+        char* file_name = optarg;
+        FILE* file = fopen(file_name, "r");
+        if (file == NULL)
+        {
+          cerr << "Error opening file: " << file_name << endl;
+          return 1;
+        }
+        fseek(file, 0, SEEK_END);
+        size_t sql_query_len = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        size_t parse_len = sql_query_len + 2;
+        char* parse_str = params.aalloc->alloc<char>(parse_len);
+        size_t read_size = fread(parse_str, 1, parse_len, file);
+        if (read_size != sql_query_len)
+        {
+          cerr << "Error reading file: " << file_name << endl;
+          fclose(file);
+          return 1;
+        }
+        fclose(file);
+        parse_str[sql_query_len] = '\0';
+        parse_str[sql_query_len+1] = '\0';
+        params.sql_buffer = parse_str;
+        params.sql_len = parse_len;
+      }
+      break;
+    case OPT_CONNECT_STRING: config.connectstring = optarg; break;
+    case OPT_EXECUTION_MODE:
+      if (strcmp(optarg, "ALLOW_BOTH_QUERY_AND_EXPLAIN") == 0)
+        params.mode = ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN;
+      else if (strcmp(optarg, "ALLOW_QUERY_ONLY") == 0)
+        params.mode = ExecutionParameters::ExecutionMode::ALLOW_QUERY_ONLY;
+      else if (strcmp(optarg, "ALLOW_EXPLAIN_ONLY") == 0)
+        params.mode = ExecutionParameters::ExecutionMode::ALLOW_EXPLAIN_ONLY;
+      else if (strcmp(optarg, "QUERY_OVERRIDE") == 0)
+        params.mode = ExecutionParameters::ExecutionMode::QUERY_OVERRIDE;
+      else if (strcmp(optarg, "EXPLAIN_OVERRIDE") == 0)
+        params.mode = ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE;
+      else
+        ARG_FAIL("Invalid execution mode.");
+      break;
+    case OPT_LOCK_MODE:
+      if (strcmp(optarg, "LM_Read") == 0)
+        params.lock_mode = NdbOperation::LockMode::LM_Read;
+      else if (strcmp(optarg, "LM_Exclusive") == 0)
+        params.lock_mode = NdbOperation::LockMode::LM_Exclusive;
+      else if (strcmp(optarg, "LM_CommittedRead") == 0)
+        params.lock_mode = NdbOperation::LockMode::LM_CommittedRead;
+      else if (strcmp(optarg, "LM_SimpleRead") == 0)
+        params.lock_mode = NdbOperation::LockMode::LM_SimpleRead;
+      else
+        ARG_FAIL("Invalid lock mode.");
+      break;
+    case OPT_QUERY_OUTPUT_FORMAT:
+      if (strcmp(optarg, "JSON_ASCII") == 0)
+        params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII;
+      else if (strcmp(optarg, "JSON_UTF8") == 0)
+        params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_UTF8;
+      else if (strcmp(optarg, "CSV") == 0)
+        params.query_output_format = ExecutionParameters::QueryOutputFormat::CSV;
+      else
+        ARG_FAIL("Invalid query output format.");
+      break;
+    case OPT_EXPLAIN_OUTPUT_FORMAT:
+      if (strcmp(optarg, "TEXT") == 0)
+        params.explain_output_format = ExecutionParameters::ExplainOutputFormat::TEXT;
+      else if (strcmp(optarg, "JSON_UTF8") == 0)
+        params.explain_output_format = ExecutionParameters::ExplainOutputFormat::JSON_UTF8;
+      else
+        ARG_FAIL("Invalid explain output format.");
+      break;
     default:
-      config.help = true;
-      return 1;
+      ARG_FAIL("Invalid option.");
     }
   }
-  // Make sure exactly 1 positional argument
-  if (optind + 1 != argc)
+  // Make sure no arguments remain
+  if (optind != argc)
   {
-    config.help = true;
-    return 1;
+    ARG_FAIL("No positional arguments allowed.");
   }
-  // SQL query
-  char* sql_query = argv[optind];
-  uint sql_query_len = strlen(sql_query);
-  char* parse_str = params.aalloc->alloc<char>(sql_query_len + 2);
-  size_t parse_len = (sql_query_len + 2) * sizeof(char);
-  memcpy(parse_str, sql_query, sql_query_len);
-  parse_str[sql_query_len] = '\0';
-  parse_str[sql_query_len+1] = '\0';
-  params.sql_buffer = parse_str;
-  params.sql_len = parse_len;
+  // Validate
+  if (config.connectstring != NULL && config.database == NULL)
+  {
+    ARG_FAIL("Database name is required if connect string is given.");
+  }
+  if (params.sql_buffer == NULL)
+  {
+    ARG_FAIL("SQL query is required. Use -e, --execute or --execute-file to provide one.");
+  }
   return 0;
 }
 
 static int
-run_rondb_sql(ExecutionParameters& params, const int retryMax)
+run_rondb_sql(ExecutionParameters& params)
 {
-  int retryAttempt = 0;
-  while (true)
+  try
   {
-    try
-    {
-      RonDBSQLPreparer executor(params);
-      executor.execute();
-      return 0;
-    }
-    catch (RonDBSQLPreparer::TemporaryError& e)
-    {
-      cerr << "Caught temporary error: " << e.what() << endl;
-      milliSleep(50);
-      if (retryAttempt >= retryMax)
-      {
-        cerr << "ERROR: has retried this operation " << retryAttempt
-             << " times, failing!" << endl;
-        // Use exit code 3 to distinguish temporary errors.
-        // (Avoid exit code 2 as it is used by e.g. bash.)
-        return 3;
-      }
-      else
-      {
-        retryAttempt++;
-        continue;
-      }
-    }
-    catch (std::runtime_error& e)
-    {
-      cerr << "Caught exception: " << e.what() << endl;
-      return 1;
-    }
+    RonDBSQLPreparer executor(params);
+    executor.execute();
+    return 0;
+  }
+  catch (RonDBSQLPreparer::TemporaryError& e)
+  {
+    cerr << "Caught temporary error: " << e.what() << endl;
+    // Use exit code 3 to distinguish temporary errors.
+    // Avoid exit code 2 as it is used by e.g. bash.
+      return 3;
+  }
+  catch (std::runtime_error& e)
+  {
+    cerr << "Caught exception: " << e.what() << endl;
+    return 1;
   }
   assert(false);
-}
-
-static void
-milliSleep(int milliseconds)
-{
-  struct timeval sleeptime;
-  sleeptime.tv_sec = milliseconds / 1000;
-  sleeptime.tv_usec = (milliseconds - (sleeptime.tv_sec * 1000)) * 1000000;
-  select(0, 0, 0, 0, &sleeptime);
 }
