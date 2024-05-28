@@ -86,13 +86,13 @@ class NdbAggregator {
       return *(int8_t*)(ptr_);
     }
     uint8_t data_uint8() {
-      return *(int8_t*)(ptr_);
+      return *(uint8_t*)(ptr_);
     }
     int16_t data_int16() {
       return *(int16_t*)(ptr_);
     }
     uint16_t data_uint16() {
-      return *(int16_t*)(ptr_);
+      return *(uint16_t*)(ptr_);
     }
 		int32_t data_medium();
 		uint32_t data_umedium();
@@ -100,13 +100,13 @@ class NdbAggregator {
       return *(int32_t*)(ptr_);
     }
     uint32_t data_uint32() {
-      return *(int32_t*)(ptr_);
+      return *(uint32_t*)(ptr_);
     }
     int64_t data_int64() {
       return *(int64_t*)(ptr_);
     }
     uint64_t data_uint64() {
-      return *(int64_t*)(ptr_);
+      return *(uint64_t*)(ptr_);
     }
 		float data_float() {
 			float val;
@@ -162,7 +162,7 @@ class NdbAggregator {
     int64_t data_int64() {
       return data_.val_int64;
     }
-    int64_t data_uint64() {
+    uint64_t data_uint64() {
       return data_.val_uint64;
     }
     double data_double() {
