@@ -56,15 +56,19 @@ struct ExecutionParameters
   enum class QueryOutputFormat
   {
     CSV,
-    JSON_UTF8,
-    JSON_ASCII,
+    JSON_UTF8, // Output a JSON representation of the result set. Characters
+               // with code point U+0080 and above are encoded as UTF-8.
+    JSON_ASCII, // Output a JSON representation of the result set. Characters
+                // with code point U+0080 and above are encoded using \u escape
+                // sequences, meaning the output stream will only contain ASCII
+                // characters 0x00 to 0x7f.
   };
   QueryOutputFormat query_output_format = QueryOutputFormat::JSON_UTF8;
   std::basic_ostream<char>* explain_output_stream = NULL;
   enum class ExplainOutputFormat
   {
     TEXT,
-    JSON,
+    JSON_UTF8, // See comment above
   };
   ExplainOutputFormat explain_output_format = ExplainOutputFormat::TEXT;
   std::basic_ostream<char>* err_output_stream = NULL;
