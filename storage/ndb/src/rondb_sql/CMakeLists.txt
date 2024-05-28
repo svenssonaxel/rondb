@@ -25,8 +25,6 @@ INCLUDE_DIRECTORIES(
   # Since we generate header files RonDBSQLParser.y.hpp and RonDBSQLLexer.l.hpp
   # into the binary dir, we need to include it in the include path
   ${CMAKE_CURRENT_BINARY_DIR}
-  # KeywordsUnitTest.cpp includes lex.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../sql
   )
 
 # Generate parser
