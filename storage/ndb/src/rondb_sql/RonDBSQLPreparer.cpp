@@ -440,13 +440,11 @@ RonDBSQLPreparer::load()
     assert(has_aggregate_outputs);
     assert(m_agg->getStatus() == AggregationAPICompiler::Status::PROGRAMMING);
   }
-  bool has_groupby_columns = (m_context.ast_root.groupby_columns != NULL);
-  if (!has_aggregate_outputs && !has_groupby_columns)
+  if (!has_aggregate_outputs)
   {
     assert(m_conf.err_output_stream != NULL);
     std::basic_ostream<char>& err = *m_conf.err_output_stream;
-    err << "This query has no aggregate expression and no GROUP BY clause,"
-           " so it is not an aggregate query.\n"
+    err << "This query has no aggregate expression, so it is not an aggregate query.\n"
            "Currently, RonDB SQL only supports aggregate queries.\n";
     throw runtime_error("Not an aggregate query.");
   }
@@ -938,38 +936,17 @@ RonDBSQLPreparer::apply_filter(NdbScanFilter* filter,
             // todo no idea if this is correct
             filter->isfalse() >= 0);
   case T_EQUALS:
-  {
-    if (ce->args.left->op == T_IDENTIFIER &&
-        ce->args.right->op == T_INT)
-    {
-      uint col_idx = ce->args.left->col_idx;
-      // col_idx refers to the index in m_columns. To fetch the column object,
-      // we need the column name or attrId. We get the attrId from
-      // m_column_attrId_map.
-      assert(m_column_attrId_map != NULL);
-      const NdbDictionary::Column* col = m_table->getColumn(m_column_attrId_map[col_idx]);
-      if (col == NULL)
-      {
-        return false;
-      }
-      int col_id = col->getColumnNo();
-      uint8_t* val = m_aalloc->alloc<uint8_t>(1);
-      *val = static_cast<uint8_t>(ce->args.right->constant_integer);
-      return (filter->cmp(NdbScanFilter::COND_EQ, col_id, val, sizeof(*val)) >= 0);
-    }
-    assert(false); // Not implemented
-    break;
-  }
+    return apply_filter_cmp(filter, NdbScanFilter::COND_EQ, ce->args.left, ce->args.right);
   case T_GE:
-    assert(false); // Not implemented
+    return apply_filter_cmp(filter, NdbScanFilter::COND_GE, ce->args.left, ce->args.right);
   case T_GT:
-    assert(false); // Not implemented
+    return apply_filter_cmp(filter, NdbScanFilter::COND_GT, ce->args.left, ce->args.right);
   case T_LE:
-    assert(false); // Not implemented
+    return apply_filter_cmp(filter, NdbScanFilter::COND_LE, ce->args.left, ce->args.right);
   case T_LT:
-    assert(false); // Not implemented
+    return apply_filter_cmp(filter, NdbScanFilter::COND_LT, ce->args.left, ce->args.right);
   case T_NOT_EQUALS:
-    assert(false); // Not implemented
+    return apply_filter_cmp(filter, NdbScanFilter::COND_NE, ce->args.left, ce->args.right);
   case T_IS:
     assert(false); // Not implemented
   case T_BITWISE_OR:
@@ -1008,6 +985,36 @@ RonDBSQLPreparer::apply_filter(NdbScanFilter* filter,
   }
 }
 
+bool
+RonDBSQLPreparer::apply_filter_cmp(NdbScanFilter* filter,
+                                   NdbScanFilter::BinaryCondition cond,
+                                   struct ConditionalExpression* left,
+                                   struct ConditionalExpression* right)
+{
+  if (left->op == T_IDENTIFIER && right->op == T_INT)
+  {
+    assert(m_column_attrId_map != NULL);
+    uint8_t* val = m_aalloc->alloc<uint8_t>(1);
+    *val = static_cast<uint8_t>(right->constant_integer);
+    return (filter->cmp(cond,
+                        m_column_attrId_map[left->col_idx],
+                        val, sizeof(*val)) >= 0);
+  }
+  else if (left->op == T_IDENTIFIER &&
+           right->op == T_IDENTIFIER)
+  {
+    assert(m_column_attrId_map != NULL);
+    return (filter->cmp(cond,
+                        m_column_attrId_map[left->col_idx],
+                        m_column_attrId_map[right->col_idx]) >= 0);
+  }
+  else
+  {
+    throw runtime_error("Failed to apply filter.");
+  }
+  return false;
+}
+
 #define programAggregator_do_or_fail(CALL) \
   do { \
     if (!(CALL)) \
@@ -1030,7 +1037,8 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
     groupby = groupby->next;
   }
   // Program aggregations
-  DynamicArray<AggregationAPICompiler::Instr> program = m_agg->m_program;
+  assert(m_agg != NULL); // Ensured in RonDBSQLPreparer::load
+  DynamicArray<AggregationAPICompiler::Instr>& program = m_agg->m_program;
   for (uint i=0; i<program.size(); i++)
   {
     AggregationAPICompiler::Instr* instr = &program[i];
@@ -1052,12 +1060,11 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
       break;
     }
     case AggregationAPICompiler::SVMInstrType::LoadConstantInteger:
-      assert(false); // not implemented
-      // todo: load m_constants[src].long_int into register `dest'
+      programAggregator_do_or_fail
+        (aggregator->LoadInt64(m_agg->m_constants[src].long_int, dest));
       break;
     case AggregationAPICompiler::SVMInstrType::Mov:
-      assert(false); // not implemented
-      // todo: copy register `src' into register `dest'
+      programAggregator_do_or_fail(aggregator->Mov(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Add:
       programAggregator_do_or_fail(aggregator->Add(dest, src));

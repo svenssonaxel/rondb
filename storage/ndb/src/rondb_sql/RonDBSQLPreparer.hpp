@@ -165,6 +165,10 @@ private:
   void apply_filter_top_level(NdbScanFilter* filter,
                               struct ConditionalExpression* ce);
   bool apply_filter(NdbScanFilter* filter, struct ConditionalExpression* ce);
+  bool apply_filter_cmp(NdbScanFilter* filter,
+                        NdbScanFilter::BinaryCondition cond,
+                        struct ConditionalExpression* left,
+                        struct ConditionalExpression* right);
   void programAggregator(NdbAggregator* aggregator);
   void print_result_json(NdbAggregator* aggregator);
   void print();

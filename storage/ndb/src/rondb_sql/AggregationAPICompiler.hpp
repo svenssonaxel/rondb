@@ -136,8 +136,8 @@ private:
   };
   DynamicArray<AggExpr> m_aggs;
   int new_agg(AggType agg_type, Expr* expr);
-  DynamicArray<Constant> m_constants;
 public:
+  DynamicArray<Constant> m_constants;
   // Load operations
   Expr* Load(uint col_idx);
   Expr* ConstantInteger(long int long_int);

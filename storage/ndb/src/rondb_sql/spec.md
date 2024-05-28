@@ -10,7 +10,9 @@ For the meaning of functions, operators and other keywords, refer to the MySQL d
 - `SELECT` is the only statement supported. A select expression can only be
   - A column name.
     The column name must appear among the columns in the `GROUP BY` clause, even though MySQL does not require this.
-  - An aggregate function `AVG`, `COUNT`, `MAX`, `MIN` or `SUM`, of an arithmetic expression. Such an arithmetic expression can only contain
+  - An aggregate function `AVG`, `COUNT`, `MAX`, `MIN` or `SUM`, of an arithmetic expression.
+    Since only aggregate queries are supported, at least one select expression must be an aggregate function.
+    The arithmetic expression can only contain
     - Column names
     - Positive integer literals
     - Operators `+`, `-`, `*`, `/`, `%`.

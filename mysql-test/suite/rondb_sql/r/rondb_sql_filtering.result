@@ -1,0 +1,193 @@
+CREATE TABLE tbl (
+uint16 SMALLINT UNSIGNED NOT NULL,
+int16 SMALLINT NOT NULL,
+PRIMARY KEY USING HASH (uint16)) ENGINE=NDB;
+insert into tbl values (100, 100-50);;
+insert into tbl values (99, 99-50);;
+insert into tbl values (98, 98-50);;
+insert into tbl values (97, 97-50);;
+insert into tbl values (96, 96-50);;
+insert into tbl values (95, 95-50);;
+insert into tbl values (94, 94-50);;
+insert into tbl values (93, 93-50);;
+insert into tbl values (92, 92-50);;
+insert into tbl values (91, 91-50);;
+insert into tbl values (90, 90-50);;
+insert into tbl values (89, 89-50);;
+insert into tbl values (88, 88-50);;
+insert into tbl values (87, 87-50);;
+insert into tbl values (86, 86-50);;
+insert into tbl values (85, 85-50);;
+insert into tbl values (84, 84-50);;
+insert into tbl values (83, 83-50);;
+insert into tbl values (82, 82-50);;
+insert into tbl values (81, 81-50);;
+insert into tbl values (80, 80-50);;
+insert into tbl values (79, 79-50);;
+insert into tbl values (78, 78-50);;
+insert into tbl values (77, 77-50);;
+insert into tbl values (76, 76-50);;
+insert into tbl values (75, 75-50);;
+insert into tbl values (74, 74-50);;
+insert into tbl values (73, 73-50);;
+insert into tbl values (72, 72-50);;
+insert into tbl values (71, 71-50);;
+insert into tbl values (70, 70-50);;
+insert into tbl values (69, 69-50);;
+insert into tbl values (68, 68-50);;
+insert into tbl values (67, 67-50);;
+insert into tbl values (66, 66-50);;
+insert into tbl values (65, 65-50);;
+insert into tbl values (64, 64-50);;
+insert into tbl values (63, 63-50);;
+insert into tbl values (62, 62-50);;
+insert into tbl values (61, 61-50);;
+insert into tbl values (60, 60-50);;
+insert into tbl values (59, 59-50);;
+insert into tbl values (58, 58-50);;
+insert into tbl values (57, 57-50);;
+insert into tbl values (56, 56-50);;
+insert into tbl values (55, 55-50);;
+insert into tbl values (54, 54-50);;
+insert into tbl values (53, 53-50);;
+insert into tbl values (52, 52-50);;
+insert into tbl values (51, 51-50);;
+insert into tbl values (50, 50-50);;
+insert into tbl values (49, 49-50);;
+insert into tbl values (48, 48-50);;
+insert into tbl values (47, 47-50);;
+insert into tbl values (46, 46-50);;
+insert into tbl values (45, 45-50);;
+insert into tbl values (44, 44-50);;
+insert into tbl values (43, 43-50);;
+insert into tbl values (42, 42-50);;
+insert into tbl values (41, 41-50);;
+insert into tbl values (40, 40-50);;
+insert into tbl values (39, 39-50);;
+insert into tbl values (38, 38-50);;
+insert into tbl values (37, 37-50);;
+insert into tbl values (36, 36-50);;
+insert into tbl values (35, 35-50);;
+insert into tbl values (34, 34-50);;
+insert into tbl values (33, 33-50);;
+insert into tbl values (32, 32-50);;
+insert into tbl values (31, 31-50);;
+insert into tbl values (30, 30-50);;
+insert into tbl values (29, 29-50);;
+insert into tbl values (28, 28-50);;
+insert into tbl values (27, 27-50);;
+insert into tbl values (26, 26-50);;
+insert into tbl values (25, 25-50);;
+insert into tbl values (24, 24-50);;
+insert into tbl values (23, 23-50);;
+insert into tbl values (22, 22-50);;
+insert into tbl values (21, 21-50);;
+insert into tbl values (20, 20-50);;
+insert into tbl values (19, 19-50);;
+insert into tbl values (18, 18-50);;
+insert into tbl values (17, 17-50);;
+insert into tbl values (16, 16-50);;
+insert into tbl values (15, 15-50);;
+insert into tbl values (14, 14-50);;
+insert into tbl values (13, 13-50);;
+insert into tbl values (12, 12-50);;
+insert into tbl values (11, 11-50);;
+insert into tbl values (10, 10-50);;
+insert into tbl values (9, 9-50);;
+insert into tbl values (8, 8-50);;
+insert into tbl values (7, 7-50);;
+insert into tbl values (6, 6-50);;
+insert into tbl values (5, 5-50);;
+insert into tbl values (4, 4-50);;
+insert into tbl values (3, 3-50);;
+insert into tbl values (2, 2-50);;
+insert into tbl values (1, 1-50);;
+
+
+
+unsigned LT
+== Query ==
+SELECT uint16, sum(uint16)
+FROM tbl
+WHERE uint16 < 5
+GROUP BY uint16;
+
+Number of output lines, including header: 5
+
+== Diff ==
+================================================================================
+
+
+
+unsigned LE
+== Query ==
+SELECT uint16, sum(uint16)
+FROM tbl
+WHERE uint16 <= 5
+GROUP BY uint16;
+
+Number of output lines, including header: 6
+
+== Diff ==
+================================================================================
+
+
+
+unsigned GT
+== Query ==
+SELECT uint16, sum(uint16)
+FROM tbl
+WHERE uint16 > 95
+GROUP BY uint16;
+
+Number of output lines, including header: 6
+
+== Diff ==
+================================================================================
+
+
+
+unsigned GE
+== Query ==
+SELECT uint16, sum(uint16)
+FROM tbl
+WHERE uint16 >= 95
+GROUP BY uint16;
+
+Number of output lines, including header: 7
+
+== Diff ==
+================================================================================
+
+
+
+unsigned =
+== Query ==
+SELECT uint16, sum(uint16)
+FROM tbl
+WHERE uint16 = 34
+GROUP BY uint16;
+
+Number of output lines, including header: 2
+
+== Diff ==
+================================================================================
+
+
+
+unsigned !=
+== Query ==
+SELECT uint16, sum(uint16)
+FROM tbl
+WHERE uint16 != 34
+GROUP BY uint16;
+
+Number of output lines, including header: 100
+
+== Diff ==
+================================================================================
+
+
+
+Cleanup
+DROP TABLE tbl;

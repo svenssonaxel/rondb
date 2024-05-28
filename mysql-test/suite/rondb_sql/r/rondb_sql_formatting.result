@@ -1,4 +1,4 @@
-Create test table api_scan with 10000 rows
+Create test table api_scan with 10 rows
 First 10 lines of the generated data:
 62	87	-25488	27678	-9	14368690	-5156443	2056491719	35198683261851	153955376062173	-2431.85935263128	14321694289288.1	GROUPxxx_1
 25	232	-696	35126	0	7342339	-645631283	3959625637	-81093436690594	158622464368512	30931.3637833807	64361377174835.8	GROUPxxx_2
@@ -14,91 +14,66 @@ LOAD DATA INFILE '/home/user/prog/rondb-rest-sql/build2/mysql-test/var/tmp/test_
 Number of rows in the table:
 select count(*) from api_scan;
 count(*)
-10000
+10
 
 
 
-Table scan:
+Formatting float
 == Query ==
-SELECT cchar as char_gr
-, sint24 as int_gr
-, sum(uint64+uint8)
-, min(cdouble) AS mindbl
-, max(uint24) as max24
+SELECT cfloat
+, count(cfloat)
 FROM api_scan
-WHERE sint8 = 66
-GROUP BY cchar
-, sint24;
+WHERE sint24 = 0 and (sint8 = 0 or sint8 = 1)
+GROUP BY cfloat;
 
-Number of output lines, including header: 40
+Number of output lines, including header: 0
 
 == Diff ==
 ================================================================================
 
 
 
-Index scan:
+Formatting int16
 == Query ==
-SELECT cchar as char_gr
-, sint24 as int_gr
-, sum(uint64+uint8)
-, min(cdouble) AS mindbl
-, max(uint24) as max24
+SELECT sint16
+, count(sint16)
 FROM api_scan
-WHERE sint24 >= 6 AND sint24 < 8 AND sint8 = 66
-GROUP BY cchar
-, sint24;
+GROUP BY sint16;
 
-Number of output lines, including header: 4
+Number of output lines, including header: 11
 
 == Diff ==
+--- mysql.out
++++ rondb_sql.out
+@@ -1,11 +1,11 @@
+ sint16	count(sint16)
+--15698	1
+--18719	1
+--25488	1
+--29138	1
+--3329	1
+--696	1
+ 15627	1
+ 16421	1
+ 2914	1
+ 29702	1
++36398	1
++40048	1
++46817	1
++49838	1
++62207	1
++64840	1
 ================================================================================
 
 
 
-Integer constants and arithmetics:
+Avg signed int16
 == Query ==
 SELECT cchar as char_gr
-, sum(uint8 + 3)
-, min(sint8 - 2)
-, max(sint16 * 13 + 7)
-, sum(uint24 * 1000000 - sint24 * 1000 + sint16 * -1234)
-, max(sint16 * -sint8 * sint8)
+, sum(sint16)
+, count(sint16)
+, avg(sint16)
 FROM api_scan
-GROUP BY cchar;
-
-Number of output lines, including header: 5
-
-== Diff ==
-================================================================================
-
-
-
-Constant expressions:
-== Query ==
-SELECT cchar as char_gr
-, max(1) as max_one
-, max(3 * 2)
-, max((45 + 3 * 17 - 3875) * -13 + ---7)
-FROM api_scan
-GROUP BY cchar;
-
-Number of output lines, including header: 5
-
-== Diff ==
-================================================================================
-
-
-
-Division:
-== Query ==
-SELECT cchar as char_gr
-, max(14 / 3 + 18 / 5 * sint16)
-, sum(14 / 3 + 18 / 5 * cfloat + uint8)
-, max(sint8 + 3)
-, max((sint8 + 3) / sint8)
-FROM api_scan
-WHERE sint8 > 1
 GROUP BY cchar;
 
 Number of output lines, including header: 5
@@ -107,15 +82,75 @@ Number of output lines, including header: 5
 --- mysql.out
 +++ rondb_sql.out
 @@ -1,5 +1,5 @@
- char_gr	max(14 / 3 + 18 / 5 * sint16)	sum(14 / 3 + 18 / 5 * cfloat + uint8)	max(sint8 + 3)	max((sint8 + 3) / sint8)
--GROUPxxx_1	117699.4667	-1590109.825443863	130	2.5000
--GROUPxxx_2	117958.6667	-4141919.673144318	130	2.5000
--GROUPxxx_3	117901.0667	-153646.7672404549	130	2.5000
--GROUPxxx_4	117883.0667	-1975621.305547904	130	2.5000
-+GROUPxxx_1	98083	-1298042.9100914001	130	2
-+GROUPxxx_2	98299	-3425710.616508484	130	2
-+GROUPxxx_3	98251	-101983.58381080627	130	2
-+GROUPxxx_4	98236	-1619924.4768447876	130	2
+ char_gr	sum(sint16)	count(sint16)	avg(sint16)
+-GROUPxxx_1	-44515	3	-14838.3333
+-GROUPxxx_2	-2994	3	-998.0000
+-GROUPxxx_3	-13511	2	-6755.5000
+-GROUPxxx_4	32616	2	16308.0000
++GROUPxxx_1	-44515	3	-14838.333333333334
++GROUPxxx_2	-2994	3	-998
++GROUPxxx_3	-13511	2	-6755.5
++GROUPxxx_4	32616	2	16308
+================================================================================
+
+
+
+Avg unsigned int16
+== Query ==
+SELECT cchar as char_gr
+, sum(uint16)
+, count(uint16)
+, avg(uint16)
+FROM api_scan
+GROUP BY cchar;
+
+Number of output lines, including header: 5
+
+== Diff ==
+--- mysql.out
++++ rondb_sql.out
+@@ -1,5 +1,5 @@
+ char_gr	sum(uint16)	count(uint16)	avg(uint16)
+-GROUPxxx_1	48887	3	16295.6667
+-GROUPxxx_2	148140	3	49380.0000
+-GROUPxxx_3	57007	2	28503.5000
+-GROUPxxx_4	96317	2	48158.5000
++GROUPxxx_1	48887	3	16295.666666666666
++GROUPxxx_2	148140	3	49380
++GROUPxxx_3	57007	2	28503.5
++GROUPxxx_4	96317	2	48158.5
+================================================================================
+
+
+
+Avg float
+== Query ==
+SELECT cchar as char_gr
+, sum(cfloat)
+, count(cfloat)
+, avg(cfloat)
+FROM api_scan
+GROUP BY cchar;
+
+Number of output lines, including header: 5
+
+== Diff ==
+================================================================================
+
+
+
+Avg double
+== Query ==
+SELECT cchar as char_gr
+, sum(cdouble)
+, count(cdouble)
+, avg(cdouble)
+FROM api_scan
+GROUP BY cchar;
+
+Number of output lines, including header: 5
+
+== Diff ==
 ================================================================================
 
 

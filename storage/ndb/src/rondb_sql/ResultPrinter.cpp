@@ -23,6 +23,7 @@
 */
 
 #include <iomanip>
+#include "m_string.h"
 #include "ResultPrinter.hpp"
 #include "define_formatter.hpp"
 #include "RonDBSQLPreparer.hpp"
@@ -44,6 +45,9 @@ DEFINE_FORMATTER(quoted_identifier, LexCString, {
 })
 
 static void print_json_string_from_utf8(std::ostream& output_stream, LexString ls, bool utf8_output);
+static void print_float_or_double(std::ostream& out, double value, bool is_double, bool json_output, bool tsv_output);
+static double convert_result_to_double(NdbAggregator::Result result);
+static float convert_result_to_float(NdbAggregator::Result result);
 
 ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
                              struct SelectStatement* query,
@@ -438,55 +442,11 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
           out << result.data_uint64();
           break;
         case NdbDictionary::Column::Double:
-          // todo perhaps do not evaluate this branch every time
-          if (m_json_output)
-          {
-            out << std::fixed << std::setprecision(6) << result.data_double();
-          }
-          else if (m_tsv_output)
-          {
-            // In mimicking mysql's output format for double, the following is
-            // getting close.
-            // todo probably need to use my_gcvt from ../../../../strings/dtoa.cc
-            double rdd = result.data_double();
-            if (rdd == 0)
-            {
-              out << "0";
-              break;
-            }
-            char buffer[100];
-            sprintf(buffer, "%.14e", rdd);
-            // Remove any '+' after 'e' and '0' before 'e'
-            for (char *p = buffer; *p != '\0'; p++)
-            {
-              if (*p == 'e')
-              {
-                while (buffer < p && p[-1] == '0')
-                {
-                  // Shift the string to the left to remove the '0' before the e
-                  for (char *q = p - 1; *q != '\0'; q++)
-                  {
-                    *q = *(q + 1);
-                  }
-                  p--;
-                }
-                while (*p != '\0' && p[1] == '+')
-                {
-                  // Shift the string to the left to remove the '+' after the e
-                  for (char *q = p + 1; *q != '\0'; q++)
-                  {
-                    *q = *(q + 1);
-                  }
-                }
-                break;
-              }
-            }
-            out << buffer;
-          }
-          else
-          {
-            assert(false);
-          }
+          print_float_or_double(out,
+                                result.data_double(),
+                                true,
+                                m_json_output,
+                                m_tsv_output);
           break;
         case NdbDictionary::Column::Undefined:
           // Already handled above
@@ -502,26 +462,14 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         NdbAggregator::Result result_sum = m_regs_a[cmd.print_avg.reg_a_sum];
         NdbAggregator::Result result_count = m_regs_a[cmd.print_avg.reg_a_count];
         // todo this must be tested thoroughly against MySQL.
-        double numerator;
-        unsigned long denominator;
-        switch (result_sum.type())
-        {
-        case NdbDictionary::Column::Bigint:
-          numerator = result_sum.data_int64();
-          break;
-        default:
-          assert(false);
-        }
-        switch (result_count.type())
-        {
-        case NdbDictionary::Column::Bigint:
-          denominator = result_count.data_uint64();
-          break;
-        default:
-          assert(false);
-        }
+        double numerator = convert_result_to_double(result_sum);
+        double denominator = convert_result_to_double(result_count);
         double result = numerator / denominator;
-        out << std::fixed << std::setprecision(6) << result;
+        print_float_or_double(out,
+                              result,
+                              true,
+                              m_json_output,
+                              m_tsv_output);
       }
       break;
     case Cmd::Type::PRINT_STR:
@@ -639,6 +587,77 @@ print_json_string_from_utf8(std::ostream& out,
     assert(false);
   }
   out << '"';
+}
+
+inline static void
+print_float_or_double(std::ostream& out,
+                      double value,
+                      bool is_double,
+                      bool json_output,
+                      bool tsv_output)
+{
+  // todo perhaps do not evaluate this branch every time
+  if (json_output && is_double)
+  {
+    out << std::fixed << std::setprecision(6) << value;
+  }
+  else if (json_output && !is_double)
+  {
+    assert(false); // todo test the following
+    out << std::fixed << std::setprecision(6) << static_cast<float>(value);
+  }
+  else if (tsv_output)
+  {
+    char buffer[129];
+    bool error;
+    size_t len = my_gcvt(value,
+                         is_double ? MY_GCVT_ARG_DOUBLE : MY_GCVT_ARG_FLOAT,
+                         128, buffer, &error);
+    if (error)
+    {
+      // value is Inf, -Inf or NaN.
+      out << "NULL";
+      return;
+    }
+    assert(len > 0 && buffer[len] ==0);
+    out << buffer;
+  }
+  else
+  {
+    assert(false);
+  }
+}
+
+inline static double
+convert_result_to_double(NdbAggregator::Result result)
+{
+  switch (result.type())
+  {
+  case NdbDictionary::Column::Type::Bigint:
+    return static_cast<double>(result.data_int64());
+  case NdbDictionary::Column::Type::Bigunsigned:
+    return static_cast<double>(result.data_uint64());
+  case NdbDictionary::Column::Type::Double:
+    return static_cast<double>(result.data_double());
+  default:
+    assert(false);
+  }
+}
+
+inline static float
+convert_result_to_float(NdbAggregator::Result result)
+{
+  switch (result.type())
+  {
+  case NdbDictionary::Column::Type::Bigint:
+    return static_cast<float>(result.data_int64());
+  case NdbDictionary::Column::Type::Bigunsigned:
+    return static_cast<float>(result.data_uint64());
+  case NdbDictionary::Column::Type::Double:
+    return static_cast<float>(result.data_double());
+  default:
+    assert(false);
+  }
 }
 
 void

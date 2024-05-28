@@ -37,11 +37,11 @@ struct Config
   int infoflag = 0;
   const char* connectstring = NULL;
   const char* database = NULL;
-  char* sql_query = NULL;
 };
 
 static void print_help(const char* argv0);
 static int parse_cmdline_arguments(int argc, char** argv, Config& config);
+static void read_stdin(ArenaAllocator* aalloc, char** buffer, size_t* buffer_len);
 static int run_rondb_sql(ExecutionParameters& params);
 
 int
@@ -56,6 +56,7 @@ main(int argc, char** argv)
   params.err_output_stream = &cerr;
   int exit_code = 0;
 
+  // Parse command-line arguments
   exit_code = parse_cmdline_arguments(argc, argv, config);
   if (config.help)
   {
@@ -66,6 +67,23 @@ main(int argc, char** argv)
     return exit_code;
   }
 
+  // If no query has been given, read it from stdin
+  if (params.sql_buffer == NULL)
+  {
+    try
+    {
+      read_stdin(params.aalloc, &params.sql_buffer, &params.sql_len);
+      assert(params.sql_buffer != NULL);
+    }
+    catch (std::runtime_error& e)
+    {
+      cerr << "Caught exception: " << e.what() << endl;
+      return 1;
+    }
+    assert(params.sql_buffer != NULL);
+  }
+
+  // If no connectstring, run without connection
   if (config.connectstring == NULL)
   {
     return run_rondb_sql(params);
@@ -111,12 +129,16 @@ print_help(const char* argv0)
   cout <<
     "Usage: " << argv0 << " [OPTIONS]\n"
     "\n"
+    "If neither --execute nor --execute-file is given, the query will be read from\n"
+    "stdin.\n"
+    "\n"
     "Options that mimic mysql:\n"
     "  -?, --help                    Display this help message\n"
     "  -T, --debug-info              Print some debug info at exit, e.g. timing\n"
     "  -D, --database name           Database name. Required if --connect-string is\n"
     "                                given.\n"
     "  -e, --execute query           Execute query and output results.\n"
+    "  -s, --silent                  Synonymous to --query-output-format TSV\n"
     "Options specific to RonDB SQL:\n"
     "  --execute-file <FILE>         Execute query from file.\n"
     "  --connect-string <STRING>     Ndb connection string (If not given, then no\n"
@@ -144,7 +166,7 @@ print_help(const char* argv0)
     "  --query-output-format <FMT>   Set query output format. <FMT> can be one of:\n"
     "                                - JSON_UTF8 (default)\n"
     "                                - JSON_ASCII\n"
-    "                                - TSV (mimic mysql)\n" // todo mimic what cmdline flag exactly?
+    "                                - TSV (mimic mysql -s)\n"
     // See RonDBSQLCommon.hpp for comment about explain output format
     "  --explain-output-format <FMT> Set explain output format. <FMT> can be one of:\n"
     "                                - TEXT (default)\n"
@@ -180,6 +202,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
     {"debug-info", no_argument, 0, 'T'},
     {"database", required_argument, 0, 'D'},
     {"execute", required_argument, 0, 'e'},
+    {"silent", required_argument, 0, 's'},
     {"execute-file", required_argument, 0, OPT_EXECUTE_FILE},
     {"connect-string", required_argument, 0, OPT_CONNECT_STRING},
     {"execution-mode", required_argument, 0, OPT_EXECUTION_MODE},
@@ -216,6 +239,9 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
         params.sql_buffer = parse_str;
         params.sql_len = parse_len;
       }
+      break;
+    case 's':
+      params.query_output_format = ExecutionParameters::QueryOutputFormat::TSV;
       break;
     case OPT_EXECUTE_FILE:
       if (params.sql_buffer != NULL)
@@ -310,11 +336,43 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
   {
     ARG_FAIL("Database name is required if connect string is given.");
   }
-  if (params.sql_buffer == NULL)
-  {
-    ARG_FAIL("SQL query is required. Use -e, --execute or --execute-file to provide one.");
-  }
   return 0;
+}
+
+static void
+read_stdin(ArenaAllocator* aalloc, char** buffer, size_t* buffer_len)
+{
+  uint alloclen = 1024;
+  char* buf = aalloc->alloc<char>(alloclen);
+  uint contentlen = 0;
+  while (true)
+  {
+    if (contentlen >= alloclen)
+    {
+      buf = aalloc->realloc(buf, alloclen * 2, alloclen);
+      alloclen *= 2;
+    }
+    size_t readlen = fread(buf + contentlen,
+                           sizeof(char),
+                           alloclen - contentlen, stdin);
+    contentlen += readlen;
+    if (contentlen != alloclen)
+    {
+      int error = ferror(stdin);
+      if (error)
+      {
+        cerr << "Error reading from stdin: " << strerror(error) << endl;
+        throw std::runtime_error("Error reading from stdin.");
+      }
+      if (feof(stdin))
+      {
+        break;
+      }
+      assert(false);
+    }
+  }
+  *buffer = buf;
+  *buffer_len = contentlen;
 }
 
 static int

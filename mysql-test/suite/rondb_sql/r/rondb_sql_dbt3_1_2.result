@@ -1,0 +1,6 @@
+
+
+
+===== dbt3-1.10: queries/mysql/1_2.sql =====
+Cleanup
+DROP TABLE lineitem;

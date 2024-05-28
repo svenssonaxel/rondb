@@ -377,16 +377,20 @@ EOF
 
 --echo ===== Select a column that is not in group by clause =====
 --error 1
---exec $PARSE_TEST 'select a, b from tbl group by a;'
+--exec $PARSE_TEST 'select a, b, max(c) from tbl group by a;'
 
 --echo ===== Non-aggregation query =====
 --error 1
 --exec $PARSE_TEST 'select a, b from tbl;'
 
+--echo ===== Non-aggregation query with GROUP BY =====
+--error 1
+--exec $PARSE_TEST 'select a from tbl group by a;'
+
 # Test successes
 
 --echo ===== Simple =====
---exec $PARSE_TEST 'select a from tbl group by a;'
+--exec $PARSE_TEST 'select a, max(b) from tbl group by a;'
 
 --echo ===== Arithmetics =====
 --exec $PARSE_TEST 'select a, count(b), min((b+c)/(d-e)), max(d*e/f-b/c/f), count(b/c/f+d*e/f*(b+c)) from tbl group by a;'
@@ -396,23 +400,23 @@ EOF
 
 # å = U+00e5 = c3 a5
 --echo ===== UTF-8 2-byte character in unquoted identifier =====
---exec $PARSE_TEST 'select a$XC3$XA5 from tbl group by a$XC3$XA5;'
+--exec $PARSE_TEST 'select a$XC3$XA5, max(b) from tbl group by a$XC3$XA5;'
 
 --echo ===== UTF-8 2-byte character in quoted identifier =====
---exec $PARSE_TEST 'select `a$XC3$XA5` from tbl group by `a$XC3$XA5`;'
+--exec $PARSE_TEST 'select `a$XC3$XA5`, max(b) from tbl group by `a$XC3$XA5`;'
 
 # ᚱ = U+16b1 = 11100001 10011010 10110001 = e1 9a b1
 --echo ===== UTF-8 3-byte character in unquoted identifier =====
---exec $PARSE_TEST 'select a$XE1$X9A$XB1 from tbl group by a$XE1$X9A$XB1;'
+--exec $PARSE_TEST 'select a$XE1$X9A$XB1, max(b) from tbl group by a$XE1$X9A$XB1;'
 
 --echo ===== UTF-8 3-byte character in quoted identifier =====
---exec $PARSE_TEST 'select `a$XE1$X9A$XB1` from tbl group by `a$XE1$X9A$XB1`;'
+--exec $PARSE_TEST 'select `a$XE1$X9A$XB1`, max(b) from tbl group by `a$XE1$X9A$XB1`;'
 
 --echo ===== Control character in quoted identifier =====
---exec $PARSE_TEST 'select `a$X05` from tbl group by `a$X05`;'
+--exec $PARSE_TEST 'select `a$X05`, max(b) from tbl group by `a$X05`;'
 
 --echo ===== Select and group by with different quotation =====
---exec $PARSE_TEST 'select a$XC3$XA5, a$XE1$X9A$XB1, `b$XC3$XA5`, `b$XE1$X9A$XB1` from tbl group by `a$XC3$XA5`, `a$XE1$X9A$XB1`, b$XC3$XA5, b$XE1$X9A$XB1;'
+--exec $PARSE_TEST 'select a$XC3$XA5, a$XE1$X9A$XB1, `b$XC3$XA5`, `b$XE1$X9A$XB1`, max(b) from tbl group by `a$XC3$XA5`, `a$XE1$X9A$XB1`, b$XC3$XA5, b$XE1$X9A$XB1;'
 
 --echo ===== has_item regression =====
 --exec $PARSE_TEST 'select count(a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a), max(d*e/f-b/c/f), min((ee+f)/(g-h)) from tbl;'
@@ -434,7 +438,7 @@ EOF
 
 --echo ===== Complex operator precedence =====
 --write_file $QUERY_FILE
-select a
+select a, max(b)
 from tbl
 where (
 a or a || a xor a and a && not a = a >= a > a <= a < a != a <> a is null | a & a << a >> a + a - a * a / a % a ^ ! a
@@ -448,7 +452,7 @@ EOF
 
 --echo ===== Single quoted strings =====
 --write_file $QUERY_FILE
-select col from tbl where
+select col, max(b) from tbl where
 '0x00=\0,0x27=\',0x08=\b,0x0a=\n,0x0d=\r,0x09=\t,0x1a=\Z,bs=\\,bs_perc=\%,bs_ul=\_,Q=\Q,7=\7'
 is not null
 group by col;
@@ -458,7 +462,7 @@ EOF
 
 --echo ===== Compound strings =====
 --write_file $QUERY_FILE
-select col from tbl where 'hello'
+select col, max(b) from tbl where 'hello'
   ' world'
 group by col;
 EOF
@@ -466,11 +470,11 @@ EOF
 --remove_file $QUERY_FILE
 
 --echo ===== date_add =====
---exec $PARSE_TEST 'select col from tbl where date_add(col1, interval 1 day) is not null group by col;'
+--exec $PARSE_TEST 'select col, max(b) from tbl where date_add(col1, interval 1 day) is not null group by col;'
 
 --echo ===== date_sub =====
 --write_file $QUERY_FILE
-select col
+select col, max(b)
 from tbl
 where date_add('2024-05-06', interval 23 microsecond) > col2
 group by col;
@@ -480,7 +484,7 @@ EOF
 
 --echo ===== extract =====
 --write_file $QUERY_FILE
-select col
+select col, max(b)
 from tbl
 where extract(year from '2024-05-06') <= col2
 group by col;
@@ -489,20 +493,20 @@ EOF
 --remove_file $QUERY_FILE
 
 --echo ===== order by =====
---exec $PARSE_TEST 'select col1 from tbl group by col1 order by col1;'
+--exec $PARSE_TEST 'select col1, max(b) from tbl group by col1 order by col1;'
 
 --echo ===== group and order by 2 columns =====
 --exec $PARSE_TEST 'select col1, `col #2`, max(col3) from tbl group by col1, `col #2` order by col1, `col #2`;'
 
 --echo ===== order by ASC/DESC =====
---exec $PARSE_TEST 'select col1 from tbl group by col1 order by col1, col2 ASC, col3 DESC, col4;'
+--exec $PARSE_TEST 'select col1, max(b) from tbl group by col1 order by col1, col2 ASC, col3 DESC, col4;'
 
 --echo ===== Unimplemented keyword used as quoted identifier =====
---exec $PARSE_TEST 'select `zone` from tbl group by `zone`;'
+--exec $PARSE_TEST 'select `zone`, max(b) from tbl group by `zone`;'
 
 --echo ===== Negation =====
 --write_file $QUERY_FILE
-select col1
+select col1, max(b)
       ,min(-543)
       ,sum(col2+-543)
       ,max(col3--792) as subtraction

@@ -1,0 +1,2 @@
+Regression tests for bugs found during development of pushdown aggregation and
+RonDB SQL. They are commented out until fixed.
