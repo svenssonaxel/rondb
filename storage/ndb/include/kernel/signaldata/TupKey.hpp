@@ -136,7 +136,7 @@ class TupKeyConf {
   friend bool printTUPKEYCONF(FILE * output, const Uint32 * theData, Uint32 len, Uint16 receiverBlockNo);
 
 public:
-  static constexpr Uint32 SignalLength = 9;
+  static constexpr Uint32 SignalLength = 10;
 
 private:
 

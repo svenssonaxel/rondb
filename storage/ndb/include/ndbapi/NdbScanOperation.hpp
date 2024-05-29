@@ -323,7 +323,6 @@ public:
   int setAggregationCode(const NdbAggregator *code);
 
   int DoAggregation();
-  // int DoAggregation(NdbRecAttr* myRecAttr);
 
   /**
    * Get the next tuple in a scan transaction. 

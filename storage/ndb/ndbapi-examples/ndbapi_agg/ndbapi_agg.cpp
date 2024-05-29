@@ -527,6 +527,7 @@ int scan_aggregation(Ndb * myNdb, MYSQL& mysql, bool validation)
     }
 
     if (validation) {
+      bool valid = true;
       fprintf(stderr, "Num of groups: %lu\n", aggregator.gb_map()->size());
       for (auto iter = aggregator.gb_map()->begin();
           iter != aggregator.gb_map()->end(); iter++) {
@@ -572,13 +573,18 @@ int scan_aggregation(Ndb * myNdb, MYSQL& mysql, bool validation)
                     value_cchar.c_str(), cmedium,
                     agg_1, agg_2, agg_3,
                     std::stoul(row[0]), std::stod(row[1]), std::stod(row[2]));
+                valid = false;
               }
             }
           }
           mysql_free_result(res);
         }
       }
-      fprintf(stderr, "Results validation: PASSED\n");
+      if (valid) {
+        fprintf(stderr, "Results validation: PASSED\n");
+      } else {
+        fprintf(stderr, "Results validation: FAILED\n");
+      }
     }
 
     fprintf(stderr, "---FINAL RESULT---\n");
@@ -763,6 +769,7 @@ int scan_index_aggregation(Ndb *myNdb, MYSQL& mysql, bool validation) {
   }
 
   if (validation) {
+    bool valid = true;
     fprintf(stderr, "Num of groups: %lu\n", aggregator.gb_map()->size());
     for (auto iter = aggregator.gb_map()->begin();
         iter != aggregator.gb_map()->end(); iter++) {
@@ -808,13 +815,18 @@ int scan_index_aggregation(Ndb *myNdb, MYSQL& mysql, bool validation) {
                   value_cchar.c_str(), cmedium,
                   agg_1, agg_2, agg_3,
                   std::stoul(row[0]), std::stod(row[1]), std::stod(row[2]));
+              valid = false;
             }
           }
         }
         mysql_free_result(res);
       }
     }
-    fprintf(stderr, "Results validation: PASSED\n");
+    if (valid) {
+      fprintf(stderr, "Results validation: PASSED\n");
+    } else {
+      fprintf(stderr, "Results validation: FAILED\n");
+    }
   }
 
   fprintf(stderr, "---FINAL RESULT---\n");

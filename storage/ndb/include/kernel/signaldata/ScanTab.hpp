@@ -154,7 +154,15 @@ private:
  g = Aggregation           - 1(of 8) Bit 7   reuse the highest bit of Parallelism
                                              since it is ignored in current implementation
                                              So we use 1000 0000 (other bits must are 0)
-                                             to represent aggregation
+                                             to represent aggregation.
+                                             Keep it, it would be safer to test with this
+                                             restriction for a while.
+                                             **********************NOTICE**********************
+                                             if someone would like to use the remaining 7 bits
+                                             in the future, release this restriction by removing
+                                             the assert in both ScanTabReq::setAggregation() and
+                                             ScanTabReq::getAggregation()
+                                             **************************************************
  l = Lock mode             - 1  Bit 8
  h = Hold lock mode        - 1  Bit 10
  c = Read Committed        - 1  Bit 11

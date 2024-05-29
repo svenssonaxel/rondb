@@ -840,7 +840,7 @@ ErrorBundle ErrorCodes[] = {
   /* pushdown aggregation API */
   { 4560, DMEC, AE, "NdbAggregator::Finalize() not called" },
   { 4561, DMEC, AE, "Pushdown aggregation needs to work with LM_CommittedRead" },
-  { 4562, DMEC, AE, "Pushdown aggregation can only work with version >= 22.10.2" },
+  { 4562, DMEC, AE, "Pushdown aggregation can only work with version >= 22.10.4" },
 
   { 4200, DMEC, AE, "Status Error when defining an operation" },
   { 4201, DMEC, AE, "Variable Arrays not yet supported" },

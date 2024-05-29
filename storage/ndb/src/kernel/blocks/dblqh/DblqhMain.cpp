@@ -17526,7 +17526,7 @@ void Dblqh::scanLockReleasedLab(Signal* signal,
       /*
        * Moz
        * Here is where we send the scanfragconf to TC
-       * in pushdown aggregation finishes a batch.
+       * when pushdown aggregation finishes a batch.
        */
       sendScanFragConf(signal, ZFALSE, regTcPtr);
     }
@@ -19700,10 +19700,12 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
     scanPtr->m_agg_curr_batch_size_rows = conf->agg_batch_size_rows;
     scanPtr->m_agg_n_res_recs = conf->agg_n_res_recs;
   } else {
-    // Moz
-    // In aggregation mode, since we don't follow batch strategy 100%,
-    // in the situation which has small group, m_curr_batch_size_rows
-    // could be bigger than MAX_PARALLEL_OP_PER_SCAN
+    /*
+     * Moz
+     * In aggregation mode, since we don't follow batch strategy 100%,
+     * in the situation which has small group, m_curr_batch_size_rows
+     * could be bigger than MAX_PARALLEL_OP_PER_SCAN
+     */
     ndbrequire(scanPtr->m_curr_batch_size_rows < MAX_PARALLEL_OP_PER_SCAN);
   }
   scanPtr->m_exec_direct_batch_size_words += read_len;
@@ -19738,7 +19740,8 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
   }
   }
 #endif // MOZ_AGG_DEBUG
-  // TODO (Zhao) Skip here (DONE!)
+  // TODO (Zhao) Skip here for pushdown aggregation
+  // (DONE!)
   if (scanPtr->check_scan_batch_completed(print) || last_row)
   {
     if (scanPtr->scanLockHold == ZTRUE)
@@ -19887,7 +19890,7 @@ void Dblqh::scanTupkeyRefLab(Signal* signal,
       (refToMain(scanPtr->scanApiBlockref) != DBSPJ || time_passed > 10 ) &&
       (!scanPtr->m_aggregation || scanPtr->m_agg_n_res_recs == 0))
   {
-    /* Moz explain up if
+    /* Moz explains up if
      * [MOZ-COMMENT]
      * In pushdown aggregation mode, if we are using filter, then time_pased &&
      * rows > 0 could be true, but it doesn't represent that there are no remaining
@@ -19896,8 +19899,9 @@ void Dblqh::scanTupkeyRefLab(Signal* signal,
      * temporarily, if we don't skip here, it would send a scanfragconf to TC and the
      * completed ops in scanfragconf is 0, it seems that if the TC received all scanfragconf
      * with ops=0 from all fragments, TC would regard the scan process is completed(but
-     * actually it isn't) and tell completed status to API, API would stop without waiting for
-     * the remaining results, which could cause incorrect error in the final results.
+     * actually it isn't in this situation) and tell completed status to API,
+     * API would stop without waiting for the remaining results,
+     * which could cause incorrect error in the final results.
      */
 
     /* -----------------------------------------------------------------------

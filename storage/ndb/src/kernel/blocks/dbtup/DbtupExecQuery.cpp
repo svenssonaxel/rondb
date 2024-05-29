@@ -220,8 +220,10 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
                         reinterpret_cast<Dblqh::ScanRecord*>(scan_rec);
       if (scan_rec_ptr->m_aggregation &&
           scan_rec_ptr->m_agg_interpreter == nullptr) {
-        // Initialize agg_interpreter resources
-        // 1. get 1st program word to verify Magic number
+        /*
+         * Initialize agg_interpreter resources
+         * 1. get 1st program word to verify Magic number
+         */
         ndbrequire(reader.getWord(pos));
         ndbrequire((*(pos) >> 16) == 0x0721);
         Uint32 proc_len = *(pos) & 0xFFFF;
@@ -234,7 +236,6 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
         ndbrequire((cinBuffer[proc_start] >> 16) == 0x0721);
 
         // 3. construct agg_interpreter
-        // scan.agg_interpreter = new AggInterpreter(&cinBuffer[proc_start], proc_len, false);
 #ifdef MOZ_AGG_MALLOC
         Uint32 allocPageRef = 0;
         void* page_ptr = m_ctx.m_mm.alloc_page(RT_DBTUP_PAGE,

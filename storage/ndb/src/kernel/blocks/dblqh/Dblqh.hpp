@@ -73,7 +73,7 @@ class FsReadWriteReq;
 /*
  * Moz
  * Turn on the MOZ_AGG_DEBUG
- * to trace lqh hehavious on partition 0
+ * to trace lqh behaviors on partition 0
  */
 #undef MOZ_AGG_DEBUG
 // #define MOZ_AGG_DEBUG 1
@@ -5381,10 +5381,12 @@ Dblqh::ScanRecord::check_scan_batch_completed(bool print) const
 #endif // !MOZ_AGG_DEBUG
   // Don't break aggregation
   if (m_aggregation == true) {
-    // if m_agg_curr_batch_size_bytes != 0, means some aggregation
-    // results have been sent to API as a batch because of group hash
-    // is going to be full. so we return true here to make sure that we
-    // call sendScanFragConf to send GSN_SCAN_FRAGCONF to TC
+    /*
+     * if m_agg_curr_batch_size_bytes != 0, means some aggregation
+     * results have been sent to API as a batch because of group hash
+     * is going to be full. so we return true here to make sure that we
+     * call sendScanFragConf to send GSN_SCAN_FRAGCONF to TC
+     */
     if (m_agg_curr_batch_size_bytes) {
       // MOZ DEBUG PRINT
 #ifdef MOZ_AGG_DEBUG

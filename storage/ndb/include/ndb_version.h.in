@@ -928,7 +928,7 @@ ndbd_handle_new_hash_function(Uint32 x)
   return false;
 }
 
-#define NDBD_PUSHDOWN_AGGREGATION NDB_MAKE_VERSION(22, 10, 2)
+#define NDBD_PUSHDOWN_AGGREGATION NDB_MAKE_VERSION(22, 10, 4)
 static
 inline
 bool
