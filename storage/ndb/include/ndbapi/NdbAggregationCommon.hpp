@@ -29,6 +29,7 @@ enum InterpreterOp {
   kOpMod,
   kOpLoadCol,
   kOpLoadConst,
+  kOpMov,
   kOpSum,
   kOpMax,
   kOpMin,

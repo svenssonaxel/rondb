@@ -232,6 +232,7 @@ class NdbAggregator {
   bool LoadUint64(uint64_t value, uint32_t reg_id);
   bool LoadInt64(int64_t value, uint32_t reg_id);
   bool LoadDouble(double value, uint32_t reg_id);
+  bool Mov(uint32_t reg_1, uint32_t reg_2);
   bool Add(uint32_t reg_1, uint32_t reg_2);
   bool Minus(uint32_t reg_1, uint32_t reg_2);
   bool Mul(uint32_t reg_1, uint32_t reg_2);

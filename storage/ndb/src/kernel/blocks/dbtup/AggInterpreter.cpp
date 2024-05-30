@@ -1378,6 +1378,12 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         }
         exec_pos += 2;
         break;
+      case kOpMov:
+        reg_index = (value & 0x0000F000) >> 12;
+        reg_index2 = (value & 0x00000F00) >> 8;
+
+        registers_[reg_index] = registers_[reg_index2];
+        break;
       case kOpSum:
         reg_index = (value & 0x000F0000) >> 16;
         agg_index = (value & 0x0000FFFF);

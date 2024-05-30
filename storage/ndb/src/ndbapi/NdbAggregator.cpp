@@ -404,6 +404,18 @@ bool NdbAggregator::CheckRegs(uint32_t reg_1, uint32_t reg_2) {
   return true;
 }
 
+bool NdbAggregator::Mov(uint32_t reg_1, uint32_t reg_2) {
+  if (!CheckRegs(reg_1, reg_2)) {
+    return false;
+  }
+  buffer_[curr_prog_pos_++] =
+    (kOpMov) << 26 |
+    (reg_1 & 0x0F) << 12 |
+    (reg_2 & 0x0F) << 8;
+
+  return true;
+}
+
 bool NdbAggregator::Add(uint32_t reg_1, uint32_t reg_2) {
   if (!CheckRegs(reg_1, reg_2)) {
     return false;
