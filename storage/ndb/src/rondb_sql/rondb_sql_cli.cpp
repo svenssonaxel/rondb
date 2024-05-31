@@ -212,11 +212,11 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
     {0, 0, 0, 0}
   };
 
-  while ((opt = getopt_long(argc, argv, "?TD:e:", long_options, NULL)) != -1)
+  while ((opt = getopt_long(argc, argv, "?TD:e:s", long_options, NULL)) != -1)
   {
     switch (opt)
     {
-    case '?': config.help = true; return 0;
+    case '?': config.help = true; return optopt ? 1 : 0;
     case 'T': config.infoflag = MY_GIVE_INFO; break;
     case 'D':
       config.database = optarg;
