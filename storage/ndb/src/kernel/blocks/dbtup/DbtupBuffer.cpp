@@ -490,7 +490,7 @@ void Dbtup::SendAggResToAPI(Signal* signal, const void* lqhTcConnectrec,
   ndbrequire(lqhScanPtrP->m_aggregation == true &&
              lqhScanPtrP->m_agg_interpreter != nullptr);
   uint32_t res_len = lqhScanPtrP->m_agg_interpreter->PrepareAggResIfNeeded(signal, true);
-  lqhScanPtrP->m_agg_n_res_recs = lqhScanPtrP->m_agg_interpreter->NumOfResRecords();
+  lqhScanPtrP->m_agg_n_res_recs = lqhScanPtrP->m_agg_interpreter->NumOfResRecords(true);
   if (res_len != 0) {
     ndbrequire(lqhScanPtrP->m_agg_n_res_recs == 0);
     TransIdAI * transIdAI=  (TransIdAI *)signal->getDataPtrSend();

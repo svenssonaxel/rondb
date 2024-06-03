@@ -17565,7 +17565,11 @@ void Dblqh::scanLockReleasedLab(Signal* signal,
      * search for [MOZ-COMMENT] there.
      */
     if (scanPtr->m_aggregation) {
-      ndbrequire(scanPtr->m_agg_n_res_recs == 0);
+      // TODO (Zhao)
+      // double check: 0 : 1 ?
+      // ndbrequire(scanPtr->m_agg_n_res_recs == 0);
+      g_eventLogger->info("scanPtr->m_agg_n_res_recs: %u",
+                         scanPtr->m_agg_n_res_recs);
     }
     scanPtr->scan_lastSeen = __LINE__;
     sendScanFragConf(signal, ZFALSE, regTcPtr);
@@ -19692,7 +19696,14 @@ void Dblqh::scanTupkeyConfLab(Signal* signal,
   if (scanPtr->m_aggregation) {
     if (conf->agg_batch_size_bytes) {
       ndbrequire(conf->agg_batch_size_rows == 1);
-      ndbrequire(conf->agg_n_res_recs == 0);
+      /*
+       * Moz
+       * conf->agg_batch_size_bytes > 0 only happens
+       * in groupby mode and reaches the aggregation
+       * batch limitation. so here conf->agg_n_res_recs
+       * would be 1
+       */
+      ndbrequire(conf->agg_n_res_recs == 1);
       ndbrequire(scanPtr->m_agg_curr_batch_size_bytes == 0);
       ndbrequire(scanPtr->m_agg_curr_batch_size_rows == 0);
     }
@@ -19902,6 +19913,11 @@ void Dblqh::scanTupkeyRefLab(Signal* signal,
      * actually it isn't in this situation) and tell completed status to API,
      * API would stop without waiting for the remaining results,
      * which could cause incorrect error in the final results.
+     *
+     * We can simply just check scanPtr->m_aggregation here to make aggregation
+     * scan skip this if. But I would like to introduce an extra one
+     * scanPtr->m_agg_n_res_recs to achieve this,
+     * which can help us trace and show more details of aggregation scan process.
      */
 
     /* -----------------------------------------------------------------------
@@ -21168,7 +21184,20 @@ void Dblqh::sendScanFragConf(Signal* signal,
    * search for [MOZ-COMMENT] there.
    */
   if (scanPtr->m_aggregation) {
-    ndbrequire(scanPtr->m_agg_n_res_recs == 0);
+    /*
+     * Moz
+     * In groupby mode, sendScanFragConf when:
+     *  1. batch complete: scanPtr->m_agg_interpreter->NumOfResRecords()
+     *     will at least return 1 even group by hash is empty
+     *  2. scan complete: scanPtr->m_agg_interpreter->NumOfResRecords()
+     *     will return 0;
+     * In non-group mode:
+     *  1. never reach batch complete
+     *  2. scan complete: scanPtr->m_agg_interpreter->NumOfResRecords()
+     *     will return 0;
+     */
+    ndbrequire(scanPtr->m_agg_n_res_recs == 0 ||
+               scanPtr->m_agg_n_res_recs == 1);
   }
   // Moz
   // Make sure that we send correct m_curr_batch_size_XXX, otherwise

@@ -82,7 +82,7 @@ class AggInterpreter {
   bool ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct);
   void Print();
   uint32_t PrepareAggResIfNeeded(Signal* signal, bool force);
-  uint32_t NumOfResRecords();
+  uint32_t NumOfResRecords(bool last_time = false);
   static void MergePrint(const AggInterpreter* in1, const AggInterpreter* in2);
   const std::map<GBHashEntry, GBHashEntry, GBHashEntryCmp>* gb_map() {
     return gb_map_;

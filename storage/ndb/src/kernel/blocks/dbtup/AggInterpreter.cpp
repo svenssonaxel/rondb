@@ -1886,11 +1886,50 @@ uint32_t AggInterpreter::PrepareAggResIfNeeded(Signal* signal, bool force) {
   return pos;
 }
 
-uint32_t AggInterpreter::NumOfResRecords() {
-  if (gb_map_) {
-    return gb_map_->size();
+uint32_t AggInterpreter::NumOfResRecords(bool last_time) {
+  /*
+   * Moz
+   * NumOfResRecords is called after PrepareAggResIfNeeded
+   * to see if there's no result left in the interpreter.
+   * we use this return value to stop Dblqh::scanTupkeyRefLab
+   * to send scanfragconf to TC wrongly
+   * see [MOZ-COMMENT] there.
+   */
+
+  if (!last_time) {
+    /*
+     * if it's not the last time PrepareAggResIfNeeded,
+     * here we can return the real value.
+     * NOTICE:
+     * always return 1 even if gb_map_ is empty().
+     * In this situation: pushdown aggregation with filter and
+     * group by. 99% rows has been filtered out which means
+     * gb_map_ has big chance to stay empty. In order to stop
+     * Dblqh::scanTupkeyRefLab send scanfragconf before aggregation
+     * scan finishes. here return 1 to stop that.
+     */
+    if (gb_map_) {
+      return (gb_map_->empty() ? 1 : gb_map_->size());
+    } else {
+      /*
+       * In non-groupby mode, before we send the result to API
+       * at the last time. we always return 1.
+       * NOTICE:
+       * In non-groupby mode, we still need to stop scanTupkeyRefLab
+       * send scanfragconf wrongly.
+       */
+      return 1;
+    }
   } else {
-    return 1;
+    /*
+     * This is the last time we call PrepareAggResIfNeeded, so the
+     * aggregation is going to finish.
+     * We assert all results have been sent and return 0 here.
+     */
+    if (gb_map_) {
+      assert(gb_map_->empty());
+    }
+    return 0;
   }
 }
 
