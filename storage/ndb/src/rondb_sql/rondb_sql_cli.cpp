@@ -221,6 +221,9 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
   {
     switch (opt)
     {
+      // opt can be '?' in two cases:
+      // 1) -? or --help is explicitly given and optopt == 0
+      // 2) an unknown option was given and optopt != 0
     case '?': config.help = true; return optopt ? 1 : 0;
     case 'T': config.infoflag = MY_GIVE_INFO; break;
     case 'D':
