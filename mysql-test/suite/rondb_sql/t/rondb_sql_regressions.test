@@ -27,13 +27,13 @@
 #--source suite/rondb_sql/include/rondb_sql_compare.inc
 #DROP TABLE tbl;
 
-#--echo No GROUP BY crashes data node
-#CREATE TABLE tbl (a SMALLINT UNSIGNED NOT NULL) ENGINE=NDB;
-#INSERT INTO tbl VALUES (0), (1), (2), (3), (4), (5);
-## Without GROUP BY, with WHERE
-#--let $QUERY=SELECT sum(a) FROM tbl WHERE a < 5;
-#--source suite/rondb_sql/include/rondb_sql_compare.inc
-## Without GROUP BY, without WHERE
-#--let $QUERY=SELECT sum(a) FROM tbl;
-#--source suite/rondb_sql/include/rondb_sql_compare.inc
-#DROP TABLE tbl;
+--echo No GROUP BY crashes data node
+CREATE TABLE tbl (a SMALLINT UNSIGNED NOT NULL) ENGINE=NDB;
+INSERT INTO tbl VALUES (0), (1), (2), (3), (4), (5);
+# Without GROUP BY, with WHERE
+--let $QUERY=SELECT sum(a) FROM tbl WHERE a < 5;
+--source suite/rondb_sql/include/rondb_sql_compare.inc
+# Without GROUP BY, without WHERE
+--let $QUERY=SELECT sum(a) FROM tbl;
+--source suite/rondb_sql/include/rondb_sql_compare.inc
+DROP TABLE tbl;
