@@ -8,12 +8,11 @@ if ($QUERY=='')
 {
   if ($QUERY_FILE=='')
   {
-    --echo DBG: QUERY=$QUERY, QUERY_FILE=$QUERY_FILE
     --die Must define either QUERY or QUERY_FILE variable
   }
   --let $QUERY_PARAMS = < '$QUERY_FILE'
 }
---let $QUERY_PARAMS = -D test -s $QUERY_PARAMS
+--let $QUERY_PARAMS = -D test $QUERY_PARAMS
 --echo == Query ==
 --echo $QUERY
 --exec $MYSQL $QUERY_PARAMS > $MYSQL_TMP_DIR/mysql.out

@@ -99,6 +99,7 @@ private:
   bool m_json_output;
   bool m_utf8_output;
   bool m_tsv_output;
+  bool m_tsv_headers;
   // Program state
   NdbAggregator::Column* m_regs_g;
   NdbAggregator::Result* m_regs_a;

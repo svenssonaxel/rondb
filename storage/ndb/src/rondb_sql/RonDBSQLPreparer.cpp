@@ -124,7 +124,8 @@ RonDBSQLPreparer::configure()
     assert(m_conf.query_output_stream != NULL);
     assert(m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_UTF8 ||
            m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_ASCII ||
-           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::TSV);
+           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::TSV ||
+           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::TSV_DATA);
   }
   if (may_explain)
   {

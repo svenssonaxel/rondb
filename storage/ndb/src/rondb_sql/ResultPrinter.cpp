@@ -74,6 +74,8 @@ ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
     break;
   case ExecutionParameters::QueryOutputFormat::TSV:
     break;
+  case ExecutionParameters::QueryOutputFormat::TSV_DATA:
+    break;
   default:
     assert(false);
   }
@@ -189,16 +191,25 @@ ResultPrinter::compile()
     m_json_output = false;
     m_utf8_output = true;
     m_tsv_output = true;
+    m_tsv_headers = true;
+    break;
+  case ExecutionParameters::QueryOutputFormat::TSV_DATA:
+    m_json_output = false;
+    m_utf8_output = true;
+    m_tsv_output = true;
+    m_tsv_headers = false;
     break;
   case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
     m_json_output = true;
     m_utf8_output = true;
     m_tsv_output = false;
+    m_tsv_headers = false;
     break;
   case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
     m_json_output = true;
     m_utf8_output = false;
     m_tsv_output = false;
+    m_tsv_headers = false;
     break;
   default:
     assert(false);
@@ -333,7 +344,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
          !record.end();
          record = aggregator->FetchResultRecord())
     {
-      if (first_record)
+      if (first_record && m_tsv_headers)
       {
         // Print the column names.
         bool first_column = true;
@@ -675,6 +686,9 @@ ResultPrinter::explain(std::basic_ostream<char>* explain_output_stream)
     break;
   case ExecutionParameters::QueryOutputFormat::TSV:
     format_description = "mysql-style tab separated";
+    break;
+  case ExecutionParameters::QueryOutputFormat::TSV_DATA:
+    format_description = "mysql-style tab separated, header-less";
     break;
   default:
     assert(false);

@@ -61,7 +61,8 @@ struct ExecutionParameters
                 // with code point U+0080 and above are encoded using \u escape
                 // sequences, meaning the output stream will only contain ASCII
                 // characters 0x00 to 0x7f.
-    TSV,        // Mimic mysql tab-separated output
+    TSV,        // Mimic mysql tab-separated output with headers
+    TSV_DATA,   // Mimic mysql tab-separated output without headers
   };
   QueryOutputFormat query_output_format = QueryOutputFormat::JSON_UTF8;
   std::basic_ostream<char>* explain_output_stream = NULL;

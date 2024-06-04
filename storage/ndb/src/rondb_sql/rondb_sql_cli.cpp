@@ -54,6 +54,9 @@ main(int argc, char** argv)
   params.query_output_stream = &cout;
   params.explain_output_stream = &cout;
   params.err_output_stream = &cerr;
+  params.query_output_format = isatty(fileno(stdout))
+    ? ExecutionParameters::QueryOutputFormat::JSON_UTF8
+    : ExecutionParameters::QueryOutputFormat::TSV;
   int exit_code = 0;
 
   // Parse command-line arguments
@@ -138,7 +141,8 @@ print_help(const char* argv0)
     "  -D, --database name           Database name. Required if --connect-string is\n"
     "                                given.\n"
     "  -e, --execute query           Execute query and output results.\n"
-    "  -s, --silent                  Synonymous to --query-output-format TSV\n"
+    "  -s, --silent                  --query-output-format (stdout is terminal\n"
+    "                                                       ? TSV : TSV_DATA)\n"
     "Options specific to RonDB SQL:\n"
     "  --execute-file <FILE>         Execute query from file.\n"
     "  --connect-string <STRING>     Ndb connection string (If not given, then no\n"
@@ -164,9 +168,10 @@ print_help(const char* argv0)
     "                                  release lock directly.\n"
     // See RonDBSQLCommon.hpp for comment about query output format
     "  --query-output-format <FMT>   Set query output format. <FMT> can be one of:\n"
-    "                                - JSON_UTF8 (default)\n"
+    "                                - JSON_UTF8 (default if stdout is a terminal)\n"
     "                                - JSON_ASCII\n"
-    "                                - TSV (mimic mysql -s)\n"
+    "                                - TSV (default if stdout is not a terminal)\n"
+    "                                - TSV_DATA\n"
     // See RonDBSQLCommon.hpp for comment about explain output format
     "  --explain-output-format <FMT> Set explain output format. <FMT> can be one of:\n"
     "                                - TEXT (default)\n"
@@ -241,7 +246,9 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
       }
       break;
     case 's':
-      params.query_output_format = ExecutionParameters::QueryOutputFormat::TSV;
+      params.query_output_format = isatty(fileno(stdout))
+        ? ExecutionParameters::QueryOutputFormat::TSV
+        : ExecutionParameters::QueryOutputFormat::TSV_DATA;
       break;
     case OPT_EXECUTE_FILE:
       if (params.sql_buffer != NULL)
@@ -311,6 +318,8 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
         params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII;
       else if (strcmp(optarg, "TSV") == 0)
         params.query_output_format = ExecutionParameters::QueryOutputFormat::TSV;
+      else if (strcmp(optarg, "TSV_DATA") == 0)
+        params.query_output_format = ExecutionParameters::QueryOutputFormat::TSV_DATA;
       else
         ARG_FAIL("Invalid query output format.");
       break;
