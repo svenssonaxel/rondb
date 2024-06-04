@@ -347,32 +347,35 @@ read_stdin(ArenaAllocator* aalloc, char** buffer, size_t* buffer_len)
   uint contentlen = 0;
   while (true)
   {
-    if (contentlen >= alloclen)
-    {
-      buf = aalloc->realloc(buf, alloclen * 2, alloclen);
-      alloclen *= 2;
-    }
+    assert(contentlen < alloclen);
     size_t readlen = fread(buf + contentlen,
                            sizeof(char),
                            alloclen - contentlen, stdin);
     contentlen += readlen;
-    if (contentlen != alloclen)
+    if (feof(stdin))
     {
-      int error = ferror(stdin);
-      if (error)
-      {
-        cerr << "Error reading from stdin: " << strerror(error) << endl;
-        throw std::runtime_error("Error reading from stdin.");
-      }
-      if (feof(stdin))
-      {
-        break;
-      }
-      assert(false);
+      break;
+    }
+    int error = ferror(stdin);
+    if (error)
+    {
+      throw std::runtime_error("Error reading from stdin.");
+    }
+    if (contentlen == alloclen)
+    {
+      buf = aalloc->realloc(buf, alloclen * 2, alloclen);
+      alloclen *= 2;
     }
   }
+  if (contentlen + 2 > alloclen)
+  {
+    buf = aalloc->realloc(buf, contentlen + 2, alloclen);
+    // alloclen = contentlen + 2;
+  }
+  buf[contentlen] = '\0';
+  buf[contentlen+1] = '\0';
   *buffer = buf;
-  *buffer_len = contentlen;
+  *buffer_len = contentlen + 2;
 }
 
 static int
