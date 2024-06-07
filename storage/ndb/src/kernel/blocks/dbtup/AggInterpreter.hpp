@@ -20,6 +20,7 @@
 #define MOZ_AGG_MALLOC 1
 
 #define READ_BUF_WORD_SIZE 2048
+#define DECIMAL_BUFF_LENGTH 9
 class AggInterpreter {
  public:
 #ifdef MOZ_AGG_MALLOC
@@ -43,6 +44,7 @@ class AggInterpreter {
 #endif // MOZ_AGG_MALLOC
       memcpy(prog_, prog, prog_len * sizeof(uint32_t));
       memset(buf_, 0, READ_BUF_WORD_SIZE * sizeof(uint32_t));
+      memset(decimal_buf_, 0, sizeof(int32_t) * DECIMAL_BUFF_LENGTH);
 #ifdef MOZ_AGG_MALLOC
       mm_ = mm;
       page_addr_ = page_addr;
@@ -125,6 +127,7 @@ class AggInterpreter {
   static uint32_t g_result_header_size_per_group_;
 
   int64_t frag_id_;
+  int32_t decimal_buf_[DECIMAL_BUFF_LENGTH];
 
 #ifdef MOZ_AGG_MALLOC
   Ndbd_mem_manager* mm_;

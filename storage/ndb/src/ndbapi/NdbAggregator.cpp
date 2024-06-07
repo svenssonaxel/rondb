@@ -294,6 +294,8 @@ bool NdbAggregator::TypeSupported(NdbDictionary::Column::Type type) {
     case NdbDictionary::Column::Bigunsigned:
     case NdbDictionary::Column::Float:
     case NdbDictionary::Column::Double:
+    case NdbDictionary::Column::Decimal:
+    case NdbDictionary::Column::Decimalunsigned:
       return true;
     default:
       return false;
@@ -324,11 +326,28 @@ bool NdbAggregator::LoadColumn(const char* name, uint32_t reg_id) {
   }
 
   int32_t col_id = col->getAttrId();
+  assert((col_id & 0xFFFFFF00) == 0);
   buffer_[curr_prog_pos_++] =
     (kOpLoadCol) << 26 |
     (type & 0x1F) << 21 |
     (reg_id & 0x0F) << 16 |
     col_id;
+
+  /*
+   * For decimal, use 1 more byte to take precision/scale
+   * info.
+   */
+  if (type == NdbDictionary::Column::Decimal ||
+      type == NdbDictionary::Column::Decimalunsigned) {
+    assert((col->getPrecision() & 0xFFFFFF00) == 0);
+    assert((col->getScale() & 0xFFFFFF00) == 0);
+    int32_t decimal_info = col->getPrecision() << 16 |
+                           col->getScale();
+    int4store(reinterpret_cast<char*>(&buffer_[curr_prog_pos_]),
+              decimal_info);
+    curr_prog_pos_++;
+  }
+
   return true;
 }
 
@@ -351,11 +370,27 @@ bool NdbAggregator::LoadColumn(int32_t col_id, uint32_t reg_id) {
     disk_columns_ = true;
   }
 
+  assert((col_id & 0xFFFFFF00) == 0);
   buffer_[curr_prog_pos_++] =
     (kOpLoadCol) << 26 |
     (type & 0x1F) << 21 |
     (reg_id & 0x0F) << 16 |
     col_id;
+  /*
+   * For decimal, use 1 more byte to take precision/scale
+   * info.
+   */
+  if (type == NdbDictionary::Column::Decimal ||
+      type == NdbDictionary::Column::Decimalunsigned) {
+    assert((col->getPrecision() & 0xFFFFFF00) == 0);
+    assert((col->getScale() & 0xFFFFFF00) == 0);
+    int32_t decimal_info = col->getPrecision() << 16 |
+                           col->getScale();
+    int4store(reinterpret_cast<char*>(&buffer_[curr_prog_pos_]),
+              decimal_info);
+    curr_prog_pos_++;
+  }
+
   return true;
 }
 

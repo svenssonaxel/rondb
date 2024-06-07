@@ -10,6 +10,7 @@
 #include "signaldata/TransIdAI.hpp"
 #include "include/my_byteorder.h"
 #include "AggInterpreter.hpp"
+#include "decimal.h"
 
 uint32_t AggInterpreter::g_buf_len_ = READ_BUF_WORD_SIZE;
 uint32_t AggInterpreter::g_result_header_size_ = 3 * sizeof(uint32_t);
@@ -101,6 +102,9 @@ static bool TypeSupported(DataType type) {
 
     case NDB_TYPE_FLOAT:
     case NDB_TYPE_DOUBLE:
+
+    case NDB_TYPE_DECIMAL:
+    case NDB_TYPE_DECIMALUNSIGNED:
       return true;
     default:
       return false;
@@ -115,6 +119,7 @@ static bool IsUnsigned(DataType type) {
     case NDB_TYPE_MEDIUMUNSIGNED:
     case NDB_TYPE_UNSIGNED:
     case NDB_TYPE_BIGUNSIGNED:
+    case NDB_TYPE_DECIMALUNSIGNED:
       return true;
     default:
       return false;
@@ -140,6 +145,17 @@ static DataType AlignedType(DataType type) {
     case NDB_TYPE_FLOAT:
     case NDB_TYPE_DOUBLE:
       return NDB_TYPE_DOUBLE;
+    /*
+     * TODO (Zhao)
+     * Moz
+     * Temporary solultion
+     * Currently regard Decimal as a undefined,
+     * then decide it as BIGINT/BIGUNSIGNED/DOUBLE in LoadColumn
+     * dynamically.
+     */
+    case NDB_TYPE_DECIMAL:
+    case NDB_TYPE_DECIMALUNSIGNED:
+      return NDB_TYPE_UNDEFINED;
     default:
       assert(0);
   }
@@ -1168,6 +1184,16 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 
   const uint32_t* attrDescriptor = nullptr;
 
+  int32_t decimal_info = 0;
+  int32_t precision = 0;
+  int32_t scale = 0;
+  decimal_t decimal;
+  decimal.buf = decimal_buf_;
+  int32_t dec_ret = E_DEC_OK;
+  uint8_t* dec_buf_ptr = nullptr;
+  longlong dec_val_ll = 0;
+  ulonglong dec_val_ull = 0;
+
   uint32_t exec_pos = agg_prog_start_pos_;
   while (exec_pos < prog_len_) {
     value = prog_[exec_pos++];
@@ -1338,6 +1364,109 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
             // fprintf(stderr, "Moz-Intp: Load NDB_TYPE_DOUBLE %lf\n",
             //     registers_[reg_index].value.val_double);
             break;
+          case NDB_TYPE_DECIMAL:
+            decimal_info =
+                sint4korr(reinterpret_cast<char*>(&prog_[exec_pos]));
+            precision = decimal_info >> 16;
+            scale = decimal_info & 0xFFFF;
+            exec_pos += 1;
+            assert(static_cast<uint32_t>(decimal_bin_size(precision, scale)) ==
+                AttributeDescriptor::getSizeInBytes(attrDescriptor[0]));
+           /*
+            * Moz
+            * TODO (Zhao)
+            * Catch overflow and other errors when convert,
+            * print the Decimal bytes out in the log.
+            if (frag_id_ == 0) {
+            dec_buf_ptr = reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
+            for (uint32_t i = 0;
+                i < AttributeDescriptor::getSizeInBytes(attrDescriptor[0]); i++) {
+              fprintf(stderr, "%x ", *(dec_buf_ptr + i));
+            }
+            fprintf(stderr, "\n");
+            }
+            */
+            // memset(decimal.buf, 0, sizeof(int32_t) * DECIMAL_BUFF_LENGTH);
+            decimal.len = AttributeDescriptor::getSizeInBytes(attrDescriptor[0]);
+            dec_ret = bin2decimal(reinterpret_cast<const uchar*>(&buf_[buf_pos_ + 1]),
+                      &decimal, precision, scale);
+            assert(dec_ret == E_DEC_OK);
+            /*
+             * Moz
+             * convery from decimal to supported type dynamically.
+             */
+            if (scale != 0) {
+              dec_ret = decimal2double(&decimal, &(registers_[reg_index].value.val_double));
+              registers_[reg_index].type = NDB_TYPE_DOUBLE;
+            } else {
+              dec_ret = decimal2longlong(&decimal, &dec_val_ll);
+              registers_[reg_index].value.val_int64 = dec_val_ll;
+              registers_[reg_index].type = NDB_TYPE_BIGINT;
+            }
+            assert(dec_ret == E_DEC_OK);
+            assert(registers_[reg_index].is_unsigned == false);
+            // if (frag_id_ == 0) {
+            //   if (scale != 0) {
+            //     fprintf(stderr, "Moz-Intp: Load NDB_TYPE_DECIMAL[double] %lf\n",
+            //         registers_[reg_index].value.val_double);
+            //   } else {
+            //     fprintf(stderr, "Moz-Intp: Load NDB_TYPE_DECIMAL[int64] %ld\n",
+            //         registers_[reg_index].value.val_int64);
+            //   }
+            // }
+          break;
+        case NDB_TYPE_DECIMALUNSIGNED:
+            decimal_info =
+                sint4korr(reinterpret_cast<char*>(&prog_[exec_pos]));
+            precision = decimal_info >> 16;
+            scale = decimal_info & 0xFFFF;
+            exec_pos += 1;
+            assert(static_cast<uint32_t>(decimal_bin_size(precision, scale)) ==
+                AttributeDescriptor::getSizeInBytes(attrDescriptor[0]));
+           /*
+            * Moz
+            * TODO (Zhao)
+            * Catch overflow and other errors when convert,
+            * print the Decimal bytes out in the log.
+            if (frag_id_ == 0) {
+            dec_buf_ptr = reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
+            for (uint32_t i = 0;
+                i < AttributeDescriptor::getSizeInBytes(attrDescriptor[0]); i++) {
+              fprintf(stderr, "%x ", *(dec_buf_ptr + i));
+            }
+            fprintf(stderr, "\n");
+            }
+            */
+            // memset(decimal.buf, 0, sizeof(int32_t) * DECIMAL_BUFF_LENGTH);
+            decimal.len = AttributeDescriptor::getSizeInBytes(attrDescriptor[0]);
+            dec_ret = bin2decimal(reinterpret_cast<const uchar*>(&buf_[buf_pos_ + 1]),
+                      &decimal, precision, scale);
+            assert(dec_ret == E_DEC_OK);
+            /*
+             * Moz
+             * convery from decimal to supported type dynamically.
+             */
+            if (scale != 0) {
+              dec_ret = decimal2double(&decimal, &(registers_[reg_index].value.val_double));
+              registers_[reg_index].type = NDB_TYPE_DOUBLE;
+              assert(registers_[reg_index].is_unsigned == false);
+            } else {
+              dec_ret = decimal2ulonglong(&decimal, &dec_val_ull);
+              registers_[reg_index].value.val_uint64 = dec_val_ull;
+              registers_[reg_index].type = NDB_TYPE_BIGUNSIGNED;
+              registers_[reg_index].is_unsigned = true;
+            }
+            assert(dec_ret == E_DEC_OK);
+            // if (frag_id_ == 0) {
+            //   if (scale != 0) {
+            //     fprintf(stderr, "Moz-Intp: Load NDB_TYPE_DECIMALUNSIGNED[double] %lf\n",
+            //         registers_[reg_index].value.val_double);
+            //   } else {
+            //     fprintf(stderr, "Moz-Intp: Load NDB_TYPE_DECIMALUNSIGNED[uin64] %lu\n",
+            //         registers_[reg_index].value.val_uint64);
+            //   }
+            // }
+          break;
 
           default:
             assert(0);
