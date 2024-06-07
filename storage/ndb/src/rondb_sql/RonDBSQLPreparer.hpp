@@ -49,6 +49,12 @@ struct LexLocation
   char* end = NULL;
 };
 
+struct raw_value
+{
+  const void* val = NULL;
+  Uint32 len = 0;
+};
+
 class RonDBSQLPreparer
 {
 public:
@@ -169,6 +175,7 @@ private:
                         NdbScanFilter::BinaryCondition cond,
                         struct ConditionalExpression* left,
                         struct ConditionalExpression* right);
+  raw_value eval_const_expr(struct ConditionalExpression* ce);
   void programAggregator(NdbAggregator* aggregator);
   void print_result_json(NdbAggregator* aggregator);
   void print();

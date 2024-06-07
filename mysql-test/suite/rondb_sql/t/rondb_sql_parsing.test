@@ -210,6 +210,8 @@ EOF
 --error 1
 --exec $PARSE_TEST 'select a from tbl'
 
+# todo If the above still works, add Unexpected end of input at newline
+
 --echo ===== Unexpected at this point =====
 --error 1
 --exec $PARSE_TEST 'select a `bcde` from tbl;'

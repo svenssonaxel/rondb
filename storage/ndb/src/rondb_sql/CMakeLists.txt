@@ -56,5 +56,6 @@ ADD_CONVENIENCE_LIBRARY(rondb_sql
 NDB_ADD_EXECUTABLE(rondb_sql_cli rondb_sql_cli.cpp)
 TARGET_LINK_LIBRARIES(rondb_sql_cli rondb_sql)
 TARGET_LINK_LIBRARIES(rondb_sql_cli ndbclient_so)
+TARGET_LINK_LIBRARIES(rondb_sql_cli mytime) # Needed for DATE_SUB etc.
 
 NDB_ADD_TEST(KeywordsUnitTest KeywordsUnitTest.cpp LIBS rondb_sql ndbclient_so)

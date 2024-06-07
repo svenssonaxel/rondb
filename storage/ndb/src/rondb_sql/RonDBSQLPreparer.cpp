@@ -29,6 +29,10 @@
 #include "RonDBSQLPreparer.hpp"
 #include <iostream>
 #include "define_formatter.hpp"
+#include "my_time.h"
+#include "mysql_time.h"
+#include "my_inttypes.h"
+
 using std::endl;
 using std::runtime_error;
 
@@ -992,16 +996,7 @@ RonDBSQLPreparer::apply_filter_cmp(NdbScanFilter* filter,
                                    struct ConditionalExpression* left,
                                    struct ConditionalExpression* right)
 {
-  if (left->op == T_IDENTIFIER && right->op == T_INT)
-  {
-    assert(m_column_attrId_map != NULL);
-    uint8_t* val = m_aalloc->alloc<uint8_t>(1);
-    *val = static_cast<uint8_t>(right->constant_integer);
-    return (filter->cmp(cond,
-                        m_column_attrId_map[left->col_idx],
-                        val, sizeof(*val)) >= 0);
-  }
-  else if (left->op == T_IDENTIFIER &&
+  if (left->op == T_IDENTIFIER &&
            right->op == T_IDENTIFIER)
   {
     assert(m_column_attrId_map != NULL);
@@ -1009,11 +1004,170 @@ RonDBSQLPreparer::apply_filter_cmp(NdbScanFilter* filter,
                         m_column_attrId_map[left->col_idx],
                         m_column_attrId_map[right->col_idx]) >= 0);
   }
-  else
+  if (left->op == T_IDENTIFIER)
   {
-    throw runtime_error("Failed to apply filter.");
+    assert(m_column_attrId_map != NULL);
+    raw_value rv = eval_const_expr(right);
+    return (filter->cmp(cond,
+                        m_column_attrId_map[left->col_idx],
+                        rv.val, rv.len) >= 0);
   }
+  throw runtime_error("Failed to apply filter.");
+}
+
+bool rv_bool(raw_value rv)
+{
+  for (uint i = 0; i < rv.len; i++)
+    if (((const uint8_t*)rv.val)[i] != 0)
+      return true;
   return false;
+}
+
+raw_value bool_rv(bool b)
+{
+  static const struct raw_value rv_true8 = {(const void *)"\001", 1};
+  static const struct raw_value rv_false8 = {(const void *)"\000", 1};
+  return b ? rv_true8 : rv_false8;
+}
+
+// todo, perhaps eval_const_expr is better made part of a filter simplification
+// stage, where data types can be matched etc. Or maybe it should even be made
+// part of apply_filter.
+raw_value
+RonDBSQLPreparer::eval_const_expr(ConditionalExpression* ce)
+{
+  raw_value ret;
+  switch(ce->op)
+  {
+  case T_IDENTIFIER:
+    throw runtime_error("Expected constant expression"); // todo track code location
+  case T_STRING:
+    assert(false); // Not implemented
+  case T_INT:
+    {
+      long int* val = m_aalloc->alloc<long int>(1);
+      *val = ce->constant_integer;
+      ret.val = val;
+      ret.len = sizeof(*val);
+      return ret;
+    }
+  case T_OR:
+    return bool_rv(rv_bool(eval_const_expr(ce->args.left)) ||
+                   rv_bool(eval_const_expr(ce->args.right)));
+  case T_XOR:
+    {
+      bool left = rv_bool(eval_const_expr(ce->args.left));
+      bool right = rv_bool(eval_const_expr(ce->args.right));
+      return bool_rv(left != right);
+    }
+  case T_AND:
+    return bool_rv(rv_bool(eval_const_expr(ce->args.left)) &&
+                   rv_bool(eval_const_expr(ce->args.right)));
+  case T_NOT:
+    return bool_rv(!rv_bool(eval_const_expr(ce->args.left)));
+  case T_EQUALS:
+    assert(false); // Not implemented
+  case T_GE:
+    assert(false); // Not implemented
+  case T_GT:
+    assert(false); // Not implemented
+  case T_LE:
+    assert(false); // Not implemented
+  case T_LT:
+    assert(false); // Not implemented
+  case T_NOT_EQUALS:
+    assert(false); // Not implemented
+  case T_IS:
+    assert(false); // Not implemented
+  case T_BITWISE_OR:
+    assert(false); // Not implemented
+  case T_BITWISE_AND:
+    assert(false); // Not implemented
+  case T_BITSHIFT_LEFT:
+    assert(false); // Not implemented
+  case T_BITSHIFT_RIGHT:
+    assert(false); // Not implemented
+  case T_PLUS:
+    assert(false); // Not implemented
+  case T_MINUS:
+    assert(false); // Not implemented
+  case T_MULTIPLY:
+    assert(false); // Not implemented
+  case T_DIVIDE:
+    assert(false); // Not implemented
+  case T_MODULO:
+    assert(false); // Not implemented
+  case T_BITWISE_XOR:
+    assert(false); // Not implemented
+  case T_EXCLAMATION:
+    assert(false); // Not implemented
+  case T_INTERVAL:
+    assert(false); // Not implemented
+  case T_DATE_ADD:
+    assert(false); // Not implemented
+  case T_DATE_SUB:
+    {
+      ConditionalExpression* date_ce = ce->args.left;
+      ConditionalExpression* interval_ce = ce->args.right;
+      if (date_ce->op != T_STRING)
+      {
+        throw runtime_error("DATE_SUB expected date string as first argument");
+      }
+      if (interval_ce->op != T_INTERVAL)
+      {
+        throw runtime_error("DATE_SUB expected interval as second argument");
+      }
+      LexString datestr = date_ce->string;
+      if (interval_ce->interval.interval_type != T_DAY)
+      {
+        throw runtime_error("DATE_SUB only supports DAY intervals");
+      }
+      ConditionalExpression* days_ce = interval_ce->interval.arg;
+      if (days_ce->op != T_INT)
+      {
+        // todo support constant string as well
+        throw runtime_error("DATE_SUB only supports integer days");
+      }
+      long int days = days_ce->constant_integer;
+      if (days < 0)
+      {
+        throw runtime_error("DATE_SUB only supports positive days in interval");
+      }
+      unsigned long int udays = days;
+      MYSQL_TIME ltime;
+      my_time_flags_t flags = 0; // todo
+      MYSQL_TIME_STATUS status;
+      bool err = str_to_datetime(datestr.str, datestr.len, &ltime,
+                                 flags, &status);
+      if (err)
+      {
+        throw runtime_error("DATE_SUB failed to parse date string");
+      }
+      bool neg = true;
+      Interval interval = {0, 0, udays, 0, 0, 0, 0, neg};
+      err = date_add_interval(&ltime,
+                              interval_type::INTERVAL_DAY,
+                              interval,
+                              NULL);
+      if (err)
+      {
+        throw runtime_error("DATE_SUB failed");
+      }
+      Uint32* date = m_aalloc->alloc<Uint32>(1);
+      // todo find and use MySQL conversion function
+      *date = ltime.year << 9 | ltime.month << 5 | ltime.day;
+      //ulonglong* timeull = m_aalloc->alloc<ulonglong>(1);
+      //*timeull = TIME_to_ulonglong_datetime(ltime);
+      //std::cerr << "==========DBG: In RonDBSQLPreparer::eval_const_expr DATE_SUB: *timeull=" << *timeull << endl;
+      //return raw_value{ timeull, sizeof(*timeull)};
+      return raw_value{ date, sizeof(*date)};
+    }
+  case T_EXTRACT:
+    assert(false); // Not implemented
+  default:
+    // Unknown operator
+    assert(false);
+  }
 }
 
 #define programAggregator_do_or_fail(CALL) \

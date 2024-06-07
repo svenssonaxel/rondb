@@ -27,6 +27,8 @@
 #include "ResultPrinter.hpp"
 #include "define_formatter.hpp"
 #include "RonDBSQLPreparer.hpp"
+#include "my_time.h"
+
 using std::endl;
 using std::max;
 using std::runtime_error;
@@ -367,6 +369,11 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
   // ================================================================================
 }
 
+DEFINE_FORMATTER(d2, uint, {
+  if (value < 10) os << '0';
+  os << value;
+})
+
 inline void
 ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& out)
 {
@@ -416,28 +423,135 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
     case Cmd::Type::PRINT_GROUP_BY_COLUMN:
       {
         NdbAggregator::Column column = m_regs_g[cmd.print_group_by_column.reg_g];
-        if (column.type() == 15)
+        switch (column.type())
         {
-          LexString content = LexString{ &column.data()[1],
-                                         (size_t)column.data()[0] };
-          if (m_json_output)
-          {
-            print_json_string_from_utf8(out,
-                                        content,
-                                        m_utf8_output);
-          }
-          else if (m_tsv_output)
-          {
-            out << content; // todo mysql-like escape
-          }
-          else
-          {
-            assert(false);
-          }
-        }
-        else
-        {
+        case NdbDictionary::Column::Type::Undefined:     ///< Undefined. Since this is a result, it means SQL NULL.
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Tinyint:       ///< 8 bit. 1 byte signed integer
+          out << column.data_int8();
+          break;
+        case NdbDictionary::Column::Type::Tinyunsigned:  ///< 8 bit. 1 byte unsigned integer
+          out << column.data_uint8();
+          break;
+        case NdbDictionary::Column::Type::Smallint:      ///< 16 bit. 2 byte signed integer
+          out << column.data_int16();
+          break;
+        case NdbDictionary::Column::Type::Smallunsigned: ///< 16 bit. 2 byte unsigned integer
+          out << column.data_uint16();
+          break;
+        case NdbDictionary::Column::Type::Mediumint:     ///< 24 bit. 3 byte signed integer
           out << column.data_medium();
+          break;
+        case NdbDictionary::Column::Type::Mediumunsigned:///< 24 bit. 3 byte unsigned integer
+          out << column.data_umedium();
+          break;
+        case NdbDictionary::Column::Type::Int:           ///< 32 bit. 4 byte signed integer
+          out << column.data_int32();
+          break;
+        case NdbDictionary::Column::Type::Unsigned:      ///< 32 bit. 4 byte unsigned integer
+          out << column.data_uint32();
+          break;
+        case NdbDictionary::Column::Type::Bigint:        ///< 64 bit. 8 byte signed integer
+          out << column.data_int64();
+          break;
+        case NdbDictionary::Column::Type::Bigunsigned:   ///< 64 Bit. 8 byte unsigned integer
+          out << column.data_uint64();
+          break;
+        case NdbDictionary::Column::Type::Float:         ///< 32-bit float. 4 bytes float
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Double:        ///< 64-bit float. 8 byte float
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Olddecimal:    ///< MySQL < 5.0 signed decimal,  Precision, Scale
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Olddecimalunsigned:
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Decimal:       ///< MySQL >= 5.0 signed decimal,  Precision, Scale
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Decimalunsigned:
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Char:          ///< Len. A fixed array of 1-byte chars
+          {
+            LexString content = LexString{ column.data(), column.byte_size() };
+            while (content.len > 0 && content.str[content.len - 1] == 0x20)
+            {
+              content.len--;
+            }
+            if (m_json_output)
+            {
+              print_json_string_from_utf8(out,
+                                          content,
+                                          m_utf8_output);
+            }
+            else if (m_tsv_output)
+            {
+              out << content; // todo mysql-like escape
+            }
+            else
+            {
+              assert(false);
+            }
+            break;
+          }
+        case NdbDictionary::Column::Type::Varchar:       ///< Length bytes: 1, Max: 255
+          {
+            LexString content = LexString{ &column.data()[1],
+                                           (size_t)column.data()[0] };
+            if (m_json_output)
+            {
+              print_json_string_from_utf8(out,
+                                          content,
+                                          m_utf8_output);
+            }
+            else if (m_tsv_output)
+            {
+              out << content; // todo mysql-like escape
+            }
+            else
+            {
+              assert(false);
+            }
+            break;
+          }
+        case NdbDictionary::Column::Type::Binary:        ///< Len
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Varbinary:     ///< Length bytes: 1, Max: 255
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Datetime:      ///< Precision down to 1 sec (sizeof(Datetime) == 8 bytes )
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Date:          ///< Precision down to 1 day(sizeof(Date) == 4 bytes )
+          {
+            uint date = column.data_uint32();
+            uint year = date >> 9;
+            uint month = (date >> 5) & 0xf;
+            uint day = date & 0x1f;
+            out << year << "-" << d2(month) << "-" << d2(day);
+            // todo There must be a function somewhere that does this, but I can't find it. Maybe in my_time.cc.
+            break;
+          }
+        case NdbDictionary::Column::Type::Blob:          ///< Binary large object (see NdbBlob)
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Text:          ///< Text blob
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Bit:           ///< Bit, length specifies no of bits
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Longvarchar:   ///< Length bytes: 2, little-endian
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Longvarbinary: ///< Length bytes: 2, little-endian
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Time:          ///< Time without date
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Year:          ///< Year 1901-2155 (1 byte)
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Timestamp:     ///< Unix time
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Time2:         ///< 3 bytes + 0-3 fraction
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Datetime2:     ///< 5 bytes plus 0-3 fraction
+          assert(false); // Not implemented
+        case NdbDictionary::Column::Type::Timestamp2:    ///< 4 bytes + 0-3 fraction
+          assert(false); // Not implemented
+        default:
+          assert(false); // Unknown type
         }
       }
       break;
