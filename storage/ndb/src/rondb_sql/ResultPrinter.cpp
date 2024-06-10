@@ -558,6 +558,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
     case Cmd::Type::PRINT_AGGREGATE:
       {
         NdbAggregator::Result result = m_regs_a[cmd.print_aggregate.reg_a];
+        // todo conform format for sum(int) to mysql CLI
         switch (result.type())
         {
         case NdbDictionary::Column::Bigint:

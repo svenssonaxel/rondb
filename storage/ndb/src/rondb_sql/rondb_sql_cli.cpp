@@ -260,6 +260,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
       }
       break;
     case 's':
+      // todo compare isatty(stdin) with mysql cli
       params.query_output_format = isatty(fileno(stdout))
         ? ExecutionParameters::QueryOutputFormat::TSV
         : ExecutionParameters::QueryOutputFormat::TSV_DATA;

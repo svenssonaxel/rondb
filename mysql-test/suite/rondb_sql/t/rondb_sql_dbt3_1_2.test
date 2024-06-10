@@ -79,6 +79,7 @@ EOF
 #todo:
 # - Client-side evaluation of DATE_SUB and INTERVAL (1-2d).
 # - Wait for DECIMAL support in NdbAggregator.
+# - EXPLAIN and make sure it does and index scan
 --remove_file $QUERY_FILE
 
 
