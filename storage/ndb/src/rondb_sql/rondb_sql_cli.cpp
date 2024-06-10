@@ -25,6 +25,7 @@
 #include <RonDBSQLPreparer.hpp>
 #include <my_sys.h> // Only needed for MY_GIVE_INFO
 #include <getopt.h>
+#include <chrono>
 
 using std::cerr;
 using std::cout;
@@ -34,7 +35,7 @@ struct Config
 {
   bool help = false;
   ExecutionParameters params;
-  int infoflag = 0;
+  bool time_info = false;
   const char* connectstring = NULL;
   const char* database = NULL;
 };
@@ -116,12 +117,22 @@ main(int argc, char** argv)
       return 1;
     }
     params.ndb = &myNdb;
-    // Execute
-    exit_code = run_rondb_sql(params);
+    // Execute, perhaps timing it
+    if (config.time_info)    {
+      auto start = std::chrono::high_resolution_clock::now();
+      exit_code = run_rondb_sql(params);
+      auto end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> elapsed = end - start;
+      cerr << "\nElapsed time: " << elapsed.count() << " s" << endl;
+    }
+    else
+    {
+      exit_code = run_rondb_sql(params);
+    }
   }
   // End of block scope. This is necessary to clean up the cluster connection
   // before calling ndb_end.
-  ndb_end(config.infoflag);
+  ndb_end(config.time_info ? MY_GIVE_INFO : 0);
 
   return exit_code;
 }
@@ -225,7 +236,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
       // 1) -? or --help is explicitly given and optopt == 0
       // 2) an unknown option was given and optopt != 0
     case '?': config.help = true; return optopt ? 1 : 0;
-    case 'T': config.infoflag = MY_GIVE_INFO; break;
+    case 'T': config.time_info = true; break;
     case 'D':
       config.database = optarg;
       break;
