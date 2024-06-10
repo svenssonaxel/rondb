@@ -108,19 +108,19 @@ class NdbAggregator {
     uint64_t data_uint64() {
       return *(uint64_t*)(ptr_);
     }
-		float data_float() {
-			float val;
-			memcpy(&val,ptr_,sizeof(val));
-			return val;
-		}
-		float data_double() {
-			double val;
-			memcpy(&val,ptr_,sizeof(val));
-			return val;
-		}
-		const char* data() {
-			return ptr_;
-		}
+    float data_float() {
+      float val;
+      memcpy(&val,ptr_,sizeof(val));
+      return val;
+    }
+    float data_double() {
+      double val;
+      memcpy(&val,ptr_,sizeof(val));
+      return val;
+    }
+    const char* data() {
+      return ptr_;
+    }
 
    private:
     uint32_t id_;

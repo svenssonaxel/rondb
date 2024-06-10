@@ -4052,7 +4052,10 @@ int Dbtup::interpreterStartLab(Signal* signal,
          * we use Dblqh::ScanRecord::m_agg_curr_batch_size_bytes.
          * req_struct->read_length would be updated in ProcessRec().
          */
-        scan_rec_ptr->m_agg_interpreter->ProcessRec(this, req_struct);
+        int ret = scan_rec_ptr->m_agg_interpreter->ProcessRec(this, req_struct);
+        if (ret != 0) {
+          return TUPKEY_abort(req_struct, ret);
+        }
         uint32_t res_len = scan_rec_ptr->m_agg_interpreter->
                                     PrepareAggResIfNeeded(signal, false);
         if (res_len != 0) {

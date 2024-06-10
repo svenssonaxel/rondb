@@ -20730,7 +20730,7 @@ void Dblqh::init_release_scanrec(ScanRecord* scanPtr)
      */
     ndbrequire(ptr->gb_map()->empty());
 #ifdef MOZ_AGG_MALLOC
-    AggInterpreter::Distruct(ptr);
+    AggInterpreter::Destruct(ptr);
 #else
     delete ptr;
 #endif // MOZ_AGG_MALLOC
@@ -21195,9 +21195,16 @@ void Dblqh::sendScanFragConf(Signal* signal,
      *  1. never reach batch complete
      *  2. scan complete: scanPtr->m_agg_interpreter->NumOfResRecords()
      *     will return 0;
+     *
+     * Exception:
+     * If an error happened on other fragment's aggregation interpreter,
+     * this function will be invoked by Dblqh::closeScanLab(). In this situation,
+     * since it is in a error handling process, the scanState is WAIT_CLOSE_SCAN
+     * and m_agg_n_res_recs can be bigger than 1.
      */
-    ndbrequire(scanPtr->m_agg_n_res_recs == 0 ||
-               scanPtr->m_agg_n_res_recs == 1);
+    ndbrequire(scanPtr->scanState == Dblqh::ScanRecord::WAIT_CLOSE_SCAN ||
+               (scanPtr->m_agg_n_res_recs == 0 ||
+               scanPtr->m_agg_n_res_recs == 1));
   }
   // Moz
   // Make sure that we send correct m_curr_batch_size_XXX, otherwise
@@ -40187,7 +40194,7 @@ Dblqh::ScanRecord::~ScanRecord() {
   AggInterpreter* ptr = m_agg_interpreter;
   if (ptr != nullptr) {
 #ifdef MOZ_AGG_MALLOC
-    AggInterpreter::Distruct(ptr);
+    AggInterpreter::Destruct(ptr);
 #else
     delete ptr;
 #endif // MOZ_AGG_MALLOC

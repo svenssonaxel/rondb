@@ -81,7 +81,7 @@ class AggInterpreter {
 
   bool Init();
 
-  bool ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct);
+  int32_t ProcessRec(Dbtup* block_tup, Dbtup::KeyReqStruct* req_struct);
   void Print();
   uint32_t PrepareAggResIfNeeded(Signal* signal, bool force);
   uint32_t NumOfResRecords(bool last_time = false);
@@ -93,7 +93,7 @@ class AggInterpreter {
     return frag_id_;
   }
 #ifdef MOZ_AGG_MALLOC
-  static void Distruct(AggInterpreter* ptr);
+  static void Destruct(AggInterpreter* ptr);
   Ndbd_mem_manager* mm() {
     return mm_;
   }

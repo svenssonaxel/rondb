@@ -7,10 +7,12 @@
 #include <cstring>
 #include <utility>
 
+#define DBTUP_C
 #include "signaldata/TransIdAI.hpp"
 #include "include/my_byteorder.h"
 #include "AggInterpreter.hpp"
 #include "decimal.h"
+#include "Dbtup.hpp"
 
 uint32_t AggInterpreter::g_buf_len_ = READ_BUF_WORD_SIZE;
 uint32_t AggInterpreter::g_result_header_size_ = 3 * sizeof(uint32_t);
@@ -1091,10 +1093,20 @@ static int32_t Count(const Register& a, AggResItem* res, bool print) {
   return 0;
 }
 
-bool AggInterpreter::ProcessRec(Dbtup* block_tup,
+/*
+ * Success: RETURN 0
+ * Failure: RETURN 860+ by aggregation interpreter
+ *          Others returned by readAttributes
+ */
+int32_t AggInterpreter::ProcessRec(Dbtup* block_tup,
         Dbtup::KeyReqStruct* req_struct) {
-  assert(inited_);
-  assert(req_struct->read_length == 0);
+  // assert(inited_);
+  // assert(req_struct->read_length == 0);
+  if (!inited_ || req_struct->read_length != 0) {
+    fprintf(stderr, "AggInterpreter::ProcessRec error, inited: %d, read_length: %u\n",
+            inited_, req_struct->read_length);
+    return ZAGG_OTHER_ERROR;
+  }
 
   AggResItem* agg_res_ptr = nullptr;
   if (n_gb_cols_) {
@@ -1105,10 +1117,11 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
     for (uint32_t i = 0; i < n_gb_cols_; i++) {
       int ret = block_tup->readAttributes(req_struct, &(gb_cols_[i]), 1,
                     buf_ + buf_pos_, g_buf_len_ - buf_pos_);
-#ifdef NDEBUG
-      (void)ret;
-#endif // NDEBUG
-      assert(ret >= 0);
+      // assert(ret >= 0);
+      if (ret < 0) {
+        fprintf(stderr, "read group by column error: %d\n", ret);
+        return -ret;
+      }
       header = reinterpret_cast<AttributeHeader*>(buf_ + buf_pos_);
       buf_pos_ += (1 + header->getDataSize());
     }
@@ -1209,10 +1222,11 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 
         ret = RegPlusReg(registers_[reg_index], registers_[reg_index2],
                   &registers_[reg_index]);
+        // assert(ret >= 0);
         if (ret < 0) {
           printf("Overflow[PLUS], value is out of range\n");
+          return ZAGG_MATH_OVERFLOW;
         }
-        assert(ret >= 0);
         break;
       case kOpMinus:
         reg_index = (value & 0x0000F000) >> 12;
@@ -1220,10 +1234,11 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 
         ret = RegMinusReg(registers_[reg_index], registers_[reg_index2],
                   &registers_[reg_index]);
+        // assert(ret >= 0);
         if (ret < 0) {
           printf("Overflow[MINUS], value is out of range\n");
+          return ZAGG_MATH_OVERFLOW;
         }
-        assert(ret >= 0);
         break;
       case kOpMul:
         reg_index = (value & 0x0000F000) >> 12;
@@ -1231,10 +1246,11 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 
         ret = RegMulReg(registers_[reg_index], registers_[reg_index2],
                   &registers_[reg_index]);
+        // assert(ret >= 0);
         if (ret < 0) {
           printf("Overflow[MUL], value is out of range\n");
+          return ZAGG_MATH_OVERFLOW;
         }
-        assert(ret >= 0);
         break;
       case kOpDiv:
         reg_index = (value & 0x0000F000) >> 12;
@@ -1242,10 +1258,11 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 
         ret = RegDivReg(registers_[reg_index], registers_[reg_index2],
                   &registers_[reg_index]);
+        // assert(ret >= 0);
         if (ret < 0) {
           printf("Overflow[DIV], value is out of range\n");
+          return ZAGG_MATH_OVERFLOW;
         }
-        assert(ret >= 0);
         break;
       case kOpMod:
         reg_index = (value & 0x0000F000) >> 12;
@@ -1253,10 +1270,11 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 
         ret = RegModReg(registers_[reg_index], registers_[reg_index2],
                   &registers_[reg_index]);
+        // assert(ret >= 0);
         if (ret < 0) {
           printf("Overflow[MOD], value is out of range\n");
+          return ZAGG_MATH_OVERFLOW;
         }
-        assert(ret >= 0);
         break;
       case kOpLoadCol:
         type = (value & 0x03E00000) >> 21;
@@ -1266,18 +1284,22 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
 
         ret = block_tup->readAttributes(req_struct, &(col_index), 1,
                   buf_ + buf_pos_, g_buf_len_ - buf_pos_);
-        assert(ret >= 0);
+        // assert(ret >= 0);
+        if (ret < 0) {
+          fprintf(stderr, "read column error: %d\n", ret);
+          return -ret;
+        }
         header = reinterpret_cast<AttributeHeader*>(buf_ + buf_pos_);
         attrDescriptor = req_struct->tablePtrP->tabDescriptor +
           (((col_index) >> 16) * ZAD_SIZE);
         assert(header->getAttributeId() == (col_index >> 16));
 
         assert(type == AttributeDescriptor::getType(attrDescriptor[0]));
+        // assert(TypeSupported(type));
         if (!TypeSupported(type)) {
-          // TODO (Zhao)
-          // Catch error
+          fprintf(stderr, "Unsupported column type: %u\n", type);
+          return ZAGG_COL_TYPE_UNSUPPORTED;
         }
-        assert(TypeSupported(type));
 
         ResetRegister(&registers_[reg_index]);
         registers_[reg_index].type = AlignedType(type);
@@ -1372,25 +1394,25 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
             exec_pos += 1;
             assert(static_cast<uint32_t>(decimal_bin_size(precision, scale)) ==
                 AttributeDescriptor::getSizeInBytes(attrDescriptor[0]));
-           /*
-            * Moz
-            * TODO (Zhao)
-            * Catch overflow and other errors when convert,
-            * print the Decimal bytes out in the log.
-            if (frag_id_ == 0) {
-            dec_buf_ptr = reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
-            for (uint32_t i = 0;
-                i < AttributeDescriptor::getSizeInBytes(attrDescriptor[0]); i++) {
-              fprintf(stderr, "%x ", *(dec_buf_ptr + i));
-            }
-            fprintf(stderr, "\n");
-            }
-            */
             // memset(decimal.buf, 0, sizeof(int32_t) * DECIMAL_BUFF_LENGTH);
             decimal.len = AttributeDescriptor::getSizeInBytes(attrDescriptor[0]);
             dec_ret = bin2decimal(reinterpret_cast<const uchar*>(&buf_[buf_pos_ + 1]),
                       &decimal, precision, scale);
-            assert(dec_ret == E_DEC_OK);
+            // assert(dec_ret == E_DEC_OK);
+            if (dec_ret != E_DEC_OK) {
+              dec_buf_ptr = reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
+              fprintf(stderr, "Error while parsing decimal: ");
+              for (uint32_t i = 0;
+                  i < AttributeDescriptor::getSizeInBytes(attrDescriptor[0]); i++) {
+                fprintf(stderr, "%x ", *(dec_buf_ptr + i));
+              }
+              fprintf(stderr, "\n");
+              if (dec_ret == E_DEC_OVERFLOW) {
+                return ZAGG_DECIMAL_PARSE_OVERFLOW;
+              } else {
+                return ZAGG_DECIMAL_PARSE_ERROR;
+              }
+            }
             /*
              * Moz
              * convery from decimal to supported type dynamically.
@@ -1403,7 +1425,21 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
               registers_[reg_index].value.val_int64 = dec_val_ll;
               registers_[reg_index].type = NDB_TYPE_BIGINT;
             }
-            assert(dec_ret == E_DEC_OK);
+            // assert(dec_ret == E_DEC_OK);
+            if (dec_ret != E_DEC_OK) {
+              dec_buf_ptr = reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
+              fprintf(stderr, "Error while converting decimal: ");
+              for (uint32_t i = 0;
+                  i < AttributeDescriptor::getSizeInBytes(attrDescriptor[0]); i++) {
+                fprintf(stderr, "%x ", *(dec_buf_ptr + i));
+              }
+              fprintf(stderr, "\n");
+              if (dec_ret == E_DEC_OVERFLOW) {
+                return ZAGG_DECIMAL_CONV_OVERFLOW;
+              } else {
+                return ZAGG_DECIMAL_CONV_ERROR;
+              }
+            }
             assert(registers_[reg_index].is_unsigned == false);
             // if (frag_id_ == 0) {
             //   if (scale != 0) {
@@ -1423,25 +1459,25 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
             exec_pos += 1;
             assert(static_cast<uint32_t>(decimal_bin_size(precision, scale)) ==
                 AttributeDescriptor::getSizeInBytes(attrDescriptor[0]));
-           /*
-            * Moz
-            * TODO (Zhao)
-            * Catch overflow and other errors when convert,
-            * print the Decimal bytes out in the log.
-            if (frag_id_ == 0) {
-            dec_buf_ptr = reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
-            for (uint32_t i = 0;
-                i < AttributeDescriptor::getSizeInBytes(attrDescriptor[0]); i++) {
-              fprintf(stderr, "%x ", *(dec_buf_ptr + i));
-            }
-            fprintf(stderr, "\n");
-            }
-            */
             // memset(decimal.buf, 0, sizeof(int32_t) * DECIMAL_BUFF_LENGTH);
             decimal.len = AttributeDescriptor::getSizeInBytes(attrDescriptor[0]);
             dec_ret = bin2decimal(reinterpret_cast<const uchar*>(&buf_[buf_pos_ + 1]),
                       &decimal, precision, scale);
-            assert(dec_ret == E_DEC_OK);
+            // assert(dec_ret == E_DEC_OK);
+            if (dec_ret != E_DEC_OK) {
+              dec_buf_ptr = reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
+              fprintf(stderr, "Error while parsing decimal: ");
+              for (uint32_t i = 0;
+                  i < AttributeDescriptor::getSizeInBytes(attrDescriptor[0]); i++) {
+                fprintf(stderr, "%x ", *(dec_buf_ptr + i));
+              }
+              fprintf(stderr, "\n");
+              if (dec_ret == E_DEC_OVERFLOW) {
+                return ZAGG_DECIMAL_PARSE_OVERFLOW;
+              } else {
+                return ZAGG_DECIMAL_PARSE_ERROR;
+              }
+            }
             /*
              * Moz
              * convery from decimal to supported type dynamically.
@@ -1456,7 +1492,21 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
               registers_[reg_index].type = NDB_TYPE_BIGUNSIGNED;
               registers_[reg_index].is_unsigned = true;
             }
-            assert(dec_ret == E_DEC_OK);
+            // assert(dec_ret == E_DEC_OK);
+            if (dec_ret != E_DEC_OK) {
+              dec_buf_ptr = reinterpret_cast<uint8_t*>(&buf_[buf_pos_ + 1]);
+              fprintf(stderr, "Error while converting decimal: ");
+              for (uint32_t i = 0;
+                  i < AttributeDescriptor::getSizeInBytes(attrDescriptor[0]); i++) {
+                fprintf(stderr, "%x ", *(dec_buf_ptr + i));
+              }
+              fprintf(stderr, "\n");
+              if (dec_ret == E_DEC_OVERFLOW) {
+                return ZAGG_DECIMAL_CONV_OVERFLOW;
+              } else {
+                return ZAGG_DECIMAL_CONV_ERROR;
+              }
+            }
             // if (frag_id_ == 0) {
             //   if (scale != 0) {
             //     fprintf(stderr, "Moz-Intp: Load NDB_TYPE_DECIMALUNSIGNED[double] %lf\n",
@@ -1469,7 +1519,8 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
           break;
 
           default:
-            assert(0);
+            // assert(0);
+            return ZAGG_LOAD_COL_WRONG_TYPE;
         }
         break;
       case kOpLoadConst:
@@ -1503,7 +1554,8 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
             //     reg_index, registers_[reg_index].value.val_double);
             break;
           default:
-            assert(0);
+            // assert(0);
+            return ZAGG_LOAD_CONST_WRONG_TYPE;
         }
         exec_pos += 2;
         break;
@@ -1518,39 +1570,41 @@ bool AggInterpreter::ProcessRec(Dbtup* block_tup,
         agg_index = (value & 0x0000FFFF);
 
         ret = Sum(registers_[reg_index], &agg_res_ptr[agg_index], print_);
+        // assert(ret >= 0);
         if (ret < 0) {
           fprintf(stderr, "Overflow[SUM], value is out of range\n");
+          return ZAGG_MATH_OVERFLOW;
         }
-        assert(ret >= 0);
         break;
       case kOpMax:
         reg_index = (value & 0x000F0000) >> 16;
         agg_index = (value & 0x0000FFFF);
 
         ret = Max(registers_[reg_index], &agg_res_ptr[agg_index], print_);
-        assert(ret >= 0);
+        // assert(ret >= 0);
         break;
       case kOpMin:
         reg_index = (value & 0x000F0000) >> 16;
         agg_index = (value & 0x0000FFFF);
 
         ret = Min(registers_[reg_index], &agg_res_ptr[agg_index], print_);
-        assert(ret >= 0);
+        // assert(ret >= 0);
         break;
       case kOpCount:
         reg_index = (value & 0x000F0000) >> 16;
         agg_index = (value & 0x0000FFFF);
 
         ret = Count(registers_[reg_index], &agg_res_ptr[agg_index], print_);
-        assert(ret >= 0);
+        // assert(ret >= 0);
         break;
 
       default:
-        assert(0);
+        // assert(0);
+        return ZAGG_WRONG_OPERATION;
     }
   }
   processed_rows_++;
-  return true;
+  return 0;
 }
 
 void AggInterpreter::Print() {
@@ -2073,7 +2127,7 @@ char* AggInterpreter::MemAlloc(uint32_t len) {
   }
 }
 
-void AggInterpreter::Distruct(AggInterpreter* ptr) {
+void AggInterpreter::Destruct(AggInterpreter* ptr) {
   if (ptr == nullptr) {
     return;
   }
