@@ -840,17 +840,15 @@ RonDBSQLPreparer::execute()
   }
   catch (const std::exception& e)
   {
-    if (myTrans == NULL)
-    {
-      // Rethrow since error not from ndb
-      throw;
-    }
     NdbError ndb_err = ndb->getNdbError();
     std::basic_ostream<char>& err = *m_conf.err_output_stream;
+    if (myTrans != NULL)
+    {
+      ndb->closeTransaction(myTrans);
+    }
     switch (ndb_err.status)
     {
     case NdbError::Status::Success:
-      ndb->closeTransaction(myTrans);
       // Rethrow since error not from ndb
       throw;
     case NdbError::Status::TemporaryError:
@@ -858,19 +856,16 @@ RonDBSQLPreparer::execute()
           << endl;
       err << "Caught exception, probably caused by the temporary error above: "
           << e.what() << endl;
-      ndb->closeTransaction(myTrans);
       throw TemporaryError();
     case NdbError::Status::PermanentError:
       err << "NDB permanent error: " << ndb_err.code << " " << ndb_err.message
           << endl;
-      ndb->closeTransaction(myTrans);
       // Now that the ndb error is described on err stream, we'll rethrow the
       // original exception.
       throw;
     case NdbError::Status::UnknownResult:
       err << "NDB unknown result: " << ndb_err.code << " " << ndb_err.message
           << endl;
-      ndb->closeTransaction(myTrans);
       // Now that the ndb error is described on err stream, we'll rethrow the
       // original exception.
       throw;
