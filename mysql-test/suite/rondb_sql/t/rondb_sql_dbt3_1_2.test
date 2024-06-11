@@ -75,13 +75,10 @@ order by
         l_returnflag,
         l_linestatus;
 EOF
-#--source suite/rondb_sql/include/rondb_sql_compare.inc
+--source suite/rondb_sql/include/rondb_sql_compare.inc
 #todo:
-# - Client-side evaluation of DATE_SUB and INTERVAL (1-2d).
-# - Wait for DECIMAL support in NdbAggregator.
 # - EXPLAIN and make sure it does and index scan
---remove_file $QUERY_FILE
-
+# - Conform output format for aggregation over DECIMAL. Probably, we first need to remove convert-to-double shortcut in NdbAggregator.
 
 
 --echo Cleanup
