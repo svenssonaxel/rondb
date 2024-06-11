@@ -1123,13 +1123,36 @@ RonDBSQLPreparer::eval_const_expr(ConditionalExpression* ce)
       {
         throw runtime_error("DATE_SUB only supports DAY intervals");
       }
+      long int days;
       ConditionalExpression* days_ce = interval_ce->interval.arg;
-      if (days_ce->op != T_INT)
+      if (days_ce->op == T_INT)
       {
-        // todo support constant string as well
-        throw runtime_error("DATE_SUB only supports integer days");
+        days = days_ce->constant_integer;
       }
-      long int days = days_ce->constant_integer;
+      else if (days_ce->op == T_STRING)
+      {
+        LexString ls = days_ce->string;
+        static const int maxchars = 15;
+        if (ls.len > maxchars)
+        {
+          throw runtime_error("Too many characters in interval string");
+        }
+        char buf[maxchars+1];
+        memcpy(buf, ls.str, ls.len);
+        buf[ls.len] = '\0';
+        for (unsigned int i = 0; i < ls.len; i++)
+        {
+          if (buf[i] < '0' || buf[i] > '9')
+          {
+            throw runtime_error("Non-digit character in interval string");
+          }
+        }
+        days = atol(buf);
+      }
+      else
+      {
+        throw runtime_error("DATE_SUB only supports constant integers and strings for specifying days");
+      }
       if (days < 0)
       {
         throw runtime_error("DATE_SUB only supports positive days in interval");
