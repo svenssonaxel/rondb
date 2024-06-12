@@ -140,7 +140,8 @@ AggregationAPICompiler::new_expr(ExprOp op,
       result = arg1 % arg2;
       break;
     default:
-      assert(false);
+      // Unknown operation
+      abort();
     }
     m_constants.push({result});
     return new_expr(ExprOp::LoadConstantInt, 0, 0, m_constants.size() - 1);
@@ -318,7 +319,7 @@ AggregationAPICompiler::svm_execute(AggregationAPICompiler::Instr* instr,
   FORALL_AGGS(AGG_CASE)
   default:
     // Unknown instruction
-    assert(false);
+    abort();
   }
 }
 # undef OPERATOR_CASE
@@ -694,7 +695,7 @@ AggregationAPICompiler::pushInstr(AggType type,
     FORALL_AGGS(AGG_CASE)
     default:
       // Unknown aggregation type
-      assert(false);
+      abort();
   }
   pushInstr(instr, dest, src, is_first_compilation);
 }
@@ -714,7 +715,7 @@ AggregationAPICompiler::pushInstr(ExprOp op,
     FORALL_ARITHMETIC_OPS(OP_CASE)
     default:
       // Unknown operation
-      assert(false);
+      abort();
   }
   pushInstr(instr, dest, src, is_first_compilation);
 }
@@ -791,7 +792,7 @@ AggregationAPICompiler::dead_code_elimination()
     FORALL_AGGS(AGG_CASE)
     default:
       // Unknown instruction
-      assert(false);
+      abort();
     }
     if (this_instr_is_useful)
     {
@@ -861,7 +862,7 @@ AggregationAPICompiler::print_aggregate(int idx)
     FORALL_AGGS(AGG_CASE)
   default:
     // Unknown aggregation
-      assert(false);
+      abort();
   }
 }
 #undef AGG_CASE
@@ -926,7 +927,8 @@ AggregationAPICompiler::print(Expr* expr)
   case ExprOp::Div: m_out << " / "; break;
   case ExprOp::Rem: m_out << " %% "; break;
   default:
-    assert(false); // Unknown operation
+    // Unknown operation
+    abort();
   }
   print(expr->right);
   m_out << ')';
@@ -994,7 +996,7 @@ AggregationAPICompiler::print(Instr* instr)
   FORALL_AGGS(AGG_CASE)
   default:
     // Unknown instruction
-    assert(false);
+    abort();
   }
   m_out << '\n';
 }

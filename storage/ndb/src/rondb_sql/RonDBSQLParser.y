@@ -420,7 +420,7 @@ void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t scanner, const char *s)
     return;
   }
   // Those two cases should be the only possibilities.
-  assert(false);
+  abort();
 }
 
 // See comment near `#ifndef YYMAXDEPTH` in RonDBSQLParser.y.cpp

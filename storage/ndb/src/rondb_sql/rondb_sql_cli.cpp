@@ -423,5 +423,6 @@ run_rondb_sql(ExecutionParameters& params)
     cerr << "Caught exception: " << e.what() << endl;
     return 1;
   }
-  assert(false);
+  // Unreachable
+  abort();
 }

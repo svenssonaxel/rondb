@@ -70,7 +70,7 @@ void assert_list_sorted(const char* list_name, const char** list, int list_len)
     if (strcmp(list[i], list[i+1]) >= 0)
     {
       cout << list_name << " is not sorted: " << list[i] << " >= " << list[i+1] << endl;
-      assert(false);
+      abort();
     }
   }
 }

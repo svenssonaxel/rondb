@@ -36,6 +36,10 @@
 using std::endl;
 using std::runtime_error;
 
+#define not_implemented() not_implemented_helper(__FILE__, __LINE__)
+#define not_implemented_helper(file, line) \
+  throw runtime_error(file ":" #line ": Not implemented")
+
 static const char* interval_type_name(int interval_type);
 
 DEFINE_FORMATTER(quoted_identifier, LexString, {
@@ -280,7 +284,7 @@ RonDBSQLPreparer::parse()
     }
     break;
   default:
-    assert(false);
+    abort();
   }
   if (print_statement)
   {
@@ -422,7 +426,7 @@ RonDBSQLPreparer::load()
         outputs->aggregate.agg_index = m_agg->Sum(expr);
         break;
       default:
-        assert(false);
+        abort();
       }
       break;
     }
@@ -432,7 +436,7 @@ RonDBSQLPreparer::load()
       outputs->avg.agg_index_count = m_agg->Count(outputs->avg.arg);
       break;
     default:
-      assert(false);
+      abort();
     }
     outputs = outputs->next;
   }
@@ -627,7 +631,7 @@ RonDBSQLPreparer::choose_index_scan_config()
         continue;
       default:
         // Unexpected object type
-        assert(false);
+        abort();
     }
   }
 }
@@ -694,8 +698,10 @@ RonDBSQLPreparer::execute()
       case ExecutionParameters::ExplainOutputFormat::TEXT:
         print();
         break;
+      case ExecutionParameters::ExplainOutputFormat::JSON_UTF8:
+        not_implemented();
       default:
-        assert(false); // Not implemented
+        abort();
       }
       return;
     }
@@ -706,7 +712,7 @@ RonDBSQLPreparer::execute()
     assert(m_table != NULL);
     NdbAggregator aggregator(m_table);
     programAggregator(&aggregator);
-    assert(aggregator.Finalize());
+    soft_assert(aggregator.Finalize(), "Failed to finalize aggregator.");
     // End of general preparation
 
     assert(m_do_table_scan || m_do_index_scan);
@@ -783,7 +789,7 @@ RonDBSQLPreparer::execute()
           lboundt = NdbIndexScanOperation::BoundLT;
           break;
         default:
-          assert(false);
+          abort();
         }
         switch(range.htype)
         {
@@ -797,7 +803,7 @@ RonDBSQLPreparer::execute()
           hboundt = NdbIndexScanOperation::BoundGE;
           break;
         default:
-          assert(false);
+          abort();
         }
         assert(lboundt != BoundNone ||
                hboundt != BoundNone);
@@ -849,6 +855,7 @@ RonDBSQLPreparer::execute()
     switch (ndb_err.status)
     {
     case NdbError::Status::Success:
+      assert(ndb_err.code == 0); // todo improve error handling if this fails
       // Rethrow since error not from ndb
       throw;
     case NdbError::Status::TemporaryError:
@@ -870,12 +877,13 @@ RonDBSQLPreparer::execute()
       // original exception.
       throw;
     }
-    assert(false);
+    // Unreachable
+    abort();
   }
   catch (...)
   {
     // All exceptions thrown should be instances of runtime_error.
-    assert(false);
+    abort();
   }
 }
 
@@ -915,18 +923,18 @@ RonDBSQLPreparer::apply_filter(NdbScanFilter* filter,
   switch (ce->op)
   {
   case T_IDENTIFIER:
-    assert(false); // Not implemented
+    not_implemented();
   case T_STRING:
-    assert(false); // Not implemented
+    not_implemented();
   case T_INT:
-    assert(false); // Not implemented
+    not_implemented();
   case T_OR:
     return (filter->begin(NdbScanFilter::OR) >= 0 &&
             apply_filter(filter, ce->args.left) &&
             apply_filter(filter, ce->args.right) &&
             filter->end() >= 0);
   case T_XOR:
-    assert(false); // Not implemented
+    not_implemented();
   case T_AND:
     return (filter->begin(NdbScanFilter::AND) >= 0 &&
             apply_filter(filter, ce->args.left) &&
@@ -949,40 +957,40 @@ RonDBSQLPreparer::apply_filter(NdbScanFilter* filter,
   case T_NOT_EQUALS:
     return apply_filter_cmp(filter, NdbScanFilter::COND_NE, ce->args.left, ce->args.right);
   case T_IS:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITWISE_OR:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITWISE_AND:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITSHIFT_LEFT:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITSHIFT_RIGHT:
-    assert(false); // Not implemented
+    not_implemented();
   case T_PLUS:
-    assert(false); // Not implemented
+    not_implemented();
   case T_MINUS:
-    assert(false); // Not implemented
+    not_implemented();
   case T_MULTIPLY:
-    assert(false); // Not implemented
+    not_implemented();
   case T_DIVIDE:
-    assert(false); // Not implemented
+    not_implemented();
   case T_MODULO:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITWISE_XOR:
-    assert(false); // Not implemented
+    not_implemented();
   case T_EXCLAMATION:
-    assert(false); // Not implemented
+    not_implemented();
   case T_INTERVAL:
-    assert(false); // Not implemented
+    not_implemented();
   case T_DATE_ADD:
-    assert(false); // Not implemented
+    not_implemented();
   case T_DATE_SUB:
-    assert(false); // Not implemented
+    not_implemented();
   case T_EXTRACT:
-    assert(false); // Not implemented
+    not_implemented();
   default:
     // Unknown operator
-    assert(false);
+    abort();
   }
 }
 
@@ -1038,7 +1046,7 @@ RonDBSQLPreparer::eval_const_expr(ConditionalExpression* ce)
   case T_IDENTIFIER:
     throw runtime_error("Expected constant expression"); // todo track code location
   case T_STRING:
-    assert(false); // Not implemented
+    not_implemented();
   case T_INT:
     {
       long int* val = m_aalloc->alloc<long int>(1);
@@ -1062,45 +1070,45 @@ RonDBSQLPreparer::eval_const_expr(ConditionalExpression* ce)
   case T_NOT:
     return bool_rv(!rv_bool(eval_const_expr(ce->args.left)));
   case T_EQUALS:
-    assert(false); // Not implemented
+    not_implemented();
   case T_GE:
-    assert(false); // Not implemented
+    not_implemented();
   case T_GT:
-    assert(false); // Not implemented
+    not_implemented();
   case T_LE:
-    assert(false); // Not implemented
+    not_implemented();
   case T_LT:
-    assert(false); // Not implemented
+    not_implemented();
   case T_NOT_EQUALS:
-    assert(false); // Not implemented
+    not_implemented();
   case T_IS:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITWISE_OR:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITWISE_AND:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITSHIFT_LEFT:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITSHIFT_RIGHT:
-    assert(false); // Not implemented
+    not_implemented();
   case T_PLUS:
-    assert(false); // Not implemented
+    not_implemented();
   case T_MINUS:
-    assert(false); // Not implemented
+    not_implemented();
   case T_MULTIPLY:
-    assert(false); // Not implemented
+    not_implemented();
   case T_DIVIDE:
-    assert(false); // Not implemented
+    not_implemented();
   case T_MODULO:
-    assert(false); // Not implemented
+    not_implemented();
   case T_BITWISE_XOR:
-    assert(false); // Not implemented
+    not_implemented();
   case T_EXCLAMATION:
-    assert(false); // Not implemented
+    not_implemented();
   case T_INTERVAL:
-    assert(false); // Not implemented
+    not_implemented();
   case T_DATE_ADD:
-    assert(false); // Not implemented
+    not_implemented();
   case T_DATE_SUB:
     {
       ConditionalExpression* date_ce = ce->args.left;
@@ -1182,10 +1190,10 @@ RonDBSQLPreparer::eval_const_expr(ConditionalExpression* ce)
       return raw_value{ date, sizeof(*date)};
     }
   case T_EXTRACT:
-    assert(false); // Not implemented
+    not_implemented();
   default:
     // Unknown operator
-    assert(false);
+    abort();
   }
 }
 
@@ -1269,7 +1277,7 @@ RonDBSQLPreparer::programAggregator(NdbAggregator* aggregator)
       break;
     default:
       // Unknown instruction
-      assert(false);
+      abort();
     }
   }
 }
@@ -1312,7 +1320,7 @@ RonDBSQLPreparer::print()
           break;
         default:
           // Unknown aggregate function
-          assert(false);
+          abort();
         }
         out << "A" << pr << ":";
         m_agg->print_aggregate(pr);
@@ -1341,7 +1349,7 @@ RonDBSQLPreparer::print()
       }
       break;
     default:
-      assert(false);
+      abort();
     }
     out_count++;
     outputs = outputs->next;
@@ -1554,18 +1562,9 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
           << prefix << "+- ";
       LexString prefix_arg = prefix.concat(LexString{"|  ", 3}, m_aalloc);
       print(ce->is.arg, prefix_arg);
-      out << prefix << "\\- ";
-      if (ce->is.null == true)
-      {
-        out << "NULL\n";
-        return;
-      }
-      if (ce->is.null == false)
-      {
-        out << "NOT NULL\n";
-        return;
-      }
-      assert(false);
+      out << prefix << "\\- "
+          << ce->is.null ? "NULL\n" : "NOT NULL\n";
+      return;
     }
   case T_BITWISE_OR:
     opstr = "BITWISE-OR (|)";
@@ -1637,7 +1636,7 @@ RonDBSQLPreparer::print(struct ConditionalExpression* ce,
     }
   default:
     // Unknown operator
-    assert(false);
+    abort();
   }
   if (prefix_op)
   {
@@ -1682,7 +1681,7 @@ static const char* interval_type_name(int interval_type)
   case T_DAY_MINUTE: return "DAY_MINUTE";
   case T_DAY_HOUR: return "DAY_HOUR";
   case T_YEAR_MONTH: return "YEAR_MONTH";
-  default: assert(false);
+  default: abort();
   }
 }
 
@@ -1712,7 +1711,7 @@ RonDBSQLPreparer::print(struct IndexScanConfig::Range& range, const char* col_na
     lboundt = " < ";
     break;
   default:
-    assert(false);
+    abort();
   }
   switch(range.htype)
   {
@@ -1726,7 +1725,7 @@ RonDBSQLPreparer::print(struct IndexScanConfig::Range& range, const char* col_na
     hboundt = " <= ";
     break;
   default:
-    assert(false);
+    abort();
   }
   assert(lboundt != NULL ||
          hboundt != NULL);

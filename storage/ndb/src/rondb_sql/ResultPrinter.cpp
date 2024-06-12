@@ -33,6 +33,10 @@ using std::endl;
 using std::max;
 using std::runtime_error;
 
+#define not_implemented() not_implemented_helper(__FILE__, __LINE__)
+#define not_implemented_helper(file, line) \
+  throw runtime_error(file ":" #line ": Not implemented")
+
 DEFINE_FORMATTER(quoted_identifier, LexCString, {
   os.put('`');
   for (uint i = 0; i < value.len; i++)
@@ -79,7 +83,7 @@ ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
   case ExecutionParameters::QueryOutputFormat::TSV_DATA:
     break;
   default:
-    assert(false);
+    abort();
   }
   assert(err != NULL);
   compile();
@@ -151,7 +155,7 @@ ResultPrinter::compile()
           max(number_of_aggregates, o->avg.agg_index_count + 1);
         break;
       default:
-        assert(false);
+        abort();
       }
       o = o->next;
     }
@@ -214,7 +218,7 @@ ResultPrinter::compile()
     m_tsv_headers = false;
     break;
   default:
-    assert(false);
+    abort();
   }
   for (uint i = 0; i < m_outputs.size(); i++)
   {
@@ -238,7 +242,7 @@ ResultPrinter::compile()
       }
       else
       {
-        assert(false);
+        abort();
       }
     }
     Outputs* o = m_outputs[i];
@@ -284,7 +288,7 @@ ResultPrinter::compile()
       }
       break;
     default:
-      assert(false);
+      abort();
     }
   }
   if (m_json_output)
@@ -303,7 +307,7 @@ ResultPrinter::compile()
   }
   else
   {
-    assert(false);
+    abort();
   }
 }
 
@@ -364,7 +368,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
   }
   else
   {
-    assert(false);
+    abort();
   }
   // ================================================================================
 }
@@ -426,7 +430,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         switch (column.type())
         {
         case NdbDictionary::Column::Type::Undefined:     ///< Undefined. Since this is a result, it means SQL NULL.
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Tinyint:       ///< 8 bit. 1 byte signed integer
           out << column.data_int8();
           break;
@@ -458,17 +462,17 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
           out << column.data_uint64();
           break;
         case NdbDictionary::Column::Type::Float:         ///< 32-bit float. 4 bytes float
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Double:        ///< 64-bit float. 8 byte float
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Olddecimal:    ///< MySQL < 5.0 signed decimal,  Precision, Scale
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Olddecimalunsigned:
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Decimal:       ///< MySQL >= 5.0 signed decimal,  Precision, Scale
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Decimalunsigned:
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Char:          ///< Len. A fixed array of 1-byte chars
           {
             LexString content = LexString{ column.data(), column.byte_size() };
@@ -488,7 +492,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
             }
             else
             {
-              assert(false);
+              abort();
             }
             break;
           }
@@ -508,16 +512,16 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
             }
             else
             {
-              assert(false);
+              abort();
             }
             break;
           }
         case NdbDictionary::Column::Type::Binary:        ///< Len
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Varbinary:     ///< Length bytes: 1, Max: 255
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Datetime:      ///< Precision down to 1 sec (sizeof(Datetime) == 8 bytes )
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Date:          ///< Precision down to 1 day(sizeof(Date) == 4 bytes )
           {
             uint date = column.data_uint32();
@@ -529,29 +533,29 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
             break;
           }
         case NdbDictionary::Column::Type::Blob:          ///< Binary large object (see NdbBlob)
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Text:          ///< Text blob
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Bit:           ///< Bit, length specifies no of bits
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Longvarchar:   ///< Length bytes: 2, little-endian
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Longvarbinary: ///< Length bytes: 2, little-endian
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Time:          ///< Time without date
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Year:          ///< Year 1901-2155 (1 byte)
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Timestamp:     ///< Unix time
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Time2:         ///< 3 bytes + 0-3 fraction
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Datetime2:     ///< 5 bytes plus 0-3 fraction
-          assert(false); // Not implemented
+          not_implemented();
         case NdbDictionary::Column::Type::Timestamp2:    ///< 4 bytes + 0-3 fraction
-          assert(false); // Not implemented
+          not_implemented();
         default:
-          assert(false); // Unknown type
+          abort(); // Unknown type
         }
       }
       break;
@@ -576,10 +580,10 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
           break;
         case NdbDictionary::Column::Undefined:
           // Already handled above
-          assert(0);
+          abort();
           break;
         default:
-          assert(false);
+          abort();
         }
       }
       break;
@@ -607,7 +611,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
                                   m_utf8_output);
       break;
     default:
-      assert(false);
+      abort();
     }
   }
 }
@@ -616,8 +620,10 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
 // UTF-8 encoded. utf8_output determines the output encoding:
 // utf8_output == true:  If ls contains invalid UTF-8, the output will likewise
 //                       be invalid.
+// todo perhaps validate
 // utf8_output == false: Use \u escape for characters with code point U+0080 and
 //                       above. Crash if ls contains invalid UTF-8.
+// todo perhaps throw rather than crash.
 static void
 print_json_string_from_utf8(std::ostream& out,
                             LexString ls,
@@ -710,7 +716,7 @@ print_json_string_from_utf8(std::ostream& out,
       str += 4;
       continue;
     }
-    assert(false);
+    abort();
   }
   out << '"';
 }
@@ -729,7 +735,7 @@ print_float_or_double(std::ostream& out,
   }
   else if (json_output && !is_double)
   {
-    assert(false); // todo test the following
+    abort(); // todo test the following
     out << std::fixed << std::setprecision(6) << static_cast<float>(value);
   }
   else if (tsv_output)
@@ -750,7 +756,7 @@ print_float_or_double(std::ostream& out,
   }
   else
   {
-    assert(false);
+    abort();
   }
 }
 
@@ -766,7 +772,7 @@ convert_result_to_double(NdbAggregator::Result result)
   case NdbDictionary::Column::Type::Double:
     return static_cast<double>(result.data_double());
   default:
-    assert(false);
+    abort();
   }
 }
 
@@ -782,7 +788,7 @@ convert_result_to_float(NdbAggregator::Result result)
   case NdbDictionary::Column::Type::Double:
     return static_cast<float>(result.data_double());
   default:
-    assert(false);
+    abort();
   }
 }
 
@@ -806,7 +812,7 @@ ResultPrinter::explain(std::basic_ostream<char>* explain_output_stream)
     format_description = "mysql-style tab separated, header-less";
     break;
   default:
-    assert(false);
+    abort();
   }
   out << "Output in " << format_description << " format.\n"
       << "The program for post-processing and output has " << m_program.size()

@@ -357,7 +357,7 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
     // return_err(TOO_LONG_IDENTIFIER);
     // However, this should not happen since the rule only matches up to 18
     // bytes.
-    assert(false);
+    abort();
   }
   return T_IDENTIFIER;
 }
@@ -530,7 +530,7 @@ rsqlp_realloc(void * ptr, size_t bytes, void * scanner)
   (void)bytes;
   (void)scanner;
   // realloc should not be needed in the lexer.
-  assert(false);
+  abort();
   // If it is needed, we need to keep track of allocation size.
 }
 
