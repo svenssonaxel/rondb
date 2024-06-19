@@ -30,6 +30,7 @@ GROUP BY sint16;|
 #WHERE sint24 = 0 and (sint8 = 0 or sint8 = 1)
 
 --echo Avg signed int16
+# Todo fix, after NdbAggregator improves temporary everything-is-double solution
 let QUERY=
 SELECT cchar as char_gr
      , sum(sint16)
@@ -40,6 +41,7 @@ GROUP BY cchar;|
 --source suite/ronsql/include/ronsql_compare.inc
 
 --echo Avg unsigned int16
+# Todo fix, after NdbAggregator improves temporary everything-is-double solution
 let QUERY=
 SELECT cchar as char_gr
      , sum(uint16)

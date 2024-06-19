@@ -68,6 +68,7 @@ GROUP BY cchar;|
 
 
 --echo Division:
+# todo fix in NdbAggregator.
 let $QUERY=
 SELECT cchar as char_gr
      , max(14 / 3 + 18 / 5 * sint16)

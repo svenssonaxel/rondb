@@ -72,7 +72,9 @@ EOF
 --enable_query_log
 --echo First 10 lines of the generated data:
 --exec head -n 10 $TEST_DATA_TSV
+--disable_query_log
 eval LOAD DATA INFILE '$TEST_DATA_TSV' INTO TABLE api_scan;
+--enable_query_log
 --remove_file $TEST_DATA_TSV
 
 --echo Number of rows in the table:

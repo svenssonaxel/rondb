@@ -1563,7 +1563,7 @@ RonSQLPreparer::print(struct ConditionalExpression* ce,
       LexString prefix_arg = prefix.concat(LexString{"|  ", 3}, m_aalloc);
       print(ce->is.arg, prefix_arg);
       out << prefix << "\\- "
-          << ce->is.null ? "NULL\n" : "NOT NULL\n";
+          << (ce->is.null ? "NULL\n" : "NOT NULL\n");
       return;
     }
   case T_BITWISE_OR:
