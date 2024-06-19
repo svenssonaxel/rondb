@@ -38,7 +38,7 @@ ENDFOREACH()
 ADD_SUBDIRECTORY(common)
 ADD_SUBDIRECTORY(mgmapi)
 ADD_SUBDIRECTORY(ndbapi)
-ADD_SUBDIRECTORY(rondb_sql)
+ADD_SUBDIRECTORY(ronsql)
 
 #
 # Build static ndbclient library
