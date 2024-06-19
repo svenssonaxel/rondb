@@ -6153,17 +6153,8 @@ int runGetLogEventPretty(NDBT_Context* ctx, NDBT_Step* step)
     return NDBT_FAILED;
 
   int filter[] = {15, NDB_MGM_EVENT_CATEGORY_INFO, 0};
-<<<<<<< HEAD
-  socket_t fd= ndb_mgm_listen_event(mgmd.handle(), filter);
-  ndb_socket_t my_fd;
-  ndb_socket_create_from_native(my_fd, fd);
-||||||| be726b190f9
-  socket_t fd= ndb_mgm_listen_event(mgmd.handle(), filter);
-  ndb_socket_t my_fd = ndb_socket_create_from_native(fd);
-=======
   NdbSocket my_fd{ndb_socket_create_from_native(
                     ndb_mgm_listen_event(mgmd.handle(), filter))};
->>>>>>> 465ca823dcf
 
   if(!my_fd.is_valid())
   {

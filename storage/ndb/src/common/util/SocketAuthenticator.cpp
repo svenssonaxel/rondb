@@ -27,7 +27,6 @@
 #include <SocketAuthenticator.hpp>
 #include <InputStream.hpp>
 #include <OutputStream.hpp>
-<<<<<<< HEAD
 
 #if 0
 #define DEBUG_FPRINTF(arglist) do { fprintf arglist ; } while (0)
@@ -36,31 +35,10 @@
 #endif
 
 
-SocketAuthSimple::SocketAuthSimple(const char *username, const char *passwd) {
-  if (username)
-    m_username= strdup(username);
-  else
-    m_username= nullptr;
-  if (passwd)
-    m_passwd= strdup(passwd);
-  else
-    m_passwd= nullptr;
-||||||| be726b190f9
-SocketAuthSimple::SocketAuthSimple(const char *username, const char *passwd) {
-  if (username)
-    m_username= strdup(username);
-  else
-    m_username= nullptr;
-  if (passwd)
-    m_passwd= strdup(passwd);
-  else
-    m_passwd= nullptr;
-=======
 
 const char * SocketAuthenticator::error(int result)
 {
   return (result < AuthOk) ? "Socket Auth failure" : "Success";
->>>>>>> 465ca823dcf
 }
 
 int SocketAuthSimple::client_authenticate(const NdbSocket & sockfd)
@@ -78,42 +56,24 @@ int SocketAuthSimple::client_authenticate(const NdbSocket & sockfd)
 
   // Read authentication result
   if (s_input.gets(buf, sizeof(buf)) == nullptr)
-<<<<<<< HEAD
   {
     DEBUG_FPRINTF((stderr, "Failed client authenticate on NDB_SOCKET: %s\n",
                    ndb_socket_to_string(sockfd).c_str()));
-    return false;
-  }
-||||||| be726b190f9
-    return false;
-=======
     return -1;
->>>>>>> 465ca823dcf
+  }
   buf[sizeof(buf)-1]= 0;
 
   // Verify authentication result
   if (strncmp("ok", buf, 2) == 0)
-<<<<<<< HEAD
   {
     DEBUG_FPRINTF((stderr, "Succ client authenticate on NDB_SOCKET: %s\n",
                    ndb_socket_to_string(sockfd).c_str()));
-    return true;
-  }
-||||||| be726b190f9
-    return true;
-=======
     return 0;
->>>>>>> 465ca823dcf
+  }
 
-<<<<<<< HEAD
   DEBUG_FPRINTF((stderr, "Failed auth client on NDB_SOCKET: %s, buf: %s\n",
                  ndb_socket_to_string(sockfd).c_str(), buf));
-  return false;
-||||||| be726b190f9
-  return false;
-=======
   return -1;
->>>>>>> 465ca823dcf
 }
 
 int SocketAuthSimple::server_authenticate(const NdbSocket & sockfd)
@@ -127,32 +87,20 @@ int SocketAuthSimple::server_authenticate(const NdbSocket & sockfd)
   DEBUG_FPRINTF((stderr, "server authenticate on NDB_SOCKET: %s\n",
                  ndb_socket_to_string(sockfd).c_str()));
   if (s_input.gets(buf, sizeof(buf)) == nullptr)
-<<<<<<< HEAD
   {
     DEBUG_FPRINTF((stderr, "Failed server auth on NDB_SOCKET: %s\n",
                    ndb_socket_to_string(sockfd).c_str()));
-    return false;
-  }
-||||||| be726b190f9
-    return false;
-=======
     return -1;
->>>>>>> 465ca823dcf
+  }
   buf[sizeof(buf)-1]= 0;
 
   // Read password
   if (s_input.gets(buf, sizeof(buf)) == nullptr)
-<<<<<<< HEAD
   {
     DEBUG_FPRINTF((stderr, "Failed server read passwd on NDB_SOCKET: %s\n",
                    ndb_socket_to_string(sockfd).c_str()));
-    return false;
-  }
-||||||| be726b190f9
-    return false;
-=======
     return -1;
->>>>>>> 465ca823dcf
+  }
   buf[sizeof(buf)-1]= 0;
 
   DEBUG_FPRINTF((stderr, "Send server auth ok on NDB_SOCKET: %s\n",

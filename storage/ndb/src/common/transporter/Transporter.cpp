@@ -304,20 +304,10 @@ Transporter::connect_client(bool multi_connection)
 
   if(isMgmConnection)
   {
-<<<<<<< HEAD
-    require(!isPartOfMultiTransporter());
-    sockfd= m_transporter_registry.connect_ndb_mgmd(remoteHostName, port);
     DEBUG_FPRINTF((stderr, "connect_ndb_mgmd to host: %s on port: %d\n",
                    remoteHostName,
                    port));
-    secureSocket.init_from_new(sockfd);
-||||||| be726b190f9
-    require(!isPartOfMultiTransporter());
-    sockfd= m_transporter_registry.connect_ndb_mgmd(remoteHostName, port);
-    secureSocket.init_from_new(sockfd);
-=======
     return connect_client_mgm(port);
->>>>>>> 465ca823dcf
   }
   else
   {
@@ -363,14 +353,9 @@ Transporter::connect_client(bool multi_connection)
         DBUG_RETURN(false);
       }
     }
-<<<<<<< HEAD
     DEBUG_FPRINTF((stderr, "m_socket_client->connect to %s\n",
                    remoteHostName));
 
-    m_socket_client->connect(secureSocket, remote_addr);
-||||||| be726b190f9
-    m_socket_client->connect(secureSocket, remote_addr);
-=======
     secureSocket = m_socket_client->connect(remote_addr);
 
    /** Socket Authentication */
@@ -380,7 +365,6 @@ Transporter::connect_client(bool multi_connection)
       DBUG_RETURN(false);
     }
 
->>>>>>> 465ca823dcf
   }
 
   DBUG_RETURN(connect_client(std::move(secureSocket)));

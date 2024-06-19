@@ -386,17 +386,8 @@ static int pause_lcp(int error)
 
   int filter[] = { 15, NDB_MGM_EVENT_CATEGORY_INFO, 0 };
 
-<<<<<<< HEAD
-  socket_t fd= ndb_mgm_listen_event(g_restarter.handle, filter);
-  ndb_socket_t my_fd;
-  ndb_socket_create_from_native(my_fd, fd);
-||||||| be726b190f9
-  socket_t fd= ndb_mgm_listen_event(g_restarter.handle, filter);
-  ndb_socket_t my_fd = ndb_socket_create_from_native(fd);
-=======
   NdbSocket my_fd{ndb_socket_create_from_native(
                     ndb_mgm_listen_event(g_restarter.handle, filter))};
->>>>>>> 465ca823dcf
 
   require(my_fd.is_valid());
   require(!g_restarter.insertErrorInAllNodes(error));
@@ -491,19 +482,9 @@ static int continue_lcp(int error)
   NdbSocket my_fd;
 
   if(error){
-<<<<<<< HEAD
-    socket_t fd = ndb_mgm_listen_event(g_restarter.handle, filter);
-    ndb_socket_create_from_native(my_fd, fd);
-    require(ndb_socket_valid(my_fd));
-||||||| be726b190f9
-    socket_t fd = ndb_mgm_listen_event(g_restarter.handle, filter);
-    my_fd = ndb_socket_create_from_native(fd);
-    require(ndb_socket_valid(my_fd));
-=======
     my_fd = ndb_socket_create_from_native(
               ndb_mgm_listen_event(g_restarter.handle, filter));
     require(my_fd.is_valid());
->>>>>>> 465ca823dcf
   }
 
   int args[] = { DumpStateOrd::LCPContinue };

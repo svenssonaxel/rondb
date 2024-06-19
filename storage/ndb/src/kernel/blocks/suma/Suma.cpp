@@ -6032,20 +6032,14 @@ Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
   }
   else
   {
-<<<<<<< HEAD
-    jam();
-    ndbrequire(gci_hi == Uint32(m_gcp_monitor >> 32) + 1);
-||||||| be726b190f9
-    ndbrequire(gci_hi == Uint32(m_gcp_monitor >> 32) + 1);
-=======
     if (ERROR_INSERTED(13057))
     {
       jam();
       ndbrequire(gci_hi > Uint32(m_gcp_monitor >> 32));
     } else {
+      jam();
       ndbrequire(gci_hi == Uint32(m_gcp_monitor >> 32) + 1);
     }
->>>>>>> 465ca823dcf
     ndbrequire(gci_lo == 0);
   }
   m_gcp_monitor = gci;

@@ -486,17 +486,8 @@ int runTestMgmApiEventTimeout(NDBT_Context* ctx, NDBT_Step* step)
                      1, NDB_MGM_EVENT_CATEGORY_STARTUP,
                      0 };
 
-<<<<<<< HEAD
-    socket_t fd= ndb_mgm_listen_event(h, filter);
-    ndb_socket_t my_fd;
-    ndb_socket_create_from_native(my_fd, fd);
-||||||| be726b190f9
-    socket_t fd= ndb_mgm_listen_event(h, filter);
-    ndb_socket_t my_fd = ndb_socket_create_from_native(fd);
-=======
     NdbSocket my_fd{ndb_socket_create_from_native(
                       ndb_mgm_listen_event(h, filter))};
->>>>>>> 465ca823dcf
 
     if(!my_fd.is_valid())
     {

@@ -127,22 +127,8 @@ insert into t4(id, data) VALUES
 alter table t1 algorithm=inplace, add column c int unsigned default null;
 alter table t1 reorganize partition;
 alter table t2 reorganize partition;
-<<<<<<< HEAD
 alter table t5 algorithm=inplace;
-if (!$DISABLE_BLOB_REORG)
-{
-  alter table t6 reorganize partition;
-}
-||||||| be726b190f9
-alter table t5 algorithm=inplace, max_rows=300000000;
-if (!$DISABLE_BLOB_REORG)
-{
-  alter table t6 reorganize partition;
-}
-=======
-alter table t5 algorithm=inplace, max_rows=300000000;
 alter table t6 reorganize partition;
->>>>>>> 465ca823dcf
 alter table t10 reorganize partition;
 # Verify that the Unique hash index fragments are balanced across all data nodes
 select parent_fq_name, type, table_id, node_id, block_instance, fragment_num

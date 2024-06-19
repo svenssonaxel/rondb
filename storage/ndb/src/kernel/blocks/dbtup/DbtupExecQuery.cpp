@@ -2086,41 +2086,6 @@ get_reorg_flag(Dbtup::KeyReqStruct * req_struct,
 {
   Uint32 reorg = req_struct->m_reorg;
   switch(state){
-<<<<<<< HEAD
-    case Dbtup::Fragrecord::FS_FREE:
-    case Dbtup::Fragrecord::FS_REORG_NEW:
-    case Dbtup::Fragrecord::FS_REORG_COMMIT_NEW:
-    case Dbtup::Fragrecord::FS_REORG_COMPLETE_NEW:
-      return;
-    case Dbtup::Fragrecord::FS_REORG_COMMIT:
-    case Dbtup::Fragrecord::FS_REORG_COMPLETE:
-      if (reorg != ScanFragReq::REORG_NOT_MOVED)
-        return;
-      break;
-    case Dbtup::Fragrecord::FS_ONLINE:
-      if (reorg != ScanFragReq::REORG_MOVED)
-        return;
-      break;
-    default:
-      return;
-||||||| be726b190f9
-  case Dbtup::Fragrecord::FS_FREE:
-  case Dbtup::Fragrecord::FS_REORG_NEW:
-  case Dbtup::Fragrecord::FS_REORG_COMMIT_NEW:
-  case Dbtup::Fragrecord::FS_REORG_COMPLETE_NEW:
-    return;
-  case Dbtup::Fragrecord::FS_REORG_COMMIT:
-  case Dbtup::Fragrecord::FS_REORG_COMPLETE:
-    if (reorg != ScanFragReq::REORG_NOT_MOVED)
-      return;
-    break;
-  case Dbtup::Fragrecord::FS_ONLINE:
-    if (reorg != ScanFragReq::REORG_MOVED)
-      return;
-    break;
-  default:
-    return;
-=======
   case Dbtup::Fragrecord::FS_FREE:
   case Dbtup::Fragrecord::FS_REORG_NEW:
   case Dbtup::Fragrecord::FS_REORG_COMMIT_NEW:
@@ -2138,7 +2103,6 @@ get_reorg_flag(Dbtup::KeyReqStruct * req_struct,
     break;
   default:
     return 0;
->>>>>>> 465ca823dcf
   }
 
   return Dbtup::Tuple_header::REORG_MOVE;

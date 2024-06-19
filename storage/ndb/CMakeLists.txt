@@ -341,16 +341,9 @@ IF(WITH_NDBAPI_EXAMPLES)
   ADD_SUBDIRECTORY(ndbapi-examples)
 ENDIF()
 
-<<<<<<< HEAD
 IF(WITH_RDRS)
   ADD_SUBDIRECTORY(rest-server)
   ADD_SUBDIRECTORY(rest-server2)
 ENDIF()
 ## WiX support disabled for now
 # ADD_SUBDIRECTORY(wix)
-||||||| be726b190f9
-ADD_SUBDIRECTORY(wix)
-=======
-## WiX support disabled for now
-# ADD_SUBDIRECTORY(wix)
->>>>>>> 465ca823dcf

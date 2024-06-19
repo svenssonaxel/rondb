@@ -443,22 +443,11 @@ public:
       0
     };
 
-<<<<<<< HEAD
     ndb_socket_create_from_native(
       m_event_socket,
       ndb_mgm_listen_event(m_handle, filter));
-    
-    return ndb_socket_valid(m_event_socket);
-||||||| be726b190f9
-    m_event_socket = ndb_socket_create_from_native(ndb_mgm_listen_event(m_handle, filter));
-    
-    return ndb_socket_valid(m_event_socket);
-=======
-    m_event_socket = ndb_socket_create_from_native(
-                       ndb_mgm_listen_event(m_handle, filter));
 
     return m_event_socket.is_valid();
->>>>>>> 465ca823dcf
   }
 
   bool get_next_event_line(char* buff, int bufflen,

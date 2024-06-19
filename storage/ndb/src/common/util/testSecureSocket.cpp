@@ -337,17 +337,9 @@ NdbSocket & Client::connect_plain() {
     return m_plain_socket;
   }
   server_addr.set_port(opt_port);
-<<<<<<< HEAD
   if (!init(server_addr.get_address_family(), false))
     return m_plain_socket;
-  connect(m_plain_socket, server_addr);
-||||||| be726b190f9
-  if (!init(server_addr.get_address_family())) return m_plain_socket;
-  connect(m_plain_socket, server_addr);
-=======
-  if (!init(server_addr.get_address_family())) return m_plain_socket;
   m_plain_socket = connect(server_addr);
->>>>>>> 465ca823dcf
   ndb_setsockopt(m_plain_socket.ndb_socket(), IPPROTO_TCP, TCP_NODELAY,
                  & opt_tcp_no_delay);
   return m_plain_socket;
@@ -362,17 +354,9 @@ NdbSocket & Client::connect_tls() {
     return m_tls_socket;
   }
   server_addr.set_port(opt_port + 1);
-<<<<<<< HEAD
   if (!init(server_addr.get_address_family(), false))
     return m_tls_socket;
-  connect(m_tls_socket, server_addr);
-||||||| be726b190f9
-  if (!init(server_addr.get_address_family())) return m_tls_socket;
-  connect(m_tls_socket, server_addr);
-=======
-  if (!init(server_addr.get_address_family())) return m_tls_socket;
   m_tls_socket = connect(server_addr);
->>>>>>> 465ca823dcf
 
   if(! m_tls_socket.is_valid())
     puts("Could not connect to server");

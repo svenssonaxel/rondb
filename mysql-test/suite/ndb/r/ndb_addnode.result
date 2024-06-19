@@ -419,16 +419,10 @@ TABLE_INFO
 PartitionCount: 16
 "Table t5 Partition info"
 TABLE_INFO
-<<<<<<< HEAD
 PartitionCount: 8
-||||||| be726b190f9
-PartitionCount: 16
-=======
-PartitionCount: 16
 select count(0) as row_count from t5;
 row_count
 10000
->>>>>>> 465ca823dcf
 select count(0) as row_count from t6;
 row_count
 10000

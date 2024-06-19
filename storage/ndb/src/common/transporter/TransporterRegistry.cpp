@@ -152,16 +152,8 @@ SocketServer::Session * TransporterService::newSession(NdbSocket&& secureSocket)
      If m_auth is a SocketAuthTls, it might get upgraded to a TLS socket.
   */
   DBUG_ENTER("SocketServer::Session * TransporterService::newSession");
-<<<<<<< HEAD
   DEBUG_FPRINTF_DETAIL((stderr, "New session created\n"));
-  if (m_auth && !m_auth->server_authenticate(secureSocket))
-||||||| be726b190f9
-  DEBUG_FPRINTF((stderr, "New session created\n"));
-  if (m_auth && !m_auth->server_authenticate(secureSocket))
-=======
-  DEBUG_FPRINTF((stderr, "New session created\n"));
   if(m_auth)
->>>>>>> 465ca823dcf
   {
     int r = m_auth->server_authenticate(secureSocket);
     if(r < SocketAuthenticator::AuthOk)
@@ -604,14 +596,8 @@ TransporterRegistry::connect_server(NdbSocket&& socket,
     msg.assfmt("Ignored connection attempt as failed to "
                "read 'hello' from client");
     DBUG_PRINT("error", ("%s", msg.c_str()));
-<<<<<<< HEAD
     DEBUG_FPRINTF((stderr, "%s\n", msg.c_str()));
-||||||| be726b190f9
-    DEBUG_FPRINTF((stderr, "%s", msg.c_str()));
-=======
-    DEBUG_FPRINTF((stderr, "%s", msg.c_str()));
     socket.close_with_reset();
->>>>>>> 465ca823dcf
     DBUG_RETURN(false);
   }
 
@@ -640,14 +626,8 @@ TransporterRegistry::connect_server(NdbSocket&& socket,
     msg.assfmt("Ignored connection attempt as failed to "
                "parse 'hello' from client.  >%s<", buf);
     DBUG_PRINT("error", ("%s", msg.c_str()));
-<<<<<<< HEAD
     DEBUG_FPRINTF((stderr, "%s\n", msg.c_str()));
-||||||| be726b190f9
-    DEBUG_FPRINTF((stderr, "%s", msg.c_str()));
-=======
-    DEBUG_FPRINTF((stderr, "%s", msg.c_str()));
     socket.close_with_reset();
->>>>>>> 465ca823dcf
     DBUG_RETURN(false);
   }
 
@@ -936,19 +916,9 @@ TransporterRegistry::connect_server(NdbSocket&& socket,
   }
 
   // Setup transporter (transporter responsible for closing sockfd)
-<<<<<<< HEAD
   DEBUG_FPRINTF((stderr, "connect_server for Node %u, trp_id %u\n",
                  nodeId, t->getTransporterIndex()));
-  DBUG_RETURN(t->connect_server(socket, msg));
-||||||| be726b190f9
-  DEBUG_FPRINTF((stderr, "connect_server for trp_id %u\n",
-                 t->getTransporterIndex()));
-  DBUG_RETURN(t->connect_server(socket, msg));
-=======
-  DEBUG_FPRINTF((stderr, "connect_server for trp_id %u\n",
-                 t->getTransporterIndex()));
   DBUG_RETURN(t->connect_server(std::move(socket), msg));
->>>>>>> 465ca823dcf
 }
 
 void
@@ -2412,136 +2382,8 @@ TransporterRegistry::performReceive(TransporterReceiveHandle& recvdata,
    * For SHM transporter the socket is only used to send wakeup
    * bytes. The m_has_data_transporters bitmap was set already in
    * pollReceive for SHM transporters.
-<<<<<<< HEAD
    *
    * 
-||||||| be726b190f9
-   */
-  for(Uint32 trp_id = recvdata.m_recv_transporters.find_first();
-      trp_id != BitmaskImpl::NotFound;
-      trp_id = recvdata.m_recv_transporters.find_next(trp_id + 1))
-  {
-    Transporter *transp = allTransporters[trp_id];
-    NodeId node_id = transp->getRemoteNodeId();
-    if (transp->getTransporterType() == tt_TCP_TRANSPORTER)
-    {
-      TCP_Transporter * t = (TCP_Transporter*)transp;
-      assert(recvdata.m_transporters.get(trp_id));
-      assert(recv_thread_idx == transp->get_recv_thread_idx());
-
-      /**
-       * First check connection 'is CONNECTED.
-       * A connection can only be set into, or taken out of, is_connected'
-       * state by ::update_connections(). See comment there about 
-       * synchronication between ::update_connections() and 
-       * performReceive()
-       *
-       * Transporter::isConnected() state my change asynch.
-       * A mismatch between the TransporterRegistry::is_connected(),
-       * and Transporter::isConnected() state is possible, and indicate 
-       * that a change is underway. (Completed by update_connections())
-       */
-      if (is_connected(node_id))
-      {
-        if (t->isConnected())
-        {
-          int nBytes = t->doReceive(recvdata);
-          if (nBytes > 0)
-          {
-            recvdata.transporter_recv_from(node_id);
-            recvdata.m_has_data_transporters.set(trp_id);
-          }
-        }
-      }
-    }
-    else
-    {
-#ifdef NDB_SHM_TRANSPORTER_SUPPORTED
-      require(transp->getTransporterType() == tt_SHM_TRANSPORTER);
-      SHM_Transporter * t = (SHM_Transporter*)transp;
-      assert(recvdata.m_transporters.get(trp_id));
-      if (is_connected(node_id) && t->isConnected())
-      {
-        t->doReceive();
-        /**
-         * Ignore any data we read, the data wasn't collected by the
-         * shared memory transporter, it was simply read and thrown
-         * away, it is only a wakeup call to send data over the socket
-         * for shared memory transporters.
-         */
-      }
-#else
-      require(false);
-#endif
-    }
-  }
-  recvdata.m_recv_transporters.clear();
-
-  /**
-=======
-   */
-  for(Uint32 trp_id = recvdata.m_recv_transporters.find_first();
-      trp_id != BitmaskImpl::NotFound;
-      trp_id = recvdata.m_recv_transporters.find_next(trp_id + 1))
-  {
-    Transporter *transp = allTransporters[trp_id];
-    NodeId node_id = transp->getRemoteNodeId();
-    if (transp->getTransporterType() == tt_TCP_TRANSPORTER)
-    {
-      TCP_Transporter * t = (TCP_Transporter*)transp;
-      assert(recvdata.m_transporters.get(trp_id));
-      assert(recv_thread_idx == transp->get_recv_thread_idx());
-
-      /**
-       * First check connection 'is CONNECTED.
-       * A connection can only be set into, or taken out of, is_connected'
-       * state by ::update_connections(). See comment there about 
-       * synchronication between ::update_connections() and 
-       * performReceive()
-       *
-       * Transporter::isConnected() state may change asynch.
-       * A mismatch between the TransporterRegistry::is_connected(),
-       * and Transporter::isConnected() state is possible, and indicate 
-       * that a change is underway. (Completed by update_connections())
-       */
-      if (is_connected(node_id))
-      {
-        if (t->isConnected())
-        {
-          int nBytes = t->doReceive(recvdata);
-          if (nBytes > 0)
-          {
-            recvdata.transporter_recv_from(node_id);
-            recvdata.m_has_data_transporters.set(trp_id);
-          }
-        }
-      }
-    }
-    else
-    {
-#ifdef NDB_SHM_TRANSPORTER_SUPPORTED
-      require(transp->getTransporterType() == tt_SHM_TRANSPORTER);
-      SHM_Transporter * t = (SHM_Transporter*)transp;
-      assert(recvdata.m_transporters.get(trp_id));
-      if (is_connected(node_id) && t->isConnected())
-      {
-        t->doReceive();
-        /**
-         * Ignore any data we read, the data wasn't collected by the
-         * shared memory transporter, it was simply read and thrown
-         * away, it is only a wakeup call to send data over the socket
-         * for shared memory transporters.
-         */
-      }
-#else
-      require(false);
-#endif
-    }
-  }
-  recvdata.m_recv_transporters.clear();
-
-  /**
->>>>>>> 465ca823dcf
    * Unpack data either received above or pending from prev rounds.
    * For the Shared memory transporter m_has_data_transporters can
    * be set in pollReceive as well.
@@ -2573,9 +2415,8 @@ TransporterRegistry::performReceive(TransporterReceiveHandle& recvdata,
   while ((trp_id = handle_trps.find_next(trp_id + 1)) !=
             BitmaskImpl::NotFound)
   {
-<<<<<<< HEAD
     assert(recvdata.m_transporters.get(trp_id));
-    Transporter * t = (Transporter*)allTransporters[trp_id];
+    Transporter *t = allTransporters[trp_id];
     if (unlikely(t == nullptr))
     {
       recvdata.m_read_transporters.clear(trp_id);
@@ -2583,13 +2424,6 @@ TransporterRegistry::performReceive(TransporterReceiveHandle& recvdata,
       recvdata.m_has_data_transporters.clear(trp_id);
       continue;
     }
-||||||| be726b190f9
-    bool hasdata = false;
-    Transporter * t = (Transporter*)allTransporters[trp_id];
-=======
-    bool hasdata = false;
-    Transporter *t = allTransporters[trp_id];
->>>>>>> 465ca823dcf
     NodeId node_id = t->getRemoteNodeId();
 
     assert(recvdata.m_transporters.get(trp_id));
@@ -2602,7 +2436,7 @@ TransporterRegistry::performReceive(TransporterReceiveHandle& recvdata,
      * synchronication between ::update_connections() and 
      * performReceive()
      *
-     * Transporter::isConnected() state my change asynch.
+     * Transporter::isConnected() state may change asynch.
      * A mismatch between the TransporterRegistry::is_connected(),
      * and Transporter::isConnected() state is possible, and indicate 
      * that a change is underway. (Completed by update_connections())
@@ -3153,20 +2987,12 @@ TransporterRegistry::do_connect(NodeId node_id)
                            localNodeId, node_id));
     t->resetBuffers();
   }
-<<<<<<< HEAD
- 
-  DEBUG_FPRINTF((stderr,
-    "(Node %u)performStates[Node %u] = CONNECTING\n",
-||||||| be726b190f9
- 
-  DEBUG_FPRINTF((stderr, "(%u)performStates[%u] = CONNECTING\n",
-=======
 
   m_error_states[node_id].m_code = TE_NO_ERROR;
   m_error_states[node_id].m_info = (const char *)~(UintPtr)0;
 
-  DEBUG_FPRINTF((stderr, "(%u)performStates[%u] = CONNECTING\n",
->>>>>>> 465ca823dcf
+  DEBUG_FPRINTF((stderr,
+    "(Node %u)performStates[Node %u] = CONNECTING\n",
                  localNodeId, node_id));
   curr_state= CONNECTING;
   DBUG_VOID_RETURN;
@@ -3358,13 +3184,8 @@ TransporterRegistry::report_disconnect(TransporterReceiveHandle& recvdata,
   for (Uint32 i = 0; i < num_ids; i++)
   {
     const TrpId trp_id = trp_ids[i];
-<<<<<<< HEAD
     DEBUG_FPRINTF_DETAIL((stderr, "Disconnect trp_id = %u, Node = %u\n",
       trp_id, node_id));
-||||||| be726b190f9
-    DEBUG_FPRINTF((stderr, "trp_id = %u, node_id = %u\n", trp_id, node_id));
-=======
-    DEBUG_FPRINTF((stderr, "trp_id = %u, node_id = %u\n", trp_id, node_id));
 
     if (!node_trp->isMultiTransporter())
     {
@@ -3373,7 +3194,6 @@ TransporterRegistry::report_disconnect(TransporterReceiveHandle& recvdata,
       allTransporters[trp_id]->releaseAfterDisconnect();
     }
 
->>>>>>> 465ca823dcf
     if (recvdata.m_transporters.get(trp_id))
     {
       /**
@@ -3451,18 +3271,10 @@ TransporterRegistry::report_disconnect(TransporterReceiveHandle& recvdata,
             const TrpId remove_trp_id = remove_trp->getTransporterIndex();
             if (remove_trp_id != 0)
             {
-<<<<<<< HEAD
               NodeId remove_node_id = remove_trp->getRemoteNodeId();
               require(node_id == remove_node_id);
               callbackObj->disable_send_buffer(remove_trp_id, false);
-              remove_trp->doDisconnect();
-||||||| be726b190f9
-              callbackObj->disable_send_buffer(remove_trp_id);
-              remove_trp->doDisconnect();
-=======
-              callbackObj->disable_send_buffer(remove_trp_id);
               remove_trp->forceUnsafeDisconnect();
->>>>>>> 465ca823dcf
               remove_allTransporters(remove_trp);
             }
           }
