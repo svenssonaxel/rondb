@@ -1560,7 +1560,7 @@ runBug16772(NDBT_Context* ctx, NDBT_Step* step){
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int aliveNodeId = restarter.getRandomNotMasterNodeId(rand());
@@ -1621,7 +1621,7 @@ runBug18414(NDBT_Context* ctx, NDBT_Step* step){
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   Ndb* pNdb = GETNDB(step);
@@ -1692,7 +1692,7 @@ runBug18612(NDBT_Context* ctx, NDBT_Step* step){
   if (restarter.getMaxConcurrentNodeFailures() < 1)
   {
     g_err << "[SKIPPED] Configuration cannot handle 1 node failure." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   Uint32 cnt = restarter.getNumDbNodes();
@@ -1796,12 +1796,12 @@ runBug18612SR(NDBT_Context* ctx, NDBT_Step* step){
   if (restarter.getNumReplicas() < 2)
   {
     g_err << "[SKIPPED] Test requires 2 or more replicas." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
  if (restarter.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   Uint32 cnt = restarter.getNumDbNodes();
 
@@ -2031,7 +2031,7 @@ runBug29364(NDBT_Context* ctx, NDBT_Step* step)
   if (restarter.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int dump0[] = { 9000, 0 } ;
@@ -2079,7 +2079,7 @@ int runBug25364(NDBT_Context* ctx, NDBT_Step* step)
   if (restarter.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int val2[] = { DumpStateOrd::CmvmiSetRestartOnErrorInsert, 1 };
@@ -2241,7 +2241,7 @@ int runBug25554(NDBT_Context* ctx, NDBT_Step* step)
   if (restarter.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   for (int i = 0; i<loops; i++)
@@ -2295,7 +2295,7 @@ int runBug25984(NDBT_Context* ctx, NDBT_Step* step)
   if (restarter.getNumDbNodes() < 4)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 4 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   pDict->dropTable(tab.getName());
@@ -2404,12 +2404,12 @@ runBug26457(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumNodeGroups() < 2)
   {
     g_err << "[SKIPPED] Test requires at least 2 node groups." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   if (res.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int loops = ctx->getNumLoops();
@@ -2721,7 +2721,7 @@ runBug27283(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   static const int errnos[] = { 7181, 7182, 0 };
@@ -2762,7 +2762,7 @@ runBug27466(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   for (Uint32 i = 0; i<(Uint32)loops; i++)
@@ -2814,7 +2814,7 @@ runBug28023(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   HugoTransactions hugoTrans(*ctx->getTab());
@@ -2879,7 +2879,7 @@ runBug28717(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 4)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 4 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int master = res.getMasterNodeId();
@@ -2993,7 +2993,7 @@ runGCP(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   if (res.getNumDbNodes() < 4)
@@ -3049,7 +3049,7 @@ runCommitAck(NDBT_Context* ctx, NDBT_Step* step)
   if (restarter.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int trans_type= -1;
@@ -3427,7 +3427,7 @@ runBug31525(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int nodes[2];
@@ -3502,7 +3502,7 @@ runBug31980(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   HugoOperations hugoOps (* ctx->getTab());
@@ -3554,7 +3554,7 @@ runBug32160(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int master = res.getMasterNodeId();
@@ -3600,7 +3600,7 @@ runBug32922(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   while (loops--)
@@ -3651,7 +3651,7 @@ runBug34216(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   if(restarter.waitClusterStarted() != 0){
@@ -3793,7 +3793,7 @@ runNF_commit(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   if(restarter.waitClusterStarted() != 0){
@@ -3859,7 +3859,7 @@ runBug34702(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   /* Account for 3 tests per loop */
@@ -3915,7 +3915,7 @@ runMNF(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2 || num_replicas < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes & replicas" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   Vector<int> part0; // One node per ng
@@ -4209,12 +4209,12 @@ runBug36199(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumNodeGroups() < 2)
   {
     g_err << "[SKIPPED] Test requires at least 2 node groups." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   if (res.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int master = res.getMasterNodeId();
@@ -4266,12 +4266,12 @@ runBug36246(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumNodeGroups() < 2)
   {
     g_err << "[SKIPPED] Test requires at least 2 node groups." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   if (res.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   HugoOperations hugoOps(*ctx->getTab());
@@ -4362,12 +4362,12 @@ runBug36247(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumNodeGroups() < 2)
   {
     g_err << "[SKIPPED] Test requires at least 2 node groups." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   if (res.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   Ndb* pNdb = GETNDB(step);
@@ -4468,12 +4468,12 @@ runBug36276(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 4)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 4 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   if (res.getNumNodeGroups() < 2)
   {
     g_err << "[SKIPPED] Test requires at least 2 node groups." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int master = res.getMasterNodeId();
@@ -4520,12 +4520,12 @@ runBug36245(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumNodeGroups() < 2)
   {
     g_err << "[SKIPPED] Test requires at least 2 node groups." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   if (res.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   /**
@@ -4745,7 +4745,7 @@ runBug41295(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
 
@@ -4815,7 +4815,7 @@ runBug41469(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 4 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int loops = ctx->getNumLoops();
@@ -4855,13 +4855,13 @@ runBug42422(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumNodeGroups() < 2)
   {
     g_err << "[SKIPPED] Need at least 2 node groups to run the test" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   if (res.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int loops = ctx->getNumLoops();
@@ -4927,7 +4927,7 @@ runBug43224(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   
   int loops = ctx->getNumLoops();
@@ -4987,7 +4987,7 @@ runBug43888(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   
   int loops = ctx->getNumLoops();
@@ -5262,7 +5262,7 @@ runBug56044(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   for (int i = 0; i<loops; i++)
@@ -5298,7 +5298,7 @@ runBug57767(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int node0 = res.getNode(NdbRestarter::NS_RANDOM);
@@ -5334,7 +5334,7 @@ runBug57522(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 4)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 4 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   for (int i = 0; i<loops; i++)
@@ -5369,7 +5369,7 @@ runForceStopAndRestart(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() != 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires 2 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   Vector<int> group1;
@@ -5489,7 +5489,7 @@ runBug58453(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 4)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 4 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   Ndb* pNdb = GETNDB(step);
@@ -5565,7 +5565,7 @@ int runRestartToDynamicOrder(NDBT_Context* ctx, NDBT_Step* step)
   if (num_replicas != 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires 2 replicas" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   Vector<Uint32> currOrder;
@@ -5799,7 +5799,7 @@ int analyseDynamicOrder(NDBT_Context* ctx, NDBT_Step* step)
   if (num_replicas != 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires 2 replicas" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   /* TODO :
@@ -6053,7 +6053,7 @@ int runSplitLatency25PctFail(NDBT_Context* ctx, NDBT_Step* step)
   if (num_replicas != 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires 2 replicas" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   /*
@@ -6148,7 +6148,7 @@ int runIsolateMaster(NDBT_Context* ctx, NDBT_Step* step)
       the test would behave very differently. This case is not covered.
      */
     g_err << "At least four data nodes required to run test." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   const int masterId = restarter.getMasterNodeId();
@@ -6211,7 +6211,6 @@ int runIsolateMaster(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "Failed to connect to MGMD" << endl;
     return NDBT_FAILED;
-
   }
   
   if (!mgmd.subscribe_to_events())
@@ -6298,7 +6297,7 @@ runMasterFailSlowLCP(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumDbNodes() < 4)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 4 nodes" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int master = res.getMasterNodeId();
@@ -6613,7 +6612,7 @@ runLCPTakeOver(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 4 nodes" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   for (int i = 0; master_err[i] != 0; i++)
@@ -6690,12 +6689,12 @@ runBug16007980(NDBT_Context* ctx, NDBT_Step* step)
   if (res.getNumNodeGroups() < 2)
   {
     g_err << "[SKIPPED] Test requires at least 2 node groups." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
   if (res.getMaxConcurrentNodeFailures() < 2)
   {
     g_err << "[SKIPPED] Configuration cannot handle 2 node failures." << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int loops = ctx->getNumLoops();
@@ -7624,7 +7623,7 @@ runNodeFailGCPOpen(NDBT_Context* ctx, NDBT_Step* step)
   {
     g_err << "[SKIPPED] Test skipped. Requires 2 replicas" << endl;
     ctx->stopTest();
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   int i = 0;
@@ -8969,7 +8968,7 @@ int runArbitrationWithApiNodeFailure(NDBT_Context* ctx, NDBT_Step* step)
   if (restarter.getNumDbNodes() != 2)
   {
     g_err << "[SKIPPED] Test skipped.  Needs 1 nodegroup" << endl;
-    return NDBT_OK;
+    return NDBT_SKIPPED;
   }
 
   /**
@@ -9391,7 +9390,7 @@ int run_PLCP_many_parts(NDBT_Context *ctx, NDBT_Step *step)
   if (nodeCount != 2)
   {
     g_err << "[SKIPPED] Test skipped.  Needs 2 nodes" << endl;
-    return NDBT_OK; /* Requires exact 2 nodes to run */
+    return NDBT_SKIPPED; /* Requires exact 2 nodes to run */
   }
   int node_1 = restarter.getDbNodeId(0);
   int node_2 = restarter.getDbNodeId(1);
@@ -9581,7 +9580,7 @@ int run_PLCP_I1(NDBT_Context *ctx, NDBT_Step *step)
   if (nodeCount < 2)
   {
     g_err << "[SKIPPED] Test skipped. Requires at least 2 nodes" << endl;
-    return NDBT_OK; /* Requires at least 2 nodes to run */
+    return NDBT_SKIPPED; /* Requires at least 2 nodes to run */
   }
   g_err << "Executing " << loops << " loops" << endl;
   while (++i <= loops && result != NDBT_FAILED)
@@ -10828,10 +10827,11 @@ int runDelayGCP_SAVEREQ(NDBT_Context* ctx, NDBT_Step* step)
   }
 
   int result = NDBT_OK;
+  unsigned int timeout = 240; // To suite many node/replica tests
   const int victim = restarter.getNode(NdbRestarter::NS_RANDOM);
   const Uint32 lcp_max_lag = ctx->getProperty("MaxLcpLag",
                                               Uint32(60));
-  const Uint32 clear_error_insert_seconds = 20;
+  const Uint32 clear_error_insert_seconds = 60;
 
   for (int scenario=1; scenario < 4; scenario++)
   {
@@ -10849,13 +10849,13 @@ int runDelayGCP_SAVEREQ(NDBT_Context* ctx, NDBT_Step* step)
                                        false, /* abort */
                                        false  /* force */) == 0);
       g_err << "Waiting until node " << victim << " stops" << endl;
-      restarter.waitNodesNoStart(&victim, 1);
+      restarter.waitNodesNoStart(&victim, 1, timeout);
       break;
     case 3:
       g_err << "Scenario 3 : Start node, block GCP, check no LCP stall" << endl;
       g_err << "Starting node " << victim << endl;
       CHECK2(restarter.startNodes(&victim, 1) == 0);
-      CHECK2(restarter.waitClusterStarted() == 0);
+      CHECK2(restarter.waitClusterStarted(timeout) == 0);
       break;
     default:
       abort();
@@ -10864,9 +10864,9 @@ int runDelayGCP_SAVEREQ(NDBT_Context* ctx, NDBT_Step* step)
     g_err << "Inserting err delaying GCP_SAVEREQ" << endl;
     CHECK2(restarter.insertErrorInAllNodes(7237) == 0);
 
-    g_err << "Sleeping for 3 * MaxLcpLag = " << 3*lcp_max_lag << " seconds."
+    g_err << "Sleeping for 3 * MaxLcpLag = " << 3 * lcp_max_lag << " seconds."
           << endl;
-    NdbSleep_SecSleep(3*lcp_max_lag);
+    NdbSleep_SecSleep(3 * lcp_max_lag);
 
     // Remove the error insertion and let the GCP and LCP to finish
     CHECK2(restarter.insertErrorInAllNodes(0) == 0);

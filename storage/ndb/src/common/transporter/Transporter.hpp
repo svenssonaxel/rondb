@@ -125,6 +125,7 @@ public:
    * None blocking
    *    Use isConnected() to check status
    */
+<<<<<<< HEAD
   virtual bool connect_client(bool);
   bool connect_client(NdbSocket &);
   bool connect_client(ndb_socket_t fd) {
@@ -132,6 +133,20 @@ public:
     return connect_client(socket);
   }
   bool connect_server(NdbSocket & socket, BaseString& errormsg);
+||||||| be726b190f9
+  virtual bool connect_client();
+  bool connect_client(NdbSocket &);
+  bool connect_client(ndb_socket_t fd) {
+    NdbSocket socket(fd, NdbSocket::From::Existing);
+    return connect_client(socket);
+  }
+  bool connect_server(NdbSocket & socket, BaseString& errormsg);
+=======
+  virtual bool connect_client();
+  bool connect_client(NdbSocket&&);
+  bool connect_client_mgm(int);
+  bool connect_server(NdbSocket&& socket, BaseString& errormsg);
+>>>>>>> 465ca823dcf
 
   /**
    * Returns socket used (sockets are used for all transporters to ensure
@@ -144,6 +159,8 @@ public:
    * Blocking
    */
   void doDisconnect();
+
+  void forceUnsafeDisconnect();
 
   /**
    * Are we currently connected
@@ -253,15 +270,22 @@ protected:
    * Blocking, for max timeOut milli seconds
    *   Returns true if connect succeeded
    */
-  virtual bool connect_server_impl(NdbSocket &) = 0;
-  virtual bool connect_client_impl(NdbSocket &) = 0;
+  virtual bool connect_server_impl(NdbSocket&&) = 0;
+  virtual bool connect_client_impl(NdbSocket&&) = 0;
   virtual int pre_connect_options(ndb_socket_t) { return 0;}
   
   /**
-   * Blocking
+   * Disconnects the Transporter, possibly blocking.
+   * releaseAfterDisconnect() need to be called when
+   * DISCONNECTED state is confirmed.
    */
-  virtual void disconnectImpl() = 0;
-  
+  virtual void disconnectImpl();
+
+  /**
+   * Release any resources held by a DISCONNECTED Transporter.
+   */
+  virtual void releaseAfterDisconnect();
+
   /**
    * Remote host name/and address
    */

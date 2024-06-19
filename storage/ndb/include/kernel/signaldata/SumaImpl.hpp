@@ -594,8 +594,13 @@ struct SumaContinueB
     ,WAIT_SCAN_TAB_REQ = 10
     ,WAIT_GET_FRAGMENT = 11
     ,SEND_SUB_GCP_COMPLETE_REP = 12
+<<<<<<< HEAD
     ,SUMA_TRANSIENT_POOL_STAT = 13
     ,SHRINK_TRANSIENT_POOLS = 14
+||||||| be726b190f9
+=======
+    ,REPORT_SUBSCRIPTION_SET = 13
+>>>>>>> 465ca823dcf
   };
 };
 

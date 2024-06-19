@@ -111,7 +111,7 @@ public:
   {
     m_transporter_registry= t;
   }
-  SocketServer::Session * newSession(ndb_socket_t socket) override;
+  SocketServer::Session * newSession(NdbSocket&& socket) override;
 };
 
 /**
@@ -263,23 +263,13 @@ public:
      @param sockfd           the socket to handshake
      @param msg              error message describing why handshake failed,
                              to be filled in when function return
-     @param close_with_reset allows the function to indicate to the caller
-                             how the socket should be closed when function
-                             returns false
      @param log_failure      whether a failure to connect is log-worthy
 
      @returns false on failure and true on success
   */
-  bool connect_server(NdbSocket & sockfd,
+  bool connect_server(NdbSocket&& sockfd,
                       BaseString& msg,
-                      bool& close_with_reset,
                       bool& log_failure);
-
-  bool connect_server(ndb_socket_t sockfd, BaseString & msg,
-                      bool & close_with_reset, bool & log_failure) {
-    NdbSocket sock(sockfd, NdbSocket::From::Existing);
-    return connect_server(sock, msg, close_with_reset, log_failure);
-  }
 
   bool connect_client(NdbMgmHandle *h);
 
@@ -287,14 +277,14 @@ public:
    * Given a hostname and port, creates a NdbMgmHandle, turns it into
    * a transporter, and returns the socket.
    */
-  ndb_socket_t connect_ndb_mgmd(const char* server_name,
-                                unsigned short server_port);
+  NdbSocket connect_ndb_mgmd(const char* server_name,
+                             unsigned short server_port);
 
   /**
    * Given a connected NdbMgmHandle, turns it into a transporter
    * and returns the socket.
    */
-  ndb_socket_t connect_ndb_mgmd(NdbMgmHandle *h);
+  NdbSocket connect_ndb_mgmd(NdbMgmHandle *h);
 
   /**
    * Manage allTransporters and theNodeIdTransporters when using

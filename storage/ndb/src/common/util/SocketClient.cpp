@@ -27,6 +27,8 @@
 #include <ndb_global.h>
 
 #include <cassert>
+
+#include "EventLogger.hpp"
 #include "SocketClient.hpp"
 #include "SocketAuthenticator.hpp"
 #include "portlib/ndb_socket_poller.h"
@@ -34,8 +36,10 @@
 
 #if 0
 #define DEBUG_FPRINTF(arglist) do { fprintf arglist ; } while (0)
+#define HAVE_DEBUG_FPRINTF 1
 #else
 #define DEBUG_FPRINTF(a)
+#define HAVE_DEBUG_FPRINTF 0
 #endif
 
 SocketClient::SocketClient(SocketAuthenticator *sa) :
@@ -124,21 +128,11 @@ SocketClient::bind(ndb_sockaddr local)
 #define NONBLOCKERR(E) (E!=EINPROGRESS)
 #endif
 
-ndb_socket_t
+NdbSocket
 SocketClient::connect(ndb_sockaddr server_addr)
 {
-  assert(ndb_socket_valid(m_sockfd));
-  NdbSocket sock;
-  connect(sock, server_addr);
-  return sock.ndb_socket();
-}
-
-void
-SocketClient::connect(NdbSocket & secureSocket,
-                      ndb_sockaddr server_addr)
-{
   if (!ndb_socket_valid(m_sockfd))
-    return;
+    return{};
 
   // Reset last used port(in case connect fails)
   m_last_used_port = 0;
@@ -149,7 +143,7 @@ SocketClient::connect(NdbSocket & secureSocket,
     DEBUG_FPRINTF((stderr, "Failed to set socket nonblocking in connect\n"));
     ndb_socket_close(m_sockfd);
     ndb_socket_invalidate(&m_sockfd);
-    return;
+    return{};
   }
 
   if (server_addr.need_dual_stack())
@@ -158,7 +152,18 @@ SocketClient::connect(NdbSocket & secureSocket,
   }
 
   // Start non blocking connect
+<<<<<<< HEAD
   DEBUG_FPRINTF((stderr, "Connect TCP\n"));
+||||||| be726b190f9
+  DEBUG_FPRINTF((stderr, "Connect to %s:%u\n", server_hostname, server_port));
+=======
+#if HAVE_DEBUG_FPRINTF
+  char server_addrstr[NDB_ADDR_STRLEN];
+  Ndb_inet_ntop(&server_addr, server_addrstr, sizeof(server_addrstr));
+#endif
+  DEBUG_FPRINTF((stderr, "Connect to %s port %d\n", server_addrstr,
+                 server_addr.get_port()));
+>>>>>>> 465ca823dcf
   int r = ndb_connect(m_sockfd, &server_addr);
   if (r == 0)
     goto done; // connected immediately.
@@ -168,7 +173,7 @@ SocketClient::connect(NdbSocket & secureSocket,
     DEBUG_FPRINTF((stderr, "Failed to connect_inet in connect\n"));
     ndb_socket_close(m_sockfd);
     ndb_socket_invalidate(&m_sockfd);
-    return;
+    return{};
   }
 
   if (ndb_poll(m_sockfd, true, true,
@@ -179,7 +184,7 @@ SocketClient::connect(NdbSocket & secureSocket,
     // or an error occurred
     ndb_socket_close(m_sockfd);
     ndb_socket_invalidate(&m_sockfd);
-    return;
+    return{};
   }
 
   // Activity detected on the socket
@@ -192,7 +197,7 @@ SocketClient::connect(NdbSocket & secureSocket,
       DEBUG_FPRINTF((stderr, "Failed to set sockopt in connect\n"));
       ndb_socket_close(m_sockfd);
       ndb_socket_invalidate(&m_sockfd);
-      return;
+      return{};
     }
 
     if (so_error)
@@ -200,7 +205,7 @@ SocketClient::connect(NdbSocket & secureSocket,
       DEBUG_FPRINTF((stderr, "so_error: %d in connect\n", so_error));
       ndb_socket_close(m_sockfd);
       ndb_socket_invalidate(&m_sockfd);
-      return;
+      return{};
     }
   }
 
@@ -210,23 +215,27 @@ done:
     DEBUG_FPRINTF((stderr, "ndb_socket_nonblock failed in connect\n"));
     ndb_socket_close(m_sockfd);
     ndb_socket_invalidate(&m_sockfd);
-    return;
+    return{};
   }
 
   // Remember the local port used for this connection
   assert(m_last_used_port == 0);
   ndb_socket_get_port(m_sockfd, &m_last_used_port);
 
-  secureSocket.init_from_new(m_sockfd);
-
-  if (m_auth) {
-    if (!m_auth->client_authenticate(secureSocket))
-    {
-      DEBUG_FPRINTF((stderr, "authenticate failed in connect\n"));
-      secureSocket.close();
-      secureSocket.invalidate();
-    }
-  }
-
+  // Transfer the fd to the NdbSocket
+  NdbSocket secureSocket{m_sockfd};
   ndb_socket_invalidate(&m_sockfd);
+  return secureSocket;
+}
+
+int
+SocketClient::authenticate(const NdbSocket & secureSocket)
+{
+  assert(m_auth);
+  int r = m_auth->client_authenticate(secureSocket);
+  if (r != SocketAuthenticator::AuthOk)
+  {
+    secureSocket.shutdown(); // Make it unusable, caller should close
+  }
+  return r;
 }

@@ -287,7 +287,6 @@ MgmtSrvr::MgmtSrvr(const MgmtOpts& opts) :
   /* Setup clusterlog as client[0] in m_event_listner */
   {
     Ndb_mgmd_event_service::Event_listener se;
-    ndb_socket_initialize(&(se.m_socket));
     for(size_t t = 0; t<LogLevel::LOGLEVEL_CATEGORIES; t++){
       se.m_logLevel.setLogLevel((LogLevel::EventCategory)t, 7);
     }
@@ -4045,6 +4044,12 @@ MgmtSrvr::trp_deliver_signal(const NdbApiSignal* signal,
     */
     release_local_nodeid_reservation(nodeId);
 
+    /*
+      Clear connect address cache in case there
+      is some stale address there
+    */
+    clear_connect_address_cache(nodeId);
+
     union {
       Uint32 theData[25];
       EventReport repData;
@@ -5578,15 +5583,16 @@ MgmtSrvr::getConnectionDbParameter(int node1, int node2,
 
 
 bool
-MgmtSrvr::transporter_connect(ndb_socket_t sockfd,
+MgmtSrvr::transporter_connect(NdbSocket&& socket,
                               BaseString& msg,
-                              bool& close_with_reset,
                               bool& log_failure)
 {
   DBUG_ENTER("MgmtSrvr::transporter_connect");
   TransporterRegistry* tr= theFacade->get_registry();
-  if (!tr->connect_server(sockfd, msg, close_with_reset, log_failure))
+  if (!tr->connect_server(std::move(socket), msg, log_failure))
+  {
     DBUG_RETURN(false);
+  }
 
   /**
    * TransporterRegistry::update_connections() is responsible
