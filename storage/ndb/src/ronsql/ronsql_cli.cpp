@@ -55,7 +55,7 @@ main(int argc, char** argv)
   params.query_output_stream = &cout;
   params.explain_output_stream = &cout;
   params.err_output_stream = &cerr;
-  params.query_output_format = isatty(fileno(stdout))
+  params.query_output_format = isatty(fileno(stdin)) && isatty(fileno(stdout))
     ? ExecutionParameters::QueryOutputFormat::JSON_UTF8
     : ExecutionParameters::QueryOutputFormat::TSV;
   int exit_code = 0;
@@ -152,8 +152,8 @@ print_help(const char* argv0)
     "  -D, --database name           Database name. Required if --connect-string is\n"
     "                                given.\n"
     "  -e, --execute query           Execute query and output results.\n"
-    "  -s, --silent                  --query-output-format (stdout is terminal\n"
-    "                                                       ? TSV : TSV_DATA)\n"
+    "  -s, --silent                  Set query output format to TSV if stdin and\n"
+    "                                stdout are both ttys, otherwise to TSV_DATA.\n"
     "Options specific to RonSQL:\n"
     "  --execute-file <FILE>         Execute query from file.\n"
     "  --connect-string <STRING>     Ndb connection string (If not given, then no\n"
@@ -179,9 +179,12 @@ print_help(const char* argv0)
     "                                  release lock directly.\n"
     // See RonSQLCommon.hpp for comment about query output format
     "  --query-output-format <FMT>   Set query output format. <FMT> can be one of:\n"
-    "                                - JSON_UTF8 (default if stdout is a terminal)\n"
+    "                                - JSON_UTF8, default if stdin and stdout are\n"
+    "                                  both ttys, i.e. the same case where mysql\n"
+    "                                  defaults to formatted table output.\n"
     "                                - JSON_ASCII\n"
-    "                                - TSV (default if stdout is not a terminal)\n"
+    "                                - TSV, default if stdin or stdout is not a tty.\n"
+    "                                  This mimics mysql behavior."
     "                                - TSV_DATA\n"
     // See RonSQLCommon.hpp for comment about explain output format
     "  --explain-output-format <FMT> Set explain output format. <FMT> can be one of:\n"
@@ -260,8 +263,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
       }
       break;
     case 's':
-      // todo compare isatty(stdin) with mysql cli
-      params.query_output_format = isatty(fileno(stdout))
+      params.query_output_format = isatty(fileno(stdin)) && isatty(fileno(stdout))
         ? ExecutionParameters::QueryOutputFormat::TSV
         : ExecutionParameters::QueryOutputFormat::TSV_DATA;
       break;
