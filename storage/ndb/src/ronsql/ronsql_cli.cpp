@@ -171,6 +171,7 @@ print_help(const char* argv0)
     "                                - EXPLAIN_OVERRIDE\n"
     // See ../../include/ndbapi/NdbOperation.hpp for comment about lock mode
     "  --lock-mode <MODE>            Set lock mode. <MODE> can be one of:\n"
+    // todo remove LM_ prefix from arguments. Also, we should support only Read and CommittedRead, and warn against Read.
     "                                - LM_Read: Read with shared lock.\n"
     "                                - LM_Exclusive: Read with exclusive lock.\n"
     "                                - LM_CommittedRead: Ignore locks, read last\n"
