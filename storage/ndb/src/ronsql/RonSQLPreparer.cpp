@@ -480,7 +480,9 @@ RonSQLPreparer::load()
     m_dict = ndb->getDictionary();
     m_table = m_dict->getTable(m_context.ast_root.table.c_str());
     // todo Explain that only ENGINE=NDB tables are supported
-    soft_assert(m_table != NULL, "Failed to get table.");
+    soft_assert(m_table != NULL,
+                "Failed to get table. Note that RonSQL only supports tables with"
+                " ENGINE=ndbcluster.");
     int32_t* col_id_map = m_aalloc->alloc<int32_t>(m_columns.size());
     for (uint col_idx = 0; col_idx < m_columns.size(); col_idx++)
     {
