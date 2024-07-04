@@ -30,13 +30,14 @@ var fs = require("fs");
 var assert = require("assert");
 var conf = require("./path_config");
 
-var DatetimeConverter = require(path.join(conf.converters_dir, "NdbDatetimeConverter"));
+var DatetimeConverter =
+    require(path.join(conf.converters_dir, "NdbDatetimeConverter"));
 var TimeConverter = require(path.join(conf.converters_dir, "NdbTimeConverter"));
 var DateConverter = require(path.join(conf.converters_dir, "NdbDateConverter"));
 var propertiesDocFile = path.join(conf.root_dir, "DefaultConnectionProperties");
 var unified_debug = require("unified_debug");
 var jones = require("database-jones");
-var udebug  = unified_debug.getLogger("ndb_service_provider.js");
+var udebug = unified_debug.getLogger("ndb_service_provider.js");
 var gypConfigFile = path.join(conf.root_dir, "config.gypi");
 
 
@@ -44,11 +45,13 @@ var gypConfigFile = path.join(conf.root_dir, "config.gypi");
 var NdbMetadataManager, DBConnectionPool;
 try {
   NdbMetadataManager = require("./NdbMetadataManager.js");
-} catch(ignore) {}
+} catch (ignore) {
+}
 
 try {
-  DBConnectionPool   = require("./NdbConnectionPool.js").DBConnectionPool;
-} catch(ignore) {}
+  DBConnectionPool = require("./NdbConnectionPool.js").DBConnectionPool;
+} catch (ignore) {
+}
 
 
 exports.loadRequiredModules = function() {
@@ -58,30 +61,29 @@ exports.loadRequiredModules = function() {
   /* Load the binary */
   try {
     require(conf.binary);
-  } catch(e) {
-    ldp = process.platform === 'darwin' ? 'DYLD_LIBRARY_PATH' : 'LD_LIBRARY_PATH';
+  } catch (e) {
+    ldp =
+        process.platform === 'darwin' ? 'DYLD_LIBRARY_PATH' : 'LD_LIBRARY_PATH';
     msg = "\n\n" +
-      "  The ndb adapter cannot load the compiled module ndb_adapter.node.\n";
-    if(existsSync(conf.binary)) {
+        "  The ndb adapter cannot load the compiled module ndb_adapter.node.\n";
+    if (existsSync(conf.binary)) {
       msg +=
       "  This module has been built, but was not succesfully loaded.  Perhaps\n" +
       "  setting " + ldp + " to the mysql lib directory (containing\n" +
       "  libndbclient) will resolve the problem.\n\n";
       if(existsSync(gypConfigFile)) {
         try {
-	  /* 'utf8' here is a json, rather than MySQL, setting. */
+          /* 'utf8' here is a json, rather than MySQL, setting. */
           jsonconfig = fs.readFileSync(gypConfigFile, 'utf8');
           jsonconfig = JSON.parse(jsonconfig);
           libpath = path.join(jsonconfig.variables.mysql_path, "lib");
           msg += "  e.g.:\n";
           msg += "  export " + ldp + "=" + libpath + "\n\n";
+        } catch (ignore) {
         }
-        catch(ignore) {}
       }
-    }
-    else {
-      msg +=
-      "  For help building jones-ndb, run \"node configure\" \n\n";
+    } else {
+      msg += "  For help building jones-ndb, run \"node configure\" \n\n";
     }
     msg += "Original error: \n---------------\n" + e.message;
     err = new Error(msg);
@@ -92,7 +94,7 @@ exports.loadRequiredModules = function() {
   /* Load jones-mysql */
   try {
     require("jones-mysql");
-  } catch(e2) {
+  } catch (e2) {
     msg = "jones-ndb requires mysql for metadata operations.\n";
     msg += "Original error: " + e2.message;
     err = new Error(msg);
@@ -107,12 +109,13 @@ exports.getDefaultConnectionProperties = function() {
 };
 
 
-function registerDefaultTypeConverters(dbConnectionPool) { 
+function registerDefaultTypeConverters(dbConnectionPool) {
   dbConnectionPool.registerTypeConverter("DATETIME", DatetimeConverter);
   dbConnectionPool.registerTypeConverter("TIME", TimeConverter);
   dbConnectionPool.registerTypeConverter("DATE", DateConverter);
-  dbConnectionPool.registerTypeConverter("JSON", jones.converters.SerializedObjectConverter);
-  // TODO: converter for Timestamp microseconds <==> JS Date 
+  dbConnectionPool.registerTypeConverter(
+      "JSON", jones.converters.SerializedObjectConverter);
+  // TODO: converter for Timestamp microseconds <==> JS Date
 }
 
 
@@ -138,4 +141,3 @@ exports.getDBMetadataManager = function(properties) {
 };
 
 exports.config = conf;
-

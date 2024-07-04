@@ -30,13 +30,13 @@
 #include <RefConvert.hpp>
 
 /* 32768 */
-#define MIN_API_BLOCK_NO  0x8000
+#define MIN_API_BLOCK_NO 0x8000
 
 /* 2047 */
-#define API_PACKED     0x07ff
+#define API_PACKED 0x07ff
 
 /* Fixed block numbers in API */
-#define NO_API_FIXED_BLOCKS    2
+#define NO_API_FIXED_BLOCKS 2
 
 /* 4002 */
 #define API_CLUSTERMGR 0x0FA2
@@ -104,23 +104,42 @@ const BlockReference LGMAN_REF    = numberToRef(LGMAN, 0);
 const BlockReference PGMAN_REF    = numberToRef(PGMAN, 0);
 const BlockReference RESTORE_REF  = numberToRef(RESTORE, 0);
 const BlockReference QRESTORE_REF = numberToRef(QRESTORE, 0);
-const BlockReference DBINFO_REF   = numberToRef(DBINFO, 0);
-const BlockReference DBSPJ_REF    = numberToRef(DBSPJ, 0);
-const BlockReference THRMAN_REF   = numberToRef(THRMAN, 0);
-const BlockReference TRPMAN_REF   = numberToRef(TRPMAN, 0);
+const BlockReference DBINFO_REF = numberToRef(DBINFO, 0);
+const BlockReference DBSPJ_REF = numberToRef(DBSPJ, 0);
+const BlockReference THRMAN_REF = numberToRef(THRMAN, 0);
+const BlockReference TRPMAN_REF = numberToRef(TRPMAN, 0);
 
 static inline void __hide_warnings_unused_ref_vars(void) {
   // Hide annoying warnings about unused variables
-  (void)BACKUP_REF;  (void)DBTC_REF;    (void)DBDIH_REF;
-  (void)DBLQH_REF;   (void)DBACC_REF;   (void)DBTUP_REF;
-  (void)DBQLQH_REF;  (void)DBQACC_REF;  (void)DBQTUP_REF;
-  (void)DBDICT_REF;  (void)NDBCNTR_REF; (void)QMGR_REF;
-  (void)NDBFS_REF;   (void)CMVMI_REF;   (void)TRIX_REF;
-  (void)DBUTIL_REF;  (void)SUMA_REF;    (void)DBTUX_REF;
-  (void)TSMAN_REF;   (void)LGMAN_REF;   (void)PGMAN_REF;
-  (void)RESTORE_REF; (void)DBINFO_REF;  (void)DBSPJ_REF;
-  (void)THRMAN_REF;  (void)TRPMAN_REF;  (void)QRESTORE_REF;
-  (void)QBACKUP_REF; (void)DBQTUX_REF;
+  (void)BACKUP_REF;
+  (void)DBTC_REF;
+  (void)DBDIH_REF;
+  (void)DBLQH_REF;
+  (void)DBACC_REF;
+  (void)DBTUP_REF;
+  (void)DBQLQH_REF;
+  (void)DBQACC_REF;
+  (void)DBQTUP_REF;
+  (void)DBDICT_REF;
+  (void)NDBCNTR_REF;
+  (void)QMGR_REF;
+  (void)NDBFS_REF;
+  (void)CMVMI_REF;
+  (void)TRIX_REF;
+  (void)DBUTIL_REF;
+  (void)SUMA_REF;
+  (void)DBTUX_REF;
+  (void)TSMAN_REF;
+  (void)LGMAN_REF;
+  (void)PGMAN_REF;
+  (void)RESTORE_REF;
+  (void)DBINFO_REF;
+  (void)DBSPJ_REF;
+  (void)THRMAN_REF;
+  (void)TRPMAN_REF;
+  (void)QRESTORE_REF;
+  (void)QBACKUP_REF;
+  (void)DBQTUX_REF;
 }
 
 const BlockNumber MIN_BLOCK_NO = BACKUP;
