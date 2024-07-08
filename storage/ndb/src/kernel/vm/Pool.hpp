@@ -28,25 +28,24 @@
 
 #include <climits>
 
-#include <ndb_global.h>
 #include <kernel_types.h>
+#include <ndb_global.h>
 
 #define JAM_FILE_ID 315
-
 
 /**
  * Type bits
  *
  * Type id is 11 bits record type, and 5 bits resource id
  *   -> 2048 different kind of records and 32 different resource groups
- * 
+ *
  * Resource id is used to handle configuration parameters
  *
  * see blocks/records_types.hpp
  */
 #define RG_BITS 5
 #define RG_MASK ((1 << RG_BITS) - 1)
-#define MAKE_TID(TID,RG) Uint32((TID << RG_BITS) | RG)
+#define MAKE_TID(TID, RG) Uint32((TID << RG_BITS) | RG)
 #define GET_RG(rt) (rt & RG_MASK)
 #define GET_TID(rt) (rt >> RG_BITS)
 
@@ -60,8 +59,7 @@
  * Record_info
  *
  */
-struct Record_info
-{
+struct Record_info {
   Uint16 m_size;
   Uint16 m_type_id;
   Uint16 m_offset_next_pool;
@@ -73,8 +71,7 @@ struct Record_info
   usage.
  */
 
-struct Resource_limit
-{
+struct Resource_limit {
   static constexpr Uint32 HIGHEST_LIMIT = UINT32_MAX;
 
   /**
@@ -152,12 +149,12 @@ struct Resource_limit
   PrioMemory m_prio_memory;
 };
 
-class Magic
-{
-public:
+class Magic {
+ public:
   explicit Magic(Uint32 type_id) { m_magic = make(type_id); }
   bool check(Uint32 type_id) { return match(m_magic, type_id); }
-  template<typename T> static bool check_ptr(const T* ptr)
+  template <typename T>
+  static bool check_ptr(const T *ptr)
   {
     return match(ptr->m_magic, T::TYPE_ID);
   }
@@ -173,13 +170,11 @@ private:
   Uint32 m_magic;
 };
 
-inline Uint32 Magic::make(Uint32 type_id)
-{
+inline Uint32 Magic::make(Uint32 type_id) {
   return type_id ^ ((~type_id) << 16);
 }
 
-inline bool Magic::match(Uint32 magic, Uint32 type_id)
-{
+inline bool Magic::match(Uint32 magic, Uint32 type_id) {
   return magic == make(type_id);
 }
 
@@ -194,16 +189,15 @@ inline bool Magic::match_rw(Uint32 magic, Uint32 type_id)
 }
 
 class Ndbd_mem_manager;
-struct Pool_context
-{
+struct Pool_context {
   Pool_context() {}
-  class SimulatedBlock* m_block;
+  class SimulatedBlock *m_block;
 
   /**
    * Get mem root
    */
-  void* get_memroot() const;
-  Ndbd_mem_manager* get_mem_manager() const;
+  void *get_memroot() const;
+  Ndbd_mem_manager *get_mem_manager() const;
 
   /**
    * Alloc page.
@@ -213,10 +207,10 @@ struct Pool_context
    *
    * Will handle resource limit
    */
-  void* alloc_page19(Uint32 type_id, Uint32 *i, bool allow_use_spare = false);
-  void* alloc_page27(Uint32 type_id, Uint32 *i, bool allow_use_spare = false);
-  void* alloc_page30(Uint32 type_id, Uint32 *i, bool allow_use_spare = false);
-  void* alloc_page32(Uint32 type_id, Uint32 *i, bool allow_use_spare = false);
+  void *alloc_page19(Uint32 type_id, Uint32 *i, bool allow_use_spare = false);
+  void *alloc_page27(Uint32 type_id, Uint32 *i, bool allow_use_spare = false);
+  void *alloc_page30(Uint32 type_id, Uint32 *i, bool allow_use_spare = false);
+  void *alloc_page32(Uint32 type_id, Uint32 *i, bool allow_use_spare = false);
 
   /**
    * Release page
@@ -237,7 +231,7 @@ struct Pool_context
    *
    * Will handle resource limit
    */
-  void* alloc_pages(Uint32 type_id, Uint32 *i, Uint32 *cnt, Uint32 min =1);
+  void *alloc_pages(Uint32 type_id, Uint32 *i, Uint32 *cnt, Uint32 min = 1);
 
   /**
    * Release pages
@@ -247,70 +241,69 @@ struct Pool_context
    */
   void release_pages(Uint32 type_id, Uint32 i, Uint32 cnt);
 
-  void* get_valid_page(Uint32 page_num) const;
+  void *get_valid_page(Uint32 page_num) const;
 
   /**
    * Abort
    */
-  [[noreturn]] void handleAbort(int code, const char* msg) const;
+  [[noreturn]] void handleAbort(int code, const char *msg) const;
 };
 
 template <typename T>
-struct Ptr 
-{
+struct Ptr {
   typedef Uint32 I;
-  T * p;
+  T *p;
   Uint32 i;
 
-  static Ptr get(T* _p, Uint32 _i) { Ptr x; x.p = _p; x.i = _i; return x; }
+  static Ptr get(T *_p, Uint32 _i) {
+    Ptr x;
+    x.p = _p;
+    x.i = _i;
+    return x;
+  }
 
   /**
     Initialize to ffff.... in debug mode. The purpose of this is to detect
     use of uninitialized values by causing an error. To maximize performance,
     this is done in debug mode only (when asserts are enabled).
    */
-  Ptr(){assert(memset(this, 0xff, sizeof(*this)));}
-  Ptr(T* pVal, Uint32 iVal):p(pVal), i(iVal){}
+  Ptr() { assert(memset(this, 0xff, sizeof(*this))); }
+  Ptr(T *pVal, Uint32 iVal) : p(pVal), i(iVal) {}
 
-
-  bool isNull() const 
-  { 
+  bool isNull() const {
     assert(i <= RNIL);
-    return i == RNIL; 
+    return i == RNIL;
   }
 
-  inline void setNull()
-  {
-    i = RNIL;
-  }
+  inline void setNull() { i = RNIL; }
 };
 
 template <typename T>
-struct ConstPtr 
-{
-  const T * p;
+struct ConstPtr {
+  const T *p;
   Uint32 i;
 
-  static ConstPtr get(T const* _p, Uint32 _i) { ConstPtr x; x.p = _p; x.i = _i; return x; }
+  static ConstPtr get(T const *_p, Uint32 _i) {
+    ConstPtr x;
+    x.p = _p;
+    x.i = _i;
+    return x;
+  }
 
   /**
     Initialize to ffff.... in debug mode. The purpose of this is to detect
     use of uninitialized values by causing an error. To maximize performance,
     this is done in debug mode only (when asserts are enabled).
    */
-  ConstPtr(){assert(memset(this, 0xff, sizeof(*this)));}
-  ConstPtr(T* pVal, Uint32 iVal):p(pVal), i(iVal){}
+  ConstPtr() { assert(memset(this, 0xff, sizeof(*this))); }
+  ConstPtr(T *pVal, Uint32 iVal) : p(pVal), i(iVal) {}
 
-  bool isNull() const 
-  { 
+  bool isNull() const {
     assert(i <= RNIL);
-    return i == RNIL; 
+    return i == RNIL;
   }
 
-  inline void setNull()
-  {
-    i = RNIL;
-  }
+  inline void setNull() { i = RNIL; }
 };
 
 template <typename T>
@@ -322,10 +315,96 @@ struct Ptr64
 
   static Ptr64 get(T* _p, Uint64 _i)
   {
-    Ptr64 x;
-    x.p = _p;
-    x.i = _i;
-    return x;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ptr64
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Record_info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Record_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+x;
+||||||| Common ancestor
+ri,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&ri,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Pool_context&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Pool_context
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ x.p = _p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pc)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pc)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+    x.i = _
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i;
+||||||| Common ancestor
+info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ri,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&ri,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Pool_context&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Pool_context
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return x
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pc)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pc)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   }
 
   Ptr64(){assert(memset(this, 0xff, sizeof(*this)));}
@@ -340,17 +419,64 @@ struct Ptr64
 
   inline void setNull()
   {
-    i = RNIL64;
-  }
-};
+    i = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL64;
+||||||| Common ancestor
+Pool_context&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Pool_context
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ }
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pc)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pc)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
 
 template <typename T>
 struct ConstPtr64
 {
-  const T * p;
+  const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+T
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Pool_context&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Pool_context
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+* p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pc)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pc)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   Uint64 i;
 
-  static ConstPtr64 get(T const* _p, Uint32 _i)
+  static ConstPtr64 get(T const* _p,
+                       Uint32 _i)
   {
     ConstPtr64 x;
     x.p = _p;
@@ -403,7 +529,7 @@ public:
   
   void init(Uint32 type_id, const Pool_context& pc);
   void wo_pool_init(Uint32 type_id, const Pool_context& pc);
-  void arena_pool_init(ArenaAllocator*, Uint32 type_id, const Pool_context& pc);
+  void arena_pool_init(ArenaAllocator*, Uint32 type_id, const Pool_context &pc);
   
   /**
    * Update p value for ptr according to i value 
@@ -654,7 +780,32 @@ public:
   [[nodiscard]] bool getPtr(ConstPtr64<T> &, Uint64 i) const;
 
   /**
-   * Allocate an object from pool - update Ptr
+   * Allocate an object from 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Pool_context&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Pool_context
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+- update Ptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pc)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pc) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    *
    * Return i
    */
@@ -680,14 +831,13 @@ RecordPool64<P, T>::RecordPool64()
 }
 
 template <typename P, typename T>
-inline
-void
-RecordPool64<P, T>::init(Uint32 type_id, const Pool_context& pc)
-{
+inline void
+RecordPool64<P, T>::init(Uint32 type_id,
+                                              const Pool_context &pc) {
   T tmp;
-  const char * off_base = (char*)&tmp;
-  const char * off_next = (char*)&tmp.nextPool;
-  const char * off_magic = (char*)&tmp.m_magic;
+  const char *off_base = (char *)&tmp;
+  const char *off_next = (char *)&tmp.nextPool;
+  const char *off_magic = (char *)&tmp.m_magic;
 
   Record_info ri;
   ri.m_size = sizeof(T);
@@ -699,9 +849,7 @@ RecordPool64<P, T>::init(Uint32 type_id, const Pool_context& pc)
 
 template <typename P, typename T>
 inline
-RecordPool64<P, T>::~RecordPool64()
-{
-}
+RecordPool64<P, T>::~RecordPool64() {}
 
 template <typename P, typename T>
 inline
@@ -712,8 +860,7 @@ RecordPool64<P, T>::checkMagic(void *record) const
 }
 
 template <typename P, typename T>
-inline
-void
+inline void
 RecordPool64<P, T>::getUncheckedPtr(Ptr64<T> & ptr) const
 {
   ptr.p = static_cast<T*>(m_pool.getUncheckedPtr(ptr.i));
@@ -722,77 +869,63 @@ RecordPool64<P, T>::getUncheckedPtr(Ptr64<T> & ptr) const
 template <typename P, typename T>
 inline
 bool
-RecordPool64<P, T>::getPtr(Ptr64<T> & ptr) const
-{
-  ptr.p = static_cast<T*>(m_pool.getPtr(ptr.i));
+RecordPool64<P, T>::getPtr(Ptr64<T> &ptr) const {
+  ptr.p = static_cast<T *>(m_pool.getPtr(ptr.i));
   return ptr.p != nullptr;
 }
 
 template <typename P, typename T>
 inline
 bool
-RecordPool64<P, T>::getPtr(ConstPtr64<T> & ptr) const 
-{
-  ptr.p = static_cast<const T*>(m_pool.getPtr(ptr.i));
+RecordPool64<P, T>::getPtr(ConstPtr64<T> &ptr) const {
+  ptr.p = static_cast<const T *>(m_pool.getPtr(ptr.i));
   return ptr.p != nullptr;
 }
 
 template <typename P, typename T>
-inline
-bool
-RecordPool64<P, T>::getPtr(Ptr64<T> & ptr, Uint64 i) const
-{
+inline bool
+RecordPool64<P, T>::getPtr(Ptr64<T> &ptr, Uint64 i) const {
   ptr.i = i;
-  ptr.p = static_cast<T*>(m_pool.getPtr(ptr.i));  
+  ptr.p = static_cast<T *>(m_pool.getPtr(ptr.i));
   return ptr.p != nullptr;
 }
 
 template <typename P, typename T>
 inline
 bool
-RecordPool64<P, T>::getPtr(ConstPtr64<T> & ptr, Uint64 i) const 
-{
+RecordPool64<P, T>::getPtr(ConstPtr64<T> &ptr, Uint64 i) const {
   ptr.i = i;
-  ptr.p = static_cast<const T*>(m_pool.getPtr(ptr.i));  
+  ptr.p = static_cast<const T *>(m_pool.getPtr(ptr.i));
   return ptr.p != nullptr;
-}
-  
-template <typename P, typename T>
-inline
-T * 
-RecordPool64<P, T>::getPtr(Uint64 i) const
-{
-  return static_cast<T*>(m_pool.getPtr(i));  
 }
 
 template <typename P, typename T>
-inline
-const T * 
-RecordPool64<P, T>::getConstPtr(Uint64 i) const 
-{
-  return static_cast<const T*>(m_pool.getPtr(i)); 
+inline T * 
+RecordPool64<P, T>::getPtr(Uint64 i) const {
+  return static_cast<T *>(m_pool.getPtr(i));
 }
-  
+
 template <typename P, typename T>
-inline
-bool
-RecordPool64<P, T>::seize(Ptr64<T> & ptr)
-{
+inline const T * 
+RecordPool64<P, T>::getConstPtr(Uint64 i) const {
+  return static_cast<const T *>(m_pool.getPtr(i));
+}
+
+template <typename P, typename T>
+inline bool
+RecordPool64<P, T>::seize(Ptr64<T> &ptr) {
   Ptr64<T> tmp;
   bool ret = m_pool.seize(tmp);
-  if(likely(ret))
-  {
+  if (likely(ret)) {
     ptr.i = tmp.i;
-    ptr.p = static_cast<T*>(tmp.p);
+    ptr.p = static_cast<T *>(tmp.p);
   }
   return ret;
 }
 
 template <typename P, typename T>
-inline
-void
-RecordPool64<P, T>::release(Uint64 i)
-{
+inline void
+RecordPool64<P, T>::release(Uint64 i) {
   Ptr64<T> ptr;
   ptr.i = i;
   ptr.p = m_pool.getPtr(i);
@@ -800,10 +933,8 @@ RecordPool64<P, T>::release(Uint64 i)
 }
 
 template <typename P, typename T>
-inline
-void
-RecordPool64<P, T>::release(Ptr64<T> ptr)
-{
+inline void
+RecordPool64<P, T>::release(Ptr64<T> ptr) {
   Ptr64<T> tmp;
   tmp.i = ptr.i;
   tmp.p = ptr.p;

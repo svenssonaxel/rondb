@@ -25,17 +25,16 @@
 
 #define DBTUP_C
 #define DBTUP_COMMIT_CPP
-#include "Dbtup.hpp"
-#include <RefConvert.hpp>
 #include <ndb_limits.h>
+#include <EventLogger.hpp>
+#include <RefConvert.hpp>
 #include <pc.hpp>
 #include <signaldata/TupCommit.hpp>
-#include <EventLogger.hpp>
 #include "../backup/Backup.hpp"
 #include "../dblqh/Dblqh.hpp"
+#include "Dbtup.hpp"
 
 #define JAM_FILE_ID 416
-
 
 #if (defined(VM_TRACE) || defined(ERROR_INSERT))
 //#define DEBUG_REORG 1
@@ -62,83 +61,137 @@
 #endif
 
 #ifdef DEBUG_DISK
-#define DEB_DISK(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_DISK(arglist)        \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_DISK(arglist) do { } while (0)
+#define DEB_DISK(arglist) \
+  do {                    \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP
-#define DEB_LCP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP(arglist)         \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP(arglist) do { } while (0)
+#define DEB_LCP(arglist) \
+  do {                   \
+  } while (0)
 #endif
 
 #ifdef DEBUG_DELETE_EXTRA
-#define DEB_DELETE_EXTRA(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_DELETE_EXTRA(arglist) \
+  do {                            \
+    g_eventLogger->info arglist;  \
+  } while (0)
 #else
-#define DEB_DELETE_EXTRA(arglist) do { } while (0)
+#define DEB_DELETE_EXTRA(arglist) \
+  do {                            \
+  } while (0)
 #endif
 
 #ifdef DEBUG_INSERT_EXTRA
-#define DEB_INSERT_EXTRA(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_INSERT_EXTRA(arglist) \
+  do {                            \
+    g_eventLogger->info arglist;  \
+  } while (0)
 #else
-#define DEB_INSERT_EXTRA(arglist) do { } while (0)
+#define DEB_INSERT_EXTRA(arglist) \
+  do {                            \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP_DEL
-#define DEB_LCP_DEL(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP_DEL(arglist)     \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP_DEL(arglist) do { } while (0)
+#define DEB_LCP_DEL(arglist) \
+  do {                       \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP_SKIP
-#define DEB_LCP_SKIP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP_SKIP(arglist)    \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP_SKIP(arglist) do { } while (0)
+#define DEB_LCP_SKIP(arglist) \
+  do {                        \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP_SKIP_DELETE
-#define DEB_LCP_SKIP_DELETE(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP_SKIP_DELETE(arglist) \
+  do {                               \
+    g_eventLogger->info arglist;     \
+  } while (0)
 #else
-#define DEB_LCP_SKIP_DELETE(arglist) do { } while (0)
+#define DEB_LCP_SKIP_DELETE(arglist) \
+  do {                               \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP_SKIP_DELETE2
-#define DEB_LCP_SKIP_DELETE2(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP_SKIP_DELETE2(arglist) \
+  do {                                \
+    g_eventLogger->info arglist;      \
+  } while (0)
 #else
-#define DEB_LCP_SKIP_DELETE2(arglist) do { } while (0)
+#define DEB_LCP_SKIP_DELETE2(arglist) \
+  do {                                \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP_SCANNED_BIT
-#define DEB_LCP_SCANNED_BIT(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP_SCANNED_BIT(arglist) \
+  do {                               \
+    g_eventLogger->info arglist;     \
+  } while (0)
 #else
-#define DEB_LCP_SCANNED_BIT(arglist) do { } while (0)
+#define DEB_LCP_SCANNED_BIT(arglist) \
+  do {                               \
+  } while (0)
 #endif
 
 #ifdef DEBUG_PGMAN
-#define DEB_PGMAN(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_PGMAN(arglist)       \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_PGMAN(arglist) do { } while (0)
+#define DEB_PGMAN(arglist) \
+  do {                     \
+  } while (0)
 #endif
 
 #ifdef DEBUG_DELETE
-#define DEB_DELETE(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_DELETE(arglist)      \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_DELETE(arglist) do { } while (0)
+#define DEB_DELETE(arglist) \
+  do {                      \
+  } while (0)
 #endif
 
-void Dbtup::execTUP_DEALLOCREQ(Signal* signal)
-{
+void Dbtup::execTUP_DEALLOCREQ(Signal *signal) {
   TablerecPtr regTabPtr;
   FragrecordPtr regFragPtr;
   Uint32 frag_page_id, frag_id;
 
   jamEntry();
 
-  frag_id= signal->theData[0];
-  regTabPtr.i= signal->theData[1];
-  frag_page_id= signal->theData[2];
-  Uint32 page_index= signal->theData[3];
+  frag_id = signal->theData[0];
+  regTabPtr.i = signal->theData[1];
+  frag_page_id = signal->theData[2];
+  Uint32 page_index = signal->theData[3];
 
   ptrCheckGuard(regTabPtr, cnoOfTablerec, tablerec);
 
@@ -146,70 +199,58 @@ void Dbtup::execTUP_DEALLOCREQ(Signal* signal)
   {
     getFragmentrec(regFragPtr, frag_id, regTabPtr.i);
     ndbrequire(regFragPtr.p != nullptr);
-  
+
     /**
      * When we arrive here we should always be using the primary table
      * fragment.
      */
     Dblqh::Fragrecord *fragPtrP =
-      c_lqh->get_fragptr(regFragPtr.p->fragTableId,
-                         regFragPtr.p->fragmentId);
+        c_lqh->get_fragptr(regFragPtr.p->fragTableId, regFragPtr.p->fragmentId);
     c_lqh->upgrade_to_exclusive_frag_access(fragPtrP);
     Local_key tmp;
-    tmp.m_page_no= getRealpid(regFragPtr.p, frag_page_id); 
-    tmp.m_page_idx= page_index;
+    tmp.m_page_no = getRealpid(regFragPtr.p, frag_page_id);
+    tmp.m_page_idx = page_index;
     PagePtr pagePtr;
-    Tuple_header* ptr= (Tuple_header*)get_ptr(&pagePtr, &tmp, regTabPtr.p);
+    Tuple_header *ptr = (Tuple_header *)get_ptr(&pagePtr, &tmp, regTabPtr.p);
 
-    DEB_DELETE(("(%u)dealloc tab(%u,%u), row(%u,%u), header: %x",
-                 instance(),
-                 regTabPtr.i,
-                 frag_id,
-                 frag_page_id,
-                 page_index,
-                 ptr->m_header_bits));
-    
+    DEB_DELETE(("(%u)dealloc tab(%u,%u), row(%u,%u), header: %x", instance(),
+                regTabPtr.i, frag_id, frag_page_id, page_index,
+                ptr->m_header_bits));
+
     ndbrequire(ptr->m_header_bits & Tuple_header::FREE);
 
     if (regTabPtr.p->m_attributes[MM].m_no_of_varsize +
-        regTabPtr.p->m_attributes[MM].m_no_of_dynamic)
-    {
+        regTabPtr.p->m_attributes[MM].m_no_of_dynamic) {
       jam();
       free_var_rec(regFragPtr.p, regTabPtr.p, &tmp, pagePtr);
     } else {
-      free_fix_rec(regFragPtr.p, regTabPtr.p, &tmp, (Fix_page*)pagePtr.p);
+      free_fix_rec(regFragPtr.p, regTabPtr.p, &tmp, (Fix_page *)pagePtr.p);
     }
     c_lqh->downgrade_from_exclusive_frag_access(fragPtrP);
-  }
-  else
-  {
+  } else {
     jam();
   }
 }
 
-void Dbtup::execTUP_WRITELOG_REQ(Signal* signal)
-{
+void Dbtup::execTUP_WRITELOG_REQ(Signal *signal) {
   jamEntryDebug();
   OperationrecPtr loopOpPtr;
-  loopOpPtr.i= signal->theData[0];
+  loopOpPtr.i = signal->theData[0];
   Uint32 gci_hi = signal->theData[1];
   Uint32 gci_lo = signal->theData[2];
   ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOpPtr));
   ndbassert(!m_is_query_block);
-  while (loopOpPtr.p->prevActiveOp != RNIL)
-  {
+  while (loopOpPtr.p->prevActiveOp != RNIL) {
     jamDebug();
-    loopOpPtr.i= loopOpPtr.p->prevActiveOp;
+    loopOpPtr.i = loopOpPtr.p->prevActiveOp;
     ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOpPtr));
   }
-  do
-  {
+  do {
     ndbrequire(get_trans_state(loopOpPtr.p) == TRANS_STARTED);
     signal->theData[0] = loopOpPtr.p->userpointer;
     signal->theData[1] = gci_hi;
     signal->theData[2] = gci_lo;
-    if (loopOpPtr.p->nextActiveOp == RNIL)
-    {
+    if (loopOpPtr.p->nextActiveOp == RNIL) {
       jamDebug();
       c_lqh->execLQH_WRITELOG_REQ(signal);
       return;
@@ -217,7 +258,7 @@ void Dbtup::execTUP_WRITELOG_REQ(Signal* signal)
     jamDebug();
     c_lqh->execLQH_WRITELOG_REQ(signal);
     jamEntryDebug();
-    loopOpPtr.i= loopOpPtr.p->nextActiveOp;
+    loopOpPtr.i = loopOpPtr.p->nextActiveOp;
     ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOpPtr));
   } while (true);
 }
@@ -225,35 +266,28 @@ void Dbtup::execTUP_WRITELOG_REQ(Signal* signal)
 /* ---------------------------------------------------------------- */
 /* INITIALIZATION OF ONE CONNECTION RECORD TO PREPARE FOR NEXT OP.  */
 /* ---------------------------------------------------------------- */
-void Dbtup::initOpConnection(Operationrec* regOperPtr)
-{
+void Dbtup::initOpConnection(Operationrec *regOperPtr) {
   /* Cannot use jam here, called from other thread */
   jamDebug();
   set_tuple_state(regOperPtr, TUPLE_ALREADY_ABORTED);
   set_trans_state(regOperPtr, TRANS_IDLE);
   regOperPtr->m_commit_state = Operationrec::CommitNotStarted;
-  regOperPtr->op_type= ZREAD;
-  regOperPtr->op_struct.bit_field.m_disk_preallocated= 0;
-  regOperPtr->op_struct.bit_field.m_load_diskpage_on_commit= 0;
+  regOperPtr->op_type = ZREAD;
+  regOperPtr->op_struct.bit_field.m_disk_preallocated = 0;
+  regOperPtr->op_struct.bit_field.m_load_diskpage_on_commit = 0;
   regOperPtr->op_struct.bit_field.m_load_extra_diskpage_on_commit= 0;
-  regOperPtr->op_struct.bit_field.m_wait_log_buffer= 0;
+  regOperPtr->op_struct.bit_field.m_wait_log_buffer = 0;
   regOperPtr->op_struct.bit_field.in_active_list = false;
-  regOperPtr->m_undo_buffer_space= 0;
+  regOperPtr->m_undo_buffer_space = 0;
   regOperPtr->m_uncommitted_used_space = 0;
 }
 
-bool
-Dbtup::is_rowid_in_remaining_lcp_set(const Page* page,
-		                     Fragrecord* regFragPtr, 
-                                     const Local_key& key1,
-                                     const Dbtup::ScanOp& op,
-                                     Uint32 check_lcp_scanned_state_reversed)
-{
-
+bool Dbtup::is_rowid_in_remaining_lcp_set(
+    const Page *page, Fragrecord *regFragPtr, const Local_key &key1,
+    const Dbtup::ScanOp &op, Uint32 check_lcp_scanned_state_reversed) {
   if (page->is_page_to_skip_lcp() ||
       (check_lcp_scanned_state_reversed == 0 &&
-        get_lcp_scanned_bit(regFragPtr, key1.m_page_no)))
-  {
+       get_lcp_scanned_bit(regFragPtr, key1.m_page_no))) {
     /**
      * We have to check whether the page have already been scanned by
      * the LCP. We have two different flags for this. The first one
@@ -276,20 +310,14 @@ Dbtup::is_rowid_in_remaining_lcp_set(const Page* page,
   }
   bool dummy;
   int ret_val = c_backup->is_page_lcp_scanned(key1.m_page_no, dummy);
-  if (ret_val == +1)
-  {
+  if (ret_val == +1) {
     jam();
     return false;
-  }
-  else if (ret_val == -1)
-  {
+  } else if (ret_val == -1) {
     jam();
-    if (check_lcp_scanned_state_reversed != 0)
-    {
-      DEB_LCP_SCANNED_BIT(("(%u)Line: %u, page: %u, debug_val: %u",
-                           instance(),
-                           __LINE__,
-                           key1.m_page_no,
+    if (check_lcp_scanned_state_reversed != 0) {
+      DEB_LCP_SCANNED_BIT(("(%u)Line: %u, page: %u, debug_val: %u", instance(),
+                           __LINE__, key1.m_page_no,
                            check_lcp_scanned_state_reversed));
     }
     return true;
@@ -297,73 +325,60 @@ Dbtup::is_rowid_in_remaining_lcp_set(const Page* page,
   /* We are scanning the given page */
   Local_key key2 = op.m_scanPos.m_key;
   switch (op.m_state) {
-  case Dbtup::ScanOp::First:
-  {
-    jam();
-    ndbrequire(key2.isNull());
-    if (check_lcp_scanned_state_reversed != 0)
-    {
-      DEB_LCP_SCANNED_BIT(("(%u)Line: %u, page: %u, debug_val: %u",
-                           instance(),
-                           __LINE__,
-                           key1.m_page_no,
-                           check_lcp_scanned_state_reversed));
-    }
-    return true; /* Already checked page id above, so will scan the page */
-  }
-  case Dbtup::ScanOp::Current:
-  {
-    /* Impossible state for LCP scans */
-    ndbabort();
-  }
-  case Dbtup::ScanOp::Next:
-  {
-    ndbrequire(key1.m_page_no == key2.m_page_no);
-    ndbrequire(!key2.isNull());
-    if (op.m_scanPos.m_get == ScanPos::Get_next_page_mm)
-    {
+    case Dbtup::ScanOp::First: {
       jam();
-      /**
-       * We got a real-time break while switching to a new page.
-       * In this case we can skip the page since it is already
-       * LCP:ed.
-       */
-      return false;
-    }
-    if (key1.m_page_idx < key2.m_page_idx)
-    {
-      jam();
-      /* Ignore rows already LCP:ed */
-      return false;
-    }
-    if (key1.m_page_idx > key2.m_page_idx)
-    {
-      jam();
-      /* Include rows not LCP:ed yet */
-      if (check_lcp_scanned_state_reversed != 0)
-      {
+      ndbrequire(key2.isNull());
+      if (check_lcp_scanned_state_reversed != 0) {
         DEB_LCP_SCANNED_BIT(("(%u)Line: %u, page: %u, debug_val: %u",
-                             instance(),
-                             __LINE__,
-                             key1.m_page_no,
+                             instance(), __LINE__, key1.m_page_no,
                              check_lcp_scanned_state_reversed));
       }
-      return true;
+      return true; /* Already checked page id above, so will scan the page */
     }
-    ndbrequire(key1.m_page_idx == key2.m_page_idx);
-    /* keys are equal */
-    jam();
-    /* Ignore current row that already have been LCP:ed. */
-    return false;
-  }
-  case Dbtup::ScanOp::Last:
-  case Dbtup::ScanOp::Aborting:
-  { 
-    jam();
-    return false; /* Everything scanned already */
-  }
-  default:
-    break;
+    case Dbtup::ScanOp::Current: {
+      /* Impossible state for LCP scans */
+      ndbabort();
+    }
+    case Dbtup::ScanOp::Next: {
+      ndbrequire(key1.m_page_no == key2.m_page_no);
+      ndbrequire(!key2.isNull());
+      if (op.m_scanPos.m_get == ScanPos::Get_next_page_mm) {
+        jam();
+        /**
+         * We got a real-time break while switching to a new page.
+         * In this case we can skip the page since it is already
+         * LCP:ed.
+         */
+        return false;
+      }
+      if (key1.m_page_idx < key2.m_page_idx) {
+        jam();
+        /* Ignore rows already LCP:ed */
+        return false;
+      }
+      if (key1.m_page_idx > key2.m_page_idx) {
+        jam();
+        /* Include rows not LCP:ed yet */
+        if (check_lcp_scanned_state_reversed != 0) {
+          DEB_LCP_SCANNED_BIT(("(%u)Line: %u, page: %u, debug_val: %u",
+                               instance(), __LINE__, key1.m_page_no,
+                               check_lcp_scanned_state_reversed));
+        }
+        return true;
+      }
+      ndbrequire(key1.m_page_idx == key2.m_page_idx);
+      /* keys are equal */
+      jam();
+      /* Ignore current row that already have been LCP:ed. */
+      return false;
+    }
+    case Dbtup::ScanOp::Last:
+    case Dbtup::ScanOp::Aborting: {
+      jam();
+      return false; /* Everything scanned already */
+    }
+    default:
+      break;
   }
   /* Will never arrive here */
   jamLine(Uint16(op.m_state));
@@ -371,26 +386,18 @@ Dbtup::is_rowid_in_remaining_lcp_set(const Page* page,
   return true;
 }
 
-void
-Dbtup::dealloc_tuple(Signal* signal,
-		     Uint32 gci_hi,
-                     Uint32 gci_lo,
-		     Page* page,
-		     Tuple_header* ptr, 
-                     KeyReqStruct * req_struct,
-		     Operationrec* regOperPtr, 
-		     Fragrecord* regFragPtr, 
-		     Tablerec* regTabPtr,
-                     Ptr<GlobalPage> pagePtr)
-{
-  Uint32 lcpScan_ptr_i= regFragPtr->m_lcp_scan_op;
+void Dbtup::dealloc_tuple(Signal *signal, Uint32 gci_hi, Uint32 gci_lo,
+                          Page *page, Tuple_header *ptr,
+                          KeyReqStruct *req_struct, Operationrec *regOperPtr,
+                          Fragrecord *regFragPtr, Tablerec *regTabPtr,
+                          Ptr<GlobalPage> pagePtr) {
+  Uint32 lcpScan_ptr_i = regFragPtr->m_lcp_scan_op;
   Uint32 average_row_size = regFragPtr->m_average_row_size;
 
   Uint32 bits = ptr->m_header_bits;
   Uint32 extra_bits = Tuple_header::FREE;
   c_lqh->add_delete_size(average_row_size);
-  if (bits & Tuple_header::DISK_PART)
-  {
+  if (bits & Tuple_header::DISK_PART) {
     /**
      * We only get here if the row existed before the transaction started.
      * The flag DISK_PART is set at commit time, thus this row must have been
@@ -427,7 +434,10 @@ Dbtup::dealloc_tuple(Signal* signal,
                                           0);
       /**
        * DISK_REORG means that disk_page_free must use the original page
-       * and NOT m_disk_extra_callback_page which is where pagePtr is
+       * and NOT m_disk_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+extra_callback_page which is where pagePtr is
        * currently pointing, so move it there.
        */
       ndbrequire(m_global_page_pool.getPtr(pagePtr,
@@ -446,11 +456,38 @@ Dbtup::dealloc_tuple(Signal* signal,
       ndbrequire(diskPagePtr.p->m_restart_seq == globalData.m_restart_seq);
       disk_page_abort_prealloc_callback_1(signal,
                                           regFragPtr,
-                                          diskPagePtr,
-                                          decrement,
-                                          0);
-    }
-    if (likely(pagePtr.i != RNIL))
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+keep_commit"
+                           ", set LCP_SKIP, bits: %x",
+                           instance(),
+                           regFragPtr->fragTableId,
+                           regFragPtr->fragmentId,
+                           rowid.m_page_no,
+                           rowid.m_page_idx,
+                           bits | extra_bits));
+      handle_lcp_keep_commit(&rowid,
+                             req_struct,
+=======
+keep_commit"
+>>>>>>> MySQL 8.0.36
+       diskPagePtr,
+    ", set LCP_SKIP, bits: %x",
+           instance(), regFragPtr->fragTableId, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ regOperPtr,
+=======
+regFragPtr->fragmentId,
+>>>>>>> MySQL 8.0.36
+           rowid.m_page_no, rowid.m_page_idx, bits | extra_bits));
+     decrement,
+ handle_lcp_keep_commit(&rowid, req_struct, regOperPtr,                                  0);
+    } if (likely(pagePtr.i != RNIL))
     {
       jam();
       ndbrequire(c_lqh->is_restore_phase_done());
@@ -470,8 +507,7 @@ Dbtup::dealloc_tuple(Signal* signal,
                      &rowid,
                      regOperPtr->m_undo_buffer_space);
     }
-    else
-    {
+    else   {
       ndbrequire(!c_lqh->is_restore_phase_done());
     }
     bits &= (~Tuple_header::DISK_PART);
@@ -508,9 +544,31 @@ Dbtup::dealloc_tuple(Signal* signal,
       extra_bits |= Tuple_header::LCP_SKIP;
       DEB_LCP_SKIP_DELETE(("(%u)tab(%u,%u), row(%u,%u),"
                            " handle_lcp_keep_commit"
-                           ", set LCP_SKIP, bits: %x",
-                           instance(),
-                           regFragPtr->fragTableId,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+             ", set LCP_SKIP, bits: %x",
+                           instance()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regFragPtr->fragTableId,
+                      regFragPtr->fragmentId,
+                      rowid.m_page_no
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regFragPtr->fragTableId, regFragPtr->fragmentId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rowid.m_page_idx));
+=======
+rowid.m_page_no, rowid.m_page_idx));
+>>>>>>> MySQL 8.0.36
+     regFragPtr->fragTableId,
                            regFragPtr->fragmentId,
                            rowid.m_page_no,
                            rowid.m_page_idx,
@@ -525,12 +583,8 @@ Dbtup::dealloc_tuple(Signal* signal,
     {
       /* Coverage tested */
       DEB_LCP_SKIP_DELETE2(("(%u)tab(%u,%u), row(%u,%u) DELETE"
-                           " already LCP:ed",
-                           instance(),
-                           regFragPtr->fragTableId,
-                           regFragPtr->fragmentId,
-                           rowid.m_page_no,
-                           rowid.m_page_idx));
+                           " already LCP:ed",    instance(),    regFragPtr->fragTableId,
+                           regFragPtr->fragmentId,    rowid.m_page_no,    rowid.m_page_idx));
     }
   }
   else
@@ -538,15 +592,150 @@ Dbtup::dealloc_tuple(Signal* signal,
 #ifdef DEBUG_LCP_SKIP_DELETE_EXTRA
     Local_key rowid = regOperPtr->m_tuple_location;
     rowid.m_page_no = page->frag_page_id;
-    g_eventLogger->info("(%u)tab(%u,%u)row(%u,%u),"
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ g_eventLogger->info("(%u)tab(%u,%u)row(%u,%u),"
                         ", skip LCP, bits: %x"
                         ", lcpScan_ptr: %u",
                         instance(),
-                        regFragPtr->fragTableId,
-                        regFragPtr->fragmentId,
-                        rowid.m_page_no,
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+* regTabPtr,
+		  Tuple_header* ptr,
+                  Uint32 new_gci)
+{
+  /**
+   * Update GCI on the row, also update statistics used by LCP.
+   */
+  Uint32 *gci_ptr = ptr->get_mm_gci(regTabPtr);
+  Uint32 old_gci = *gci_ptr;
+  *gci_ptr = new_gci;
+  if (old_gci <= regFragPtr->m_lcp_start_gci)
+  {
+    jam();
+    regFragPtr->m_lcp_changed_rows++;
+  }
+}
+
+void
+Dbtup::handle_lcp_keep_commit(const Local_key* rowid,
+=======
+*regTabPtr,
+>>>>>>> MySQL 8.0.36
+                regFragPtr->fragTableId,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+       KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req_struct,
+=======
+Uint32 new_gci) {
+  /**
+   * Update GCI on the row, also update statistics used by LCP.
+>>>>>>> MySQL 8.0.36
+   */
+  Uint32 *gci_ptr = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regFragPtr->fragmentId,
+||||||| Common ancestor
+=======
+ptr->get_mm_gci(regTabPtr);
+>>>>>>> MySQL 8.0.36
+  Uint32 old_gci = *gci_ptr;
+  *gci_ptr = new_gci;
+  if (old_gci <= regFragPtr->m_lcp_start_gci) {
+    jam();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regFragPtr->m_lcp_changed_rows++;
+  }
+}
+
+void Dbtup::handle_lcp_keep_commit(const Local_key
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rowid,
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+rowid.m_page_no
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+opPtrP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                  KeyReqStruct *req_struct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                         rowid.m_page_idx,
-                        bits,
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*opPtrP, Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regFragPtr,
+=======
+*regFragPtr,
+>>>>>>> MySQL 8.0.36
+             bits,
                         lcpScan_ptr_i);
 #endif
   }
@@ -1339,7 +1528,53 @@ Dbtup::commit_operation(Signal* signal,
     rowid.m_page_no = pagePtr.p->frag_page_id;
     if (is_rowid_in_remaining_lcp_set(pagePtr.p,
                                       regFragPtr,
-                                      rowid,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+void
+Dbtup::commit_operation(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Dbtup::commit_operation(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+			Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+gci_hi,
+=======
+gci_hi, Uint32 gci_lo,
+>>>>>>> MySQL 8.0.36
+                            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  rowid
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pagePtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ Tuple_header *tuple_ptr, PagePtr pagePtr,
+                             Operationrec *regOperPtr, Fragrecord *regFragPtr,
+                             Tablerec *regTabPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                                       *scanOp.p,
                                       0))
     {
@@ -1358,7 +1593,27 @@ Dbtup::commit_operation(Signal* signal,
         lcp_bits |= Tuple_header::LCP_SKIP;
         DEB_LCP_SKIP(("(%u)Set LCP_SKIP on tab(%u,%u), row(%u,%u)",
                       instance(),
-                      regFragPtr->fragTableId,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Var_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Var_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+vpagePtrP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*vpagePtrP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               regFragPtr->fragTableId,
                       regFragPtr->fragmentId,
                       rowid.m_page_no,
                       rowid.m_page_idx));
@@ -1480,16 +1735,10 @@ Dbtup::commit_operation(Signal* signal,
     Local_key rowid = regOperPtr->m_tuple_location;
     rowid.m_page_no = pagePtr.p->frag_page_id;
     g_eventLogger->info("(%u) tab(%u,%u) Updated row(%u,%u)"
-                        ", bits: %x, row_count = %llu, tuple_ptr: %p, gci: %u",
-                        instance(),
-                        regFragPtr->fragTableId,
-                        regFragPtr->fragmentId,
-                        rowid.m_page_no,
-                        rowid.m_page_idx,
-                        tuple_ptr->m_header_bits,
+                        ", bits: %x, row_count = %llu, tuple_ptr: %p, gci: %u",   instance(),   regFragPtr->fragTableId,   regFragPtr->fragmentId,   rowid.m_page_no,
+                        rowid.m_page_idx,   tuple_ptr->m_header_bits,
                         regFragPtr->m_row_count,
-                        tuple_ptr,
-                        gci_hi);
+                        tuple_ptr,        gci_hi);
 #endif
   }
 #ifdef TUP_DATA_VALIDATION 
@@ -1563,8 +1812,9 @@ Dbtup::disk_page_commit_callback(Signal* signal,
       regOperPtr.p->op_struct.bit_field.m_load_extra_diskpage_on_commit;
     ndbrequire(extra_data_disk_page == 1);
     regOperPtr.p->op_struct.bit_field.m_load_extra_diskpage_on_commit = 0;
-    regOperPtr.p->m_disk_extra_callback_page = page_id;
-    DEB_REORG(("(%u) callback: m_disk_extra_callback_page: %u",
+      regOperPtr.p->m_disk_extra_callback_page = page_id;
+    DEB_REORG((
+          "(%u) callback: m_disk_extra_callback_page: %u",
                instance(),
                regOperPtr.p->m_disk_extra_callback_page));
   }
@@ -1628,8 +1878,42 @@ int Dbtup::retrieve_data_page(Signal *signal,
                               Fragrecord *fragPtrP)
 {
   req.m_callback.m_callbackData= regOperPtr.i;
-  req.m_table_id = fragPtrP->fragTableId;
-  req.m_fragment_id = fragPtrP->fragmentId;
+  req.m_table_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+id
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+no,
+                                           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+no, all_part) !=
+           
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = fragPtrP->fragTableId;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req.m_fragment_id
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+all_part)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+!=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ fragPtrP->fragmentId;
   req.m_callback.m_callbackFunction =
     safe_cast(&Dbtup::disk_page_commit_callback);
 
@@ -1693,10 +1977,8 @@ int Dbtup::retrieve_data_page(Signal *signal,
 int Dbtup::retrieve_log_page(Signal *signal,
                              FragrecordPtr regFragPtr,
                              OperationrecPtr regOperPtr,
-                             Ptr<GlobalPage> diskPagePtr,
-                             Uint32 header_bits,
-                             Tuple_header *tuple_header,
-                             Tablerec *regTabPtr)
+                             Ptr<GlobalPage> diskPagePtr,         Uint32 header_bits,
+                             Tuple_header *tuple_header,         Tablerec *regTabPtr)
 {
   jam();
   /**
@@ -1739,7 +2021,30 @@ int Dbtup::retrieve_log_page(Signal *signal,
        *
        * UPDATE operations can lead to an INSERT into a new page plus removing
        * the old disk part. Both these operations are added in the log space
-       * required and need to be allocated for the UNDO log buffer. However
+       * required 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+and need to be
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 clear= 
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32 clear
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+allocated
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ for the UNDO log buffer. However
        * the UNDO log handling of the UNDO of the INSERT part will use the
        * fixed size of this log record and thus the m_undo_buffer_space should
        * only reflect the DELETE disk part.
@@ -1749,8 +2054,7 @@ int Dbtup::retrieve_log_page(Signal *signal,
              tuple_header->get_disk_ref_ptr(regTabPtr),
              sizeof(Local_key));
       Uint32 old_len;
-      if (tuple_header->m_header_bits & Tuple_header::DISK_REORG)
-      {
+      if (tuple_header->m_header_bits & Tuple_header::DISK_REORG)   {
         jam();
         DEB_REORG(("(%u)REORG: tab(%u,%u), row_id(%u,%u), undo_buffer_space:"
                    " %u, key(%u,%u,%u), high_index: %u"
@@ -1787,7 +2091,31 @@ int Dbtup::retrieve_log_page(Signal *signal,
         jamDataDebug(key.m_page_idx);
         old_len = ((Var_page*)diskPagePtr.p)->get_entry_len(key.m_page_idx);
       }
-      Uint32 real_undo_len = (sizeof(Dbtup::Disk_undo::Update_Free) >> 2) +
+      Uint32 real_undo_len = (sizeof(Dbtup::Disk_undo::Update_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Free)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+callback(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+callback(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+>> 2)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ +
                              (old_len - 1);
       DEB_REORG(("(%u) page_idx: %u, old_len: %u, real_undo_len: %u"
                  ", undo_buffer_space: %u",
@@ -1796,8 +2124,31 @@ int Dbtup::retrieve_log_page(Signal *signal,
                  old_len,
                  real_undo_len,
                  regOperPtr.p->m_undo_buffer_space));
-      if (real_undo_len < regOperPtr.p->m_undo_buffer_space)
-      {
+      if (real_undo_len < regOperPtr.p->m_undo_buffer_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+space)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+callback(Signal* signal, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+callback(Signal *signal, Uint32 opPtrI,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+opPtrI,
+				 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
         jam();
         Uint32 decrement_size =
           regOperPtr.p->m_undo_buffer_space - real_undo_len;
@@ -1806,8 +2157,7 @@ int Dbtup::retrieve_log_page(Signal *signal,
         regOperPtr.p->m_undo_buffer_space = real_undo_len;
         {
           Logfile_client lgman(this,
-                               c_lgman,
-                               regFragPtr.p->m_logfile_group_id);
+                               c_lgman,           regFragPtr.p->m_logfile_group_id);
           lgman.free_log_space(decrement_size, jamBuffer());
         }
       }
@@ -1842,8 +2192,7 @@ int Dbtup::retrieve_log_page(Signal *signal,
  * Move to the first operation performed on this tuple
  */
 void
-Dbtup::findFirstOp(OperationrecPtr & firstPtr)
-{
+Dbtup::findFirstOp(OperationrecPtr & firstPtr) {
   jam();
   ndbassert(!firstPtr.p->is_first_operation());
   while(firstPtr.p->prevActiveOp != RNIL)
@@ -1871,8 +2220,7 @@ Uint32
 Dbtup::prepare_disk_page_for_commit(Signal *signal,
                                     OperationrecPtr leaderOperPtr,
                                     Tuple_header *tuple_ptr,
-                                    Ptr<GlobalPage> &diskPagePtr,
-                                    Tablerec *regTabPtr)
+                                    Ptr<GlobalPage> &diskPagePtr,        Tablerec *regTabPtr)
 {
   bool initial_delete = false;
   Tablerec *regTabPtrP = prepare_tabptr.p;
@@ -1905,10 +2253,10 @@ Dbtup::prepare_disk_page_for_commit(Signal *signal,
       if (unlikely(leaderOperPtr.p->op_type == ZDELETE &&
 		   tmp->m_header_bits & Tuple_header::DISK_ALLOC))
       {
-        jam();
+          jam();
 	/**
 	 * Insert+Delete
-         * In this case we want to release the Copy page tuple that was
+         * In this   case we want to release the Copy page tuple that was
          * allocated for the insert operation since the commit of the
          * delete operation here makes it unnecessary to save the
          * new record.
@@ -1930,7 +2278,27 @@ Dbtup::prepare_disk_page_for_commit(Signal *signal,
                                regFragPtr.p->m_logfile_group_id);
           lgman.free_log_space(leaderOperPtr.p->m_undo_buffer_space,
                                jamBuffer());
-        }
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tmp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tmp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
         return ZDISK_PAGE_READY_FOR_COMMIT;
       }
       if (data_disk_page)
@@ -1961,31 +2329,22 @@ Dbtup::prepare_disk_page_for_commit(Signal *signal,
                tmp->get_disk_ref_ptr(regTabPtrP), sizeof(Local_key));
         extra_data_disk_page = false;
       }
-    }
-    else
-    {
+    } else {
       jam();
       // initial delete
       initial_delete = true;
       ndbassert(!extra_data_disk_page);
       ndbassert(leaderOperPtr.p->op_type == ZDELETE);
-      memcpy(&req.m_page,
-	     tuple_ptr->get_disk_ref_ptr(regTabPtrP), sizeof(Local_key));
+      memcpy(&req.m_page, tuple_ptr->get_disk_ref_ptr(regTabPtrP),
+             sizeof(Local_key));
       ndbassert(tuple_ptr->m_header_bits & Tuple_header::DISK_PART);
     }
 
-    if (retrieve_data_page(signal,
-                           req,
-                           leaderOperPtr,
-                           diskPagePtr,
-                           regFragPtr.p) == 0)
-    {
-      if (!initial_delete)
-      {
+    if (retrieve_data_page(signal, req, leaderOperPtr, diskPagePtr,
+                           regFragPtr.p) == 0) {
+      if (!initial_delete) {
         jam();
-      }
-      else
-      {
+      } else {
         jam();
         /* Set bit to indicate the tuple is already deleted */
         acquire_frag_mutex(regFragPtr.p,
@@ -1993,7 +2352,7 @@ Dbtup::prepare_disk_page_for_commit(Signal *signal,
                            jamBuffer());
         Uint32 old_header = tuple_ptr->m_header_bits;
         Uint32 new_header = tuple_ptr->m_header_bits =
-          old_header | Tuple_header::DELETE_WAIT;
+            old_header | Tuple_header::DELETE_WAIT;
         updateChecksum(tuple_ptr, regTabPtrP, old_header, new_header);
         release_frag_mutex(regFragPtr.p,
                            leaderOperPtr.p->fragPageId,
@@ -2002,9 +2361,8 @@ Dbtup::prepare_disk_page_for_commit(Signal *signal,
       return ZDISK_PAGE_NOT_READY_FOR_COMMIT;
     }
   }
-  
-  if (leaderOperPtr.p->op_struct.bit_field.m_wait_log_buffer)
-  {
+
+  if (leaderOperPtr.p->op_struct.bit_field.m_wait_log_buffer) {
     jam();
     /**
      * Only last op on tuple needs "real" commit,
@@ -2021,14 +2379,10 @@ Dbtup::prepare_disk_page_for_commit(Signal *signal,
                           diskPagePtr,
                           tmp->m_header_bits,
                           tuple_ptr,
-                          regTabPtr) == 0)
-    {
-      if (!initial_delete)
-      {
+                          regTabPtr) == 0) {
+      if (!initial_delete) {
         jam();
-      }
-      else
-      {
+      } else {
         jam();
         /* Set bit to indicate the tuple is already deleted */
         acquire_frag_mutex(regFragPtr.p,
@@ -2036,7 +2390,7 @@ Dbtup::prepare_disk_page_for_commit(Signal *signal,
                            jamBuffer());
         Uint32 old_header = tuple_ptr->m_header_bits;
         Uint32 new_header = tuple_ptr->m_header_bits =
-          old_header | Tuple_header::DELETE_WAIT;
+            old_header | Tuple_header::DELETE_WAIT;
         updateChecksum(tuple_ptr, regTabPtrP, old_header, new_header);
         release_frag_mutex(regFragPtr.p,
                            leaderOperPtr.p->fragPageId,
@@ -2048,19 +2402,15 @@ Dbtup::prepare_disk_page_for_commit(Signal *signal,
   return ZDISK_PAGE_READY_FOR_COMMIT;
 }
 
-Uint32
-Dbtup::exec_prepare_tup_commit(Uint32 regOperPtrI)
-{
+Uint32 Dbtup::exec_prepare_tup_commit(Uint32 regOperPtrI) {
   OperationrecPtr regOperPtr;
   regOperPtr.i = regOperPtrI;
   ndbrequire(m_curr_tup->c_operation_pool.getUncheckedPtrRW(regOperPtr));
   Operationrec::CommitState commit_state = regOperPtr.p->m_commit_state;
   prepare_oper_ptr = regOperPtr;
   ndbrequire(Magic::check_ptr(regOperPtr.p));
-  switch (commit_state)
-  {
-    case Operationrec::Operationrec::CommitNotStarted:
-    {
+  switch (commit_state) {
+    case Operationrec::Operationrec::CommitNotStarted: {
       jam();
       /**
        * We are the first operation to arrive, we need to start the
@@ -2069,8 +2419,7 @@ Dbtup::exec_prepare_tup_commit(Uint32 regOperPtrI)
       regOperPtr.p->m_commit_state = Operationrec::CommitStartedReceived;
       return ZTUP_NOT_COMMITTED;
     }
-    case Operationrec::CommitStartedNotReceived:
-    {
+    case Operationrec::CommitStartedNotReceived: {
       jam();
       /**
        * We are not the first operation to arrive, the commit is still
@@ -2080,8 +2429,7 @@ Dbtup::exec_prepare_tup_commit(Uint32 regOperPtrI)
       regOperPtr.p->m_commit_state = Operationrec::CommitStartedReceived;
       return ZTUP_WAIT_COMMIT;
     }
-    case Operationrec::CommitPerformedNotReceived:
-    {
+    case Operationrec::CommitPerformedNotReceived: {
       jam();
       /**
        * TUP has completed the commit, but it needs the list to stay
@@ -2092,8 +2440,7 @@ Dbtup::exec_prepare_tup_commit(Uint32 regOperPtrI)
       regOperPtr.p->m_commit_state = Operationrec::CommitPerformedReceived;
       return ZTUP_WAIT_COMMIT;
     }
-    case Operationrec::CommitDoneNotReceived:
-    {
+    case Operationrec::CommitDoneNotReceived: {
       jam();
       /**
        * The commit has been started and also completed, we simply
@@ -2107,64 +2454,51 @@ Dbtup::exec_prepare_tup_commit(Uint32 regOperPtrI)
       finalize_commit(regOperPtr.p, fragPtr.p);
       return ZTUP_COMMITTED;
     }
-    default:
-    {
+    default: {
       ndbabort();
     }
   }
   return 0;
 }
 
-void
-Dbtup::set_commit_started(Uint32 leaderOperPtrI)
-{
+void Dbtup::set_commit_started(Uint32 leaderOperPtrI) {
   OperationrecPtr loopOperPtr;
   loopOperPtr.i = leaderOperPtrI;
-  do
-  {
+  do {
     ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOperPtr));
-    if (loopOperPtr.p->m_commit_state == Operationrec::CommitNotStarted)
-    {
+    if (loopOperPtr.p->m_commit_state == Operationrec::CommitNotStarted) {
       loopOperPtr.p->m_commit_state = Operationrec::CommitStartedNotReceived;
     }
     loopOperPtr.i = loopOperPtr.p->prevActiveOp;
   } while (loopOperPtr.i != RNIL);
 }
 
-void
-Dbtup::set_commit_performed(OperationrecPtr firstOperPtr,
-                            Fragrecord *fragPtrP)
-{
+void Dbtup::set_commit_performed(OperationrecPtr firstOperPtr,
+                                 Fragrecord *fragPtrP) {
   OperationrecPtr loopOperPtr = firstOperPtr;
   goto first;
-  do
-  {
+  do {
     ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOperPtr));
-    first:
-    switch (loopOperPtr.p->m_commit_state)
-    {
+  first:
+    switch (loopOperPtr.p->m_commit_state) {
       case Operationrec::CommitNotStarted:
-      case Operationrec::CommitStartedNotReceived:
-      {
+      case Operationrec::CommitStartedNotReceived: {
         jamDebug();
         loopOperPtr.p->m_commit_state =
-          Operationrec::CommitPerformedNotReceived;
+            Operationrec::CommitPerformedNotReceived;
         break;
       }
-      case Operationrec::CommitStartedReceived:
-      {
+      case Operationrec::CommitStartedReceived: {
         jamDebug();
         loopOperPtr.p->m_commit_state = Operationrec::CommitPerformedReceived;
         break;
       }
-      case Operationrec::CommitDoneReceived:
-      {
+      case Operationrec::CommitDoneReceived: {
         jamDebug();
         /* This operation was the one used to commit DBACC */
         break;
       }
-      default:
-      {
+      default: {
         ndbabort();
       }
     }
@@ -2179,9 +2513,8 @@ Dbtup::set_commit_performed(OperationrecPtr firstOperPtr,
 #define MAX_COMMITS 0xFFFFFFFF
 //#define MAX_COMMITS 4
 #endif
-void
-Dbtup::continue_report_commit_performed(Signal *signal, Uint32 firstOperPtrI)
-{
+void Dbtup::continue_report_commit_performed(Signal *signal,
+                                             Uint32 firstOperPtrI) {
   FragrecordPtr regFragPtr;
   OperationrecPtr firstOperPtr;
   firstOperPtr.i = firstOperPtrI;
@@ -2192,19 +2525,15 @@ Dbtup::continue_report_commit_performed(Signal *signal, Uint32 firstOperPtrI)
   report_commit_performed(signal, firstOperPtr, MAX_COMMITS, regFragPtr.p);
 }
 
-void
-Dbtup::send_continue_report_commit_performed(Signal *signal, Uint32 nextOp)
-{
+void Dbtup::send_continue_report_commit_performed(Signal *signal,
+                                                  Uint32 nextOp) {
   signal->theData[0] = ZTUP_REPORT_COMMIT_PERFORMED;
   signal->theData[1] = nextOp;
 #ifdef ERROR_INSERT
   m_continue_report_commit_counter++;
-  if ((m_continue_report_commit_counter % 10) == 0)
-  {
+  if ((m_continue_report_commit_counter % 10) == 0) {
     sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-  }
-  else
-  {
+  } else {
     sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
   }
 #else
@@ -2212,28 +2541,23 @@ Dbtup::send_continue_report_commit_performed(Signal *signal, Uint32 nextOp)
 #endif
 }
 
-void
-Dbtup::report_commit_performed(Signal *signal,
-                               OperationrecPtr & firstOperPtr,
-                               Uint32 max_commits,
-                               Fragrecord *regFragPtrP)
-{
+void Dbtup::report_commit_performed(Signal *signal,
+                                    OperationrecPtr &firstOperPtr,
+                                    Uint32 max_commits,
+                                    Fragrecord *regFragPtrP) {
   Uint32 nextOp = RNIL;
   Uint32 num_commits = 0;
   OperationrecPtr loopOperPtr = firstOperPtr;
   goto first;
-  do
-  {
+  do {
     loopOperPtr.i = nextOp;
     ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOperPtr));
-    first:
+  first:
     nextOp = loopOperPtr.p->nextActiveOp;
     loopOperPtr.p->nextActiveOp = RNIL;
     loopOperPtr.p->prevActiveOp = RNIL;
-    switch (loopOperPtr.p->m_commit_state)
-    {
-      case Operationrec::CommitPerformedNotReceived:
-      {
+    switch (loopOperPtr.p->m_commit_state) {
+      case Operationrec::CommitPerformedNotReceived: {
         jam();
         /**
          * Remove it from list, nothing more needs to be done, the
@@ -2245,8 +2569,7 @@ Dbtup::report_commit_performed(Signal *signal,
         loopOperPtr.p->m_commit_state = Operationrec::CommitDoneNotReceived;
         break;
       }
-      case Operationrec::CommitPerformedReceived:
-      {
+      case Operationrec::CommitPerformedReceived: {
         /**
          * It is time to perform the actual commit operation in
          * DBACC as well, we perform this by calling
@@ -2255,13 +2578,10 @@ Dbtup::report_commit_performed(Signal *signal,
         jam();
         num_commits++;
         finalize_commit(loopOperPtr.p, regFragPtrP);
-        c_lqh->tupcommit_conf_callback(signal,
-                                       loopOperPtr.p->userpointer);
-        if (num_commits >= max_commits)
-        {
+        c_lqh->tupcommit_conf_callback(signal, loopOperPtr.p->userpointer);
+        if (num_commits >= max_commits) {
           jam();
-          if (nextOp == RNIL)
-          {
+          if (nextOp == RNIL) {
             jam();
             return;
           }
@@ -2270,8 +2590,7 @@ Dbtup::report_commit_performed(Signal *signal,
         }
         break;
       }
-      default:
-      {
+      default: {
         ndbabort();
       }
     }
@@ -2279,45 +2598,35 @@ Dbtup::report_commit_performed(Signal *signal,
 }
 
 #ifdef ERROR_INSERT
-bool
-Dbtup::check_delayed_commit(Signal *signal,
-                            TupCommitReq *tupCommitReq,
-                            Uint32 leaderOperPtrI)
-{
-  TupCommitReq * sendTupCommitReq = (TupCommitReq *)signal->getDataPtrSend();
+bool Dbtup::check_delayed_commit(Signal *signal, TupCommitReq *tupCommitReq,
+                                 Uint32 leaderOperPtrI) {
+  TupCommitReq *sendTupCommitReq = (TupCommitReq *)signal->getDataPtrSend();
   *sendTupCommitReq = *tupCommitReq;
   m_delayed_commit++;
-  if (false && m_delayed_commit >= 100)
-  {
+  if (false && m_delayed_commit >= 100) {
     jam();
     m_delayed_commit = 0;
     sendTupCommitReq->opPtr = leaderOperPtrI;
-    sendSignalWithDelay(reference(), GSN_TUP_COMMITREQ, signal,
-                        10, TupCommitReq::SignalLength);
+    sendSignalWithDelay(reference(), GSN_TUP_COMMITREQ, signal, 10,
+                        TupCommitReq::SignalLength);
     return true;
-  }
-  else if (false && ((m_delayed_commit % 4) == 0))
-  {
+  } else if (false && ((m_delayed_commit % 4) == 0)) {
     jam();
     sendTupCommitReq->opPtr = leaderOperPtrI;
     sendSignal(reference(), GSN_TUP_COMMITREQ, signal,
                TupCommitReq::SignalLength, JBB);
     return true;
-  }
-  else
-  {
+  } else {
     jam();
     return false;
   }
 }
 #endif
 
-void
-Dbtup::execTUP_COMMITREQ(Signal *signal)
-{
+void Dbtup::execTUP_COMMITREQ(Signal *signal) {
   jamEntry();
   OperationrecPtr leaderOperPtr;
-  TupCommitReq * const tupCommitReq= (TupCommitReq *)signal->getDataPtr();
+  TupCommitReq *const tupCommitReq = (TupCommitReq *)signal->getDataPtr();
   leaderOperPtr.i = tupCommitReq->opPtr;
   ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(leaderOperPtr));
   prepare_oper_ptr = leaderOperPtr;
@@ -2325,18 +2634,12 @@ Dbtup::execTUP_COMMITREQ(Signal *signal)
   Uint32 hash_value;
   Uint32 gci_hi, gci_lo;
   Uint32 transId1, transId2;
-  c_lqh->get_op_info(leaderOperPtr.p->userpointer,
-                      &hash_value,
-                      &gci_hi,
-                      &gci_lo,
-                      &transId1,
-                      &transId2);
+  c_lqh->get_op_info(leaderOperPtr.p->userpointer, &hash_value, &gci_hi,
+                     &gci_lo, &transId1, &transId2);
   exec_tup_commit(signal);
 }
 
-Uint32
-Dbtup::exec_tup_commit(Signal *signal)
-{
+Uint32 Dbtup::exec_tup_commit(Signal *signal) {
   /**
    * This code is only executed by the first operation to arrive with a
    * commit for this row. The first operation will switch to using the
@@ -2374,9 +2677,9 @@ Dbtup::exec_tup_commit(Signal *signal)
   Ptr<GlobalPage> diskPagePtr;
   Uint32 no_of_tablerec;
 
-  TupCommitReq tupCommitReq= *(TupCommitReq *)signal->getDataPtr();
+  TupCommitReq tupCommitReq = *(TupCommitReq *)signal->getDataPtr();
 
-  Uint32 hash_value= tupCommitReq.hashValue;
+  Uint32 hash_value = tupCommitReq.hashValue;
   Uint32 gci_hi = tupCommitReq.gci_hi;
   Uint32 gci_lo = tupCommitReq.gci_lo;
   Uint32 transId1 = tupCommitReq.transId1;
@@ -2385,21 +2688,21 @@ Dbtup::exec_tup_commit(Signal *signal)
   jamEntry();
 
   diskPagePtr.i = tupCommitReq.diskpage;
-  regFragPtr.i= regOperPtr.p->fragmentPtr;
+  regFragPtr.i = regOperPtr.p->fragmentPtr;
   no_of_tablerec= cnoOfTablerec;
 
   req_struct.m_lqh = c_lqh;
-  req_struct.signal= signal;
-  req_struct.hash_value= hash_value;
+  req_struct.signal = signal;
+  req_struct.hash_value = hash_value;
   req_struct.gci_hi = gci_hi;
   req_struct.gci_lo = gci_lo;
 
-  trans_state= get_trans_state(regOperPtr.p);
+  trans_state = get_trans_state(regOperPtr.p);
 
   ndbrequire(trans_state == TRANS_STARTED);
   ndbrequire(c_fragment_pool.getPtr(regFragPtr));
 
-  regTabPtr.i= regFragPtr.p->fragTableId;
+  regTabPtr.i = regFragPtr.p->fragTableId;
 
   /* Put transid in req_struct, so detached triggers can access it */
   req_struct.fragPtrP = regFragPtr.p;
@@ -2410,27 +2713,24 @@ Dbtup::exec_tup_commit(Signal *signal)
 
   ptrCheckGuard(regTabPtr, no_of_tablerec, tablerec);
   PagePtr tupPagePtr;
-  Tuple_header* tuple_ptr = (Tuple_header*)
-    get_ptr(&tupPagePtr, &regOperPtr.p->m_tuple_location, regTabPtr.p);
+  Tuple_header *tuple_ptr = (Tuple_header *)get_ptr(
+      &tupPagePtr, &regOperPtr.p->m_tuple_location, regTabPtr.p);
 
   req_struct.m_tuple_ptr = tuple_ptr;
-  Tup_fixsize_page *fix_page = (Tup_fixsize_page*)tupPagePtr.p;
+  Tup_fixsize_page *fix_page = (Tup_fixsize_page *)tupPagePtr.p;
   fix_page->prefetch_change_map();
   NDB_PREFETCH_WRITE(tuple_ptr);
 
-  if (diskPagePtr.i == RNIL)
-  {
+  if (diskPagePtr.i == RNIL) {
     jam();
     diskPagePtr.p = 0;
     req_struct.m_disk_page_ptr.i = RNIL;
     req_struct.m_disk_page_ptr.p = 0;
-  }
-  else
-  {
+  } else {
     jamDebug();
     ndbrequire(m_global_page_pool.getPtr(diskPagePtr, diskPagePtr.i));
   }
-  
+
   ptrCheckGuard(regTabPtr, no_of_tablerec, tablerec);
 
   prepare_fragptr = regFragPtr;
@@ -2441,20 +2741,16 @@ Dbtup::exec_tup_commit(Signal *signal)
   ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(leaderOperPtr));
   if (leaderOperPtr.p->op_struct.bit_field.m_load_diskpage_on_commit ||
       leaderOperPtr.p->op_struct.bit_field.m_load_extra_diskpage_on_commit ||
-      leaderOperPtr.p->op_struct.bit_field.m_wait_log_buffer)
-  {
+      leaderOperPtr.p->op_struct.bit_field.m_wait_log_buffer) {
     /**
      * We need to fetch disk pages before we are allowed to commit this
      * operation.
      */
     jam();
-    if (prepare_disk_page_for_commit(signal,
-                                     leaderOperPtr,
-                                     tuple_ptr,
+    if (prepare_disk_page_for_commit(signal, leaderOperPtr, tuple_ptr,
                                      diskPagePtr,
                                      regTabPtr.p) !=
-        ZDISK_PAGE_READY_FOR_COMMIT)
-    {
+        ZDISK_PAGE_READY_FOR_COMMIT) {
       jam();
       /**
        * We need to flag all operation records not yet started that
@@ -2470,14 +2766,10 @@ Dbtup::exec_tup_commit(Signal *signal)
    * In case we perform a real-time break here we need to ensure that
    * the diskpage we retrieved is properly setup for signal sending.
    */
-  if (c_started)
-  {
+  if (c_started) {
     jam();
     tupCommitReq.diskpage = diskPagePtr.i;
-    if (check_delayed_commit(signal,
-                             &tupCommitReq,
-                             leaderOperPtr.i))
-    {
+    if (check_delayed_commit(signal, &tupCommitReq, leaderOperPtr.i)) {
       jam();
       set_commit_started(leaderOperPtr.i);
       return ZTUP_WAIT_COMMIT;
@@ -2487,21 +2779,14 @@ Dbtup::exec_tup_commit(Signal *signal)
   jamDebug();
   jamDataDebug(prepare_oper_ptr.i);
   prepare_oper_ptr = leaderOperPtr;
-  execute_real_commit(signal,
-                      req_struct,
-                      tupPagePtr,
-                      diskPagePtr);
+  execute_real_commit(signal, req_struct, tupPagePtr, diskPagePtr);
   return ZTUP_WAIT_COMMIT;
 }
 
-void
-Dbtup::get_execute_commit_operation(OperationrecPtr & executeOperPtr)
-{
-  while ((executeOperPtr.p->m_commit_state ==
-           Operationrec::CommitNotStarted) ||
+void Dbtup::get_execute_commit_operation(OperationrecPtr &executeOperPtr) {
+  while ((executeOperPtr.p->m_commit_state == Operationrec::CommitNotStarted) ||
          (executeOperPtr.p->m_commit_state ==
-           Operationrec::CommitStartedNotReceived))
-  {
+          Operationrec::CommitStartedNotReceived)) {
     executeOperPtr.i = executeOperPtr.p->nextActiveOp;
     /**
      * At least one operation should have the state CommitStartedReceived
@@ -2514,20 +2799,16 @@ Dbtup::get_execute_commit_operation(OperationrecPtr & executeOperPtr)
              Operationrec::CommitStartedReceived);
 }
 
-void
-Dbtup::execute_real_commit(Signal *signal,
-                           KeyReqStruct &req_struct,
-                           PagePtr tupPagePtr,
-                           Ptr<GlobalPage> diskPagePtr)
-{
+void Dbtup::execute_real_commit(Signal *signal, KeyReqStruct &req_struct,
+                                PagePtr tupPagePtr,
+                                Ptr<GlobalPage> diskPagePtr) {
   OperationrecPtr leaderOperPtr = prepare_oper_ptr;
   OperationrecPtr firstOperPtr;
   OperationrecPtr executeOperPtr;
   Tablerec *regTabPtrP = prepare_tabptr.p;
   Fragrecord *regFragPtrP = prepare_fragptr.p;
   firstOperPtr = leaderOperPtr;
-  if (unlikely(!leaderOperPtr.p->is_first_operation()))
-  {
+  if (unlikely(!leaderOperPtr.p->is_first_operation())) {
     findFirstOp(firstOperPtr);
   }
   executeOperPtr = firstOperPtr;
@@ -2604,11 +2885,9 @@ Dbtup::execute_real_commit(Signal *signal,
    * by splitting the table into more fragments. Splitting a table into
    * smaller fragments also splits the locks used to protect the fragments.
    */
-  if (!regTabPtrP->tuxCustomTriggers.isEmpty())
-  {
+  if (!regTabPtrP->tuxCustomTriggers.isEmpty()) {
     c_lqh->acquire_frag_commit_access_write_key();
-    if(get_tuple_state(leaderOperPtr.p) == TUPLE_PREPARED)
-    {
+    if (get_tuple_state(leaderOperPtr.p) == TUPLE_PREPARED) {
       OperationrecPtr loopPtr = firstOperPtr;
       /**
        * Execute all tux triggers at first commit
@@ -2616,21 +2895,17 @@ Dbtup::execute_real_commit(Signal *signal,
        */
       jam();
       goto first;
-      while(loopPtr.i != RNIL)
-      {
+      while (loopPtr.i != RNIL) {
         ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopPtr));
-    first:
-        executeTuxCommitTriggers(signal,
-                                 loopPtr.p,
-                                 regFragPtrP,
-                                 regTabPtrP);
+      first:
+        executeTuxCommitTriggers(signal, loopPtr.p, regFragPtrP, regTabPtrP);
         set_tuple_state(loopPtr.p, TUPLE_TO_BE_COMMITTED);
         loopPtr.i = loopPtr.p->nextActiveOp;
       }
     }
   }
   req_struct.m_tuple_ptr = tuple_ptr;
-  
+
   Uint32 nextOp = leaderOperPtr.p->nextActiveOp;
   Uint32 prevOp = leaderOperPtr.p->prevActiveOp;
   /**
@@ -2652,76 +2927,43 @@ Dbtup::execute_real_commit(Signal *signal,
      */
     Uint32 disk = leaderOperPtr.p->m_disk_callback_page;
     set_commit_change_mask_info(regTabPtrP, &req_struct, leaderOperPtr.p);
-    checkDetachedTriggers(&req_struct,
-                          leaderOperPtr.p,
-                          regTabPtrP, 
-                          disk != RNIL,
-                          diskPagePtr.i);
-    
+    checkDetachedTriggers(&req_struct, leaderOperPtr.p, regTabPtrP,
+                          disk != RNIL, diskPagePtr.i);
+
     tuple_ptr->m_operation_ptr_i = RNIL;
-    
-    if (leaderOperPtr.p->op_type == ZDELETE)
-    {
+
+    if (leaderOperPtr.p->op_type == ZDELETE) {
       jam();
-      dealloc_tuple(signal,
-                    req_struct.gci_hi,
-                    req_struct.gci_lo,
-                    tupPagePtr.p,
-                    tuple_ptr,
-                    &req_struct,
-                    leaderOperPtr.p,
-                    regFragPtrP,
-                    regTabPtrP,
-                    diskPagePtr);
-    }
-    else if (leaderOperPtr.p->op_type != ZREFRESH)
-    {
+      dealloc_tuple(signal, req_struct.gci_hi, req_struct.gci_lo, tupPagePtr.p,
+                    tuple_ptr, &req_struct, leaderOperPtr.p, regFragPtrP,
+                    regTabPtrP, diskPagePtr);
+    } else if (leaderOperPtr.p->op_type != ZREFRESH) {
       jam();
-      commit_operation(signal,
-                       req_struct.gci_hi,
-                       req_struct.gci_lo,
-                       tuple_ptr,
-                       tupPagePtr,
-		       leaderOperPtr.p,
-                       regFragPtrP,
-                       regTabPtrP,
-                       diskPagePtr); 
-    }
-    else
-    {
+      commit_operation(signal, req_struct.gci_hi, req_struct.gci_lo, tuple_ptr,
+                       tupPagePtr, leaderOperPtr.p, regFragPtrP, regTabPtrP,
+                       diskPagePtr);
+    } else {
       jam();
-      commit_refresh(signal,
-                     req_struct.gci_hi,
-                     req_struct.gci_lo,
-                     tuple_ptr,
-                     tupPagePtr,
-                     &req_struct,
-                     leaderOperPtr.p,
-                     regFragPtrP,
-                     regTabPtrP,
-                     diskPagePtr);
+      commit_refresh(signal, req_struct.gci_hi, req_struct.gci_lo, tuple_ptr,
+                     tupPagePtr, &req_struct, leaderOperPtr.p, regFragPtrP,
+                     regTabPtrP, diskPagePtr);
     }
   }
   /* Restore list before removing execute operation record from it */
   leaderOperPtr.p->nextActiveOp = nextOp;
   leaderOperPtr.p->prevActiveOp = prevOp;
 
-  if (likely(firstOperPtr.i == leaderOperPtr.i))
-  {
+  if (likely(firstOperPtr.i == leaderOperPtr.i)) {
     /* Leader is also first, only one operation, nothing more to do */
     firstOperPtr.i = RNIL;
-  }
-  else if (likely(firstOperPtr.i == executeOperPtr.i))
-  {
+  } else if (likely(firstOperPtr.i == executeOperPtr.i)) {
     /**
      * Executed record was first record, this case is easy, simply remove
      * the first record and move first to be the second operation record.
      */
     firstOperPtr.i = executeOperPtr.p->nextActiveOp;
     ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(firstOperPtr));
-  }
-  else
-  {
+  } else {
     jam();
     /**
      * Need to link out the operation record from the list before
@@ -2756,20 +2998,15 @@ Dbtup::execute_real_commit(Signal *signal,
    * and finalized their commits. This might require a CONTINUEB signal,
    * so this requires some careful processing.
    */
-  if (firstOperPtr.i != RNIL)
-  {
+  if (firstOperPtr.i != RNIL) {
     jam();
     set_commit_performed(firstOperPtr, regFragPtrP);
     report_commit_performed(signal, firstOperPtr, MAX_COMMITS, regFragPtrP);
   }
 }
 
-
-void
-Dbtup::finalize_commit(Operationrec *regOperPtrP, Fragrecord *fragPtrP)
-{
-  if (!regOperPtrP->m_copy_tuple_location.isNull())
-  {
+void Dbtup::finalize_commit(Operationrec *regOperPtrP, Fragrecord *fragPtrP) {
+  if (!regOperPtrP->m_copy_tuple_location.isNull()) {
     jam();
     c_undo_buffer.free_copy_tuple(&regOperPtrP->m_copy_tuple_location);
   }
@@ -2777,49 +3014,34 @@ Dbtup::finalize_commit(Operationrec *regOperPtrP, Fragrecord *fragPtrP)
   initOpConnection(regOperPtrP);
 }
 
-void
-Dbtup::set_commit_change_mask_info(const Tablerec* regTabPtr,
-                                   KeyReqStruct * req_struct,
-                                   const Operationrec * regOperPtr)
-{
+void Dbtup::set_commit_change_mask_info(const Tablerec *regTabPtr,
+                                        KeyReqStruct *req_struct,
+                                        const Operationrec *regOperPtr) {
   Uint32 masklen = (regTabPtr->m_no_of_attributes + 31) >> 5;
-  if (regOperPtr->m_copy_tuple_location.isNull())
-  {
+  if (regOperPtr->m_copy_tuple_location.isNull()) {
     ndbassert(regOperPtr->op_type == ZDELETE);
     req_struct->changeMask.set();
-  }
-  else
-  {
-    Uint32 * dst = req_struct->changeMask.rep.data;
-    Uint32 * rawptr = get_copy_tuple_raw(&regOperPtr->m_copy_tuple_location);
-    ChangeMask * maskptr = get_change_mask_ptr(rawptr);
+  } else {
+    Uint32 *dst = req_struct->changeMask.rep.data;
+    Uint32 *rawptr = get_copy_tuple_raw(&regOperPtr->m_copy_tuple_location);
+    ChangeMask *maskptr = get_change_mask_ptr(rawptr);
     Uint32 cols = maskptr->m_cols;
-    if (cols == regTabPtr->m_no_of_attributes)
-    {
-      memcpy(dst, maskptr->m_mask, 4*masklen);
-    }
-    else
-    {
-      ndbassert(regTabPtr->m_no_of_attributes > cols); // no drop column
-      memcpy(dst, maskptr->m_mask, 4*((cols + 31) >> 5));
+    if (cols == regTabPtr->m_no_of_attributes) {
+      memcpy(dst, maskptr->m_mask, 4 * masklen);
+    } else {
+      ndbassert(regTabPtr->m_no_of_attributes > cols);  // no drop column
+      memcpy(dst, maskptr->m_mask, 4 * ((cols + 31) >> 5));
       req_struct->changeMask.setRange(cols,
                                       regTabPtr->m_no_of_attributes - cols);
     }
   }
 }
 
-void
-Dbtup::commit_refresh(Signal* signal,
-                      Uint32 gci_hi,
-                      Uint32 gci_lo,
-                      Tuple_header* tuple_ptr,
-                      PagePtr pagePtr,
-                      KeyReqStruct * req_struct,
-                      Operationrec* regOperPtr,
-                      Fragrecord* regFragPtr,
-                      Tablerec* regTabPtr,
-                      Ptr<GlobalPage> diskPagePtr)
-{
+void Dbtup::commit_refresh(Signal *signal, Uint32 gci_hi, Uint32 gci_lo,
+                           Tuple_header *tuple_ptr, PagePtr pagePtr,
+                           KeyReqStruct *req_struct, Operationrec *regOperPtr,
+                           Fragrecord *regFragPtr, Tablerec *regTabPtr,
+                           Ptr<GlobalPage> diskPagePtr) {
   /* Committing a refresh operation.
    * Refresh of an existing row looks like an update
    * and can commit normally.
@@ -2828,26 +3050,19 @@ Dbtup::commit_refresh(Signal* signal,
    * This is achieved by making special calls to ACC to get
    * it to forget, before deallocating the tuple locally.
    */
-  switch(regOperPtr->m_copy_tuple_location.m_file_no){
-  case Operationrec::RF_SINGLE_NOT_EXIST:
-  case Operationrec::RF_MULTI_NOT_EXIST:
-    break;
-  case Operationrec::RF_SINGLE_EXIST:
-  case Operationrec::RF_MULTI_EXIST:
-    // "Normal" update
-    commit_operation(signal,
-                     gci_hi,
-                     gci_lo,
-                     tuple_ptr,
-                     pagePtr,
-                     regOperPtr,
-                     regFragPtr,
-                     regTabPtr,
-                     diskPagePtr);
-    return;
+  switch (regOperPtr->m_copy_tuple_location.m_file_no) {
+    case Operationrec::RF_SINGLE_NOT_EXIST:
+    case Operationrec::RF_MULTI_NOT_EXIST:
+      break;
+    case Operationrec::RF_SINGLE_EXIST:
+    case Operationrec::RF_MULTI_EXIST:
+      // "Normal" update
+      commit_operation(signal, gci_hi, gci_lo, tuple_ptr, pagePtr, regOperPtr,
+                       regFragPtr, regTabPtr, diskPagePtr);
+      return;
 
-  default:
-    ndbabort();
+    default:
+      ndbabort();
   }
 
   Local_key key = regOperPtr->m_tuple_location;
@@ -2857,14 +3072,6 @@ Dbtup::commit_refresh(Signal* signal,
    * Tell ACC to delete
    */
   c_lqh->accremoverow(signal, regOperPtr->userpointer, &key);
-  dealloc_tuple(signal,
-                gci_hi,
-                gci_lo,
-                pagePtr.p,
-                tuple_ptr,
-                req_struct,
-                regOperPtr,
-                regFragPtr,
-                regTabPtr,
-                diskPagePtr);
+  dealloc_tuple(signal, gci_hi, gci_lo, pagePtr.p, tuple_ptr, req_struct,
+                regOperPtr, regFragPtr, regTabPtr, diskPagePtr);
 }

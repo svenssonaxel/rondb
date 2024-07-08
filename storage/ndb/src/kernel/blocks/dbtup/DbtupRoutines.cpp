@@ -25,33 +25,30 @@
 
 #define DBTUP_C
 #define DBTUP_ROUTINES_CPP
-#include "util/require.h"
 #include "Dbtup.hpp"
+#include "util/require.h"
 
 #include <cstring>
 #include "m_ctype.h"
 
-#include <RefConvert.hpp>
 #include <ndb_limits.h>
-#include <pc.hpp>
 #include <AttributeDescriptor.hpp>
-#include "AttributeOffset.hpp"
 #include <AttributeHeader.hpp>
+#include <RefConvert.hpp>
 #include <dblqh/Dblqh.hpp>
+#include <pc.hpp>
 #include <signaldata/TransIdAI.hpp>
+#include "AttributeOffset.hpp"
 
 #define JAM_FILE_ID 402
 
-
-void
-Dbtup::setUpQueryRoutines(Tablerec *regTabPtr)
-{
-  for (Uint32 i= 0; i < regTabPtr->m_no_of_attributes; i++) {
-    Uint32 attrDescrStart= (i * ZAD_SIZE);
+void Dbtup::setUpQueryRoutines(Tablerec *regTabPtr) {
+  for (Uint32 i = 0; i < regTabPtr->m_no_of_attributes; i++) {
+    Uint32 attrDescrStart = (i * ZAD_SIZE);
     Uint32 attrDescr = regTabPtr->tabDescriptor[attrDescrStart];
     Uint32 attrOffset = regTabPtr->tabDescriptor[attrDescrStart + 1];
 
-    //Uint32 type = AttributeDescriptor::getType(attrDescr);
+    // Uint32 type = AttributeDescriptor::getType(attrDescr);
     Uint32 array = AttributeDescriptor::getArrayType(attrDescr);
     Uint32 charset = AttributeOffset::getCharsetFlag(attrOffset);
     Uint32 size = AttributeDescriptor::getSize(attrDescr);
@@ -60,253 +57,226 @@ Dbtup::setUpQueryRoutines(Tablerec *regTabPtr)
     Uint32 nullable = AttributeDescriptor::getNullable(attrDescr);
     Uint32 dynamic = AttributeDescriptor::getDynamic(attrDescr);
 
-    if (!dynamic)
-    {
-      if (array  == NDB_ARRAYTYPE_FIXED)
-      {
-        if (!nullable)
-        {
-          switch(size){
-          case DictTabInfo::aBit:
-            jam();
-            regTabPtr->readFunctionArray[i] = &Dbtup::readBitsNotNULL;
-            regTabPtr->updateFunctionArray[i] = &Dbtup::updateBitsNotNULL;
-            break;
-          case DictTabInfo::an8Bit:
-          case DictTabInfo::a16Bit:
-            jam();
-            regTabPtr->readFunctionArray[i]=
-	      &Dbtup::readFixedSizeTHManyWordNotNULL;
-            regTabPtr->updateFunctionArray[i]=
-	      &Dbtup::updateFixedSizeTHManyWordNotNULL;
-            break;
-          case DictTabInfo::a32Bit:
-          case DictTabInfo::a64Bit:
-          case DictTabInfo::a128Bit:
-          default:
-            switch(bytes){
-            case 4:
+    if (!dynamic) {
+      if (array == NDB_ARRAYTYPE_FIXED) {
+        if (!nullable) {
+          switch (size) {
+            case DictTabInfo::aBit:
               jam();
-              regTabPtr->readFunctionArray[i] = 
-                &Dbtup::readFixedSizeTHOneWordNotNULL;
-              regTabPtr->updateFunctionArray[i] = 
-                &Dbtup::updateFixedSizeTHOneWordNotNULL;
+              regTabPtr->readFunctionArray[i] = &Dbtup::readBitsNotNULL;
+              regTabPtr->updateFunctionArray[i] = &Dbtup::updateBitsNotNULL;
               break;
-            case 8:
+            case DictTabInfo::an8Bit:
+            case DictTabInfo::a16Bit:
               jam();
-              regTabPtr->readFunctionArray[i] = 
-                &Dbtup::readFixedSizeTHTwoWordNotNULL;
-              regTabPtr->updateFunctionArray[i] = 
-                &Dbtup::updateFixedSizeTHManyWordNotNULL;
+              regTabPtr->readFunctionArray[i] =
+                  &Dbtup::readFixedSizeTHManyWordNotNULL;
+              regTabPtr->updateFunctionArray[i] =
+                  &Dbtup::updateFixedSizeTHManyWordNotNULL;
               break;
+            case DictTabInfo::a32Bit:
+            case DictTabInfo::a64Bit:
+            case DictTabInfo::a128Bit:
             default:
-              jam();
-              regTabPtr->readFunctionArray[i] = 
+              switch (bytes) {
+                case 4:
+                  jam();
+                  regTabPtr->readFunctionArray[i] =
+                      &Dbtup::readFixedSizeTHOneWordNotNULL;
+                  regTabPtr->updateFunctionArray[i] =
+                      &Dbtup::updateFixedSizeTHOneWordNotNULL;
+                  break;
+                case 8:
+                  jam();
+                  regTabPtr->readFunctionArray[i] =
+                      &Dbtup::readFixedSizeTHTwoWordNotNULL;
+                  regTabPtr->updateFunctionArray[i] =
+                      &Dbtup::updateFixedSizeTHManyWordNotNULL;
+                  break;
+                default:
+                  jam();
+                  regTabPtr->readFunctionArray[i] =
+                      &Dbtup::readFixedSizeTHManyWordNotNULL;
+                  regTabPtr->updateFunctionArray[i] =
+                      &Dbtup::updateFixedSizeTHManyWordNotNULL;
+                  break;
+              }
+          }
+          if (charset) {
+            jam();
+            regTabPtr->readFunctionArray[i] =
                 &Dbtup::readFixedSizeTHManyWordNotNULL;
-              regTabPtr->updateFunctionArray[i] = 
+            regTabPtr->updateFunctionArray[i] =
                 &Dbtup::updateFixedSizeTHManyWordNotNULL;
-              break;
-            }
           }
-          if (charset)
-          {
-            jam();
-            regTabPtr->readFunctionArray[i] = 
-              &Dbtup::readFixedSizeTHManyWordNotNULL;
-            regTabPtr->updateFunctionArray[i] = 
-              &Dbtup::updateFixedSizeTHManyWordNotNULL;
-          }
-        }
-        else // nullable
+        } else  // nullable
         {
-          switch(size){
-          case DictTabInfo::aBit:
-            jam();
-            regTabPtr->readFunctionArray[i] = &Dbtup::readBitsNULLable;
-            regTabPtr->updateFunctionArray[i] = &Dbtup::updateBitsNULLable;
-            break;
-          case DictTabInfo::an8Bit:
-          case DictTabInfo::a16Bit:
-            jam();
-            regTabPtr->readFunctionArray[i]=
-	      &Dbtup::readFixedSizeTHManyWordNULLable;
-            regTabPtr->updateFunctionArray[i]=
-	      &Dbtup::updateFixedSizeTHManyWordNULLable;
-            break;
-          case DictTabInfo::a32Bit:
-          case DictTabInfo::a64Bit:
-          case DictTabInfo::a128Bit:
-          default:
-            switch(bytes){
-            case 4:
+          switch (size) {
+            case DictTabInfo::aBit:
               jam();
-              regTabPtr->readFunctionArray[i] = 
-                &Dbtup::readFixedSizeTHOneWordNULLable;
-              regTabPtr->updateFunctionArray[i] = 
-                &Dbtup::updateFixedSizeTHManyWordNULLable;
+              regTabPtr->readFunctionArray[i] = &Dbtup::readBitsNULLable;
+              regTabPtr->updateFunctionArray[i] = &Dbtup::updateBitsNULLable;
               break;
-            case 8:
+            case DictTabInfo::an8Bit:
+            case DictTabInfo::a16Bit:
               jam();
-              regTabPtr->readFunctionArray[i] = 
-                &Dbtup::readFixedSizeTHTwoWordNULLable;
-              regTabPtr->updateFunctionArray[i] = 
-                &Dbtup::updateFixedSizeTHManyWordNULLable;
+              regTabPtr->readFunctionArray[i] =
+                  &Dbtup::readFixedSizeTHManyWordNULLable;
+              regTabPtr->updateFunctionArray[i] =
+                  &Dbtup::updateFixedSizeTHManyWordNULLable;
               break;
+            case DictTabInfo::a32Bit:
+            case DictTabInfo::a64Bit:
+            case DictTabInfo::a128Bit:
             default:
-              jam();
-              regTabPtr->readFunctionArray[i] = 
-                &Dbtup::readFixedSizeTHManyWordNULLable;
-              regTabPtr->updateFunctionArray[i] = 
-                &Dbtup::updateFixedSizeTHManyWordNULLable;
-              break;
-            }
+              switch (bytes) {
+                case 4:
+                  jam();
+                  regTabPtr->readFunctionArray[i] =
+                      &Dbtup::readFixedSizeTHOneWordNULLable;
+                  regTabPtr->updateFunctionArray[i] =
+                      &Dbtup::updateFixedSizeTHManyWordNULLable;
+                  break;
+                case 8:
+                  jam();
+                  regTabPtr->readFunctionArray[i] =
+                      &Dbtup::readFixedSizeTHTwoWordNULLable;
+                  regTabPtr->updateFunctionArray[i] =
+                      &Dbtup::updateFixedSizeTHManyWordNULLable;
+                  break;
+                default:
+                  jam();
+                  regTabPtr->readFunctionArray[i] =
+                      &Dbtup::readFixedSizeTHManyWordNULLable;
+                  regTabPtr->updateFunctionArray[i] =
+                      &Dbtup::updateFixedSizeTHManyWordNULLable;
+                  break;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        }
           }
-          if (charset)
-          {
+          if (charset) {
             jam();
-            regTabPtr->readFunctionArray[i] = 
-              &Dbtup::readFixedSizeTHManyWordNULLable;
-            regTabPtr->updateFunctionArray[i] = 
-              &Dbtup::updateFixedSizeTHManyWordNULLable;
+            regTabPtr->readFunctionArray[i] =
+                &Dbtup::readFixedSizeTHManyWordNULLable;
+            regTabPtr->updateFunctionArray[i] =
+                &Dbtup::updateFixedSizeTHManyWordNULLable;
           }
         }
-      }
-      else 
-      {
-        if (!nullable)
-        {
+      } else {
+        if (!nullable) {
           jam();
-          regTabPtr->readFunctionArray[i]=
-	    &Dbtup::readVarSizeNotNULL;
-          regTabPtr->updateFunctionArray[i]=
-	    &Dbtup::updateVarSizeNotNULL;
-        } 
-        else 
-        {
+          regTabPtr->readFunctionArray[i] = &Dbtup::readVarSizeNotNULL;
+          regTabPtr->updateFunctionArray[i] = &Dbtup::updateVarSizeNotNULL;
+        } else {
           jam();
-          regTabPtr->readFunctionArray[i]=
-	    &Dbtup::readVarSizeNULLable;
-          regTabPtr->updateFunctionArray[i]=
-	    &Dbtup::updateVarSizeNULLable;
+          regTabPtr->readFunctionArray[i] = &Dbtup::readVarSizeNULLable;
+          regTabPtr->updateFunctionArray[i] = &Dbtup::updateVarSizeNULLable;
         }
       }
-      if(AttributeDescriptor::getDiskBased(attrDescr))
-      {
+      if (AttributeDescriptor::getDiskBased(attrDescr)) {
         // array initializer crashes gcc-2.95.3
-	ReadFunction r[6];
+        ReadFunction r[6];
         {
-	  r[0] = &Dbtup::readDiskBitsNotNULL;
-	  r[1] = &Dbtup::readDiskBitsNULLable;
-	  r[2] = &Dbtup::readDiskFixedSizeNotNULL;
-	  r[3] = &Dbtup::readDiskFixedSizeNULLable;
+          r[0] = &Dbtup::readDiskBitsNotNULL;
+          r[1] = &Dbtup::readDiskBitsNULLable;
+          r[2] = &Dbtup::readDiskFixedSizeNotNULL;
+          r[3] = &Dbtup::readDiskFixedSizeNULLable;
           if ((regTabPtr->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
           {
 	    r[4] = &Dbtup::readDiskVarAsFixedSizeNotNULL;
-	    r[5] = &Dbtup::readDiskVarAsFixedSizeNULLable;
+            r[5] = &Dbtup::readDiskVarAsFixedSizeNULLable;
           }
           else
           {
-	    r[4] = &Dbtup::readVarSizeNotNULL;
-	    r[5] = &Dbtup::readVarSizeNULLable;
+            r[4] = &Dbtup::readVarSizeNotNULL;
+            r[5] = &Dbtup::readVarSizeNULLable;
           }
         }
         UpdateFunction u[6];
         {
-	  u[0] = &Dbtup::updateDiskBitsNotNULL;
-	  u[1] = &Dbtup::updateDiskBitsNULLable;
-	  u[2] = &Dbtup::updateDiskFixedSizeNotNULL;
-	  u[3] = &Dbtup::updateDiskFixedSizeNULLable;
+          u[0] = &Dbtup::updateDiskBitsNotNULL;
+          u[1] = &Dbtup::updateDiskBitsNULLable;
+          u[2] = &Dbtup::updateDiskFixedSizeNotNULL;
+          u[3] = &Dbtup::updateDiskFixedSizeNULLable;
           if ((regTabPtr->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
           {
 	    u[4] = &Dbtup::updateDiskVarAsFixedSizeNotNULL;
-	    u[5] = &Dbtup::updateDiskVarAsFixedSizeNULLable;
+            u[5] = &Dbtup::updateDiskVarAsFixedSizeNULLable;
           }
           else
           {
-	    u[4] = &Dbtup::updateVarSizeNotNULL;
-	    u[5] = &Dbtup::updateVarSizeNULLable;
+            u[4] = &Dbtup::updateVarSizeNotNULL;
+            u[5] = &Dbtup::updateVarSizeNULLable;
           }
         }
-	Uint32 a= 
-	  AttributeDescriptor::getArrayType(attrDescr) == NDB_ARRAYTYPE_FIXED 
-          ? 2 : 4;
-	
-	if(AttributeDescriptor::getSize(attrDescr) == 0)
-	  a= 0;
-	
-	Uint32 b= 
-	  AttributeDescriptor::getNullable(attrDescr)? 1 : 0;
-	regTabPtr->readFunctionArray[i]= r[a+b];
-	regTabPtr->updateFunctionArray[i]= u[a+b];
+        Uint32 a =
+            AttributeDescriptor::getArrayType(attrDescr) == NDB_ARRAYTYPE_FIXED
+                ? 2
+                : 4;
+
+        if (AttributeDescriptor::getSize(attrDescr) == 0) a = 0;
+
+        Uint32 b = AttributeDescriptor::getNullable(attrDescr) ? 1 : 0;
+        regTabPtr->readFunctionArray[i] = r[a + b];
+        regTabPtr->updateFunctionArray[i] = u[a + b];
       }
-    }
-    else // dynamic
+    } else  // dynamic
     {
-      if (nullable)
-      {
-        if (array == NDB_ARRAYTYPE_FIXED)
-        {
-          if (size == 0)
-          {
-            jam(); 
-            regTabPtr->readFunctionArray[i]= &Dbtup::readDynBitsNULLable;
-            regTabPtr->updateFunctionArray[i]= &Dbtup::updateDynBitsNULLable;
-          } 
-          else if (words > InternalMaxDynFix) 
-          {
+      if (nullable) {
+        if (array == NDB_ARRAYTYPE_FIXED) {
+          if (size == 0) {
             jam();
-            regTabPtr->readFunctionArray[i]= 
-              &Dbtup::readDynBigFixedSizeNULLable;
-            regTabPtr->updateFunctionArray[i]= 
-              &Dbtup::updateDynBigFixedSizeNULLable;
-          } 
-          else 
-          {
+            regTabPtr->readFunctionArray[i] = &Dbtup::readDynBitsNULLable;
+            regTabPtr->updateFunctionArray[i] = &Dbtup::updateDynBitsNULLable;
+          } else if (words > InternalMaxDynFix) {
             jam();
-            regTabPtr->readFunctionArray[i]= 
-              &Dbtup::readDynFixedSizeNULLable;
-            regTabPtr->updateFunctionArray[i]= 
-              &Dbtup::updateDynFixedSizeNULLable;
+            regTabPtr->readFunctionArray[i] =
+                &Dbtup::readDynBigFixedSizeNULLable;
+            regTabPtr->updateFunctionArray[i] =
+                &Dbtup::updateDynBigFixedSizeNULLable;
+          } else {
+            jam();
+            regTabPtr->readFunctionArray[i] = &Dbtup::readDynFixedSizeNULLable;
+            regTabPtr->updateFunctionArray[i] =
+                &Dbtup::updateDynFixedSizeNULLable;
           }
-        } 
-        else 
-        {
-          regTabPtr->readFunctionArray[i]= &Dbtup::readDynVarSizeNULLable;
-          regTabPtr->updateFunctionArray[i]= &Dbtup::updateDynVarSizeNULLable;
+        } else {
+          regTabPtr->readFunctionArray[i] = &Dbtup::readDynVarSizeNULLable;
+          regTabPtr->updateFunctionArray[i] = &Dbtup::updateDynVarSizeNULLable;
         }
-      } 
-      else // nullable
+      } else  // nullable
       {
-        if (array == NDB_ARRAYTYPE_FIXED)
-        {
-          if (size == 0)
-          {
-            jam(); 
-            regTabPtr->readFunctionArray[i]= &Dbtup::readDynBitsNotNULL;
-            regTabPtr->updateFunctionArray[i]= &Dbtup::updateDynBitsNotNULL;
-          } 
-          else if (words > InternalMaxDynFix) 
-          {
+        if (array == NDB_ARRAYTYPE_FIXED) {
+          if (size == 0) {
             jam();
-            regTabPtr->readFunctionArray[i]= 
-              &Dbtup::readDynBigFixedSizeNotNULL;
-            regTabPtr->updateFunctionArray[i]= 
-              &Dbtup::updateDynBigFixedSizeNotNULL;
-          } 
-          else 
-          {
+            regTabPtr->readFunctionArray[i] = &Dbtup::readDynBitsNotNULL;
+            regTabPtr->updateFunctionArray[i] = &Dbtup::updateDynBitsNotNULL;
+          } else if (words > InternalMaxDynFix) {
             jam();
-            regTabPtr->readFunctionArray[i]= 
-              &Dbtup::readDynFixedSizeNotNULL;
-            regTabPtr->updateFunctionArray[i]= 
-              &Dbtup::updateDynFixedSizeNotNULL;
+            regTabPtr->readFunctionArray[i] =
+                &Dbtup::readDynBigFixedSizeNotNULL;
+            regTabPtr->updateFunctionArray[i] =
+                &Dbtup::updateDynBigFixedSizeNotNULL;
+          } else {
+            jam();
+            regTabPtr->readFunctionArray[i] = &Dbtup::readDynFixedSizeNotNULL;
+            regTabPtr->updateFunctionArray[i] =
+                &Dbtup::updateDynFixedSizeNotNULL;
           }
-        } 
-        else 
-        {
+        } else {
           jam();
-	  regTabPtr->readFunctionArray[i]= &Dbtup::readDynVarSizeNotNULL;
-          regTabPtr->updateFunctionArray[i]= &Dbtup::updateDynVarSizeNotNULL;
+          regTabPtr->readFunctionArray[i] = &Dbtup::readDynVarSizeNotNULL;
+          regTabPtr->updateFunctionArray[i] = &Dbtup::updateDynVarSizeNotNULL;
         }
       }
     }
@@ -334,17 +304,11 @@ static void dump_buf_hex(unsigned char *p, Uint32 bytes)
 }
 #endif
 
-static
-inline
-Uint32
-pad32(Uint32 bytepos, Uint32 bitsused)
-{
-  if (bitsused)
-  {
+static inline Uint32 pad32(Uint32 bytepos, Uint32 bitsused) {
+  if (bitsused) {
     assert((bytepos & 3) == 0);
   }
-  Uint32 ret = 4 * ((bitsused + 31) >> 5) +
-    ((bytepos + 3) & ~(Uint32)3);
+  Uint32 ret = 4 * ((bitsused + 31) >> 5) + ((bytepos + 3) & ~(Uint32)3);
   return ret;
 }
 
@@ -359,7 +323,7 @@ pad32(Uint32 bytepos, Uint32 bitsused)
 // fragptr.p      Fragment record pointer
 // tabptr.p       Table record pointer
 
-// It requires the following fields in KeyReqStruct to be properly 
+// It requires the following fields in KeyReqStruct to be properly
 // filled in:
 // tuple_header Reference to the tuple
 // check_offset Record size
@@ -370,86 +334,77 @@ pad32(Uint32 bytepos, Uint32 bitsused)
 // out_buf_index Index for output buffer
 // max_read      Size of output buffer
 /* ---------------------------------------------------------------- */
-int Dbtup::readAttributes(KeyReqStruct *req_struct,
-                          const Uint32* inBuffer,
-                          Uint32  inBufLen,
-                          Uint32* outBuf,
-                          Uint32  maxRead)
-{
+int Dbtup::readAttributes(KeyReqStruct *req_struct, const Uint32 *inBuffer,
+                          Uint32 inBufLen, Uint32 *outBuf, Uint32 maxRead) {
   Uint32 attributeId, descr_index, tmpAttrBufIndex, tmpAttrBufBits, inBufIndex;
-  AttributeHeader* ahOut;
+  AttributeHeader *ahOut;
 
-  const Uint32* attr_descr = req_struct->attr_descr;
-  Tablerec* const regTabPtr = req_struct->tablePtrP;
-  Uint32 numAttributes= regTabPtr->m_no_of_attributes;
+  const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TableDescriptor*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TableDescriptor
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *attr_descr = req_struct->attr_descr;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
+  Uint32 numAttributes = regTabPtr->m_no_of_attributes;
 
-  inBufIndex= 0;
-  req_struct->out_buf_index= 0;
+  inBufIndex = 0;
+  req_struct->out_buf_index = 0;
   req_struct->out_buf_bits = 0;
-  req_struct->max_read= 4*maxRead;
-  req_struct->xfrm_flag= false;  // Only read of keys may transform
-  Uint8*outBuffer = (Uint8*)outBuf;
+  req_struct->max_read = 4 * maxRead;
+  req_struct->xfrm_flag = false;  // Only read of keys may transform
+  Uint8 *outBuffer = (Uint8 *)outBuf;
   thrjamDebug(req_struct->jamBuffer);
-  while (inBufIndex < inBufLen)
-  {
+  while (inBufIndex < inBufLen) {
     thrjamDebug(req_struct->jamBuffer);
-    tmpAttrBufIndex= req_struct->out_buf_index;
+    tmpAttrBufIndex = req_struct->out_buf_index;
     tmpAttrBufBits = req_struct->out_buf_bits;
     AttributeHeader ahIn(inBuffer[inBufIndex]);
     inBufIndex++;
-    attributeId= ahIn.getAttributeId();
-    descr_index= attributeId * ZAD_SIZE;
+    attributeId = ahIn.getAttributeId();
+    descr_index = attributeId * ZAD_SIZE;
 
     tmpAttrBufIndex = pad32(tmpAttrBufIndex, tmpAttrBufBits);
-    AttributeHeader::init((Uint32 *)&outBuffer[tmpAttrBufIndex],
-			  attributeId, 0);
-    ahOut= (AttributeHeader*)&outBuffer[tmpAttrBufIndex];
+    AttributeHeader::init((Uint32 *)&outBuffer[tmpAttrBufIndex], attributeId,
+                          0);
+    ahOut = (AttributeHeader *)&outBuffer[tmpAttrBufIndex];
     thrjamDataDebug(req_struct->jamBuffer, tmpAttrBufIndex);
-    req_struct->out_buf_index= tmpAttrBufIndex + 4;
+    req_struct->out_buf_index = tmpAttrBufIndex + 4;
     req_struct->out_buf_bits = 0;
-    if (likely(attributeId < numAttributes))
-    {
+    if (likely(attributeId < numAttributes)) {
       Uint32 attrDescriptor = attr_descr[descr_index];
       Uint32 attrDes2 = attr_descr[descr_index + 1];
-      Uint64 attrDes = (Uint64(attrDes2) << 32) +
-                        Uint64(attrDescriptor);
+      Uint64 attrDes = (Uint64(attrDes2) << 32) + Uint64(attrDescriptor);
 
-      ReadFunction f= regTabPtr->readFunctionArray[attributeId];
+      ReadFunction f = regTabPtr->readFunctionArray[attributeId];
       thrjamLineDebug(req_struct->jamBuffer, attributeId);
-      if (likely((*f)(outBuffer,
-                      req_struct,
-                      ahOut,
-                      attrDes)))
-      {
+      if (likely((*f)(outBuffer, req_struct, ahOut, attrDes))) {
         continue;
-      }
-      else
-      {
+      } else {
         thrjam(req_struct->jamBuffer);
         return -(int)req_struct->errorCode;
       }
-    }
-    else if (likely(attributeId & AttributeHeader::PSEUDO))
-    {
+    } else if (likely(attributeId & AttributeHeader::PSEUDO)) {
       thrjamDebug(req_struct->jamBuffer);
-      int sz = read_pseudo(inBuffer, inBufIndex,
-                           req_struct,
-                           (Uint32*)outBuffer);
-      if (likely(sz >= 0))
-      {
+      int sz =
+          read_pseudo(inBuffer, inBufIndex, req_struct, (Uint32 *)outBuffer);
+      if (likely(sz >= 0)) {
         inBufIndex += Uint32(sz);
-      }
-      else
-      {
+      } else {
         return sz;
       }
-    } 
-    else 
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       return -ZATTRIBUTE_ID_ERROR;
-    }//if
-  }//while
+    }  // if
+  }    // while
   thrjamDebug(req_struct->jamBuffer);
   return pad32(req_struct->out_buf_index, req_struct->out_buf_bits) >> 2;
 }
@@ -469,107 +424,119 @@ int Dbtup::readAttributes(KeyReqStruct *req_struct,
  *  Never use them to check for key equality - There is no guarantee
  *  that non-equal keys will generate non-equal xfrm'ed keys.
  */
-int Dbtup::readKeyAttributes(KeyReqStruct *req_struct,
-                             const Uint32* inBuffer,
-                             Uint32  inBufLen,
-                             Uint32* outBuf,
-                             Uint32  maxRead,
-                             bool    xfrm_hash)
-{
+int Dbtup::readKeyAttributes(KeyReqStruct *req_struct,    const Uint32 *inBuffer,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   Uint32  inBufLen,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32  inBufLen,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   Uint32 inBufLen,    Uint32 *outBuf,    Uint32 maxRead,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   bool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   bool xfrm_hash) {
   Uint32 attributeId, descr_index, tmpAttrBufIndex, inBufIndex;
   AttributeHeader ahOutDummy;
 
-  const Uint32* attr_descr = req_struct->attr_descr;
-  Tablerec* const regTabPtr = req_struct->tablePtrP;
-  Uint32 numAttributes= regTabPtr->m_no_of_attributes;
+  const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TableDescriptor*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TableDescriptor
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *attr_descr = req_struct->attr_descr;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
+  Uint32 numAttributes = regTabPtr->m_no_of_attributes;
 
-  inBufIndex= 0;
-  req_struct->out_buf_index= 0;
+  inBufIndex = 0;
+  req_struct->out_buf_index = 0;
   req_struct->out_buf_bits = 0;
-  req_struct->max_read= 4*maxRead;
-  req_struct->xfrm_flag= xfrm_hash;
-  Uint8*outBuffer = (Uint8*)outBuf;
+  req_struct->max_read = 4 * maxRead;
+  req_struct->xfrm_flag = xfrm_hash;
+  Uint8 *outBuffer = (Uint8 *)outBuf;
   thrjamDebug(req_struct->jamBuffer);
-  while (inBufIndex < inBufLen)
-  {
+  while (inBufIndex < inBufLen) {
     thrjamDebug(req_struct->jamBuffer);
-    tmpAttrBufIndex= req_struct->out_buf_index;
+    tmpAttrBufIndex = req_struct->out_buf_index;
     AttributeHeader ahIn(inBuffer[inBufIndex++]);
-    attributeId= ahIn.getAttributeId();
-    descr_index= attributeId * ZAD_SIZE;
+    attributeId = ahIn.getAttributeId();
+    descr_index = attributeId * ZAD_SIZE;
 
-    tmpAttrBufIndex = pad32(tmpAttrBufIndex,0);
-    req_struct->out_buf_index= tmpAttrBufIndex;
-    if (likely(attributeId < numAttributes))
-    {
+    tmpAttrBufIndex = pad32(tmpAttrBufIndex, 0);
+    req_struct->out_buf_index = tmpAttrBufIndex;
+    if (likely(attributeId < numAttributes)) {
       Uint32 attrDescriptor = attr_descr[descr_index];
       Uint32 attrDes2 = attr_descr[descr_index + 1];
-      Uint64 attrDes = (Uint64(attrDes2) << 32) +
-                        Uint64(attrDescriptor);
+      Uint64 attrDes = (Uint64(attrDes2) << 32) + Uint64(attrDescriptor);
 
-      ReadFunction f= regTabPtr->readFunctionArray[attributeId];
+      ReadFunction f = regTabPtr->readFunctionArray[attributeId];
       thrjamLineDebug(req_struct->jamBuffer, attributeId);
-      if (likely((*f)(outBuffer,
-                      req_struct,
-                      &ahOutDummy,
-                      attrDes)))
-      {
+      if (likely((*f)(outBuffer, req_struct, &ahOutDummy, attrDes))) {
         // We only expect primary keys to be read
         ndbassert(AttributeDescriptor::getPrimaryKey(attrDescriptor));
         // Which can't be a Bit data type:
         ndbassert(req_struct->out_buf_bits == 0);
         continue;
-      }
-      else
-      {
+      } else {
         ndbassert(!(attributeId & AttributeHeader::PSEUDO));
         thrjam(req_struct->jamBuffer);
         return -(int)req_struct->errorCode;
       }
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       return -ZATTRIBUTE_ID_ERROR;
-    }//if
-  }//while
+    }  // if
+  }    // while
   thrjamDebug(req_struct->jamBuffer);
   ndbassert(req_struct->out_buf_bits == 0);
   return pad32(req_struct->out_buf_index, 0) >> 2;
 }
 
-
-bool
-Dbtup::readFixedSizeTHOneWordNotNULL(Uint8* outBuffer,
-                                     KeyReqStruct *req_struct,
-                                     AttributeHeader* ahOut,
-                                     Uint64 attrDes)
-{
+bool Dbtup::readFixedSizeTHOneWordNotNULL(Uint8 *outBuffer,
+                                          KeyReqStruct *req_struct,
+                                          AttributeHeader *ahOut,
+                                          Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   assert((req_struct->out_buf_index & 3) == 0);
   assert(req_struct->out_buf_bits == 0);
 
-  Uint32 indexBuf= req_struct->out_buf_index;
+  Uint32 indexBuf = req_struct->out_buf_index;
   Uint32 *tuple_header = req_struct->m_tuple_ptr->m_data;
-  Uint32 readOffset= AttributeOffset::getOffset(attrDes2);
-  Uint32 maxRead= req_struct->max_read;
+  Uint32 readOffset = AttributeOffset::getOffset(attrDes2);
+  Uint32 maxRead = req_struct->max_read;
   Uint32 checkOffset = req_struct->check_offset[MM];
   Uint32 newIndexBuf = indexBuf + 4;
   Uint32 const wordRead = tuple_header[readOffset];
-  Uint32* dst = (Uint32*)(outBuffer + indexBuf);
+  Uint32 *dst = (Uint32 *)(outBuffer + indexBuf);
 
-  req_struct->out_buf_index= newIndexBuf;
+  req_struct->out_buf_index = newIndexBuf;
   ahOut->setDataSize(1);
   dst[0] = wordRead;
 
-  if (likely(readOffset < checkOffset &&
-             newIndexBuf <= maxRead))
-  {
+  if (likely(readOffset < checkOffset && newIndexBuf <= maxRead)) {
     return true;
-  }
-  else
-  {
+  } else {
     require(readOffset < checkOffset);
     thrjam(req_struct->jamBuffer);
     req_struct->errorCode = ZTRY_TO_READ_TOO_MUCH_ERROR;
@@ -577,90 +544,78 @@ Dbtup::readFixedSizeTHOneWordNotNULL(Uint8* outBuffer,
   }
 }
 
-bool
-Dbtup::readFixedSizeTHTwoWordNotNULL(Uint8* outBuffer,
-                                     KeyReqStruct *req_struct,
-                                     AttributeHeader* ahOut,
-                                     Uint64 attrDes)
-{
+bool Dbtup::readFixedSizeTHTwoWordNotNULL(Uint8 *outBuffer,
+                                          KeyReqStruct *req_struct,
+                                          AttributeHeader *ahOut,
+                                          Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   assert((req_struct->out_buf_index & 3) == 0);
   assert(req_struct->out_buf_bits == 0);
 
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 *tuple_header= req_struct->m_tuple_ptr->m_data;
-  Uint32 indexBuf= req_struct->out_buf_index;
-  Uint32 readOffset= AttributeOffset::getOffset(attrDes2);
-  Uint32 const wordReadFirst= tuple_header[readOffset];
-  Uint32 const wordReadSecond= tuple_header[readOffset + 1];
-  Uint32 maxRead= req_struct->max_read;
+  Uint32 *tuple_header = req_struct->m_tuple_ptr->m_data;
+  Uint32 indexBuf = req_struct->out_buf_index;
+  Uint32 readOffset = AttributeOffset::getOffset(attrDes2);
+  Uint32 const wordReadFirst = tuple_header[readOffset];
+  Uint32 const wordReadSecond = tuple_header[readOffset + 1];
+  Uint32 maxRead = req_struct->max_read;
 
   Uint32 newIndexBuf = indexBuf + 8;
-  Uint32* dst = (Uint32*)(outBuffer + indexBuf);
+  Uint32 *dst = (Uint32 *)(outBuffer + indexBuf);
 
   require(readOffset + 1 < req_struct->check_offset[MM]);
-  if (likely(newIndexBuf <= maxRead))
-  {
+  if (likely(newIndexBuf <= maxRead)) {
     thrjamDebug(req_struct->jamBuffer);
     ahOut->setDataSize(2);
     dst[0] = wordReadFirst;
     dst[1] = wordReadSecond;
-    req_struct->out_buf_index= newIndexBuf;
+    req_struct->out_buf_index = newIndexBuf;
     return true;
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     req_struct->errorCode = ZTRY_TO_READ_TOO_MUCH_ERROR;
     return false;
   }
 }
 
-
-static inline
-void
-zero32(Uint8* dstPtr, const Uint32 len)
-{
+static inline void zero32(Uint8 *dstPtr, const Uint32 len) {
   Uint32 odd = len & 3;
-  if (odd != 0)
-  {
+  if (odd != 0) {
     Uint32 aligned = len & ~3;
-    Uint8* dst = dstPtr+aligned;
-    switch(odd){     /* odd is: {1..3} */
-    case 1:
-      dst[1] = 0;
-      [[fallthrough]];
-    case 2:
-      dst[2] = 0;
-      [[fallthrough]];
-    default:         /* Known to be odd==3 */
-      dst[3] = 0;
+    Uint8 *dst = dstPtr + aligned;
+    switch (odd) { /* odd is: {1..3} */
+      case 1:
+        dst[1] = 0;
+        [[fallthrough]];
+      case 2:
+        dst[2] = 0;
+        [[fallthrough]];
+      default: /* Known to be odd==3 */
+        dst[3] = 0;
     }
   }
-} 
+}
 
-bool
-Dbtup::readFixedSizeTHManyWordNotNULL(Uint8* outBuffer,
-                                      KeyReqStruct *req_struct,
-                                      AttributeHeader* ahOut,
-                                      Uint64 attrDes)
-{
+bool Dbtup::readFixedSizeTHManyWordNotNULL(Uint8 *outBuffer,
+                                           KeyReqStruct *req_struct,
+                                           AttributeHeader *ahOut,
+                                           Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   assert(req_struct->out_buf_bits == 0);
 
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 *tuple_header= req_struct->m_tuple_ptr->m_data;
-  Uint32 indexBuf= req_struct->out_buf_index;
-  Uint32 readOffset= AttributeOffset::getOffset(attrDes2);
+  Uint32 *tuple_header = req_struct->m_tuple_ptr->m_data;
+  Uint32 indexBuf = req_struct->out_buf_index;
+  Uint32 readOffset = AttributeOffset::getOffset(attrDes2);
   Uint32 srcBytes = AttributeDescriptor::getSizeInBytes(attrDescriptor);
-  Uint32 attrNoOfWords= (srcBytes + 3) >> 2;
-  Uint32 maxRead= req_struct->max_read;
+  Uint32 attrNoOfWords = (srcBytes + 3) >> 2;
+  Uint32 maxRead = req_struct->max_read;
   Uint32 charsetFlag = AttributeOffset::getCharsetFlag(attrDes2);
 
   Uint32 newIndexBuf = indexBuf + srcBytes;
-  Uint8* dst = (outBuffer + indexBuf);
-  const Uint8* src = (Uint8*)(tuple_header + readOffset);
+  Uint8 *dst = (outBuffer + indexBuf);
+  const Uint8 *src = (Uint8 *)(tuple_header + readOffset);
 
 #ifdef ERROR_INSERT
   thrjamDataDebug(req_struct->jamBuffer, attrNoOfWords);
@@ -675,41 +630,65 @@ Dbtup::readFixedSizeTHManyWordNotNULL(Uint8* outBuffer,
   }
 #endif
   require((readOffset + attrNoOfWords - 1) < req_struct->check_offset[MM]);
-  if (! charsetFlag || ! req_struct->xfrm_flag)
-  {
-    if (likely(newIndexBuf <= maxRead))
-    {
+  if (!charsetFlag || !req_struct->xfrm_flag) {
+    if (likely(newIndexBuf <= maxRead)) {
       thrjamDebug(req_struct->jamBuffer);
       ahOut->setByteSize(srcBytes);
       memcpy(dst, src, srcBytes);
       zero32(dst, srcBytes);
       req_struct->out_buf_index = newIndexBuf;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       req_struct->errorCode = ZTRY_TO_READ_TOO_MUCH_ERROR;
       return false;
-    }//if
-  } 
-  else 
-  {
+    }  // if
+  } else {
     return xfrm_reader(dst, req_struct, ahOut, attrDes, src, srcBytes);
   }
-}//Dbtup::readFixedSizeTHManyWordNotNULL()
+}  // Dbtup::readFixedSizeTHManyWordNotNULL()
 
-bool
-Dbtup::readFixedSizeTHOneWordNULLable(Uint8* outBuffer,
-                                      KeyReqStruct *req_struct,
-                                      AttributeHeader* ahOut,
-                                      Uint64 attrDes)
-{
+bool Dbtup::readFixedSizeTHOneWordNULLable(Uint8 *outBuffer,
+                                           KeyReqStruct *req_struct,
+                                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+thrjamDebug(req_struct->jamBuffer);
+  if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  AttributeHeader *ahOut,
+                                           Uint64 attrDes) {
+  if (!nullFlagCheck(req_struct, attrDes)) {
+    thrjamDebug(req_struct->jamBuffer);
+    return readFixedSizeTHOneWordNotNULL(outBuffer, req_struct, ahOut, attrDes);
+  } else {
+    thrjam(req_struct->jamBuffer);
+    ahOut->setNULL();
+    return true;
+  }
+}
+
+bool Dbtup::readFixedSizeTHTwoWordNULLable(Uint8 *outBuffer,
+                                           KeyReqStruct *req_struct,
+                                           AttributeHeader *ahOut,
+                                           Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
-  if (!nullFlagCheck(req_struct, attrDes))
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!nullFlagCheck(req_struct, attrDes))
   {
     thrjamDebug(req_struct->jamBuffer);
-    return readFixedSizeTHOneWordNotNULL(outBuffer,
+    return readFixedSizeTHTwoWordNotNULL(outBuffer,
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer,
                                          req_struct,
                                          ahOut,
                                          attrDes);
@@ -723,19 +702,49 @@ Dbtup::readFixedSizeTHOneWordNULLable(Uint8* outBuffer,
 }
 
 bool
-Dbtup::readFixedSizeTHTwoWordNULLable(Uint8* outBuffer,
-                                      KeyReqStruct *req_struct,
-                                      AttributeHeader* ahOut,
-                                      Uint64 attrDes)
-{
-  thrjamDebug(req_struct->jamBuffer);
-  if (!nullFlagCheck(req_struct, attrDes))
-  {
-    thrjamDebug(req_struct->jamBuffer);
-    return readFixedSizeTHTwoWordNotNULL(outBuffer,
-                                         req_struct,
-                                         ahOut,
-                                         attrDes);
+Dbtup::readFixedSizeTHManyWordNULLable(Uint8* outBuffer,
+                                       KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+outBuffer, req_struct, ahOut, attrDes);
+  } else {
+    thrjam(req_struct->jamBuffer);
+    ahOut->setNULL();
+    return true;
+  }
+}
+
+bool Dbtup::readFixedSizeTHManyWordNULLable(Uint8 *outBuffer,
+                                            KeyReqStruct *req_struct,
+                                            AttributeHeader
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ req_struct
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*req_struct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ahOut
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  ahOut,
+                                  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AttributeHeader* ahOut,
+                                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+       attrDes);
   }
   else
   {
@@ -757,7 +766,19 @@ Dbtup::readFixedSizeTHManyWordNULLable(Uint8* outBuffer,
     thrjamDebug(req_struct->jamBuffer);
     return readFixedSizeTHManyWordNotNULL(outBuffer,
                                           req_struct,
-                                          ahOut,
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     AttributeHeader
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *ahOut,
                                           attrDes);
   }
   else
@@ -768,10 +789,28 @@ Dbtup::readFixedSizeTHManyWordNULLable(Uint8* outBuffer,
   }
 }
 
-bool
-Dbtup::readFixedSizeTHZeroWordNULLable(Uint8* outBuffer,
-                                       KeyReqStruct *req_struct,
-                                       AttributeHeader* ahOut,
+bool Dbtup::readFixedSizeTHZeroWordNULLable(Uint8* outBuffer,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+?
+=======
+? Uint32(DD)
+>>>>>>> MySQL 8.0.36
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32(DD) : Uint32(MM);
+=======
+                                                   : Uint32(MM);
+>>>>>>> MySQL 8.0.36
+ KeyReqStruct *req_struct,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                                AttributeHeader* ahOut,
                                        Uint64 attrDes)
 {
   thrjamDebug(req_struct->jamBuffer);
@@ -793,46 +832,43 @@ Dbtup::nullFlagCheck(KeyReqStruct *req_struct, Uint64  attrDes)
                 Uint32(DD) : Uint32(MM);
   Tablerec* const regTabPtr = req_struct->tablePtrP;
   Uint32 *bits= (ind) ? req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD) :
-                        req_struct->m_tuple_ptr->get_null_bits(regTabPtr);
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  
+||||||| Common ancestor
+DD) :
+=======
+DD)
+>>>>>>> MySQL 8.0.36
+                       : req_struct->m_tuple_ptr->get_null_bits(regTabPtr);
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+
   return BitmaskImpl::get(regTabPtr->m_offsets[ind].m_null_words, bits, pos);
 }
 
-bool
-Dbtup::disk_nullFlagCheck(KeyReqStruct *req_struct, Uint64  attrDes)
-{
+bool Dbtup::disk_nullFlagCheck(KeyReqStruct *req_struct, Uint64 attrDes) {
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec* const regTabPtr = req_struct->tablePtrP;
-  Uint32 *bits= req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
+  Uint32 *bits = req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+
   return BitmaskImpl::get(regTabPtr->m_offsets[DD].m_null_words, bits, pos);
 }
 
 /* Shared code for reading static varsize and expanded dynamic attributes. */
-bool
-Dbtup::varsize_reader(Uint8* outBuffer,
-                      KeyReqStruct *req_struct,
-                      AttributeHeader* ah_out,
-                      Uint64 attrDes,
-                      const void * srcPtr,
-                      Uint32 srcBytes)
-{
+bool Dbtup::varsize_reader(Uint8 *outBuffer, KeyReqStruct *req_struct,
+                           AttributeHeader *ah_out, Uint64 attrDes,
+                           const void *srcPtr, Uint32 srcBytes) {
   assert(req_struct->out_buf_bits == 0);
 
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 charsetFlag = AttributeOffset::getCharsetFlag(attrDes2);
-  Uint32 indexBuf= req_struct->out_buf_index;
-  Uint32 max_var_size= AttributeDescriptor::getSizeInBytes(attrDescriptor);
-  Uint32 max_read= req_struct->max_read;
+  Uint32 indexBuf = req_struct->out_buf_index;
+  Uint32 max_var_size = AttributeDescriptor::getSizeInBytes(attrDescriptor);
+  Uint32 max_read = req_struct->max_read;
 
   Uint32 newIndexBuf = indexBuf + srcBytes;
-  Uint8* dst = (outBuffer + indexBuf);
+  Uint8 *dst = (outBuffer + indexBuf);
 
-  if (unlikely(srcBytes > max_var_size))
-  {
+  if (unlikely(srcBytes > max_var_size)) {
     Uint32 var_idx= AttributeOffset::getOffset(attrDes2);
     Uint32 idx = req_struct->m_var_data[MM].m_var_len_offset;
     Uint32 attr_pos= req_struct->m_var_data[MM].m_offset_array_ptr[var_idx];
@@ -847,12 +883,121 @@ Dbtup::varsize_reader(Uint8* outBuffer,
                         srcBytes,
                         max_var_size,
                         req_struct->m_var_data[MM].m_max_var_offset,
-                        idx,
-                        var_idx,
-                        attr_pos,
-                        next_attr_pos,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+false;
+}
+
+bool
+Dbtup::xfrm_reader(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+false;
+}
+
+bool Dbtup::xfrm_reader(Uint8
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dstPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dstPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                   idx,
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ 
+                   KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct, 
+=======
+*req_struct,
+>>>>>>> MySQL 8.0.36
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ var_idx,
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AttributeHeader* ahOut,
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     AttributeHeader *ahOut, Uint64 attrDes,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    attr_pos,
+||||||| Common ancestor
+attrDes,
+=======
+>>>>>>> MySQL 8.0.36
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const void*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+srcPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*srcPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    next_attr_pos,
                         req_struct->m_var_data[MM].m_offset_array_ptr,
-                        req_struct->m_var_data[MM].m_data_ptr,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CHARSET_INFO*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CHARSET_INFO
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cs
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cs
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  req_struct->m_var_data[MM].m_data_ptr,
                         req_struct->m_var_data[MM].m_offset_array_ptr[var_idx+idx+1],
                         req_struct->m_var_data[MM].m_offset_array_ptr[var_idx+idx+2]);
 #ifdef DEBUG_FRAGMENT_LOCK
@@ -895,9 +1040,7 @@ Dbtup::varsize_reader(Uint8* outBuffer,
 #endif
       return true;
     }
-  }
-  else
-  {
+  } else {
     thrjamDebug(req_struct->jamBuffer);
     return xfrm_reader(dst, req_struct, ah_out, attrDes, srcPtr, srcBytes);
   }
@@ -907,13 +1050,42 @@ Dbtup::varsize_reader(Uint8* outBuffer,
   return false;
 }
 
-bool
-Dbtup::xfrm_reader(Uint8* dstPtr,  
+bool Dbtup::xfrm_reader(Uint8 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+dstPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,  
                    KeyReqStruct* req_struct, 
-                   AttributeHeader* ahOut,
-                   Uint64 attrDes,
-                   const void* srcPtr, Uint32 srcBytes)
-{
+                        AttributeHeader *ahOut, const Uint32 *bmptr,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const Uint32* bmptr, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+attrDes,
+||||||| Common ancestor
+bmlen,
+=======
+>>>>>>> MySQL 8.0.36
+                 Uint32 bmlen, const void* srcPtr, Uint32 srcBytes) {
   thrjam(req_struct->jamBuffer);
   assert(req_struct->out_buf_bits == 0);
 
@@ -932,10 +1104,21 @@ Dbtup::xfrm_reader(Uint8* dstPtr,
   Uint32 lb, len;
   const bool ok = NdbSqlUtil::get_var_length(typeId, srcPtr, srcBytes, lb, len);
   const unsigned defLen = maxBytes - lb;
-  const Uint32 maxDstLen = NdbSqlUtil::strnxfrm_hash_len(cs, defLen);
+  const Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+maxDstLen
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dst
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = NdbSqlUtil::strnxfrm_hash_len(cs, defLen);
   const Uint32 maxIndexBuf = indexBuf + (maxDstLen >> 2);
-  if (likely(maxIndexBuf <= maxRead && ok))
-  {
+  if (likely(maxIndexBuf <= maxRead && ok)) {
     thrjamDebug(req_struct->jamBuffer);
     // len:    Actual length of 'src'
     // defLen: Max defined length of src data 
@@ -950,73 +1133,484 @@ Dbtup::xfrm_reader(Uint8* dstPtr,
     require(newIndexBuf <= maxRead);
     req_struct->out_buf_index = newIndexBuf;
     return true;
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     req_struct->errorCode = ZTRY_TO_READ_TOO_MUCH_ERROR;
   }
   return false;
 }        
 
-bool
-Dbtup::bits_reader(Uint8* outBuffer,
+bool Dbtup::bits_reader(Uint8 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+out_buffer
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*out_buffer
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                    KeyReqStruct *req_struct,
                    AttributeHeader* ahOut,
-                   const Uint32* bmptr, Uint32 bmlen,
-                   Uint32 bitPos, Uint32 bitCount)
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+             const Uint32* bmptr, Uint32 bmlen,
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AttributeHeader* ah_out,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     AttributeHeader *ah_out,           Uint32 bitPos, Uint32 bitCount)
 {
   assert((req_struct->out_buf_index & 3) == 0);
 
   Uint32 indexBuf = req_struct->out_buf_index;
-  Uint32 indexBits = req_struct->out_buf_bits; 
-  Uint32 maxRead = req_struct->max_read;
+  Uint32 indexBits =   req_struct->out_buf_bits; 
+  Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+maxRead
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+src_ptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*src_ptr 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= req_struct->max_read;
 
-  Uint32 sz32 = (bitCount + 31) >> 5;
+  Uint32 sz32 = (bitCount + 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+31)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+src_ptr,
+>>>>>>> MySQL 8.0.36
+ >> 5;
   Uint32 newIndexBuf = indexBuf + 4 * ((indexBits + bitCount) >> 5);
-  Uint32 newIndexBits = (indexBits + bitCount) & 31;
+  Uint32 newIndexBits = (indexBits + bitCount) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+src_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 31;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+bool
+Dbtup::readVarSizeNULLable(Uint8* outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+bool Dbtup::readVarSizeNULLable(Uint8 *outBuffer, KeyReqStruct *req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
   Uint32* dst = (Uint32*)(outBuffer + indexBuf);
   if (likely(newIndexBuf <= maxRead))
   {
     ahOut->setDataSize(sz32);
     req_struct->out_buf_index = newIndexBuf;
-    req_struct->out_buf_bits = newIndexBits;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     AttributeHeader
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ahOut, Uint64 attrDes) {
+  if (!nullFlagCheck(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+req_struct
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+->out_buf_bits
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+, attrDes)) {
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+newIndexBits;
 
-    if (bitCount == 1)
-    {
-      * dst &= (1 << indexBits) - 1;
-      BitmaskImpl::set(1, dst, indexBits, 
-                       BitmaskImpl::get(bmlen, bmptr, bitPos));
-    }
-    else if (indexBits == 0)
-    {
+||||||| Common ancestor
+=======
+thrjamDebug(req_struct->jamBuffer);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   return 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+readVarSizeNotNULL(outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(bitCount
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1)
+||||||| Common ancestor
+=======
+attrDes);
+>>>>>>> MySQL 8.0.36
+  } else {
+    thrjam(req_struct->jamBuffer);
+  * dst 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ahOut->setNULL();
+>>>>>>> MySQL 8.0.36
+ (1 << indexBits) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+true;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  }
+}
+
+bool Dbtup::readDynFixedSizeNotNULL(Uint8 *outBuffer, KeyReqStruct 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+BitmaskImpl::set(1,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*req_struct,
+>>>>>>> MySQL 8.0.36
+ dst, indexBits, 
+                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+BitmaskImpl::get(bmlen
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(!nullFlagCheck(req_struct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+          AttributeHeader *ahOut
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bmptr, bitPos
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+attrDes
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint64 attrDes
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+)
+  {
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ thrjamDebug(req_struct->jamBuffer);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(req_struct->is_expanded) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else if (indexBits == 0)
+||||||| Common ancestor
+return readVarSizeNotNULL(outBuffer,
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return readDynFixedSizeExpandedNotNULL(outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ req_struct, ahOut,
+  {
       BitmaskImpl::getField(bmlen, bmptr, bitPos, bitCount, dst);
     }
     else
-    {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+req_struct,
+=======
+>>>>>>> MySQL 8.0.36
       BitmaskImpl::getField(bmlen, bmptr, bitPos, bitCount, dst + 2);
-      BitmaskImpl::setField(1+sz32, dst, indexBits, bitCount, dst + 2);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+BitmaskImpl::setField(1+sz32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+            ahOut
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ attrDes);
+  } else {
+    return readDynFixedSizeShrunkenNotNULL(outBuffer, req_struct, ahOut
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, dst, indexBits, bitCount, dst + 2);
     }
     
-    return true;
-  }
-  else
-  {
-    thrjam(req_struct->jamBuffer);
-    req_struct->errorCode = ZTRY_TO_READ_TOO_MUCH_ERROR;
-    return false;
-  }//if
+    return 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+attrDes);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct->errorCode = ZTRY_TO_READ_TOO_MUCH_ERROR
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut->setNULL()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+attrDes)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  return false;
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  return true;
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+}//if
 }
 
-bool
-Dbtup::readVarSizeNotNULL(Uint8* out_buffer,
-                          KeyReqStruct *req_struct,
-                          AttributeHeader* ah_out,
-                          Uint64 attrDes)
-{
-  thrjamDebug(req_struct->jamBuffer);
-  Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
+bool Dbtup::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+readVarSizeNotNULL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+readDynFixedSizeNotNULL
+// RONDB-624 todo: Glue these lines together ^v
+=======
+readDynFixedSizeNULLable
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Uint8 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+out_buffer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, KeyReqStruct *req_struct,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       AttributeHeader *ahOut, Uint64 attrDes) {
+  if (req_struct->is_expanded) {
+    return readDynFixedSizeExpandedNULLable(outBuffer, req_struct, ahOut,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ah_out,
+||||||| Common ancestor
+ahOut,
+=======
+>>>>>>> MySQL 8.0.36
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     Uint64
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ attrDes);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+thrjamDebug(req_struct->jamBuffer);
+||||||| Common ancestor
+if (req_struct->is_expanded)
+=======
+ }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ else Uint32 attrDescriptor = Uint32((attrDes << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+32)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+readDynFixedSizeExpandedNotNULL(outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+readDynFixedSizeShrunkenNULLable(outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+>>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct,
+=======
+req_struct, ahOut,
+>>>>>>> MySQL 8.0.36
+ 32);
   Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
     Uint32(DD) : Uint32(MM);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
@@ -1024,21 +1618,110 @@ Dbtup::readVarSizeNotNULL(Uint8* out_buffer,
   Uint32 var_attr_pos= req_struct->m_var_data[ind].m_offset_array_ptr[var_idx];
   Uint32 idx= req_struct->m_var_data[ind].m_var_len_offset;
   Uint32 next_attr_pos = req_struct->m_var_data[ind].m_offset_array_ptr[var_idx+idx];
-  Uint32 srcBytes = next_attr_pos - var_attr_pos;
-  const char* src_ptr= req_struct->m_var_data[ind].m_data_ptr+var_attr_pos;
-#ifdef TUP_DATA_VALIDATION
-  thrjam(req_struct->jamBuffer);
+  Uint32 srcBytes = next_attr_pos 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ var_attr_pos;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const char* src_ptr= req_struct->m_var_data[ind].m_data_ptr+var_attr_pos;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+  else
+  {
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+>>>>>>> MySQL 8.0.36
+
+<<<<<<< RonDB // RONDB-624 todo
+#ifdef
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TUP_DATA_VALIDATION
+  thrjam
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   return readDynFixedSizeShrunkenNotNULL
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtup::readDynFixedSizeExpandedNotNULL
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct->jamBuffer);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer, req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint8 *outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   thrjamDataDebug(req_struct->jamBuffer, ind);
   thrjamLine(req_struct->jamBuffer, var_idx);
 #endif
   return varsize_reader(out_buffer, req_struct, ah_out, attrDes,
-                        src_ptr, srcBytes);
+                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+src_ptr, srcBytes);
 }
 
 bool
-Dbtup::readVarSizeNULLable(Uint8* outBuffer,
-                           KeyReqStruct *req_struct,
-                           AttributeHeader* ahOut,
+Dbtup::readVarSizeNULLable(Uint8
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+       ahOut, attrDes);
+  }
+}
+
+bool
+Dbtup::readDynFixedSizeNULLable(Uint8
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        KeyReqStruct 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+*req_struct,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+KeyReqStruct *req_struct,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     KeyReqStruct *req_struct,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    AttributeHeader
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+* ahOut,
                            Uint64  attrDes)
 {
   thrjamDebug(req_struct->jamBuffer);
@@ -1060,30 +1743,12 @@ Dbtup::readVarSizeNULLable(Uint8* outBuffer,
 
 bool
 Dbtup::readDynFixedSizeNotNULL(Uint8* outBuffer,
-                               KeyReqStruct *req_struct,
-                               AttributeHeader* ahOut,
-                               Uint64  attrDes)
-{
-  thrjamDebug(req_struct->jamBuffer);
-  if (req_struct->is_expanded)
-  {
-    return readDynFixedSizeExpandedNotNULL(outBuffer, req_struct,
-                                           ahOut, attrDes);
-  }
-  else
-  {
-    return readDynFixedSizeShrunkenNotNULL(outBuffer, req_struct,
-                                           ahOut, attrDes);
-  }
-}
-
-bool
-Dbtup::readDynFixedSizeNULLable(Uint8* outBuffer,
-                                KeyReqStruct *req_struct,
-                                AttributeHeader* ahOut,
+                               KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+* ahOut,
                                 Uint64  attrDes)
 {
-  thrjamDebug(req_struct->jamBuffer);
   if (req_struct->is_expanded)
   {
     return readDynFixedSizeExpandedNULLable(outBuffer, req_struct,
@@ -1098,10 +1763,151 @@ Dbtup::readDynFixedSizeNULLable(Uint8* outBuffer,
 
 bool
 Dbtup::readDynFixedSizeExpandedNotNULL(Uint8* outBuffer,
-                                       KeyReqStruct *req_struct,
-                                       AttributeHeader* ahOut,
-                                       Uint64 attrDes)
-{
+                                       KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ *ahOut,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+AttributeHeader* ahOut,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        AttributeHeader* ahOut,
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+Uint64  attrDes) {
+  thrjamDebug(req_struct->jamBuffer);
+  if (req_struct->is_expanded)
+  {
+    return readDynFixedSizeExpandedNotNULL(outBuffer, req_struct,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+?
+=======
+? Uint32(DD)
+>>>>>>> MySQL 8.0.36
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ahOut, attrDes);
+  }
+  else
+  {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+readDynFixedSizeShrunkenNotNULL(outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+off_arr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*off_arr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ req_struct,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+vsize_in_bytes=
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+vsize_in_bytes
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =                                   ahOut, attrDes);
+  }
+}
+
+bool Dbtup::readDynFixedSizeNULLable(Uint8 *outBuffer,
+                                KeyReqStruct *req_struct,
+                                AttributeHeader *ahOut,
+                                Uint64  attrDes) {
+  thrjamDebug(req_struct->jamBuffer);
+  if (req_struct->is_expanded)
+  {
+    return readDynFixedSizeExpandedNULLable(outBuffer, req_struct,
+                                            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+attrDes);
+  }
+||||||| Common ancestor
+Uint32(MM);
+
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 *src_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  if(!BitmaskImpl::get((* src_ptr) & DYN_BM_LEN_MASK, src_ptr, pos))
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                               : Uint32(MM);
+
+  Uint32 *src_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  if (!BitmaskImpl::get((*src_ptr) & DYN_BM_LEN_MASK, src_ptr, pos))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
+    return readDynFixedSizeShrunkenNULLable(outBuffer, req_struct,    ahOut, attrDes);
+  }
+}
+
+bool Dbtup::readDynFixedSizeExpandedNotNULL(Uint8 *outBuffer,
+                                            KeyReqStruct *req_struct,
+                                            AttributeHeader *ahOut,
+                                            Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   /*
     In the expanded format, we share the read code with static varsized, just
@@ -1109,10 +1915,10 @@ Dbtup::readDynFixedSizeExpandedNotNULL(Uint8* outBuffer,
   */
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?             Uint32(DD)
+                                                                   : Uint32(MM);
 
-  char *src_ptr= req_struct->m_var_data[ind].m_dyn_data_ptr;
+  char *src_ptr = req_struct->m_var_data[ind].m_dyn_data_ptr;
   Uint32 var_index= AttributeOffset::getOffset(attrDes2);
   Uint16* off_arr= req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
   Uint32 var_attr_pos= off_arr[var_index];
@@ -1155,51 +1961,147 @@ Dbtup::readDynFixedSizeExpandedNULLable(Uint8* outBuffer,
 
 bool
 Dbtup::readDynFixedSizeShrunkenNotNULL(Uint8* outBuffer,
-                                       KeyReqStruct *req_struct,
-                                       AttributeHeader* ahOut,
-                                       Uint64 attrDes)
-{
+                                            KeyReqStruct *req_struct,
+                                       AttributeHeader *ahOut,
+                                       Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   Uint32 ind =
-    (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-    Uint32(DD) : Uint32(MM);
+    (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+            Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                              
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ : Uint32(MM);
 
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
-  Uint32 dyn_len= req_struct->m_var_data[ind].m_dyn_part_len;
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 dyn_len = req_struct->m_var_data[ind].m_dyn_part_len;
   require(dyn_len != 0);
-  Uint32 bm_len= (* bm_ptr) & DYN_BM_LEN_MASK; // In 32-bit words
+  Uint32 bm_len= (*bm_ptr) & DYN_BM_LEN_MASK; // In 32-bit words
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   require(BitmaskImpl::get(bm_len, bm_ptr, pos));
 
   /*
     The attribute is not NULL. Now to get the data offset, we count the number
     of bits set in the bitmap for fixed-size dynamic attributes prior to this
-    attribute. Since there is one bit for each word of fixed-size attribute,
+    attribute. Since there is one bit for each word of 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fixed-size
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+attrDes);
+}
+
+bool
+Dbtup::readDynBigFixedSizeNotNULL(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+attrDes);
+}
+
+bool Dbtup::readDynBigFixedSizeNotNULL(Uint8
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+attribute
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
     and since fixed-size attributes are stored word-aligned backwards from the
-    end of the row, this gives the distance in words from the row end to the
+    end of the row, this gives the distance in words from the row end to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
     end of the data for this attribute.
 
     We use a pre-computed bitmask to mask away all bits for fixed-sized
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  KeyReqStruct *req_struct,
+                                  AttributeHeader* ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       KeyReqStruct *req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     dynamic attributes, and we also mask away the initial bitmap length byte and
     any trailing non-bitmap bytes to save a few conditionals.
   */
-  Tablerec * regTabPtr = req_struct->tablePtrP;
+  Tablerec * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regTabPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint64 attrDes)
+{
+=======
+     AttributeHeader *ahOut, Uint64 attrDes) {
+>>>>>>> MySQL 8.0.36
+ = req_struct->tablePtrP;
   Uint32 *bm_mask_ptr= regTabPtr->dynFixSizeMask[ind];
-  Uint32 bm_pos= AttributeOffset::getNullFlagOffset(attrDes2);
+  Uint32 bm_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pos= AttributeOffset::getNullFlagOffset(attrDes2);
+||||||| Common ancestor
+struct,
+=======
+struct, ahOut,
+>>>>>>> MySQL 8.0.36
   Uint32 prevMask= (1 << (pos & 31)) - 1;
   Uint32 bit_count= BitmaskImpl::count_bits(prevMask & bm_mask_ptr[bm_pos] & bm_ptr[bm_pos]);
   for(Uint32 i=0; i<bm_pos; i++)
     bit_count+= BitmaskImpl::count_bits(bm_mask_ptr[i] & bm_ptr[i]);
 
-  /* Now compute the data pointer from the row length. */
+  /* Now compute the data pointer from the row 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+length.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
   Uint32 vsize_in_bytes= AttributeDescriptor::getSizeInBytes(attrDescriptor);
   Uint32 vsize_in_words= (vsize_in_bytes+3)>>2;
   Uint32 *data_ptr= bm_ptr + dyn_len - bit_count - vsize_in_words;
 
   thrjamDebug(req_struct->jamBuffer);
-  return varsize_reader(outBuffer, req_struct, ahOut, attrDes,
+  return varsize_reader(outBuffer, req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ ahOut, attrDes,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
                         (Uint8 *)data_ptr, vsize_in_bytes);
 }
 
@@ -1208,27 +2110,109 @@ inline
 bool
 dynCheckNull(Uint32 totlen, Uint32 bm_len, const Uint32* bm_ptr, Uint32 pos)
 {
-  return  totlen == 0 || !(bm_len > (pos >> 5)) || 
+  return  totlen == 0 || !(bm_len > (pos 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+>>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 5)) || 
     !BitmaskImpl::get(bm_len, bm_ptr, pos);
 }
 
-bool
-Dbtup::readDynFixedSizeShrunkenNULLable(Uint8* outBuffer,
+bool Dbtup::readDynFixedSizeShrunkenNULLable(Uint8 *outBuffer,
                                         KeyReqStruct *req_struct,
-                                        AttributeHeader* ahOut,
-                                        Uint64 attrDes)
-{
+                                        AttributeHeader *ahOut,
+                                        Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
-  Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
+  Uint32 attrDescriptor = Uint32(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(attrDes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer, req_struct,
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+outBuffer, req_struct, ahOut,
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+                Uint32(DD) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32(MM);
 
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 *bm_ptr= (Uint32 *)(req_struct
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+->m_var_data[ind].m_dyn_data_ptr);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+, ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   Uint32 dyn_len= req_struct->m_var_data[ind].m_dyn_part_len;
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   /* Check for NULL (including the case of an empty bitmap). */
-  if(dyn_len == 0 || dynCheckNull(dyn_len, (* bm_ptr) & DYN_BM_LEN_MASK,
+  if(dyn_len == 0 || 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+dynCheckNull(dyn_len,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+              ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint8
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bm_ptr)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer,
+=======
+*outBuffer,
+>>>>>>> MySQL 8.0.36
+ & DYN_BM_LEN_MASK,
                                   bm_ptr, pos))
   {
     thrjamDebug(req_struct->jamBuffer);
@@ -1237,28 +2221,130 @@ Dbtup::readDynFixedSizeShrunkenNULLable(Uint8* outBuffer,
   }
 
   return readDynFixedSizeShrunkenNotNULL(outBuffer, req_struct,
-                                         ahOut, attrDes);
+                                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     AttributeHeader
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ahOut,
+=======
+*ahOut,
+>>>>>>> MySQL 8.0.36
+        ahOut, attrDes);
 }
 
 bool
 Dbtup::readDynBigFixedSizeNotNULL(Uint8* outBuffer,
                                   KeyReqStruct *req_struct,
                                   AttributeHeader* ahOut,
-                                  Uint64 attrDes)
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+?
+=======
+? Uint32(DD)
+>>>>>>> MySQL 8.0.36
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  Uint64 attrDes)
 {
   thrjamDebug(req_struct->jamBuffer);
   if(req_struct->is_expanded)
-    return readDynBigFixedSizeExpandedNotNULL(outBuffer, req_struct,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 vsize_in_bytes=
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32 vsize_in_bytes
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ readDynBigFixedSizeExpandedNotNULL(outBuffer, req_struct,
                                          ahOut, attrDes);
+<<<<<<< RonDB // RONDB-624 todo
   else
     return readDynBigFixedSizeShrunkenNotNULL(outBuffer, req_struct,
                                          ahOut, attrDes);
 }//Dbtup::readDynBigVarSize()
 
 bool
-Dbtup::readDynBigFixedSizeNULLable(Uint8* outBuffer,
-                                   KeyReqStruct *req_struct,
-                                   AttributeHeader* ahOut,
+Dbtup::readDynBigFixedSizeNULLable(Uint8
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+
+bool
+Dbtup::readDynBigFixedSizeExpandedNULLable(Uint8* outBuffer,
+                                           KeyReqStruct 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+bool Dbtup::readDynBigFixedSizeExpandedNULLable(Uint8 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+*
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                                   KeyReqStruct 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*req_struct,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+       AttributeHeader* ahOut,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+            KeyReqStruct *req_struct,
+                                                AttributeHeader *ahOut,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               AttributeHeader* ahOut,
                                    Uint64 attrDes)
 {
   thrjamDebug(req_struct->jamBuffer);
@@ -1266,16 +2352,26 @@ Dbtup::readDynBigFixedSizeNULLable(Uint8* outBuffer,
     return readDynBigFixedSizeExpandedNULLable(outBuffer, req_struct,
                                           ahOut, attrDes);
   else
-    return readDynBigFixedSizeShrunkenNULLable(outBuffer, req_struct,
-                                          ahOut, attrDes);
+    return readDynBigFixedSizeShrunkenNULLable(outBuffer, req_struct, ahOut,
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ attrDes);
 }//Dbtup::readDynBigVarSize()
 
-bool
-Dbtup::readDynBigFixedSizeExpandedNotNULL(Uint8* outBuffer,
-                                          KeyReqStruct *req_struct,
-                                          AttributeHeader* ahOut,
-                                          Uint64 attrDes)
-{
+bool Dbtup::readDynBigFixedSizeExpandedNotNULL(Uint8 *outBuffer,
+                                               KeyReqStruct *req_struct,
+                                               AttributeHeader *ahOut,
+                                               Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   /*
     In the expanded format, we share the read code with static varsized, just
@@ -1283,10 +2379,10 @@ Dbtup::readDynBigFixedSizeExpandedNotNULL(Uint8* outBuffer,
   */
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?             Uint32(DD)
+                                                                   : Uint32(MM);
 
-  char *src_ptr= req_struct->m_var_data[ind].m_dyn_data_ptr;
+  char *src_ptr = req_struct->m_var_data[ind].m_dyn_data_ptr;
   Uint32 var_index= AttributeOffset::getOffset(attrDes2);
   Uint16* off_arr= req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
   Uint32 var_attr_pos= off_arr[var_index];
@@ -1303,7 +2399,27 @@ bool
 Dbtup::readDynBigFixedSizeExpandedNULLable(Uint8* outBuffer,
                                            KeyReqStruct *req_struct,
                                            AttributeHeader* ahOut,
-                                           Uint64 attrDes)
+                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+offset_array
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*offset_array
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  Uint64 attrDes)
 {
   thrjamDebug(req_struct->jamBuffer);
   /*
@@ -1330,21 +2446,31 @@ Dbtup::readDynBigFixedSizeExpandedNULLable(Uint8* outBuffer,
                                        ahOut, attrDes);
 }
 
-bool
-Dbtup::readDynBigFixedSizeShrunkenNotNULL(Uint8* outBuffer,
+bool Dbtup::readDynBigFixedSizeShrunkenNotNULL(Uint8 *outBuffer,
                                           KeyReqStruct *req_struct,
-                                          AttributeHeader* ahOut,
-                                          Uint64 attrDes)
-{
+                                          AttributeHeader *ahOut,
+                                          Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   Uint32 ind =
-    (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-    Uint32(DD) : Uint32(MM);
+    (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+            Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                              
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ : Uint32(MM);
 
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
-  Uint32 dyn_len= req_struct->m_var_data[ind].m_dyn_part_len;
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 dyn_len = req_struct->m_var_data[ind].m_dyn_part_len;
   require(dyn_len!=0);
   Uint32 bm_len = (* bm_ptr) & DYN_BM_LEN_MASK;
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
@@ -1355,50 +2481,134 @@ Dbtup::readDynBigFixedSizeShrunkenNotNULL(Uint8* outBuffer,
     of varsize dynamic attributes prior to this one that are not NULL.
 
     We use a pre-computed bitmask to mask away all bits for fixed-sized
-    dynamic attributes, and we also mask away the initial bitmap length byte and
+    dynamic attributes, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+and
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct,
+=======
+req_struct, ahOut,
+>>>>>>> MySQL 8.0.36
+ we also mask away the initial bitmap length byte and
     any trailing non-bitmap bytes to save a few conditionals.
   */
   Tablerec * regTabPtr = req_struct->tablePtrP;
   Uint32 *bm_mask_ptr= regTabPtr->dynVarSizeMask[ind];
   Uint32 bm_pos= AttributeOffset::getNullFlagOffset(attrDes2);
-  Uint32 prevMask= (1 << (pos & 31)) - 1;
-  Uint32 bit_count= BitmaskImpl::count_bits(prevMask & bm_mask_ptr[bm_pos] & bm_ptr[bm_pos]);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 prevMask= (1 << (pos & 31)) - 1;
+  Uint32 bit_count= BitmaskImpl::count_bits(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+prevMask
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint8
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+& bm_mask_ptr[bm_pos] & bm_ptr[bm_pos]);
   for(Uint32 i=0; i<bm_pos; i++)
     bit_count+= BitmaskImpl::count_bits(bm_mask_ptr[i] & bm_ptr[i]);
 
-  /* Now find the data pointer and length from the offset array. */
+  /* Now find the data pointer and length from the offset
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ array. */
   Uint32 vsize_in_bytes= AttributeDescriptor::getSizeInBytes(attrDescriptor);
   //Uint16 *offset_array= req_struct->m_var_data[MM].m_dyn_offset_arr_ptr;
   Uint16* offset_array = (Uint16*)(bm_ptr + bm_len);
   Uint16 data_offset= offset_array[bit_count];
   require(vsize_in_bytes <= Uint32(offset_array[bit_count+1]- data_offset));
   
-  /*
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
     In the expanded format, we share the read code with static varsized, just
-    using different data base pointer and offset/length arrays.
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AttributeHeader* ahOut,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ using different data base 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pointer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+AttributeHeader
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+and
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ offset/length arrays.
   */
   thrjamDebug(req_struct->jamBuffer);
   return varsize_reader(outBuffer, req_struct, ahOut, attrDes,
                         ((char *)offset_array) + data_offset, vsize_in_bytes);
 }
 
-bool
-Dbtup::readDynBigFixedSizeShrunkenNULLable(Uint8* outBuffer,
-                                           KeyReqStruct *req_struct,
-                                           AttributeHeader* ahOut,
-                                           Uint64 attrDes)
-{
+bool Dbtup::readDynBigFixedSizeShrunkenNULLable(Uint8 *outBuffer,                 KeyReqStruct *req_struct,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                AttributeHeader* ahOut,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AttributeHeader* ahOut,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     AttributeHeader *ahOut,                 Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
-  Uint32 dyn_len= req_struct->m_var_data[ind].m_dyn_part_len;
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 dyn_len = req_struct->m_var_data[ind].m_dyn_part_len;
   /* Check for NULL (including the case of an empty bitmap). */
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
-  if(dyn_len == 0 || dynCheckNull(dyn_len, (* bm_ptr) & DYN_BM_LEN_MASK,
+  if(dyn_len == 0 || dynCheckNull(dyn_len, (*bm_ptr) & DYN_BM_LEN_MASK,
                                   bm_ptr, pos))
   {
     thrjamDebug(req_struct->jamBuffer);
@@ -1407,25 +2617,203 @@ Dbtup::readDynBigFixedSizeShrunkenNULLable(Uint8* outBuffer,
   }
 
   return readDynBigFixedSizeShrunkenNotNULL(outBuffer, req_struct,
-                                       ahOut, attrDes);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ ahOut, bm_ptr, bm_len, pos,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bm_ptr, bm_len,
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+bitCount);
+}
+
+bool Dbtup::readDynBitsShrunkenNULLable(Uint8 *outBuffer,
+                                        KeyReqStruct *req_struct,
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pos,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+attrDes);
 }
 
 bool
-Dbtup::readDynBitsNotNULL(Uint8* outBuffer,
-                          KeyReqStruct *req_struct,
-                          AttributeHeader* ahOut,
-                          Uint64 attrDes)
-{
-  thrjamDebug(req_struct->jamBuffer);
-  if(req_struct->is_expanded)
-    return readDynBitsExpandedNotNULL(outBuffer, req_struct, ahOut, attrDes);
-  else
-    return readDynBitsShrunkenNotNULL(outBuffer, req_struct, ahOut, attrDes);
+Dbtup::readDynBitsNotNULL(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bitCount);
 }
 
 bool
-Dbtup::readDynBitsNULLable(Uint8* outBuffer,
-                           KeyReqStruct *req_struct,
+Dbtup::readDynBitsShrunkenNULLable(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                  AttributeHeader *ahOut,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+KeyReqStruct *req_struct,
+      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         KeyReqStruct* req_struct,
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     Uint64 attrDes) {
+  Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
+  Uint32 attrDes2 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+= Uint32(attrDes >> 32);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32(DD)
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         Uint64
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+thrjamDebug(req_struct->jamBuffer);
+||||||| Common ancestor
+Uint32 attrDescriptor = Uint32((attrDes << 32)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if(req_struct->is_expanded)
+||||||| Common ancestor
+32);
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+readDynBitsExpandedNotNULL(outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32(attrDes
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+>>
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ahOut, attrDes);
+||||||| Common ancestor
+32);
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
+||||||| Common ancestor
+Uint32 ind =
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return readDynBitsShrunkenNotNULL(outBuffer, req_struct, ahOut, attrDes);
+}
+
+bool
+Dbtup::readDynBitsNULLable(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(AttributeDescriptor::getDiskBased(attrDescriptor))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+outBuffer,
+||||||| Common ancestor
+?
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                       KeyReqStruct *req_struct,
                            AttributeHeader* ahOut,
                            Uint64 attrDes)
 {
@@ -1436,56 +2824,86 @@ Dbtup::readDynBitsNULLable(Uint8* outBuffer,
     return readDynBitsShrunkenNULLable(outBuffer, req_struct, ahOut, attrDes);
 }
 
-bool
-Dbtup::readDynBitsShrunkenNotNULL(Uint8* outBuffer,
-                                  KeyReqStruct* req_struct,
-                                  AttributeHeader* ahOut,
-                                  Uint64 attrDes)
-{
+bool Dbtup::readDynBitsShrunkenNotNULL(Uint8 *outBuffer,
+                                       KeyReqStruct *req_struct,
+                                       AttributeHeader *ahOut, Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
   Uint32 dyn_len= req_struct->m_var_data[ind].m_dyn_part_len;
   require(dyn_len != 0);
-  Uint32 bm_len = (* bm_ptr) & DYN_BM_LEN_MASK;
-  Uint32 bitCount =
-    AttributeDescriptor::getArraySize(attrDescriptor);
+  Uint32 bm_len = (*bm_ptr) & DYN_BM_LEN_MASK;
+  Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   /* Make sure we have sufficient data in the row. */
   require((pos>>5)<bm_len);
   /* The bit data is stored just before the NULL bit. */
-  assert(pos>bitCount);
-  pos-= bitCount;
+  assert(pos > bitCount);
+  pos -= bitCount;
 
   thrjamDebug(req_struct->jamBuffer);
-  return bits_reader(outBuffer, req_struct, ahOut,
-                     bm_ptr, bm_len,
-                     pos, bitCount);
+  return bits_reader(outBuffer, req_struct, ahOut, bm_ptr, bm_len, pos,
+                     bitCount);
 }
 
-bool
-Dbtup::readDynBitsShrunkenNULLable(Uint8* outBuffer,
-                                   KeyReqStruct* req_struct,
-                                   AttributeHeader* ahOut,
-                                   Uint64 attrDes)
-{
+bool Dbtup::readDynBitsShrunkenNULLable(Uint8 *outBuffer,
+                                        KeyReqStruct *req_struct,
+                                        AttributeHeader *ahOut,
+                                        Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   Uint32 ind =
-    (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-    Uint32(DD) : Uint32(MM);
+    (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+            Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                              
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ : Uint32(MM);
 
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
   Uint32 dyn_len= req_struct->m_var_data[ind].m_dyn_part_len;
   /* Check for NULL (including the case of an empty bitmap). */
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   if(dyn_len == 0 || dynCheckNull(dyn_len, (* bm_ptr) & DYN_BM_LEN_MASK,
-                                  bm_ptr, pos))
+                                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bm_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ AttributeHeader* ahOut,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pos)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     Uint64 attrDes
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   AttributeHeader *ahOut, Uint64 attrDes
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
   {
     thrjamDebug(req_struct->jamBuffer);
     ahOut->setNULL();
@@ -1497,46 +2915,127 @@ Dbtup::readDynBitsShrunkenNULLable(Uint8* outBuffer,
 
 bool
 Dbtup::readDynBitsExpandedNotNULL(Uint8* outBuffer,
-                                  KeyReqStruct* req_struct,
-                                  AttributeHeader* ahOut,
-                                  Uint64 attrDes)
+                                  KeyReqStruct* req_struct, ahOut, attrDes);
+}
+
+bool Dbtup::readDynVarSizeNULLable(Uint8 *outBuffer, KeyReqStruct *req_struct,
+                            AttributeHeader* ahOut,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                            Uint64 attrDes)
 {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+                Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut, attrDes);
+}
+
+bool
+Dbtup::readDynVarSizeNULLable(Uint8* outBuffer,
+                              KeyReqStruct *req_struct,
+                              AttributeHeader* ahOut,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AttributeHeader *ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ : Uint32(MM);
 
   Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
-  Uint32 bm_len = (* bm_ptr) & DYN_BM_LEN_MASK;
+  Uint32 bm_len = (* bm_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+struct,
+          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+struct, ahOut,
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ & DYN_BM_LEN_MASK;
   Uint32 bitCount =
     AttributeDescriptor::getArraySize(attrDescriptor);
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   /* The bit data is stored just before the NULL bit. */
   assert(pos>bitCount);
-  pos-= bitCount;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pos-= bitCount
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut, attrDes)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+attrDes)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
  
   thrjamDebug(req_struct->jamBuffer);
   return bits_reader(outBuffer, req_struct, ahOut,
-                     bm_ptr, bm_len,
-                     pos, bitCount);
+ ahOut,
+                    bm_ptr, bm_len,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pos,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ bitCount);
 }
 
-bool
-Dbtup::readDynBitsExpandedNULLable(Uint8* outBuffer,
+bool Dbtup::readDynBitsExpandedNULLable(Uint8 *outBuffer,
                                    KeyReqStruct* req_struct,
-                                   AttributeHeader* ahOut,
-                                   Uint64 attrDes)
-{
+                                   AttributeHeader *ahOut,
+                                   Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
-  if(!BitmaskImpl::get((* bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos))
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if(!BitmaskImpl::get((*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bm
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+off
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*off
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos))
   {
     thrjamDebug(req_struct->jamBuffer);
     ahOut->setNULL();
@@ -1546,31 +3045,70 @@ Dbtup::readDynBitsExpandedNULLable(Uint8* outBuffer,
   return readDynBitsExpandedNotNULL(outBuffer, req_struct, ahOut, attrDes);
 }
 
-bool
-Dbtup::readDynVarSizeNotNULL(Uint8* outBuffer,
+bool Dbtup::readDynVarSizeNotNULL(Uint8 *outBuffer,
                              KeyReqStruct *req_struct,
                              AttributeHeader* ahOut,
-                             Uint64 attrDes)
-{
+                             Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   if(req_struct->is_expanded)
-    return readDynVarSizeExpandedNotNULL(outBuffer, req_struct,
-                                         ahOut, attrDes);
+    return readDynVarSizeExpandedNotNULL(outBuffer, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+? Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32(DD) : Uint32(MM);
+
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                   : Uint32(MM);
+
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                         ahOut, attrDes);
   else
-    return readDynVarSizeShrunkenNotNULL(outBuffer, req_struct,
-                                         ahOut, attrDes);
+    return readDynVarSizeShrunkenNotNULL(outBuffer, req_struct,   ahOut, attrDes);
 }
 
-bool
-Dbtup::readDynVarSizeNULLable(Uint8* outBuffer,
+bool Dbtup::readDynVarSizeNULLable(Uint8 *outBuffer,
                               KeyReqStruct *req_struct,
-                              AttributeHeader* ahOut,
-                              Uint64 attrDes)
-{
+                              AttributeHeader *ahOut,
+                              Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   if(req_struct->is_expanded)
     return readDynVarSizeExpandedNULLable(outBuffer, req_struct,
-                                          ahOut, attrDes);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+?
+=======
+? Uint32(DD)
+>>>>>>> MySQL 8.0.36
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32(DD)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                    ahOut, attrDes);
   else
     return readDynVarSizeShrunkenNULLable(outBuffer, req_struct,
                                           ahOut, attrDes);
@@ -1593,7 +3131,31 @@ Dbtup::readDynVarSizeExpandedNotNULL(Uint8* outBuffer,
                 Uint32(DD) : Uint32(MM);
 
   char *src_ptr= req_struct->m_var_data[ind].m_dyn_data_ptr;
-  Uint32 var_index= AttributeOffset::getOffset(attrDes2);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+var
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+offset
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*offset
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_index= AttributeOffset::getOffset(attrDes2);
   Uint16* off_arr= req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
   Uint32 var_attr_pos= off_arr[var_index];
   Uint32 idx= req_struct->m_var_data[ind].m_dyn_len_offset;
@@ -1603,12 +3165,10 @@ Dbtup::readDynVarSizeExpandedNotNULL(Uint8* outBuffer,
                         src_ptr + var_attr_pos, vsize_in_bytes);
 }
 
-bool
-Dbtup::readDynVarSizeExpandedNULLable(Uint8* outBuffer,
-                                      KeyReqStruct *req_struct,
-                                      AttributeHeader* ahOut,
-                                      Uint64 attrDes)
-{
+bool Dbtup::readDynVarSizeExpandedNULLable(Uint8 *outBuffer,
+                                           KeyReqStruct *req_struct,
+                                           AttributeHeader *ahOut,
+                                           Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   /*
     Check for NULL. In the expanded format, the bitmap is guaranteed
@@ -1616,28 +3176,66 @@ Dbtup::readDynVarSizeExpandedNULLable(Uint8* outBuffer,
   */
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 *src_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 *src_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
-  if(!BitmaskImpl::get((* src_ptr) & DYN_BM_LEN_MASK, src_ptr, pos))
+  if (!BitmaskImpl::get((* src_ptr) & DYN_BM_LEN_MASK, src_ptr, pos))
   {
     thrjamDebug(req_struct->jamBuffer);
     ahOut->setNULL();
     return true;
   }
 
-  return readDynVarSizeExpandedNotNULL(outBuffer, req_struct,
-                                       ahOut, attrDes);
+  return readDynVarSizeExpandedNotNULL(outBuffer, req_struct, ahOut, attrDes);
+}
+
+bool Dbtup::readDiskFixedSizeNotNULL(Uint8 *outBuffer, KeyReqStruct *req_struct,
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+attrDes);
 }
 
 bool
-Dbtup::readDynVarSizeShrunkenNotNULL(Uint8* outBuffer,
-                                     KeyReqStruct *req_struct,
-                                     AttributeHeader* ahOut,
-                                     Uint64 attrDes)
-{
+Dbtup::readDynVarSizeShrunkenNotNULL(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+attrDes);
+}
+
+bool
+Dbtup::readDiskFixedSizeNotNULL(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+outBuffer,
+                                     KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer,
+				KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*req_struct,
+                                     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*req_struct,
+				
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+AttributeHeader *ahOut,
+                                     Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
@@ -1648,7 +3246,31 @@ Dbtup::readDynVarSizeShrunkenNotNULL(Uint8* outBuffer,
   Uint32 dyn_len= req_struct->m_var_data[ind].m_dyn_part_len;
   require(dyn_len!=0);
   Uint32 bm_len = (* bm_ptr) & DYN_BM_LEN_MASK;
-  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint8
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pos
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dst
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = AttributeOffset::getNullFlagPos(attrDes2);
   require(BitmaskImpl::get(bm_len, bm_ptr, pos));
 
   /*
@@ -1752,52 +3374,49 @@ Dbtup::readDiskFixedSizeNotNULL(Uint8* outBuffer,
       req_struct->out_buf_index = newIndexBuf;
       return true;
     }
-  } 
-  else 
-  {
+  } else {
     return xfrm_reader(dst, req_struct, ahOut, attrDes, src, srcBytes);
-  } 
-  
+  }
+
   thrjam(req_struct->jamBuffer);
   req_struct->errorCode = ZTRY_TO_READ_TOO_MUCH_ERROR;
   return false;
 }
 
-bool
-Dbtup::readDiskFixedSizeNULLable(Uint8* outBuffer,
-				 KeyReqStruct *req_struct,
-				 AttributeHeader* ahOut,
-				 Uint64 attrDes)
-{
-  thrjamDebug(req_struct->jamBuffer);
+bool Dbtup::readDiskFixedSizeNULLable(Uint8 *outBuffer,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+thrjamDebug(req_struct->jamBuffer);
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
     thrjam(req_struct->jamBuffer);
     req_struct->errorCode = ZOP_DISK_WITH_FLAG_NOT_SET;
     return false;
   }
-  if (!disk_nullFlagCheck(req_struct, attrDes))
-  {
+  if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                              KeyReqStruct *req_struct,
+                                      AttributeHeader *ahOut, Uint64 attrDes) {
+  if (!disk_nullFlagCheck(req_struct, attrDes)) {
     thrjamDebug(req_struct->jamBuffer);
-    return readDiskFixedSizeNotNULL(outBuffer,
-                                    req_struct,
-                                    ahOut,
-                                    attrDes);
-  }
-  else
-  {
+    return readDiskFixedSizeNotNULL(outBuffer, req_struct, ahOut, attrDes);
+  } else {
     thrjamDebug(req_struct->jamBuffer);
     ahOut->setNULL();
     return true;
   }
 }
 
-bool
-Dbtup::readDiskVarAsFixedSizeNotNULL(Uint8* outBuffer,
-				     KeyReqStruct *req_struct,
-				     AttributeHeader* ahOut,
-				     Uint64 attrDes)
-{
+bool Dbtup::readDiskVarAsFixedSizeNotNULL(Uint8 *outBuffer,
+                                          KeyReqStruct *req_struct,
+                                          AttributeHeader *ahOut,
+                                          Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   assert(req_struct->out_buf_bits == 0);
 
@@ -1809,34 +3428,31 @@ Dbtup::readDiskVarAsFixedSizeNotNULL(Uint8* outBuffer,
   }
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 *tuple_header= req_struct->m_disk_ptr->m_data;
-  Uint32 indexBuf= req_struct->out_buf_index;
-  Uint32 readOffset= AttributeOffset::getOffset(attrDes2);
+  Uint32 *tuple_header = req_struct->m_disk_ptr->m_data;
+  Uint32 indexBuf = req_struct->out_buf_index;
+  Uint32 readOffset = AttributeOffset::getOffset(attrDes2);
 
-  Uint32 maxRead= req_struct->max_read;
+  Uint32 maxRead = req_struct->max_read;
   Uint32 charsetFlag = AttributeOffset::getCharsetFlag(attrDes2);
-  Uint8* dst = (outBuffer + indexBuf);
-  const Uint8* src = (Uint8*)(tuple_header+readOffset);
+  Uint8 *dst = (outBuffer + indexBuf);
+  const Uint8 *src = (Uint8 *)(tuple_header + readOffset);
 
   Uint32 srcBytes = AttributeDescriptor::getSizeInBytes(attrDescriptor);
-  Uint32 attrNoOfWords= (srcBytes + 3) >> 2;
+  Uint32 attrNoOfWords = (srcBytes + 3) >> 2;
   Uint32 newIndexBuf = indexBuf + srcBytes;
   Uint32 typeId = AttributeDescriptor::getType(attrDescriptor);
   Uint32 lb, len;
 
   if (typeId != NDB_ARRAYTYPE_FIXED &&
-      NdbSqlUtil::get_var_length(typeId, src, srcBytes, lb, len))
-  {
+      NdbSqlUtil::get_var_length(typeId, src, srcBytes, lb, len)) {
     srcBytes = len + lb;
     newIndexBuf = indexBuf + srcBytes;
-    attrNoOfWords= (srcBytes + 3) >> 2;
+    attrNoOfWords = (srcBytes + 3) >> 2;
   }
 
   require((readOffset + attrNoOfWords - 1) < req_struct->check_offset[DD]);
-  if (! charsetFlag || ! req_struct->xfrm_flag) 
-  {
-    if (likely(newIndexBuf <= maxRead))
-    {
+  if (!charsetFlag || !req_struct->xfrm_flag) {
+    if (likely(newIndexBuf <= maxRead)) {
       thrjamDebug(req_struct->jamBuffer);
       ahOut->setByteSize(srcBytes);
       memcpy(dst, src, srcBytes);
@@ -1844,23 +3460,19 @@ Dbtup::readDiskVarAsFixedSizeNotNULL(Uint8* outBuffer,
       req_struct->out_buf_index = newIndexBuf;
       return true;
     }
-  } 
-  else 
-  {
+  } else {
     return xfrm_reader(dst, req_struct, ahOut, attrDes, src, srcBytes);
-  } 
-  
+  }
+
   thrjam(req_struct->jamBuffer);
   req_struct->errorCode = ZTRY_TO_READ_TOO_MUCH_ERROR;
   return false;
 }
 
-bool
-Dbtup::readDiskVarAsFixedSizeNULLable(Uint8* outBuffer,
-				 KeyReqStruct *req_struct,
-				 AttributeHeader* ahOut,
-				 Uint64 attrDes)
-{
+bool Dbtup::readDiskVarAsFixedSizeNULLable(Uint8 *outBuffer,
+                                           KeyReqStruct *req_struct,
+                                           AttributeHeader *ahOut,
+                                           Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
@@ -1868,28 +3480,41 @@ Dbtup::readDiskVarAsFixedSizeNULLable(Uint8* outBuffer,
     req_struct->errorCode = ZOP_DISK_WITH_FLAG_NOT_SET;
     return false;
   }
-  if (!disk_nullFlagCheck(req_struct, attrDes))
-  {
+  if (!disk_nullFlagCheck(req_struct, attrDes)) {
     thrjamDebug(req_struct->jamBuffer);
-    return readDiskVarAsFixedSizeNotNULL(outBuffer,
-				    req_struct,
-				    ahOut,
-				    attrDes);
-  }
-  else
-  {
+    return readDiskVarAsFixedSizeNotNULL(outBuffer, req_struct, ahOut, attrDes);
+  } else {
     thrjamDebug(req_struct->jamBuffer);
     ahOut->setNULL();
     return true;
   }
 }
 
-bool
-Dbtup::readDiskBitsNotNULL(Uint8* outBuffer,
+bool Dbtup::readDiskBitsNotNULL(Uint8 *outBuffer,
 			   KeyReqStruct* req_struct,
-			   AttributeHeader* ahOut,
-			   Uint64 attrDes)
-{
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                         AttributeHeader *ahOut, 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
@@ -1899,24 +3524,19 @@ Dbtup::readDiskBitsNotNULL(Uint8* outBuffer,
   }
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec * const regTabPtr = req_struct->tablePtrP;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
   Uint32 bm_len = regTabPtr->m_offsets[DD].m_null_words;
-  Uint32* bm_ptr = req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
+  Uint32 *bm_ptr = req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
 
   thrjamDebug(req_struct->jamBuffer);
-  return bits_reader(outBuffer, req_struct, ahOut,
-                     bm_ptr, bm_len,
-                     pos, bitCount);
+  return bits_reader(outBuffer, req_struct, ahOut, bm_ptr, bm_len, pos,
+                     bitCount);
 }
 
-bool
-Dbtup::readDiskBitsNULLable(Uint8* outBuffer,
-			    KeyReqStruct* req_struct,
-			    AttributeHeader* ahOut,
-			    Uint64 attrDes)
-{
+bool Dbtup::readDiskBitsNULLable(Uint8 *outBuffer, KeyReqStruct *req_struct,
+                                 AttributeHeader *ahOut, Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
@@ -1926,27 +3546,23 @@ Dbtup::readDiskBitsNULLable(Uint8* outBuffer,
   }
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec * const regTabPtr = req_struct->tablePtrP;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
-  
+
   Uint32 bm_len = regTabPtr->m_offsets[DD].m_null_words;
-  Uint32 *bm_ptr= req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
-  
-  if(BitmaskImpl::get(bm_len, bm_ptr, pos))
-  {
+  Uint32 *bm_ptr = req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
+
+  if (BitmaskImpl::get(bm_len, bm_ptr, pos)) {
     thrjamDebug(req_struct->jamBuffer);
     ahOut->setNULL();
     return true;
   }
-  
+
   thrjamDebug(req_struct->jamBuffer);
-  return bits_reader(outBuffer, req_struct, ahOut,
-                     bm_ptr, bm_len,
-                     pos+1, bitCount);
+  return bits_reader(outBuffer, req_struct, ahOut, bm_ptr, bm_len, pos + 1,
+                     bitCount);
 }
-
-
 
 /* ---------------------------------------------------------------------- */
 /*       THIS ROUTINE IS USED TO UPDATE A NUMBER OF ATTRIBUTES. IT IS     */
@@ -1958,150 +3574,118 @@ Dbtup::readDiskBitsNULLable(Uint8* outBuffer,
 // operPtr.p      Operation record pointer
 // tabptr.p       Table record pointer
 /* ---------------------------------------------------------------------- */
-int Dbtup::updateAttributes(KeyReqStruct *req_struct,
-                            Uint32* inBuffer,
-                            Uint32 inBufLen)
-{
-  Tablerec * const regTabPtr = req_struct->tablePtrP;
-  Operationrec* const regOperPtr = req_struct->operPtrP;
-  Uint32 numAttributes= regTabPtr->m_no_of_attributes;
-  Uint32 *attr_descr= req_struct->attr_descr;
+int Dbtup::updateAttributes(KeyReqStruct *req_struct, Uint32 *inBuffer,
+                            Uint32 inBufLen) {
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
+  Operationrec *const regOperPtr = req_struct->operPtrP;
+  Uint32 numAttributes = regTabPtr->m_no_of_attributes;
+  Uint32 *attr_descr = req_struct->attr_descr;
 
-  Uint32 inBufIndex= 0;
-  req_struct->in_buf_index= 0;
-  req_struct->in_buf_len= inBufLen;
+  Uint32 inBufIndex = 0;
+  req_struct->in_buf_index = 0;
+  req_struct->in_buf_len = inBufLen;
 
-  while (inBufIndex < inBufLen)
-  {
+  while (inBufIndex < inBufLen) {
     thrjamDebug(req_struct->jamBuffer);
     AttributeHeader ahIn(inBuffer[inBufIndex]);
-    Uint32 attributeId= ahIn.getAttributeId();
-    Uint32 attrDescriptorIndex= attributeId * ZAD_SIZE;
-    if (likely(attributeId < numAttributes))
-    {
+    Uint32 attributeId = ahIn.getAttributeId();
+    Uint32 attrDescriptorIndex = attributeId * ZAD_SIZE;
+    if (likely(attributeId < numAttributes)) {
       Uint32 attrDescriptor = attr_descr[attrDescriptorIndex];
       Uint32 attrDes2 = attr_descr[attrDescriptorIndex + 1];
-      Uint64 attrDes = (Uint64(attrDes2) << 32) +
-                        Uint64(attrDescriptor);
+      Uint64 attrDes = (Uint64(attrDes2) << 32) + Uint64(attrDescriptor);
       if ((AttributeDescriptor::getPrimaryKey(attrDescriptor)) &&
           (regOperPtr->op_type != ZINSERT)) {
-        if (unlikely(checkUpdateOfPrimaryKey(req_struct,
-                                    &inBuffer[inBufIndex],
-                                    regTabPtr)))
-        {
+        if (unlikely(checkUpdateOfPrimaryKey(req_struct, &inBuffer[inBufIndex],
+                                             regTabPtr))) {
           thrjam(req_struct->jamBuffer);
           return -ZTRY_UPDATE_PRIMARY_KEY;
         }
       }
-      UpdateFunction f= regTabPtr->updateFunctionArray[attributeId];
+      UpdateFunction f = regTabPtr->updateFunctionArray[attributeId];
       thrjamLineDebug(req_struct->jamBuffer, attributeId);
       req_struct->changeMask.set(attributeId);
-      if (likely((*f)(inBuffer,
-                      req_struct,
-                      attrDes)))
-      {
-        inBufIndex= req_struct->in_buf_index;
+      if (likely((*f)(inBuffer, req_struct, attrDes))) {
+        inBufIndex = req_struct->in_buf_index;
         continue;
-      }
-      else
-      {
+      } else {
         thrjam(req_struct->jamBuffer);
         return -(int)req_struct->errorCode;
       }
-    }
-    else if (attributeId == AttributeHeader::READ_LCP)
-    {
+    } else if (attributeId == AttributeHeader::READ_LCP) {
       thrjam(req_struct->jamBuffer);
-      Uint32 sz= ahIn.getDataSize();
-      update_lcp(req_struct, inBuffer+inBufIndex+1, sz);
+      Uint32 sz = ahIn.getDataSize();
+      update_lcp(req_struct, inBuffer + inBufIndex + 1, sz);
       inBufIndex += 1 + sz;
       req_struct->in_buf_index = inBufIndex;
-    }
-    else if (attributeId == AttributeHeader::READ_PACKED)
-    {
+    } else if (attributeId == AttributeHeader::READ_PACKED) {
       thrjam(req_struct->jamBuffer);
-      Uint32 sz = update_packed(req_struct, inBuffer+inBufIndex);
+      Uint32 sz = update_packed(req_struct, inBuffer + inBufIndex);
       inBufIndex += 1 + sz;
       req_struct->in_buf_index = inBufIndex;
-    }
-    else if(attributeId == AttributeHeader::DISK_REF)
-    {
+    } else if (attributeId == AttributeHeader::DISK_REF) {
       thrjam(req_struct->jamBuffer);
-      Uint32 sz= ahIn.getDataSize();
+      Uint32 sz = ahIn.getDataSize();
       ndbrequire(sz == 2);
       req_struct->m_tuple_ptr->m_header_bits |= Tuple_header::DISK_PART;
       memcpy(req_struct->m_tuple_ptr->get_disk_ref_ptr(regTabPtr),
-	     inBuffer+inBufIndex+1, sz << 2);
+             inBuffer + inBufIndex + 1, sz << 2);
       inBufIndex += 1 + sz;
       req_struct->in_buf_index = inBufIndex;
-    }
-    else if(attributeId == AttributeHeader::ANY_VALUE)
-    {
+    } else if (attributeId == AttributeHeader::ANY_VALUE) {
       thrjam(req_struct->jamBuffer);
-      Uint32 sz= ahIn.getDataSize();
+      Uint32 sz = ahIn.getDataSize();
       ndbrequire(sz == 1);
-      regOperPtr->m_any_value = * (inBuffer + inBufIndex + 1);
+      regOperPtr->m_any_value = *(inBuffer + inBufIndex + 1);
       inBufIndex += 1 + sz;
       req_struct->in_buf_index = inBufIndex;
-    }
-    else if(attributeId == AttributeHeader::OPTIMIZE)
-    {
+    } else if (attributeId == AttributeHeader::OPTIMIZE) {
       thrjam(req_struct->jamBuffer);
-      Uint32 sz= ahIn.getDataSize();
+      Uint32 sz = ahIn.getDataSize();
       ndbrequire(sz == 1);
       /**
        * get optimize options
        */
-      req_struct->optimize_options = * (inBuffer + inBufIndex + 1);
-      req_struct->optimize_options &=
-        AttributeHeader::OPTIMIZE_OPTIONS_MASK;
+      req_struct->optimize_options = *(inBuffer + inBufIndex + 1);
+      req_struct->optimize_options &= AttributeHeader::OPTIMIZE_OPTIONS_MASK;
       inBufIndex += 1 + sz;
       req_struct->in_buf_index = inBufIndex;
-      if (inBufIndex == 1 + sz && inBufIndex == inBufLen)
-      {
+      if (inBufIndex == 1 + sz && inBufIndex == inBufLen) {
         // No table attributes are updated. Optimize op only.
         regOperPtr->op_struct.bit_field.m_triggers = TupKeyReq::OP_NO_TRIGGERS;
       }
-    }
-    else if (attributeId == AttributeHeader::ROW_AUTHOR)
-    {
+    } else if (attributeId == AttributeHeader::ROW_AUTHOR) {
       thrjam(req_struct->jamBuffer);
-      Uint32 sz= ahIn.getDataSize();
+      Uint32 sz = ahIn.getDataSize();
       ndbrequire(sz == 1);
 
-      Uint32 value = * (inBuffer + inBufIndex + 1);
+      Uint32 value = *(inBuffer + inBufIndex + 1);
       Uint32 attrId =
-        regTabPtr->getExtraAttrId<Tablerec::TR_ExtraRowAuthorBits>();
+          regTabPtr->getExtraAttrId<Tablerec::TR_ExtraRowAuthorBits>();
 
-      if (unlikely(!(regTabPtr->m_bits & Tablerec::TR_ExtraRowAuthorBits)))
-      {
+      if (unlikely(!(regTabPtr->m_bits & Tablerec::TR_ExtraRowAuthorBits))) {
         thrjam(req_struct->jamBuffer);
         return -ZATTRIBUTE_ID_ERROR;
       }
 
       if (unlikely(store_extra_row_bits(attrId, regTabPtr,
-                                        req_struct->m_tuple_ptr,
-                                        value, /* truncate */ false) == false))
-      {
+                                        req_struct->m_tuple_ptr, value,
+                                        /* truncate */ false) == false)) {
         thrjam(req_struct->jamBuffer);
         ndbassert(false);
         return -ZAI_INCONSISTENCY_ERROR;
       }
       inBufIndex += 1 + sz;
       req_struct->in_buf_index = inBufIndex;
-    }
-    else if (attributeId == AttributeHeader::ROW_GCI64)
-    {
+    } else if (attributeId == AttributeHeader::ROW_GCI64) {
       thrjam(req_struct->jamBuffer);
-      Uint32 sz= ahIn.getDataSize();
+      Uint32 sz = ahIn.getDataSize();
       ndbrequire(sz == 2);
-      Uint32 attrId =
-        regTabPtr->getExtraAttrId<Tablerec::TR_ExtraRowGCIBits>();
-      Uint32 gciLo = * (inBuffer + inBufIndex + 1);
-      Uint32 gciHi = * (inBuffer + inBufIndex + 2);
+      Uint32 attrId = regTabPtr->getExtraAttrId<Tablerec::TR_ExtraRowGCIBits>();
+      Uint32 gciLo = *(inBuffer + inBufIndex + 1);
+      Uint32 gciHi = *(inBuffer + inBufIndex + 2);
 
-      if (unlikely(!(regTabPtr->m_bits & Tablerec::TR_RowGCI)))
-      {
+      if (unlikely(!(regTabPtr->m_bits & Tablerec::TR_RowGCI))) {
         thrjam(req_struct->jamBuffer);
         return -ZATTRIBUTE_ID_ERROR;
       }
@@ -2111,23 +3695,19 @@ int Dbtup::updateAttributes(KeyReqStruct *req_struct,
 
       *req_struct->m_tuple_ptr->get_mm_gci(regTabPtr) = gciHi;
 
-      if (regTabPtr->m_bits & Tablerec::TR_ExtraRowGCIBits)
-      {
+      if (regTabPtr->m_bits & Tablerec::TR_ExtraRowGCIBits) {
         if (unlikely(store_extra_row_bits(attrId, regTabPtr,
-                                          req_struct->m_tuple_ptr,
-                                          gciLo, /*truncate*/ true) == false))
-        {
+                                          req_struct->m_tuple_ptr, gciLo,
+                                          /*truncate*/ true) == false)) {
           thrjam(req_struct->jamBuffer);
           ndbassert(false);
           return -ZAI_INCONSISTENCY_ERROR;
         }
       }
 
-      inBufIndex+= 1 + sz;
+      inBufIndex += 1 + sz;
       req_struct->in_buf_index = inBufIndex;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       return -(int)req_struct->errorCode;
     }
@@ -2136,13 +3716,23 @@ int Dbtup::updateAttributes(KeyReqStruct *req_struct,
   return 0;
 }
 
-bool
-Dbtup::checkUpdateOfPrimaryKey(KeyReqStruct* req_struct,
-                               Uint32* updateBuffer,
-                               Tablerec* const regTabPtr)
-{
+bool Dbtup::checkUpdateOfPrimaryKey(KeyReqStruct *req_struct,
+                                    Uint32 *updateBuffer,
+                                    Tablerec *const regTabPtr) {
   Uint32 keyReadBuffer[MAX_KEY_SIZE_IN_WORDS];
-  Uint32* attr_descr = req_struct->attr_descr;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TableDescriptor*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TableDescriptor
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *attr_descr = req_struct->attr_descr;
   AttributeHeader ahIn(*updateBuffer);
   Uint32 attributeId = ahIn.getAttributeId();
   Uint32 attrDescriptorIndex = attributeId * ZAD_SIZE;
@@ -2158,26 +3748,22 @@ Dbtup::checkUpdateOfPrimaryKey(KeyReqStruct* req_struct,
   req_struct->out_buf_bits = 0;
   req_struct->max_read = sizeof(keyReadBuffer);
   req_struct->xfrm_flag = false;
-  ndbrequire((*f)((Uint8*)keyReadBuffer,
-                   req_struct,
-                   &attributeHeader,
-                   attrDes));
-  
+  ndbrequire(
+      (*f)((Uint8 *)keyReadBuffer, req_struct, &attributeHeader, attrDes));
+
   ndbrequire(req_struct->out_buf_index == attributeHeader.getByteSize());
 
-  if (charsetFlag)
-  {
+  if (charsetFlag) {
     /**
      * Need to use the 'cmp_attr' functions as a 'normalized' compare
      * is needed.
      */
     const Uint32 csIndex = AttributeOffset::getCharsetPos(attrDes2);
-    const CHARSET_INFO* cs = regTabPtr->charsetArray[csIndex];
-    const int res = cmp_attr(attrDescriptor, cs,
-                             &updateBuffer[1], ahIn.getByteSize(),
-                             &keyReadBuffer[0], attributeHeader.getByteSize());
-    if (res != 0)
-    {
+    const CHARSET_INFO *cs = regTabPtr->charsetArray[csIndex];
+    const int res =
+        cmp_attr(attrDescriptor, cs, &updateBuffer[1], ahIn.getByteSize(),
+                 &keyReadBuffer[0], attributeHeader.getByteSize());
+    if (res != 0) {
       thrjam(req_struct->jamBuffer);
       return true;
     }
@@ -2203,41 +3789,33 @@ Dbtup::checkUpdateOfPrimaryKey(KeyReqStruct* req_struct,
   return false;
 }
 
-bool
-Dbtup::updateFixedSizeTHOneWordNotNULL(Uint32* inBuffer,
-                                       KeyReqStruct *req_struct,
-                                       Uint64 attrDes)
-{
+bool Dbtup::updateFixedSizeTHOneWordNotNULL(Uint32 *inBuffer,
+                                            KeyReqStruct *req_struct,
+                                            Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 indexBuf= req_struct->in_buf_index;
-  Uint32 inBufLen= req_struct->in_buf_len;
-  Uint32 updateOffset= AttributeOffset::getOffset(attrDes2);
+  Uint32 indexBuf = req_struct->in_buf_index;
+  Uint32 inBufLen = req_struct->in_buf_len;
+  Uint32 updateOffset = AttributeOffset::getOffset(attrDes2);
   AttributeHeader ahIn(inBuffer[indexBuf]);
-  Uint32 nullIndicator= ahIn.isNULL();
-  Uint32 newIndex= indexBuf + 2;
-  Uint32 *tuple_header= req_struct->m_tuple_ptr->m_data;
+  Uint32 nullIndicator = ahIn.isNULL();
+  Uint32 newIndex = indexBuf + 2;
+  Uint32 *tuple_header = req_struct->m_tuple_ptr->m_data;
   require(updateOffset < req_struct->check_offset[MM]);
 
-  if (likely(newIndex <= inBufLen))
-  {
-    Uint32 updateWord= inBuffer[indexBuf + 1];
-    if (likely(!nullIndicator))
-    {
+  if (likely(newIndex <= inBufLen)) {
+    Uint32 updateWord = inBuffer[indexBuf + 1];
+    if (likely(!nullIndicator)) {
       thrjamDebug(req_struct->jamBuffer);
-      req_struct->in_buf_index= newIndex;
-      tuple_header[updateOffset]= updateWord;
+      req_struct->in_buf_index = newIndex;
+      tuple_header[updateOffset] = updateWord;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       req_struct->errorCode = ZNOT_NULL_ATTR;
       return false;
     }
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2246,43 +3824,35 @@ Dbtup::updateFixedSizeTHOneWordNotNULL(Uint32* inBuffer,
   return true;
 }
 
-bool
-Dbtup::updateFixedSizeTHTwoWordNotNULL(Uint32* inBuffer,
-                                       KeyReqStruct *req_struct,
-                                       Uint64 attrDes)
-{
+bool Dbtup::updateFixedSizeTHTwoWordNotNULL(Uint32 *inBuffer,
+                                            KeyReqStruct *req_struct,
+                                            Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 indexBuf= req_struct->in_buf_index;
-  Uint32 inBufLen= req_struct->in_buf_len;
-  Uint32 updateOffset= AttributeOffset::getOffset(attrDes2);
+  Uint32 indexBuf = req_struct->in_buf_index;
+  Uint32 inBufLen = req_struct->in_buf_len;
+  Uint32 updateOffset = AttributeOffset::getOffset(attrDes2);
   AttributeHeader ahIn(inBuffer[indexBuf]);
-  Uint32 nullIndicator= ahIn.isNULL();
-  Uint32 newIndex= indexBuf + 3;
-  Uint32 *tuple_header= req_struct->m_tuple_ptr->m_data;
+  Uint32 nullIndicator = ahIn.isNULL();
+  Uint32 newIndex = indexBuf + 3;
+  Uint32 *tuple_header = req_struct->m_tuple_ptr->m_data;
   require((updateOffset + 1) < req_struct->check_offset[MM]);
 
-  if (likely(newIndex <= inBufLen))
-  {
-    Uint32 updateWord1= inBuffer[indexBuf + 1];
-    Uint32 updateWord2= inBuffer[indexBuf + 2];
-    if (likely(!nullIndicator))
-    {
+  if (likely(newIndex <= inBufLen)) {
+    Uint32 updateWord1 = inBuffer[indexBuf + 1];
+    Uint32 updateWord2 = inBuffer[indexBuf + 2];
+    if (likely(!nullIndicator)) {
       thrjamDebug(req_struct->jamBuffer);
-      req_struct->in_buf_index= newIndex;
-      tuple_header[updateOffset]= updateWord1;
-      tuple_header[updateOffset + 1]= updateWord2;
+      req_struct->in_buf_index = newIndex;
+      tuple_header[updateOffset] = updateWord1;
+      tuple_header[updateOffset + 1] = updateWord2;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       req_struct->errorCode = ZNOT_NULL_ATTR;
       return false;
     }
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2290,82 +3860,61 @@ Dbtup::updateFixedSizeTHTwoWordNotNULL(Uint32* inBuffer,
   }
 }
 
-bool
-Dbtup::fixsize_updater(Uint32* inBuffer,
-                       KeyReqStruct *req_struct,
-                       Uint64 attrDes,
-                       Uint32 *dst_ptr,
-                       Uint32 updateOffset,
-                       Uint32 checkOffset)
-{
+bool Dbtup::fixsize_updater(Uint32 *inBuffer, KeyReqStruct *req_struct,
+                            Uint64 attrDes, Uint32 *dst_ptr,
+                            Uint32 updateOffset, Uint32 checkOffset) {
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 indexBuf= req_struct->in_buf_index;
-  Uint32 inBufLen= req_struct->in_buf_len;
+  Uint32 indexBuf = req_struct->in_buf_index;
+  Uint32 inBufLen = req_struct->in_buf_len;
   Uint32 charsetFlag = AttributeOffset::getCharsetFlag(attrDes2);
-  
+
   AttributeHeader ahIn(inBuffer[indexBuf]);
-  Uint32 noOfWords= AttributeDescriptor::getSizeInWords(attrDescriptor);
-  Uint32 nullIndicator= ahIn.isNULL();
-  Uint32 newIndex= indexBuf + noOfWords + 1;
+  Uint32 noOfWords = AttributeDescriptor::getSizeInWords(attrDescriptor);
+  Uint32 nullIndicator = ahIn.isNULL();
+  Uint32 newIndex = indexBuf + noOfWords + 1;
   require((updateOffset + noOfWords - 1) < checkOffset);
 
-  if (likely(newIndex <= inBufLen))
-  {
-    if (likely(!nullIndicator))
-    {
-      if (charsetFlag)
-      {
+  if (likely(newIndex <= inBufLen)) {
+    if (likely(!nullIndicator)) {
+      if (charsetFlag) {
         thrjamDebug(req_struct->jamBuffer);
-        Tablerec * regTabPtr = req_struct->tablePtrP;
-	Uint32 typeId = AttributeDescriptor::getType(attrDescriptor);
+        Tablerec *regTabPtr = req_struct->tablePtrP;
+        Uint32 typeId = AttributeDescriptor::getType(attrDescriptor);
         Uint32 bytes = AttributeDescriptor::getSizeInBytes(attrDescriptor);
         Uint32 i = AttributeOffset::getCharsetPos(attrDes2);
         require(i < regTabPtr->noOfCharsets);
         // not const in MySQL
-        CHARSET_INFO* cs = regTabPtr->charsetArray[i];
+        CHARSET_INFO *cs = regTabPtr->charsetArray[i];
         int not_used;
-        const char* ssrc = (const char*)&inBuffer[indexBuf + 1];
+        const char *ssrc = (const char *)&inBuffer[indexBuf + 1];
         Uint32 lb, len;
-        if (unlikely(! NdbSqlUtil::get_var_length(typeId,
-                                                  ssrc,
-                                                  bytes,
-                                                  lb,
-                                                  len)))
-        {
+        if (unlikely(
+                !NdbSqlUtil::get_var_length(typeId, ssrc, bytes, lb, len))) {
           thrjam(req_struct->jamBuffer);
           req_struct->errorCode = ZINVALID_CHAR_FORMAT;
           return false;
         }
-	// fast fix bug#7340
+        // fast fix bug#7340
         if (likely(typeId != NDB_TYPE_TEXT &&
-	    (*cs->cset->well_formed_len)(cs,
-                                         ssrc + lb,
-                                         ssrc + lb + len,
-                                         ZNIL,
-                                         &not_used) != len))
-        {
+                   (*cs->cset->well_formed_len)(cs, ssrc + lb, ssrc + lb + len,
+                                                ZNIL, &not_used) != len)) {
           thrjam(req_struct->jamBuffer);
           req_struct->errorCode = ZINVALID_CHAR_FORMAT;
           return false;
         }
       }
-      req_struct->in_buf_index= newIndex;
-      MEMCOPY_NO_WORDS(&(dst_ptr[updateOffset]),
-                       &inBuffer[indexBuf + 1],
+      req_struct->in_buf_index = newIndex;
+      MEMCOPY_NO_WORDS(&(dst_ptr[updateOffset]), &inBuffer[indexBuf + 1],
                        noOfWords);
-      
+
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       req_struct->errorCode = ZNOT_NULL_ATTR;
       return false;
     }
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2373,54 +3922,42 @@ Dbtup::fixsize_updater(Uint32* inBuffer,
   }
 }
 
-bool
-Dbtup::updateFixedSizeTHManyWordNotNULL(Uint32* inBuffer,
-                                        KeyReqStruct *req_struct,
-                                        Uint64 attrDes)
-{
+bool Dbtup::updateFixedSizeTHManyWordNotNULL(Uint32 *inBuffer,
+                                             KeyReqStruct *req_struct,
+                                             Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 *tuple_header= req_struct->m_tuple_ptr->m_data;
-  Uint32 updateOffset= AttributeOffset::getOffset(attrDes2);
-  Uint32 checkOffset= req_struct->check_offset[MM];
+  Uint32 *tuple_header = req_struct->m_tuple_ptr->m_data;
+  Uint32 updateOffset = AttributeOffset::getOffset(attrDes2);
+  Uint32 checkOffset = req_struct->check_offset[MM];
   thrjamDebug(req_struct->jamBuffer);
   return fixsize_updater(inBuffer, req_struct, attrDes, tuple_header,
                          updateOffset, checkOffset);
 }
 
-bool
-Dbtup::updateFixedSizeTHManyWordNULLable(Uint32* inBuffer,
-                                         KeyReqStruct *req_struct,
-                                         Uint64 attrDes)
-{
+bool Dbtup::updateFixedSizeTHManyWordNULLable(Uint32 *inBuffer,
+                                              KeyReqStruct *req_struct,
+                                              Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec * const regTabPtr = req_struct->tablePtrP;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
   AttributeHeader ahIn(inBuffer[req_struct->in_buf_index]);
-  Uint32 nullIndicator= ahIn.isNULL();
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 *bits= req_struct->m_tuple_ptr->get_null_bits(regTabPtr);
-  
-  if (!nullIndicator)
-  {
+  Uint32 nullIndicator = ahIn.isNULL();
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 *bits = req_struct->m_tuple_ptr->get_null_bits(regTabPtr);
+
+  if (!nullIndicator) {
     BitmaskImpl::clear(regTabPtr->m_offsets[MM].m_null_words, bits, pos);
     thrjamDebug(req_struct->jamBuffer);
-    return updateFixedSizeTHManyWordNotNULL(inBuffer,
-                                            req_struct,
-                                            attrDes);
-  }
-  else
-  {
-    Uint32 newIndex= req_struct->in_buf_index + 1;
-    if (newIndex <= req_struct->in_buf_len)
-    {
+    return updateFixedSizeTHManyWordNotNULL(inBuffer, req_struct, attrDes);
+  } else {
+    Uint32 newIndex = req_struct->in_buf_index + 1;
+    if (newIndex <= req_struct->in_buf_len) {
       BitmaskImpl::set(regTabPtr->m_offsets[MM].m_null_words, bits, pos);
       thrjamDebug(req_struct->jamBuffer);
-      req_struct->in_buf_index= newIndex;
+      req_struct->in_buf_index = newIndex;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       assert(false);
       req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2429,68 +3966,78 @@ Dbtup::updateFixedSizeTHManyWordNULLable(Uint32* inBuffer,
   }
 }
 
-bool
-Dbtup::updateVarSizeNotNULL(Uint32* in_buffer,
-                            KeyReqStruct *req_struct,
-                            Uint64 attrDes)
-{
+bool Dbtup::updateVarSizeNotNULL(Uint32 *in_buffer, KeyReqStruct *req_struct,
+                                 Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
                 Uint32(DD) : Uint32(MM);
-  Uint32 attrDes2 = Uint32(attrDes >>32);
-  char *var_data_start= req_struct->m_var_data[ind].m_data_ptr;
-  Uint32 var_index= AttributeOffset::getOffset(attrDes2);
-  Uint32 idx= req_struct->m_var_data[ind].m_var_len_offset;
-  Uint16 *vpos_array= req_struct->m_var_data[ind].m_offset_array_ptr;
-  Uint16 offset= vpos_array[var_index];
-  Uint16 *len_offset_ptr= &(vpos_array[var_index+idx]);
+  Uint32 attrDes2 = Uint32(attrDes >> 32);
+  char *var_data_start = req_struct->m_var_data[ind].m_data_ptr;
+  Uint32 var_index = AttributeOffset::getOffset(attrDes2);
+  Uint32 idx = req_struct->m_var_data[ind].m_var_len_offset;
+  Uint16 *vpos_array = req_struct->m_var_data[ind].m_offset_array_ptr;
+  Uint16 offset = vpos_array[var_index];
+  Uint16 *len_offset_ptr = &(vpos_array[var_index + idx]);
   return varsize_updater(in_buffer,
                          req_struct,
-                         var_data_start,
-                         offset,
+                         var_data_start, offset,
                          len_offset_ptr,
-                         req_struct->m_var_data[ind].m_max_var_offset,
-                         attrDes);
+                         req_struct->m_var_data[MM].m_max_var_offset, attrDes);
 }
-bool
-Dbtup::varsize_updater(Uint32* in_buffer,
-                       KeyReqStruct *req_struct,
-                       char *var_data_start,
-                       Uint32 var_attr_pos,
-                       Uint16 *len_offset_ptr,
-                       Uint32 check_offset,
-                       Uint64 attrDes)
-{
+bool Dbtup::varsize_updater(Uint32 *in_buffer, KeyReqStruct *req_struct,
+                            char *var_data_start, Uint32 var_attr_pos,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+offset,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+offset,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   Uint16 *len_offset_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+                         req_struct->m_var_data[ind].m_max_var_offset,
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+                         req_struct->m_var_data[MM].m_max_var_offset,
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ Uint32 check_offset,
+                            Uint64 attrDes) {
   Uint32 index_buf, in_buf_len, null_ind;
   Uint32 vsize_in_words, new_index, max_var_size;
 
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
-  index_buf= req_struct->in_buf_index;
-  in_buf_len= req_struct->in_buf_len;
+  index_buf = req_struct->in_buf_index;
+  in_buf_len = req_struct->in_buf_len;
   AttributeHeader ahIn(in_buffer[index_buf]);
-  null_ind= ahIn.isNULL();
+  null_ind = ahIn.isNULL();
   Uint32 size_in_bytes = ahIn.getByteSize();
-  vsize_in_words= (size_in_bytes + 3) >> 2;
-  max_var_size= AttributeDescriptor::getSizeInBytes(attrDescriptor);
+  vsize_in_words = (size_in_bytes + 3) >> 2;
+  max_var_size = AttributeDescriptor::getSizeInBytes(attrDescriptor);
   Uint32 arrayType = AttributeDescriptor::getArrayType(attrDescriptor);
-  new_index= index_buf + vsize_in_words + 1;
+  new_index = index_buf + vsize_in_words + 1;
 
   Uint32 dataLen = size_in_bytes;
-  const Uint8 * src = (const Uint8*)&in_buffer[index_buf + 1];
-  
-  if (new_index <= in_buf_len && size_in_bytes <= max_var_size)
-  {
-    if (!null_ind)
-    {
+  const Uint8 *src = (const Uint8 *)&in_buffer[index_buf + 1];
 
-      if (arrayType == NDB_ARRAYTYPE_SHORT_VAR)
-      {
+  if (new_index <= in_buf_len && size_in_bytes <= max_var_size) {
+    if (!null_ind) {
+
+      if (arrayType == NDB_ARRAYTYPE_SHORT_VAR) {
         thrjamDebug(req_struct->jamBuffer);
         dataLen = 1 + src[0];
-      }
-      else if (arrayType == NDB_ARRAYTYPE_MEDIUM_VAR)
-      {
+      } else if (arrayType == NDB_ARRAYTYPE_MEDIUM_VAR) {
         thrjamDebug(req_struct->jamBuffer);
         dataLen = 2 + src[0] + 256 * Uint32(src[1]);
       }
@@ -2500,13 +4047,12 @@ Dbtup::varsize_updater(Uint32* in_buffer,
       }
       thrjamDataDebug(req_struct->jamBuffer, dataLen);
             
-      if (likely(dataLen == size_in_bytes))
-      {
-        *len_offset_ptr= var_attr_pos+size_in_bytes;
-        req_struct->in_buf_index= new_index;
-        
-        require(var_attr_pos+size_in_bytes <= check_offset);
-        memcpy(var_data_start+var_attr_pos, src, size_in_bytes);
+      if (likely(dataLen == size_in_bytes)) {
+        *len_offset_ptr = var_attr_pos + size_in_bytes;
+        req_struct->in_buf_index = new_index;
+
+        require(var_attr_pos + size_in_bytes <= check_offset);
+        memcpy(var_data_start + var_attr_pos, src, size_in_bytes);
         return true;
       }
       thrjam(req_struct->jamBuffer);
@@ -2514,59 +4060,48 @@ Dbtup::varsize_updater(Uint32* in_buffer,
       req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
       return false;
     }
-    
+
     thrjam(req_struct->jamBuffer);
     req_struct->errorCode = ZNOT_NULL_ATTR;
     return false;
   }
-  
+
   thrjam(req_struct->jamBuffer);
   assert(false);
   req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
   return false;
 }
 
-bool
-Dbtup::updateVarSizeNULLable(Uint32* inBuffer,
-                             KeyReqStruct *req_struct,
-                             Uint64 attrDes)
-{
+bool Dbtup::updateVarSizeNULLable(Uint32 *inBuffer, KeyReqStruct *req_struct,
+                                  Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
                 Uint32(DD) : Uint32(MM);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec * const regTabPtr = req_struct->tablePtrP;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
   AttributeHeader ahIn(inBuffer[req_struct->in_buf_index]);
-  Uint32 nullIndicator= ahIn.isNULL();
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 *bits= (ind) ? req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD) :
+  Uint32 nullIndicator = ahIn.isNULL();
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 *bits = (ind) ? req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD) :
                         req_struct->m_tuple_ptr->get_null_bits(regTabPtr);
-  Uint32 idx= req_struct->m_var_data[ind].m_var_len_offset;
-  
-  if (!nullIndicator)
-  {
+  Uint32 idx = req_struct->m_var_data[ind].m_var_len_offset;
+
+  if (!nullIndicator) {
     thrjamDebug(req_struct->jamBuffer);
     BitmaskImpl::clear(regTabPtr->m_offsets[ind].m_null_words, bits, pos);
-    return updateVarSizeNotNULL(inBuffer,
-                                req_struct,
-                                attrDes);
-  }
-  else
-  {
-    Uint32 newIndex= req_struct->in_buf_index + 1;
-    Uint32 var_index= AttributeOffset::getOffset(attrDes2);
-    Uint32 var_pos= req_struct->var_pos_array[ind][var_index];
-    if (likely(newIndex <= req_struct->in_buf_len))
-    {
+    return updateVarSizeNotNULL(inBuffer, req_struct, attrDes);
+  } else {
+    Uint32 newIndex = req_struct->in_buf_index + 1;
+    Uint32 var_index = AttributeOffset::getOffset(attrDes2);
+    Uint32 var_pos = req_struct->var_pos_array[ind][var_index];
+    if (likely(newIndex <= req_struct->in_buf_len)) {
       thrjamDebug(req_struct->jamBuffer);
       BitmaskImpl::set(regTabPtr->m_offsets[ind].m_null_words, bits, pos);
-      req_struct->var_pos_array[ind][var_index+idx]= var_pos;
-      req_struct->in_buf_index= newIndex;
+      req_struct->var_pos_array[ind][var_index + idx] = var_pos;
+      req_struct->in_buf_index = newIndex;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       assert(false);
       req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2575,21 +4110,29 @@ Dbtup::updateVarSizeNULLable(Uint32* inBuffer,
   }
 }
 
-bool
-Dbtup::updateDynFixedSizeNotNULL(Uint32* inBuffer,
-                                 KeyReqStruct *req_struct,
-                                 Uint64 attrDes)
-{
-  thrjamDebug(req_struct->jamBuffer);
+bool Dbtup::updateDynFixedSizeNotNULL(Uint32 *inBuffer,
+                                      KeyReqStruct *req_struct,
+                                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+thrjamDebug(req_struct->jamBuffer);
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  Uint64 attrDes) {
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 nullbits= AttributeDescriptor::getSizeInWords(attrDescriptor);
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 nullbits = AttributeDescriptor::getSizeInWords(attrDescriptor);
 
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
   assert(nullbits && nullbits <= 16);
 
   /*
@@ -2599,7 +4142,7 @@ Dbtup::updateDynFixedSizeNotNULL(Uint32* inBuffer,
     attributes are stored more efficiently as varsize internally anyway).
   */
 
-  Uint32 bm_idx= (pos >> 5);
+  Uint32 bm_idx = (pos >> 5);
   /* Store bits in little-endian so fit with length byte and trailing padding*/
   Uint64 bm_mask = ((Uint64(1) << nullbits) - 1) << (pos & 31);
   Uint32 bm_mask1 = (Uint32)(bm_mask & 0xFFFFFFFF);
@@ -2607,48 +4150,46 @@ Dbtup::updateDynFixedSizeNotNULL(Uint32* inBuffer,
 
   thrjam(req_struct->jamBuffer);
   /* Set all the bits in the NULL bitmap. */
-  bm_ptr[bm_idx]|= bm_mask1;
+  bm_ptr[bm_idx] |= bm_mask1;
   /*
     It is possible that bm_ptr[bm_idx+1] points off the end of the
     bitmap. But in that case, we are merely ANDing all ones into the offset
     array (no-op), cheaper than a conditional.
   */
-  bm_ptr[bm_idx+1]|= bm_mask2;
+  bm_ptr[bm_idx + 1] |= bm_mask2;
 
   /* Compute the data and offset location and write the actual data. */
-  Uint32 off_index= AttributeOffset::getOffset(attrDes2);
-  Uint16* off_arr= req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
-  Uint32 offset= off_arr[off_index];
-  Uint32 *dst_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
-  Uint32 check_offset= req_struct->m_var_data[ind].m_max_dyn_offset;
+  Uint32 off_index = AttributeOffset::getOffset(attrDes2);
+  Uint16 *off_arr = req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
+  Uint32 offset = off_arr[off_index];
+  Uint32 *dst_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 check_offset = req_struct->m_var_data[ind].m_max_dyn_offset;
 
-  assert((offset&3)==0);
-  assert((check_offset&3)==0);
-  bool result= fixsize_updater(inBuffer, req_struct, attrDes, dst_ptr,
-                               (offset>>2), (check_offset>>2));
-  return result; 
+  assert((offset & 3) == 0);
+  assert((check_offset & 3) == 0);
+  bool result = fixsize_updater(inBuffer, req_struct, attrDes, dst_ptr,
+                                (offset >> 2), (check_offset >> 2));
+  return result;
 }
 
-bool
-Dbtup::updateDynFixedSizeNULLable(Uint32* inBuffer,
-                                  KeyReqStruct *req_struct,
-                                  Uint64 attrDes)
-{
+bool Dbtup::updateDynFixedSizeNULLable(Uint32 *inBuffer,
+                                       KeyReqStruct *req_struct,
+                                       Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   AttributeHeader ahIn(inBuffer[req_struct->in_buf_index]);
-  Uint32 nullIndicator= ahIn.isNULL();
+  Uint32 nullIndicator = ahIn.isNULL();
 
-  if(!nullIndicator)
+  if (!nullIndicator)
     return updateDynFixedSizeNotNULL(inBuffer, req_struct, attrDes);
 
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 nullbits= AttributeDescriptor::getSizeInWords(attrDescriptor);
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 nullbits = AttributeDescriptor::getSizeInWords(attrDescriptor);
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
 
   assert(nullbits && nullbits <= 16);
 
@@ -2659,24 +4200,21 @@ Dbtup::updateDynFixedSizeNULLable(Uint32* inBuffer,
     attributes are stored more efficiently as varsize internally anyway).
   */
 
-  Uint32 bm_idx= (pos >> 5);
+  Uint32 bm_idx = (pos >> 5);
   /* Store bits in little-endian so fit with length byte and trailing padding*/
   Uint64 bm_mask = ~(((Uint64(1) << nullbits) - 1) << (pos & 31));
   Uint32 bm_mask1 = (Uint32)(bm_mask & 0xFFFFFFFF);
   Uint32 bm_mask2 = (Uint32)(bm_mask >> 32);
-  
-  Uint32 newIndex= req_struct->in_buf_index + 1;
-  if (likely(newIndex <= req_struct->in_buf_len))
-  {
+
+  Uint32 newIndex = req_struct->in_buf_index + 1;
+  if (likely(newIndex <= req_struct->in_buf_len)) {
     thrjamDebug(req_struct->jamBuffer);
     /* Clear the bits in the NULL bitmap. */
     bm_ptr[bm_idx] &= bm_mask1;
-    bm_ptr[bm_idx+1] &= bm_mask2;
-    req_struct->in_buf_index= newIndex;
+    bm_ptr[bm_idx + 1] &= bm_mask2;
+    req_struct->in_buf_index = newIndex;
     return true;
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2685,35 +4223,29 @@ Dbtup::updateDynFixedSizeNULLable(Uint32* inBuffer,
 }
 
 /* Update a big dynamic fixed-size column, stored internally as varsize. */
-bool
-Dbtup::updateDynBigFixedSizeNotNULL(Uint32* inBuffer,
-                                  KeyReqStruct *req_struct,
-                                  Uint64 attrDes)
-{
+bool Dbtup::updateDynBigFixedSizeNotNULL(Uint32 *inBuffer,
+                                         KeyReqStruct *req_struct,
+                                         Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
-  
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+
   thrjamDebug(req_struct->jamBuffer);
-  BitmaskImpl::set((* bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
+  BitmaskImpl::set((*bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
   /* Compute the data and offset location and write the actual data. */
-  Uint32 off_index= AttributeOffset::getOffset(attrDes2);
-  Uint32 noOfWords= AttributeDescriptor::getSizeInWords(attrDescriptor);
-  Uint16* off_arr= req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
-  Uint32 offset= off_arr[off_index];
-  Uint32 idx= req_struct->m_var_data[ind].m_dyn_len_offset;
+  Uint32 off_index = AttributeOffset::getOffset(attrDes2);
+  Uint32 noOfWords = AttributeDescriptor::getSizeInWords(attrDescriptor);
+  Uint16 *off_arr = req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
+  Uint32 offset = off_arr[off_index];
+  Uint32 idx = req_struct->m_var_data[ind].m_dyn_len_offset;
 
-  assert((offset&3)==0);
-  bool res= fixsize_updater(inBuffer,
-                            req_struct,
-                            attrDes,
-                            bm_ptr,
-                            offset>>2,
+  assert((offset & 3) == 0);
+  bool res = fixsize_updater(inBuffer, req_struct, attrDes, bm_ptr, offset >> 2,
                             req_struct->m_var_data[ind].m_max_dyn_offset);
   /* Set the correct size for fixsize data. */
   off_arr[off_index+idx]= offset+(noOfWords<<2);
@@ -2728,27 +4260,24 @@ Dbtup::updateDynBigFixedSizeNULLable(Uint32* inBuffer,
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
   AttributeHeader ahIn(inBuffer[req_struct->in_buf_index]);
-  Uint32 nullIndicator= ahIn.isNULL();
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 *bm_ptr= (Uint32*)req_struct->m_var_data[ind].m_dyn_data_ptr;
-  
+  Uint32 nullIndicator = ahIn.isNULL();
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 *bm_ptr = (Uint32 *)req_struct->m_var_data[ind].m_dyn_data_ptr;
+
   if (!nullIndicator)
     return updateDynBigFixedSizeNotNULL(inBuffer, req_struct, attrDes);
 
-  Uint32 newIndex= req_struct->in_buf_index + 1;
-  if (likely(newIndex <= req_struct->in_buf_len))
-  {
+  Uint32 newIndex = req_struct->in_buf_index + 1;
+  if (likely(newIndex <= req_struct->in_buf_len)) {
     thrjamDebug(req_struct->jamBuffer);
-    BitmaskImpl::clear((* bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
-    req_struct->in_buf_index= newIndex;
+    BitmaskImpl::clear((*bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
+    req_struct->in_buf_index = newIndex;
     return true;
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2756,87 +4285,72 @@ Dbtup::updateDynBigFixedSizeNULLable(Uint32* inBuffer,
   }
 }
 
-bool
-Dbtup::updateDynBitsNotNULL(Uint32* inBuffer,
-                            KeyReqStruct *req_struct,
-                            Uint64 attrDes)
-{
+bool Dbtup::updateDynBitsNotNULL(Uint32 *inBuffer, KeyReqStruct *req_struct,
+                                 Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
-  Uint32 *bm_ptr= (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
-  Uint32 bm_len = (* bm_ptr) & DYN_BM_LEN_MASK;
+  Uint32 *bm_ptr = (Uint32 *)(req_struct->m_var_data[ind].m_dyn_data_ptr);
+  Uint32 bm_len = (*bm_ptr) & DYN_BM_LEN_MASK;
   thrjamDebug(req_struct->jamBuffer);
   BitmaskImpl::set(bm_len, bm_ptr, pos);
 
-  Uint32 indexBuf= req_struct->in_buf_index;
-  Uint32 inBufLen= req_struct->in_buf_len;
+  Uint32 indexBuf = req_struct->in_buf_index;
+  Uint32 inBufLen = req_struct->in_buf_len;
   AttributeHeader ahIn(inBuffer[indexBuf]);
   Uint32 nullIndicator = ahIn.isNULL();
   Uint32 newIndex = indexBuf + 1 + ((bitCount + 31) >> 5);
 
-  if (likely(newIndex <= inBufLen))
-  {
-    if (likely(!nullIndicator))
-    {
-      assert(pos>=bitCount);
-      BitmaskImpl::setField(bm_len, bm_ptr, pos-bitCount, bitCount, 
-			    inBuffer+indexBuf+1);
-      req_struct->in_buf_index= newIndex;
+  if (likely(newIndex <= inBufLen)) {
+    if (likely(!nullIndicator)) {
+      assert(pos >= bitCount);
+      BitmaskImpl::setField(bm_len, bm_ptr, pos - bitCount, bitCount,
+                            inBuffer + indexBuf + 1);
+      req_struct->in_buf_index = newIndex;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       req_struct->errorCode = ZNOT_NULL_ATTR;
       return false;
-    }//if
-  }
-  else
-  {
+    }  // if
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
     return false;
-  }//if
+  }  // if
   return true;
 }
 
-bool
-Dbtup::updateDynBitsNULLable(Uint32* inBuffer,
-                             KeyReqStruct *req_struct,
-                             Uint64 attrDes)
-{
+bool Dbtup::updateDynBitsNULLable(Uint32 *inBuffer, KeyReqStruct *req_struct,
+                                  Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
   AttributeHeader ahIn(inBuffer[req_struct->in_buf_index]);
-  Uint32 nullIndicator= ahIn.isNULL();
+  Uint32 nullIndicator = ahIn.isNULL();
 
-  if(!nullIndicator)
+  if (!nullIndicator)
     return updateDynBitsNotNULL(inBuffer, req_struct, attrDes);
 
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 *bm_ptr= (Uint32*)req_struct->m_var_data[ind].m_dyn_data_ptr;
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 *bm_ptr = (Uint32 *)req_struct->m_var_data[ind].m_dyn_data_ptr;
 
-  Uint32 newIndex= req_struct->in_buf_index + 1;
-  if (likely(newIndex <= req_struct->in_buf_len))
-  {
+  Uint32 newIndex = req_struct->in_buf_index + 1;
+  if (likely(newIndex <= req_struct->in_buf_len)) {
     thrjamDebug(req_struct->jamBuffer);
-    BitmaskImpl::clear((* bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
-    req_struct->in_buf_index= newIndex;
+    BitmaskImpl::clear((*bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
+    req_struct->in_buf_index = newIndex;
     return true;
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2844,67 +4358,64 @@ Dbtup::updateDynBitsNULLable(Uint32* inBuffer,
   }
 }
 
-bool
-Dbtup::updateDynVarSizeNotNULL(Uint32* inBuffer,
-                               KeyReqStruct *req_struct,
-                               Uint64 attrDes)
-{
+bool Dbtup::updateDynVarSizeNotNULL(Uint32 *inBuffer, KeyReqStruct *req_struct,
+                                    Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                                                   : Uint32(MM);
 
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 *bm_ptr= (Uint32*)req_struct->m_var_data[ind].m_dyn_data_ptr;
-  
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 *bm_ptr = (Uint32 *)req_struct->m_var_data[ind].m_dyn_data_ptr;
+
   thrjamDebug(req_struct->jamBuffer);
-  BitmaskImpl::set((* bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
+  BitmaskImpl::set((*bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
   /* Compute the data and offset location and write the actual data. */
-  Uint32 off_index= AttributeOffset::getOffset(attrDes2);
-  Uint16* off_arr= req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
-  Uint32 offset= off_arr[off_index];
-  Uint32 idx= req_struct->m_var_data[ind].m_dyn_len_offset;
+  Uint32 off_index = AttributeOffset::getOffset(attrDes2);
+  Uint16 *off_arr = req_struct->m_var_data[ind].m_dyn_offset_arr_ptr;
+  Uint32 offset = off_arr[off_index];
+  Uint32 idx = req_struct->m_var_data[ind].m_dyn_len_offset;
 
-  bool res= varsize_updater(inBuffer,
-                            req_struct,
-                            (char*)bm_ptr,
-                            offset,
-                            &(off_arr[off_index+idx]),
-                            req_struct->m_var_data[ind].m_max_dyn_offset,
-                            attrDes);
+  bool res = varsize_updater(
+      inBuffer, req_struct, (char *)bm_ptr, offset, &(off_arr[off_index + idx]),
+      req_struct->m_var_data[ind].m_max_dyn_offset, attrDes);
   return res;
 }
 
-bool
-Dbtup::updateDynVarSizeNULLable(Uint32* inBuffer,
-                                KeyReqStruct *req_struct,
-                                Uint64 attrDes)
-{
-  thrjamDebug(req_struct->jamBuffer);
+bool Dbtup::updateDynVarSizeNULLable(Uint32 *inBuffer, KeyReqStruct *req_struct,
+                                     Uint64 attrDes) {
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ?
-                Uint32(DD) : Uint32(MM);
+  Uint32 ind = (AttributeDescriptor::getDiskBased(attrDescriptor)) ? Uint32(DD)
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+thrjamDebug(req_struct->jamBuffer);
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                                : Uint32(MM);
 
   AttributeHeader ahIn(inBuffer[req_struct->in_buf_index]);
-  Uint32 nullIndicator= ahIn.isNULL();
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 *bm_ptr= (Uint32*)req_struct->m_var_data[ind].m_dyn_data_ptr;
-  
+  Uint32 nullIndicator = ahIn.isNULL();
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 *bm_ptr = (Uint32 *)req_struct->m_var_data[ind].m_dyn_data_ptr;
+
   if (!nullIndicator)
     return updateDynVarSizeNotNULL(inBuffer, req_struct, attrDes);
 
-  Uint32 newIndex= req_struct->in_buf_index + 1;
-  if (likely(newIndex <= req_struct->in_buf_len))
-  {
+  Uint32 newIndex = req_struct->in_buf_index + 1;
+  if (likely(newIndex <= req_struct->in_buf_len)) {
     thrjamDebug(req_struct->jamBuffer);
-    BitmaskImpl::clear((* bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
-    req_struct->in_buf_index= newIndex;
+    BitmaskImpl::clear((*bm_ptr) & DYN_BM_LEN_MASK, bm_ptr, pos);
+    req_struct->in_buf_index = newIndex;
     return true;
-  }
-  else
-  {
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
@@ -2912,287 +4423,245 @@ Dbtup::updateDynVarSizeNULLable(Uint32* inBuffer,
   }
 }
 
-int
-Dbtup::read_pseudo(const Uint32 * inBuffer, Uint32 inPos,
-                   KeyReqStruct *req_struct,
-                   Uint32* outBuf)
-{
+int Dbtup::read_pseudo(const Uint32 *inBuffer, Uint32 inPos,
+                       KeyReqStruct *req_struct, Uint32 *outBuf) {
   ndbassert(inPos);
   ndbassert(req_struct->out_buf_index);
   ndbassert(req_struct->out_buf_bits == 0);
   ndbassert((req_struct->out_buf_index & 3) == 0);
-  
-  Uint32 attrId = (* (inBuffer + inPos - 1)) >> 16;
+
+  Uint32 attrId = (*(inBuffer + inPos - 1)) >> 16;
   Uint32 outPos = req_struct->out_buf_index;
-  Uint32* outBuffer = outBuf + ((outPos - 1) >> 2);
+  Uint32 *outBuffer = outBuf + ((outPos - 1) >> 2);
 
   Uint32 sz;
-  switch(attrId){
-  case AttributeHeader::READ_LCP:
-    return read_lcp(inBuffer, inPos, req_struct, outBuf);
-  case AttributeHeader::READ_PACKED:
-  case AttributeHeader::READ_ALL:
-    return (int)read_packed(inBuffer, inPos, req_struct, outBuf);
-  case AttributeHeader::FRAGMENT:
-    outBuffer[1] = req_struct->fragPtrP->partitionId;
-    sz = 1;
-    break;
-  case AttributeHeader::FRAGMENT_FIXED_MEMORY:
-  {
-    Uint64 tmp = req_struct->fragPtrP->noOfPages;
-    tmp*= 32768;
-    memcpy(outBuffer + 1, &tmp, 8);
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::FRAGMENT_VARSIZED_MEMORY:
-  {
-    Uint64 tmp= req_struct->fragPtrP->noOfVarPages;
-    tmp*= 32768;
-    memcpy(outBuffer + 1, &tmp, 8);
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::ROW_SIZE:
-    outBuffer[1] = req_struct->tablePtrP->m_offsets[MM].m_fix_header_size << 2;
-    sz = 1;
-    break;
-  case AttributeHeader::ROW_COUNT:
-  {
-    Uint64 row_count = req_struct->fragPtrP->m_row_count;
-    memcpy(&outBuffer[1], &row_count, 8);
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::COMMIT_COUNT:
-  {
-    Uint64 committed_changes = req_struct->fragPtrP->m_committed_changes;
-    memcpy(&outBuffer[1], &committed_changes, 8);
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::RANGE_NO:
-  {
-    Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
-    ndbrequire(1 <= out_words);
-    c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
-                               attrId,
-                               outBuffer + 1,
-                               out_words);
-    sz = 1;
-    break;
-  }
-  case AttributeHeader::DISK_REF:
-  {
-    Uint32 *ref= req_struct->m_tuple_ptr->get_disk_ref_ptr(req_struct->tablePtrP);
-    outBuffer[1] = ref[0];
-    outBuffer[2] = ref[1];
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::RECORDS_IN_RANGE:
-  {
-    Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
-    ndbrequire(4 <= out_words);
-    c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
-                               attrId,
-                               outBuffer + 1,
-                               out_words);
-    sz = 4;
-    break;
-  }
-  case AttributeHeader::INDEX_STAT_KEY:
-  case AttributeHeader::INDEX_STAT_VALUE:
-  {
-    Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
-    ndbrequire(1 + MAX_INDEX_STAT_KEY_SIZE <= out_words);
-
-    c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
-                               attrId,
-                               outBuffer + 1,
-                               out_words);
-
-    Uint8* out = (Uint8*)&outBuffer[1];
-    Uint32 byte_sz = 2 + out[0] + (out[1] << 8);
-    ndbrequire((byte_sz + 3) / 4 <= out_words);
-    while (byte_sz % 4 != 0)
-      out[byte_sz++] = 0;
-    sz = byte_sz / 4;
-    break;
-  }
-  case AttributeHeader::ROWID:
-  {
-    Uint32 frag_page_id = req_struct->m_page_ptr.p->frag_page_id;
-    outBuffer[1] = frag_page_id;
-    outBuffer[2] = req_struct->operPtrP->m_tuple_location.m_page_idx;
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::ROW_GCI:
-    sz = 0;
-    if (req_struct->tablePtrP->m_bits & Tablerec::TR_RowGCI)
-    {
-      Uint64 tmp = * req_struct->m_tuple_ptr->get_mm_gci(req_struct->tablePtrP);
-      memcpy(outBuffer + 1, &tmp, sizeof(tmp));
-      sz = 2;
-    }
-    break;
-  case AttributeHeader::ROW_GCI64:
-  {
-    sz = 0;
-    if (req_struct->tablePtrP->m_bits & Tablerec::TR_RowGCI)
-    {
-      Uint32 tmp0 = *req_struct->m_tuple_ptr->get_mm_gci(req_struct->tablePtrP);
-      Uint32 tmp1 = ~Uint32(0);
-      if (req_struct->tablePtrP->m_bits & Tablerec::TR_ExtraRowGCIBits)
-      {
-        Uint32 attrId =
-          req_struct->tablePtrP->getExtraAttrId<Tablerec::TR_ExtraRowGCIBits>();
-        read_extra_row_bits(attrId,
-                            req_struct->tablePtrP,
-                            req_struct->m_tuple_ptr,
-                            &tmp1,
-                            /* extend */ true);
-      }
-      Uint64 tmp = Uint64(tmp0) << 32 | tmp1;
-      memcpy(outBuffer + 1, &tmp, sizeof(tmp));
-      sz = 2;
-    }
-    break;
-  }
-  case AttributeHeader::ROW_AUTHOR:
-  {
-    sz = 0;
-    if (req_struct->tablePtrP->m_bits & Tablerec::TR_ExtraRowAuthorBits)
-    {
-      Uint32 attrId = req_struct->tablePtrP
-        ->getExtraAttrId<Tablerec::TR_ExtraRowAuthorBits>();
-
-      Uint32 tmp;
-      read_extra_row_bits(attrId,
-                          req_struct->tablePtrP,
-                          req_struct->m_tuple_ptr,
-                          &tmp,
-                          /* extend */ false);
-      outBuffer[1] = tmp;
+  switch (attrId) {
+    case AttributeHeader::READ_LCP:
+      return read_lcp(inBuffer, inPos, req_struct, outBuf);
+    case AttributeHeader::READ_PACKED:
+    case AttributeHeader::READ_ALL:
+      return (int)read_packed(inBuffer, inPos, req_struct, outBuf);
+    case AttributeHeader::FRAGMENT:
+      outBuffer[1] = req_struct->fragPtrP->partitionId;
       sz = 1;
+      break;
+    case AttributeHeader::FRAGMENT_FIXED_MEMORY: {
+      Uint64 tmp = req_struct->fragPtrP->noOfPages;
+      tmp *= 32768;
+      memcpy(outBuffer + 1, &tmp, 8);
+      sz = 2;
+      break;
     }
-    break;
+    case AttributeHeader::FRAGMENT_VARSIZED_MEMORY: {
+      Uint64 tmp = req_struct->fragPtrP->noOfVarPages;
+      tmp *= 32768;
+      memcpy(outBuffer + 1, &tmp, 8);
+      sz = 2;
+      break;
+    }
+    case AttributeHeader::ROW_SIZE:
+      outBuffer[1] = req_struct->tablePtrP->m_offsets[MM].m_fix_header_size
+                     << 2;
+      sz = 1;
+      break;
+    case AttributeHeader::ROW_COUNT: {
+      Uint64 row_count = req_struct->fragPtrP->m_row_count;
+      memcpy(&outBuffer[1], &row_count, 8);
+      sz = 2;
+      break;
+    }
+    case AttributeHeader::COMMIT_COUNT: {
+      Uint64 committed_changes = req_struct->fragPtrP->m_committed_changes;
+      memcpy(&outBuffer[1], &committed_changes, 8);
+      sz = 2;
+      break;
+    }
+    case AttributeHeader::RANGE_NO: {
+      Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
+      ndbrequire(1 <= out_words);
+      c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer, attrId,
+                                 outBuffer + 1, out_words);
+      sz = 1;
+      break;
+    }
+    case AttributeHeader::DISK_REF: {
+      Uint32 *ref =
+          req_struct->m_tuple_ptr->get_disk_ref_ptr(req_struct->tablePtrP);
+      outBuffer[1] = ref[0];
+      outBuffer[2] = ref[1];
+      sz = 2;
+      break;
+    }
+    case AttributeHeader::RECORDS_IN_RANGE: {
+      Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
+      ndbrequire(4 <= out_words);
+      c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer, attrId,
+                                 outBuffer + 1, out_words);
+      sz = 4;
+      break;
+    }
+    case AttributeHeader::INDEX_STAT_KEY:
+    case AttributeHeader::INDEX_STAT_VALUE: {
+      Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
+      ndbrequire(1 + MAX_INDEX_STAT_KEY_SIZE <= out_words);
+
+      c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer, attrId,
+                                 outBuffer + 1, out_words);
+
+      Uint8 *out = (Uint8 *)&outBuffer[1];
+      Uint32 byte_sz = 2 + out[0] + (out[1] << 8);
+      ndbrequire((byte_sz + 3) / 4 <= out_words);
+      while (byte_sz % 4 != 0) out[byte_sz++] = 0;
+      sz = byte_sz / 4;
+      break;
+    }
+    case AttributeHeader::ROWID: {
+      Uint32 frag_page_id = req_struct->m_page_ptr.p->frag_page_id;
+      outBuffer[1] = frag_page_id;
+      outBuffer[2] = req_struct->operPtrP->m_tuple_location.m_page_idx;
+      sz = 2;
+      break;
+    }
+    case AttributeHeader::ROW_GCI:
+      sz = 0;
+      if (req_struct->tablePtrP->m_bits & Tablerec::TR_RowGCI) {
+        Uint64 tmp =
+            *req_struct->m_tuple_ptr->get_mm_gci(req_struct->tablePtrP);
+        memcpy(outBuffer + 1, &tmp, sizeof(tmp));
+        sz = 2;
+      }
+      break;
+    case AttributeHeader::ROW_GCI64: {
+      sz = 0;
+      if (req_struct->tablePtrP->m_bits & Tablerec::TR_RowGCI) {
+        Uint32 tmp0 =
+            *req_struct->m_tuple_ptr->get_mm_gci(req_struct->tablePtrP);
+        Uint32 tmp1 = ~Uint32(0);
+        if (req_struct->tablePtrP->m_bits & Tablerec::TR_ExtraRowGCIBits) {
+          Uint32 attrId = req_struct->tablePtrP
+                              ->getExtraAttrId<Tablerec::TR_ExtraRowGCIBits>();
+          read_extra_row_bits(attrId, req_struct->tablePtrP,
+                              req_struct->m_tuple_ptr, &tmp1,
+                              /* extend */ true);
+        }
+        Uint64 tmp = Uint64(tmp0) << 32 | tmp1;
+        memcpy(outBuffer + 1, &tmp, sizeof(tmp));
+        sz = 2;
+      }
+      break;
+    }
+    case AttributeHeader::ROW_AUTHOR: {
+      sz = 0;
+      if (req_struct->tablePtrP->m_bits & Tablerec::TR_ExtraRowAuthorBits) {
+        Uint32 attrId = req_struct->tablePtrP
+                            ->getExtraAttrId<Tablerec::TR_ExtraRowAuthorBits>();
+
+        Uint32 tmp;
+        read_extra_row_bits(attrId, req_struct->tablePtrP,
+                            req_struct->m_tuple_ptr, &tmp,
+                            /* extend */ false);
+        outBuffer[1] = tmp;
+        sz = 1;
+      }
+      break;
+    }
+    case AttributeHeader::ANY_VALUE: {
+      /**
+       * Read ANY_VALUE does not actually read anything
+       *   but...sets operPtr.p->m_any_value and
+       *   and puts it into clogMemBuffer so that it's also sent
+       *   to backup replica(s)
+       *
+       *   This nifty features is used for delete+read with circ. replication
+       */
+      thrjam(req_struct->jamBuffer);
+      Uint32 RlogSize = req_struct->log_size;
+      req_struct->operPtrP->m_any_value = inBuffer[inPos];
+      *(clogMemBuffer + RlogSize) = inBuffer[inPos - 1];
+      *(clogMemBuffer + RlogSize + 1) = inBuffer[inPos];
+      req_struct->out_buf_index = outPos - 4;
+      req_struct->log_size = RlogSize + 2;
+      return 1;
+    }
+    case AttributeHeader::COPY_ROWID:
+      sz = 2;
+      outBuffer[1] = req_struct->operPtrP->m_copy_tuple_location.m_page_no;
+      outBuffer[2] = req_struct->operPtrP->m_copy_tuple_location.m_page_idx;
+      break;
+    case AttributeHeader::FLUSH_AI: {
+      thrjam(req_struct->jamBuffer);
+      Uint32 resultRef = inBuffer[inPos];
+      Uint32 resultData = inBuffer[inPos + 1];
+      Uint32 routeRef = inBuffer[inPos + 2];
+      flush_read_buffer(req_struct, outBuf, resultRef, resultData, routeRef);
+      return 3;
+    }
+    case AttributeHeader::CORR_FACTOR32: {
+      thrjam(req_struct->jamBuffer);
+      Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
+      ndbrequire(2 <= out_words);
+      c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
+                                 AttributeHeader::CORR_FACTOR64, outBuffer + 1,
+                                 out_words);
+      sz = 1;
+      break;
+    }
+    case AttributeHeader::CORR_FACTOR64: {
+      thrjam(req_struct->jamBuffer);
+      Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
+      ndbrequire(2 <= out_words);
+      c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
+                                 AttributeHeader::CORR_FACTOR64, outBuffer + 1,
+                                 out_words);
+      sz = 2;
+      break;
+    }
+    case AttributeHeader::FRAGMENT_EXTENT_SPACE: {
+      Uint64 res[2];
+      disk_page_get_allocated(req_struct->tablePtrP, req_struct->fragPtrP, res);
+      memcpy(outBuffer + 1, res + 0, 8);
+      sz = 2;
+      break;
+    }
+    case AttributeHeader::FRAGMENT_FREE_EXTENT_SPACE: {
+      Uint64 res[2];
+      disk_page_get_allocated(req_struct->tablePtrP, req_struct->fragPtrP, res);
+      memcpy(outBuffer + 1, res + 1, 8);
+      sz = 2;
+      break;
+    }
+    case AttributeHeader::LOCK_REF: {
+      Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
+      ndbrequire(3 <= out_words);
+      c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer, attrId,
+                                 outBuffer + 1, out_words);
+      sz = 3;
+      break;
+    }
+    case AttributeHeader::OP_ID: {
+      Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
+      ndbrequire(2 <= out_words);
+      c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer, attrId,
+                                 outBuffer + 1, out_words);
+      sz = 2;
+      break;
+    }
+    default:
+      return -ZATTRIBUTE_ID_ERROR;
   }
-  case AttributeHeader::ANY_VALUE:
-  {
-    /**
-     * Read ANY_VALUE does not actually read anything
-     *   but...sets operPtr.p->m_any_value and
-     *   and puts it into clogMemBuffer so that it's also sent
-     *   to backup replica(s)
-     *
-     *   This nifty features is used for delete+read with circ. replication
-     */
-    thrjam(req_struct->jamBuffer);
-    Uint32 RlogSize = req_struct->log_size;
-    req_struct->operPtrP->m_any_value = inBuffer[inPos];
-    * (clogMemBuffer + RlogSize) = inBuffer[inPos - 1];
-    * (clogMemBuffer + RlogSize + 1) = inBuffer[inPos];
-    req_struct->out_buf_index = outPos - 4;
-    req_struct->log_size = RlogSize + 2;
-    return 1;
-  }
-  case AttributeHeader::COPY_ROWID:
-    sz = 2;
-    outBuffer[1] = req_struct->operPtrP->m_copy_tuple_location.m_page_no;
-    outBuffer[2] = req_struct->operPtrP->m_copy_tuple_location.m_page_idx;
-    break;
-  case AttributeHeader::FLUSH_AI:
-  {
-    thrjam(req_struct->jamBuffer);
-    Uint32 resultRef = inBuffer[inPos];
-    Uint32 resultData = inBuffer[inPos + 1];
-    Uint32 routeRef = inBuffer[inPos + 2];
-    flush_read_buffer(req_struct, outBuf, resultRef, resultData, routeRef);
-    return 3;
-  }
-  case AttributeHeader::CORR_FACTOR32:
-  {
-    thrjam(req_struct->jamBuffer);
-    Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
-    ndbrequire(2 <= out_words);
-    c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
-                               AttributeHeader::CORR_FACTOR64,
-                               outBuffer + 1,
-                               out_words);
-    sz = 1;
-    break;
-  }
-  case AttributeHeader::CORR_FACTOR64:
-  {
-    thrjam(req_struct->jamBuffer);
-    Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
-    ndbrequire(2 <= out_words);
-    c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
-                               AttributeHeader::CORR_FACTOR64,
-                               outBuffer + 1,
-                               out_words);
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::FRAGMENT_EXTENT_SPACE:
-  {
-    Uint64 res[2];
-    disk_page_get_allocated(req_struct->tablePtrP, req_struct->fragPtrP, res);
-    memcpy(outBuffer + 1, res + 0, 8);
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::FRAGMENT_FREE_EXTENT_SPACE:
-  {
-    Uint64 res[2];
-    disk_page_get_allocated(req_struct->tablePtrP, req_struct->fragPtrP, res);
-    memcpy(outBuffer + 1, res + 1, 8);
-    sz = 2;
-    break;
-  }
-  case AttributeHeader::LOCK_REF:
-  {
-    Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
-    ndbrequire(3 <= out_words);
-    c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
-                               attrId,
-                               outBuffer + 1,
-                               out_words);
-    sz = 3;
-    break;
-  }
-  case AttributeHeader::OP_ID:
-  {
-    Uint32 out_words = req_struct->max_read / 4 - ((outBuffer + 1) - outBuf);
-    ndbrequire(2 <= out_words);
-    c_lqh->execREAD_PSEUDO_REQ(req_struct->operPtrP->userpointer,
-                               attrId,
-                               outBuffer + 1,
-                               out_words);
-    sz = 2;
-    break;
-  }
-  default:
-    return -ZATTRIBUTE_ID_ERROR;
-  }
-  
+
   AttributeHeader::init(outBuffer, attrId, sz << 2);
-  req_struct->out_buf_index = outPos + 4*sz;
+  req_struct->out_buf_index = outPos + 4 * sz;
   return 0;
 }
 
-Uint32
-Dbtup::read_packed(const Uint32* inBuf, Uint32 inPos,
-                   KeyReqStruct *req_struct,
-                   Uint32* outBuffer)
-{
+Uint32 Dbtup::read_packed(const Uint32 *inBuf, Uint32 inPos,
+                          KeyReqStruct *req_struct, Uint32 *outBuffer) {
   ndbassert(req_struct->out_buf_index >= 4);
   ndbassert((req_struct->out_buf_index & 3) == 0);
   ndbassert(req_struct->out_buf_bits == 0);
-  
-  Tablerec * const regTabPtr = req_struct->tablePtrP;
+
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
   Uint32 outPos = req_struct->out_buf_index;
   Uint32 outBits = req_struct->out_buf_bits;
   Uint32 maxRead = req_struct->max_read;
@@ -3200,45 +4669,38 @@ Dbtup::read_packed(const Uint32* inBuf, Uint32 inPos,
   Uint32 cnt;
   Uint32 numAttributes = regTabPtr->m_no_of_attributes;
   Uint32* attrDescriptorStart = regTabPtr->tabDescriptor;
-  Uint32 attrId =  (* (inBuf + inPos - 1)) >> 16;
-  Uint32 bmlen32 = ((* (inBuf + inPos - 1)) & 0xFFFF);
+  Uint32 attrId = (*(inBuf + inPos - 1)) >> 16;
+  Uint32 bmlen32 = ((*(inBuf + inPos - 1)) & 0xFFFF);
 
   Bitmask<MAXNROFATTRIBUTESINWORDS> mask;
-  if (attrId == AttributeHeader::READ_ALL)
-  {
+  if (attrId == AttributeHeader::READ_ALL) {
     cnt = bmlen32;
-    for (Uint32 i = 0; i<cnt; i++)
-      mask.set(i);
+    for (Uint32 i = 0; i < cnt; i++) mask.set(i);
     bmlen32 = 0;
-  }
-  else
-  {
+  } else {
     bmlen32 /= 4;
-    cnt = 32*bmlen32 <= numAttributes ? 32*bmlen32 : numAttributes;
+    cnt = 32 * bmlen32 <= numAttributes ? 32 * bmlen32 : numAttributes;
     mask.assign(bmlen32, inBuf + inPos);
   }
-  
+
   // Compute result bitmap len
   Bitmask<MAXNROFATTRIBUTESINWORDS> nullable = mask;
   nullable.bitANDC(regTabPtr->notNullAttributeMask);
   Uint32 nullcnt = nullable.count();
   Uint32 masksz = (cnt + nullcnt + 31) >> 5;
-    
-  Uint32* dst = (Uint32*)(outBuffer + ((outPos - 4) >> 2));
-  Uint32* dstmask = dst + 1;
-  AttributeHeader::init(dst, AttributeHeader::READ_PACKED, 4*masksz);
-  std::memset(dstmask, 0, 4*masksz);
-    
+
+  Uint32 *dst = (Uint32 *)(outBuffer + ((outPos - 4) >> 2));
+  Uint32 *dstmask = dst + 1;
+  AttributeHeader::init(dst, AttributeHeader::READ_PACKED, 4 * masksz);
+  std::memset(dstmask, 0, 4 * masksz);
+
   AttributeHeader ahOut;
-  Uint8* outBuf = (Uint8*)outBuffer;
-  outPos += 4*masksz;
-  if (likely(outPos <= maxRead))
-  {
-    for (Uint32 attrId = 0, maskpos = 0; attrId<cnt; attrId++, maskpos++)
-    {
+  Uint8 *outBuf = (Uint8 *)outBuffer;
+  outPos += 4 * masksz;
+  if (likely(outPos <= maxRead)) {
+    for (Uint32 attrId = 0, maskpos = 0; attrId < cnt; attrId++, maskpos++) {
       thrjamDebug(req_struct->jamBuffer);
-      if (mask.get(attrId))
-      {
+      if (mask.get(attrId)) {
         thrjamLineDebug(req_struct->jamBuffer, attrId);
         Uint32 attrDescrIdx = (attrId * ZAD_SIZE);
         Uint32 attrDescriptor = attrDescriptorStart[attrDescrIdx];
@@ -3246,33 +4708,32 @@ Dbtup::read_packed(const Uint32* inBuf, Uint32 inPos,
         Uint64 attrDes = (Uint64(attrDes2) << 32) + Uint64(attrDescriptor);
         ReadFunction f = regTabPtr->readFunctionArray[attrId];
 
-        if (outBits)
-        {
+        if (outBits) {
           ndbassert((outPos & 3) == 0);
         }
-        
-        Uint32 save[2] = { outPos, outBits };
-        switch(AttributeDescriptor::getSize(attrDescriptor)){
-        case DictTabInfo::aBit: // bit
-          outPos = (outPos + 3) & ~(Uint32)3;
-          break;
-        case DictTabInfo::an8Bit: // char
-        case DictTabInfo::a16Bit: // uint16
-          outPos = outPos + 4 * ((outBits + 31) >> 5);
-          outBits = 0;
-          break;
-        case DictTabInfo::a32Bit: // uint32
-        case DictTabInfo::a64Bit: // uint64
-        case DictTabInfo::a128Bit:
-          outPos = ((outPos + 3) & ~(Uint32)3) + 4 * ((outBits + 31) >> 5);
-          outBits = 0;
-          break;
+
+        Uint32 save[2] = {outPos, outBits};
+        switch (AttributeDescriptor::getSize(attrDescriptor)) {
+          case DictTabInfo::aBit:  // bit
+            outPos = (outPos + 3) & ~(Uint32)3;
+            break;
+          case DictTabInfo::an8Bit:  // char
+          case DictTabInfo::a16Bit:  // uint16
+            outPos = outPos + 4 * ((outBits + 31) >> 5);
+            outBits = 0;
+            break;
+          case DictTabInfo::a32Bit:  // uint32
+          case DictTabInfo::a64Bit:  // uint64
+          case DictTabInfo::a128Bit:
+            outPos = ((outPos + 3) & ~(Uint32)3) + 4 * ((outBits + 31) >> 5);
+            outBits = 0;
+            break;
 #ifdef VM_TRACE
-        default:
-          ndbabort();
+          default:
+            ndbabort();
 #endif
         }
-        
+
         req_struct->out_buf_index = outPos;
         req_struct->out_buf_bits = outBits;
         if (likely((*f)(outBuf, req_struct, &ahOut, attrDes)))
@@ -3284,13 +4745,37 @@ Dbtup::read_packed(const Uint32* inBuf, Uint32 inPos,
           outBits = req_struct->out_buf_bits;
 
           if (nullable.get(attrId))
-          {
-            thrjamDebug(req_struct->jamBuffer);
-            maskpos++;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    {
+          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 resultRef,
+             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  thrjamDebug(req_struct->jamBuffer);
+   Uint32 resultRef, Uint32 resultData,
+      maskpos++;
             if (ahOut.isNULL())
             {
               thrjamDebug(req_struct->jamBuffer);
-              BitmaskImpl::set(masksz, dstmask, maskpos);
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+* transIdAI=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*transIdAI
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =   BitmaskImpl::set(masksz, dstmask, maskpos);
               outPos = save[0];
               outBits = save[1];
             }
@@ -3334,33 +4819,172 @@ Dbtup::flush_read_buffer(KeyReqStruct *req_struct,
 
   const Uint32 destNode= refToNode(resultRef);
   const bool connectedToNode= getNodeInfo(destNode).m_connected;
-  const Uint32 type = getNodeInfo(destNode).m_type;
-  const bool is_api = (type >= NodeInfo::API && type <= NodeInfo::MGM);
+ TransIdAI::HeaderLength + 1,
+ const Uint32 type = getNodeInfo(destNode).m_type;
+  const bool is_api = (type >= 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeInfo::API
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ TransIdAI::HeaderLength+1,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ && type <= NodeInfo::MGM);
 
   /**
    * If we are not connected to the destination block, we may reach it 
    * indirectly by sending a TRANSID_AI_R signal to routeBlockref. Only
    * TC can handle TRANSID_AI_R signals. The 'ndbrequire' below should
-   * check that there is no chance of sending TRANSID_AI_R to a block
+   * check that there is no chance of sending TRANSID_AI_R 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+TransIdAI::HeaderLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+a
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+JBB,
+>>>>>>> MySQL 8.0.36
+ block
    * that cannot handle it.
    */
-  ndbassert (refToMain(routeRef) == DBTC || 
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbassert
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TransIdAI::HeaderLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(refToMain(routeRef)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+JBB,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ == DBTC || 
              /** 
               * A node should always be connected to itself. So we should
               * never need to send TRANSID_AI_R in this case.
               */
              (destNode == getOwnNodeId() && connectedToNode));
 
-  if (unlikely(!connectedToNode))
-  {
+  if (unlikely(!connectedToNode)) {
     thrjam(req_struct->jamBuffer);
-    if (outBuf == signal->theData+TransIdAI::HeaderLength)
+    if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(outBuf
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== signal->theData+TransIdAI::HeaderLength
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+inBuf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*inBuf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
     {
       thrjam(req_struct->jamBuffer);
-      /**
-       * TUP guessed incorrectly that it could EXECUTE_DIRECT
-       *  it then puts outBuf == signal->theData+AttrInfo::HeaderLength
-       * (Use  memmove as src & dest may overlap)       */
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+bool
+Dbtup::readBitsNotNULL(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+bool Dbtup::readBitsNotNULL(Uint8
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     /**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+outBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*outBuffer, KeyReqStruct *req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TUP guessed incorrectly that it could EXECUTE_DIRECT
+||||||| Common ancestor
+req_struct,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AttributeHeader*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  it then puts outBuf == signal->theData+AttrInfo::HeaderLength
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     AttributeHeader *ahOut, Uint64
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     * (Use  memmove as src & dest may overlap)       */
       memmove(&signal->theData[25], outBuf, 4*len);
       outBuf = &signal->theData[25];
     }
@@ -3379,14 +5003,90 @@ Dbtup::flush_read_buffer(KeyReqStruct *req_struct,
   }
   else
   {
-    LinearSectionPtr ptr[3];
-    ptr[0].p= const_cast<Uint32*>(outBuf);
-    ptr[0].sz= len;
+  bmptr, bmlen, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LinearSectionPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+pos,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr[3];
+||||||| Common ancestor
+=======
+bitCount);
+}
+
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Dbtup::readBitsNULLable(Uint8 *outBuffer, KeyReqStruct 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr[0].p=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*req_struct,
+>>>>>>> MySQL 8.0.36
+ const_cast<Uint32*>(outBuf);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr[0].sz= len;
+||||||| Common ancestor
+bmlen,
+=======
+>>>>>>> MySQL 8.0.36
     sendSignal(resultRef, GSN_TRANSID_AI, signal,
-               TransIdAI::HeaderLength, JBB, ptr, 1);
+               TransIdAI::HeaderLength, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+JBB,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pos,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr, 1);
   }
 
-  req_struct->out_buf_index = 0; // Reset buffer
+||||||| Common ancestor
+bitCount);
+}
+
+bool
+Dbtup::readBitsNULLable(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct->out_buf_index
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct,
+			AttributeHeader* ahOut,
+			Uint64 attrDes)
+{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AttributeHeader *ahOut, Uint64 attrDes) {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 0; // Reset buffer
   req_struct->out_buf_bits = 0;
 
   /**
@@ -3394,9 +5094,42 @@ Dbtup::flush_read_buffer(KeyReqStruct *req_struct,
    * In these cases we are sending two TRANSID_AI results pr row:
    * One goes to the API, the other to the SPJ node which (currently)
    * is the only user of FLUSH_AI.
-   * 'read_length' is reported to LQH, which use it to control the 
+   * 'read_length' is reported to LQH, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+which
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ahOut,
+=======
+ahOut, bm_ptr, bm_len, pos + 1,
+>>>>>>> MySQL 8.0.36
+ use it to control the 
    * 'batch_bytes_size' sent to the API. Thus, read_length should be 
-   * counted when not 'is_api.
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bm_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+bitCount);
+}
+
+bool Dbtup::updateBitsNotNULL(Uint32 *inBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bm_len,
+=======
+KeyReqStruct *req_struct,
+>>>>>>> MySQL 8.0.36
+ counted when not 'is_api.
    */
   if (is_api)
   {
@@ -3405,20 +5138,77 @@ Dbtup::flush_read_buffer(KeyReqStruct *req_struct,
 }
 
 Uint32
-Dbtup::update_packed(KeyReqStruct *req_struct, const Uint32* inBuf)
+Dbtup::update_packed(KeyReqStruct 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pos+1,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const Uint32* inBuf)
 {
   return 0;
 }
 
 bool
-Dbtup::readBitsNotNULL(Uint8* outBuffer,
-		       KeyReqStruct* req_struct,
+Dbtup::readBitsNotNULL(Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bitCount);
+}
+
+bool
+Dbtup::updateBitsNotNULL(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+outBuffer,
+		      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+inBuffer,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct,
 		       AttributeHeader* ahOut,
-		       Uint64 attrDes)
-{
+		
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       Uint64 attrDes) {
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec * const regTabPtr = req_struct->tablePtrP;
+  Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ *const regTabPtr = req_struct->tablePtrP;
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
   Uint32 *bmptr= req_struct->m_tuple_ptr->get_null_bits(regTabPtr);
@@ -3432,15 +5222,47 @@ Dbtup::readBitsNotNULL(Uint8* outBuffer,
                      pos, bitCount);
 }
 
-bool
-Dbtup::readBitsNULLable(Uint8* outBuffer,
-			KeyReqStruct* req_struct,
+bool Dbtup::readBitsNULLable(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint8*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+outBuffer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+inBuffer
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*inBuffer
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+			KeyReqStruct *req_struct,
 			AttributeHeader* ahOut,
-			Uint64 attrDes)
-{
+			Uint64 attrDes) {
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec * const regTabPtr = req_struct->tablePtrP;
+  Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ *const regTabPtr = req_struct->tablePtrP;
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
   
@@ -3460,11 +5282,9 @@ Dbtup::readBitsNULLable(Uint8* outBuffer,
                      pos+1, bitCount);
 }
 
-bool
-Dbtup::updateBitsNotNULL(Uint32* inBuffer,
+bool Dbtup::updateBitsNotNULL(Uint32 *inBuffer,
 			 KeyReqStruct* req_struct,
-			 Uint64 attrDes)
-{
+			 Uint64 attrDes) {
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   Tablerec* const regTabPtr =  req_struct->tablePtrP;
@@ -3477,10 +5297,8 @@ Dbtup::updateBitsNotNULL(Uint32* inBuffer,
   Uint32 newIndex = indexBuf + 1 + ((bitCount + 31) >> 5);
   Uint32 *bits= req_struct->m_tuple_ptr->get_null_bits(regTabPtr);
   
-  if (likely(newIndex <= inBufLen))
-  {
-    if (likely(!nullIndicator))
-    {
+  if (likely(newIndex <= inBufLen)) {
+    if (likely(!nullIndicator)) {
       BitmaskImpl::setField(regTabPtr->m_offsets[MM].m_null_words, bits, pos, 
 			    bitCount, inBuffer+indexBuf+1);
       req_struct->in_buf_index = newIndex;
@@ -3500,16 +5318,31 @@ Dbtup::updateBitsNotNULL(Uint32* inBuffer,
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
     return false;
   }//if
-  return true;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ return true;
 }
 
 bool
 Dbtup::updateBitsNULLable(Uint32* inBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(unlikely(! NdbSqlUtil::get_var_length(typeId,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(unlikely(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 			  KeyReqStruct* req_struct,
 			  Uint64 attrDes)
 {
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
-  Uint32 attrDes2 = Uint32(attrDes >> 32);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ Uint32 attrDes2 = Uint32(attrDes >> 32);
   Tablerec* const regTabPtr =  req_struct->tablePtrP;
   Uint32 indexBuf = req_struct->in_buf_index;
   AttributeHeader ahIn(inBuffer[indexBuf]);
@@ -3521,7 +5354,17 @@ Dbtup::updateBitsNULLable(Uint32* inBuffer,
   if (!nullIndicator)
   {
     BitmaskImpl::clear(regTabPtr->m_offsets[MM].m_null_words, bits, pos);
-    BitmaskImpl::setField(regTabPtr->m_offsets[MM].m_null_words, bits, pos+1, 
+    BitmaskImpl::setField(regTabPtr->m_offsets[MM].m_null_words, bits
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                  ssrc,
+                                                  bytes
+// RONDB-624 todo: Glue these lines together ^v
+=======
+!NdbSqlUtil::get_var_length(typeId, ssrc, bytes
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, pos+1, 
 			  bitCount, inBuffer+indexBuf+1);
     
     Uint32 newIndex = indexBuf + 1 + ((bitCount + 31) >> 5);
@@ -3557,11 +5400,30 @@ Dbtup::updateDiskFixedSizeNotNULL(Uint32* inBuffer,
   thrjamDebug(req_struct->jamBuffer);
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
+<<<<<<< RonDB // RONDB-624 todo
     thrjam(req_struct->jamBuffer);
     req_struct->errorCode = ZOP_DISK_WITH_FLAG_NOT_SET;
-    return false;
+    return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	    (*cs->cset->well_formed_len)(cs,
+          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ false;
   }
-  Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
+  Uint32 attrDescriptor = Uint32((attrDes << 32) >> 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+32);
+||||||| Common ancestor
+                   ssrc + lb,
+=======
+         (*cs->cset->well_formed_len)(cs, ssrc + lb,
+         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   Uint32 attrDes2 = Uint32(attrDes >> 32);
   Uint32 indexBuf= req_struct->in_buf_index;
   Uint32 inBufLen= req_struct->in_buf_len;
@@ -3579,8 +5441,16 @@ Dbtup::updateDiskFixedSizeNotNULL(Uint32* inBuffer,
   {
     if (likely(!nullIndicator))
     {
-      thrjam(req_struct->jamBuffer);
-      if (charsetFlag)
+    ZNIL,
+  thrjam(req_struct->jamBuffer);
+      if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(charsetFlag)
+||||||| Common ancestor
+ZNIL,
+=======
+>>>>>>> MySQL 8.0.36
       {
         thrjam(req_struct->jamBuffer);
         Tablerec * regTabPtr = req_struct->tablePtrP;
@@ -3596,7 +5466,36 @@ Dbtup::updateDiskFixedSizeNotNULL(Uint32* inBuffer,
         if (unlikely(! NdbSqlUtil::get_var_length(typeId,
                                                   ssrc,
                                                   bytes,
-                                                  lb,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+bool
+Dbtup::updateDiskFixedSizeNULLable(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+bool Dbtup::updateDiskFixedSizeNULLable(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+inBuffer,
+				
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*inBuffer,
+                                     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                            lb,
                                                   len)))
         {
           thrjam(req_struct->jamBuffer);
@@ -3606,11 +5505,71 @@ Dbtup::updateDiskFixedSizeNotNULL(Uint32* inBuffer,
 	// fast fix bug#7340
         if (unlikely(typeId != NDB_TYPE_TEXT &&
 	    (*cs->cset->well_formed_len)(cs,
-                                         ssrc + lb,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+bool
+Dbtup::updateDiskVarAsFixedSizeNotNULL(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+bool Dbtup::updateDiskVarAsFixedSizeNotNULL(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+inBuffer,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*inBuffer,
+                                      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      ssrc + lb
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req_struct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                                          ssrc + lb + len,
-                                         ZNIL,
-                                         &not_used) != len))
-        {
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+size_in_words=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+size_in_words
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =               ZNIL,
+                                         &not_used) != len))   {
           thrjam(req_struct->jamBuffer);
           req_struct->errorCode = ZINVALID_CHAR_FORMAT;
           return false;
@@ -3618,15 +5577,70 @@ Dbtup::updateDiskFixedSizeNotNULL(Uint32* inBuffer,
       }
       req_struct->in_buf_index= newIndex;
       MEMCOPY_NO_WORDS(&tuple_header[updateOffset],
-                       &inBuffer[indexBuf + 1],
-                       noOfWords);
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CHARSET_INFO*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CHARSET_INFO
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cs
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cs
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  &inBuffer[indexBuf + 1],
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ssrc
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ssrc
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+            noOfWords);
       return true;
     }
     else
-    {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(unlikely(! NdbSqlUtil::get_var_length(typeId,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(unlikely(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       thrjam(req_struct->jamBuffer);
       req_struct->errorCode = ZNOT_NULL_ATTR;
-      return false;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ return false;
     }
   }
   else
@@ -3639,7 +5653,16 @@ Dbtup::updateDiskFixedSizeNotNULL(Uint32* inBuffer,
 }
 
 bool
-Dbtup::updateDiskFixedSizeNULLable(Uint32* inBuffer,
+Dbtup::updateDiskFixedSizeNULLable(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+!NdbSqlUtil::get_var_length(typeId,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ inBuffer,
 				   KeyReqStruct *req_struct,
 				   Uint64 attrDes)
 {
@@ -3690,7 +5713,19 @@ Dbtup::updateDiskVarAsFixedSizeNotNULL(Uint32* inBuffer,
 			      KeyReqStruct* req_struct,
 			      Uint64 attrDes)
 {
-  thrjamDebug(req_struct->jamBuffer);
+  thrjamDebug(req_struct->jamBuffer)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(cs,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(cs, ssrc + lb,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
     thrjam(req_struct->jamBuffer);
@@ -3698,7 +5733,19 @@ Dbtup::updateDiskVarAsFixedSizeNotNULL(Uint32* inBuffer,
     return false;
   }
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
-  Uint32 attrDes2 = Uint32(attrDes >> 32);
+  Uint32 attrDes2 = Uint32(attrDes >> 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+32);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ ssrc + lb,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+          ssrc + lb + len, ZNIL,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   Uint32 indexBuf= req_struct->in_buf_index;
   //Uint32 inBufLen= req_struct->in_buf_len;
   Uint32 updateOffset= AttributeOffset::getOffset(attrDes2);
@@ -3709,7 +5756,10 @@ Dbtup::updateDiskVarAsFixedSizeNotNULL(Uint32* inBuffer,
   Uint32 nullIndicator= ahIn.isNULL();
   Uint32 size_in_words=  ahIn.getDataSize();
 
-  Uint32 newIndex= indexBuf + size_in_words + 1;
+  Uint32 newIndex= 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+indexBuf + size_in_words + 1;
   Uint32 *tuple_header= req_struct->m_disk_ptr->m_data;
   require((updateOffset + noOfWords - 1) < req_struct->check_offset[DD]);
 
@@ -3722,6 +5772,15 @@ Dbtup::updateDiskVarAsFixedSizeNotNULL(Uint32* inBuffer,
       {
         thrjam(req_struct->jamBuffer);
         Tablerec* regTabPtr = req_struct->tablePtrP;
+||||||| Common ancestor
+  ssrc + lb + len,
+                                         ZNIL,
+                                
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
         Uint32 typeId= AttributeDescriptor::getType(attrDescriptor);
         Uint32 bytes= AttributeDescriptor::getSizeInBytes(attrDescriptor);
         Uint32 i = AttributeOffset::getCharsetPos(attrDes2);
@@ -3733,8 +5792,57 @@ Dbtup::updateDiskVarAsFixedSizeNotNULL(Uint32* inBuffer,
         Uint32 lb, len;
         if (unlikely(! NdbSqlUtil::get_var_length(typeId,
                                                   ssrc,
-                                                  bytes,
-                                                  lb,
+                                            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+bool
+Dbtup::updateDiskVarAsFixedSizeNULLable(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+bool Dbtup::updateDiskVarAsFixedSizeNULLable(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+inBuffer,
+				
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*inBuffer,
+                                          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     bytes,
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                    lb,
                                                   len)))
         {
           thrjam(req_struct->jamBuffer);
@@ -3744,44 +5852,306 @@ Dbtup::updateDiskVarAsFixedSizeNotNULL(Uint32* inBuffer,
 	// fast fix bug#7340
         if (unlikely(typeId != NDB_TYPE_TEXT &&
 	    (*cs->cset->well_formed_len)(cs,
-                                         ssrc + lb,
-                                         ssrc + lb + len,
-                                         ZNIL,
-                                         &not_used) != len))
-        {
-          thrjam(req_struct->jamBuffer);
-          req_struct->errorCode = ZINVALID_CHAR_FORMAT;
-          return false;
-        }
-      }
-
-      req_struct->in_buf_index= newIndex;
-      MEMCOPY_NO_WORDS(&tuple_header[updateOffset],
-                       &inBuffer[indexBuf + 1],
-                       size_in_words);
-      return true;
-    }
-    else
-    {
-      thrjam(req_struct->jamBuffer);
-      req_struct->errorCode= ZNOT_NULL_ATTR;
-      return false;
-    }
-  }
-  else
-  {
-    thrjam(req_struct->jamBuffer);
-    assert(false);
-    req_struct->errorCode= ZAI_INCONSISTENCY_ERROR;
-    return false;
-  }
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
 }
 
 bool
-Dbtup::updateDiskVarAsFixedSizeNULLable(Uint32* inBuffer,
-				   KeyReqStruct *req_struct,
-				   Uint64 attrDes)
+Dbtup::updateDiskVarSizeNotNULL(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+bool Dbtup::updateDiskVarSizeNotNULL(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+in_buffer,
+=======
+*in_buffer,
+>>>>>>> MySQL 8.0.36
+                           ssrc 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++ lb,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+KeyReqStruct *req_struct,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+         KeyReqStruct *req_struct,              ssrc + lb + len,
+                                         ZNIL,
+                                         &not_used) != len))      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(likely(!null_ind))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(likely(!null_ind)) {
+      thrjam(req_struct->jamBuffer);
+      var_attr_pos = vpos_array[var_index];
+      var_data_start = req_struct->m_var_data[DD].m_data_ptr;
+      vpos_array[var_index + idx] = var_attr_pos + size_in_bytes;
+      req_struct->in_buf_index = new_index;
+
+      require(var_attr_pos + size_in_bytes <= check_offset);
+      memcpy(var_data_start + var_attr_pos, &in_buffer[index_buf + 1],
+             size_in_bytes);
+      return true;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
 {
+=======
+} else {
+>>>>>>> MySQL 8.0.36
+      thrjam(req_struct->jamBuffer);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    req
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+var_attr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_struct->errorCode = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZINVALID
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+vpos
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ZNOT
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CHAR
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+array[var
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NULL
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FORMAT
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+index]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ATTR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+var_data_start=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   return false
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct->m_var_data[DD].m_data_ptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+false
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+    }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  }
+      }
+
+||||||| Common ancestor
+vpos_array[var_index+idx]= var_attr_pos+size_in_bytes;
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ else {
+    thrjam(req_struct->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in_buf_index= newIndex
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+in_buf_index= new_index
+// RONDB-624 todo: Glue these lines together ^v
+=======
+jamBuffer)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  MEMCOPY_NO_WORDS(&tuple_header[updateOffset],
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+assert(false);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  require(var_attr_pos+size_in_bytes
+// RONDB-624 todo: Glue these lines together ^v
+=======
+req_struct->errorCode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+<=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+check_offset);
+=======
+ZAI_INCONSISTENCY_ERROR;
+>>>>>>> MySQL 8.0.36
+    return 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          &inBuffer[indexBuf + 1],
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ memcpy(var_data_start+var_attr_pos, &in_buffer[index_buf + 1],
+// RONDB-624 todo: Glue these lines together ^v
+=======
+false;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+                    }
+  return 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+size_in_words)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+size_in_bytes)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+false
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+}
+
+bool Dbtup::updateDiskVarSizeNULLable(Uint32 *inBuffer,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct->errorCode=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct->errorCode =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        KeyReqStruct *req_struct,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct->errorCode=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct->errorCode =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+}
+
+bool
+Dbtup::updateDiskVarAsFixedSizeNULLable(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+  return false;
+}
+
+bool
+Dbtup::updateDiskVarSizeNULLable(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
@@ -3790,32 +6160,24 @@ Dbtup::updateDiskVarAsFixedSizeNULLable(Uint32* inBuffer,
     return false;
   }
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec* const regTabPtr = req_struct->tablePtrP;
+  Tablerec*const regTabPtr = req_struct->tablePtrP;
   AttributeHeader ahIn(inBuffer[req_struct->in_buf_index]);
-  Uint32 nullIndicator= ahIn.isNULL();
-  Uint32 pos= AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 *bits= req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
+  Uint32 nullIndicator = ahIn.isNULL();
+  Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
+  Uint32 *bits = req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
   
-  if (!nullIndicator)
-  {
+  if (!nullIndicator) {
     thrjamDebug(req_struct->jamBuffer);
     BitmaskImpl::clear(regTabPtr->m_offsets[DD].m_null_words, bits, pos);
-    return updateDiskVarAsFixedSizeNotNULL(inBuffer,
-				      req_struct,
-				      attrDes);
-  }
-  else
-  {
-    Uint32 newIndex= req_struct->in_buf_index + 1;
-    if (likely(newIndex <= req_struct->in_buf_len))
-    {
+    return updateDiskVarAsFixedSizeNotNULL(inBuffer,   req_struct,   attrDes);
+  } else {
+    Uint32 newIndex = req_struct->in_buf_index + 1;
+    if (likely(newIndex <= req_struct->in_buf_len)) {
       BitmaskImpl::set(regTabPtr->m_offsets[DD].m_null_words, bits, pos);
       thrjamDebug(req_struct->jamBuffer);
-      req_struct->in_buf_index= newIndex;
+      req_struct->in_buf_index = newIndex;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       assert(false);
       req_struct->errorCode= ZAI_INCONSISTENCY_ERROR;
@@ -3824,11 +6186,8 @@ Dbtup::updateDiskVarAsFixedSizeNULLable(Uint32* inBuffer,
   }
 }
 
-bool
-Dbtup::updateDiskBitsNotNULL(Uint32* inBuffer,
-			     KeyReqStruct* req_struct,
-			     Uint64 attrDes)
-{
+bool Dbtup::updateDiskBitsNotNULL(Uint32 *inBuffer, KeyReqStruct *req_struct,
+                                  Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
@@ -3838,7 +6197,7 @@ Dbtup::updateDiskBitsNotNULL(Uint32* inBuffer,
   }
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec* const regTabPtr =  req_struct->tablePtrP;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
   Uint32 indexBuf = req_struct->in_buf_index;
   Uint32 inBufLen = req_struct->in_buf_len;
   AttributeHeader ahIn(inBuffer[indexBuf]);
@@ -3846,39 +6205,30 @@ Dbtup::updateDiskBitsNotNULL(Uint32* inBuffer,
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
   Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
   Uint32 newIndex = indexBuf + 1 + ((bitCount + 31) >> 5);
-  Uint32 *bits= req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
-  
-  if (likely(newIndex <= inBufLen))
-  {
-    if (likely(!nullIndicator))
-    {
-      BitmaskImpl::setField(regTabPtr->m_offsets[DD].m_null_words, bits, pos, 
-			    bitCount, inBuffer+indexBuf+1);
+  Uint32 *bits = req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
+
+  if (likely(newIndex <= inBufLen)) {
+    if (likely(!nullIndicator)) {
+      BitmaskImpl::setField(regTabPtr->m_offsets[DD].m_null_words, bits, pos,
+                            bitCount, inBuffer + indexBuf + 1);
       req_struct->in_buf_index = newIndex;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       req_struct->errorCode = ZNOT_NULL_ATTR;
       return false;
-    }//if
-  }
-  else
-  {
+    }  // if
+  } else {
     thrjam(req_struct->jamBuffer);
     assert(false);
     req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
     return false;
-  }//if
+  }  // if
   return true;
 }
 
-bool
-Dbtup::updateDiskBitsNULLable(Uint32* inBuffer,
-			      KeyReqStruct* req_struct,
-			      Uint64 attrDes)
-{
+bool Dbtup::updateDiskBitsNULLable(Uint32 *inBuffer, KeyReqStruct *req_struct,
+                                   Uint64 attrDes) {
   thrjamDebug(req_struct->jamBuffer);
   if (unlikely(req_struct->m_disk_ptr == nullptr))
   {
@@ -3888,80 +6238,69 @@ Dbtup::updateDiskBitsNULLable(Uint32* inBuffer,
   }
   Uint32 attrDescriptor = Uint32((attrDes << 32) >> 32);
   Uint32 attrDes2 = Uint32(attrDes >> 32);
-  Tablerec* const regTabPtr =  req_struct->tablePtrP;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
   Uint32 indexBuf = req_struct->in_buf_index;
   AttributeHeader ahIn(inBuffer[indexBuf]);
   Uint32 nullIndicator = ahIn.isNULL();
   Uint32 pos = AttributeOffset::getNullFlagPos(attrDes2);
-  Uint32 bitCount = 
-    AttributeDescriptor::getArraySize(attrDescriptor);
-  Uint32 *bits= req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
-  
-  if (!nullIndicator)
-  {
+  Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
+  Uint32 *bits = req_struct->m_disk_ptr->get_null_bits(regTabPtr, DD);
+
+  if (!nullIndicator) {
     BitmaskImpl::clear(regTabPtr->m_offsets[DD].m_null_words, bits, pos);
-    BitmaskImpl::setField(regTabPtr->m_offsets[DD].m_null_words, bits, pos+1, 
-			  bitCount, inBuffer+indexBuf+1);
-    
+    BitmaskImpl::setField(regTabPtr->m_offsets[DD].m_null_words, bits, pos + 1,
+                          bitCount, inBuffer + indexBuf + 1);
+
     Uint32 newIndex = indexBuf + 1 + ((bitCount + 31) >> 5);
     req_struct->in_buf_index = newIndex;
     return true;
-  }
-  else
-  {
+  } else {
     Uint32 newIndex = indexBuf + 1;
-    if (likely(newIndex <= req_struct->in_buf_len))
-    {
+    if (likely(newIndex <= req_struct->in_buf_len)) {
       thrjam(req_struct->jamBuffer);
       BitmaskImpl::set(regTabPtr->m_offsets[DD].m_null_words, bits, pos);
-      
+
       req_struct->in_buf_index = newIndex;
       return true;
-    }
-    else
-    {
+    } else {
       thrjam(req_struct->jamBuffer);
       assert(false);
       req_struct->errorCode = ZAI_INCONSISTENCY_ERROR;
       return false;
-    }//if
-  }//if
+    }  // if
+  }    // if
 }
 
-Uint32
-Dbtup::read_lcp(const Uint32* inBuf, Uint32 inPos,
-                KeyReqStruct *req_struct,
-                Uint32* outBuffer)
-{
+Uint32 Dbtup::read_lcp(const Uint32 *inBuf, Uint32 inPos,
+                       KeyReqStruct *req_struct, Uint32 *outBuffer) {
   ndbassert(req_struct->out_buf_index >= 4);
   ndbassert((req_struct->out_buf_index & 3) == 0);
   ndbassert(req_struct->out_buf_bits == 0);
 
-  Tablerec* const regTabPtr =  req_struct->tablePtrP;
+  Tablerec *const regTabPtr = req_struct->tablePtrP;
   Uint32 outPos = req_struct->out_buf_index;
 
-  Uint32 fixsz = 4 * (regTabPtr->m_offsets[MM].m_fix_header_size - Tuple_header::HeaderSize);
+  Uint32 fixsz = 4 * (regTabPtr->m_offsets[MM].m_fix_header_size -
+                      Tuple_header::HeaderSize);
   Uint32 varlen = 0;
-  char* varstart = 0;
-  if (req_struct->m_tuple_ptr->m_header_bits & Tuple_header::VAR_PART)
-  {
+  char *varstart = 0;
+  if (req_struct->m_tuple_ptr->m_header_bits & Tuple_header::VAR_PART) {
     ndbassert(req_struct->is_expanded == false);
-    varstart = (char*)req_struct->m_var_data[MM].m_offset_array_ptr;
-    char * end = req_struct->m_var_data->m_dyn_data_ptr + 
-      4*req_struct->m_var_data[MM].m_dyn_part_len;
+    varstart = (char *)req_struct->m_var_data[MM].m_offset_array_ptr;
+    char *end = req_struct->m_var_data->m_dyn_data_ptr +
+                4 * req_struct->m_var_data[MM].m_dyn_part_len;
     varlen = Uint32(end - varstart);
     varlen = (varlen + 3) & ~(Uint32)3;
     ndbassert(varlen < 32768);
   }
   Uint32 totsz = fixsz + varlen;
 
-  Uint32* dst = (Uint32*)(outBuffer + ((outPos - 4) >> 2));
+  Uint32 *dst = (Uint32 *)(outBuffer + ((outPos - 4) >> 2));
   dst[0] = req_struct->frag_page_id;
   dst[1] = req_struct->operPtrP->m_tuple_location.m_page_idx;
-  memcpy(dst+2, req_struct->m_tuple_ptr->m_data, fixsz);
+  memcpy(dst + 2, req_struct->m_tuple_ptr->m_data, fixsz);
 
-  if (varstart)
-  {
+  if (varstart) {
     memcpy(dst + 2 + (fixsz >> 2), varstart, varlen);
   }
 
@@ -3970,37 +6309,36 @@ Dbtup::read_lcp(const Uint32* inBuf, Uint32 inPos,
   return 0;
 }
 
-void
-Dbtup::update_lcp(KeyReqStruct* req_struct, const Uint32 * src, Uint32 len)
-{
-  Tablerec* const tabPtrP =  req_struct->tablePtrP;
+void Dbtup::update_lcp(KeyReqStruct *req_struct, const Uint32 *src,
+                       Uint32 len) {
+  Tablerec *const tabPtrP = req_struct->tablePtrP;
 
   req_struct->m_is_lcp = true;
-  Uint32 fixsz32 = (tabPtrP->m_offsets[MM].m_fix_header_size - Tuple_header::HeaderSize);
+  Uint32 fixsz32 =
+      (tabPtrP->m_offsets[MM].m_fix_header_size - Tuple_header::HeaderSize);
   Uint32 fixsz = 4 * fixsz32;
-  Tuple_header* ptr = (Tuple_header*)req_struct->m_tuple_ptr;
+  Tuple_header *ptr = (Tuple_header *)req_struct->m_tuple_ptr;
   memcpy(ptr->m_data, src, fixsz);
 
-  Uint16 mm_vars= tabPtrP->m_attributes[MM].m_no_of_varsize;
-  Uint16 mm_dyns= tabPtrP->m_attributes[MM].m_no_of_dynamic;
+  Uint16 mm_vars = tabPtrP->m_attributes[MM].m_no_of_varsize;
+  Uint16 mm_dyns = tabPtrP->m_attributes[MM].m_no_of_dynamic;
 
   Uint32 varlen32 = 0;
-  if (mm_vars || mm_dyns)
-  {
+  if (mm_vars || mm_dyns) {
     varlen32 = len - fixsz32;
-    if (mm_dyns == 0)
-    {
+    if (mm_dyns == 0) {
       ndbassert(len > fixsz32);
     }
-    Varpart_copy* vp = (Varpart_copy*)ptr->get_end_of_fix_part_ptr(tabPtrP);
+    Varpart_copy *vp = (Varpart_copy *)ptr->get_end_of_fix_part_ptr(tabPtrP);
     vp->m_len = varlen32;
-    memcpy(vp->m_data, src + fixsz32, 4*varlen32);
+    memcpy(vp->m_data, src + fixsz32, 4 * varlen32);
   }
   req_struct->m_lcp_varpart_len = varlen32;
 
   if ((tabPtrP->m_bits & Tablerec::TR_DiskPart) != 0)
   {
-    ptr->m_header_bits |= Tuple_header::DISK_PART;
+    ptr->m_header_bits |=
+      Tuple_header::DISK_PART;
     if ((tabPtrP->m_bits & Tablerec::TR_UseVarSizedDiskData) != 0)
     {
       ptr->m_header_bits |= Tuple_header::DISK_VAR_PART;
@@ -4009,38 +6347,33 @@ Dbtup::update_lcp(KeyReqStruct* req_struct, const Uint32 * src, Uint32 len)
   ptr->m_header_bits |= (varlen32) ? Tuple_header::VAR_PART : 0;
 
 #ifdef VM_TRACE
-  if (tabPtrP->m_bits & Tablerec::TR_DiskPart && false)
-  {
+  if (tabPtrP->m_bits & Tablerec::TR_DiskPart && false) {
     Local_key lkey;
     memcpy(&lkey, ptr->get_disk_ref_ptr(tabPtrP), 8);
-    g_eventLogger->info("LCP page(%u,%u).%u",
-                        lkey.m_file_no,
-                        lkey.m_page_no,
+    g_eventLogger->info("LCP page(%u,%u).%u", lkey.m_file_no, lkey.m_page_no,
                         lkey.m_page_idx);
   }
 #endif
   req_struct->changeMask.set();
 }
 
-Uint32
-Dbtup::read_lcp_keys(Uint32 tableId,
-                     const Uint32 * src, Uint32 len, Uint32 *dst)
-{
+Uint32 Dbtup::read_lcp_keys(Uint32 tableId, const Uint32 *src, Uint32 len,
+                            Uint32 *dst) {
   TablerecPtr tabPtr;
-  tabPtr.i= tableId;
+  tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-  Tablerec* tabPtrP = tabPtr.p;
+  Tablerec *tabPtrP = tabPtr.p;
 
   /**
    * This is a "special" prepare_read
    */
-  Tuple_header*ptr = (Tuple_header*)(src - Tuple_header::HeaderSize);
+  Tuple_header *ptr = (Tuple_header *)(src - Tuple_header::HeaderSize);
   KeyReqStruct req_struct(this);
   req_struct.m_lqh = c_lqh;
   req_struct.tablePtrP = tabPtr.p;
   req_struct.fragPtrP = nullptr;
   req_struct.m_tuple_ptr = ptr;
-  req_struct.check_offset[MM]= len;
+  req_struct.check_offset[MM] = len;
   req_struct.is_expanded = false;
 
   /**
@@ -4049,58 +6382,50 @@ Dbtup::read_lcp_keys(Uint32 tableId,
   {
     Uint16 mm_vars = tabPtrP->m_attributes[MM].m_no_of_varsize;
     Uint16 mm_dyns = tabPtrP->m_attributes[MM].m_no_of_dynamic;
-    Uint32 src_len = Tuple_header::HeaderSize + len - tabPtrP->m_offsets[MM].m_fix_header_size;
+    Uint32 src_len = Tuple_header::HeaderSize + len -
+                     tabPtrP->m_offsets[MM].m_fix_header_size;
 
-    const Uint32 *src_ptr= ptr->get_end_of_fix_part_ptr(tabPtrP);
-    if(mm_vars || mm_dyns)
-    {
-      const Uint32 *src_data= src_ptr;
-      KeyReqStruct::Var_data* dst= &req_struct.m_var_data[MM];
+    const Uint32 *src_ptr = ptr->get_end_of_fix_part_ptr(tabPtrP);
+    if (mm_vars || mm_dyns) {
+      const Uint32 *src_data = src_ptr;
+      KeyReqStruct::Var_data *dst = &req_struct.m_var_data[MM];
 
-      if (mm_vars)
-      {
-        char* varstart = (char*)(((Uint16*)src_data)+mm_vars+1);
-        Uint32 varlen = ((Uint16*)src_data)[mm_vars];
-        Uint32* dynstart = ALIGN_WORD(varstart + varlen);
-        
-        dst->m_data_ptr= varstart;
-        dst->m_offset_array_ptr= (Uint16*)src_data;
-        dst->m_var_len_offset= 1;
-        dst->m_max_var_offset= varlen;
-        
+      if (mm_vars) {
+        char *varstart = (char *)(((Uint16 *)src_data) + mm_vars + 1);
+        Uint32 varlen = ((Uint16 *)src_data)[mm_vars];
+        Uint32 *dynstart = ALIGN_WORD(varstart + varlen);
+
+        dst->m_data_ptr = varstart;
+        dst->m_offset_array_ptr = (Uint16 *)src_data;
+        dst->m_var_len_offset = 1;
+        dst->m_max_var_offset = varlen;
+
         Uint32 dynlen = Uint32(src_len - (dynstart - src_data));
-        dst->m_dyn_data_ptr= (char*)dynstart;
-        dst->m_dyn_part_len= dynlen;
-      }
-      else
-      {
-        dst->m_dyn_data_ptr= (char*)src_data;
-        dst->m_dyn_part_len= src_len;
+        dst->m_dyn_data_ptr = (char *)dynstart;
+        dst->m_dyn_part_len = dynlen;
+      } else {
+        dst->m_dyn_data_ptr = (char *)src_data;
+        dst->m_dyn_part_len = src_len;
       }
     }
   }
 
   Uint32 *tab_descr = tabPtrP->tabDescriptor;
-  const Uint32* attrIds = tabPtrP->readKeyArray;
-  const Uint32 numAttrs= tabPtrP->noOfKeyAttr;
+  const Uint32 *attrIds = tabPtrP->readKeyArray;
+  const Uint32 numAttrs = tabPtrP->noOfKeyAttr;
   req_struct.attr_descr= tab_descr;
   // read pk attributes from original tuple
 
   // save globals
   // do it
-  int ret = readAttributes(&req_struct,
-                           attrIds,
-                           numAttrs,
-                           dst,
-                           ZNIL);
+  int ret = readAttributes(&req_struct, attrIds, numAttrs, dst, ZNIL);
 
   {
     Uint32 *src = dst;
     Uint32 *tmp = dst;
-    for (Uint32 * end = src + ret; src < end;)
-    {
-      AttributeHeader ah(* src);
-      memmove(tmp, src + 1, 4*ah.getDataSize());
+    for (Uint32 *end = src + ret; src < end;) {
+      AttributeHeader ah(*src);
+      memmove(tmp, src + 1, 4 * ah.getDataSize());
       tmp += ah.getDataSize();
       src += 1 + ah.getDataSize();
     }
@@ -4112,20 +6437,15 @@ Dbtup::read_lcp_keys(Uint32 tableId,
   return ret;
 }
 
-bool
-Dbtup::store_extra_row_bits(Uint32 extra_no,
-                            const Tablerec* regTabPtr,
-                            Tuple_header* ptr,
-                            Uint32 value,
-                            bool truncate)
-{
+bool Dbtup::store_extra_row_bits(Uint32 extra_no, const Tablerec *regTabPtr,
+                                 Tuple_header *ptr, Uint32 value,
+                                 bool truncate) {
   jam();
-  if (unlikely(extra_no >= regTabPtr->m_no_of_extra_columns))
-    return false;
+  if (unlikely(extra_no >= regTabPtr->m_no_of_extra_columns)) return false;
   /**
    * ExtraRowGCIBits are using regTabPtr->m_no_of_attributes + extra_no
    */
-  Uint32 num_attr= regTabPtr->m_no_of_attributes;
+  Uint32 num_attr = regTabPtr->m_no_of_attributes;
   Uint32 attrId = num_attr + extra_no;
   Uint32* tab_descr = regTabPtr->tabDescriptor;
 
@@ -4136,16 +6456,12 @@ Dbtup::store_extra_row_bits(Uint32 extra_no,
   Uint32 pos = AttributeOffset::getNullFlagPos(attrOffset);
   Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
   Uint32 maxVal = (1 << bitCount) - 1;
-  Uint32 *bits= ptr->get_null_bits(regTabPtr);
+  Uint32 *bits = ptr->get_null_bits(regTabPtr);
 
-  if (value > maxVal)
-  {
-    if (truncate)
-    {
+  if (value > maxVal) {
+    if (truncate) {
       value = maxVal;
-    }
-    else
-    {
+    } else {
       return false;
     }
   }
@@ -4155,18 +6471,13 @@ Dbtup::store_extra_row_bits(Uint32 extra_no,
   return true;
 }
 
-void
-Dbtup::read_extra_row_bits(Uint32 extra_no,
-                           const Tablerec* regTabPtr,
-                           Tuple_header* ptr,
-                           Uint32 * value,
-                           bool extend)
-{
+void Dbtup::read_extra_row_bits(Uint32 extra_no, const Tablerec *regTabPtr,
+                                Tuple_header *ptr, Uint32 *value, bool extend) {
   /**
    * ExtraRowGCIBits are using regTabPtr->m_no_of_attributes + extra_no
    */
   ndbrequire(extra_no < regTabPtr->m_no_of_extra_columns);
-  Uint32 num_attr= regTabPtr->m_no_of_attributes;
+  Uint32 num_attr = regTabPtr->m_no_of_attributes;
   Uint32 attrId = num_attr + extra_no;
   Uint32* tab_descr = regTabPtr->tabDescriptor;
   Uint32 attrDescriptorIndex = attrId * ZAD_SIZE;
@@ -4176,15 +6487,14 @@ Dbtup::read_extra_row_bits(Uint32 extra_no,
   Uint32 pos = AttributeOffset::getNullFlagPos(attrOffset);
   Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
   Uint32 maxVal = (1 << bitCount) - 1;
-  Uint32 *bits= ptr->get_null_bits(regTabPtr);
+  Uint32 *bits = ptr->get_null_bits(regTabPtr);
 
   Uint32 tmp = 0;
   Uint32 check = regTabPtr->m_offsets[MM].m_null_words;
   BitmaskImpl::getField(check, bits, pos, bitCount, &tmp);
 
-  if (tmp == maxVal && extend)
-  {
+  if (tmp == maxVal && extend) {
     tmp = ~Uint32(0);
   }
-  * value = tmp;
+  *value = tmp;
 }

@@ -26,11 +26,11 @@
 #ifndef API_H
 #define API_H
 
-#include <ndb_global.h>
 #include <BlockNumbers.h>
 #include <GlobalSignalNumbers.h>
-#include <RefConvert.hpp>
+#include <ndb_global.h>
 #include <NdbOut.hpp>
+#include <RefConvert.hpp>
 
 #include "NdbApiSignal.hpp"
 #include "NdbDictionaryImpl.hpp"
@@ -38,19 +38,43 @@
 #include "NdbUtil.hpp"
 
 #include <Ndb.hpp>
-#include <NdbTransaction.hpp>
-#include <NdbOperation.hpp>
+#include <NdbBlob.hpp>
+#include <NdbBlobImpl.hpp>
 #include <NdbIndexOperation.hpp>
-#include <NdbScanOperation.hpp>
 #include <NdbIndexScanOperation.hpp>
 #include <NdbIndexStat.hpp>
-#include "NdbIndexStatImpl.hpp"
+#include <NdbInterpretedCode.hpp>
+#include <NdbOperation.hpp>
 #include <NdbRecAttr.hpp>
 #include <NdbReceiver.hpp>
-#include <NdbBlob.hpp>
-#include "NdbBlobImpl.hpp"
-#include <NdbInterpretedCode.hpp>
-#include "NdbWaitGroup.hpp"
+#include <NdbScanOperation.hpp>
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"NdbBlobImpl
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<NdbBlobImpl
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<NdbTransaction
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.hpp"
+#include <NdbWaitGroup.hpp>
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"NdbWaitGroup
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<NdbWaitGroup
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"NdbIndexStatImpl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.hpp"
 
 #include <NdbEventOperation.hpp>
 #include "NdbEventOperationImpl.hpp"

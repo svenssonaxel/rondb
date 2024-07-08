@@ -27,38 +27,41 @@
 #include <ndb_limits.h>
 #include <util/version.h>
 
-#include "TransporterFacade.hpp"
 #include <kernel/GlobalSignalNumbers.h>
+#include "TransporterFacade.hpp"
 
-#include "ClusterMgr.hpp"
-#include <IPCConfig.hpp>
-#include "NdbApiSignal.hpp"
 #include <NdbSleep.h>
-#include <NdbOut.hpp>
 #include <NdbTick.h>
+#include <IPCConfig.hpp>
+#include <NdbOut.hpp>
+#include <OwnProcessInfo.hpp>
 #include <Logger.hpp>
 #include <ProcessInfo.hpp>
-#include <OwnProcessInfo.hpp>
+#include "ClusterMgr.hpp"
+#include "NdbApiSignal.hpp"
 #include "ndb_internal.hpp"
 
-#include <signaldata/NodeFailRep.hpp>
-#include <signaldata/NFCompleteRep.hpp>
-#include <signaldata/ApiRegSignalData.hpp>
 #include <signaldata/AlterTable.hpp>
+#include <signaldata/ApiRegSignalData.hpp>
+#include <signaldata/NFCompleteRep.hpp>
+#include <signaldata/NodeFailRep.hpp>
+#include <signaldata/ProcessInfoRep.hpp>
+#include <signaldata/SumaImpl.hpp>
 #include "kernel/signaldata/DumpStateOrd.hpp"
 #include "kernel/signaldata/TestOrd.hpp"
-#include <signaldata/SumaImpl.hpp>
-#include <signaldata/ProcessInfoRep.hpp>
 #include <signaldata/Activate.hpp>
 #include <signaldata/SetHostname.hpp>
 
 #include <mgmapi.h>
-#include <mgmapi_configuration.hpp>
 #include <mgmapi_config_parameters.h>
 #include <EventLogger.hpp>
+#include <mgmapi_configuration.hpp>
 
 #if 0
-#define DEBUG_FPRINTF(arglist) do { fprintf arglist ; } while (0)
+#define DEBUG_FPRINTF(arglist) \
+  do {                         \
+    fprintf arglist;           \
+  } while (0)
 #else
 #define DEBUG_FPRINTF(a)
 #endif
@@ -73,13 +76,34 @@ error_printer(const char * fmt, ...) __attribute__ ((format (gnu_printf, 1, 2)))
 
 extern "C"
 void
-error_printer(const char * fmt, ...)
-{
+error_printer(const char * fmt, ...) {
   va_list ap;
   char buf[400];
 
   char timestamp[64];
-  time_t now = ::time((time_t*)nullptr);
+  time_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+t now
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+facade):
+=======
+facade)
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+::time
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+theStop
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  : theStop
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+((time_t*)nullptr);
   Logger::format_timestamp(now, timestamp, sizeof(timestamp));
   va_start(ap, fmt);
   size_t len = BaseString::vsnprintf(buf, sizeof(buf)-1, fmt, ap);
@@ -135,8 +159,7 @@ ClusterMgr::ClusterMgr(TransporterFacade & _facade):
   DBUG_VOID_RETURN;
 }
 
-ClusterMgr::~ClusterMgr()
-{
+ClusterMgr::~ClusterMgr() {
   DBUG_ENTER("ClusterMgr::~ClusterMgr");
   assert(theStop == 1);
   if (theArbitMgr != nullptr)
@@ -173,8 +196,7 @@ ClusterMgr::configure(Uint32 nodeId,
     theNode.defined = true;
 
     unsigned type;
-    if(iter.get(CFG_TYPE_OF_SECTION, &type))
-      continue;
+    if(iter.get(CFG_TYPE_OF_SECTION, &type)) continue;
 
     switch(type){
     case NODE_TYPE_DB:
@@ -227,7 +249,10 @@ ClusterMgr::configure(Uint32 nodeId,
   else if (theArbitMgr)
   {
     // No arbitrator should be started
-    theArbitMgr->doStop(nullptr);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   theArbitMgr->doStop(nullptr);
     delete theArbitMgr;
     theArbitMgr= nullptr;
   }
@@ -246,23 +271,196 @@ ClusterMgr::configure(Uint32 nodeId,
 
   // Configure max backoff time for connection attempts to data
   // nodes.
-  backoff_max_time = 0;
-  iter.get(CFG_CONNECT_BACKOFF_MAX_TIME, &backoff_max_time);
-  connect_backoff_max_time = backoff_max_time;
+  backoff_max_time
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signalling object between this
+   * thread and the main thread of the ClusterMgr.
+   * The clusterMgrThreadMutex also protects the theStop-variable.
+   */
+  Guard g(clusterMgrThreadMutex);
 
-  theFacade.get_registry()->set_connect_backoff_max_time_in_ms(
-    start_connect_backoff_max_time);
+  theStop = -1;
+  theClusterMgrThread = NdbThread_Create(runClusterMgr_C,
+                                         (void**)this,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signalling
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+object between this
+   * thread and the
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+||||||| Common ancestor
+0, //
+// RONDB-624 todo: Glue these lines together ^v
+=======
+main thread
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+default
+// RONDB-624 todo: Glue these lines together ^v
+=======
+of
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+iter.get(CFG_CONNECT_BACKOFF_MAX_TIME,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+stack
+// RONDB-624 todo: Glue these lines together ^v
+=======
+the
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&backoff_max_time);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+size
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ClusterMgr.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-  m_process_info = ProcessInfo::forNodeId(nodeId);
+  connect_backoff_max_time = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+backoff_max_time;
+
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ The 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+theFacade.get_registry()->set_connect_backoff_max_time_in_ms(
+||||||| Common ancestor
+=======
+clusterMgrThreadMutex
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ also protects the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+start_connect_backoff_max_time);
+
+||||||| Common ancestor
+=======
+theStop-variable.
+>>>>>>> MySQL 8.0.36
+  m_process_info 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*/
+>>>>>>> MySQL 8.0.36
+ ProcessInfo::forNodeId(nodeId);
 }
 
 void
 ClusterMgr::startThread()
 {
-  DBUG_ENTER("ClusterMgr::startThread");
-  /**
-   * We use the clusterMgrThreadMutex as a signalling object between this
-   * thread and the main thread of the ClusterMgr.
+ Guard 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DBUG_ENTER("ClusterMgr::startThread");
+||||||| Common ancestor
+=======
+g(clusterMgrThreadMutex);
+
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+||||||| Common ancestor
+=======
+theStop
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = -1;
+ * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+theClusterMgrThread
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+use
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+>>>>>>> MySQL 8.0.36
+ the clusterMgrThreadMutex as a signalling 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+object
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+NdbThread_Create(runClusterMgr_C,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+between
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+(void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+this
+||||||| Common ancestor
+=======
+**)this,
+>>>>>>> MySQL 8.0.36
+   * thread and the main thread of the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ClusterMgr.
    * The clusterMgrThreadMutex also protects the theStop-variable.
    */
   Guard g(clusterMgrThreadMutex);
@@ -272,9 +470,13 @@ ClusterMgr::startThread()
                                          (void**)this,
                                          0, // default stack size
                                          "ndb_clustermgr",
-                                         NDB_THREAD_PRIO_HIGH);
-  if (theClusterMgrThread == nullptr)
-  {
+||||||| Common ancestor
+"ndb_clustermgr",
+=======
+>>>>>>> MySQL 8.0.36
+            0,  // default stack size
+                       "ndb_clustermgr", NDB_THREAD_PRIO_HIGH);
+  if (theClusterMgrThread == nullptr) {
     g_eventLogger->info(
         "ClusterMgr::startThread:"
         " Failed to create thread for cluster management.");
@@ -283,8 +485,7 @@ ClusterMgr::startThread()
   }
 
   Uint32 cnt = 0;
-  while (theStop == -1 && cnt < 60)
-  {
+  while (theStop == -1 && cnt < 60) {
     NdbCondition_WaitTimeout(waitForHBCond, clusterMgrThreadMutex, 1000);
   }
 
@@ -292,13 +493,12 @@ ClusterMgr::startThread()
   DBUG_VOID_RETURN;
 }
 
-void
-ClusterMgr::doStop( ){
+void ClusterMgr::doStop() {
   DBUG_ENTER("ClusterMgr::doStop");
   {
     /* Ensure stop is only executed once */
     Guard g(clusterMgrThreadMutex);
-    if(theStop == 1){
+    if (theStop == 1) {
       DBUG_VOID_RETURN;
     }
     theStop = 1;
@@ -306,12 +506,11 @@ ClusterMgr::doStop( ){
 
   void *status;
   if (theClusterMgrThread) {
-    NdbThread_WaitFor(theClusterMgrThread, &status);  
+    NdbThread_WaitFor(theClusterMgrThread, &status);
     NdbThread_Destroy(&theClusterMgrThread);
   }
 
-  if (theArbitMgr != nullptr)
-  {
+  if (theArbitMgr != nullptr) {
     theArbitMgr->doStop(nullptr);
   }
   {
@@ -322,19 +521,17 @@ ClusterMgr::doStop( ){
      * part of the close logic.
      */
     Guard g(clusterMgrThreadMutex);
-    this->close(); // disconnect from TransporterFacade
+    this->close();  // disconnect from TransporterFacade
   }
 
   DBUG_VOID_RETURN;
 }
 
-void
-ClusterMgr::startup()
-{
+void ClusterMgr::startup() {
   assert(theStop == -1);
   Uint32 nodeId = getOwnNodeId();
-  Node & cm_node = theNodes[nodeId];
-  trp_node & theNode = cm_node;
+  Node &cm_node = theNodes[nodeId];
+  trp_node &theNode = cm_node;
   assert(theNode.defined);
 
   lock();
@@ -342,15 +539,13 @@ ClusterMgr::startup()
   flush_send_buffers();
   unlock();
 
-  for (Uint32 i = 0; i<3000; i++)
-  {
+  for (Uint32 i = 0; i < 3000; i++) {
     theFacade.request_connection_check();
     prepare_poll();
     do_poll(0);
     complete_poll();
 
-    if (theNode.is_connected())
-      break;
+    if (theNode.is_connected()) break;
     NdbSleep_MilliSleep(20);
   }
 
@@ -361,37 +556,33 @@ ClusterMgr::startup()
   NdbCondition_Broadcast(waitForHBCond);
 }
 
-void
-ClusterMgr::threadMain()
-{
+void ClusterMgr::threadMain() {
   startup();
 
   NdbApiSignal signal(numberToRef(API_CLUSTERMGR, theFacade.ownId()));
-  
-  signal.theVerId_signalNumber   = GSN_API_REGREQ;
-  signal.theTrace                = 0;
-  signal.theLength               = ApiRegReq::SignalLength;
 
-  ApiRegReq * req = CAST_PTR(ApiRegReq, signal.getDataPtrSend());
+  signal.theVerId_signalNumber = GSN_API_REGREQ;
+  signal.theTrace = 0;
+  signal.theLength = ApiRegReq::SignalLength;
+
+  ApiRegReq *req = CAST_PTR(ApiRegReq, signal.getDataPtrSend());
   req->ref = numberToRef(API_CLUSTERMGR, theFacade.ownId());
   req->version = NDB_VERSION;
   req->mysql_version = NDB_MYSQL_VERSION_D;
-  
+
   NdbApiSignal nodeFail_signal(numberToRef(API_CLUSTERMGR, getOwnNodeId()));
   nodeFail_signal.theVerId_signalNumber = GSN_NODE_FAILREP;
   nodeFail_signal.theReceiversBlockNumber = API_CLUSTERMGR;
-  nodeFail_signal.theTrace  = 0;
+  nodeFail_signal.theTrace = 0;
   nodeFail_signal.theLength = NodeFailRep::SignalLengthLong;
 
   NDB_TICKS now = NdbTick_getCurrentTicks();
 
-  while(!theStop)
-  {
+  while (!theStop) {
     /* Sleep 1/5 of minHeartBeatInterval between each check */
     const NDB_TICKS before = now;
-    for (Uint32 i = 0; i<5; i++)
-    {
-      NdbSleep_MilliSleep(minHeartBeatInterval/5);
+    for (Uint32 i = 0; i < 5; i++) {
+      NdbSleep_MilliSleep(minHeartBeatInterval / 5);
       {
         /**
          * prepare_poll does lock the trp_client and complete_poll
@@ -413,15 +604,12 @@ ClusterMgr::threadMain()
 
     lock();
     if (m_cluster_state == CS_waiting_for_clean_cache &&
-        theFacade.m_globalDictCache)
-    {
-      if (!global_flag_skip_waiting_for_clean_cache)
-      {
+        theFacade.m_globalDictCache) {
+      if (!global_flag_skip_waiting_for_clean_cache) {
         theFacade.m_globalDictCache->lock();
-        unsigned sz= theFacade.m_globalDictCache->get_size();
+        unsigned sz = theFacade.m_globalDictCache->get_size();
         theFacade.m_globalDictCache->unlock();
-        if (sz)
-        {
+        if (sz) {
           unlock();
           continue;
         }
@@ -429,60 +617,54 @@ ClusterMgr::threadMain()
       m_cluster_state = CS_waiting_for_first_connect;
     }
 
-    NodeFailRep * nodeFailRep = CAST_PTR(NodeFailRep,
-                                         nodeFail_signal.getDataPtrSend());
+    NodeFailRep *nodeFailRep =
+        CAST_PTR(NodeFailRep, nodeFail_signal.getDataPtrSend());
     Uint32 theAllNodes[NodeBitmask::Size];
     nodeFailRep->noOfNodes = 0;
     NodeBitmask::clear(theAllNodes);
 
-    for (int i = 1; i < MAX_NODES; i++)
-    {
+    for (int i = 1; i < MAX_NODES; i++) {
       /**
-       * Send register request (heartbeat) to all available nodes 
+       * Send register request (heartbeat) to all available nodes
        * at specified timing intervals
        */
       const NodeId nodeId = i;
       // Check array bounds + don't allow node 0 to be touched
       assert(nodeId > 0 && nodeId < MAX_NODES);
-      Node & cm_node = theNodes[nodeId];
-      trp_node & theNode = cm_node;
+      Node &cm_node = theNodes[nodeId];
+      trp_node &theNode = cm_node;
 
-      if (!theNode.defined)
-	continue;
+      if (!theNode.defined) continue;
 
-      if (theNode.is_connected() == false){
-	theFacade.doConnect(nodeId);
-	continue;
+      if (theNode.is_connected() == false) {
+        theFacade.doConnect(nodeId);
+        continue;
       }
-      
-      if (!theNode.compatible){
-	continue;
+
+      if (!theNode.compatible) {
+        continue;
       }
-      
-      if (nodeId == getOwnNodeId())
-      {
+
+      if (nodeId == getOwnNodeId()) {
         /**
          * Don't send HB to self more than once
          * (once needed to avoid weird special cases in e.g ConfigManager)
          */
-        if (m_sent_API_REGREQ_to_myself)
-        {
+        if (m_sent_API_REGREQ_to_myself) {
           continue;
         }
       }
 
       cm_node.hbCounter += timeSlept;
       if (cm_node.hbCounter >= m_max_api_reg_req_interval ||
-          cm_node.hbCounter >= cm_node.hbFrequency)
-      {
-	/**
-	 * It is now time to send a new Heartbeat
-	 */
-        if (cm_node.hbCounter >= cm_node.hbFrequency)
-        {
+          cm_node.hbCounter >= cm_node.hbFrequency) {
+        /**
+         * It is now time to send a new Heartbeat
+         */
+        if (cm_node.hbCounter >= cm_node.hbFrequency) {
           cm_node.hbMissed++;
           cm_node.hbCounter = 0;
-	}
+        }
 
         if (theNode.m_info.m_type != NodeInfo::DB)
           signal.theReceiversBlockNumber = API_CLUSTERMGR;
@@ -493,14 +675,13 @@ ClusterMgr::threadMain()
         g_eventLogger->info("ClusterMgr: Sending API_REGREQ to node %d",
                             (int)nodeId);
 #endif
-        if (nodeId == getOwnNodeId())
-        {
+        if (nodeId == getOwnNodeId()) {
           /* Set flag to ensure we only send once to ourself */
           m_sent_API_REGREQ_to_myself = true;
         }
-	raw_sendSignal(&signal, nodeId);
-      }//if
-      
+        raw_sendSignal(&signal, nodeId);
+      }  // if
+
       /**
        * Node can be reported as disconnected in two different ways
        * 1 - Node was reported as connected, hbFrequency already configured
@@ -512,8 +693,7 @@ ClusterMgr::threadMain()
        */
       if ((cm_node.hbMissed == 4 && cm_node.hbFrequency > 0) ||
           (cm_node.hbMissed == maxIntervalsWithoutFirstApiRegConf &&
-           cm_node.hbFrequency == 0))
-      {
+           cm_node.hbFrequency == 0)) {
         nodeFailRep->noOfNodes++;
         NodeBitmask::set(theAllNodes, nodeId);
       }
@@ -521,8 +701,7 @@ ClusterMgr::threadMain()
     flush_send_buffers();
     unlock();
 
-    if (nodeFailRep->noOfNodes)
-    {
+    if (nodeFailRep->noOfNodes) {
       lock();
       LinearSectionPtr lsptr[3];
       lsptr[0].p = theAllNodes;
@@ -542,35 +721,33 @@ ClusterMgr::threadMain()
  * lock (reportDisconnect, reportConnect, is_cluster_completely_unavailable,
  * ArbitMgr (sendSignalToQmgr)).
  */
-void
-ClusterMgr::trp_deliver_signal(const NdbApiSignal* sig,
-                               const LinearSectionPtr ptr[3])
-{
+void ClusterMgr::trp_deliver_signal(const NdbApiSignal *sig,
+                                    const LinearSectionPtr ptr[3]) {
   const Uint32 gsn = sig->theVerId_signalNumber;
-  const Uint32 * theData = sig->getDataPtr();
+  const Uint32 *theData = sig->getDataPtr();
 
-  switch (gsn){
-  case GSN_ACTIVATE_REQ:
+  switch (gsn) {
+    case GSN_ACTIVATE_REQ:
     execACTIVATE_REQ(theData);
-    break;
+      break;
 
-  case GSN_DEACTIVATE_REQ:
+    case GSN_DEACTIVATE_REQ:
     execDEACTIVATE_REQ(theData);
-    break;
+      break;
 
-  case GSN_SET_HOSTNAME_REQ:
+    case GSN_SET_HOSTNAME_REQ:
     execSET_HOSTNAME_REQ(sig, ptr);
-    break;
+      break;
 
-  case GSN_API_REGREQ:
+    case GSN_API_REGREQ:
     execAPI_REGREQ(theData);
-    break;
+      break;
 
-  case GSN_API_REGCONF:
+    case GSN_API_REGCONF:
      execAPI_REGCONF(sig, ptr);
-    break;
+      break;
 
-  case GSN_API_REGREF:
+    case GSN_API_REGREF:
     execAPI_REGREF(theData);
     break;
 
@@ -583,106 +760,90 @@ ClusterMgr::trp_deliver_signal(const NdbApiSignal* sig,
     break;
 
   case GSN_NF_COMPLETEREP:
-    execNF_COMPLETEREP(sig, ptr);
-    break;
-  case GSN_ARBIT_STARTREQ:
-    if (theArbitMgr != nullptr)
-      theArbitMgr->doStart(theData);
-    break;
-
-  case GSN_ARBIT_CHOOSEREQ:
-    if (theArbitMgr != nullptr)
-      theArbitMgr->doChoose(theData);
-    break;
-
-  case GSN_ARBIT_STOPORD:
-    if(theArbitMgr != nullptr)
-      theArbitMgr->doStop(theData);
-    break;
-
-  case GSN_ALTER_TABLE_REP:
-  {
-    if (theFacade.m_globalDictCache == nullptr)
+      execNF_COMPLETEREP(sig, ptr);
       break;
-    const AlterTableRep* rep = (const AlterTableRep*)theData;
-    theFacade.m_globalDictCache->lock();
-    theFacade.m_globalDictCache->
-      alter_table_rep((const char*)ptr[0].p,
-                      rep->tableId,
-                      rep->tableVersion,
-                      rep->changeType == AlterTableRep::CT_ALTERED);
-    theFacade.m_globalDictCache->unlock();
-    break;
-  }
-  case GSN_SUB_GCP_COMPLETE_REP:
-  {
-    /**
-     * Report
-     */
-    theFacade.for_each(this, sig, ptr);
+    case GSN_ARBIT_STARTREQ:
+      if (theArbitMgr != nullptr) theArbitMgr->doStart(theData);
+      break;
 
-    /**
-     * Reply
-     */
-    {
-      BlockReference ownRef = numberToRef(API_CLUSTERMGR, theFacade.ownId());
-      NdbApiSignal tSignal(* sig);
-      Uint32* send= tSignal.getDataPtrSend();
-      memcpy(send, theData, tSignal.getLength() << 2);
-      CAST_PTR(SubGcpCompleteAck, send)->rep.senderRef = ownRef;
-      Uint32 ref= sig->theSendersBlockRef;
-      Uint32 aNodeId= refToNode(ref);
-      tSignal.theReceiversBlockNumber= refToBlock(ref);
-      tSignal.theVerId_signalNumber= GSN_SUB_GCP_COMPLETE_ACK;
-      tSignal.theSendersBlockRef = API_CLUSTERMGR;
+    case GSN_ARBIT_CHOOSEREQ:
+      if (theArbitMgr != nullptr) theArbitMgr->doChoose(theData);
+      break;
 
-      // Send signal without delay, otherwise, Suma buffers may
-      // overflow, resulting into the API node being disconnected.
-      // SUB_GCP_COMPLETE_ACK will be sent per node per epoch, with
-      // minimum interval of TimeBetweenEpochs.
-      safe_sendSignal(&tSignal, aNodeId);
+    case GSN_ARBIT_STOPORD:
+      if (theArbitMgr != nullptr) theArbitMgr->doStop(theData);
+      break;
+
+    case GSN_ALTER_TABLE_REP: {
+      if (theFacade.m_globalDictCache == nullptr) break;
+      const AlterTableRep *rep = (const AlterTableRep *)theData;
+      theFacade.m_globalDictCache->lock();
+      theFacade.m_globalDictCache->alter_table_rep(
+          (const char *)ptr[0].p, rep->tableId, rep->tableVersion,
+          rep->changeType == AlterTableRep::CT_ALTERED);
+      theFacade.m_globalDictCache->unlock();
+      break;
+    }
+    case GSN_SUB_GCP_COMPLETE_REP: {
+      /**
+       * Report
+       */
+      theFacade.for_each(this, sig, ptr);
 
       /**
-       * Note:
-       * After fixing #Bug#22705935 'sendSignal() flush optimization isses',
-       * we could likely just as well have used safe_noflush_sendSignal() above.
-       * (and several other places)
-       * That patch ensures that any buffered signals sent while 
-       * delivering signals are flushed as soon as we have processed the 
-       * chunk of signals to be delivered.
-       */ 
-    }
-    break;
-  }
-  case GSN_TAKE_OVERTCCONF:
-  {
-    /**
-     * Report
-     */
-    theFacade.for_each(this, sig, ptr);
-    return;
-  }
-  case GSN_CLOSE_COMREQ:
-  {
-    theFacade.perform_close_clnt(this);
-    return;
-  }
-  case GSN_EXPAND_CLNT:
-  {
-    theFacade.expand_clnt();
-    return;
-  }
-  default:
-    break;
+       * Reply
+       */
+      {
+        BlockReference ownRef = numberToRef(API_CLUSTERMGR, theFacade.ownId());
+        NdbApiSignal tSignal(*sig);
+        Uint32 *send = tSignal.getDataPtrSend();
+        memcpy(send, theData, tSignal.getLength() << 2);
+        CAST_PTR(SubGcpCompleteAck, send)->rep.senderRef = ownRef;
+        Uint32 ref = sig->theSendersBlockRef;
+        Uint32 aNodeId = refToNode(ref);
+        tSignal.theReceiversBlockNumber = refToBlock(ref);
+        tSignal.theVerId_signalNumber = GSN_SUB_GCP_COMPLETE_ACK;
+        tSignal.theSendersBlockRef = API_CLUSTERMGR;
 
+        // Send signal without delay, otherwise, Suma buffers may
+        // overflow, resulting into the API node being disconnected.
+        // SUB_GCP_COMPLETE_ACK will be sent per node per epoch, with
+        // minimum interval of TimeBetweenEpochs.
+        safe_sendSignal(&tSignal, aNodeId);
+
+        /**
+         * Note:
+         * After fixing #Bug#22705935 'sendSignal() flush optimization isses',
+         * we could likely just as well have used safe_noflush_sendSignal()
+         * above. (and several other places) That patch ensures that any
+         * buffered signals sent while delivering signals are flushed as soon as
+         * we have processed the chunk of signals to be delivered.
+         */
+      }
+      break;
+    }
+    case GSN_TAKE_OVERTCCONF: {
+      /**
+       * Report
+       */
+      theFacade.for_each(this, sig, ptr);
+      return;
+    }
+    case GSN_CLOSE_COMREQ: {
+      theFacade.perform_close_clnt(this);
+      return;
+    }
+    case GSN_EXPAND_CLNT: {
+      theFacade.expand_clnt();
+      return;
+    }
+    default:
+      break;
   }
   return;
 }
 
-ClusterMgr::Node::Node()
-  : hbFrequency(0), hbCounter(0), processInfoSent(0)
-{
-}
+ClusterMgr::Node::Node() : hbFrequency(0), hbCounter(0), processInfoSent(0) {}
 
 /**
  * recalcMinDbVersion
@@ -695,26 +856,20 @@ ClusterMgr::Node::Node()
  * This information is useful when implementing API compatibility
  * with older DB nodes
  */
-void
-ClusterMgr::recalcMinDbVersion()
-{
-  Uint32 newMinDbVersion = ~ (Uint32) 0;
-  
-  for (Uint32 i = 0; i < MAX_NODES; i++)
-  {
-    trp_node& node = theNodes[i];
+void ClusterMgr::recalcMinDbVersion() {
+  Uint32 newMinDbVersion = ~(Uint32)0;
 
-    if (node.is_connected() &&
-        node.is_confirmed() &&
-        node.m_info.getType() == NodeInfo::DB)
-    {
+  for (Uint32 i = 0; i < MAX_NODES; i++) {
+    trp_node &node = theNodes[i];
+
+    if (node.is_connected() && node.is_confirmed() &&
+        node.m_info.getType() == NodeInfo::DB) {
       /* Include this node in the set of nodes used to
        * compute the lowest current DB node version
        */
       assert(node.m_info.m_version);
 
-      if (node.minDbVersion < newMinDbVersion)
-      {
+      if (node.minDbVersion < newMinDbVersion) {
         newMinDbVersion = node.minDbVersion;
       }
     }
@@ -723,26 +878,17 @@ ClusterMgr::recalcMinDbVersion()
   /* Now update global min Db version if we have one.
    * Otherwise set it to 0
    */
-  newMinDbVersion = (newMinDbVersion == ~ (Uint32) 0) ?
-    0 :
-    newMinDbVersion;
+  newMinDbVersion = (newMinDbVersion == ~(Uint32)0) ? 0 : newMinDbVersion;
 
-//#ifdef DEBUG_MINVER
+  //#ifdef DEBUG_MINVER
 
 #ifdef DEBUG_MINVER
-  if (newMinDbVersion != minDbVersion)
-  {
-    ndbout << "Previous min Db node version was "
-           << NdbVersion(minDbVersion)
-           << " new min is "
-           << NdbVersion(newMinDbVersion)
-           << endl;
-  }
-  else
-  {
+  if (newMinDbVersion != minDbVersion) {
+    ndbout << "Previous min Db node version was " << NdbVersion(minDbVersion)
+           << " new min is " << NdbVersion(newMinDbVersion) << endl;
+  } else {
     ndbout << "MinDbVersion recalculated, but is same : "
-           << NdbVersion(minDbVersion)
-           << endl;
+           << NdbVersion(minDbVersion) << endl;
   }
 #endif
 
@@ -760,26 +906,20 @@ ClusterMgr::recalcMinDbVersion()
  * This information is useful when implementing API compatibility
  * with older API nodes
  */
-void
-ClusterMgr::recalcMinApiVersion()
-{
-  Uint32 newMinApiVersion = ~ (Uint32) 0;
+void ClusterMgr::recalcMinApiVersion() {
+  Uint32 newMinApiVersion = ~(Uint32)0;
 
-  for (Uint32 i = 0; i < MAX_NODES; i++)
-  {
-    trp_node& node = theNodes[i];
+  for (Uint32 i = 0; i < MAX_NODES; i++) {
+    trp_node &node = theNodes[i];
 
-    if (node.is_connected() &&
-        node.is_confirmed() &&
-        node.m_info.getType() == NodeInfo::DB)
-    {
+    if (node.is_connected() && node.is_confirmed() &&
+        node.m_info.getType() == NodeInfo::DB) {
       /* Include this node in the set of nodes used to
        * compute the lowest current API node version
        */
       assert(node.m_info.m_version);
 
-      if (node.minApiVersion < newMinApiVersion)
-      {
+      if (node.minApiVersion < newMinApiVersion) {
         newMinApiVersion = node.minApiVersion;
       }
     }
@@ -788,9 +928,7 @@ ClusterMgr::recalcMinApiVersion()
   /* Now update global min Api version if we have one.
    * Otherwise set it to 0
    */
-  newMinApiVersion = (newMinApiVersion == ~ (Uint32) 0) ?
-                     0 :
-                     newMinApiVersion;
+  newMinApiVersion = (newMinApiVersion == ~(Uint32)0) ? 0 : newMinApiVersion;
 
   minApiVersion = newMinApiVersion;
 }
@@ -1269,16 +1407,39 @@ ClusterMgr::execAPI_REGCONF(const NdbApiSignal * signal,
   theFacade.for_each(this, signal, ptr);
 }
 
-void
-ClusterMgr::execAPI_REGREF(const Uint32 * theData){
-  const ApiRegRef* ref = (const ApiRegRef*)theData;
+void ClusterMgr::execAPI_REGREF(const Uint32 *theData) {
+  const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ApiRegRef*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiRegReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiRegReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ref
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const apiRegReq
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const apiRegReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = (const ApiRegRef*)theData;
 
   const NodeId nodeId = refToNode(ref->ref);
 
   assert(nodeId > 0 && nodeId < MAX_NODES);
 
-  Node & cm_node = theNodes[nodeId];
-  trp_node & node = cm_node;
+  Node &cm_node = theNodes[nodeId];
+  trp_node &node = cm_node;
 
   assert(node.is_connected() == true);
   assert(node.defined == true);
@@ -1298,8 +1459,22 @@ ClusterMgr::execAPI_REGREF(const Uint32 * theData){
     m_node_change_count++;
     if (m_error_print)
     {
-      error_printer("(N%u) API_REGREF from node %u version %s",
-                    getOwnNodeId(),
+      error_printer("(N%u) API_REGREF from node 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u version %s",
+              
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= API_CLUSTERMGR;
+  signal.theTrace            
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ API_CLUSTERMGR;
+  signal.theTrace   getOwnNodeId(),
                     nodeId,
                     version_ptr);
     }
@@ -1321,23 +1496,43 @@ ClusterMgr::execAPI_REGREF(const Uint32 * theData){
   }
 }
 
-void
-ClusterMgr::execDUMP_STATE_ORD(const NdbApiSignal* signal,
-                               const LinearSectionPtr ptr[])
-{
-  const Uint32* data = signal->getDataPtr();
+void ClusterMgr::execDUMP_STATE_ORD(const NdbApiSignal*signal,
+                               const LinearSectionPtr ptr[]) {
+  const Uint32* data =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ signal->getDataPtr();
   const Uint32 length = signal->getLength();
   if (length < 1)
   {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ CAST_CONSTPTR(ApiRegConf,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
     return;
-  }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
   switch (data[0])
   {
   case DumpStateOrd::CmvmiDummySignal:
   {
     /* Log in event logger that signal sent by dump command
      * CmvmiSendDummySignal is received.  Include information about
-     * signal size and its sections and which node sent it.
+     *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CAST_CONSTPTR(ApiRegConf,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal size and its sections and which node sent it.
      *
      * Use rep node as reporting node, typically a data node.
      */
@@ -1391,8 +1586,7 @@ ClusterMgr::execDUMP_STATE_ORD(const NdbApiSignal* signal,
     const Uint32 node_id = data[2];
     const Uint32 fill_word = data[3];
     const Uint32 frag_size = data[4];
-    if (frag_size != 0)
-    {
+    if (frag_size != 0) {
       // Fragmented signals are not supported yet.
       return;
     }
@@ -1403,12 +1597,33 @@ ClusterMgr::execDUMP_STATE_ORD(const NdbApiSignal* signal,
     }
     LinearSectionPtr ptr[3];
     Uint32 sec_max_len = 0;
-    for (Uint32 i = 0; i < num_secs; i++)
-    {
+    for (Uint32 i = 0; i < num_secs; i++)   {
       const Uint32 sec_len = data[6 + i];
       if (sec_len > sec_max_len)
       {
-        sec_max_len = sec_len;
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiRegRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiRegRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sec_max_len
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = sec_len;
       }
       ptr[i].sz = sec_len;
     }
@@ -1428,7 +1643,31 @@ ClusterMgr::execDUMP_STATE_ORD(const NdbApiSignal* signal,
     }
     NdbApiSignal dummy_signal(numberToRef(API_CLUSTERMGR, getOwnNodeId()));
     Uint32* dummy_sigdata = dummy_signal.getDataPtrSend();
-    dummy_sigdata[0] = DumpStateOrd::CmvmiDummySignal;
+    dummy_sigdata[0] 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NdbApiSignal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbApiSignal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DumpStateOrd::CmvmiDummySignal;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     for (Uint32 i = 1; i < length; i++)
     {
       dummy_sigdata[i] = data[i];
@@ -1437,8 +1676,7 @@ ClusterMgr::execDUMP_STATE_ORD(const NdbApiSignal* signal,
     dummy_signal.theVerId_signalNumber = GSN_DUMP_STATE_ORD;
     const trp_node & theNode = theNodes[node_id];
     dummy_signal.theReceiversBlockNumber =
-      (theNode.m_info.m_type == NodeInfo::DB)
-      ? CMVMI
+      (theNode.m_info.m_type == NodeInfo::DB)     ? CMVMI
       : API_CLUSTERMGR;
     dummy_signal.theTrace  = 0;
     dummy_signal.theLength = length;
@@ -1447,33 +1685,28 @@ ClusterMgr::execDUMP_STATE_ORD(const NdbApiSignal* signal,
     delete[] dummy_data;
 
     /* Send event log about the sending of CmvmiDummySignal.
-     * Use rep node as reporting node, typically a data node.
-     */
+       * Use rep node as reporting node, typically a data node.
+       */
     char msg[24 * sizeof(Uint32)];
-    snprintf(msg,
-             sizeof(msg),
-             "Sending CmvmiDummySignal"
-             " (size %u+%u+%u+%u+%u) from %u to %u.",
-             length,
-             num_secs,
-             ptr[0].sz,
-             ptr[1].sz,
-             ptr[2].sz,
-             getOwnNodeId(),
-             node_id);
-    const Uint32 len = strlen(msg) + 1;
-    assert(len <= 24*4);
-    NdbApiSignal aSignal(numberToRef(API_CLUSTERMGR, getOwnNodeId()));
-    aSignal.theTrace                = TestOrd::TraceAPI;
-    aSignal.theReceiversBlockNumber = CMVMI;
-    aSignal.theVerId_signalNumber   = GSN_EVENT_REP;
-    aSignal.theLength               = (Uint32)((len+3)/4)+1;
-    Uint32* data = aSignal.getDataPtrSend();
-    data[0] = NDB_LE_InfoEvent;
-    memcpy(&data[1], msg, len);
-    safe_sendSignal(&aSignal, rep_node_id);
-    return;
-  }
+      snprintf(msg, sizeof(msg),
+               "Sending CmvmiDummySignal"
+               " (size %u+%u+%u+%u+%u) from %u to %u.",
+               length, num_secs, ptr[0].sz,
+             ptr[1].sz, ptr[2].sz,
+             getOwnNodeId(), node_id);
+      const Uint32 len = strlen(msg) + 1;
+      assert(len <= 24 * 4);
+      NdbApiSignal aSignal(numberToRef(API_CLUSTERMGR, getOwnNodeId()));
+      aSignal.theTrace = TestOrd::TraceAPI;
+      aSignal.theReceiversBlockNumber = CMVMI;
+      aSignal.theVerId_signalNumber = GSN_EVENT_REP;
+      aSignal.theLength = (Uint32)((len+3)/4)+1;
+      Uint32 *data = aSignal.getDataPtrSend();
+      data[0] = NDB_LE_InfoEvent;
+      memcpy(&data[1], msg, len);
+      safe_sendSignal(&aSignal, rep_node_id);
+      return;
+    }
   default:
     return;
   }
@@ -1483,7 +1716,7 @@ void
 ClusterMgr::execNF_COMPLETEREP(const NdbApiSignal* signal,
                                const LinearSectionPtr ptr[3])
 {
-  const NFCompleteRep * nfComp = CAST_CONSTPTR(NFCompleteRep,
+  const NFCompleteRep   * nfComp = CAST_CONSTPTR(NFCompleteRep,
                                                signal->getDataPtr());
   const NodeId nodeId = nfComp->failedNodeId;
   assert(nodeId > 0 && nodeId < MAX_NODES);
@@ -1498,9 +1731,9 @@ ClusterMgr::execNF_COMPLETEREP(const NdbApiSignal* signal,
 
 /**
  * ::reportConnected() and ::reportDisconnected()
- *
+   *
  * Should be called from the client thread being the poll owner,
- * which could either be ClusterMgr itself, or another API client.
+   * which could either be ClusterMgr itself, or another API client.
  *
  * As ClusterMgr maintains shared global data, updating
  * its connection state needs m_mutex being locked.
@@ -1529,8 +1762,7 @@ ClusterMgr::reportConnected(NodeId nodeId)
   if (theNode.m_info.m_type == NodeInfo::DB)
   {
     noOfConnectedDBNodes++;
-    if (noOfConnectedDBNodes == 1)
-    {
+      if (noOfConnectedDBNodes == 1) {
       // Data node connected, use ConnectBackoffMaxTime
       theFacade.get_registry()->set_connect_backoff_max_time_in_ms(
         connect_backoff_max_time);
@@ -1543,11 +1775,35 @@ ClusterMgr::reportConnected(NodeId nodeId)
     }
     m_ever_connected = true;
     NdbMutex_Unlock(m_node_state_mutex);
-  }
+    }
 
   /**
    * Ensure that we are sending heartbeat every 100 ms
-   * until we have got the first reply from NDB providing
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+until
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dummy_data
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dummy_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ we have got the first reply from NDB providing
    * us with the real time-out period to use.
    */
   cm_node.hbMissed = 0;
@@ -1577,7 +1833,7 @@ ClusterMgr::reportConnected(NodeId nodeId)
    * End of protected ClusterMgr updates of shared global data.
    * Informing other API client does not need a global protection
    */ 
-  if (theFacade.m_poll_owner != this)
+  if     (theFacade.m_poll_owner != this)
     unlock();
   
   /**
@@ -1608,7 +1864,18 @@ ClusterMgr::reportDisconnected(NodeId nodeId)
   const bool node_failrep = theNode.m_node_fail_rep;
   const bool node_connected = theNode.is_connected();
   DEBUG_FPRINTF((stderr, "(%u)theNode.set_connected(false) for node: %u\n",
-                         getOwnNodeId(), nodeId));
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+         
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+length,
+          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  length, getOwnNodeId(), nodeId));
   theNode.set_connected(false);
 
   /**
@@ -1623,7 +1890,7 @@ ClusterMgr::reportDisconnected(NodeId nodeId)
     return;
   }
 
-  assert(noOfConnectedNodes > 0);
+    assert(noOfConnectedNodes > 0);
 
   noOfConnectedNodes--;
   if (noOfConnectedNodes == 0)
@@ -1634,7 +1901,27 @@ ClusterMgr::reportDisconnected(NodeId nodeId)
       theFacade.m_globalDictCache->lock();
       theFacade.m_globalDictCache->invalidate_all();
       theFacade.m_globalDictCache->unlock();
-      m_connect_count ++;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+data
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ m_connect_count ++;
       m_cluster_state = CS_waiting_for_clean_cache;
     }
 
@@ -1645,14 +1932,51 @@ ClusterMgr::reportDisconnected(NodeId nodeId)
   }
 
   if (theNode.m_info.m_type == NodeInfo::DB)
-  {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbApiSignal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbApiSignal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     assert(noOfConnectedDBNodes > 0);
     noOfConnectedDBNodes--;
     if (noOfConnectedDBNodes == 0)
     {
       // No data nodes connected, use StartConnectBackoffMaxTime
-      theFacade.get_registry()->set_connect_backoff_max_time_in_ms(
-        start_connect_backoff_max_time);
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ theFacade.get_registry()->set_connect_backoff_max_time_in_ms(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= CAST_CONSTPTR(NFCompleteRep,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  start_connect_backoff_max_time);
     }
     NdbMutex_Lock(m_node_state_mutex);
     if (get_node_alive(theNode))
@@ -1661,7 +1985,16 @@ ClusterMgr::reportDisconnected(NodeId nodeId)
       m_node_change_count++;
     }
     set_node_dead(theNode);
-    if (m_error_print)
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CAST_CONSTPTR(NFCompleteRep,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if (m_error_print)
     {
       error_printer("(N%u) Node %d Disconnected", getOwnNodeId(), nodeId);
     }
@@ -1788,8 +2121,7 @@ ClusterMgr::execNODE_FAILREP(const NdbApiSignal* sig,
     theFacade.for_each(this, &signal, lsptr); // report GSN_NODE_FAILREP
   }
 
-  if (noOfAliveNodes == 0)
-  {
+  if (noOfAliveNodes == 0) {
     NdbApiSignal signal(numberToRef(API_CLUSTERMGR, getOwnNodeId()));
     signal.theVerId_signalNumber = GSN_NF_COMPLETEREP;
     signal.theReceiversBlockNumber = 0;
@@ -1802,11 +2134,9 @@ ClusterMgr::execNODE_FAILREP(const NdbApiSignal* sig,
     rep->unused = 0;
     rep->from = __LINE__;
 
-    for (Uint32 i = 1; i < MAX_NODES; i++)
-    {
+    for (Uint32 i = 1; i < MAX_NODES; i++)   {
       trp_node& theNode = theNodes[i];
-      if (theNode.defined && theNode.nfCompleteRep == false)
-      {
+      if (theNode.defined && theNode.nfCompleteRep == false)   {
         rep->failedNodeId = i;
         execNF_COMPLETEREP(&signal, nullptr);
       }
@@ -1844,7 +2174,29 @@ ClusterMgr::is_cluster_completely_unavailable(Int32 &error,
    * to bug#19524096, to understand what prevents us from locking (yet)
    */
   NdbMutex_Lock(m_node_state_mutex);
-  for (NodeId n = 1; n < MAX_NDB_NODES ; n++)
+  for (NodeId 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+n
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NdbApiSignal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbApiSignal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sig,
+=======
+*sig,
+>>>>>>> MySQL 8.0.36
+ 1; n < MAX_NDB_NODES ; n++)
   {
     const trp_node& node = theNodes[n];
     if (!node.defined)
@@ -1853,9 +2205,7 @@ ClusterMgr::is_cluster_completely_unavailable(Int32 &error,
        * Node isn't even part of configuration.
        */
       continue;
-    }
-    if (node.m_info.m_type != NodeInfo::DB)
-    {
+    }   if (node.m_info.m_type != NodeInfo::DB)   {
       /**
        * Ignore API and MGM nodes
        */
@@ -1876,8 +2226,7 @@ ClusterMgr::is_cluster_completely_unavailable(Int32 &error,
       num_stopping_nodes++;
       continue;
     }
-    if (!node.compatible)
-    {
+    if (!node.compatible) {
       /**
        * The node isn't compatible with ours, so we can't use it
        */
@@ -1889,8 +2238,7 @@ ClusterMgr::is_cluster_completely_unavailable(Int32 &error,
       num_alive_nodes++;
       continue;
     }
-    if (node.m_state.startLevel == NodeState::SL_STARTING)
-    {
+    if (node.m_state.startLevel == NodeState::SL_STARTING)   {
       num_starting_nodes++;
       continue;
     }
@@ -1905,7 +2253,29 @@ ClusterMgr::is_cluster_completely_unavailable(Int32 &error,
     /**
      * We have alive nodes, but could not find any connection records
      */
-    error = 4036;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+trp_node&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+trp_node
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+error
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+theNode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&theNode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 4036;
   }
   else if (num_started_nodes > 0)
   {
@@ -1914,7 +2284,31 @@ ClusterMgr::is_cluster_completely_unavailable(Int32 &error,
      */
     error = 4035;
   }
-  else if (num_starting_nodes > 0)
+  else if (num_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+starting_nodes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+node&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+node
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+> 0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+theNode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&theNode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
   {
     /**
      * We have nodes that are starting up
@@ -1935,12 +2329,33 @@ ClusterMgr::is_cluster_completely_unavailable(Int32 &error,
      */
     error = 4041;
   }
-  else if (num_stopping_nodes > 0)
-  {
+  else if (num_stopping_nodes > 0) {
     /**
-     * Accessible nodes are shutting down
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+trp_node&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+trp_node
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   * Accessible nodes are shutting down
      */
-    error = 4039;
+    error
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+node
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&node
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 4039;
   }
   else if (m_ever_connected)
   {
@@ -1983,15 +2398,11 @@ ClusterMgr::is_cluster_completely_unavailable(Int32 &error,
   NdbMutex_Unlock(m_node_state_mutex);
 }
 
-void
-ClusterMgr::print_nodes(const char* where, NdbOut& out)
-{
+void ClusterMgr::print_nodes(const char *where, NdbOut &out) {
   out << where << " >>" << endl;
-  for (NodeId n = 1; n < MAX_NODES ; n++)
-  {
+  for (NodeId n = 1; n < MAX_NODES; n++) {
     const trp_node node = getNodeInfo(n);
-    if (!node.defined)
-      continue;
+    if (!node.defined) continue;
     out << "node: " << n << endl;
     out << " -";
     out << " connected: " << node.is_connected();
@@ -2007,10 +2418,9 @@ ClusterMgr::print_nodes(const char* where, NdbOut& out)
   out << "<<" << endl;
 }
 
-void
-ClusterMgr::setProcessInfoUri(const char * scheme, const char * address_string,
-                              int port, const char * path)
-{
+void ClusterMgr::setProcessInfoUri(const char *scheme,
+                                   const char *address_string, int port,
+                                   const char *path) {
   Guard g(clusterMgrThreadMutex);
 
   m_process_info->setUriScheme(scheme);
@@ -2019,17 +2429,16 @@ ClusterMgr::setProcessInfoUri(const char * scheme, const char * address_string,
   m_process_info->setUriPath(path);
 
   /* Set flag to resend ProcessInfo Report */
-  for(int i = 1; i < MAX_NODES ; i++)
-  {
-    Node & node = theNodes[i];
-    if(node.is_connected()) node.processInfoSent = false;
+  for (int i = 1; i < MAX_NODES; i++) {
+    Node &node = theNodes[i];
+    if (node.is_connected()) node.processInfoSent = false;
   }
 }
 
 /******************************************************************************
  * Arbitrator
  ******************************************************************************/
-ArbitMgr::ArbitMgr(ClusterMgr& c)
+ArbitMgr::ArbitMgr(ClusterMgr &c)
     : m_clusterMgr(c),
       theRank(0),
       theDelay(0),
@@ -2041,8 +2450,7 @@ ArbitMgr::ArbitMgr(ClusterMgr& c)
       theStartReq(),
       theChooseReq1(),
       theChooseReq2(),
-      theStopOrd()
-{
+      theStopOrd() {
   DBUG_ENTER("ArbitMgr::ArbitMgr");
 
   theThreadMutex = NdbMutex_Create();
@@ -2052,8 +2460,7 @@ ArbitMgr::ArbitMgr(ClusterMgr& c)
   DBUG_VOID_RETURN;
 }
 
-ArbitMgr::~ArbitMgr()
-{
+ArbitMgr::~ArbitMgr() {
   DBUG_ENTER("ArbitMgr::~ArbitMgr");
   NdbMutex_Destroy(theThreadMutex);
   NdbCondition_Destroy(theInputCond);
@@ -2064,9 +2471,7 @@ ArbitMgr::~ArbitMgr()
 // Start arbitrator thread.  This is kernel request.
 // First stop any previous thread since it is a left-over
 // which was never used and which now has wrong ticket.
-void
-ArbitMgr::doStart(const Uint32* theData)
-{
+void ArbitMgr::doStart(const Uint32 *theData) {
   DBUG_ENTER("ArbitMgr::doStart");
   ArbitSignal aSignal;
   NdbMutex_Lock(theThreadMutex);
@@ -2074,7 +2479,7 @@ ArbitMgr::doStart(const Uint32* theData)
     aSignal.init(GSN_ARBIT_STOPORD, nullptr);
     aSignal.data.code = StopRestart;
     sendSignalToThread(aSignal);
-    void* value;
+    void *value;
     NdbThread_WaitFor(theThread, &value);
     NdbThread_Destroy(&theThread);
     theState = StateInit;
@@ -2082,13 +2487,10 @@ ArbitMgr::doStart(const Uint32* theData)
   }
   aSignal.init(GSN_ARBIT_STARTREQ, theData);
   sendSignalToThread(aSignal);
-  theThread = NdbThread_Create(
-    runArbitMgr_C, (void**)this,
-    0, // default stack size
-    "ndb_arbitmgr",
-    NDB_THREAD_PRIO_HIGH);
-  if (theThread == nullptr)
-  {
+  theThread = NdbThread_Create(runArbitMgr_C, (void **)this,
+                               0,  // default stack size
+                               "ndb_arbitmgr", NDB_THREAD_PRIO_HIGH);
+  if (theThread == nullptr) {
     g_eventLogger->info(
         "ArbitMgr::doStart: Failed to create thread for arbitration.");
     assert(theThread != nullptr);
@@ -2098,9 +2500,7 @@ ArbitMgr::doStart(const Uint32* theData)
 }
 
 // The "choose me" signal from a candidate.
-void
-ArbitMgr::doChoose(const Uint32* theData)
-{
+void ArbitMgr::doChoose(const Uint32 *theData) {
   ArbitSignal aSignal;
   aSignal.init(GSN_ARBIT_CHOOSEREQ, theData);
   sendSignalToThread(aSignal);
@@ -2108,9 +2508,7 @@ ArbitMgr::doChoose(const Uint32* theData)
 
 // Stop arbitrator thread via stop signal from the kernel
 // or when exiting API program.
-void
-ArbitMgr::doStop(const Uint32* theData)
-{
+void ArbitMgr::doStop(const Uint32 *theData) {
   DBUG_ENTER("ArbitMgr::doStop");
   ArbitSignal aSignal;
   NdbMutex_Lock(theThreadMutex);
@@ -2122,7 +2520,7 @@ ArbitMgr::doStop(const Uint32* theData)
       aSignal.data.code = StopRequest;
     }
     sendSignalToThread(aSignal);
-    void* value;
+    void *value;
     NdbThread_WaitFor(theThread, &value);
     NdbThread_Destroy(&theThread);
     theState = StateInit;
@@ -2133,17 +2531,12 @@ ArbitMgr::doStop(const Uint32* theData)
 
 // private methods
 
-extern "C" 
-void*
-runArbitMgr_C(void* me)
-{
-  ((ArbitMgr*) me)->threadMain();
+extern "C" void *runArbitMgr_C(void *me) {
+  ((ArbitMgr *)me)->threadMain();
   return nullptr;
 }
 
-void
-ArbitMgr::sendSignalToThread(ArbitSignal& aSignal)
-{
+void ArbitMgr::sendSignalToThread(ArbitSignal &aSignal) {
 #ifdef DEBUG_ARBIT
   char buf[17] = "";
   ndbout << "arbit recv: ";
@@ -2155,7 +2548,7 @@ ArbitMgr::sendSignalToThread(ArbitSignal& aSignal)
   ndbout << " mask=" << aSignal.data.mask.getText(buf, sizeof(buf));
   ndbout << endl;
 #endif
-  aSignal.setTimestamp();       // signal arrival time
+  aSignal.setTimestamp();  // signal arrival time
   NdbMutex_Lock(theInputMutex);
   while (theInputFull) {
     NdbCondition_WaitTimeout(theInputCond, theInputMutex, 1000);
@@ -2166,16 +2559,14 @@ ArbitMgr::sendSignalToThread(ArbitSignal& aSignal)
   NdbMutex_Unlock(theInputMutex);
 }
 
-void
-ArbitMgr::threadMain()
-{
+void ArbitMgr::threadMain() {
   ArbitSignal aSignal;
   aSignal = theInputBuffer;
   threadStart(aSignal);
   bool stop = false;
-  while (! stop) {
+  while (!stop) {
     NdbMutex_Lock(theInputMutex);
-    while (! theInputFull) {
+    while (!theInputFull) {
       NdbCondition_WaitTimeout(theInputCond, theInputMutex, theInputTimeout);
       threadTimeout();
     }
@@ -2184,12 +2575,12 @@ ArbitMgr::threadMain()
     NdbCondition_Signal(theInputCond);
     NdbMutex_Unlock(theInputMutex);
     switch (aSignal.gsn) {
-    case GSN_ARBIT_CHOOSEREQ:
-      threadChoose(aSignal);
-      break;
-    case GSN_ARBIT_STOPORD:
-      stop = true;
-      break;
+      case GSN_ARBIT_CHOOSEREQ:
+        threadChoose(aSignal);
+        break;
+      case GSN_ARBIT_STOPORD:
+        stop = true;
+        break;
     }
   }
   threadStop(aSignal);
@@ -2197,145 +2588,128 @@ ArbitMgr::threadMain()
 
 // handle events in the thread
 
-void
-ArbitMgr::threadStart(ArbitSignal& aSignal)
-{
+void ArbitMgr::threadStart(ArbitSignal &aSignal) {
   theStartReq = aSignal;
   sendStartConf(theStartReq, ArbitCode::ApiStart);
   theState = StateStarted;
   theInputTimeout = 1000;
 }
 
-void
-ArbitMgr::threadChoose(ArbitSignal& aSignal)
-{
+void ArbitMgr::threadChoose(ArbitSignal &aSignal) {
   switch (theState) {
-  case StateStarted:            // first REQ
-    if (! theStartReq.data.match(aSignal.data)) {
-      sendChooseRef(aSignal, ArbitCode::ErrTicket);
-      break;
-    }
-    theChooseReq1 = aSignal;
-    if (theDelay == 0) {
-      sendChooseConf(aSignal, ArbitCode::WinChoose);
+    case StateStarted:  // first REQ
+      if (!theStartReq.data.match(aSignal.data)) {
+        sendChooseRef(aSignal, ArbitCode::ErrTicket);
+        break;
+      }
+      theChooseReq1 = aSignal;
+      if (theDelay == 0) {
+        sendChooseConf(aSignal, ArbitCode::WinChoose);
+        theState = StateFinished;
+        theInputTimeout = 1000;
+        break;
+      }
+      theState = StateChoose1;
+      theInputTimeout = 1;
+      return;
+    case StateChoose1:  // second REQ within Delay
+      if (!theStartReq.data.match(aSignal.data)) {
+        sendChooseRef(aSignal, ArbitCode::ErrTicket);
+        break;
+      }
+      theChooseReq2 = aSignal;
+      theState = StateChoose2;
+      theInputTimeout = 1;
+      return;
+    case StateChoose2:  // too many REQs - refuse all
+      if (!theStartReq.data.match(aSignal.data)) {
+        sendChooseRef(aSignal, ArbitCode::ErrTicket);
+        break;
+      }
+      sendChooseRef(theChooseReq1, ArbitCode::ErrToomany);
+      sendChooseRef(theChooseReq2, ArbitCode::ErrToomany);
+      sendChooseRef(aSignal, ArbitCode::ErrToomany);
       theState = StateFinished;
       theInputTimeout = 1000;
+      return;
+    default:
+      sendChooseRef(aSignal, ArbitCode::ErrState);
       break;
-    }
-    theState = StateChoose1;
-    theInputTimeout = 1;
-    return;
-  case StateChoose1:            // second REQ within Delay
-    if (! theStartReq.data.match(aSignal.data)) {
-      sendChooseRef(aSignal, ArbitCode::ErrTicket);
-      break;
-    }
-    theChooseReq2 = aSignal;
-    theState = StateChoose2;
-    theInputTimeout = 1;
-    return;
-  case StateChoose2:            // too many REQs - refuse all
-    if (! theStartReq.data.match(aSignal.data)) {
-      sendChooseRef(aSignal, ArbitCode::ErrTicket);
-      break;
-    }
-    sendChooseRef(theChooseReq1, ArbitCode::ErrToomany);
-    sendChooseRef(theChooseReq2, ArbitCode::ErrToomany);
-    sendChooseRef(aSignal, ArbitCode::ErrToomany);
-    theState = StateFinished;
-    theInputTimeout = 1000;
-    return;
-  default:
-    sendChooseRef(aSignal, ArbitCode::ErrState);
-    break;
   }
 }
 
-void
-ArbitMgr::threadTimeout()
-{
+void ArbitMgr::threadTimeout() {
   switch (theState) {
-  case StateStarted:
-    break;
-  case StateChoose1:
-    if (theChooseReq1.getTimediff() < theDelay)
-      break;
-    sendChooseConf(theChooseReq1, ArbitCode::WinChoose);
-    theState = StateFinished;
-    theInputTimeout = 1000;
-    break;
-  case StateChoose2:
-    sendChooseConf(theChooseReq1, ArbitCode::WinChoose);
-    sendChooseConf(theChooseReq2, ArbitCode::LoseChoose);
-    theState = StateFinished;
-    theInputTimeout = 1000;
-    break;
-  default:
-    break;
-  }
-}
-
-void
-ArbitMgr::threadStop(ArbitSignal& aSignal)
-{
-  switch (aSignal.data.code) {
-  case StopExit:
-    switch (theState) {
     case StateStarted:
-      sendStopRep(theStartReq, 0);
       break;
-    case StateChoose1:                  // just in time
+    case StateChoose1:
+      if (theChooseReq1.getTimediff() < theDelay) break;
       sendChooseConf(theChooseReq1, ArbitCode::WinChoose);
+      theState = StateFinished;
+      theInputTimeout = 1000;
       break;
     case StateChoose2:
       sendChooseConf(theChooseReq1, ArbitCode::WinChoose);
       sendChooseConf(theChooseReq2, ArbitCode::LoseChoose);
+      theState = StateFinished;
+      theInputTimeout = 1000;
       break;
-    case StateInit:
-    case StateFinished:
-      //??
+    default:
       break;
-    }
-    break;
-  case StopRequest:
-    break;
-  case StopRestart:
-    break;
+  }
+}
+
+void ArbitMgr::threadStop(ArbitSignal &aSignal) {
+  switch (aSignal.data.code) {
+    case StopExit:
+      switch (theState) {
+        case StateStarted:
+          sendStopRep(theStartReq, 0);
+          break;
+        case StateChoose1:  // just in time
+          sendChooseConf(theChooseReq1, ArbitCode::WinChoose);
+          break;
+        case StateChoose2:
+          sendChooseConf(theChooseReq1, ArbitCode::WinChoose);
+          sendChooseConf(theChooseReq2, ArbitCode::LoseChoose);
+          break;
+        case StateInit:
+        case StateFinished:
+          //??
+          break;
+      }
+      break;
+    case StopRequest:
+      break;
+    case StopRestart:
+      break;
   }
 }
 
 // output routines
 
-void
-ArbitMgr::sendStartConf(ArbitSignal& aSignal, Uint32 code)
-{
+void ArbitMgr::sendStartConf(ArbitSignal &aSignal, Uint32 code) {
   ArbitSignal copySignal = aSignal;
   copySignal.gsn = GSN_ARBIT_STARTCONF;
   copySignal.data.code = code;
   sendSignalToQmgr(copySignal);
 }
 
-void
-ArbitMgr::sendChooseConf(ArbitSignal& aSignal, Uint32 code)
-{
+void ArbitMgr::sendChooseConf(ArbitSignal &aSignal, Uint32 code) {
   ArbitSignal copySignal = aSignal;
   copySignal.gsn = GSN_ARBIT_CHOOSECONF;
   copySignal.data.code = code;
   sendSignalToQmgr(copySignal);
 }
 
-void
-ArbitMgr::sendChooseRef(ArbitSignal& aSignal, Uint32 code)
-{
+void ArbitMgr::sendChooseRef(ArbitSignal &aSignal, Uint32 code) {
   ArbitSignal copySignal = aSignal;
   copySignal.gsn = GSN_ARBIT_CHOOSEREF;
   copySignal.data.code = code;
   sendSignalToQmgr(copySignal);
 }
 
-void
-ArbitMgr::sendStopRep(ArbitSignal& aSignal, Uint32 code)
-{
+void ArbitMgr::sendStopRep(ArbitSignal &aSignal, Uint32 code) {
   ArbitSignal copySignal = aSignal;
   copySignal.gsn = GSN_ARBIT_STOPREP;
   copySignal.data.code = code;
@@ -2348,17 +2722,15 @@ ArbitMgr::sendStopRep(ArbitSignal& aSignal, Uint32 code)
  * signal so it contains expected arbitrator node id and ticket.
  * The sender in signal data is the QMGR node id.
  */
-void
-ArbitMgr::sendSignalToQmgr(ArbitSignal& aSignal)
-{
+void ArbitMgr::sendSignalToQmgr(ArbitSignal &aSignal) {
   NdbApiSignal signal(numberToRef(API_CLUSTERMGR, m_clusterMgr.getOwnNodeId()));
 
   signal.theVerId_signalNumber = aSignal.gsn;
   signal.theReceiversBlockNumber = QMGR;
-  signal.theTrace  = 0;
+  signal.theTrace = 0;
   signal.theLength = ArbitSignalData::SignalLength;
 
-  ArbitSignalData* sd = CAST_PTR(ArbitSignalData, signal.getDataPtrSend());
+  ArbitSignalData *sd = CAST_PTR(ArbitSignalData, signal.getDataPtrSend());
 
   sd->sender = numberToRef(API_CLUSTERMGR, m_clusterMgr.getOwnNodeId());
   sd->code = aSignal.data.code;

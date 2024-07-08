@@ -25,20 +25,20 @@
 
 #include <memory>
 
-#include "consumer_restore.hpp"
-#include <kernel/ndb_limits.h>
-#include <NdbIndexStat.hpp>
 #include <NdbSleep.h>
 #include <NdbTick.h>
-#include <NdbToolsProgramExitCodes.hpp>
-#include <Properties.hpp>
-#include <NdbTypesUtil.hpp>
+#include <kernel/ndb_limits.h>
 #include <ndb_rand.h>
+#include <NdbIndexStat.hpp>
+#include <NdbToolsProgramExitCodes.hpp>
+#include <NdbTypesUtil.hpp>
+#include <Properties.hpp>
+#include "consumer_restore.hpp"
 
-#include <ndb_internal.hpp>
 #include <ndb_logevent.h>
-#include "../src/ndbapi/NdbDictionaryImpl.hpp"
+#include <ndb_internal.hpp>
 #include "../ndb_lib_move_data.hpp"
+#include "../src/ndbapi/NdbDictionaryImpl.hpp"
 
 #define NDB_ANYVALUE_FOR_NOLOGGING 0x8000007f
 
@@ -46,7 +46,7 @@
  * PK mapping index has a known name.
  * Multiple ndb_restore instances can share an index
  */
-static const char* PK_MAPPING_IDX_NAME = "NDB$RESTORE_PK_MAPPING";
+static const char *PK_MAPPING_IDX_NAME = "NDB$RESTORE_PK_MAPPING";
 static const int MAX_RETRIES = 11;
 
 extern FilteredNdbOut err;
@@ -54,9 +54,8 @@ extern FilteredNdbOut info;
 extern FilteredNdbOut debug;
 extern RestoreLogger restoreLogger;
 
-static void callback(int, NdbTransaction*, void*);
-static Uint32 get_part_id(const NdbDictionary::Table *table,
-                          Uint32 hash_value);
+static void callback(int, NdbTransaction *, void *);
+static Uint32 get_part_id(const NdbDictionary::Table *table, Uint32 hash_value);
 
 extern BaseString g_options;
 extern unsigned int opt_no_binlog;
@@ -72,21 +71,16 @@ bool BackupRestore::m_preserve_trailing_spaces = false;
 // conversion handlers
 // ----------------------------------------------------------------------
 
-void *
-BackupRestore::convert_bitset(const void *source,
-                              void *target,
-                              bool &truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_bitset(const void *source, void *target,
+                                    bool &truncated) {
+  if (!source || !target) return NULL;
 
   // shortcuts
-  const unsigned char * const s = (const unsigned char *)source;
-  char_n_padding_struct * const t = (char_n_padding_struct *)target;
+  const unsigned char *const s = (const unsigned char *)source;
+  char_n_padding_struct *const t = (char_n_padding_struct *)target;
 
   // write data
-  if (t->n_new >= t->n_old)
-  {
+  if (t->n_new >= t->n_old) {
     // clear all bits
     memset(t->new_row, 0, t->n_new);
 
@@ -101,18 +95,14 @@ BackupRestore::convert_bitset(const void *source,
   return t->new_row;
 }
 
-template< typename S, typename T >
-void *
-BackupRestore::convert_array(const void * source,
-                             void * target,
-                             bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+template <typename S, typename T>
+void *BackupRestore::convert_array(const void *source, void *target,
+                                   bool &truncated) {
+  if (!source || !target) return NULL;
 
   // shortcuts (note that all S::... and T::... are compile-time expr)
-  const unsigned char * const s = (const unsigned char *)source;
-  char_n_padding_struct * const t = (char_n_padding_struct *)target;
+  const unsigned char *const s = (const unsigned char *)source;
+  char_n_padding_struct *const t = (char_n_padding_struct *)target;
   const Uint32 s_prefix_length = S::lengthPrefixSize();
   const Uint32 t_prefix_length = T::lengthPrefixSize();
 
@@ -151,14 +141,10 @@ BackupRestore::convert_array(const void * source,
   return t->new_row;
 }
 
-template< typename S, typename T >
-void *
-BackupRestore::convert_integral(const void * source,
-                                void * target,
-                                bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+template <typename S, typename T>
+void *BackupRestore::convert_integral(const void *source, void *target,
+                                      bool &truncated) {
+  if (!source || !target) return NULL;
 
   // read the source value
   typename S::DomainT s;
@@ -201,7 +187,6 @@ BackupRestore::convert_integral(const void * source,
   // write the target value
   typename T::DomainT t;
   if (s <= 0) {
-
     // check value against lower bound as _signed_, safe since all <= 0
     assert(S::lowest() <= 0 && T::lowest() <= 0 && s <= 0);
     const typename S::SignedT s_l_s = S::asSigned(S::lowest());
@@ -211,12 +196,12 @@ BackupRestore::convert_integral(const void * source,
         && (s_s < t_l_s)) {  // lower bound check
       t = T::lowest();
       truncated = true;
-    } else {                 // within both bounds
-      t = static_cast< typename T::DomainT >(s);
+    } else {  // within both bounds
+      t = static_cast<typename T::DomainT>(s);
       truncated = false;
     }
 
-  } else { // (s > 0)
+  } else {  // (s > 0)
 
     // check value against upper bound as _unsigned_, safe since all > 0
     assert(S::highest() > 0 && T::highest() > 0 && s > 0);
@@ -227,44 +212,33 @@ BackupRestore::convert_integral(const void * source,
         && (s_u > t_h_u)) {  // upper bound check
       t = T::highest();
       truncated = true;
-    } else {                 // within both bounds
-      t = static_cast< typename T::DomainT >(s);
+    } else {  // within both bounds
+      t = static_cast<typename T::DomainT>(s);
       truncated = false;
     }
-
   }
   T::store((char *)target, &t);
 
   return target;
 }
 
-static uint
-truncate_fraction(uint f, uint n_old, uint n_new, bool& truncated)
-{
-  static const uint pow10[1 + 6] = {
-    1, 10, 100, 1000, 10000, 100000, 1000000
-  };
+static uint truncate_fraction(uint f, uint n_old, uint n_new, bool &truncated) {
+  static const uint pow10[1 + 6] = {1, 10, 100, 1000, 10000, 100000, 1000000};
   assert(n_old <= 6 && n_new <= 6);
-  if (n_old <= n_new)
-    return f;
+  if (n_old <= n_new) return f;
   uint k = n_old - n_new;
   uint n = pow10[k];
   uint g = f / n;
-  if (g * n != f)
-    truncated = true;
+  if (g * n != f) truncated = true;
   return g;
 }
 
-void *
-BackupRestore::convert_time_time2(const void * source,
-                                  void * target,
-                                  bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_time_time2(const void *source, void *target,
+                                        bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old == 0 && t->n_new <= 6);
 
   NdbSqlUtil::Time ss;
@@ -279,21 +253,17 @@ BackupRestore::convert_time_time2(const void * source,
   ts.minute = ss.minute;
   ts.second = ss.second;
   ts.fraction = 0;
-  NdbSqlUtil::pack_time2(ts, (uchar*)t->new_row, t->n_new);
+  NdbSqlUtil::pack_time2(ts, (uchar *)t->new_row, t->n_new);
 
   return t->new_row;
 }
 
-void *
-BackupRestore::convert_time2_time(const void * source,
-                                  void * target,
-                                  bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_time2_time(const void *source, void *target,
+                                        bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old <= 6 && t->n_new == 0);
 
   NdbSqlUtil::Time2 ss;
@@ -301,28 +271,23 @@ BackupRestore::convert_time2_time(const void * source,
   truncated = false;
 
   NdbSqlUtil::unpack_time2(ss, s, t->n_old);
-  if (ss.fraction != 0)
-    truncated = true;
+  if (ss.fraction != 0) truncated = true;
 
   ts.sign = ss.sign;
   ts.hour = ss.hour;
   ts.minute = ss.minute;
   ts.second = ss.second;
-  NdbSqlUtil::pack_time(ts, (uchar*)t->new_row);
+  NdbSqlUtil::pack_time(ts, (uchar *)t->new_row);
 
   return t->new_row;
 }
 
-void *
-BackupRestore::convert_time2_time2(const void * source,
-                                   void * target,
-                                   bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_time2_time2(const void *source, void *target,
+                                         bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old <= 6 && t->n_new <= 6);
 
   NdbSqlUtil::Time2 ss;
@@ -330,8 +295,7 @@ BackupRestore::convert_time2_time2(const void * source,
   truncated = false;
 
   NdbSqlUtil::unpack_time2(ss, s, t->n_old);
-  uint fraction = truncate_fraction(ss.fraction,
-                                    t->n_old, t->n_new, truncated);
+  uint fraction = truncate_fraction(ss.fraction, t->n_old, t->n_new, truncated);
 
   ts.sign = ss.sign;
   ts.interval = ss.interval;
@@ -339,21 +303,17 @@ BackupRestore::convert_time2_time2(const void * source,
   ts.minute = ss.minute;
   ts.second = ss.second;
   ts.fraction = fraction;
-  NdbSqlUtil::pack_time2(ts, (uchar*)t->new_row, t->n_new);
+  NdbSqlUtil::pack_time2(ts, (uchar *)t->new_row, t->n_new);
 
   return t->new_row;
 }
 
-void *
-BackupRestore::convert_datetime_datetime2(const void * source,
-                                          void * target,
-                                          bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_datetime_datetime2(const void *source,
+                                                void *target, bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old == 0 && t->n_new <= 6);
 
   NdbSqlUtil::Datetime ss;
@@ -370,21 +330,17 @@ BackupRestore::convert_datetime_datetime2(const void * source,
   ts.minute = ss.minute;
   ts.second = ss.second;
   ts.fraction = 0;
-  NdbSqlUtil::pack_datetime2(ts, (uchar*)t->new_row, t->n_new);
+  NdbSqlUtil::pack_datetime2(ts, (uchar *)t->new_row, t->n_new);
 
   return t->new_row;
 }
 
-void *
-BackupRestore::convert_datetime2_datetime(const void * source,
-                                          void * target,
-                                          bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_datetime2_datetime(const void *source,
+                                                void *target, bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old <= 6 && t->n_new == 0);
 
   NdbSqlUtil::Datetime2 ss;
@@ -392,9 +348,8 @@ BackupRestore::convert_datetime2_datetime(const void * source,
   truncated = false;
 
   NdbSqlUtil::unpack_datetime2(ss, s, t->n_old);
-  if (ss.fraction != 0)
-    truncated = true;
-  if (ss.sign != 1) // should not happen
+  if (ss.fraction != 0) truncated = true;
+  if (ss.sign != 1)  // should not happen
     truncated = true;
 
   ts.year = ss.year;
@@ -403,21 +358,18 @@ BackupRestore::convert_datetime2_datetime(const void * source,
   ts.hour = ss.hour;
   ts.minute = ss.minute;
   ts.second = ss.second;
-  NdbSqlUtil::pack_datetime(ts, (uchar*)t->new_row);
+  NdbSqlUtil::pack_datetime(ts, (uchar *)t->new_row);
 
   return t->new_row;
 }
 
-void *
-BackupRestore::convert_datetime2_datetime2(const void * source,
-                                           void * target,
-                                           bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_datetime2_datetime2(const void *source,
+                                                 void *target,
+                                                 bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old <= 6 && t->n_new <= 6);
 
   NdbSqlUtil::Datetime2 ss;
@@ -425,8 +377,7 @@ BackupRestore::convert_datetime2_datetime2(const void * source,
   truncated = false;
 
   NdbSqlUtil::unpack_datetime2(ss, s, t->n_old);
-  uint fraction = truncate_fraction(ss.fraction,
-                                    t->n_old, t->n_new, truncated);
+  uint fraction = truncate_fraction(ss.fraction, t->n_old, t->n_new, truncated);
 
   ts.sign = ss.sign;
   ts.year = ss.year;
@@ -436,21 +387,18 @@ BackupRestore::convert_datetime2_datetime2(const void * source,
   ts.minute = ss.minute;
   ts.second = ss.second;
   ts.fraction = fraction;
-  NdbSqlUtil::pack_datetime2(ts, (uchar*)t->new_row, t->n_new);
+  NdbSqlUtil::pack_datetime2(ts, (uchar *)t->new_row, t->n_new);
 
   return t->new_row;
 }
 
-void *
-BackupRestore::convert_timestamp_timestamp2(const void * source,
-                                            void * target,
-                                            bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_timestamp_timestamp2(const void *source,
+                                                  void *target,
+                                                  bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old == 0 && t->n_new <= 6);
 
   NdbSqlUtil::Timestamp ss;
@@ -461,21 +409,18 @@ BackupRestore::convert_timestamp_timestamp2(const void * source,
 
   ts.second = ss.second;
   ts.fraction = 0;
-  NdbSqlUtil::pack_timestamp2(ts, (uchar*)t->new_row, t->n_new);
+  NdbSqlUtil::pack_timestamp2(ts, (uchar *)t->new_row, t->n_new);
 
   return t->new_row;
 }
 
-void *
-BackupRestore::convert_timestamp2_timestamp(const void * source,
-                                            void * target,
-                                            bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_timestamp2_timestamp(const void *source,
+                                                  void *target,
+                                                  bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old <= 6 && t->n_new == 0);
 
   NdbSqlUtil::Timestamp2 ss;
@@ -483,25 +428,21 @@ BackupRestore::convert_timestamp2_timestamp(const void * source,
   truncated = false;
 
   NdbSqlUtil::unpack_timestamp2(ss, s, t->n_old);
-  if (ss.fraction != 0)
-    truncated = true;
+  if (ss.fraction != 0) truncated = true;
 
   ts.second = ss.second;
-  NdbSqlUtil::pack_timestamp(ts, (uchar*)t->new_row);
+  NdbSqlUtil::pack_timestamp(ts, (uchar *)t->new_row);
 
   return t->new_row;
 }
 
-void *
-BackupRestore::convert_timestamp2_timestamp2(const void * source,
-                                             void * target,
-                                             bool & truncated)
-{
-  if (!source || !target)
-    return NULL;
+void *BackupRestore::convert_timestamp2_timestamp2(const void *source,
+                                                   void *target,
+                                                   bool &truncated) {
+  if (!source || !target) return NULL;
 
-  const uchar* s = (const uchar*)source;
-  char_n_padding_struct* t = (char_n_padding_struct*)target;
+  const uchar *s = (const uchar *)source;
+  char_n_padding_struct *t = (char_n_padding_struct *)target;
   assert(t->n_old <= 6 && t->n_new <= 6);
 
   NdbSqlUtil::Timestamp2 ss;
@@ -509,12 +450,11 @@ BackupRestore::convert_timestamp2_timestamp2(const void * source,
   truncated = false;
 
   NdbSqlUtil::unpack_timestamp2(ss, s, t->n_old);
-  uint fraction = truncate_fraction(ss.fraction,
-                                    t->n_old, t->n_new, truncated);
+  uint fraction = truncate_fraction(ss.fraction, t->n_old, t->n_new, truncated);
 
   ts.second = ss.second;
   ts.fraction = fraction;
-  NdbSqlUtil::pack_timestamp2(ts, (uchar*)t->new_row, t->n_new);
+  NdbSqlUtil::pack_timestamp2(ts, (uchar *)t->new_row, t->n_new);
 
   return t->new_row;
 }
@@ -523,362 +463,338 @@ BackupRestore::convert_timestamp2_timestamp2(const void * source,
 // conversion rules
 // ----------------------------------------------------------------------
 
-const PromotionRules 
-BackupRestore::m_allowed_promotion_attrs[] = {
-  // bitset promotions/demotions
-  {NDBCOL::Bit,            NDBCOL::Bit,            check_compat_sizes,
-   convert_bitset},
+const PromotionRules BackupRestore::m_allowed_promotion_attrs[] = {
+    // bitset promotions/demotions
+    {NDBCOL::Bit, NDBCOL::Bit, check_compat_sizes, convert_bitset},
 
-  // char array promotions/demotions
-  {NDBCOL::Char,           NDBCOL::Char,           check_compat_sizes,
-   convert_array< Hchar, Hchar >},
-  {NDBCOL::Char,           NDBCOL::Varchar,        check_compat_sizes,
-   convert_array< Hchar, Hvarchar >},
-  {NDBCOL::Char,           NDBCOL::Longvarchar,    check_compat_sizes,
-   convert_array< Hchar, Hlongvarchar >},
-  {NDBCOL::Varchar,        NDBCOL::Char,           check_compat_sizes,
-   convert_array< Hvarchar, Hchar >},
-  {NDBCOL::Varchar,        NDBCOL::Varchar,        check_compat_sizes,
-   convert_array< Hvarchar, Hvarchar >},
-  {NDBCOL::Varchar,        NDBCOL::Longvarchar,    check_compat_sizes,
-   convert_array< Hvarchar, Hlongvarchar >},
-  {NDBCOL::Longvarchar,    NDBCOL::Char,           check_compat_sizes,
-   convert_array< Hlongvarchar, Hchar >},
-  {NDBCOL::Longvarchar,    NDBCOL::Varchar,        check_compat_sizes,
-   convert_array< Hlongvarchar, Hvarchar >},
-  {NDBCOL::Longvarchar,    NDBCOL::Longvarchar,    check_compat_sizes,
-   convert_array< Hlongvarchar, Hlongvarchar >},
+    // char array promotions/demotions
+    {NDBCOL::Char, NDBCOL::Char, check_compat_sizes,
+     convert_array<Hchar, Hchar>},
+    {NDBCOL::Char, NDBCOL::Varchar, check_compat_sizes,
+     convert_array<Hchar, Hvarchar>},
+    {NDBCOL::Char, NDBCOL::Longvarchar, check_compat_sizes,
+     convert_array<Hchar, Hlongvarchar>},
+    {NDBCOL::Varchar, NDBCOL::Char, check_compat_sizes,
+     convert_array<Hvarchar, Hchar>},
+    {NDBCOL::Varchar, NDBCOL::Varchar, check_compat_sizes,
+     convert_array<Hvarchar, Hvarchar>},
+    {NDBCOL::Varchar, NDBCOL::Longvarchar, check_compat_sizes,
+     convert_array<Hvarchar, Hlongvarchar>},
+    {NDBCOL::Longvarchar, NDBCOL::Char, check_compat_sizes,
+     convert_array<Hlongvarchar, Hchar>},
+    {NDBCOL::Longvarchar, NDBCOL::Varchar, check_compat_sizes,
+     convert_array<Hlongvarchar, Hvarchar>},
+    {NDBCOL::Longvarchar, NDBCOL::Longvarchar, check_compat_sizes,
+     convert_array<Hlongvarchar, Hlongvarchar>},
 
-  // binary array promotions/demotions
-  {NDBCOL::Binary,         NDBCOL::Binary,         check_compat_sizes,
-   convert_array< Hbinary, Hbinary >},
-  {NDBCOL::Binary,         NDBCOL::Varbinary,      check_compat_sizes,
-   convert_array< Hbinary, Hvarbinary >},
-  {NDBCOL::Binary,         NDBCOL::Longvarbinary,  check_compat_sizes,
-   convert_array< Hbinary, Hlongvarbinary >},
-  {NDBCOL::Varbinary,      NDBCOL::Binary,         check_compat_sizes,
-   convert_array< Hvarbinary, Hbinary >},
-  {NDBCOL::Varbinary,      NDBCOL::Varbinary,      check_compat_sizes,
-   convert_array< Hvarbinary, Hvarbinary >},
-  {NDBCOL::Varbinary,      NDBCOL::Longvarbinary,  check_compat_sizes,
-   convert_array< Hvarbinary, Hlongvarbinary >},
-  {NDBCOL::Longvarbinary,  NDBCOL::Binary,         check_compat_sizes,
-   convert_array< Hlongvarbinary, Hbinary >},
-  {NDBCOL::Longvarbinary,  NDBCOL::Varbinary,      check_compat_sizes,
-   convert_array< Hlongvarbinary, Hvarbinary >},
-  {NDBCOL::Longvarbinary,  NDBCOL::Longvarbinary,  check_compat_sizes,
-   convert_array< Hlongvarbinary, Hlongvarbinary >},
+    // binary array promotions/demotions
+    {NDBCOL::Binary, NDBCOL::Binary, check_compat_sizes,
+     convert_array<Hbinary, Hbinary>},
+    {NDBCOL::Binary, NDBCOL::Varbinary, check_compat_sizes,
+     convert_array<Hbinary, Hvarbinary>},
+    {NDBCOL::Binary, NDBCOL::Longvarbinary, check_compat_sizes,
+     convert_array<Hbinary, Hlongvarbinary>},
+    {NDBCOL::Varbinary, NDBCOL::Binary, check_compat_sizes,
+     convert_array<Hvarbinary, Hbinary>},
+    {NDBCOL::Varbinary, NDBCOL::Varbinary, check_compat_sizes,
+     convert_array<Hvarbinary, Hvarbinary>},
+    {NDBCOL::Varbinary, NDBCOL::Longvarbinary, check_compat_sizes,
+     convert_array<Hvarbinary, Hlongvarbinary>},
+    {NDBCOL::Longvarbinary, NDBCOL::Binary, check_compat_sizes,
+     convert_array<Hlongvarbinary, Hbinary>},
+    {NDBCOL::Longvarbinary, NDBCOL::Varbinary, check_compat_sizes,
+     convert_array<Hlongvarbinary, Hvarbinary>},
+    {NDBCOL::Longvarbinary, NDBCOL::Longvarbinary, check_compat_sizes,
+     convert_array<Hlongvarbinary, Hlongvarbinary>},
 
-  // char to binary promotions/demotions
-  {NDBCOL::Char,           NDBCOL::Binary,         check_compat_char_binary,
-   convert_array< Hchar, Hbinary >},
-  {NDBCOL::Char,           NDBCOL::Varbinary,      check_compat_char_binary,
-   convert_array< Hchar, Hvarbinary >},
-  {NDBCOL::Char,           NDBCOL::Longvarbinary,  check_compat_char_binary,
-   convert_array< Hchar, Hlongvarbinary >},
-  {NDBCOL::Varchar,        NDBCOL::Binary,         check_compat_char_binary,
-   convert_array< Hvarchar, Hbinary >},
-  {NDBCOL::Varchar,        NDBCOL::Varbinary,      check_compat_char_binary,
-   convert_array< Hvarchar, Hvarbinary >},
-  {NDBCOL::Varchar,        NDBCOL::Longvarbinary,  check_compat_char_binary,
-   convert_array< Hvarchar, Hlongvarbinary >},
-  {NDBCOL::Longvarchar,    NDBCOL::Binary,         check_compat_char_binary,
-   convert_array< Hlongvarchar, Hbinary >},
-  {NDBCOL::Longvarchar,    NDBCOL::Varbinary,      check_compat_char_binary,
-   convert_array< Hlongvarchar, Hvarbinary >},
-  {NDBCOL::Longvarchar,    NDBCOL::Longvarbinary,  check_compat_char_binary,
-   convert_array< Hlongvarchar, Hlongvarbinary >},
+    // char to binary promotions/demotions
+    {NDBCOL::Char, NDBCOL::Binary, check_compat_char_binary,
+     convert_array<Hchar, Hbinary>},
+    {NDBCOL::Char, NDBCOL::Varbinary, check_compat_char_binary,
+     convert_array<Hchar, Hvarbinary>},
+    {NDBCOL::Char, NDBCOL::Longvarbinary, check_compat_char_binary,
+     convert_array<Hchar, Hlongvarbinary>},
+    {NDBCOL::Varchar, NDBCOL::Binary, check_compat_char_binary,
+     convert_array<Hvarchar, Hbinary>},
+    {NDBCOL::Varchar, NDBCOL::Varbinary, check_compat_char_binary,
+     convert_array<Hvarchar, Hvarbinary>},
+    {NDBCOL::Varchar, NDBCOL::Longvarbinary, check_compat_char_binary,
+     convert_array<Hvarchar, Hlongvarbinary>},
+    {NDBCOL::Longvarchar, NDBCOL::Binary, check_compat_char_binary,
+     convert_array<Hlongvarchar, Hbinary>},
+    {NDBCOL::Longvarchar, NDBCOL::Varbinary, check_compat_char_binary,
+     convert_array<Hlongvarchar, Hvarbinary>},
+    {NDBCOL::Longvarchar, NDBCOL::Longvarbinary, check_compat_char_binary,
+     convert_array<Hlongvarchar, Hlongvarbinary>},
 
-  // binary to char promotions/demotions
-  {NDBCOL::Binary,         NDBCOL::Char,           check_compat_char_binary,
-   convert_array< Hbinary, Hchar >},
-  {NDBCOL::Binary,         NDBCOL::Varchar,        check_compat_char_binary,
-   convert_array< Hbinary, Hvarchar >},
-  {NDBCOL::Binary,         NDBCOL::Longvarchar,    check_compat_char_binary,
-   convert_array< Hbinary, Hlongvarchar >},
-  {NDBCOL::Varbinary,      NDBCOL::Char,           check_compat_char_binary,
-   convert_array< Hvarbinary, Hchar >},
-  {NDBCOL::Varbinary,      NDBCOL::Varchar,        check_compat_char_binary,
-   convert_array< Hvarbinary, Hvarchar >},
-  {NDBCOL::Varbinary,      NDBCOL::Longvarchar,    check_compat_char_binary,
-   convert_array< Hvarbinary, Hlongvarchar >},
-  {NDBCOL::Longvarbinary,  NDBCOL::Char,           check_compat_char_binary,
-   convert_array< Hlongvarbinary, Hchar >},
-  {NDBCOL::Longvarbinary,  NDBCOL::Varchar,        check_compat_char_binary,
-   convert_array< Hlongvarbinary, Hvarchar >},
-  {NDBCOL::Longvarbinary,  NDBCOL::Longvarchar,    check_compat_char_binary,
-   convert_array< Hlongvarbinary, Hlongvarchar >},
- 
-  // char to text promotions (uses staging table)
-  {NDBCOL::Char,           NDBCOL::Text,           check_compat_char_to_text,
-   NULL},
-  {NDBCOL::Varchar,        NDBCOL::Text,           check_compat_char_to_text,
-   NULL},
-  {NDBCOL::Longvarchar,    NDBCOL::Text,           check_compat_char_to_text,
-   NULL},
- 
-  // text to char promotions (uses staging table)
-  {NDBCOL::Text,           NDBCOL::Char,           check_compat_text_to_char,
-   NULL},
-  {NDBCOL::Text,           NDBCOL::Varchar,        check_compat_text_to_char,
-   NULL},
-  {NDBCOL::Text,           NDBCOL::Longvarchar,    check_compat_text_to_char,
-   NULL},
+    // binary to char promotions/demotions
+    {NDBCOL::Binary, NDBCOL::Char, check_compat_char_binary,
+     convert_array<Hbinary, Hchar>},
+    {NDBCOL::Binary, NDBCOL::Varchar, check_compat_char_binary,
+     convert_array<Hbinary, Hvarchar>},
+    {NDBCOL::Binary, NDBCOL::Longvarchar, check_compat_char_binary,
+     convert_array<Hbinary, Hlongvarchar>},
+    {NDBCOL::Varbinary, NDBCOL::Char, check_compat_char_binary,
+     convert_array<Hvarbinary, Hchar>},
+    {NDBCOL::Varbinary, NDBCOL::Varchar, check_compat_char_binary,
+     convert_array<Hvarbinary, Hvarchar>},
+    {NDBCOL::Varbinary, NDBCOL::Longvarchar, check_compat_char_binary,
+     convert_array<Hvarbinary, Hlongvarchar>},
+    {NDBCOL::Longvarbinary, NDBCOL::Char, check_compat_char_binary,
+     convert_array<Hlongvarbinary, Hchar>},
+    {NDBCOL::Longvarbinary, NDBCOL::Varchar, check_compat_char_binary,
+     convert_array<Hlongvarbinary, Hvarchar>},
+    {NDBCOL::Longvarbinary, NDBCOL::Longvarchar, check_compat_char_binary,
+     convert_array<Hlongvarbinary, Hlongvarchar>},
 
-  // text to text promotions (uses staging table)
-  // required when part lengths of text columns are not equal 
-  {NDBCOL::Text,           NDBCOL::Text,           check_compat_text_to_text,
-   NULL},
+    // char to text promotions (uses staging table)
+    {NDBCOL::Char, NDBCOL::Text, check_compat_char_to_text, NULL},
+    {NDBCOL::Varchar, NDBCOL::Text, check_compat_char_to_text, NULL},
+    {NDBCOL::Longvarchar, NDBCOL::Text, check_compat_char_to_text, NULL},
 
-  // text to blob promotions (uses staging table)
-  // blobs use the BINARY charset, while texts use charsets like UTF8
-  // ignore charset diffs by using check_compat_blob_to_blob
-  {NDBCOL::Text,           NDBCOL::Blob, check_compat_blob_to_blob,
-   NULL},
+    // text to char promotions (uses staging table)
+    {NDBCOL::Text, NDBCOL::Char, check_compat_text_to_char, NULL},
+    {NDBCOL::Text, NDBCOL::Varchar, check_compat_text_to_char, NULL},
+    {NDBCOL::Text, NDBCOL::Longvarchar, check_compat_text_to_char, NULL},
 
-  // binary to blob promotions (uses staging table)
-  {NDBCOL::Binary,         NDBCOL::Blob,           check_compat_binary_to_blob,
-   NULL},
-  {NDBCOL::Varbinary,      NDBCOL::Blob,           check_compat_binary_to_blob,
-   NULL},
-  {NDBCOL::Longvarbinary,  NDBCOL::Blob,           check_compat_binary_to_blob,
-   NULL},
+    // text to text promotions (uses staging table)
+    // required when part lengths of text columns are not equal
+    {NDBCOL::Text, NDBCOL::Text, check_compat_text_to_text, NULL},
 
-  // blob to binary promotions (uses staging table)
-  {NDBCOL::Blob,           NDBCOL::Binary,         check_compat_blob_to_binary,
-   NULL},
-  {NDBCOL::Blob,           NDBCOL::Varbinary,      check_compat_blob_to_binary,
-   NULL},
-  {NDBCOL::Blob,           NDBCOL::Longvarbinary,  check_compat_blob_to_binary,
-   NULL},
+    // text to blob promotions (uses staging table)
+    // blobs use the BINARY charset, while texts use charsets like UTF8
+    // ignore charset diffs by using check_compat_blob_to_blob
+    {NDBCOL::Text, NDBCOL::Blob, check_compat_blob_to_blob, NULL},
 
-  // blob to blob promotions (uses staging table)
-  // required when part lengths of blob columns are not equal
-  {NDBCOL::Blob,           NDBCOL::Blob,           check_compat_blob_to_blob,
-   NULL},
+    // binary to blob promotions (uses staging table)
+    {NDBCOL::Binary, NDBCOL::Blob, check_compat_binary_to_blob, NULL},
+    {NDBCOL::Varbinary, NDBCOL::Blob, check_compat_binary_to_blob, NULL},
+    {NDBCOL::Longvarbinary, NDBCOL::Blob, check_compat_binary_to_blob, NULL},
 
-  // blob to text promotions (uses staging table)
-  // blobs use the BINARY charset, while texts use charsets like UTF8
-  // ignore charset diffs by using check_compat_blob_to_blob
-  {NDBCOL::Blob,           NDBCOL::Text, check_compat_blob_to_blob,
-   NULL},
+    // blob to binary promotions (uses staging table)
+    {NDBCOL::Blob, NDBCOL::Binary, check_compat_blob_to_binary, NULL},
+    {NDBCOL::Blob, NDBCOL::Varbinary, check_compat_blob_to_binary, NULL},
+    {NDBCOL::Blob, NDBCOL::Longvarbinary, check_compat_blob_to_binary, NULL},
 
-  // integral promotions
-  {NDBCOL::Tinyint,        NDBCOL::Smallint,       check_compat_promotion,
-   convert_integral< Hint8, Hint16>},
-  {NDBCOL::Tinyint,        NDBCOL::Mediumint,      check_compat_promotion,
-   convert_integral< Hint8, Hint24>},
-  {NDBCOL::Tinyint,        NDBCOL::Int,            check_compat_promotion,
-   convert_integral< Hint8, Hint32>},
-  {NDBCOL::Tinyint,        NDBCOL::Bigint,         check_compat_promotion,
-   convert_integral< Hint8, Hint64>},
-  {NDBCOL::Smallint,       NDBCOL::Mediumint,      check_compat_promotion,
-   convert_integral< Hint16, Hint24>},
-  {NDBCOL::Smallint,       NDBCOL::Int,            check_compat_promotion,
-   convert_integral< Hint16, Hint32>},
-  {NDBCOL::Smallint,       NDBCOL::Bigint,         check_compat_promotion,
-   convert_integral< Hint16, Hint64>},
-  {NDBCOL::Mediumint,      NDBCOL::Int,            check_compat_promotion,
-   convert_integral< Hint24, Hint32>},
-  {NDBCOL::Mediumint,      NDBCOL::Bigint,         check_compat_promotion,
-   convert_integral< Hint24, Hint64>},
-  {NDBCOL::Int,            NDBCOL::Bigint,         check_compat_promotion,
-   convert_integral< Hint32, Hint64>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Smallunsigned,  check_compat_promotion,
-   convert_integral< Huint8, Huint16>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Mediumunsigned, check_compat_promotion,
-   convert_integral< Huint8, Huint24>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Unsigned,       check_compat_promotion,
-   convert_integral< Huint8, Huint32>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Bigunsigned,    check_compat_promotion,
-   convert_integral< Huint8, Huint64>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Mediumunsigned, check_compat_promotion,
-   convert_integral< Huint16, Huint24>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Unsigned,       check_compat_promotion,
-   convert_integral< Huint16, Huint32>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Bigunsigned,    check_compat_promotion,
-   convert_integral< Huint16, Huint64>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Unsigned,       check_compat_promotion,
-   convert_integral< Huint24, Huint32>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Bigunsigned,    check_compat_promotion,
-   convert_integral< Huint24, Huint64>},
-  {NDBCOL::Unsigned,       NDBCOL::Bigunsigned,    check_compat_promotion,
-   convert_integral< Huint32, Huint64>},
+    // blob to blob promotions (uses staging table)
+    // required when part lengths of blob columns are not equal
+    {NDBCOL::Blob, NDBCOL::Blob, check_compat_blob_to_blob, NULL},
 
-  // integral demotions
-  {NDBCOL::Smallint,       NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Hint16, Hint8>},
-  {NDBCOL::Mediumint,      NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Hint24, Hint8>},
-  {NDBCOL::Mediumint,      NDBCOL::Smallint,       check_compat_lossy,
-   convert_integral< Hint24, Hint16>},
-  {NDBCOL::Int,            NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Hint32, Hint8>},
-  {NDBCOL::Int,            NDBCOL::Smallint,       check_compat_lossy,
-   convert_integral< Hint32, Hint16>},
-  {NDBCOL::Int,            NDBCOL::Mediumint,      check_compat_lossy,
-   convert_integral< Hint32, Hint24>},
-  {NDBCOL::Bigint,         NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Hint64, Hint8>},
-  {NDBCOL::Bigint,         NDBCOL::Smallint,       check_compat_lossy,
-   convert_integral< Hint64, Hint16>},
-  {NDBCOL::Bigint,         NDBCOL::Mediumint,      check_compat_lossy,
-   convert_integral< Hint64, Hint24>},
-  {NDBCOL::Bigint,         NDBCOL::Int,            check_compat_lossy,
-   convert_integral< Hint64, Hint32>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Huint16, Huint8>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Huint24, Huint8>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Smallunsigned,  check_compat_lossy,
-   convert_integral< Huint24, Huint16>},
-  {NDBCOL::Unsigned,       NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Huint32, Huint8>},
-  {NDBCOL::Unsigned,       NDBCOL::Smallunsigned,  check_compat_lossy,
-   convert_integral< Huint32, Huint16>},
-  {NDBCOL::Unsigned,       NDBCOL::Mediumunsigned, check_compat_lossy,
-   convert_integral< Huint32, Huint24>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Huint64, Huint8>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Smallunsigned,  check_compat_lossy,
-   convert_integral< Huint64, Huint16>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Mediumunsigned, check_compat_lossy,
-   convert_integral< Huint64, Huint24>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Unsigned,       check_compat_lossy,
-   convert_integral< Huint64, Huint32>},
+    // blob to text promotions (uses staging table)
+    // blobs use the BINARY charset, while texts use charsets like UTF8
+    // ignore charset diffs by using check_compat_blob_to_blob
+    {NDBCOL::Blob, NDBCOL::Text, check_compat_blob_to_blob, NULL},
 
-  // integral signedness conversions
-  {NDBCOL::Tinyint,        NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Hint8, Huint8>},
-  {NDBCOL::Smallint,       NDBCOL::Smallunsigned,  check_compat_lossy,
-   convert_integral< Hint16, Huint16>},
-  {NDBCOL::Mediumint,      NDBCOL::Mediumunsigned, check_compat_lossy,
-   convert_integral< Hint24, Huint24>},
-  {NDBCOL::Int,            NDBCOL::Unsigned,       check_compat_lossy,
-   convert_integral< Hint32, Huint32>},
-  {NDBCOL::Bigint,         NDBCOL::Bigunsigned,    check_compat_lossy,
-   convert_integral< Hint64, Huint64>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Huint8, Hint8>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Smallint,       check_compat_lossy,
-   convert_integral< Huint16, Hint16>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Mediumint,      check_compat_lossy,
-   convert_integral< Huint24, Hint24>},
-  {NDBCOL::Unsigned,       NDBCOL::Int,            check_compat_lossy,
-   convert_integral< Huint32, Hint32>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Bigint,         check_compat_lossy,
-   convert_integral< Huint64, Hint64>},
+    // integral promotions
+    {NDBCOL::Tinyint, NDBCOL::Smallint, check_compat_promotion,
+     convert_integral<Hint8, Hint16>},
+    {NDBCOL::Tinyint, NDBCOL::Mediumint, check_compat_promotion,
+     convert_integral<Hint8, Hint24>},
+    {NDBCOL::Tinyint, NDBCOL::Int, check_compat_promotion,
+     convert_integral<Hint8, Hint32>},
+    {NDBCOL::Tinyint, NDBCOL::Bigint, check_compat_promotion,
+     convert_integral<Hint8, Hint64>},
+    {NDBCOL::Smallint, NDBCOL::Mediumint, check_compat_promotion,
+     convert_integral<Hint16, Hint24>},
+    {NDBCOL::Smallint, NDBCOL::Int, check_compat_promotion,
+     convert_integral<Hint16, Hint32>},
+    {NDBCOL::Smallint, NDBCOL::Bigint, check_compat_promotion,
+     convert_integral<Hint16, Hint64>},
+    {NDBCOL::Mediumint, NDBCOL::Int, check_compat_promotion,
+     convert_integral<Hint24, Hint32>},
+    {NDBCOL::Mediumint, NDBCOL::Bigint, check_compat_promotion,
+     convert_integral<Hint24, Hint64>},
+    {NDBCOL::Int, NDBCOL::Bigint, check_compat_promotion,
+     convert_integral<Hint32, Hint64>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Smallunsigned, check_compat_promotion,
+     convert_integral<Huint8, Huint16>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Mediumunsigned, check_compat_promotion,
+     convert_integral<Huint8, Huint24>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Unsigned, check_compat_promotion,
+     convert_integral<Huint8, Huint32>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Bigunsigned, check_compat_promotion,
+     convert_integral<Huint8, Huint64>},
+    {NDBCOL::Smallunsigned, NDBCOL::Mediumunsigned, check_compat_promotion,
+     convert_integral<Huint16, Huint24>},
+    {NDBCOL::Smallunsigned, NDBCOL::Unsigned, check_compat_promotion,
+     convert_integral<Huint16, Huint32>},
+    {NDBCOL::Smallunsigned, NDBCOL::Bigunsigned, check_compat_promotion,
+     convert_integral<Huint16, Huint64>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Unsigned, check_compat_promotion,
+     convert_integral<Huint24, Huint32>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Bigunsigned, check_compat_promotion,
+     convert_integral<Huint24, Huint64>},
+    {NDBCOL::Unsigned, NDBCOL::Bigunsigned, check_compat_promotion,
+     convert_integral<Huint32, Huint64>},
 
-  // integral signedness+promotion conversions
-  {NDBCOL::Tinyint,        NDBCOL::Smallunsigned,  check_compat_lossy,
-   convert_integral< Hint8, Huint16>},
-  {NDBCOL::Tinyint,        NDBCOL::Mediumunsigned, check_compat_lossy,
-   convert_integral< Hint8, Huint24>},
-  {NDBCOL::Tinyint,        NDBCOL::Unsigned,       check_compat_lossy,
-   convert_integral< Hint8, Huint32>},
-  {NDBCOL::Tinyint,        NDBCOL::Bigunsigned,    check_compat_lossy,
-   convert_integral< Hint8, Huint64>},
-  {NDBCOL::Smallint,       NDBCOL::Mediumunsigned, check_compat_lossy,
-   convert_integral< Hint16, Huint24>},
-  {NDBCOL::Smallint,       NDBCOL::Unsigned,       check_compat_lossy,
-   convert_integral< Hint16, Huint32>},
-  {NDBCOL::Smallint,       NDBCOL::Bigunsigned,    check_compat_lossy,
-   convert_integral< Hint16, Huint64>},
-  {NDBCOL::Mediumint,      NDBCOL::Unsigned,       check_compat_lossy,
-   convert_integral< Hint24, Huint32>},
-  {NDBCOL::Mediumint,      NDBCOL::Bigunsigned,    check_compat_lossy,
-   convert_integral< Hint24, Huint64>},
-  {NDBCOL::Int,            NDBCOL::Bigunsigned,    check_compat_lossy,
-   convert_integral< Hint32, Huint64>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Smallint,       check_compat_lossy,
-   convert_integral< Huint8, Hint16>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Mediumint,      check_compat_lossy,
-   convert_integral< Huint8, Hint24>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Int,            check_compat_lossy,
-   convert_integral< Huint8, Hint32>},
-  {NDBCOL::Tinyunsigned,   NDBCOL::Bigint,         check_compat_lossy,
-   convert_integral< Huint8, Hint64>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Mediumint,      check_compat_lossy,
-   convert_integral< Huint16, Hint24>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Int,            check_compat_lossy,
-   convert_integral< Huint16, Hint32>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Bigint,         check_compat_lossy,
-   convert_integral< Huint16, Hint64>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Int,            check_compat_lossy,
-   convert_integral< Huint24, Hint32>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Bigint,         check_compat_lossy,
-   convert_integral< Huint24, Hint64>},
-  {NDBCOL::Unsigned,       NDBCOL::Bigint,         check_compat_lossy,
-   convert_integral< Huint32, Hint64>},
+    // integral demotions
+    {NDBCOL::Smallint, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Hint16, Hint8>},
+    {NDBCOL::Mediumint, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Hint24, Hint8>},
+    {NDBCOL::Mediumint, NDBCOL::Smallint, check_compat_lossy,
+     convert_integral<Hint24, Hint16>},
+    {NDBCOL::Int, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Hint32, Hint8>},
+    {NDBCOL::Int, NDBCOL::Smallint, check_compat_lossy,
+     convert_integral<Hint32, Hint16>},
+    {NDBCOL::Int, NDBCOL::Mediumint, check_compat_lossy,
+     convert_integral<Hint32, Hint24>},
+    {NDBCOL::Bigint, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Hint64, Hint8>},
+    {NDBCOL::Bigint, NDBCOL::Smallint, check_compat_lossy,
+     convert_integral<Hint64, Hint16>},
+    {NDBCOL::Bigint, NDBCOL::Mediumint, check_compat_lossy,
+     convert_integral<Hint64, Hint24>},
+    {NDBCOL::Bigint, NDBCOL::Int, check_compat_lossy,
+     convert_integral<Hint64, Hint32>},
+    {NDBCOL::Smallunsigned, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Huint16, Huint8>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Huint24, Huint8>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Smallunsigned, check_compat_lossy,
+     convert_integral<Huint24, Huint16>},
+    {NDBCOL::Unsigned, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Huint32, Huint8>},
+    {NDBCOL::Unsigned, NDBCOL::Smallunsigned, check_compat_lossy,
+     convert_integral<Huint32, Huint16>},
+    {NDBCOL::Unsigned, NDBCOL::Mediumunsigned, check_compat_lossy,
+     convert_integral<Huint32, Huint24>},
+    {NDBCOL::Bigunsigned, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Huint64, Huint8>},
+    {NDBCOL::Bigunsigned, NDBCOL::Smallunsigned, check_compat_lossy,
+     convert_integral<Huint64, Huint16>},
+    {NDBCOL::Bigunsigned, NDBCOL::Mediumunsigned, check_compat_lossy,
+     convert_integral<Huint64, Huint24>},
+    {NDBCOL::Bigunsigned, NDBCOL::Unsigned, check_compat_lossy,
+     convert_integral<Huint64, Huint32>},
 
-  // integral signedness+demotion conversions
-  {NDBCOL::Smallint,       NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Hint16, Huint8>},
-  {NDBCOL::Mediumint,      NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Hint24, Huint8>},
-  {NDBCOL::Mediumint,      NDBCOL::Smallunsigned,  check_compat_lossy,
-   convert_integral< Hint24, Huint16>},
-  {NDBCOL::Int,            NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Hint32, Huint8>},
-  {NDBCOL::Int,            NDBCOL::Smallunsigned,  check_compat_lossy,
-   convert_integral< Hint32, Huint16>},
-  {NDBCOL::Int,            NDBCOL::Mediumunsigned, check_compat_lossy,
-   convert_integral< Hint32, Huint24>},
-  {NDBCOL::Bigint,         NDBCOL::Tinyunsigned,   check_compat_lossy,
-   convert_integral< Hint64, Huint8>},
-  {NDBCOL::Bigint,         NDBCOL::Smallunsigned,  check_compat_lossy,
-   convert_integral< Hint64, Huint16>},
-  {NDBCOL::Bigint,         NDBCOL::Mediumunsigned, check_compat_lossy,
-   convert_integral< Hint64, Huint24>},
-  {NDBCOL::Bigint,         NDBCOL::Unsigned,       check_compat_lossy,
-   convert_integral< Hint64, Huint32>},
-  {NDBCOL::Smallunsigned,  NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Huint16, Hint8>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Huint24, Hint8>},
-  {NDBCOL::Mediumunsigned, NDBCOL::Smallint,       check_compat_lossy,
-   convert_integral< Huint24, Hint16>},
-  {NDBCOL::Unsigned,       NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Huint32, Hint8>},
-  {NDBCOL::Unsigned,       NDBCOL::Smallint,       check_compat_lossy,
-   convert_integral< Huint32, Hint16>},
-  {NDBCOL::Unsigned,       NDBCOL::Mediumint,      check_compat_lossy,
-   convert_integral< Huint32, Hint24>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Tinyint,        check_compat_lossy,
-   convert_integral< Huint64, Hint8>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Smallint,       check_compat_lossy,
-   convert_integral< Huint64, Hint16>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Mediumint,      check_compat_lossy,
-   convert_integral< Huint64, Hint24>},
-  {NDBCOL::Bigunsigned,    NDBCOL::Int,            check_compat_lossy,
-   convert_integral< Huint64, Hint32>},
+    // integral signedness conversions
+    {NDBCOL::Tinyint, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Hint8, Huint8>},
+    {NDBCOL::Smallint, NDBCOL::Smallunsigned, check_compat_lossy,
+     convert_integral<Hint16, Huint16>},
+    {NDBCOL::Mediumint, NDBCOL::Mediumunsigned, check_compat_lossy,
+     convert_integral<Hint24, Huint24>},
+    {NDBCOL::Int, NDBCOL::Unsigned, check_compat_lossy,
+     convert_integral<Hint32, Huint32>},
+    {NDBCOL::Bigint, NDBCOL::Bigunsigned, check_compat_lossy,
+     convert_integral<Hint64, Huint64>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Huint8, Hint8>},
+    {NDBCOL::Smallunsigned, NDBCOL::Smallint, check_compat_lossy,
+     convert_integral<Huint16, Hint16>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Mediumint, check_compat_lossy,
+     convert_integral<Huint24, Hint24>},
+    {NDBCOL::Unsigned, NDBCOL::Int, check_compat_lossy,
+     convert_integral<Huint32, Hint32>},
+    {NDBCOL::Bigunsigned, NDBCOL::Bigint, check_compat_lossy,
+     convert_integral<Huint64, Hint64>},
 
-  // times with fractional seconds
-  {NDBCOL::Time,           NDBCOL::Time2,          check_compat_precision,
-   convert_time_time2},
-  {NDBCOL::Time2,          NDBCOL::Time,           check_compat_precision,
-   convert_time2_time},
-  {NDBCOL::Time2,          NDBCOL::Time2,          check_compat_precision,
-   convert_time2_time2},
-  {NDBCOL::Datetime,       NDBCOL::Datetime2,      check_compat_precision,
-   convert_datetime_datetime2},
-  {NDBCOL::Datetime2,      NDBCOL::Datetime,       check_compat_precision,
-   convert_datetime2_datetime},
-  {NDBCOL::Datetime2,      NDBCOL::Datetime2,      check_compat_precision,
-   convert_datetime2_datetime2},
-  {NDBCOL::Timestamp,      NDBCOL::Timestamp2,     check_compat_precision,
-   convert_timestamp_timestamp2},
-  {NDBCOL::Timestamp2,     NDBCOL::Timestamp,      check_compat_precision,
-   convert_timestamp2_timestamp},
-  {NDBCOL::Timestamp2,     NDBCOL::Timestamp2,     check_compat_precision,
-   convert_timestamp2_timestamp2},
+    // integral signedness+promotion conversions
+    {NDBCOL::Tinyint, NDBCOL::Smallunsigned, check_compat_lossy,
+     convert_integral<Hint8, Huint16>},
+    {NDBCOL::Tinyint, NDBCOL::Mediumunsigned, check_compat_lossy,
+     convert_integral<Hint8, Huint24>},
+    {NDBCOL::Tinyint, NDBCOL::Unsigned, check_compat_lossy,
+     convert_integral<Hint8, Huint32>},
+    {NDBCOL::Tinyint, NDBCOL::Bigunsigned, check_compat_lossy,
+     convert_integral<Hint8, Huint64>},
+    {NDBCOL::Smallint, NDBCOL::Mediumunsigned, check_compat_lossy,
+     convert_integral<Hint16, Huint24>},
+    {NDBCOL::Smallint, NDBCOL::Unsigned, check_compat_lossy,
+     convert_integral<Hint16, Huint32>},
+    {NDBCOL::Smallint, NDBCOL::Bigunsigned, check_compat_lossy,
+     convert_integral<Hint16, Huint64>},
+    {NDBCOL::Mediumint, NDBCOL::Unsigned, check_compat_lossy,
+     convert_integral<Hint24, Huint32>},
+    {NDBCOL::Mediumint, NDBCOL::Bigunsigned, check_compat_lossy,
+     convert_integral<Hint24, Huint64>},
+    {NDBCOL::Int, NDBCOL::Bigunsigned, check_compat_lossy,
+     convert_integral<Hint32, Huint64>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Smallint, check_compat_lossy,
+     convert_integral<Huint8, Hint16>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Mediumint, check_compat_lossy,
+     convert_integral<Huint8, Hint24>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Int, check_compat_lossy,
+     convert_integral<Huint8, Hint32>},
+    {NDBCOL::Tinyunsigned, NDBCOL::Bigint, check_compat_lossy,
+     convert_integral<Huint8, Hint64>},
+    {NDBCOL::Smallunsigned, NDBCOL::Mediumint, check_compat_lossy,
+     convert_integral<Huint16, Hint24>},
+    {NDBCOL::Smallunsigned, NDBCOL::Int, check_compat_lossy,
+     convert_integral<Huint16, Hint32>},
+    {NDBCOL::Smallunsigned, NDBCOL::Bigint, check_compat_lossy,
+     convert_integral<Huint16, Hint64>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Int, check_compat_lossy,
+     convert_integral<Huint24, Hint32>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Bigint, check_compat_lossy,
+     convert_integral<Huint24, Hint64>},
+    {NDBCOL::Unsigned, NDBCOL::Bigint, check_compat_lossy,
+     convert_integral<Huint32, Hint64>},
 
-  {NDBCOL::Undefined,      NDBCOL::Undefined,      NULL,                  NULL}
-};
+    // integral signedness+demotion conversions
+    {NDBCOL::Smallint, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Hint16, Huint8>},
+    {NDBCOL::Mediumint, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Hint24, Huint8>},
+    {NDBCOL::Mediumint, NDBCOL::Smallunsigned, check_compat_lossy,
+     convert_integral<Hint24, Huint16>},
+    {NDBCOL::Int, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Hint32, Huint8>},
+    {NDBCOL::Int, NDBCOL::Smallunsigned, check_compat_lossy,
+     convert_integral<Hint32, Huint16>},
+    {NDBCOL::Int, NDBCOL::Mediumunsigned, check_compat_lossy,
+     convert_integral<Hint32, Huint24>},
+    {NDBCOL::Bigint, NDBCOL::Tinyunsigned, check_compat_lossy,
+     convert_integral<Hint64, Huint8>},
+    {NDBCOL::Bigint, NDBCOL::Smallunsigned, check_compat_lossy,
+     convert_integral<Hint64, Huint16>},
+    {NDBCOL::Bigint, NDBCOL::Mediumunsigned, check_compat_lossy,
+     convert_integral<Hint64, Huint24>},
+    {NDBCOL::Bigint, NDBCOL::Unsigned, check_compat_lossy,
+     convert_integral<Hint64, Huint32>},
+    {NDBCOL::Smallunsigned, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Huint16, Hint8>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Huint24, Hint8>},
+    {NDBCOL::Mediumunsigned, NDBCOL::Smallint, check_compat_lossy,
+     convert_integral<Huint24, Hint16>},
+    {NDBCOL::Unsigned, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Huint32, Hint8>},
+    {NDBCOL::Unsigned, NDBCOL::Smallint, check_compat_lossy,
+     convert_integral<Huint32, Hint16>},
+    {NDBCOL::Unsigned, NDBCOL::Mediumint, check_compat_lossy,
+     convert_integral<Huint32, Hint24>},
+    {NDBCOL::Bigunsigned, NDBCOL::Tinyint, check_compat_lossy,
+     convert_integral<Huint64, Hint8>},
+    {NDBCOL::Bigunsigned, NDBCOL::Smallint, check_compat_lossy,
+     convert_integral<Huint64, Hint16>},
+    {NDBCOL::Bigunsigned, NDBCOL::Mediumint, check_compat_lossy,
+     convert_integral<Huint64, Hint24>},
+    {NDBCOL::Bigunsigned, NDBCOL::Int, check_compat_lossy,
+     convert_integral<Huint64, Hint32>},
 
-bool
-BackupRestore::init(Uint32 tableChangesMask)
-{
+    // times with fractional seconds
+    {NDBCOL::Time, NDBCOL::Time2, check_compat_precision, convert_time_time2},
+    {NDBCOL::Time2, NDBCOL::Time, check_compat_precision, convert_time2_time},
+    {NDBCOL::Time2, NDBCOL::Time2, check_compat_precision, convert_time2_time2},
+    {NDBCOL::Datetime, NDBCOL::Datetime2, check_compat_precision,
+     convert_datetime_datetime2},
+    {NDBCOL::Datetime2, NDBCOL::Datetime, check_compat_precision,
+     convert_datetime2_datetime},
+    {NDBCOL::Datetime2, NDBCOL::Datetime2, check_compat_precision,
+     convert_datetime2_datetime2},
+    {NDBCOL::Timestamp, NDBCOL::Timestamp2, check_compat_precision,
+     convert_timestamp_timestamp2},
+    {NDBCOL::Timestamp2, NDBCOL::Timestamp, check_compat_precision,
+     convert_timestamp2_timestamp},
+    {NDBCOL::Timestamp2, NDBCOL::Timestamp2, check_compat_precision,
+     convert_timestamp2_timestamp2},
+
+    {NDBCOL::Undefined, NDBCOL::Undefined, NULL, NULL}};
+
+bool BackupRestore::init(Uint32 tableChangesMask) {
   release();
 
   if (!m_restore && !m_metadata_work_requested && !m_restore_epoch_requested)
@@ -887,12 +803,10 @@ BackupRestore::init(Uint32 tableChangesMask)
   m_tableChangesMask = tableChangesMask;
 
   m_ndb = new Ndb(m_cluster_connection);
-  if (m_ndb == NULL)
-    return false;
-  
+  if (m_ndb == NULL) return false;
+
   m_ndb->init(1024);
-  if (m_ndb->waitUntilReady(30) != 0)
-  {
+  if (m_ndb->waitUntilReady(30) != 0) {
     restoreLogger.log_error("Could not connect to NDB");
     return false;
   }
@@ -900,80 +814,66 @@ BackupRestore::init(Uint32 tableChangesMask)
 
   m_callback = new restore_callback_t[m_parallelism];
 
-  if (m_callback == 0)
-  {
+  if (m_callback == 0) {
     restoreLogger.log_error("Failed to allocate callback structs");
     return false;
   }
 
-  m_free_callback= m_callback;
-  for (Uint32 i= 0; i < m_parallelism; i++) {
-    m_callback[i].restore= this;
-    m_callback[i].connection= 0;
-    if (i > 0)
-      m_callback[i-1].next= &(m_callback[i]);
+  m_free_callback = m_callback;
+  for (Uint32 i = 0; i < m_parallelism; i++) {
+    m_callback[i].restore = this;
+    m_callback[i].connection = 0;
+    if (i > 0) m_callback[i - 1].next = &(m_callback[i]);
   }
-  m_callback[m_parallelism-1].next = 0;
+  m_callback[m_parallelism - 1].next = 0;
 
   return true;
 }
 
-void BackupRestore::release()
-{
-  for (unsigned i = 0; i < m_index_per_table.size(); i++)
-  {
-    Vector<NdbDictionary::Index*> & list = m_index_per_table[i];
-    for (unsigned j = 0; j < list.size(); j++)
-      delete list[j];
+void BackupRestore::release() {
+  for (unsigned i = 0; i < m_index_per_table.size(); i++) {
+    Vector<NdbDictionary::Index *> &list = m_index_per_table[i];
+    for (unsigned j = 0; j < list.size(); j++) delete list[j];
     list.clear();
   }
   m_index_per_table.clear();
 
-  for (unsigned i = 0; i < m_tablespaces.size(); i++)
-  {
+  for (unsigned i = 0; i < m_tablespaces.size(); i++) {
     delete m_tablespaces[i];
   }
   m_tablespaces.clear();
 
-  for (unsigned i = 0; i < m_logfilegroups.size(); i++)
-  {
+  for (unsigned i = 0; i < m_logfilegroups.size(); i++) {
     delete m_logfilegroups[i];
   }
   m_logfilegroups.clear();
 
-  for (unsigned i = 0; i < m_hashmaps.size(); i++)
-  {
+  for (unsigned i = 0; i < m_hashmaps.size(); i++) {
     delete m_hashmaps[i];
   }
   m_hashmaps.clear();
 
-  if (m_ndb)
-  {
+  if (m_ndb) {
     delete m_ndb;
-    m_ndb= 0;
+    m_ndb = 0;
   }
 
-  if (m_callback)
-  {
-    delete [] m_callback;
-    m_callback= 0;
+  if (m_callback) {
+    delete[] m_callback;
+    m_callback = 0;
   }
 }
 
-BackupRestore::~BackupRestore()
-{
-  release();
-}
+BackupRestore::~BackupRestore() { release(); }
 
-static
-int 
-match_blob(const char * name){
+static int match_blob(const char *name) {
   int cnt, id1, id2;
   char buf[256];
-  if((cnt = sscanf(name, "%[^/]/%[^/]/NDB$BLOB_%d_%d", buf, buf, &id1, &id2)) == 4){
+  if ((cnt = sscanf(name, "%[^/]/%[^/]/NDB$BLOB_%d_%d", buf, buf, &id1,
+                    &id2)) == 4) {
     return id1;
   }
-  
+
   return -1;
 }
 
@@ -981,12 +881,9 @@ match_blob(const char * name){
  * Extracts the database, schema, and table name from an internal table name;
  * prints an error message and returns false in case of a format violation.
  */
-static
-bool
-dissect_table_name(const char * qualified_table_name,
-                   BaseString & db_name,
-                   BaseString & schema_name,
-                   BaseString & table_name) {
+static bool dissect_table_name(const char *qualified_table_name,
+                               BaseString &db_name, BaseString &schema_name,
+                               BaseString &table_name) {
   Vector<BaseString> split;
   BaseString tmp(qualified_table_name);
   if (tmp.split(split, "/") != 3) {
@@ -1003,12 +900,9 @@ dissect_table_name(const char * qualified_table_name,
 /**
  * Similar method for index, only last component is relevant.
  */
-static
-bool
-dissect_index_name(const char * qualified_index_name,
-                   BaseString & db_name,
-                   BaseString & schema_name,
-                   BaseString & index_name) {
+static bool dissect_index_name(const char *qualified_index_name,
+                               BaseString &db_name, BaseString &schema_name,
+                               BaseString &index_name) {
   Vector<BaseString> split;
   BaseString tmp(qualified_index_name);
   if (tmp.split(split, "/") != 4) {
@@ -1025,19 +919,15 @@ dissect_index_name(const char * qualified_index_name,
 /**
  * Assigns the new name for a database, if and only if to be rewritten.
  */
-static
-void
-check_rewrite_database(BaseString & db_name) {
-  const char * new_db_name;
+static void check_rewrite_database(BaseString &db_name) {
+  const char *new_db_name;
   if (g_rewrite_databases.get(db_name.c_str(), &new_db_name))
     db_name.assign(new_db_name);
 }
 
-const NdbDictionary::Table*
-BackupRestore::get_table(const TableS & tableS){
-  const NdbDictionary::Table * tab = tableS.m_dictTable;
-  if(m_cache.m_old_table == tab)
-    return m_cache.m_new_table;
+const NdbDictionary::Table *BackupRestore::get_table(const TableS &tableS) {
+  const NdbDictionary::Table *tab = tableS.m_dictTable;
+  if (m_cache.m_old_table == tab) return m_cache.m_new_table;
   m_cache.m_old_table = tab;
 
   int cnt, id1, id2;
@@ -1048,39 +938,36 @@ BackupRestore::get_table(const TableS & tableS){
       Restore SYSTAB_0 to itself
     */
     m_cache.m_new_table = tab;
-  }
-  else if (m_with_apply_status &&
-           (strcmp(tab->getName(), NDB_APPLY_TABLE) == 0 ||
-            strcmp(tab->getName(), NDB_REP_DB "/def/" NDB_APPLY_TABLE) == 0))
-  {
+  } else if (m_with_apply_status &&
+             (strcmp(tab->getName(), NDB_APPLY_TABLE) == 0 ||
+              strcmp(tab->getName(), NDB_REP_DB "/def/" NDB_APPLY_TABLE) ==
+                  0)) {
     /*
       Special case needed as ndb_apply_status is a 'system table',
       and so not pre-loaded into the m_new_tables array.
     */
-    NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
+    NdbDictionary::Dictionary *dict = m_ndb->getDictionary();
     m_ndb->setDatabaseName(NDB_REP_DB);
     m_ndb->setSchemaName("def");
     m_cache.m_new_table = dict->getTable(NDB_APPLY_TABLE);
-  }
-  else if((cnt = sscanf(tab->getName(), "%[^/]/%[^/]/NDB$BLOB_%d_%d", 
-                        db, schema, &id1, &id2)) == 4){
+  } else if ((cnt = sscanf(tab->getName(), "%[^/]/%[^/]/NDB$BLOB_%d_%d", db,
+                           schema, &id1, &id2)) == 4) {
     m_ndb->setDatabaseName(db);
     m_ndb->setSchemaName(schema);
 
     assert(tableS.getMainTable() != NULL);
-    const TableS & mainTableS = *tableS.getMainTable();
+    const TableS &mainTableS = *tableS.getMainTable();
 
     int mainColumnId = (int)tableS.getMainColumnId();
     assert(mainColumnId >= 0 && mainColumnId < mainTableS.getNoOfAttributes());
 
-    const AttributeDesc & attr_desc =
-      *mainTableS.getAttributeDesc(mainColumnId);
-    
-    BaseString::snprintf(db, sizeof(db), "NDB$BLOB_%d_%d", 
-			 m_new_tables[id1]->getTableId(), attr_desc.attrId);
-    
+    const AttributeDesc &attr_desc = *mainTableS.getAttributeDesc(mainColumnId);
+
+    BaseString::snprintf(db, sizeof(db), "NDB$BLOB_%d_%d",
+                         m_new_tables[id1]->getTableId(), attr_desc.attrId);
+
     m_cache.m_new_table = m_ndb->getDictionary()->getTable(db);
-    
+
   } else {
     m_cache.m_new_table = m_new_tables[tab->getTableId()];
   }
@@ -1089,15 +976,13 @@ BackupRestore::get_table(const TableS & tableS){
 }
 
 // create staging table
-bool
-BackupRestore::prepare_staging(const TableS & tableS)
-{
-  NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
+bool BackupRestore::prepare_staging(const TableS &tableS) {
+  NdbDictionary::Dictionary *dict = m_ndb->getDictionary();
 
-  NdbDictionary::Table* stagingTable = tableS.m_stagingTable;
-  const BaseString& stagingName = tableS.m_stagingName;
+  NdbDictionary::Table *stagingTable = tableS.m_stagingTable;
+  const BaseString &stagingName = tableS.m_stagingName;
 
-  const char* tablename = stagingName.c_str();
+  const char *tablename = stagingName.c_str();
   BaseString db_name, schema_name, table_name;
   if (!dissect_table_name(tablename, db_name, schema_name, table_name)) {
     return false;
@@ -1119,11 +1004,11 @@ BackupRestore::prepare_staging(const TableS & tableS)
   }
   restoreLogger.log_info("Created staging source %s", tablename);
 
-  const NdbDictionary::Table* tab = dict->getTable(table_name.c_str());
-  if (tab == NULL)
-  {
+  const NdbDictionary::Table *tab = dict->getTable(table_name.c_str());
+  if (tab == NULL) {
     restoreLogger.log_error("Unable to find table '%s' error: %u: %s",
-				    tablename, dict->getNdbError().code, dict->getNdbError().message);
+                            tablename, dict->getNdbError().code,
+                            dict->getNdbError().message);
   }
 
   /* Replace real target table with staging table in m_new_tables */
@@ -1137,15 +1022,13 @@ BackupRestore::prepare_staging(const TableS & tableS)
 }
 
 // move rows from staging to real and drop staging
-bool
-BackupRestore::finalize_staging(const TableS & tableS)
-{
-  NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
+bool BackupRestore::finalize_staging(const TableS &tableS) {
+  NdbDictionary::Dictionary *dict = m_ndb->getDictionary();
 
-  const NdbDictionary::Table* source = 0;
-  const NdbDictionary::Table* target = 0;
+  const NdbDictionary::Table *source = 0;
+  const NdbDictionary::Table *target = 0;
 
-  const char* stablename = tableS.m_stagingName.c_str();
+  const char *stablename = tableS.m_stagingName.c_str();
   BaseString sdb_name, sschema_name, stable_name;
   if (!dissect_table_name(stablename, sdb_name, sschema_name, stable_name)) {
     return false;
@@ -1153,14 +1036,14 @@ BackupRestore::finalize_staging(const TableS & tableS)
   m_ndb->setDatabaseName(sdb_name.c_str());
   m_ndb->setSchemaName(sschema_name.c_str());
   source = dict->getTable(stable_name.c_str());
-  if (source == 0)
-  {
+  if (source == 0) {
     restoreLogger.log_error("Failed to find staging source %s: %u: %s",
-                            stablename, dict->getNdbError().code, dict->getNdbError().message);
+                            stablename, dict->getNdbError().code,
+                            dict->getNdbError().message);
     return false;
   }
 
-  const char* ttablename = tableS.getTableName();
+  const char *ttablename = tableS.getTableName();
   BaseString tdb_name, tschema_name, ttable_name;
   if (!dissect_table_name(ttablename, tdb_name, tschema_name, ttable_name)) {
     return false;
@@ -1168,40 +1051,39 @@ BackupRestore::finalize_staging(const TableS & tableS)
   m_ndb->setDatabaseName(tdb_name.c_str());
   m_ndb->setSchemaName(tschema_name.c_str());
   target = dict->getTable(ttable_name.c_str());
-  if (target == 0)
-  {
+  if (target == 0) {
     restoreLogger.log_error("Failed to find staging target %s: %u: %s",
-                            ttablename, dict->getNdbError().code, dict->getNdbError().message);
+                            ttablename, dict->getNdbError().code,
+                            dict->getNdbError().message);
     return false;
   }
 
   Ndb_move_data md;
-  const Ndb_move_data::Stat& stat = md.get_stat();
+  const Ndb_move_data::Stat &stat = md.get_stat();
 
-  if (md.init(source, target) != 0)
-  {
-    const Ndb_move_data::Error& error = md.get_error();
-    restoreLogger.log_error("Move data %s to %s : %u %s", stablename, ttablename, error.code, error.message);
+  if (md.init(source, target) != 0) {
+    const Ndb_move_data::Error &error = md.get_error();
+    restoreLogger.log_error("Move data %s to %s : %u %s", stablename,
+                            ttablename, error.code, error.message);
     return false;
   }
 
   md.set_opts_flags(tableS.m_stagingFlags);
 
   int retries;
-  for (retries = 0; retries < MAX_RETRIES; retries++)
-  {
-    if (md.move_data(m_ndb) != 0)
-    {
-      const Ndb_move_data::Error& error = md.get_error();
+  for (retries = 0; retries < MAX_RETRIES; retries++) {
+    if (md.move_data(m_ndb) != 0) {
+      const Ndb_move_data::Error &error = md.get_error();
 
-      restoreLogger.log_error("Move data %s to %s %s at try %u at rows moved %llu total %llu error %u %s",
-         stablename, ttablename,
-         (error.is_temporary() ? "temporary error" : "permanent error"),
-         retries, // default is no limit
-         stat.rows_moved, stat.rows_total, error.code, error.message);
+      restoreLogger.log_error(
+          "Move data %s to %s %s at try %u at rows moved %llu total %llu error "
+          "%u %s",
+          stablename, ttablename,
+          (error.is_temporary() ? "temporary error" : "permanent error"),
+          retries,  // default is no limit
+          stat.rows_moved, stat.rows_total, error.code, error.message);
 
-      if (!error.is_temporary())
-        return false;
+      if (!error.is_temporary()) return false;
 
       int delay = 100 + retries * 300;
       restoreLogger.log_info("Sleeping %u ms", delay);
@@ -1210,14 +1092,13 @@ BackupRestore::finalize_staging(const TableS & tableS)
     }
 
     restoreLogger.log_info("Successfully staged %s, moved all %llu rows",
-        ttablename, stat.rows_total);
-    if ((tableS.m_stagingFlags & Ndb_move_data::Opts::MD_ATTRIBUTE_DEMOTION)
-        || stat.truncated != 0) // just in case
-    restoreLogger.log_info("Truncated %llu attribute values", stat.truncated);
+                           ttablename, stat.rows_total);
+    if ((tableS.m_stagingFlags & Ndb_move_data::Opts::MD_ATTRIBUTE_DEMOTION) ||
+        stat.truncated != 0)  // just in case
+      restoreLogger.log_info("Truncated %llu attribute values", stat.truncated);
     break;
   }
-  if (retries == MAX_RETRIES)
-  {
+  if (retries == MAX_RETRIES) {
     restoreLogger.log_error("Move data %s to %s: too many temporary errors: %u",
                             stablename, ttablename, MAX_RETRIES);
     return false;
@@ -1241,56 +1122,45 @@ BackupRestore::finalize_staging(const TableS & tableS)
   /* Replace staging table with real target table in m_new_tables */
   const Uint32 orig_table_id = tableS.m_dictTable->getTableId();
   assert(m_new_tables[orig_table_id] == source);
-  
+
   m_new_tables[orig_table_id] = target;
   m_cache.m_old_table = NULL;
-  
+
   return true;
 }
 
-bool
-BackupRestore::finalize_table(const TableS & table){
-  bool ret= true;
-  if (!m_restore && !m_restore_meta)
-    return ret;
-  if (!table.have_auto_inc())
-    return ret;
+bool BackupRestore::finalize_table(const TableS &table) {
+  bool ret = true;
+  if (!m_restore && !m_restore_meta) return ret;
+  if (!table.have_auto_inc()) return ret;
 
   const Uint32 orig_table_id = table.m_dictTable->getTableId();
   const Uint64 restore_next_val = m_auto_values[orig_table_id];
 
-  for (int retries = 0; retries < MAX_RETRIES; retries++)
-  {
+  for (int retries = 0; retries < MAX_RETRIES; retries++) {
     Uint64 db_next_val = ~(Uint64)0;
-    int r= m_ndb->readAutoIncrementValue(get_table(table), db_next_val);
-    if (r == -1)
-    {
-      if (m_ndb->getNdbError().status == NdbError::TemporaryError)
-      {
+    int r = m_ndb->readAutoIncrementValue(get_table(table), db_next_val);
+    if (r == -1) {
+      if (m_ndb->getNdbError().status == NdbError::TemporaryError) {
         NdbSleep_MilliSleep(100 + retries * 300);
-        continue; // retry
+        continue;  // retry
       }
-      restoreLogger.log_error("Finalize_table failed to read auto increment "
-                              "value for table %s.  Error : %u %s",
-                              get_table(table)->getName(),
-                              m_ndb->getNdbError().code,
-                              m_ndb->getNdbError().message);
+      restoreLogger.log_error(
+          "Finalize_table failed to read auto increment "
+          "value for table %s.  Error : %u %s",
+          get_table(table)->getName(), m_ndb->getNdbError().code,
+          m_ndb->getNdbError().message);
       return false;
     }
-    if (restore_next_val > db_next_val)
-    {
+    if (restore_next_val > db_next_val) {
       Ndb::TupleIdRange emptyRange;
       emptyRange.reset();
-      
-      r= m_ndb->setAutoIncrementValue(get_table(table),
-                                      emptyRange,
-                                      restore_next_val, 
-                                      true);
-      if (r == -1 &&
-            m_ndb->getNdbError().status == NdbError::TemporaryError)
-      {
+
+      r = m_ndb->setAutoIncrementValue(get_table(table), emptyRange,
+                                       restore_next_val, true);
+      if (r == -1 && m_ndb->getNdbError().status == NdbError::TemporaryError) {
         NdbSleep_MilliSleep(100 + retries * 300);
-        continue; // retry
+        continue;  // retry
       }
       ret = (r == 0);
     }
@@ -1299,18 +1169,14 @@ BackupRestore::finalize_table(const TableS & table){
   return (ret);
 }
 
-bool
-BackupRestore::rebuild_indexes(const TableS& table)
-{
-  if (!m_rebuild_indexes)
-     return true;
+bool BackupRestore::rebuild_indexes(const TableS &table) {
+  if (!m_rebuild_indexes) return true;
 
   const char *tablename = table.getTableName();
 
-  const NdbDictionary::Table * tab = get_table(table);
+  const NdbDictionary::Table *tab = get_table(table);
   Uint32 id = tab->getObjectId();
-  if (m_index_per_table.size() <= id)
-    return true;
+  if (m_index_per_table.size() <= id) return true;
 
   BaseString db_name, schema_name, table_name;
   if (!dissect_table_name(tablename, db_name, schema_name, table_name)) {
@@ -1320,23 +1186,21 @@ BackupRestore::rebuild_indexes(const TableS& table)
 
   m_ndb->setDatabaseName(db_name.c_str());
   m_ndb->setSchemaName(schema_name.c_str());
-  NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
+  NdbDictionary::Dictionary *dict = m_ndb->getDictionary();
 
   /* First drop any support indexes */
-  if (!dropPkMappingIndex(&table))
-  {
+  if (!dropPkMappingIndex(&table)) {
     return false;
   }
 
-  Vector<NdbDictionary::Index*> & indexes = m_index_per_table[id];
-  for(unsigned i = 0; i<indexes.size(); i++)
-  {
-    const NdbDictionary::Index * const idx = indexes[i];
-    const char * const idx_name = idx->getName();
-    const char * const tab_name = idx->getTable();
+  Vector<NdbDictionary::Index *> &indexes = m_index_per_table[id];
+  for (unsigned i = 0; i < indexes.size(); i++) {
+    const NdbDictionary::Index *const idx = indexes[i];
+    const char *const idx_name = idx->getName();
+    const char *const tab_name = idx->getTable();
     const NDB_TICKS start = NdbTick_getCurrentTicks();
-    restoreLogger.log_info("Rebuilding index `%s` on table `%s` ...",
-        idx_name, tab_name);
+    restoreLogger.log_info("Rebuilding index `%s` on table `%s` ...", idx_name,
+                           tab_name);
     if (!ndbapi_dict_operation_retry(
             [idx, idx_name, tab_name](NdbDictionary::Dictionary *dict) {
               if (!dict->getIndex(idx_name, tab_name)) {
@@ -1351,334 +1215,312 @@ BackupRestore::rebuild_indexes(const TableS& table)
       return false;
     }
     const NDB_TICKS stop = NdbTick_getCurrentTicks();
-    const Uint64 elapsed = NdbTick_Elapsed(start,stop).seconds();
+    const Uint64 elapsed = NdbTick_Elapsed(start, stop).seconds();
     restoreLogger.log_info("OK (%llu s)", elapsed);
   }
 
   return true;
 }
 
-static Uint32 get_no_fragments(Uint64 max_rows, Uint32 no_nodes)
-{
+static Uint32 get_no_fragments(Uint64 max_rows, Uint32 no_nodes) {
   Uint32 i = 0;
   Uint32 acc_row_size = 27;
-  Uint32 acc_fragment_size = 512*1024*1024;
-  Uint32 no_parts= Uint32((max_rows*acc_row_size)/acc_fragment_size + 1);
-  Uint32 reported_parts = no_nodes; 
+  Uint32 acc_fragment_size = 512 * 1024 * 1024;
+  Uint32 no_parts = Uint32((max_rows * acc_row_size) / acc_fragment_size + 1);
+  Uint32 reported_parts = no_nodes;
   while (reported_parts < no_parts && ++i < 4 &&
          (reported_parts + no_parts) < MAX_NDB_PARTITIONS)
-    reported_parts+= no_nodes;
-  if (reported_parts < no_parts)
-  {
-    restoreLogger.log_error("Table will be restored but will not be able to handle the maximum"
-                            " amount of rows as requested");
+    reported_parts += no_nodes;
+  if (reported_parts < no_parts) {
+    restoreLogger.log_error(
+        "Table will be restored but will not be able to handle the maximum"
+        " amount of rows as requested");
   }
   return reported_parts;
 }
 
 #include <signaldata/DictTabInfo.hpp>
 
-bool
-BackupRestore::object(Uint32 type, const void * ptr)
-{
-  if (!m_restore_meta)
-    return true;
-  
-  NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
-  switch(type){
-  case DictTabInfo::Tablespace:
-  {
-    NdbDictionary::Tablespace old(*(NdbDictionary::Tablespace*)ptr);
+bool BackupRestore::object(Uint32 type, const void *ptr) {
+  if (!m_restore_meta) return true;
 
-    Uint32 id = old.getObjectId();
+  NdbDictionary::Dictionary *dict = m_ndb->getDictionary();
+  switch (type) {
+    case DictTabInfo::Tablespace: {
+      NdbDictionary::Tablespace old(*(NdbDictionary::Tablespace *)ptr);
 
-    if (!m_no_restore_disk)
-    {
-      NdbDictionary::LogfileGroup * lg = m_logfilegroups[old.getDefaultLogfileGroupId()];
-      old.setDefaultLogfileGroup(* lg);
-      restoreLogger.log_info("Creating tablespace: %s...", old.getName());
+      Uint32 id = old.getObjectId();
 
-      if (!ndbapi_dict_operation_retry(
-              [old](NdbDictionary::Dictionary *dict) {
-                return dict->createTablespace(old);
-              },
-              dict)) {
-        restoreLogger.log_error("Create tablespace failed: %s: %u: %s",
-                                old.getName(), dict->getNdbError().code,
-                                dict->getNdbError().message);
-        return false;
-      }
-      restoreLogger.log_info("Successfully created tablespace %s",
-                             old.getName());
-    }
-    
-    NdbDictionary::Tablespace curr = dict->getTablespace(old.getName());
-    NdbError errobj = dict->getNdbError();
-    if ((int) errobj.classification == (int) ndberror_cl_none)
-    {
-      NdbDictionary::Tablespace* currptr = new NdbDictionary::Tablespace(curr);
-      NdbDictionary::Tablespace * null = 0;
-      m_tablespaces.set(currptr, id, null);
-      restoreLogger.log_debug("Retreived tablespace: %s oldid: %u newid: %u"
-          " %p", currptr->getName(), id, currptr->getObjectId(),
-	 (void*)currptr);
-      m_n_tablespace++;
-      return true;
-    }
-    
-    restoreLogger.log_error("Failed to retrieve tablespace \"%s\": %u: %s",
-        old.getName(), errobj.code, errobj.message);
-    
-    return false;
-    break;
-  }
-  case DictTabInfo::LogfileGroup:
-  {
-    NdbDictionary::LogfileGroup old(*(NdbDictionary::LogfileGroup*)ptr);
-    
-    Uint32 id = old.getObjectId();
-    
-    if (!m_no_restore_disk)
-    {
-      restoreLogger.log_info("Creating logfile group: %s...", old.getName());
-      if (!ndbapi_dict_operation_retry(
-              [old](NdbDictionary::Dictionary *dict) {
-                return dict->createLogfileGroup(old);
-              },
-              dict)) {
-        restoreLogger.log_error("Create logfile group failed: %s: %u: %s",
-                                old.getName(), dict->getNdbError().code,
-                                dict->getNdbError().message);
-        return false;
-      }
-      restoreLogger.log_info("Successfully created logfile group %s",
-                             old.getName());
-    }
-    
-    NdbDictionary::LogfileGroup curr = dict->getLogfileGroup(old.getName());
-    NdbError errobj = dict->getNdbError();
-    if ((int) errobj.classification == (int) ndberror_cl_none)
-    {
-      NdbDictionary::LogfileGroup* currptr = 
-	new NdbDictionary::LogfileGroup(curr);
-      NdbDictionary::LogfileGroup * null = 0;
-      m_logfilegroups.set(currptr, id, null);
-      restoreLogger.log_debug("Retreived logfile group: %s oldid: %u newid: %u"
-            " %p", currptr->getName(), id, currptr->getObjectId(),
-            (void*)currptr);
-      m_n_logfilegroup++;
-      return true;
-    }
-    
-    restoreLogger.log_error("Failed to retrieve logfile group \"%s\": %u: %s",
-        old.getName(), errobj.code, errobj.message);
-    
-    return false;
-    break;
-  }
-  case DictTabInfo::Datafile:
-  {
-    if (!m_no_restore_disk)
-    {
-      NdbDictionary::Datafile old(*(NdbDictionary::Datafile*)ptr);
-      NdbDictionary::ObjectId objid;
-      old.getTablespaceId(&objid);
-      NdbDictionary::Tablespace * ts = m_tablespaces[objid.getObjectId()];
-      restoreLogger.log_debug("Connecting datafile %s to tablespace"
-                              "/logfile group: oldid: %u newid: %u",
-                              old.getPath(), objid.getObjectId(),
-                              ts->getObjectId());
-      old.setTablespace(* ts);
-      restoreLogger.log_info("Creating datafile \"%s\"...", old.getPath());
+      if (!m_no_restore_disk) {
+        NdbDictionary::LogfileGroup *lg =
+            m_logfilegroups[old.getDefaultLogfileGroupId()];
+        old.setDefaultLogfileGroup(*lg);
+        restoreLogger.log_info("Creating tablespace: %s...", old.getName());
 
-      if (!ndbapi_dict_operation_retry(
-              [old](NdbDictionary::Dictionary *dict) {
-                return dict->createDatafile(old);
-              },
-              dict)) {
-        restoreLogger.log_error("Create datafile failed: %s: %u: %s",
-                                old.getPath(), dict->getNdbError().code,
-                                dict->getNdbError().message);
-        return false;
-      }
-      restoreLogger.log_info("Successfully created Datafile %s", old.getPath());
-      m_n_datafile++;
-    }
-    return true;
-    break;
-  }
-  case DictTabInfo::Undofile:
-  {
-    if (!m_no_restore_disk)
-    {
-      NdbDictionary::Undofile old(*(NdbDictionary::Undofile*)ptr);
-      NdbDictionary::ObjectId objid;
-      old.getLogfileGroupId(&objid);
-      NdbDictionary::LogfileGroup * lg = m_logfilegroups[objid.getObjectId()];
-      restoreLogger.log_debug("Connecting undofile %s to logfile group: oldid:"
-          " %u newid: %u %p", old.getPath(), objid.getObjectId(),
-          lg->getObjectId(), (void*)lg);
-      old.setLogfileGroup(* lg);
-      restoreLogger.log_info("Creating undofile \"%s\"...", old.getPath());
-      if (!ndbapi_dict_operation_retry(
-              [old](NdbDictionary::Dictionary *dict) {
-                return dict->createUndofile(old);
-              },
-              dict)) {
-        restoreLogger.log_error("Create undofile failed: %s: %u: %s",
-                                old.getPath(), dict->getNdbError().code,
-                                dict->getNdbError().message);
-        return false;
-      }
-
-      restoreLogger.log_info("Successfully created Undo file %s",
-                             old.getPath());
-      m_n_undofile++;
-    }
-    return true;
-    break;
-  }
-  case DictTabInfo::HashMap:
-  {
-    NdbDictionary::HashMap old(*(NdbDictionary::HashMap*)ptr);
-
-    Uint32 id = old.getObjectId();
-
-    if (m_restore_meta)
-    {
-      int retries;
-      for (retries = 0; retries < MAX_RETRIES; retries++) {
-        if (dict->createHashMap(old) != 0) {
-          const NdbError &error = dict->getNdbError();
-
-          if (error.code == 721) break;  // Ignore schema already exists.
-
-          if (error.status != NdbError::TemporaryError) {
-            restoreLogger.log_error("Create hashmap failed: %s: %u: %s",
-                                    old.getName(), error.code, error.message);
-            return false;
-          }
-          restoreLogger.log_error(
-              "Temporary: Failed to create hashmap %s: %u: %s", old.getName(),
-              error.code, error.message);
-          int delay = 100 + retries * 300;
-          restoreLogger.log_info("Sleeping %u ms", delay);
-          NdbSleep_MilliSleep(delay);
-          continue;
+        if (!ndbapi_dict_operation_retry(
+                [old](NdbDictionary::Dictionary *dict) {
+                  return dict->createTablespace(old);
+                },
+                dict)) {
+          restoreLogger.log_error("Create tablespace failed: %s: %u: %s",
+                                  old.getName(), dict->getNdbError().code,
+                                  dict->getNdbError().message);
+          return false;
         }
-        restoreLogger.log_info("Successfully created hashmap %s",
+        restoreLogger.log_info("Successfully created tablespace %s",
                                old.getName());
-        break;
       }
-      if (retries == MAX_RETRIES) {
-        restoreLogger.log_error(
-            "Create hashmap %s failed "
-            ": too many temporary errors: %u",
-            old.getName(), MAX_RETRIES);
-        return false;
-      }
-    }
 
-    NdbDictionary::HashMap curr;
-    if (dict->getHashMap(curr, old.getName()) == 0)
+      NdbDictionary::Tablespace curr = dict->getTablespace(old.getName());
+      NdbError errobj = dict->getNdbError();
+      if ((int)errobj.classification == (int)ndberror_cl_none) {
+        NdbDictionary::Tablespace *currptr =
+            new NdbDictionary::Tablespace(curr);
+        NdbDictionary::Tablespace *null = 0;
+        m_tablespaces.set(currptr, id, null);
+        restoreLogger.log_debug(
+            "Retreived tablespace: %s oldid: %u newid: %u"
+            " %p",
+            currptr->getName(), id, currptr->getObjectId(), (void *)currptr);
+        m_n_tablespace++;
+        return true;
+      }
+
+      restoreLogger.log_error("Failed to retrieve tablespace \"%s\": %u: %s",
+                              old.getName(), errobj.code, errobj.message);
+
+      return false;
+      break;
+    }
+    case DictTabInfo::LogfileGroup: {
+      NdbDictionary::LogfileGroup old(*(NdbDictionary::LogfileGroup *)ptr);
+
+      Uint32 id = old.getObjectId();
+
+      if (!m_no_restore_disk) {
+        restoreLogger.log_info("Creating logfile group: %s...", old.getName());
+        if (!ndbapi_dict_operation_retry(
+                [old](NdbDictionary::Dictionary *dict) {
+                  return dict->createLogfileGroup(old);
+                },
+                dict)) {
+          restoreLogger.log_error("Create logfile group failed: %s: %u: %s",
+                                  old.getName(), dict->getNdbError().code,
+                                  dict->getNdbError().message);
+          return false;
+        }
+        restoreLogger.log_info("Successfully created logfile group %s",
+                               old.getName());
+      }
+
+      NdbDictionary::LogfileGroup curr = dict->getLogfileGroup(old.getName());
+      NdbError errobj = dict->getNdbError();
+      if ((int)errobj.classification == (int)ndberror_cl_none) {
+        NdbDictionary::LogfileGroup *currptr =
+            new NdbDictionary::LogfileGroup(curr);
+        NdbDictionary::LogfileGroup *null = 0;
+        m_logfilegroups.set(currptr, id, null);
+        restoreLogger.log_debug(
+            "Retreived logfile group: %s oldid: %u newid: %u"
+            " %p",
+            currptr->getName(), id, currptr->getObjectId(), (void *)currptr);
+        m_n_logfilegroup++;
+        return true;
+      }
+
+      restoreLogger.log_error("Failed to retrieve logfile group \"%s\": %u: %s",
+                              old.getName(), errobj.code, errobj.message);
+
+      return false;
+      break;
+    }
+    case DictTabInfo::Datafile: {
+      if (!m_no_restore_disk) {
+        NdbDictionary::Datafile old(*(NdbDictionary::Datafile *)ptr);
+        NdbDictionary::ObjectId objid;
+        old.getTablespaceId(&objid);
+        NdbDictionary::Tablespace *ts = m_tablespaces[objid.getObjectId()];
+        restoreLogger.log_debug(
+            "Connecting datafile %s to tablespace"
+            "/logfile group: oldid: %u newid: %u",
+            old.getPath(), objid.getObjectId(), ts->getObjectId());
+        old.setTablespace(*ts);
+        restoreLogger.log_info("Creating datafile \"%s\"...", old.getPath());
+
+        if (!ndbapi_dict_operation_retry(
+                [old](NdbDictionary::Dictionary *dict) {
+                  return dict->createDatafile(old);
+                },
+                dict)) {
+          restoreLogger.log_error("Create datafile failed: %s: %u: %s",
+                                  old.getPath(), dict->getNdbError().code,
+                                  dict->getNdbError().message);
+          return false;
+        }
+        restoreLogger.log_info("Successfully created Datafile %s",
+                               old.getPath());
+        m_n_datafile++;
+      }
+      return true;
+      break;
+    }
+    case DictTabInfo::Undofile: {
+      if (!m_no_restore_disk) {
+        NdbDictionary::Undofile old(*(NdbDictionary::Undofile *)ptr);
+        NdbDictionary::ObjectId objid;
+        old.getLogfileGroupId(&objid);
+        NdbDictionary::LogfileGroup *lg = m_logfilegroups[objid.getObjectId()];
+        restoreLogger.log_debug(
+            "Connecting undofile %s to logfile group: oldid:"
+            " %u newid: %u %p",
+            old.getPath(), objid.getObjectId(), lg->getObjectId(), (void *)lg);
+        old.setLogfileGroup(*lg);
+        restoreLogger.log_info("Creating undofile \"%s\"...", old.getPath());
+        if (!ndbapi_dict_operation_retry(
+                [old](NdbDictionary::Dictionary *dict) {
+                  return dict->createUndofile(old);
+                },
+                dict)) {
+          restoreLogger.log_error("Create undofile failed: %s: %u: %s",
+                                  old.getPath(), dict->getNdbError().code,
+                                  dict->getNdbError().message);
+          return false;
+        }
+
+        restoreLogger.log_info("Successfully created Undo file %s",
+                               old.getPath());
+        m_n_undofile++;
+      }
+      return true;
+      break;
+    }
+    case DictTabInfo::HashMap: {
+      NdbDictionary::HashMap old(*(NdbDictionary::HashMap *)ptr);
+
+      Uint32 id = old.getObjectId();
+
+      if (m_restore_meta) {
+        int retries;
+        for (retries = 0; retries < MAX_RETRIES; retries++) {
+          if (dict->createHashMap(old) != 0) {
+            const NdbError &error = dict->getNdbError();
+
+            if (error.code == 721) break;  // Ignore schema already exists.
+
+            if (error.status != NdbError::TemporaryError) {
+              restoreLogger.log_error("Create hashmap failed: %s: %u: %s",
+                                      old.getName(), error.code, error.message);
+              return false;
+            }
+            restoreLogger.log_error(
+                "Temporary: Failed to create hashmap %s: %u: %s", old.getName(),
+                error.code, error.message);
+            int delay = 100 + retries * 300;
+            restoreLogger.log_info("Sleeping %u ms", delay);
+            NdbSleep_MilliSleep(delay);
+            continue;
+          }
+          restoreLogger.log_info("Successfully created hashmap %s",
+                                 old.getName());
+          break;
+        }
+        if (retries == MAX_RETRIES) {
+          restoreLogger.log_error(
+              "Create hashmap %s failed "
+              ": too many temporary errors: %u",
+              old.getName(), MAX_RETRIES);
+          return false;
+        }
+      }
+
+      NdbDictionary::HashMap curr;
+      if (dict->getHashMap(curr, old.getName()) == 0) {
+        NdbDictionary::HashMap *currptr = new NdbDictionary::HashMap(curr);
+        NdbDictionary::HashMap *null = 0;
+        m_hashmaps.set(currptr, id, null);
+        restoreLogger.log_debug("Retreived hashmap: %s oldid %u newid %u %p",
+                                currptr->getName(), id, currptr->getObjectId(),
+                                (void *)currptr);
+        return true;
+      }
+
+      NdbError errobj = dict->getNdbError();
+      restoreLogger.log_error("Failed to retrieve hashmap \"%s\": %u: %s",
+                              old.getName(), errobj.code, errobj.message);
+
+      return false;
+    }
+    case DictTabInfo::ForeignKey:  // done after tables
     {
-      NdbDictionary::HashMap* currptr =
-        new NdbDictionary::HashMap(curr);
-      NdbDictionary::HashMap * null = 0;
-      m_hashmaps.set(currptr, id, null);
-      restoreLogger.log_debug("Retreived hashmap: %s oldid %u newid %u %p",
-          currptr->getName(), id, currptr->getObjectId(), (void*)currptr);
       return true;
     }
-
-    NdbError errobj = dict->getNdbError();
-    restoreLogger.log_error("Failed to retrieve hashmap \"%s\": %u: %s",
-        old.getName(), errobj.code, errobj.message);
-
-    return false;
-  }
-  case DictTabInfo::ForeignKey: // done after tables
-  {
-    return true;
-  }
-  default:
-  {
-    restoreLogger.log_error("Unknown object type: %u", type);
-    break;
-  }
+    default: {
+      restoreLogger.log_error("Unknown object type: %u", type);
+      break;
+    }
   }
   return true;
 }
 
-bool
-BackupRestore::has_temp_error(){
-  return m_temp_error;
-}
+bool BackupRestore::has_temp_error() { return m_temp_error; }
 
-struct TransGuard
-{
-  NdbTransaction* pTrans;
-  TransGuard(NdbTransaction* p) : pTrans(p) {}
-  ~TransGuard() { if (pTrans) pTrans->close();}
+struct TransGuard {
+  NdbTransaction *pTrans;
+  TransGuard(NdbTransaction *p) : pTrans(p) {}
+  ~TransGuard() {
+    if (pTrans) pTrans->close();
+  }
 };
 
-bool
-BackupRestore::update_apply_status(const RestoreMetaData &metaData, bool snapshotstart)
-{
-  if (!m_restore_epoch)
-    return true;
+bool BackupRestore::update_apply_status(const RestoreMetaData &metaData,
+                                        bool snapshotstart) {
+  if (!m_restore_epoch) return true;
 
-  bool result= false;
-  unsigned apply_table_format= 0;
+  bool result = false;
+  unsigned apply_table_format = 0;
 
   m_ndb->setDatabaseName(NDB_REP_DB);
   m_ndb->setSchemaName("def");
 
-  NdbDictionary::Dictionary *dict= m_ndb->getDictionary();
-  const NdbDictionary::Table *ndbtab= dict->getTable(NDB_APPLY_TABLE);
-  if (!ndbtab)
-  {
-    restoreLogger.log_error("%s: %u: %s", NDB_APPLY_TABLE, dict->getNdbError().code, dict->getNdbError().message);
+  NdbDictionary::Dictionary *dict = m_ndb->getDictionary();
+  const NdbDictionary::Table *ndbtab = dict->getTable(NDB_APPLY_TABLE);
+  if (!ndbtab) {
+    restoreLogger.log_error("%s: %u: %s", NDB_APPLY_TABLE,
+                            dict->getNdbError().code,
+                            dict->getNdbError().message);
     return false;
   }
   if (ndbtab->getColumn(0)->getType() == NdbDictionary::Column::Unsigned &&
-      ndbtab->getColumn(1)->getType() == NdbDictionary::Column::Bigunsigned)
-  {
-    if (ndbtab->getNoOfColumns() == 2)
-    {
-      apply_table_format= 1;
-    }
-    else if
-      (ndbtab->getColumn(2)->getType() == NdbDictionary::Column::Varchar &&
-       ndbtab->getColumn(3)->getType() == NdbDictionary::Column::Bigunsigned &&
-       ndbtab->getColumn(4)->getType() == NdbDictionary::Column::Bigunsigned)
-    {
-      apply_table_format= 2;
+      ndbtab->getColumn(1)->getType() == NdbDictionary::Column::Bigunsigned) {
+    if (ndbtab->getNoOfColumns() == 2) {
+      apply_table_format = 1;
+    } else if (ndbtab->getColumn(2)->getType() ==
+                   NdbDictionary::Column::Varchar &&
+               ndbtab->getColumn(3)->getType() ==
+                   NdbDictionary::Column::Bigunsigned &&
+               ndbtab->getColumn(4)->getType() ==
+                   NdbDictionary::Column::Bigunsigned) {
+      apply_table_format = 2;
     }
   }
-  if (apply_table_format == 0)
-  {
+  if (apply_table_format == 0) {
     restoreLogger.log_error("%s has wrong format\n", NDB_APPLY_TABLE);
     return false;
   }
 
-  Uint32 server_id= 0;
-  Uint32 version= metaData.getNdbVersion();
+  Uint32 server_id = 0;
+  Uint32 version = metaData.getNdbVersion();
 
-  Uint64 epoch= 0;
-  if (snapshotstart)
-  {
+  Uint64 epoch = 0;
+  if (snapshotstart) {
     epoch = Uint64(metaData.getStartGCP());
-  }
-  else
-  {
+  } else {
     epoch = Uint64(metaData.getStopGCP());
   }
 
   if (version >= NDBD_MICRO_GCP_63 ||
-      (version >= NDBD_MICRO_GCP_62 && getMinor(version) == 2))
-  {
-    epoch<<= 32; // Only gci_hi is saved...
+      (version >= NDBD_MICRO_GCP_62 && getMinor(version) == 2)) {
+    epoch <<= 32;  // Only gci_hi is saved...
 
     /**
      * Backup contains all epochs with those top bits,
@@ -1687,264 +1529,235 @@ BackupRestore::update_apply_status(const RestoreMetaData &metaData, bool snapsho
     epoch += (Uint64(1) << 32) - 1;
   }
 
-  Uint64 zero= 0;
+  Uint64 zero = 0;
   char empty_string[1];
-  empty_string[0]= 0;
+  empty_string[0] = 0;
 
   int retries;
-  for (retries = 0; retries < MAX_RETRIES; retries++)
-  {
-    if (retries > 0)
-      NdbSleep_MilliSleep(100 + retries * 300);
+  for (retries = 0; retries < MAX_RETRIES; retries++) {
+    if (retries > 0) NdbSleep_MilliSleep(100 + retries * 300);
 
-    NdbTransaction * trans= m_ndb->startTransaction();
-    if (!trans)
-    {
-      restoreLogger.log_error("%s : failed to get transaction in --restore-epoch: %u:%s",
-          NDB_APPLY_TABLE, m_ndb->getNdbError().code, m_ndb->getNdbError().message);
-      if (m_ndb->getNdbError().status == NdbError::TemporaryError)
-      {
+    NdbTransaction *trans = m_ndb->startTransaction();
+    if (!trans) {
+      restoreLogger.log_error(
+          "%s : failed to get transaction in --restore-epoch: %u:%s",
+          NDB_APPLY_TABLE, m_ndb->getNdbError().code,
+          m_ndb->getNdbError().message);
+      if (m_ndb->getNdbError().status == NdbError::TemporaryError) {
         continue;
       }
     }
 
     TransGuard g(trans);
-    NdbOperation * op= trans->getNdbOperation(ndbtab);
-    if (!op)
-    {
-      restoreLogger.log_error("%s : failed to get operation in --restore-epoch: %u:%s",
-          NDB_APPLY_TABLE, trans->getNdbError().code, trans->getNdbError().message);
-      if (trans->getNdbError().status == NdbError::TemporaryError)
-      {
+    NdbOperation *op = trans->getNdbOperation(ndbtab);
+    if (!op) {
+      restoreLogger.log_error(
+          "%s : failed to get operation in --restore-epoch: %u:%s",
+          NDB_APPLY_TABLE, trans->getNdbError().code,
+          trans->getNdbError().message);
+      if (trans->getNdbError().status == NdbError::TemporaryError) {
         continue;
       }
       return false;
     }
-    if (op->writeTuple() ||
-        op->equal(0u, server_id) ||
-        op->setValue(1u, epoch))
-    {
-      restoreLogger.log_error("%s : failed to set epoch value in --restore-epoch: %u:%s",
+    if (op->writeTuple() || op->equal(0u, server_id) ||
+        op->setValue(1u, epoch)) {
+      restoreLogger.log_error(
+          "%s : failed to set epoch value in --restore-epoch: %u:%s",
           NDB_APPLY_TABLE, op->getNdbError().code, op->getNdbError().message);
       return false;
     }
     if ((apply_table_format == 2) &&
-        (op->setValue(2u, empty_string) ||
-         op->setValue(3u, zero) ||
-         op->setValue(4u, zero)))
-    {
-      restoreLogger.log_error("%s : failed to set values in --restore-epoch: %u:%s",
+        (op->setValue(2u, empty_string) || op->setValue(3u, zero) ||
+         op->setValue(4u, zero))) {
+      restoreLogger.log_error(
+          "%s : failed to set values in --restore-epoch: %u:%s",
           NDB_APPLY_TABLE, op->getNdbError().code, op->getNdbError().message);
       return false;
     }
 
     int res = trans->execute(NdbTransaction::Commit);
-    if (res != 0)
-    {
-      restoreLogger.log_error("%s : failed to commit transaction in --restore-epoch: %u:%s",
-          NDB_APPLY_TABLE, trans->getNdbError().code, trans->getNdbError().message);
-      if (trans->getNdbError().status == NdbError::TemporaryError)
-      {
+    if (res != 0) {
+      restoreLogger.log_error(
+          "%s : failed to commit transaction in --restore-epoch: %u:%s",
+          NDB_APPLY_TABLE, trans->getNdbError().code,
+          trans->getNdbError().message);
+      if (trans->getNdbError().status == NdbError::TemporaryError) {
         continue;
       }
       return false;
-    }
-    else
-    {
-      result= true;
+    } else {
+      result = true;
       break;
     }
   }
-  if (result &&
-      retries > 0)
-    restoreLogger.log_error("--restore-epoch completed successfully "
-                            "after retries");
+  if (result && retries > 0)
+    restoreLogger.log_error(
+        "--restore-epoch completed successfully "
+        "after retries");
 
   return result;
 }
 
-bool
-BackupRestore::delete_epoch_tuple()
-{
+bool BackupRestore::delete_epoch_tuple() {
   /**
    * Make sure only 1 thread in which m_delete_epoch_tuple flag
    * is set executes this method.
    */
-  if (!m_delete_epoch_tuple)
-    return true;
+  if (!m_delete_epoch_tuple) return true;
 
-  bool result= false;
+  bool result = false;
 
   m_ndb->setDatabaseName(NDB_REP_DB);
   m_ndb->setSchemaName("def");
 
-  NdbDictionary::Dictionary *dict= m_ndb->getDictionary();
-  const NdbDictionary::Table *ndbtab= dict->getTable(NDB_APPLY_TABLE);
-  if (!ndbtab)
-  {
-    restoreLogger.log_error("%s: %u: %s", NDB_APPLY_TABLE, dict->getNdbError().code, dict->getNdbError().message);
+  NdbDictionary::Dictionary *dict = m_ndb->getDictionary();
+  const NdbDictionary::Table *ndbtab = dict->getTable(NDB_APPLY_TABLE);
+  if (!ndbtab) {
+    restoreLogger.log_error("%s: %u: %s", NDB_APPLY_TABLE,
+                            dict->getNdbError().code,
+                            dict->getNdbError().message);
     return false;
   }
-  restoreLogger.log_info("[with_apply_status] Deleting tuple with server_id=0 from ndb_apply_status");
+  restoreLogger.log_info(
+      "[with_apply_status] Deleting tuple with server_id=0 from "
+      "ndb_apply_status");
 
   int retries;
-  for (retries = 0; retries < MAX_RETRIES; retries++)
-  {
-    if (retries > 0)
-      NdbSleep_MilliSleep(100 + retries * 300);
+  for (retries = 0; retries < MAX_RETRIES; retries++) {
+    if (retries > 0) NdbSleep_MilliSleep(100 + retries * 300);
 
-    NdbTransaction * trans= m_ndb->startTransaction();
-    if (!trans)
-    {
-      restoreLogger.log_error("%s : failed to get transaction in --with-apply-status: %u:%s",
-          NDB_APPLY_TABLE, m_ndb->getNdbError().code, m_ndb->getNdbError().message);
-      if (m_ndb->getNdbError().status == NdbError::TemporaryError)
-      {
+    NdbTransaction *trans = m_ndb->startTransaction();
+    if (!trans) {
+      restoreLogger.log_error(
+          "%s : failed to get transaction in --with-apply-status: %u:%s",
+          NDB_APPLY_TABLE, m_ndb->getNdbError().code,
+          m_ndb->getNdbError().message);
+      if (m_ndb->getNdbError().status == NdbError::TemporaryError) {
         continue;
       }
     }
 
     TransGuard g(trans);
-    NdbOperation * op= trans->getNdbOperation(ndbtab);
-    if (!op)
-    {
-      restoreLogger.log_error("%s : failed to get operation in --with-apply-status: %u:%s",
-          NDB_APPLY_TABLE, trans->getNdbError().code, trans->getNdbError().message);
-      if (trans->getNdbError().status == NdbError::TemporaryError)
-      {
+    NdbOperation *op = trans->getNdbOperation(ndbtab);
+    if (!op) {
+      restoreLogger.log_error(
+          "%s : failed to get operation in --with-apply-status: %u:%s",
+          NDB_APPLY_TABLE, trans->getNdbError().code,
+          trans->getNdbError().message);
+      if (trans->getNdbError().status == NdbError::TemporaryError) {
         continue;
       }
       return false;
     }
 
-    Uint32 server_id= 0;
-    if (op->deleteTuple() ||
-        op->equal(0u, server_id))
-    {
-      restoreLogger.log_error("%s : failed to delete tuple with server_id=0 in --with-apply-status: %u: %s",
+    Uint32 server_id = 0;
+    if (op->deleteTuple() || op->equal(0u, server_id)) {
+      restoreLogger.log_error(
+          "%s : failed to delete tuple with server_id=0 in "
+          "--with-apply-status: %u: %s",
           NDB_APPLY_TABLE, op->getNdbError().code, op->getNdbError().message);
       return false;
     }
 
     int res = trans->execute(NdbTransaction::Commit);
-    if (res != 0)
-    {
-      if(trans->getNdbError().code == 626)
-      {
-        result= true;
+    if (res != 0) {
+      if (trans->getNdbError().code == 626) {
+        result = true;
         break;
       }
-      restoreLogger.log_error("%s : failed to commit transaction in --with-apply-status: %u:%s",
-          NDB_APPLY_TABLE, trans->getNdbError().code, trans->getNdbError().message);
-      if (trans->getNdbError().status == NdbError::TemporaryError)
-      {
+      restoreLogger.log_error(
+          "%s : failed to commit transaction in --with-apply-status: %u:%s",
+          NDB_APPLY_TABLE, trans->getNdbError().code,
+          trans->getNdbError().message);
+      if (trans->getNdbError().status == NdbError::TemporaryError) {
         continue;
       }
       return false;
-    }
-    else
-    {
-      result= true;
+    } else {
+      result = true;
       break;
     }
   }
-  if (result &&
-      retries > 0)
-    restoreLogger.log_error("--with-apply-status completed successfully "
-                            "after retries");
+  if (result && retries > 0)
+    restoreLogger.log_error(
+        "--with-apply-status completed successfully "
+        "after retries");
 
   return result;
 }
 
-bool
-BackupRestore::report_started(unsigned backup_id, unsigned node_id)
-{
-  if (m_ndb)
-  {
+bool BackupRestore::report_started(unsigned backup_id, unsigned node_id) {
+  if (m_ndb) {
     Uint32 data[3];
-    data[0]= NDB_LE_RestoreStarted;
-    data[1]= backup_id;
-    data[2]= node_id;
+    data[0] = NDB_LE_RestoreStarted;
+    data[1] = backup_id;
+    data[2] = node_id;
     Ndb_internal::send_event_report(false /* has lock */, m_ndb, data, 3);
   }
   return true;
 }
 
-bool
-BackupRestore::report_meta_data(unsigned backup_id, unsigned node_id)
-{
-  if (m_ndb)
-  {
+bool BackupRestore::report_meta_data(unsigned backup_id, unsigned node_id) {
+  if (m_ndb) {
     Uint32 data[8];
-    data[0]= NDB_LE_RestoreMetaData;
-    data[1]= backup_id;
-    data[2]= node_id;
-    data[3]= m_n_tables;
-    data[4]= m_n_tablespace;
-    data[5]= m_n_logfilegroup;
-    data[6]= m_n_datafile;
-    data[7]= m_n_undofile;
+    data[0] = NDB_LE_RestoreMetaData;
+    data[1] = backup_id;
+    data[2] = node_id;
+    data[3] = m_n_tables;
+    data[4] = m_n_tablespace;
+    data[5] = m_n_logfilegroup;
+    data[6] = m_n_datafile;
+    data[7] = m_n_undofile;
     Ndb_internal::send_event_report(false /* has lock */, m_ndb, data, 8);
   }
   return true;
 }
-bool
-BackupRestore::report_data(unsigned backup_id, unsigned node_id)
-{
-  if (m_ndb)
-  {
+bool BackupRestore::report_data(unsigned backup_id, unsigned node_id) {
+  if (m_ndb) {
     Uint32 data[7];
-    data[0]= NDB_LE_RestoreData;
-    data[1]= backup_id;
-    data[2]= node_id;
-    data[3]= m_dataCount & 0xFFFFFFFF;
-    data[4]= 0;
-    data[5]= (Uint32)(m_dataBytes & 0xFFFFFFFF);
-    data[6]= (Uint32)((m_dataBytes >> 32) & 0xFFFFFFFF);
+    data[0] = NDB_LE_RestoreData;
+    data[1] = backup_id;
+    data[2] = node_id;
+    data[3] = m_dataCount & 0xFFFFFFFF;
+    data[4] = 0;
+    data[5] = (Uint32)(m_dataBytes & 0xFFFFFFFF);
+    data[6] = (Uint32)((m_dataBytes >> 32) & 0xFFFFFFFF);
     Ndb_internal::send_event_report(false /* has lock */, m_ndb, data, 7);
   }
   return true;
 }
 
-bool
-BackupRestore::report_log(unsigned backup_id, unsigned node_id)
-{
-  if (m_ndb)
-  {
+bool BackupRestore::report_log(unsigned backup_id, unsigned node_id) {
+  if (m_ndb) {
     Uint32 data[7];
-    data[0]= NDB_LE_RestoreLog;
-    data[1]= backup_id;
-    data[2]= node_id;
-    data[3]= m_logCount & 0xFFFFFFFF;
-    data[4]= 0;
-    data[5]= (Uint32)(m_logBytes & 0xFFFFFFFF);
-    data[6]= (Uint32)((m_logBytes >> 32) & 0xFFFFFFFF);
+    data[0] = NDB_LE_RestoreLog;
+    data[1] = backup_id;
+    data[2] = node_id;
+    data[3] = m_logCount & 0xFFFFFFFF;
+    data[4] = 0;
+    data[5] = (Uint32)(m_logBytes & 0xFFFFFFFF);
+    data[6] = (Uint32)((m_logBytes >> 32) & 0xFFFFFFFF);
     Ndb_internal::send_event_report(false /* has lock */, m_ndb, data, 7);
   }
   return true;
 }
 
-bool
-BackupRestore::report_completed(unsigned backup_id, unsigned node_id)
-{
-  if (m_ndb)
-  {
+bool BackupRestore::report_completed(unsigned backup_id, unsigned node_id) {
+  if (m_ndb) {
     Uint32 data[3];
-    data[0]= NDB_LE_RestoreCompleted;
-    data[1]= backup_id;
-    data[2]= node_id;
+    data[0] = NDB_LE_RestoreCompleted;
+    data[1] = backup_id;
+    data[2] = node_id;
     Ndb_internal::send_event_report(false /* has lock */, m_ndb, data, 3);
   }
   return true;
 }
 
-bool
-BackupRestore::column_compatible_check(const char* tableName, 
-                                       const NDBCOL* backupCol, 
-                                       const NDBCOL* dbCol)
-{
-  if (backupCol->equal(*dbCol))
-    return true;
+bool BackupRestore::column_compatible_check(const char *tableName,
+                                            const NDBCOL *backupCol,
+                                            const NDBCOL *dbCol) {
+  if (backupCol->equal(*dbCol)) return true;
 
   /* Something is different between the columns, but some differences don't
    * matter.
@@ -1953,17 +1766,17 @@ BackupRestore::column_compatible_check(const char* tableName,
   bool similarEnough = true;
 
   /* We check similar things to NdbColumnImpl::equal() here */
-  if (strcmp(backupCol->getName(), dbCol->getName()) != 0)
-  {
-    restoreLogger.log_info("Column %s.%s "
+  if (strcmp(backupCol->getName(), dbCol->getName()) != 0) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "has different name in DB(%s)",
         tableName, backupCol->getName(), dbCol->getName());
     similarEnough = false;
   }
-  
-  if (backupCol->getType() != dbCol->getType())
-  {
-    restoreLogger.log_info("Column %s.%s "
+
+  if (backupCol->getType() != dbCol->getType()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "%s has different type in DB; promotion or lossy type conversion"
         " (demotion, signed/unsigned) may be required.",
         tableName, backupCol->getName(), dbCol->getName());
@@ -1971,169 +1784,163 @@ BackupRestore::column_compatible_check(const char* tableName,
     similarEnough = false;
   }
 
-  if (backupCol->getPrimaryKey() != dbCol->getPrimaryKey())
-  {
-    restoreLogger.log_info("Column %s.%s "
-        "%s a primary key in the DB", tableName, backupCol->getName(),
-        (dbCol->getPrimaryKey()?" is":" is not"));
+  if (backupCol->getPrimaryKey() != dbCol->getPrimaryKey()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
+        "%s a primary key in the DB",
+        tableName, backupCol->getName(),
+        (dbCol->getPrimaryKey() ? " is" : " is not"));
     /* If --allow-pk-changes is set, this may be ok */
-  }
-  else
-  {
-    if (backupCol->getPrimaryKey())
-    {
-      if (backupCol->getDistributionKey() != dbCol->getDistributionKey())
-      {
-        restoreLogger.log_info("Column %s.%s "
-            "%s a distribution key in the DB", tableName, backupCol->getName(),
-            (dbCol->getDistributionKey()?" is":" is not"));
+  } else {
+    if (backupCol->getPrimaryKey()) {
+      if (backupCol->getDistributionKey() != dbCol->getDistributionKey()) {
+        restoreLogger.log_info(
+            "Column %s.%s "
+            "%s a distribution key in the DB",
+            tableName, backupCol->getName(),
+            (dbCol->getDistributionKey() ? " is" : " is not"));
         /* Not a problem for restore though */
       }
     }
   }
 
-  if (backupCol->getNullable() != dbCol->getNullable())
-  {
-    restoreLogger.log_info("Column %s.%s "
-        "%s nullable in the DB", tableName, backupCol->getName(),
-        (dbCol->getNullable()?" is":" is not"));
-    if (dbCol->getNullable()) // nullable -> not null conversion
+  if (backupCol->getNullable() != dbCol->getNullable()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
+        "%s nullable in the DB",
+        tableName, backupCol->getName(),
+        (dbCol->getNullable() ? " is" : " is not"));
+    if (dbCol->getNullable())  // nullable -> not null conversion
       similarEnough = ((m_tableChangesMask & TCM_ATTRIBUTE_PROMOTION) != 0);
-    else if (backupCol->getNullable()) // not null -> nullable conversion
+    else if (backupCol->getNullable())  // not null -> nullable conversion
       similarEnough = ((m_tableChangesMask & TCM_ATTRIBUTE_DEMOTION) != 0);
-    if (!similarEnough)
-    {
-      if (backupCol->getNullable())
-      {
-        restoreLogger.log_error("Conversion of nullable column in backup to non-nullable column"
+    if (!similarEnough) {
+      if (backupCol->getNullable()) {
+        restoreLogger.log_error(
+            "Conversion of nullable column in backup to non-nullable column"
             " in DB is possible, but cannot be done because option"
             " --lossy-conversions is not specified");
-      }
-      else
-      {
-        restoreLogger.log_error("Conversion of non-nullable column in backup to nullable column"
+      } else {
+        restoreLogger.log_error(
+            "Conversion of non-nullable column in backup to nullable column"
             " in DB is possible, but cannot be done because option "
             "--promote-attributes is not specified");
       }
     }
   }
 
-  if (backupCol->getPrecision() != dbCol->getPrecision())
-  {
-    restoreLogger.log_info("Column %s.%s "
+  if (backupCol->getPrecision() != dbCol->getPrecision()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "precision is different in the DB",
         tableName, backupCol->getName());
     similarEnough = false;
   }
 
-  if (backupCol->getScale() != dbCol->getScale())
-  {
-    restoreLogger.log_info("Column %s.%s "
+  if (backupCol->getScale() != dbCol->getScale()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "scale is different in the DB",
         tableName, backupCol->getName());
     similarEnough = false;
   }
 
-  if (backupCol->getLength() != dbCol->getLength())
-  {
-    restoreLogger.log_info("Column %s.%s "
+  if (backupCol->getLength() != dbCol->getLength()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "length is different in the DB",
         tableName, backupCol->getName());
     similarEnough = false;
   }
 
-  if (backupCol->getCharset() != dbCol->getCharset())
-  {
-    restoreLogger.log_info("Column %s.%s "
+  if (backupCol->getCharset() != dbCol->getCharset()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "charset is different in the DB",
         tableName, backupCol->getName());
     similarEnough = false;
   }
-  
-  if (backupCol->getAutoIncrement() != dbCol->getAutoIncrement())
-  {
-    restoreLogger.log_info("Column %s.%s "
-        "%s AutoIncrementing in the DB", tableName, backupCol->getName(),
-        (dbCol->getAutoIncrement()?" is":" is not"));
+
+  if (backupCol->getAutoIncrement() != dbCol->getAutoIncrement()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
+        "%s AutoIncrementing in the DB",
+        tableName, backupCol->getName(),
+        (dbCol->getAutoIncrement() ? " is" : " is not"));
     /* TODO : Can this be ignored? */
     similarEnough = false;
   }
-  
+
   {
     unsigned int backupDefaultLen, dbDefaultLen;
     const void *backupDefaultPtr, *dbDefaultPtr;
     backupDefaultPtr = backupCol->getDefaultValue(&backupDefaultLen);
     dbDefaultPtr = dbCol->getDefaultValue(&dbDefaultLen);
-    
+
     if ((backupDefaultLen != dbDefaultLen) ||
-        (memcmp(backupDefaultPtr, dbDefaultPtr, backupDefaultLen) != 0))
-    {
-      restoreLogger.log_info("Column %s.%s "
+        (memcmp(backupDefaultPtr, dbDefaultPtr, backupDefaultLen) != 0)) {
+      restoreLogger.log_info(
+          "Column %s.%s "
           "Default value is different in the DB",
           tableName, backupCol->getName());
       /* This doesn't matter */
     }
   }
 
-  if (backupCol->getArrayType() != dbCol->getArrayType())
-  {
-    restoreLogger.log_info("Column %s.%s "
+  if (backupCol->getArrayType() != dbCol->getArrayType()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "ArrayType is different in the DB",
         tableName, backupCol->getName());
     similarEnough = false;
   }
 
-  if (backupCol->getStorageType() != dbCol->getStorageType())
-  {
-    restoreLogger.log_info("Column %s.%s "
+  if (backupCol->getStorageType() != dbCol->getStorageType()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "Storagetype is different in the DB",
         tableName, backupCol->getName());
     /* This doesn't matter */
   }
 
-  if (backupCol->getBlobVersion() != dbCol->getBlobVersion())
-  {
-    restoreLogger.log_info("Column %s.%s "
+  if (backupCol->getBlobVersion() != dbCol->getBlobVersion()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
         "Blob version is different in the DB",
         tableName, backupCol->getName());
     similarEnough = false;
   }
 
-  if (backupCol->getDynamic() != dbCol->getDynamic())
-  {
-    restoreLogger.log_info("Column %s.%s "
-        "%s Dynamic in the DB", tableName, backupCol->getName(),
-        (dbCol->getDynamic()?" is":" is not"));
+  if (backupCol->getDynamic() != dbCol->getDynamic()) {
+    restoreLogger.log_info(
+        "Column %s.%s "
+        "%s Dynamic in the DB",
+        tableName, backupCol->getName(),
+        (dbCol->getDynamic() ? " is" : " is not"));
     /* This doesn't matter */
   }
 
   if (similarEnough)
     restoreLogger.log_info("  Difference(s) will be ignored during restore.");
   else
-    restoreLogger.log_info("  Difference(s) cannot be ignored.  Column requires conversion to restore.");
+    restoreLogger.log_info(
+        "  Difference(s) cannot be ignored.  Column requires conversion to "
+        "restore.");
 
   return similarEnough;
 }
 
-bool is_array(NDBCOL::Type type)
-{
-  if (type == NDBCOL::Char ||
-      type == NDBCOL::Binary ||
-      type == NDBCOL::Varchar ||
-      type == NDBCOL::Varbinary ||
-      type == NDBCOL::Longvarchar ||
-      type == NDBCOL::Longvarbinary)
-  {
+bool is_array(NDBCOL::Type type) {
+  if (type == NDBCOL::Char || type == NDBCOL::Binary ||
+      type == NDBCOL::Varchar || type == NDBCOL::Varbinary ||
+      type == NDBCOL::Longvarchar || type == NDBCOL::Longvarbinary) {
     return true;
   }
   return false;
- 
 }
 
-bool
-BackupRestore::check_blobs(TableS & tableS)
-{
-   /**
+bool BackupRestore::check_blobs(TableS &tableS) {
+  /**
    * Nothing to check when printing data
    */
   if (!m_restore) {
@@ -2141,38 +1948,37 @@ BackupRestore::check_blobs(TableS & tableS)
   }
 
   /**
-   * For blob tables, check if there is a conversion on any PK of the main table.
-   * If there is, the blob table PK needs the same conversion as the main table PK.
-   * Copy the conversion to the blob table.
-   * If a staging table is used, there may only be a partial conversion done
-   * during data + log restore
+   * For blob tables, check if there is a conversion on any PK of the main
+   * table. If there is, the blob table PK needs the same conversion as the main
+   * table PK. Copy the conversion to the blob table. If a staging table is
+   * used, there may only be a partial conversion done during data + log restore
    */
-  if(match_blob(tableS.getTableName()) == -1)
-    return true;
+  if (match_blob(tableS.getTableName()) == -1) return true;
 
   int mainColumnId = tableS.getMainColumnId();
   const TableS *mainTableS = tableS.getMainTable();
-  if(mainTableS->m_dictTable->getColumn(mainColumnId)->getBlobVersion() == NDB_BLOB_V1)
-    return true; /* only to make old ndb_restore_compat* tests on v1 blobs pass */
+  if (mainTableS->m_dictTable->getColumn(mainColumnId)->getBlobVersion() ==
+      NDB_BLOB_V1)
+    return true; /* only to make old ndb_restore_compat* tests on v1 blobs pass
+                  */
 
   /**
    * Loop over columns in Backup schema for Blob parts table.
    * v2 Blobs have e.g. <Main table PK col(s)>, NDB$PART, NDB$PKID, NDB$DATA
    */
-  for(int i=0; i<tableS.m_dictTable->getNoOfColumns(); i++)
-  {
+  for (int i = 0; i < tableS.m_dictTable->getNoOfColumns(); i++) {
     NDBCOL *col = tableS.m_dictTable->getColumn(i);
     AttributeDesc *attrDesc = tableS.getAttributeDesc(col->getAttrId());
-  
+
     /* get corresponding pk column in main table, backup + kernel versions */
     NDBCOL *backupMainCol = mainTableS->m_dictTable->getColumn(col->getName());
-    const NdbDictionary::Table* ndbMainTab = get_table(*mainTableS);
-    const NdbDictionary::Column* ndbMainCol = ndbMainTab->getColumn(col->getName());
-    const NdbDictionary::Table* ndbTab = get_table(tableS);
-    const NdbDictionary::Column* ndbCol = ndbTab->getColumn(col->getName());
+    const NdbDictionary::Table *ndbMainTab = get_table(*mainTableS);
+    const NdbDictionary::Column *ndbMainCol =
+        ndbMainTab->getColumn(col->getName());
+    const NdbDictionary::Table *ndbTab = get_table(tableS);
+    const NdbDictionary::Column *ndbCol = ndbTab->getColumn(col->getName());
 
-    if(!backupMainCol || !backupMainCol->getPrimaryKey())
-    {
+    if (!backupMainCol || !backupMainCol->getPrimaryKey()) {
       /* Finished with Blob part table's pk columns shared with main table
        * (Blob parts table always has main table PKs first)
        * Now just setting attrId values to match kernel table
@@ -2183,64 +1989,61 @@ BackupRestore::check_blobs(TableS & tableS)
     }
 
     int mainTableAttrId = backupMainCol->getAttrId();
-    AttributeDesc *mainTableAttrDesc = mainTableS->getAttributeDesc(mainTableAttrId);
+    AttributeDesc *mainTableAttrDesc =
+        mainTableS->getAttributeDesc(mainTableAttrId);
 
-    if (mainTableAttrDesc->m_exclude)
-    {
+    if (mainTableAttrDesc->m_exclude) {
       /**
        * This column is gone from the main table pk, remove it from the
        * Blob part table pk here
        */
-      restoreLogger.log_debug("Column excluded from main table, "
-                              "exclude from blob parts pk");
+      restoreLogger.log_debug(
+          "Column excluded from main table, "
+          "exclude from blob parts pk");
       attrDesc->m_exclude = true;
       continue;
     }
 
     /* Column is part of main table pk in backup, check DB */
-    if (!ndbMainCol->getPrimaryKey())
-    {
+    if (!ndbMainCol->getPrimaryKey()) {
       /* This column is still in the main table, but no longer
        * as part of the primary key
        */
-      restoreLogger.log_debug("Column moved from pk in main table, "
-                              "exclude from blob parts pk");
+      restoreLogger.log_debug(
+          "Column moved from pk in main table, "
+          "exclude from blob parts pk");
       attrDesc->m_exclude = true;
       continue;
     }
 
     attrDesc->attrId = ndbCol->getColumnNo();
 
-    if(mainTableAttrDesc->convertFunc)
-    {
+    if (mainTableAttrDesc->convertFunc) {
       /* copy convertFunc from main table PK to blob table PK */
-      attrDesc->convertFunc = mainTableAttrDesc->convertFunc;     
+      attrDesc->convertFunc = mainTableAttrDesc->convertFunc;
       attrDesc->parameter = malloc(mainTableAttrDesc->parameterSz);
-      memcpy(attrDesc->parameter, mainTableAttrDesc->parameter, mainTableAttrDesc->parameterSz);
+      memcpy(attrDesc->parameter, mainTableAttrDesc->parameter,
+             mainTableAttrDesc->parameterSz);
     }
   }
   return true;
 }
 
-bool
-BackupRestore::table_compatible_check(TableS & tableS)
-{
-  if (!m_restore)
-    return true;
+bool BackupRestore::table_compatible_check(TableS &tableS) {
+  if (!m_restore) return true;
 
   const char *tablename = tableS.getTableName();
 
-  if(tableS.m_dictTable == NULL){
+  if (tableS.m_dictTable == NULL) {
     restoreLogger.log_error("Table %s has no m_dictTable", tablename);
     return false;
   }
   /**
    * Ignore blob tables
    */
-  if(match_blob(tablename) >= 0)
-    return true;
+  if (match_blob(tablename) >= 0) return true;
 
-  const NdbTableImpl & tmptab = NdbTableImpl::getImpl(* tableS.m_dictTable);
+  const NdbTableImpl &tmptab = NdbTableImpl::getImpl(*tableS.m_dictTable);
   if ((int) tmptab.m_indexType != (int) NdbDictionary::Index::Undefined)
   {
     if((int) tmptab.m_indexType != (int) NdbDictionary::Index::UniqueHashIndex)
@@ -2254,8 +2057,48 @@ BackupRestore::table_compatible_check(TableS & tableS)
     if (!dissect_index_name(index_qualified_name, index_db_name, index_schema_name, index_name))
       return false;
     if (!dissect_table_name(table_qualified_name, table_db_name, table_schema_name, table_name))
-      return false;
-    if(strcmp(index_db_name.c_str(), "sys") != 0)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Dictionary*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Dictionary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   return false;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Table*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tab
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tab
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  if(strcmp(index_db_name.c_str(), "sys") != 0)
     {
       restoreLogger.log_error("Error: Expected index %s to belong to database sys.",
                               index_qualified_name);
@@ -2435,8 +2278,40 @@ BackupRestore::table_compatible_check(TableS & tableS)
    * is found and used when inserting/updating/deleting a part table
    * row.
    *
-   * This is not practical for ndb_restore to do inline in a single
-   * pass, so for pk changes to tables with Blobs, we require the
+   * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+This is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(!col_in_kernel_pk)
+=======
+(!col_in_kernel_pk) {
+>>>>>>> MySQL 8.0.36
+ not practical for ndb_restore to do inline in a 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+single
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  restoreLogger.log_info(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   * pass, so for pk changes to tables with Blobs, we require 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+||||||| Common ancestor
+restoreLogger.log_info("Column
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    "Column
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
    * use of a staging table to achieve this transform.
    */
   bool full_pk_present_in_kernel = true;
@@ -2495,8 +2370,7 @@ BackupRestore::table_compatible_check(TableS & tableS)
 
         if (col_in_backup_pk)
         {
-          if (!col_in_kernel_pk)
-          {
+            if (!col_in_kernel_pk) {
             restoreLogger.log_info("Column (%s.%s) is part of "
                                    "primary key in Backup but "
                                    "not part of primary key in DB. "
@@ -2505,7 +2379,18 @@ BackupRestore::table_compatible_check(TableS & tableS)
                                    tableS.m_dictTable->getName(),
                                    col_in_backup->getName());
 
-            full_pk_present_in_kernel = false;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+from
+// RONDB-624 todo: Glue these lines together ^v
+=======
+from
+       *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       full_pk_present_in_kernel = false;
           }
         }
         else
@@ -2515,28 +2400,93 @@ BackupRestore::table_compatible_check(TableS & tableS)
             restoreLogger.log_info("Column (%s.%s) is not part of "
                                    "primary key in Backup but "
                                    "changed to be part of primary "
-                                   "key in DB.",
-                                   tableS.m_dictTable->getName(),
-                                   col_in_backup->getName());
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+?
+=======
+? "Null"
+>>>>>>> MySQL 8.0.36
+          "key in DB.",
+                                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+"Null"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   tableS.m_dictTable->getName(),
+                                   col_in_backup->getName(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+));
 
-            pk_extended_in_kernel = true;
-          }
-        }
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"Error : Primary key extended in DB without "
+=======
+
+>>>>>>> MySQL 8.0.36
+    pk_extended_in_kernel = true;
+    "Error : Primary key extended in 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+DB
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ without "
+    }
 
         /* Check for blobs with part tables */
-        switch (col_in_kernel->getType())
-        {
+        switch (col_in_kernel->getType())     {
         case NDB_TYPE_BLOB:
         case NDB_TYPE_TEXT:
           if (col_in_kernel->getPartSize() > 0)
           {
             table_has_blob_parts = true;
           }
-        default:
-          break;
-        }
-      }
-    }
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     default:
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+restoreLogger.log_info("Warning : Primary key extended in DB with "
+=======
+restoreLogger.log_info(
+>>>>>>> MySQL 8.0.36
+     break;
+      "Warning : 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+Primary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ key extended in DB with 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+>>>>>>> MySQL 8.0.36
+   }
   }
 
   /* Loop over columns present in the DB */
@@ -2567,24 +2517,49 @@ BackupRestore::table_compatible_check(TableS & tableS)
       {
         restoreLogger.log_error( "Missing column(%s.%s) in backup "
             " is primary key or not nullable or defaulted in DB",
-            tableS.m_dictTable->getName(), col_in_kernel->getName());
+ "staging.",
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         "staging.", tableS.getTableName());
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tableS.getTableName());
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+tableS.m_dictTable->getName(), col_in_kernel->getName());
         return false;
       }
 
-      restoreLogger.log_info("Column in DB (%s.%s) missing in Backup."
+      restoreLogger.log_info(
+          "Column in DB (%s.%s) missing in Backup."
           " Will be set to %s.",
           tableS.m_dictTable->getName(), col_in_kernel->getName(),
            ((col_in_kernel->getDefaultValue() == NULL) ?
-                                            "Null" : "Default value"));
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+restoreLogger.log_error("Error : Primary key reduced in DB without "
+=======
+restoreLogger.log_error(
+>>>>>>> MySQL 8.0.36
+          "Error : Primary key reduced in DB without "
+          "Null" : "Default value"));
     }
   }
 
   /* Check pk changes against flags */
 
-  if (pk_extended_in_kernel)
-  {
-    if ((m_tableChangesMask & TCM_ALLOW_PK_CHANGES) == 0)
-    {
+  if (pk_extended_in_kernel) {
+    if ((m_tableChangesMask & TCM_ALLOW_PK_CHANGES) == 0) {
       restoreLogger.log_error("Error : Primary key extended in DB without "
                               "allow-pk-changes.");
       return false;
@@ -2597,8 +2572,19 @@ BackupRestore::table_compatible_check(TableS & tableS)
        * a single shared mapping index rather than per
        * ndb_restore / slice / thread indices
        */
-      restoreLogger.log_info("Warning : Primary key extended in DB with "
-                             "allow-pk-changes, and --restore-data but without "
+      restoreLogger.log_info(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"Warning : Primary key extended in DB with "
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"Error : Primary key changes to table with "
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+          "Error : Primary key changes to table with "
+         "allow-pk-changes, and --restore-data but without "
                              "--disable-indexes.  A final --rebuild-indexes step "
                              "is required to drop any mapping indices created.");
       /**
@@ -2619,7 +2605,31 @@ BackupRestore::table_compatible_check(TableS & tableS)
       restoreLogger.log_info("Table %s has Blob/Text columns with part tables "
                              "and an extended primary key.  This requires "
                              "staging.", tableS.getTableName());
-      tableS.m_staging = true;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AttrConvType compat
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AttrConvType compat =
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tableS.m_staging
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= (attrCheckCompatFunc
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  (attrCheckCompatFunc
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = true;
     }
   }
 
@@ -2627,13 +2637,15 @@ BackupRestore::table_compatible_check(TableS & tableS)
   {
     if ((m_tableChangesMask & TCM_ALLOW_PK_CHANGES) == 0)
     {
-      restoreLogger.log_error("Error : Primary key reduced in DB without "
+      restoreLogger.log_error(
+            "Error : Primary key reduced in DB without "
                               "allow-pk-changes.");
       return false;
     }
     if ((m_tableChangesMask & TCM_ATTRIBUTE_DEMOTION) == 0)
     {
-      restoreLogger.log_error("Error : Primary key reduced in DB without "
+      restoreLogger.log_error(
+              "Error : Primary key reduced in DB without   "
                               "lossy-conversions.");
       return false;
     }
@@ -2642,7 +2654,7 @@ BackupRestore::table_compatible_check(TableS & tableS)
   if (pk_extended_in_kernel ||
       !full_pk_present_in_kernel)
   {
-    if (tab->getFragmentType() == NdbDictionary::Object::UserDefined)
+      if (tab->getFragmentType() == NdbDictionary::Object::UserDefined)
     {
       /**
        * Note
@@ -2652,8 +2664,105 @@ BackupRestore::table_compatible_check(TableS & tableS)
        *     As we don't know the function mapping we cannot allow
        *     this.
        *
-       * 2.  Could allow changes to non-distribution primary keys
-       *     if there are any, but not for now.
+       * 2.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  Could allow
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+log_info("Warning : Table: %s
+// RONDB-624 todo: Glue these lines together ^v
+=======
+log_info(
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+changes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+column:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+%s
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+non-distribution primary keys
+||||||| Common ancestor
+"
+=======
+>>>>>>> MySQL 8.0.36
+       *    "Warning 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+there
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Table:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+are
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+%s
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+any,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+column:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+but
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+%s
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+not
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+"
+>>>>>>> MySQL 8.0.36
+ for now.
        */
       restoreLogger.log_error("Error : Primary key changes to table with "
                               "user-defined partitioning not supported as "
@@ -2694,16 +2803,17 @@ BackupRestore::table_compatible_check(TableS & tableS)
     switch (compat) {
     case ACT_UNSUPPORTED:
       {
-        restoreLogger.log_error("Table: %s column: %s"
+          restoreLogger.log_error(
+              "Table: %s column: %s"
             " incompatible with kernel's definition. "
             "Conversion not possible",
-            tablename, col_in_backup->getName());
-        return false;
-      }
+              tablename, col_in_backup->getName());
+          return false;
+        }
     case ACT_PRESERVING:
       if ((m_tableChangesMask & TCM_ATTRIBUTE_PROMOTION) == 0)
       {
-        restoreLogger.log_error("Table: %s column: %s"
+          restoreLogger.log_error("Table: %s column: %s"
             " promotable to kernel's definition but option"
             " promote-attributes not specified",
             tablename, col_in_backup->getName());
@@ -2765,9 +2875,53 @@ BackupRestore::table_compatible_check(TableS & tableS)
     };
 
     attr_desc->convertFunc = get_convert_func(type_in_backup,
-                                              type_in_kernel);
+                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+BaseString&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BaseString
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+stagingName
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&stagingName
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                       type_in_kernel);
     Uint32 m_attrSize = NdbColumnImpl::getImpl(*col_in_kernel).m_attrSize;
-    Uint32 m_arraySize = NdbColumnImpl::getImpl(*col_in_kernel).m_arraySize;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NdbDictionary::Table*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_arraySize
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+stagingTable
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*stagingTable
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = NdbColumnImpl::getImpl(*col_in_kernel).m_arraySize;
 
     // use a char_n_padding_struct to pass length information to convert()
     if (type_in_backup == NDBCOL::Char ||
@@ -2782,14 +2936,38 @@ BackupRestore::table_compatible_check(TableS & tableS)
         m_attrSize * m_arraySize;
       struct char_n_padding_struct *s = (struct char_n_padding_struct *)
         malloc(size +2);
-      if (!s)
-      {
-        restoreLogger.log_error("No more memory available!");
+      if (!s) {
+        restoreLogger.log_error(
+            "No more memory available!");
         return false;
       }
       s->n_old = (attr_desc->size * attr_desc->arraySize) / 8;
       s->n_new = m_attrSize * m_arraySize;
-      memset(s->new_row, 0 , m_attrSize * m_arraySize + 2);
+      memset(s->new_row,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ tablename,
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0 , m_attrSize * m_arraySize 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tablename,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 2);
       attr_desc->parameter = s;
       attr_desc->parameterSz = size + 2;
     }
@@ -2856,8 +3034,40 @@ BackupRestore::table_compatible_check(TableS & tableS)
 
     // if kernel is DD, staging will be too
     bool kernel_is_dd = false;
-    Uint32 ts_id = ~(Uint32)0;
-    if (tab->getTablespace(&ts_id))
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Dictionary*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Dictionary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 ts_id = ~(Uint32)0;
+    if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(tab
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->getTablespace(&ts_id))
     {
       // must be an initialization
       NdbDictionary::Tablespace ts = dict->getTablespace(ts_id);
@@ -2887,13 +3097,72 @@ BackupRestore::table_compatible_check(TableS & tableS)
       const NDBCOL * col_in_backup = tableS.m_dictTable->getColumn(i);
       if (attr_desc->m_exclude)
         continue;
-      attr_desc->attrId = (uint32)(j++);
-      if(attr_desc->convertFunc)
-      {
-        const NDBCOL * col_in_kernel = tab->getColumn(col_in_backup->getName());
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Dictionary*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Dictionary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   attr_desc->attrId = (uint32)(j++);
+      if (attr_desc->convertFunc)     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+NdbDictionary::Table*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tab
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tab
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       const NDBCOL * col_in_kernel = tab->getColumn(col_in_backup->getName());
 
         // Skip built-in conversions from smaller array types 
-        // to larger array types so that they are handled by staging.
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Tablespace*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Tablespace
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ts
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ts
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ // to larger array types so that they are handled by staging.
         // This prevents staging table from growing too large and
         // causing ndb_restore to fail with error 738: record too big.
         NDBCOL::Type type_in_backup = col_in_backup->getType();
@@ -2912,11 +3181,32 @@ BackupRestore::table_compatible_check(TableS & tableS)
           // built-in conversion is done while loading data into
           // staging table. 
           stagingTable->addColumn(*col_in_kernel);
-        }
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
       } 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+restoreLogger.log_info("Setting %s to specific partition balance with "
+// RONDB-624 todo: Glue these lines together ^v
+=======
+restoreLogger.log_info(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       else 
-      {
-        stagingTable->addColumn(*col_in_backup);
+     "Setting 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+%s
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to specific partition balance with "
+  stagingTable->addColumn(*col_in_backup);
         attr_desc->convertFunc = NULL;
       }
     }
@@ -3309,7 +3599,29 @@ BackupRestore::fk(Uint32 type, const void * ptr)
         return false;
       }
       m_fks.push_back(fk_ptr);
-      restoreLogger.log_info("Save FK %s", fk_ptr->getName());
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbError&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbError
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+restoreLogger.log_info("Save
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+error
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&error
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ FK %s", fk_ptr->getName());
 
       if (m_disable_indexes)
       {
@@ -3335,12 +3647,34 @@ BackupRestore::fk(Uint32 type, const void * ptr)
                 child->getObjectId(), fkname);
 
         // Drop foreign keys if they exist
-        if (dict->getForeignKey(fk, fullname) == 0)
-        {
+        if (dict->getForeignKey(fk, fullname) == 0) {
           restoreLogger.log_info("Dropping Foreign key %s", fkname);
           if (!ndbapi_dict_operation_retry(
-                  [fk](NdbDictionary::Dictionary *dict) {
-                    return dict->dropForeignKey(fk);
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    [fk](NdbDictionary::Dictionary *dict) {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+restoreLogger.log_error("Failed to create auto increment value "
+// RONDB-624 todo: Glue these lines together ^v
+=======
+restoreLogger.log_error(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+            "Failed to create auto increment value 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+>>>>>>> MySQL 8.0.36
+ dict->dropForeignKey(fk);
                   },
                   dict)) {
             restoreLogger.log_error(
@@ -3352,7 +3686,27 @@ BackupRestore::fk(Uint32 type, const void * ptr)
         }
       }
     }
-    return true;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const NdbDictionary::Table*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const NdbDictionary::Table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+null
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*null
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ return true;
     break;
   }
   default:
@@ -3363,13 +3717,12 @@ BackupRestore::fk(Uint32 type, const void * ptr)
   return true;
 }
 
-bool
-BackupRestore::endOfTables(){
+bool BackupRestore::endOfTables(){
   if(!m_restore_meta && !m_rebuild_indexes && !m_disable_indexes)
     return true;
 
   NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
-  for(unsigned i = 0; i<m_indexes.size(); i++){
+    for (unsigned i = 0; i<m_indexes.size(); i++){
     NdbTableImpl & indtab = NdbTableImpl::getImpl(* m_indexes[i]);
 
     BaseString db_name, schema_name, table_name;
@@ -3386,20 +3739,60 @@ BackupRestore::endOfTables(){
     if(prim == 0){
       restoreLogger.log_error("Unable to find base table `%s` for index `%s`",
           table_name.c_str(), indtab.getName());
-      if (ga_skip_broken_objects)
+        if (ga_skip_broken_objects)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+, db_name, dummy,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       {
         continue;
       }
       return false;
-    }
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+db_name, dummy,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
     NdbTableImpl& base = NdbTableImpl::getImpl(*prim);
     NdbIndexImpl* idx;
     Vector<BaseString> split_idx;
-    {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Dictionary*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  NdbDictionary::Dictionary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  {
       BaseString tmp(indtab.getName());
-      if (tmp.split(split_idx, "/") != 4)
-      {
-        restoreLogger.log_error("Invalid index name format `%s`",
+        if (tmp.split(split_idx, "/") != 4) {
+          restoreLogger.log_error(
+              "Invalid index name format `%s`",
             indtab.getName());
         return false;
       }
@@ -3413,14 +3806,25 @@ BackupRestore::endOfTables(){
     idx->setName(split_idx[3].c_str());
     if (m_restore_meta && !m_disable_indexes && !m_rebuild_indexes)
     {
-      if (!ndbapi_dict_operation_retry(
+        if (!ndbapi_dict_operation_retry(
               [idx](NdbDictionary::Dictionary *dict) {
                 return dict->createIndex(*idx);
               },
               dict)) {
         restoreLogger.log_error("Failed to create index `%s` on `%s`: %u: %s",
                                 split_idx[3].c_str(), table_name.c_str(),
-                                dict->getNdbError().code,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }                   dict->getNdbError().code,
                                 dict->getNdbError().message);
         delete idx;
         return false;
@@ -3430,7 +3834,7 @@ BackupRestore::endOfTables(){
     }
     else if (m_disable_indexes)
     {
-      // Drop indexes if they exist
+        // Drop indexes if they exist
       if(dict->getIndex(idx->getName(), prim->getName()))
       {
         restoreLogger.log_info("Dropping Index %s", split_idx[3].c_str());
@@ -3448,7 +3852,7 @@ BackupRestore::endOfTables(){
         restoreLogger.log_info("Dropped index `%s` on `%s`",
                                split_idx[3].c_str(), table_name.c_str());
       }
-    }
+      }
     Uint32 id = prim->getObjectId();
     if (m_index_per_table.size() <= id)
     {
@@ -3461,23 +3865,60 @@ BackupRestore::endOfTables(){
   return true;
 }
 
-bool
-BackupRestore::endOfTablesFK()
+bool BackupRestore::endOfTablesFK()
 {
-  if (!m_restore_meta && !m_rebuild_indexes && !m_disable_indexes)
-    return true;
+  if (!m_restore_meta && !m_rebuild_indexes && !m_disable_indexes) return true;
 
-  NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
+  NdbDictionary::Dictionary *dict = m_ndb->getDictionary();
   restoreLogger.log_info("Create foreign keys");
   for (unsigned i = 0; i < m_fks.size(); i++)
   {
     const NdbDictionary::ForeignKey& fkinfo = *m_fks[i];
 
-    // full name is e.g. 10/14/fk1 where 10,14 are old table ids
+    // full name is e.g. 10/14/fk1 where 10,14 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+are
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+db_name,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+old
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+schema_name,
+>>>>>>> MySQL 8.0.36
+ table ids
     const char* fkname = 0;
     Vector<BaseString> splitname;
     BaseString tmpname(fkinfo.getName());
-    int n = tmpname.split(splitname, "/");
+    int n 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+db_name,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tmpname.split(splitname,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+schema_name,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ "/");
     // may get these from ndbapi-created FKs prior to bug#18824753
     if (n == 1)
       fkname = splitname[0].c_str();
@@ -3493,7 +3934,31 @@ BackupRestore::endOfTablesFK()
     const NdbDictionary::Table* pTab = 0;
     const NdbDictionary::Index* pInd = 0;
     const NdbDictionary::Table* cTab = 0;
-    const NdbDictionary::Index* cInd = 0;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const NdbDictionary::Index*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NdbIndexImpl*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbIndexImpl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cInd = 0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+idx
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*idx
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
     // parent and child info - db.table.index
     char pInfo[512] = "?";
     char cInfo[512] = "?";
@@ -3504,8 +3969,7 @@ BackupRestore::endOfTablesFK()
         return false;
       m_ndb->setDatabaseName(db_name.c_str());
       pTab = dict->getTable(table_name.c_str());
-      if (pTab == 0)
-      {
+      if (pTab == 0)   {
         restoreLogger.log_error("Foreign key %s"
             " parent table %s.%s not found: %u: %s",
             fkname, db_name.c_str(), table_name.c_str(), dict->getNdbError().code, dict->getNdbError().message);
@@ -3561,15 +4025,69 @@ BackupRestore::endOfTablesFK()
       }
       BaseString::snprintf(cInfo, sizeof(cInfo), "%s.%s.%s",
           db_name.c_str(), table_name.c_str(),
-          cInd ? cInd->getName() : "PK");
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Dictionary*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Dictionary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  cInd ? cInd->getName() : "PK");
     }
 
     // define the fk
-    NdbDictionary::ForeignKey fk;
+    NdbDictionary::ForeignKey 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fk;
+||||||| Common ancestor
+fkinfo
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&fkinfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     fk.setName(fkname);
     static const int MaxAttrs = MAX_ATTRIBUTES_IN_INDEX;
     {
-      const NdbDictionary::Column* cols[MaxAttrs+1]; // NULL terminated
+      const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NdbDictionary::Column*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cols[MaxAttrs+1];
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fkname
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fkname
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ // NULL terminated
       const int n = fkinfo.getParentColumnCount();
       int i = 0;
       while (i < n)
@@ -3580,8 +4098,70 @@ BackupRestore::endOfTablesFK()
         {
           restoreLogger.log_error("Foreign key %s fk column %u"
               " parent column %u out of range",
-              fkname, i, j);
-          return false;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Table*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pTab
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*pTab
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Index*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Index
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fkname,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pInd
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*pInd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ i, j);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Index*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Index
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cInd
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cInd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ return false;
         }
         cols[i++] = pCol;
       }
@@ -3589,18 +4169,58 @@ BackupRestore::endOfTablesFK()
       fk.setParent(*pTab, pInd, cols);
     }
     {
-      const NdbDictionary::Column* cols[MaxAttrs+1]; // NULL terminated
+      const NdbDictionary::Column* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cols[MaxAttrs+1];
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+db_name,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+dummy2,
+>>>>>>> MySQL 8.0.36
+ NULL terminated
       const int n = fkinfo.getChildColumnCount();
       int i = 0;
-      while (i < n)
+      while 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+db_name,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dummy2,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ n)
       {
         int j = fkinfo.getChildColumnNo(i);
         const NdbDictionary::Column* cCol = cTab->getColumn(j);
-        if (cCol == 0)
-        {
-          restoreLogger.log_error("Foreign key %s fk column %u"
+        if (cCol == 0)   {
+          restoreLogger.log_error(
+            "Foreign key %s fk column %u"
               " child column %u out of range",
-              fkname, i, j);
+              fkname,
+            i, j);
           return false;
         }
         cols[i++] = cCol;
@@ -3609,23 +4229,70 @@ BackupRestore::endOfTablesFK()
       fk.setChild(*cTab, cInd, cols);
     }
     fk.setOnUpdateAction(fkinfo.getOnUpdateAction());
-    fk.setOnDeleteAction(fkinfo.getOnDeleteAction());
+ dummy1, dummy2,
+  fk.setOnDeleteAction(fkinfo.getOnDeleteAction());
 
     restoreLogger.log_info("Creating foreign key: %s", fkname);
     if (!ndbapi_dict_operation_retry(
-            [fk](NdbDictionary::Dictionary *dict) {
+            [fk](NdbDictionary::Dictionary 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  dummy1, dummy2, index_name)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    index_name)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) {
               return dict->createForeignKey(fk);
-            },
-            dict)) {
-      restoreLogger.log_error(
-          "Failed to create foreign key %s"
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ },
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+  restoreLogger.log_error(
+>>>>>>> MySQL 8.0.36
+    dict)) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+restoreLogger.log_error(
+          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+restoreLogger.log_error(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+"Failed to create foreign key %s"
           " parent %s child %s : %u: %s",
-          fkname, pInfo, cInfo, dict->getNdbError().code,
+          fkname, pInfo, cInfo,
+              dict->getNdbError().code,
           dict->getNdbError().message);
       return false;
     }
     restoreLogger.log_info(
-        "Successfully created foreign key %s parent %s child %s", fkname, pInfo,
+        "Successfully created foreign key %s parent %s child %s", fkname,
+                           pInfo,
         cInfo);
   }
   restoreLogger.log_info("Create foreign keys done");
@@ -3634,11 +4301,49 @@ BackupRestore::endOfTablesFK()
 
 bool BackupRestore::ndbapi_dict_operation_retry(
     const std::function<int(NdbDictionary::Dictionary *)> &func,
-    NdbDictionary::Dictionary *dict) {
+    NdbDictionary::Dictionary *dict)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+, db_name,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+dummy2,
+>>>>>>> MySQL 8.0.36
   int retries;
   for (retries = 0; retries < MAX_RETRIES; retries++) {
     if (func(dict) != 0) {
-      if (dict->getNdbError().status != NdbError::TemporaryError) {
+      if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(dict->getNdbError().status
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+db_name,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dummy2,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ NdbError::TemporaryError) {
         return false;
       }
       restoreLogger.log_error("Failed with temporary error: %d %s",
@@ -3653,15 +4358,53 @@ bool BackupRestore::ndbapi_dict_operation_retry(
   }
 
   if (retries == MAX_RETRIES) {
-    restoreLogger.log_error("Failed with too many temporary errors: %u",
-                            MAX_RETRIES);
+    restoreLogger.log_error("Failed with too many temporary errors: %u", dummy1, dummy2,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MAX
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    dummy1, dummy2, index
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      index
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_RETRIES);
     return false;
   }
   return true;
 }
 
 static Uint64 extract_auto_val(const char *data,
-                               int size,
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+0)
+=======
+0) {
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+  restoreLogger.log_error(
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+restoreLogger.log_error("Foreign
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    "Foreign
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  int size,
                                NdbDictionary::Column::Type type)
 {
   union {
@@ -3690,7 +4433,31 @@ static Uint64 extract_auto_val(const char *data,
     v= val.i8;
     break;
   default:
-    return 0;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const NdbDictionary::Column*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const NdbDictionary::Column
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cols[MaxAttrs+1]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cols[MaxAttrs + 1]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   };
 
   /* Don't return negative signed values */
@@ -3700,10 +4467,32 @@ static Uint64 extract_auto_val(const char *data,
         type == NdbDictionary::Column::Int ||
         type == NdbDictionary::Column::Mediumint ||
         type == NdbDictionary::Column::Smallint ||
-        type == NdbDictionary::Column::Tinyint)
+        type == NdbDictionary::Column::Tinyint) {
     {
-      /* Negative signed value */
-      v = 0;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  restoreLogger.log_error(
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  /* Negative signed value */
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+restoreLogger.log_error("Foreign
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    "Foreign
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   v = 0;
     }
   }
 
@@ -3756,17 +4545,61 @@ bool BackupRestore::tuple(const TupleS & tup, Uint32 fragmentId)
     assert(m_transactions == m_parallelism);
     // send-poll all transactions
     // close transaction is done in callback
-    m_ndb->sendPollNdb(3000, 1);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Column*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Column
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cCol
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cCol
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  m_ndb->sendPollNdb(3000, 1);
   }
   
   restore_callback_t * cb = m_free_callback;
   
-  if (cb == 0)
+  if (cb == 0) {
     assert(false);
   
-  cb->retries = 0;
+  cb->retries = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  {
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    restoreLogger.log_error(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   cb->fragId = fragmentId;
-  cb->tup = tup; // must do copy!
+  cb->tup = tup; // 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+must
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+restoreLogger.log_error("Foreign
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    "Foreign
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ do copy!
 
   if (tab->isSYSTAB_0())
   {
@@ -3885,8 +4718,28 @@ void BackupRestore::tuple_a(restore_callback_t *cb)
 	Uint32 length = 0;
 
         if (attr_desc->m_exclude)
-          continue;
        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+BackupRestore::get_fatal_error()
+{
+=======
+BackupRestore::get_fatal_error()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {  continue;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+err)
+{
+=======
+err)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {    
         if (!attr_data->null)
         {
           const unsigned char * src = (const unsigned char *)dataPtr;
@@ -3913,7 +4766,7 @@ void BackupRestore::tuple_a(restore_callback_t *cb)
           update_next_auto_val(orig_table_id, usedAutoVal + 1);
         }
 
-        /* Use column's DB pk status to decide whether it is a key or data */
+         /* Use column's DB pk status to decide whether it is a key or data */
         const bool col_pk_in_kernel =
           table->getColumn(attr_desc->attrId)->getPrimaryKey();
 	
@@ -3926,8 +4779,7 @@ void BackupRestore::tuple_a(restore_callback_t *cb)
             dataPtr = (char*)attr_desc->convertFunc(dataPtr,
                                                     attr_desc->parameter,
                                                     truncated);
-            if (!dataPtr)
-            {
+            if (!dataPtr)       {
               const char* tabname = tup.getTable()->m_dictTable->getName();
               restoreLogger.log_error("Error: Convert data failed when restoring tuples!"
                  " Data part, table %s", tabname);
@@ -3947,9 +4799,32 @@ void BackupRestore::tuple_a(restore_callback_t *cb)
         }
 
 	if (col_pk_in_kernel)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+; i++) 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+; i++) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 	{
-	  if (j == 1) continue;
-	  ret = op->equal(attr_desc->attrId, dataPtr);
+	  if (j == 1) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+continue;
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	AttributeDesc
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  AttributeDesc
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  ret = op->equal(attr_desc->attrId, dataPtr);
 	}
 	else
 	{
@@ -4054,9 +4929,22 @@ void BackupRestore::logErrorWithTuple(const char* prefix, TupleS const *tup)
   for (int i = 0; i < size; i++)
   {
     AttributeData * attr_data = tup->getData(i);
-    AttributeDesc * attr_desc = tup->getDesc(i);
+    AttributeDesc * attr_desc = tup->getDesc(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dataPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
     const AttributeS attr = {attr_desc, *attr_data};
-    ndberr << attr.Desc->m_column->getName() << "=" << attr;
+    ndberr << attr.Desc->m_column->getName() << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"=" << attr;
     if (i < (size - 1))
       ndberr << ", ";
   }
@@ -4066,7 +4954,16 @@ void BackupRestore::logErrorWithTuple(const char* prefix, TupleS const *tup)
 
 void BackupRestore::logErrorWithLogEntry(const char* prefix, LogEntry const *le)
 {
-  NdbMutex_Lock(restoreLogger.m_mutex);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+dataPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ NdbMutex_Lock(restoreLogger.m_mutex);
   ndberr << prefix << *le << "\n";
   NdbMutex_Unlock(restoreLogger.m_mutex);
 }
@@ -4090,7 +4987,27 @@ void BackupRestore::cback(int result, restore_callback_t *cb)
      * Error. temporary or permanent?
      */
     if (errorHandler(cb))
-      tuple_a(cb); // retry
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tabname
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tabname
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  tuple_a(cb); // retry
     else
     {
       cb->next = m_free_callback;
@@ -4105,9 +5022,47 @@ void BackupRestore::cback(int result, restore_callback_t *cb)
       }
       else
       {
-        restoreLogger.log_error("Restore: Failed to restore data due to an "
+        restoreLogger.log_error("Restore: Failed to restore data 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+due
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+for
+// RONDB-624 todo: Glue these lines together ^v
+=======
+for
+              //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to an "
                                 "unrecoverable error. You could provide "
-                                "--continue-on-data-errors to not give up at "
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    
+=======
+}
+
+>>>>>>> MySQL 8.0.36
+   "--continue-on-data-errors to not give up 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+at
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+
+	if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ "
                                 "this point. Exiting...");
         logErrorWithTuple("The tuple that failed to restore is: ", &cb->tup);
         set_fatal_error(true);
@@ -4177,9 +5132,73 @@ bool BackupRestore::errorHandler(restore_callback_t *cb)
     // RETRY
     
   case NdbError::UnknownResult:
-    restoreLogger.log_error("Unknown: %u %s", error.code, error.message);
-    return false;
-    // ERROR!
+    restoreLogger.log_error("Unknown: %u %s", 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+error.code,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TableS&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TableS
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+error.message
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+table
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Dictionary*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Dictionary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ return false;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tablename
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tablename
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ // ERROR!
     
   default:
   case NdbError::PermanentError:
@@ -4195,7 +5214,27 @@ void
 BackupRestore::tuple_free()
 {
   if (!m_restore)
-    return;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Table*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tab
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tab
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  return;
 
   // Poll all transactions
   while (m_transactions)
@@ -4217,15 +5256,36 @@ BackupRestore::tryCreatePkMappingIndex(TableS* table,
   NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
   const NdbDictionary::Table* ndbtab = dict->getTable(short_table_name);
 
-  if (ndbtab == NULL)
-  {
+  if (ndbtab == NULL) {
     restoreLogger.log_error("Failed to find table %s in DB.  Error : %u %s.",
                             table->getTableName(),
-                            dict->getNdbError().code,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Exiting...");
+=======
+"
+          "Exiting...");
+>>>>>>> MySQL 8.0.36
+                dict->getNdbError().code,
                             dict->getNdbError().message);
     return false;
   }
-  NdbDictionary::Index idx(PK_MAPPING_IDX_NAME);
+  NdbDictionary::Index 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+idx(PK_MAPPING_IDX_NAME
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Exiting..."
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+        "Exiting..."
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
   if (idx.setTable(short_table_name) != 0)
   {
@@ -4256,41 +5316,202 @@ BackupRestore::tryCreatePkMappingIndex(TableS* table,
                                "PK mapping index for table %s.",
                                attrDesc->m_column->getName(),
                                col->getName(),
+
                                table->getTableName());
 
-        if (idx.addColumn(*col) != 0)
-        {
-          restoreLogger.log_error("Problem adding column %s to index",
-                                  col->getName());
-          return false;
-        }
+        if (idx.addColumn(*col) != 0)     {
+          restoreLogger.log_error("Problem adding 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+column
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+}
 
-        oldPkColsAvailable++;
+void
+BackupRestore::endOfTuples()
+{
+=======
+}
+}
+
+void BackupRestore::endOfTuples()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%s
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tuple_free();
+}
+
+bool
+BackupRestore::tryCreatePkMappingIndex(TableS*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tuple_free(); }
+
+bool BackupRestore::tryCreatePkMappingIndex(TableS
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+index"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+table
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                                  col->getName());
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   return false;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+short_table_name)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*short_table_name) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Dictionary*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Dictionary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     }
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Table*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ndbtab
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ndbtab
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    oldPkColsAvailable++;
       }
       else
       {
         restoreLogger.log_info("Warning : Table %s primary key column %s "
-                               "no longer exists in DB.",
-                               table->getTableName(),
+                               "no longer exists in DB.",    table->getTableName(),
                                attrDesc->m_column->getName());
       }
     }
   }
 
-  if (oldPkColsAvailable == 0)
-  {
+  if (oldPkColsAvailable == 0) {
     restoreLogger.log_error("Table %s has update or delete backup log "
                             "entries and no columns from the old "
-                            "primary key are available. "
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AttributeDesc*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AttributeDesc
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+attrDesc
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*attrDesc
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                      "primary key are available. "
                             "Restore using backup schema then ALTER to "
-                            "new schema.",
+                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Column*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Column
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+col
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*col
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   "new schema.",
                             table->getTableName());
     return false;
   }
 
   if (dict->createIndex(idx) == 0)
   {
-    restoreLogger.log_info("Built PK mapping index on table %s.",
+    restoreLogger.log_info(
+            "Built PK mapping index on table %s.",
                            table->getTableName());
 
     restoreLogger.log_info("Remember to run ndb_restore --rebuild-indexes "
@@ -4317,10 +5538,36 @@ BackupRestore::tryCreatePkMappingIndex(TableS* table,
     /**
      * System busy with other (schema) operation
      *
-     * This could be e.g. another ndb_restore instance building
-     * the index, or something else
+     * This could be e.g. another 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndb_restore
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+=======
+} else {
+>>>>>>> MySQL 8.0.36
+ instance building
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+restoreLogger.log_info(
+>>>>>>> MySQL 8.0.36
+ index, or something 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
+||||||| Common ancestor
+{
+=======
+>>>>>>> MySQL 8.0.36
      */
-    restoreLogger.log_info("Build PK mapping index : System busy with "
+    "Build PK mapping index : System busy with "
                            "other schema operation, retrying.");
     return true;
   }
@@ -4371,8 +5618,7 @@ BackupRestore::getPkMappingIndex(TableS* table)
   /* Set database, schema */
   BaseString db_name, schema_name, table_name;
   if (!dissect_table_name(table->getTableName(),
-                          db_name, schema_name, table_name))
-  {
+                          db_name, schema_name, table_name)) {
     restoreLogger.log_error("Failed to dissect table name : %s",
                             table->getTableName());
     return false;
@@ -4393,9 +5639,7 @@ BackupRestore::getPkMappingIndex(TableS* table)
       /* Found index, use it */
       table->m_pk_index = dbIdx;
       return true;
-    }
-    else
-    {
+    }   else   {
       NdbError getErr = dict->getNdbError();
 
       if (getErr.code == 701)
@@ -4407,7 +5651,33 @@ BackupRestore::getPkMappingIndex(TableS* table)
          * the index, or some other DDL.
          */
         restoreLogger.log_info("Build PK mapping index : System busy with "
-                               "other schema operation, retrying.");
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+bool
+BackupRestore::getPkMappingIndex(TableS*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+bool BackupRestore::getPkMappingIndex(TableS
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+table)
+{
+=======
+*table) {
+>>>>>>> MySQL 8.0.36
+     "other schema operation, retrying.");
         NdbSleep_MilliSleep(100 + retry_count * 300);
         continue;
       }
@@ -4427,20 +5697,80 @@ BackupRestore::getPkMappingIndex(TableS* table)
         retry_count = 0;
         NdbSleep_MilliSleep(100 + retry_count * 300);
         /* Retry lookup */
-        continue;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Index*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Index
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dbIdx
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dbIdx
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    continue;
       }
-      else if (getErr.status == NdbError::TemporaryError)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbDictionary::Dictionary*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Dictionary
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dict
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dict
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   else if (getErr.status == NdbError::TemporaryError)
       {
         NdbSleep_MilliSleep(100 + retry_count * 300);
-        /* Retry lookup */
+ db_name, schema_name,
+      /* Retry lookup */
         continue;
       }
       else
       {
         restoreLogger.log_error("Failure looking up PK mapping index on "
                                 "table %s %u %s.",
-                                table->getTableName(),
-                                getErr.code,
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+short_table_name
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*short_table_name
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               table->getTableName(),      getErr.code,
                                 getErr.message);
         return false;
       }
@@ -4464,14 +5794,77 @@ BackupRestore::dropPkMappingIndex(const TableS* table)
   }
   check_rewrite_database(db_name);
 
-  m_ndb->setDatabaseName(db_name.c_str());
+  m_ndb->setDatabaseName(db_name.c_str(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+));
   m_ndb->setSchemaName(schema_name.c_str());
   NdbDictionary::Dictionary* dict = m_ndb->getDictionary();
+||||||| Common ancestor
+"Build PK mapping index : System busy with "
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
 
   /* Drop any support indexes */
-  bool dropped = false;
-  int attempts = MAX_RETRIES;
-  while (!dropped && attempts--)
+  bool dropped = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+false;
+||||||| Common ancestor
+=======
+"Build
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ PK 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+int
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+mapping
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+attempts
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+index
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MAX_RETRIES;
+||||||| Common ancestor
+=======
+System
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ busy 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+while
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+with "
+>>>>>>> MySQL 8.0.36
+ (!dropped && attempts--)
   {
     dict->dropIndex(PK_MAPPING_IDX_NAME,
                     table_name.c_str());
@@ -4491,16 +5884,25 @@ BackupRestore::dropPkMappingIndex(const TableS* table)
       continue;
     case NdbError::PermanentError:
       if (dropErr.code == 723 ||
-          dropErr.code == 4243)
-      {
+          dropErr.code == 4243) {
         // No such table exists
         dropped = true;
         break;
-      }
-      [[fallthrough]];
+      } [[fallthrough]];
     default:
-      restoreLogger.log_error("Error dropping mapping index on %s %u %s",
-                              tablename,
+      restoreLogger.log_error(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"Error dropping mapping index on %s %u %s",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"Failure looking up PK mapping index on "
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+            "Failure looking up PK mapping index on "
+          tablename,
                               dropErr.code,
                               dropErr.message);
       return false;
@@ -4548,9 +5950,31 @@ callback_logentry(int result, NdbTransaction* trans, void* aObject)
   (cb->restore)->cback_logentry(result, cb);
 }
 
-bool
-BackupRestore::logEntry(const LogEntry &le)
-{
+bool BackupRestore::logEntry(const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LogEntry
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TableS*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TableS
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&le
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+table
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*table
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) {
   if (!m_restore)
     return true;
 
@@ -4562,8 +5986,7 @@ BackupRestore::logEntry(const LogEntry &le)
 
   restore_callback_t * cb = m_free_callback;
 
-  if (cb == 0)
-    abort();
+  if (cb == 0)   abort();
 
   cb->retries = 0;
   cb->le = &le;
@@ -4596,17 +6019,37 @@ BackupRestore::logEntry_a(restore_callback_t *cb)
     if (unlikely(tup.m_table->m_pk_index == NULL))
     {
       /* Need to get/build an index for this purpose */
-      if (!getPkMappingIndex(tup.m_table))
-      {
+      if (!getPkMappingIndex(tup.m_table)) {
         restoreLogger.log_error("Build of PK mapping index failed "
                                 "on table %s.",
                                 tup.m_table->getTableName());
         set_fatal_error(true);
-        return;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    return;
       }
       assert(tup.m_table->m_pk_index != NULL);
 
-      restoreLogger.log_info("Using PK mapping index on table %s.",
+      restoreLogger.log_info("Using PK mapping index
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tablename,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ on 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+table
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tablename,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ %s.",
                              tup.m_table->getTableName());
     }
 
@@ -4638,15 +6081,54 @@ retry:
       goto retry;
     set_fatal_error(true);
     restoreLogger.log_error("Cannot start transaction: %u: %s", cb->error_code,
-                            m_ndb->getNdbError(cb->error_code).message);
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbTransaction*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbTransaction
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+trans,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*trans,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+aObject)
+{
+=======
+*aObject) {
+>>>>>>> MySQL 8.0.36
+      m_ndb->getNdbError(cb->error_code).message);
     return;
   }
 
   const NdbDictionary::Table * table = get_table(*tup.m_table);
   NdbOperation * op = NULL;
 
-  if (unlikely(use_mapping_idx))
-  {
+  if (unlikely(use_mapping_idx)) {
     /* UI access */
     op = trans->getNdbIndexOperation(tup.m_table->m_pk_index,
                                      table);
@@ -4679,14 +6161,51 @@ retry:
     check = op->deleteTuple();
     break;
   default:
-    restoreLogger.log_error("Log entry has wrong operation type %u"
+    restoreLogger.log_error(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"Log entry has wrong operation type %u"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"Build of PK mapping index failed "
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
 	  " Exiting...", tup.m_type);
     m_ndb->closeTransaction(trans);
-    set_fatal_error(true);
-    return;
-  }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set_fatal_error(true);
+||||||| Common ancestor
+=======
+"Build
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ of PK mapping 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return;
+||||||| Common ancestor
+=======
+index
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ failed 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
 
-  if (check != 0) 
+  if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+>>>>>>> MySQL 8.0.36
+ (check != 0) 
   {
     restoreLogger.log_error("Error defining op: %u: %s",
               trans->getNdbError().code, trans->getNdbError().message);
@@ -4714,8 +6233,7 @@ retry:
   for (Uint32 pass= 0; pass < 2; pass++)  // Keys then Values
   {
     Uint32 mapping_idx_key_count = 0;
-    for (Uint32 i= 0; i < tup.size(); i++)
-    {
+    for (Uint32 i= 0; i < tup.size(); i++)   {
       const AttributeS * attr = tup[i];
       const int size = attr->Desc->size;
       const int arraySize = attr->Desc->arraySize;
@@ -4730,8 +6248,7 @@ retry:
       bool col_is_key = col_pk_in_kernel;
       Uint32 keyAttrId = attrId;
 
-      if (unlikely(use_mapping_idx))
-      {
+      if (unlikely(use_mapping_idx))     {
         if (col_pk_in_backup)
         {
           /* Using a secondary UI to map non-excluded
@@ -4758,8 +6275,7 @@ retry:
       /* Check for unsupported PK update */
       if (unlikely(!col_pk_in_backup && col_pk_in_kernel))
       {
-        if (unlikely(tup.m_type == LogEntry::LE_UPDATE))
-        {
+        if (unlikely(tup.m_type == LogEntry::LE_UPDATE))       {
           if ((m_tableChangesMask & TCM_IGNORE_EXTENDED_PK_UPDATES) != 0)
           {
             /* Ignore it as requested */
@@ -4802,9 +6318,39 @@ retry:
 
       if (attr->Desc->convertFunc &&
           dataPtr != NULL) // NULL will not be converted
-      {
-        bool truncated = true; // assume data truncation until overridden
-        dataPtr = (char*)attr->Desc->convertFunc(dataPtr,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+restoreLogger.log_error("Error : Primary key remapping
+// RONDB-624 todo: Glue these lines together ^v
+=======
+restoreLogger.log_error(
+>>>>>>> MySQL 8.0.36
+    bool truncated = true; // assume data truncation until overridden
+   "Error : Primary key remapping 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+dataPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+failed
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+"
+>>>>>>> MySQL 8.0.36
+ (char*)attr->Desc->convertFunc(dataPtr,
                                                  attr->Desc->parameter,
                                                  truncated);
         if (!dataPtr)
@@ -4817,8 +6363,7 @@ retry:
           set_fatal_error(true);
           return;
         }
-        if (truncated)
-        {
+        if (truncated)   {
           // wl5421: option to report data truncation on tuple of desired
           //err << "******  data truncation detected for column: "
           //    << attr->Desc->m_column->getName() << endl;
@@ -4837,23 +6382,73 @@ retry:
         }
         else if (tup.m_type == LogEntry::LE_UPDATE)
         {
-          // If an LE_UPDATE entry contains the same 'key' twice,
-          // the second log entry is an update of the value.
-          // (As we request only changed values in the triggers)
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(char*)attr->Desc->convertFunc(dataPtr,
+=======
+(char *)attr->Desc->convertFunc(
+>>>>>>> MySQL 8.0.36
+ // If an LE_UPDATE entry contains the same 'key' twice,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        // the second log entry is an update of the value.
+          // (As we request only changed values in the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+dataPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ triggers)
           check= op->setValue(attrId, dataPtr);
         }
       }
       else
       {
         assert(pass == 1);
-        if (tup.m_type != LogEntry::LE_DELETE)
-        {
+        if (tup.m_type != LogEntry::LE_DELETE) {
           check= op->setValue(attrId, dataPtr);
-        }
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  restoreLogger.log_error("Error: Convert data failed when restoring tuples! "
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  restoreLogger.log_error(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       }
 
-      if (check != 0)
-      {
+      if (check 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+"Error: Convert
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0)
+||||||| Common ancestor
+=======
+data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ failed when restoring tuples! "
+ {
         restoreLogger.log_error("Error defining log op: %u %s.",
               trans->getNdbError().code, trans->getNdbError().message);
         if (errorHandler(cb)) // temp error, retry
@@ -4943,58 +6538,50 @@ void BackupRestore::cback_logentry(int result, restore_callback_t *cb)
       return;
     }
   }
-  m_logBytes+= cb->n_bytes;
+  m_logBytes += cb->n_bytes;
   m_logCount++;
 }
 
-void
-BackupRestore::endOfLogEntrys()
-{
-  if (!m_restore)
-    return;
+void BackupRestore::endOfLogEntrys() {
+  if (!m_restore) return;
 
-  if (m_pk_update_warning_count > 0)
-  {
-    restoreLogger.log_info("Warning : --ignore-extended-pk-updates resulted in %llu "
-                           "modifications to extended primary key columns being "
-                           "ignored.",
-                           m_pk_update_warning_count);
+  if (m_pk_update_warning_count > 0) {
+    restoreLogger.log_info(
+        "Warning : --ignore-extended-pk-updates resulted in %llu "
+        "modifications to extended primary key columns being "
+        "ignored.",
+        m_pk_update_warning_count);
   }
 
   info.setLevel(254);
-  restoreLogger.log_info("Restored %u tuples and "
-      "%u log entries", m_dataCount, m_logCount);
+  restoreLogger.log_info(
+      "Restored %u tuples and "
+      "%u log entries",
+      m_dataCount, m_logCount);
 }
 
 /*
  *   callback : This is called when the transaction is polled
- *              
- *   (This function must have three arguments: 
- *   - The result of the transaction, 
- *   - The NdbTransaction object, and 
+ *
+ *   (This function must have three arguments:
+ *   - The result of the transaction,
+ *   - The NdbTransaction object, and
  *   - A pointer to an arbitrary object.)
  */
 
-static void
-callback(int result, NdbTransaction* trans, void* aObject)
-{
+static void callback(int result, NdbTransaction *trans, void *aObject) {
   restore_callback_t *cb = (restore_callback_t *)aObject;
   (cb->restore)->cback(result, cb);
 }
 
-
-AttrCheckCompatFunc 
-BackupRestore::get_attr_check_compatability(const NDBCOL::Type &old_type, 
-                                            const NDBCOL::Type &new_type) 
-{
+AttrCheckCompatFunc BackupRestore::get_attr_check_compatability(
+    const NDBCOL::Type &old_type, const NDBCOL::Type &new_type) {
   int i = 0;
   NDBCOL::Type first_item = m_allowed_promotion_attrs[0].old_type;
   NDBCOL::Type second_item = m_allowed_promotion_attrs[0].new_type;
 
-  while (first_item != old_type || second_item != new_type) 
-  {
-    if (first_item == NDBCOL::Undefined)
-      break;
+  while (first_item != old_type || second_item != new_type) {
+    if (first_item == NDBCOL::Undefined) break;
 
     i++;
     first_item = m_allowed_promotion_attrs[i].old_type;
@@ -5002,21 +6589,17 @@ BackupRestore::get_attr_check_compatability(const NDBCOL::Type &old_type,
   }
   if (first_item == old_type && second_item == new_type)
     return m_allowed_promotion_attrs[i].attr_check_compatability;
-  return  NULL;
+  return NULL;
 }
 
-AttrConvertFunc
-BackupRestore::get_convert_func(const NDBCOL::Type &old_type, 
-                                const NDBCOL::Type &new_type) 
-{
+AttrConvertFunc BackupRestore::get_convert_func(const NDBCOL::Type &old_type,
+                                                const NDBCOL::Type &new_type) {
   int i = 0;
   NDBCOL::Type first_item = m_allowed_promotion_attrs[0].old_type;
   NDBCOL::Type second_item = m_allowed_promotion_attrs[0].new_type;
 
-  while (first_item != old_type || second_item != new_type)
-  {
-    if (first_item == NDBCOL::Undefined)
-      break;
+  while (first_item != old_type || second_item != new_type) {
+    if (first_item == NDBCOL::Undefined) break;
     i++;
     first_item = m_allowed_promotion_attrs[i].old_type;
     second_item = m_allowed_promotion_attrs[i].new_type;
@@ -5024,28 +6607,21 @@ BackupRestore::get_convert_func(const NDBCOL::Type &old_type,
   if (first_item == old_type && second_item == new_type)
     return m_allowed_promotion_attrs[i].attr_convert;
 
-  return  NULL;
-
+  return NULL;
 }
 
-AttrConvType
-BackupRestore::check_compat_promotion(const NDBCOL &old_col,
-                                      const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_promotion(const NDBCOL &old_col,
+                                                   const NDBCOL &new_col) {
   return ACT_PRESERVING;
 }
 
-AttrConvType
-BackupRestore::check_compat_lossy(const NDBCOL &old_col,
-                                  const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_lossy(const NDBCOL &old_col,
+                                               const NDBCOL &new_col) {
   return ACT_LOSSY;
 }
 
-AttrConvType
-BackupRestore::check_compat_sizes(const NDBCOL &old_col,
-                                  const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_sizes(const NDBCOL &old_col,
+                                               const NDBCOL &new_col) {
   // the size (width) of the element type
   Uint32 new_size = new_col.getSize();
   Uint32 old_size = old_col.getSize();
@@ -5054,9 +6630,8 @@ BackupRestore::check_compat_sizes(const NDBCOL &old_col,
   Uint32 old_length = old_col.getLength();
 
   // identity conversions have been handled by column_compatible_check()
-  assert(new_size != old_size
-         || new_length != old_length
-         || new_col.getArrayType() != old_col.getArrayType());
+  assert(new_size != old_size || new_length != old_length ||
+         new_col.getArrayType() != old_col.getArrayType());
 
   // test for loss of element width or array length
   if (new_size < old_size || new_length < old_length) {
@@ -5072,22 +6647,17 @@ BackupRestore::check_compat_sizes(const NDBCOL &old_col,
   return ACT_PRESERVING;
 }
 
-AttrConvType
-BackupRestore::check_compat_precision(const NDBCOL &old_col,
-                                      const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_precision(const NDBCOL &old_col,
+                                                   const NDBCOL &new_col) {
   Uint32 new_prec = new_col.getPrecision();
   Uint32 old_prec = old_col.getPrecision();
 
-  if (new_prec < old_prec)
-    return ACT_LOSSY;
+  if (new_prec < old_prec) return ACT_LOSSY;
   return ACT_PRESERVING;
 }
 
-AttrConvType
-BackupRestore::check_compat_char_binary(const NDBCOL &old_col,
-                                           const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_char_binary(const NDBCOL &old_col,
+                                                     const NDBCOL &new_col) {
   // as in check_compat_sizes
   assert(old_col.getSize() == 1 && new_col.getSize() == 1);
   Uint32 new_length = new_col.getLength();
@@ -5099,234 +6669,371 @@ BackupRestore::check_compat_char_binary(const NDBCOL &old_col,
   return ACT_PRESERVING;
 }
 
-AttrConvType
-BackupRestore::check_compat_char_to_text(const NDBCOL &old_col,
-                                         const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_char_to_text(const NDBCOL &old_col,
+                                                      const NDBCOL &new_col) {
   if (new_col.getPrimaryKey()) {
     // staging will refuse this so detect early
-    restoreLogger.log_info("convert of TEXT to primary key column not supported");
+    restoreLogger.log_info(
+        "convert of TEXT to primary key column not supported");
     return ACT_UNSUPPORTED;
   }
   return ACT_STAGING_PRESERVING;
 }
 
-AttrConvType
-BackupRestore::check_compat_text_to_char(const NDBCOL &old_col,
-                                         const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_text_to_char(const NDBCOL &old_col,
+                                                      const NDBCOL &new_col) {
   if (old_col.getPrimaryKey()) {
     // staging will refuse this so detect early
-    restoreLogger.log_info("convert of primary key column to TEXT not supported");
+    restoreLogger.log_info(
+        "convert of primary key column to TEXT not supported");
     return ACT_UNSUPPORTED;
   }
   return ACT_STAGING_LOSSY;
 }
 
-AttrConvType
-BackupRestore::check_compat_text_to_text(const NDBCOL &old_col,
-                                         const NDBCOL &new_col)
-{
-  if(old_col.getCharset() != new_col.getCharset()) 
-  {
-    restoreLogger.log_info("convert to field with different charset not supported"); 
+AttrConvType BackupRestore::check_compat_text_to_text(const NDBCOL &old_col,
+                                                      const NDBCOL &new_col) {
+  if (old_col.getCharset() != new_col.getCharset()) {
+    restoreLogger.log_info(
+        "convert to field with different charset not supported");
     return ACT_UNSUPPORTED;
   }
-  if(old_col.getPartSize() > new_col.getPartSize()) 
-  {
-   // TEXT/MEDIUMTEXT/LONGTEXT to TINYTEXT conversion is potentially lossy at the 
-   // Ndb level because there is a hard limit on the TINYTEXT size.
-   // TEXT/MEDIUMTEXT/LONGTEXT is not lossy at the Ndb level, but can be at the 
-   // MySQL level.
-   // Both conversions require the lossy switch, but they are not lossy in the same way.
+  if (old_col.getPartSize() > new_col.getPartSize()) {
+    // TEXT/MEDIUMTEXT/LONGTEXT to TINYTEXT conversion is potentially lossy at
+    // the Ndb level because there is a hard limit on the TINYTEXT size.
+    // TEXT/MEDIUMTEXT/LONGTEXT is not lossy at the Ndb level, but can be at the
+    // MySQL level.
+    // Both conversions require the lossy switch, but they are not lossy in the
+    // same way.
     return ACT_STAGING_LOSSY;
   }
   return ACT_STAGING_PRESERVING;
 }
 
-AttrConvType
-BackupRestore::check_compat_binary_to_blob(const NDBCOL &old_col,
-                                           const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_binary_to_blob(const NDBCOL &old_col,
+                                                        const NDBCOL &new_col) {
   return ACT_STAGING_PRESERVING;
 }
 
-AttrConvType
-BackupRestore::check_compat_blob_to_binary(const NDBCOL &old_col,
-                                           const NDBCOL &new_col)
-{
+AttrConvType BackupRestore::check_compat_blob_to_binary(const NDBCOL &old_col,
+                                                        const NDBCOL &new_col) {
   return ACT_STAGING_LOSSY;
 }
 
-AttrConvType
-BackupRestore::check_compat_blob_to_blob(const NDBCOL &old_col,
-                                         const NDBCOL &new_col)
-{
-  if(old_col.getPartSize() > new_col.getPartSize())
-  {
-   // BLOB/MEDIUMBLOB/LONGBLOB to TINYBLOB conversion is potentially lossy at the
-   // Ndb level because there is a hard limit on the TINYBLOB size.
-   // BLOB/MEDIUMBLOB/LONGBLOB is not lossy at the Ndb level, but can be at the
-   // MySQL level.
-   // Both conversions require the lossy switch, but they are not lossy in the same way.
+AttrConvType BackupRestore::check_compat_blob_to_blob(const NDBCOL &old_col,
+                                                      const NDBCOL &new_col) {
+  if (old_col.getPartSize() > new_col.getPartSize()) {
+    // BLOB/MEDIUMBLOB/LONGBLOB to TINYBLOB conversion is potentially lossy at
+    // the Ndb level because there is a hard limit on the TINYBLOB size.
+    // BLOB/MEDIUMBLOB/LONGBLOB is not lossy at the Ndb level, but can be at the
+    // MySQL level.
+    // Both conversions require the lossy switch, but they are not lossy in the
+    // same way.
     return ACT_STAGING_LOSSY;
   }
   return ACT_STAGING_PRESERVING;
 }
-
 
 // ----------------------------------------------------------------------
 // explicit template instantiations
 // ----------------------------------------------------------------------
 
-template class Vector<NdbDictionary::Table*>;
-template class Vector<const NdbDictionary::Table*>;
-template class Vector<NdbDictionary::Tablespace*>;
-template class Vector<NdbDictionary::LogfileGroup*>;
-template class Vector<NdbDictionary::HashMap*>;
-template class Vector<NdbDictionary::Index*>;
-template class Vector<Vector<NdbDictionary::Index*> >;
+template class Vector<NdbDictionary::Table *>;
+template class Vector<const NdbDictionary::Table *>;
+template class Vector<NdbDictionary::Tablespace *>;
+template class Vector<NdbDictionary::LogfileGroup *>;
+template class Vector<NdbDictionary::HashMap *>;
+template class Vector<NdbDictionary::Index *>;
+template class Vector<Vector<NdbDictionary::Index *>>;
 
 // char array promotions/demotions
-template void * BackupRestore::convert_array< Hchar, Hchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hchar, Hvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hchar, Hlongvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarchar, Hchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarchar, Hvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarchar, Hlongvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarchar, Hchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarchar, Hvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarchar, Hlongvarchar >(const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hchar, Hchar>(const void *, void *,
+                                                          bool &);
+template void *BackupRestore::convert_array<Hchar, Hvarchar>(const void *,
+                                                             void *, bool &);
+template void *BackupRestore::convert_array<Hchar, Hlongvarchar>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_array<Hvarchar, Hchar>(const void *,
+                                                             void *, bool &);
+template void *BackupRestore::convert_array<Hvarchar, Hvarchar>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_array<Hvarchar, Hlongvarchar>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarchar, Hchar>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_array<Hlongvarchar, Hvarchar>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarchar, Hlongvarchar>(
+    const void *, void *, bool &);
 
 // binary array promotions/demotions
-template void * BackupRestore::convert_array< Hbinary, Hbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hbinary, Hvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hbinary, Hlongvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarbinary, Hbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarbinary, Hvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarbinary, Hlongvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarbinary, Hbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarbinary, Hvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarbinary, Hlongvarbinary >(const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hbinary, Hbinary>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_array<Hbinary, Hvarbinary>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_array<Hbinary, Hlongvarbinary>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hvarbinary, Hbinary>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_array<Hvarbinary, Hvarbinary>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hvarbinary, Hlongvarbinary>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarbinary, Hbinary>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarbinary, Hvarbinary>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarbinary, Hlongvarbinary>(
+    const void *, void *, bool &);
 
 // char to binary promotions/demotions
-template void * BackupRestore::convert_array< Hchar, Hbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hchar, Hvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hchar, Hlongvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarchar, Hbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarchar, Hvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarchar, Hlongvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarchar, Hbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarchar, Hvarbinary >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarchar, Hlongvarbinary >(const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hchar, Hbinary>(const void *,
+                                                            void *, bool &);
+template void *BackupRestore::convert_array<Hchar, Hvarbinary>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_array<Hchar, Hlongvarbinary>(const void *,
+                                                                   void *,
+                                                                   bool &);
+template void *BackupRestore::convert_array<Hvarchar, Hbinary>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_array<Hvarchar, Hvarbinary>(const void *,
+                                                                  void *,
+                                                                  bool &);
+template void *BackupRestore::convert_array<Hvarchar, Hlongvarbinary>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarchar, Hbinary>(const void *,
+                                                                   void *,
+                                                                   bool &);
+template void *BackupRestore::convert_array<Hlongvarchar, Hvarbinary>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarchar, Hlongvarbinary>(
+    const void *, void *, bool &);
 
 // binary array to char array promotions/demotions
-template void * BackupRestore::convert_array< Hbinary, Hchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hbinary, Hvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hbinary, Hlongvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarbinary, Hchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarbinary, Hvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hvarbinary, Hlongvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarbinary, Hchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarbinary, Hvarchar >(const void *, void *, bool &);
-template void * BackupRestore::convert_array< Hlongvarbinary, Hlongvarchar >(const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hbinary, Hchar>(const void *,
+                                                            void *, bool &);
+template void *BackupRestore::convert_array<Hbinary, Hvarchar>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_array<Hbinary, Hlongvarchar>(const void *,
+                                                                   void *,
+                                                                   bool &);
+template void *BackupRestore::convert_array<Hvarbinary, Hchar>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_array<Hvarbinary, Hvarchar>(const void *,
+                                                                  void *,
+                                                                  bool &);
+template void *BackupRestore::convert_array<Hvarbinary, Hlongvarchar>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarbinary, Hchar>(const void *,
+                                                                   void *,
+                                                                   bool &);
+template void *BackupRestore::convert_array<Hlongvarbinary, Hvarchar>(
+    const void *, void *, bool &);
+template void *BackupRestore::convert_array<Hlongvarbinary, Hlongvarchar>(
+    const void *, void *, bool &);
 
 // integral promotions
-template void * BackupRestore::convert_integral<Hint8, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint8, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint8, Hint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint8, Hint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint16, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint16, Hint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint16, Hint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Hint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Hint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Hint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Huint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Huint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Huint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Huint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Huint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Huint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Huint64>(const void *, void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Hint16>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Hint24>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Hint32>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Hint64>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Hint24>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Hint32>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Hint64>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Hint32>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Hint64>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Hint64>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Huint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Huint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Huint32>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Huint64>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint16, Huint24>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint16, Huint32>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint16, Huint64>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint24, Huint32>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint24, Huint64>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint32, Huint64>(const void *,
+                                                                 void *,
+                                                                 bool &);
 
 // integral demotions
-template void * BackupRestore::convert_integral<Hint16, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Hint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Huint32>(const void *, void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Hint8>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Hint8>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Hint16>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Hint8>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Hint16>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Hint24>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Hint8>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Hint16>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Hint24>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Hint32>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint16, Huint8>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint24, Huint8>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint24, Huint16>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint32, Huint8>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint32, Huint16>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint32, Huint24>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint64, Huint8>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint64, Huint16>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint64, Huint24>(const void *,
+                                                                 void *,
+                                                                 bool &);
+template void *BackupRestore::convert_integral<Huint64, Huint32>(const void *,
+                                                                 void *,
+                                                                 bool &);
 
 // integral signedness BackupRestore::conversions
-template void * BackupRestore::convert_integral<Hint8, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint16, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Huint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Huint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Hint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Hint64>(const void *, void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Huint8>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Huint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Huint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Huint32>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Huint64>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Hint8>(const void *,
+                                                              void *, bool &);
+template void *BackupRestore::convert_integral<Huint16, Hint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint24, Hint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint32, Hint32>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint64, Hint64>(const void *,
+                                                                void *, bool &);
 
 // integral signedness+promotion BackupRestore::conversions
-template void * BackupRestore::convert_integral<Hint8, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint8, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint8, Huint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint8, Huint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint16, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint16, Huint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint16, Huint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Huint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Huint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Huint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Hint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint8, Hint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Hint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Hint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Hint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Hint64>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Hint64>(const void *, void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Huint16>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Huint24>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Huint32>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint8, Huint64>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Huint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Huint32>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Huint64>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Huint32>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Huint64>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Huint64>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Hint16>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Hint24>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Hint32>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint8, Hint64>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint16, Hint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint16, Hint32>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint16, Hint64>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint24, Hint32>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint24, Hint64>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint32, Hint64>(const void *,
+                                                                void *, bool &);
 
 // integral signedness+demotion BackupRestore::conversions
-template void * BackupRestore::convert_integral<Hint16, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint24, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint32, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Huint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Huint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Huint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Hint64, Huint32>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint16, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint24, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint32, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Hint8>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Hint16>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Hint24>(const void *, void *, bool &);
-template void * BackupRestore::convert_integral<Huint64, Hint32>(const void *, void *, bool &);
+template void *BackupRestore::convert_integral<Hint16, Huint8>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Huint8>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint24, Huint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Huint8>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Huint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint32, Huint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Huint8>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Huint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Huint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Hint64, Huint32>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint16, Hint8>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint24, Hint8>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint24, Hint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint32, Hint8>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint32, Hint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint32, Hint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint64, Hint8>(const void *,
+                                                               void *, bool &);
+template void *BackupRestore::convert_integral<Huint64, Hint16>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint64, Hint24>(const void *,
+                                                                void *, bool &);
+template void *BackupRestore::convert_integral<Huint64, Hint32>(const void *,
+                                                                void *, bool &);

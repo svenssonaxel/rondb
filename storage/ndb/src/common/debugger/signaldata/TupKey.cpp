@@ -26,29 +26,20 @@
 
 #include <signaldata/TupKey.hpp>
 
-bool printTUPKEYREQ(FILE* output,
-                    const Uint32* theData,
-                    Uint32 len,
-                    Uint16 /*receiverBlockNo*/)
-{
+bool printTUPKEYREQ(FILE *output, const Uint32 *theData, Uint32 len,
+                    Uint16 /*receiverBlockNo*/) {
   printHex(output, theData, len, "Signal data:");
   return true;
 }
 
-bool printTUPKEYCONF(FILE* output,
-                     const Uint32* theData,
-                     Uint32 len,
-                     Uint16 /*receiverBlockNo*/)
-{
+bool printTUPKEYCONF(FILE *output, const Uint32 *theData, Uint32 len,
+                     Uint16 /*receiverBlockNo*/) {
   printHex(output, theData, len, "Signal data:");
   return true;
 }
 
-bool printTUPKEYREF(FILE* output,
-                    const Uint32* theData,
-                    Uint32 len,
-                    Uint16 /*receiverBlockNo*/)
-{
+bool printTUPKEYREF(FILE *output, const Uint32 *theData, Uint32 len,
+                    Uint16 /*receiverBlockNo*/) {
   printHex(output, theData, len, "Signal data:");
   return true;
 }

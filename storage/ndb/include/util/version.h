@@ -24,13 +24,12 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-
 #ifndef VERSION_H
 #define VERSION_H
 #include <ndb_version.h>
 
 /* some backwards compatible macros */
-#define MAKE_VERSION(A,B,C) NDB_MAKE_VERSION(A,B,C)
+#define MAKE_VERSION(A, B, C) NDB_MAKE_VERSION(A, B, C)
 #define getMajor(a) ndbGetMajor(a)
 #define getMinor(a) ndbGetMinor(a)
 #define getBuild(a) ndbGetBuild(a)
@@ -39,15 +38,15 @@
 extern "C" {
 #endif
 
-  int ndbCompatible_ndb_backup(Uint32 ownVersion, Uint32 otherVersion);
+int ndbCompatible_ndb_backup(Uint32 ownVersion, Uint32 otherVersion);
   int ndbCompatible_ndb_schema(Uint32 ownVersion, Uint32 otherVersion);
   int ndbCompatible_mgmt_ndb(Uint32 ownVersion, Uint32 otherVersion);
-  int ndbCompatible_ndb_mgmt(Uint32 ownVersion, Uint32 otherVersion);
-  int ndbCompatible_mgmt_api(Uint32 ownVersion, Uint32 otherVersion);
-  int ndbCompatible_api_mgmt(Uint32 ownVersion, Uint32 otherVersion);
-  int ndbCompatible_api_ndb(Uint32 ownVersion, Uint32 otherVersion);
-  int ndbCompatible_ndb_api(Uint32 ownVersion, Uint32 otherVersion);
-  int ndbCompatible_ndb_ndb(Uint32 ownVersion, Uint32 otherVersion);
+int ndbCompatible_ndb_mgmt(Uint32 ownVersion, Uint32 otherVersion);
+int ndbCompatible_mgmt_api(Uint32 ownVersion, Uint32 otherVersion);
+int ndbCompatible_api_mgmt(Uint32 ownVersion, Uint32 otherVersion);
+int ndbCompatible_api_ndb(Uint32 ownVersion, Uint32 otherVersion);
+int ndbCompatible_ndb_api(Uint32 ownVersion, Uint32 otherVersion);
+int ndbCompatible_ndb_ndb(Uint32 ownVersion, Uint32 otherVersion);
 
 #ifdef __cplusplus
 }

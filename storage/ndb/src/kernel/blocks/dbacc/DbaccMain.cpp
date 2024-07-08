@@ -22,45 +22,61 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#include "util/require.h"
 #include <cstdint>
 #include <cstring>
+#include "util/require.h"
 
 #define DBACC_C
 #include "Dbacc.hpp"
 
 #include <AttributeHeader.hpp>
 #include <Bitmask.hpp>
+#include <EventLogger.hpp>
+#include <KeyDescriptor.hpp>
+#include <md5_hash.hpp>
 #include <signaldata/AccFrag.hpp>
-#include <signaldata/AccScan.hpp>
-#include <signaldata/NextScan.hpp>
 #include <signaldata/AccLock.hpp>
+#include <signaldata/AccScan.hpp>
+#include <signaldata/DbinfoScan.hpp>
+#include <signaldata/DropTab.hpp>
+#include <signaldata/DumpStateOrd.hpp>
 #include <signaldata/EventReport.hpp>
 #include <signaldata/FsConf.hpp>
 #include <signaldata/FsRef.hpp>
 #include <signaldata/FsRemoveReq.hpp>
-#include <signaldata/DropTab.hpp>
-#include <signaldata/DumpStateOrd.hpp>
-#include <signaldata/TuxMaint.hpp>
-#include <signaldata/DbinfoScan.hpp>
-#include <signaldata/TransIdAI.hpp>
-#include <KeyDescriptor.hpp>
+#include <signaldata/NextScan.hpp>
 #include <signaldata/NodeStateSignalData.hpp>
-#include <util/rondb_hash.hpp>
-#include <EventLogger.hpp>
+#include <
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+util/rondb_hash
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+md5_hash
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signaldata/TransIdAI
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.hpp>
+#include <signaldata/TuxMaint.hpp>
 
-extern EventLogger* g_eventLogger;
+extern EventLogger *g_eventLogger;
 
 #ifdef VM_TRACE
-#define ACC_DEBUG(x) ndbout << "DBACC: "<< x << endl;
+#define ACC_DEBUG(x) ndbout << "DBACC: " << x << endl;
 #else
 #define ACC_DEBUG(x)
 #endif
 
 #ifdef ACC_SAFE_QUEUE
-#define vlqrequire(x) do { if (unlikely(!(x))) {\
-   dump_lock_queue(loPtr); \
-   ndbabort(); } } while(0)
+#define vlqrequire(x)         \
+  do {                        \
+    if (unlikely(!(x))) {     \
+      dump_lock_queue(loPtr); \
+      ndbabort();             \
+    }                         \
+  } while (0)
 #else
 #define vlqrequire(x) ndbrequire(x)
 #define dump_lock_queue(x)
@@ -85,8 +101,8 @@ extern EventLogger* g_eventLogger;
 #endif
 
 // primary key is stored in TUP
-#include "../dbtup/Dbtup.hpp"
 #include "../dblqh/Dblqh.hpp"
+#include "../dbtup/Dbtup.hpp"
 /**
  * DBACC interface description
  * ---------------------------
@@ -215,100 +231,89 @@ extern EventLogger* g_eventLogger;
 // Index pages used by ACC instances, used by CMVMI to report index memory usage
 extern Uint32 g_acc_pages_used[1 + MAX_NDBMT_LQH_WORKERS];
 
-void
-Dbacc::prepare_scan_ctx(Uint32 scanPtrI)
-{
-  (void)scanPtrI;
-}
+void Dbacc::prepare_scan_ctx(Uint32 scanPtrI) { (void)scanPtrI; }
 
 // Signal entries and statement blocks
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /*                                                                                   */
-/*       COMMON SIGNAL RECEPTION MODULE                                              */
+/*       COMMON SIGNAL RECEPTION MODULE */
 /*                                                                                   */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
 
-/* --------------------------------------------------------------------------------- */
-/* ******************--------------------------------------------------------------- */
-/* CONTINUEB                                       CONTINUE SIGNAL                   */
-/* ******************------------------------------+                                 */
+/* ---------------------------------------------------------------------------------
+ */
+/* ******************---------------------------------------------------------------
+ */
+/* CONTINUEB                                       CONTINUE SIGNAL */
+/* ******************------------------------------+ */
 /*   SENDER: ACC,    LEVEL B       */
-void Dbacc::execCONTINUEB(Signal* signal) 
-{
+void Dbacc::execCONTINUEB(Signal *signal) {
   jamEntry();
   Uint32 tcase = signal->theData[0];
   switch (tcase) {
-  case ZINITIALISE_RECORDS:
-    jam();
-    initialiseRecordsLab(signal,
-                         signal->theData[1],
-                         signal->theData[3],
-                         signal->theData[4]);
-    return;
-    break;
-  case ZREL_ROOT_FRAG:
-    {
+    case ZINITIALISE_RECORDS:
+      jam();
+      initialiseRecordsLab(signal, signal->theData[1], signal->theData[3],
+                           signal->theData[4]);
+      return;
+      break;
+    case ZREL_ROOT_FRAG: {
       jam();
       Uint32 tableId = signal->theData[1];
       releaseRootFragResources(signal, tableId);
       break;
     }
-  case ZREL_FRAG:
-    {
+    case ZREL_FRAG: {
       jam();
       Uint32 fragId = signal->theData[1];
       Uint32 tableId = signal->theData[2];
       releaseFragResources(signal, tableId, fragId);
       break;
     }
-  case ZREL_DIR:
-    {
+    case ZREL_DIR: {
       jam();
       releaseDirResources(signal);
       break;
     }
-  case ZACC_SHRINK_TRANSIENT_POOLS:
-  {
-    jam();
-    Uint32 pool_index = signal->theData[1];
-    ndbassert(signal->getLength() == 2);
-    shrinkTransientPools(pool_index);
-    break;
-  }
-#if (defined(VM_TRACE) || \
-     defined(ERROR_INSERT)) && \
+    case ZACC_SHRINK_TRANSIENT_POOLS: {
+      jam();
+      Uint32 pool_index = signal->theData[1];
+      ndbassert(signal->getLength() == 2);
+      shrinkTransientPools(pool_index);
+      break;
+    }
+#if (defined(VM_TRACE) || defined(ERROR_INSERT)) && \
     defined(DO_TRANSIENT_POOL_STAT)
 
-  case ZACC_TRANSIENT_POOL_STAT:
-  {
-    for (Uint32 pool_index = 0;
-         pool_index < c_transient_pool_count;
-         pool_index++)
-    {
-      g_eventLogger->info(
-        "DBACC %u: Transient slot pool %u %p: Entry size %u:"
-       " Free %u: Used %u: Used high %u: Size %u: For shrink %u",
-       instance(),
-       pool_index,
-       c_transient_pools[pool_index],
-       c_transient_pools[pool_index]->getEntrySize(),
-       c_transient_pools[pool_index]->getNoOfFree(),
-       c_transient_pools[pool_index]->getUsed(),
-       c_transient_pools[pool_index]->getUsedHi(),
-       c_transient_pools[pool_index]->getSize(),
-       c_transient_pools_shrinking.get(pool_index));
+    case ZACC_TRANSIENT_POOL_STAT: {
+      for (Uint32 pool_index = 0; pool_index < c_transient_pool_count;
+           pool_index++) {
+        g_eventLogger->info(
+            "DBACC %u: Transient slot pool %u %p: Entry size %u:"
+            " Free %u: Used %u: Used high %u: Size %u: For shrink %u",
+            instance(), pool_index, c_transient_pools[pool_index],
+            c_transient_pools[pool_index]->getEntrySize(),
+            c_transient_pools[pool_index]->getNoOfFree(),
+            c_transient_pools[pool_index]->getUsed(),
+            c_transient_pools[pool_index]->getUsedHi(),
+            c_transient_pools[pool_index]->getSize(),
+            c_transient_pools_shrinking.get(pool_index));
+      }
+      sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 1);
+      break;
     }
-    sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 1);
-    break;
-  }
 #endif
-  default:
-    ndbabort();
-  }//switch
+    default:
+      ndbabort();
+  }  // switch
   return;
-}//Dbacc::execCONTINUEB()
+}  // Dbacc::execCONTINUEB()
 
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
@@ -327,69 +332,64 @@ void Dbacc::execCONTINUEB(Signal* signal)
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
-void Dbacc::execNDB_STTOR(Signal* signal) 
-{
+void Dbacc::execNDB_STTOR(Signal *signal) {
   jamEntry();
   BlockReference ndbcntrRef = signal->theData[0];
   Uint32 startphase = signal->theData[2];
   switch (startphase) {
-  case ZSPH1:
-    jam();
-    break;
-  case ZSPH2:
-    break;
-  case ZSPH3:
-    break;
-  case ZSPH6:
-    jam();
-    break;
-  default:
-    jam();
-    /*empty*/;
-    break;
-  }//switch
+    case ZSPH1:
+      jam();
+      break;
+    case ZSPH2:
+      break;
+    case ZSPH3:
+      break;
+    case ZSPH6:
+      jam();
+      break;
+    default:
+      jam();
+      /*empty*/;
+      break;
+  }  // switch
   signal->theData[0] = reference();
   sendSignal(ndbcntrRef, GSN_NDB_STTORRY, signal, 1, JBB);
   return;
-}//Dbacc::execNDB_STTOR()
+}  // Dbacc::execNDB_STTOR()
 
-/* ******************--------------------------------------------------------------- */
-/* STTOR                                              START /  RESTART               */
-/* ******************------------------------------+                                 */
+/* ******************---------------------------------------------------------------
+ */
+/* STTOR                                              START /  RESTART */
+/* ******************------------------------------+ */
 /*   SENDER: ANY,    LEVEL B       */
-void Dbacc::execSTTOR(Signal* signal) 
-{
+void Dbacc::execSTTOR(Signal *signal) {
   jamEntry();
   Uint32 tstartphase = signal->theData[1];
   switch (tstartphase) {
-  case 1:
-    jam();
-    if (m_is_query_block)
-    {
-      ndbrequire((c_tup = (Dbtup*)globalData.getBlock(DBQTUP,
-                                                      instance())) != 0);
-      ndbrequire((c_lqh = (Dblqh*)globalData.getBlock(DBQLQH,
-                                                      instance())) != 0);
-    }
-    else
-    {
-      ndbrequire((c_tup = (Dbtup*)globalData.getBlock(DBTUP,
-                                                      instance())) != 0);
-      ndbrequire((c_lqh = (Dblqh*)globalData.getBlock(DBLQH,
-                                                      instance())) != 0);
-    }
-    break;
-  case 3:
-#if (defined(VM_TRACE) || \
-     defined(ERROR_INSERT)) && \
+    case 1:
+      jam();
+      if (m_is_query_block) {
+        ndbrequire((c_tup = (Dbtup *)globalData.getBlock(DBQTUP, instance())) !=
+                   0);
+        ndbrequire((c_lqh = (Dblqh *)globalData.getBlock(DBQLQH, instance())) !=
+                   0);
+      } else {
+        ndbrequire((c_tup = (Dbtup *)globalData.getBlock(DBTUP, instance())) !=
+                   0);
+        ndbrequire((c_lqh = (Dblqh *)globalData.getBlock(DBLQH, instance())) !=
+                   0);
+      }
+      break;
+    case 3:
+#if (defined(VM_TRACE) || defined(ERROR_INSERT)) && \
     defined(DO_TRANSIENT_POOL_STAT)
 
-    /* Start reporting statistics for transient pools */
-    signal->theData[0] = ZACC_TRANSIENT_POOL_STAT;
-    sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
+      /* Start reporting statistics for transient pools */
+      signal->theData[0] = ZACC_TRANSIENT_POOL_STAT;
+      sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
 #endif
-    jam();
-    break;
+      jam();
+      break;
   case 8:
   {
     c_restart_allow_use_spare = false;
@@ -397,8 +397,7 @@ void Dbacc::execSTTOR(Signal* signal)
   }
   }
   Uint32 signalkey = signal->theData[6];
-  if (m_is_query_block)
-  {
+  if (m_is_query_block) {
     signal->theData[0] = signalkey;
     signal->theData[1] = 3;
     signal->theData[2] = 2;
@@ -407,9 +406,7 @@ void Dbacc::execSTTOR(Signal* signal)
     signal->theData[5] = 8;
     signal->theData[6] = 255;
     sendSignal(DBQACC_REF, GSN_STTORRY, signal, 7, JBB);
-  }
-  else
-  {
+  } else {
     signal->theData[0] = signalkey;
     signal->theData[1] = 3;
     signal->theData[2] = 2;
@@ -420,62 +417,60 @@ void Dbacc::execSTTOR(Signal* signal)
     BlockReference cntrRef = !isNdbMtLqh() ? NDBCNTR_REF : DBACC_REF;
     sendSignal(cntrRef, GSN_STTORRY, signal, 7, JBB);
   }
-}//Dbacc::execSTTOR()
+}  // Dbacc::execSTTOR()
 
-/* --------------------------------------------------------------------------------- */
-/* ZSPH1                                                                             */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::initialiseRecordsLab(Signal* signal,
-                                 Uint32 index,
-                                 Uint32 ref,
-                                 Uint32 data)
-{
-  switch (index)
-  {
-  case 0:
-    jam();
-    initialiseTableRec();
+/* ---------------------------------------------------------------------------------
+ */
+/* ZSPH1 */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::initialiseRecordsLab(Signal *signal, Uint32 index, Uint32 ref,
+                                 Uint32 data) {
+  switch (index) {
+    case 0:
+      jam();
+      initialiseTableRec();
+      break;
+    case 1:
+    case 2:
+      break;
+    case 3:
+      jam();
+      break;
+    case 4:
+      jam();
+      break;
+    case 5:
+      jam();
+      break;
+    case 6:
+      jam();
     break;
-  case 1:
-  case 2:
-    break;
-  case 3:
-    jam();
-    break;
-  case 4:
-    jam();
-    break;
-  case 5:
-    jam();
-    break;
-  case 6:
-    jam();
-    break;
-  case 7:
-    jam();
-    break;
-  case 8:
-    jam();
-    initialisePageRec();
-    break;
-  case 9:
-    jam();
-    break;
-  case 10:
-    jam();
+    case 7:
+      jam();
+      break;
+    case 8:
+      jam();
+      initialisePageRec();
+      break;
+    case 9:
+      jam();
+      break;
+    case 10:
+      jam();
 
-    {
-      ReadConfigConf * conf = (ReadConfigConf*)signal->getDataPtrSend();
-      conf->senderRef = reference();
-      conf->senderData = data;
-      sendSignal(ref, GSN_READ_CONFIG_CONF, signal, 
-		 ReadConfigConf::SignalLength, JBB);
-    }
-    return;
-    break;
-  default:
-    ndbabort();
-  }//switch
+      {
+        ReadConfigConf *conf = (ReadConfigConf *)signal->getDataPtrSend();
+        conf->senderRef = reference();
+        conf->senderData = data;
+        sendSignal(ref, GSN_READ_CONFIG_CONF, signal,
+                   ReadConfigConf::SignalLength, JBB);
+      }
+      return;
+      break;
+    default:
+      ndbabort();
+  }  // switch
 
   signal->theData[0] = ZINITIALISE_RECORDS;
   signal->theData[1] = index + 1;
@@ -484,21 +479,20 @@ void Dbacc::initialiseRecordsLab(Signal* signal,
   signal->theData[4] = data;
   sendSignal(reference(), GSN_CONTINUEB, signal, 5, JBB);
   return;
-}//Dbacc::initialiseRecordsLab()
+}  // Dbacc::initialiseRecordsLab()
 
-void Dbacc::execREAD_CONFIG_REQ(Signal* signal) 
-{
-  const ReadConfigReq * req = (ReadConfigReq*)signal->getDataPtr();
+void Dbacc::execREAD_CONFIG_REQ(Signal *signal) {
+  const ReadConfigReq *req = (ReadConfigReq *)signal->getDataPtr();
   Uint32 ref = req->senderRef;
   Uint32 senderData = req->senderData;
   ndbrequire(req->noOfParameters == 0);
-  
+
   jamEntry();
 
-  const ndb_mgm_configuration_iterator * p = 
-    m_ctx.m_config.getOwnConfigIterator();
+  const ndb_mgm_configuration_iterator *p =
+      m_ctx.m_config.getOwnConfigIterator();
   ndbrequire(p != 0);
-  
+
   ndbrequire(!ndb_mgm_get_int_parameter(p, CFG_ACC_TABLE, &ctablesize));
   initRecords(p);
 
@@ -506,23 +500,26 @@ void Dbacc::execREAD_CONFIG_REQ(Signal* signal)
   return;
 }
 
-/* --------------------------------------------------------------------------------- */
-/* INITIALISE_PAGE_REC                                                               */
+/* ---------------------------------------------------------------------------------
+ */
+/* INITIALISE_PAGE_REC */
 /*              INITIALATES THE PAGE RECORDS.                                        */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
 void Dbacc::initialisePageRec()
 {
   cnoOfAllocatedPages = 0;
   cnoOfAllocatedPagesMax = 0;
-}//Dbacc::initialisePageRec()
+}  // Dbacc::initialisePageRec()
 
 
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
 /* INITIALISE_TABLE_REC                                                              */
 /*              INITIALATES THE TABLE RECORDS.                                       */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::initTable(Tabrec *tabPtrP)
-{
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::initTable(Tabrec *tabPtrP) {
   tabPtrP->tabUserRef = Uint32(~0);
   tabPtrP->tabUserPtr = RNIL;
   tabPtrP->tabUserGsn = Uint32(~0);
@@ -541,31 +538,39 @@ void Dbacc::initialiseTableRec()
   }
 }
 
-void Dbacc::set_tup_fragptr(Uint64 fragptr, Uint64 tup_fragptr)
-{
+void Dbacc::set_tup_fragptr(Uint64 fragptr, Uint64 tup_fragptr) {
   ndbrequire(c_fragment_pool.getPtr(fragrecptr, fragptr));
   fragrecptr.p->tupFragptr = tup_fragptr;
 }
 
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /*                                                                                   */
-/*       END OF SYSTEM RESTART MODULE                                                */
+/*       END OF SYSTEM RESTART MODULE */
 /*                                                                                   */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /*                                                                                   */
-/*       ADD/DELETE FRAGMENT MODULE                                                  */
+/*       ADD/DELETE FRAGMENT MODULE */
 /*                                                                                   */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::execACCFRAGREQ(Signal* signal) 
-{
-  const AccFragReq * const req = (AccFragReq*)&signal->theData[0];
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::execACCFRAGREQ(Signal *signal) {
+  const AccFragReq *const req = (AccFragReq *)&signal->theData[0];
   jamEntry();
   if (ERROR_INSERTED(3001)) {
     jam();
@@ -590,8 +595,7 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
     addFragRefuse(signal, ZLOCAL_KEY_LENGTH_ERROR);
     return;
   }
-  if (!seizeFragrec())
-  {
+  if (!seizeFragrec()) {
     jam();
     addFragRefuse(signal, ZFULL_FRAGRECORD_ERROR);
     return;
@@ -604,7 +608,7 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
     releaseFragRecord(fragrecptr);
     addFragRefuse(signal, ZFULL_FRAGRECORD_ERROR);
     return;
-  }//if
+  }  // if
   Page8Ptr spPageptr;
   ndbassert(!m_is_query_block);
   bool use_spare = false;
@@ -614,19 +618,16 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
     jam();
     use_spare = true;
   }
-  Uint32 result = seizePage(spPageptr,
-                            Page32Lists::ANY_SUB_PAGE,
+  Uint32 result =
+      seizePage(spPageptr, Page32Lists::ANY_SUB_PAGE,
                             false,
-                            use_spare,
-                            fragrecptr,
-                            jamBuffer());
+                            use_spare, fragrecptr, jamBuffer());
   if (result > ZLIMIT_OF_ERROR) {
     jam();
     addFragRefuse(signal, result);
     return;
-  }//if
-  if (!setPagePtr(fragrecptr.p->directory, 0, spPageptr.i))
-  {
+  }  // if
+  if (!setPagePtr(fragrecptr.p->directory, 0, spPageptr.i)) {
     jam();
     releasePage(spPageptr, fragrecptr, jamBuffer());
     addFragRefuse(signal, ZDIR_RANGE_FULL_ERROR);
@@ -639,7 +640,7 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
   BlockReference retRef = req->userRef;
   fragrecptr.p->rootState = ACTIVEROOT;
 
-  AccFragConf * const conf = (AccFragConf*)&signal->theData[0];
+  AccFragConf *const conf = (AccFragConf *)&signal->theData[0];
   conf->userPtr = userPtr;
   conf->rootFragPtr = RNIL;
   conf->fragId[0] = fragrecptr.p->fragmentid;
@@ -648,12 +649,11 @@ void Dbacc::execACCFRAGREQ(Signal* signal)
   conf->fragPtr[1] = RNIL;
   conf->rootHashCheck = fragrecptr.p->roothashcheck;
   sendSignal(retRef, GSN_ACCFRAGCONF, signal, AccFragConf::SignalLength, JBB);
-}//Dbacc::execACCFRAGREQ()
+}  // Dbacc::execACCFRAGREQ()
 
-void Dbacc::addFragRefuse(Signal* signal, Uint32 errorCode) const
-{
-  const AccFragReq * const req = (AccFragReq*)&signal->theData[0];  
-  AccFragRef * const ref = (AccFragRef*)&signal->theData[0];  
+void Dbacc::addFragRefuse(Signal *signal, Uint32 errorCode) const {
+  const AccFragReq *const req = (AccFragReq *)&signal->theData[0];
+  AccFragRef *const ref = (AccFragRef *)&signal->theData[0];
   Uint32 userPtr = req->userPtr;
   BlockReference retRef = req->userRef;
 
@@ -661,17 +661,16 @@ void Dbacc::addFragRefuse(Signal* signal, Uint32 errorCode) const
   ref->errorCode = errorCode;
   sendSignal(retRef, GSN_ACCFRAGREF, signal, AccFragRef::SignalLength, JBB);
   return;
-}//Dbacc::addFragRefuseEarly()
+}  // Dbacc::addFragRefuseEarly()
 
-void
-Dbacc::execDROP_TAB_REQ(Signal* signal){
+void Dbacc::execDROP_TAB_REQ(Signal *signal) {
   jamEntry();
-  DropTabReq* req = (DropTabReq*)signal->getDataPtr();
+  DropTabReq *req = (DropTabReq *)signal->getDataPtr();
 
   TabrecPtr tabPtr;
   tabPtr.i = req->tableId;
   ptrCheckGuard(tabPtr, ctablesize, tabrec);
-  
+
   tabPtr.p->tabUserRef = req->senderRef;
   tabPtr.p->tabUserPtr = req->senderData;
   tabPtr.p->tabUserGsn = GSN_DROP_TAB_REQ;
@@ -681,11 +680,10 @@ Dbacc::execDROP_TAB_REQ(Signal* signal){
   sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
 }
 
-void
-Dbacc::execDROP_FRAG_REQ(Signal* signal)
+void Dbacc::execDROP_FRAG_REQ(Signal *signal)
 {
   jamEntry();
-  DropFragReq* req = (DropFragReq*)signal->getDataPtr();
+  DropFragReq *req = (DropFragReq *)signal->getDataPtr();
 
   TabrecPtr tabPtr;
   tabPtr.i = req->tableId;
@@ -706,17 +704,14 @@ Dbacc::execDROP_FRAG_REQ(Signal* signal)
   releaseRootFragResources(signal, req->tableId);
 }
 
-void Dbacc::releaseRootFragResources(Signal* signal, Uint32 tableId)
-{
+void Dbacc::releaseRootFragResources(Signal *signal, Uint32 tableId) {
   TabrecPtr tabPtr;
   tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, ctablesize, tabrec);
 
-  if (tabPtr.p->tabUserGsn == GSN_DROP_TAB_REQ)
-  {
+  if (tabPtr.p->tabUserGsn == GSN_DROP_TAB_REQ) {
     jam();
-    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
-    {
+    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++) {
       jam();
       Uint32 fragId = c_lqh->getNextAccFragid(tabPtr.i, i);
       if (fragId != RNIL)
@@ -730,36 +725,32 @@ void Dbacc::releaseRootFragResources(Signal* signal, Uint32 tableId)
     /**
      * Finished...
      */
-    DropTabConf * const dropConf = (DropTabConf *)signal->getDataPtrSend();
+    DropTabConf *const dropConf = (DropTabConf *)signal->getDataPtrSend();
     dropConf->senderRef = reference();
     dropConf->senderData = tabPtr.p->tabUserPtr;
     dropConf->tableId = tabPtr.i;
-    sendSignal(tabPtr.p->tabUserRef, GSN_DROP_TAB_CONF,
-               signal, DropTabConf::SignalLength, JBB);
-  }
-  else
-  {
+    sendSignal(tabPtr.p->tabUserRef, GSN_DROP_TAB_CONF, signal,
+               DropTabConf::SignalLength, JBB);
+  } else {
     ndbrequire(tabPtr.p->tabUserGsn == GSN_DROP_FRAG_REQ);
 
-    DropFragConf * conf = (DropFragConf *)signal->getDataPtrSend();
+    DropFragConf *conf = (DropFragConf *)signal->getDataPtrSend();
     conf->senderRef = reference();
     conf->senderData = tabPtr.p->tabUserPtr;
     conf->tableId = tabPtr.i;
-    sendSignal(tabPtr.p->tabUserRef, GSN_DROP_FRAG_CONF,
-               signal, DropFragConf::SignalLength, JBB);
+    sendSignal(tabPtr.p->tabUserRef, GSN_DROP_FRAG_CONF, signal,
+               DropFragConf::SignalLength, JBB);
   }
   initTable(tabPtr.p);
-}//Dbacc::releaseRootFragResources()
+}  // Dbacc::releaseRootFragResources()
 
-void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
-{
+void Dbacc::releaseFragResources(Signal *signal, Uint32 tableId, Uint32 fragId) {
   jam();
   FragmentrecPtr regFragPtr;
   getFragPtr(regFragPtr, tableId, fragId, false);
   verifyFragCorrect(regFragPtr);
 
-  if (regFragPtr.p->expandOrShrinkQueued)
-  {
+  if (regFragPtr.p->expandOrShrinkQueued) {
     regFragPtr.p->level.clear();
 
     // slack > 0 ensures EXPANDCHECK2 will do nothing.
@@ -792,9 +783,9 @@ void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
   } else {
     jam();
     {
-      ndbassert(static_cast<Uint32>(regFragPtr.p->m_noOfAllocatedPages) == 
-                  regFragPtr.p->sparsepages.getCount() +
-                  regFragPtr.p->fullpages.getCount());
+      ndbassert(static_cast<Uint32>(regFragPtr.p->m_noOfAllocatedPages) ==
+                regFragPtr.p->sparsepages.getCount() +
+                    regFragPtr.p->fullpages.getCount());
       regFragPtr.p->m_noOfAllocatedPages = 0;
 
       LocalPage8List freelist(c_page8_pool, cfreepages);
@@ -802,7 +793,8 @@ void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
       freelist.appendList(regFragPtr.p->sparsepages);
       cnoOfAllocatedPages -= regFragPtr.p->fullpages.getCount();
       freelist.appendList(regFragPtr.p->fullpages);
-      ndbassert(pages.getCount() == cfreepages.getCount() + cnoOfAllocatedPages);
+      ndbassert(pages.getCount() ==
+                cfreepages.getCount() + cnoOfAllocatedPages);
       ndbassert(pages.getCount() <= cpageCount);
     }
     jam();
@@ -813,9 +805,9 @@ void Dbacc::releaseFragResources(Signal* signal, Uint32 tableId, Uint32 fragId)
     signal->theData[0] = ZREL_ROOT_FRAG;
     signal->theData[1] = tab;
     sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-  }//if
+  }  // if
   //ndbassert(validatePageCount());
-}//Dbacc::releaseFragResources()
+}  // Dbacc::releaseFragResources()
 
 void Dbacc::verifyFragCorrect(FragmentrecPtr regFragPtr)const
 {
@@ -831,8 +823,7 @@ void Dbacc::verifyFragCorrect(FragmentrecPtr regFragPtr)const
   }
 }//Dbacc::verifyFragCorrect()
 
-void Dbacc::releaseDirResources(Signal* signal)
-{
+void Dbacc::releaseDirResources(Signal *signal) {
   jam();
   Uint32 fragId = signal->theData[1];
   Uint32 tableId = signal->theData[2];
@@ -845,7 +836,7 @@ void Dbacc::releaseDirResources(Signal* signal)
   ndbrequire(c_fragment_pool.getPtr(regFragPtr));
   verifyFragCorrect(regFragPtr);
 
-  DynArr256::Head* directory;
+  DynArr256::Head *directory;
   ndbrequire(signal->theData[0] == ZREL_DIR);
   directory = &regFragPtr.p->directory;
 
@@ -854,13 +845,10 @@ void Dbacc::releaseDirResources(Signal* signal)
   Uint32 pagei;
   fragrecptr = regFragPtr;
   int count = 32;
-  while (count > 0 &&
-         (ret = dir.release(iter, &pagei)) != 0)
-  {
+  while (count > 0 && (ret = dir.release(iter, &pagei)) != 0) {
     jam();
     count--;
-    if (ret == 1 && pagei != RNIL)
-    {
+    if (ret == 1 && pagei != RNIL) {
       jam();
       Page8Ptr rpPageptr;
       rpPageptr.i = pagei;
@@ -868,8 +856,7 @@ void Dbacc::releaseDirResources(Signal* signal)
       releasePage(rpPageptr, fragrecptr, jamBuffer());
     }
   }
-  while (ret == 0 && count > 0 && !cfreepages.isEmpty())
-  {
+  while (ret == 0 && count > 0 && !cfreepages.isEmpty()) {
     jam();
     Page8Ptr page;
     LocalPage8List freelist(c_page8_pool, cfreepages);
@@ -877,41 +864,35 @@ void Dbacc::releaseDirResources(Signal* signal)
     pages.releasePage8(c_page_pool, page);
     Page32Ptr page32ptr;
     pages.dropLastPage32(c_page_pool, page32ptr, 5);
-    if (page32ptr.i != RNIL)
-    {
+    if (page32ptr.i != RNIL) {
       jam();
       g_acc_pages_used[instance()]--;
       ndbassert(cpageCount >= 4);
-      cpageCount -= 4; // 8KiB pages per 32KiB page
+      cpageCount -= 4;  // 8KiB pages per 32KiB page
       m_ctx.m_mm.release_page(RT_DBACC_PAGE, page32ptr.i);
     }
     count--;
   }
-  if (ret != 0 || !cfreepages.isEmpty())
-  {
+  if (ret != 0 || !cfreepages.isEmpty()) {
     jam();
     memcpy(&signal->theData[3], &iter, sizeof(iter));
     sendSignal(reference(), GSN_CONTINUEB, signal, 3 + sizeof(iter) / 4, JBB);
-  }
-  else
-  {
+  } else {
     jam();
     signal->theData[0] = ZREL_FRAG;
     signal->theData[1] = fragId;
     signal->theData[2] = tableId;
     sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
   }
-}//Dbacc::releaseDirResources()
+}  // Dbacc::releaseDirResources()
 
-void Dbacc::releaseFragRecord(FragmentrecPtr regFragPtr)
-{
-  for (Uint32 i = 0; i < NUM_ACC_FRAGMENT_MUTEXES; i++)
-  {
+void Dbacc::releaseFragRecord(FragmentrecPtr regFragPtr) {
+  for (Uint32 i = 0; i < NUM_ACC_FRAGMENT_MUTEXES; i++) {
     NdbMutex_Deinit(&regFragPtr.p->acc_frag_mutex[i]);
   }
   c_fragment_pool.release(regFragPtr);
   RSS_OP_FREE(cnoOfAllocatedFragrec);
-}//Dbacc::releaseFragRecord()
+}  // Dbacc::releaseFragRecord()
 
 /* ------------------------------------------------------------------------- */
 /* ADDFRAGTOTAB                                                              */
@@ -934,10 +915,47 @@ void Dbacc::drop_fragment_from_table(Uint32 tableId, Uint32 fragId)
 
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
-/* ------------------------------------------------------------------------- */
-/*                                                                           */
-/*       END OF ADD/DELETE FRAGMENT MODULE                                   */
-/*                                                                           */
+/* -------------------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+-------- */
+// RONDB-624 todo: Glue these lines together ^v
+=======
+--------
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+<<<<<<< RonDB // RONDB-624 todo
+/*                                                                           
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/*                                                                                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+*/
+/*                                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+/*   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        */
+/*   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                                 */
+/*       END OF ADD/DELETE FRAGMENT MODULE */
+/*   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                                                        */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
@@ -959,22 +977,20 @@ void Dbacc::drop_fragment_from_table(Uint32 tableId, Uint32 fragId)
 /* ACCSEIZEREQ                                           SEIZE REQ           */
 /* ******************------------------------------+                         */
 /*   SENDER: LQH,    LEVEL B       */
-void Dbacc::execACCSEIZEREQ(Signal* signal) 
-{
+void Dbacc::execACCSEIZEREQ(Signal *signal) {
   jamEntry();
   Uint32 userptr = signal->theData[0];
   /* CONNECTION PTR OF LQH            */
   BlockReference userblockref = signal->theData[1];
   /* BLOCK REFERENCE OF LQH          */
-  if (!oprec_pool.seize(operationRecPtr))
-  {
+  if (!oprec_pool.seize(operationRecPtr)) {
     jam();
     Uint32 result = ZCONNECT_SIZE_ERROR;
     signal->theData[0] = userptr;
     signal->theData[1] = result;
     sendSignal(userblockref, GSN_ACCSEIZEREF, signal, 2, JBB);
     return;
-  }//if
+  }  // if
   operationRecPtr.p->userptr = userptr;
   operationRecPtr.p->userblockref = userblockref;
   /* ******************************< */
@@ -984,26 +1000,20 @@ void Dbacc::execACCSEIZEREQ(Signal* signal)
   signal->theData[1] = operationRecPtr.i;
   sendSignal(userblockref, GSN_ACCSEIZECONF, signal, 2, JBB);
   return;
-}//Dbacc::execACCSEIZEREQ()
+}  // Dbacc::execACCSEIZEREQ()
 
-Dbacc::Operationrec*
-Dbacc::get_operation_ptr(Uint32 i)
-{
+Dbacc::Operationrec *Dbacc::get_operation_ptr(Uint32 i) {
   OperationrecPtr opPtr;
   opPtr.i = i;
   ndbrequire(oprec_pool.getValidPtr(opPtr));
   return opPtr.p;
 }
 
-bool Dbacc::seize_op_rec(Uint32 userptr,
-                         BlockReference ref,
-                         Uint32 &i_val,
-                         Dbacc::Operationrec **ptr)
-{
+bool Dbacc::seize_op_rec(Uint32 userptr, BlockReference ref, Uint32 &i_val,
+                         Dbacc::Operationrec **ptr) {
   /* Cannot use jam here, called from other thread */
   OperationrecPtr opPtr;
-  if (unlikely(!oprec_pool.seize(opPtr)))
-  {
+  if (unlikely(!oprec_pool.seize(opPtr))) {
     return false;
   }
   opPtr.p->userptr = userptr;
@@ -1013,30 +1023,41 @@ bool Dbacc::seize_op_rec(Uint32 userptr,
   return true;
 }
 
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /*                                                                                   */
-/*       END OF CONNECTION MODULE                                                    */
+/*       END OF CONNECTION MODULE */
 /*                                                                                   */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /*                                                                                   */
-/*       EXECUTE OPERATION MODULE                                                    */
+/*       EXECUTE OPERATION MODULE */
 /*                                                                                   */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* INIT_OP_REC                                                                       */
-/*           INFORMATION WHICH IS RECEIVED BY ACCKEYREQ WILL BE SAVED                */
-/*           IN THE OPERATION RECORD.                                                */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* INIT_OP_REC */
+/*           INFORMATION WHICH IS RECEIVED BY ACCKEYREQ WILL BE SAVED */
+/*           IN THE OPERATION RECORD. */
+/* ---------------------------------------------------------------------------------
+ */
 inline
-void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
-{
+void Dbacc::initOpRec(const AccKeyReq *signal, Uint32 siglen) const {
   Uint32 Treqinfo;
 
   Treqinfo = signal->requestInfo;
@@ -1057,13 +1078,12 @@ void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
 
   Uint32 opbits = 0;
   opbits |= operation;
-  opbits |= readOp ? 0 : (Uint32) Operationrec::OP_LOCK_MODE;
-  opbits |= readOp ? 0 : (Uint32) Operationrec::OP_ACC_LOCK_MODE;
-  opbits |= dirtyReadOp ? (Uint32) Operationrec::OP_DIRTY_READ : 0;
-  opbits |= noWait ? (Uint32) Operationrec::OP_NOWAIT : 0;
-  if (AccKeyReq::getLockReq(Treqinfo))
-  {
-    opbits |= Operationrec::OP_LOCK_REQ;            // TUX LOCK_REQ
+  opbits |= readOp ? 0 : (Uint32)Operationrec::OP_LOCK_MODE;
+  opbits |= readOp ? 0 : (Uint32)Operationrec::OP_ACC_LOCK_MODE;
+  opbits |= dirtyReadOp ? (Uint32)Operationrec::OP_DIRTY_READ : 0;
+  opbits |= noWait ? (Uint32)Operationrec::OP_NOWAIT : 0;
+  if (AccKeyReq::getLockReq(Treqinfo)) {
+    opbits |= Operationrec::OP_LOCK_REQ;  // TUX LOCK_REQ
 
     /**
      * A lock req has SCAN_OP, it can't delete a row,
@@ -1077,8 +1097,8 @@ void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
      *       to treat it as a ZREAD...
      */
   }
-  
-  //operationRecPtr.p->nodeType = AccKeyReq::getReplicaType(Treqinfo);
+
+  // operationRecPtr.p->nodeType = AccKeyReq::getReplicaType(Treqinfo);
   ndbrequire(operationRecPtr.p->m_op_bits == Operationrec::OP_INITIAL);
   operationRecPtr.p->fid = fragrecptr.p->myfid;
   operationRecPtr.p->fragptr = fragrecptr.i;
@@ -1094,29 +1114,28 @@ void Dbacc::initOpRec(const AccKeyReq* signal, Uint32 siglen) const
   // bit to mark lock operation
   // undo log is not run via ACCKEYREQ
 
-  if (operationRecPtr.p->tupkeylen == 0)
-  {
+  if (operationRecPtr.p->tupkeylen == 0) {
     static_assert(AccKeyReq::SignalLength_localKey == 10);
     ndbassert(siglen == AccKeyReq::SignalLength_localKey);
-  }
-  else
-  {
+  } else {
     static_assert(AccKeyReq::SignalLength_keyInfo == 8);
-    ndbassert(siglen == AccKeyReq::SignalLength_keyInfo + operationRecPtr.p->tupkeylen);
+    ndbassert(siglen ==
+              AccKeyReq::SignalLength_keyInfo + operationRecPtr.p->tupkeylen);
   }
-}//Dbacc::initOpRec()
+}  // Dbacc::initOpRec()
 
-/* --------------------------------------------------------------------------------- */
-/* SEND_ACCKEYCONF                                                                   */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::sendAcckeyconf(Signal* signal) const
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* SEND_ACCKEYCONF */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::sendAcckeyconf(Signal *signal) const {
   signal->theData[0] = operationRecPtr.p->userptr;
   signal->theData[1] = operationRecPtr.p->m_op_bits & Operationrec::OP_MASK;
   signal->theData[2] = operationRecPtr.p->fid;
   signal->theData[3] = operationRecPtr.p->localdata.m_page_no;
   signal->theData[4] = operationRecPtr.p->localdata.m_page_idx;
-}//Dbacc::sendAcckeyconf()
+}  // Dbacc::sendAcckeyconf()
 
 /**
  * Query threads used also for locking operations.
@@ -1161,7 +1180,8 @@ void Dbacc::sendAcckeyconf(Signal* signal) const
  * problems in allocating the operation records.
  *
  * Solution to allocation of operation records.
- * -------------------------------------------- 
+ * --------------------------------------------
+ 
  * We want the LDM thread to be able to be efficient in most cases. We solve
  * this by ensuring that the LDM thread is the only thread that is allowed to
  * use the reserved records. Thus the LDM thread can allocate and deallocate
@@ -1187,7 +1207,20 @@ void Dbacc::sendAcckeyconf(Signal* signal) const
  * record in DBTUP and one in DBACC. Thus we need to consider those in the
  * solutions.
  *
- * Transaction data structure in DBLQH
+ * Transaction data 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+structure
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RECORD
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RECORD
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ in DBLQH
  * -----------------------------------
  * We use a transaction data structure where each locked read and each write
  * operation are inserted. This uses four keys, the 2 words of the transaction
@@ -1228,15 +1261,64 @@ void Dbacc::sendAcckeyconf(Signal* signal) const
  *
  * Scanning operation records in LDM thread
  * ----------------------------------------
- * We need to lock mutex that is used to allocate operation records from
- * LDM thread in a query thread during those scans. This ensures that the
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbacc::execACCKEYREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::execACCKEYREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We need to lock mutex that is used to allocate operation records from
+ * LDM thread in a query thread during those scans. This ensures
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ that the
  * record isn't released during the scan. Thus we can be sure that the
  * record is ok to read. However we cannot know the state of the operation
  * record since it is updated without mutex control.
  *
  * scanTcConnectLab (DBLQH)
  * ........................
- * This scans the operation records to find any operation record in the state
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AccKeyReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AccKeyReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+This
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ scans the operation records to find any operation record in the state
  * NOT_WRITTEN to set those to NOT_WRITTEN_WAIT. The state NOT_WRITTEN cannot
  * be set by locked reads, thus it can only be set by write operations. These
  * still can only be executed by the LDM thread and thus we are safe in
@@ -1301,9 +1383,31 @@ void Dbacc::sendAcckeyconf(Signal* signal) const
  * threads even if LDM threads could hold off for a while more. This makes
  * the code a lot easier to maintain.
  *
- * We need to access DBACC and lock the ACC fragment mutex during the
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+* We
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= getElement(req,
+=======
+=
+>>>>>>> MySQL 8.0.36
+ need to access DBACC and 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+lock the ACC fragment mutex during the
  * execution of execLQHKEYREQ. Most of the time this is first the
- * access in execACCKEYREQ and later an access through execACCKEY_ORD.
+ * access in execACCKEYREQ and later an access through
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+getElement(req,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ execACCKEY_ORD.
  *
  * ACCKEYREQ acquires the lock and ensures exclusive access to the
  * row.
@@ -1369,7 +1473,28 @@ void Dbacc::sendAcckeyconf(Signal* signal) const
  * focus on handling concurrent access from different operation records.
  *
  * To be able to find the operation record we must know the LQH block
- * reference, thus this has to be passed along in the ABORT signal
+ * reference, thus this 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+has
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Operationrec::OP_DIRTY_READ))
+=======
+Operationrec::OP_DIRTY_READ)) {
+>>>>>>> MySQL 8.0.36
+ to be passed along in the ABORT 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
  * and ABORTREQ signals from DBTC when a query thread was used by the
  * LQHKEYREQ signal.
  *
@@ -1388,15 +1513,46 @@ void Dbacc::sendAcckeyconf(Signal* signal) const
  * from the query thread hasn't arrived yet.
  */
 /* ******************------------------------------------------------------- */
-/* ACCKEYREQ                                 REQUEST FOR INSERT, DELETE,     */
+/* ACCKEYREQ                                 REQUEST FOR INSERT, DELETE,       */
 /*                                           READ AND UPDATE, A TUPLE.       */
 /*                                           SENDER: LQH,    LEVEL B         */
-/*  SIGNAL DATA: OPERATION_REC_PTR,          CONNECTION PTR                  */
-/*               TABPTR,                     TABLE ID = TABLE RECORD POINTER */
+/*  SIGNAL DATA: OPERATION_REC_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+PTR,  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ok((opbits & 
+=======
+ok(
+>>>>>>> MySQL 8.0.36
+        CONNECTION PTR       (opbits 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          */
+/*              
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ TABPTR,                     TABLE ID = TABLE RECORD POINTER */
 /*               TREQINFO,                                                   */
 /*               THASHVALUE,                 HASH VALUE OF THE TUP           */
 /*               TKEYLEN,                    LENGTH OF THE PRIMARY KEYS      */
-/*               KEY,                        PRIMARY KEY                     */
+/*               KEY,                 } else {
+     PRIMARY KEY       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+jamDebug();
+>>>>>>> MySQL 8.0.36
+              */
 /* ******************------------------------------------------------------- */
 void Dbacc::execACCKEYREQ(Signal* signal,
                           Uint32 opPtrI,
@@ -1411,7 +1567,37 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   ndbrequire(Magic::check_ptr(operationRecPtr.p));
 
   /*---------------------------------------------------------------*/
-  /*                                                               */
+  /*                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }  // 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+=======
+if
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  } else                      */
   /*       WE WILL USE THE HASH VALUE TO LOOK UP THE PROPER MEMORY */
   /*       PAGE AND MEMORY PAGE INDEX TO START THE SEARCH WITHIN.  */
   /*       WE REMEMBER THESE ADDRESS IF WE LATER NEED TO INSERT    */
@@ -1443,9 +1629,75 @@ void Dbacc::execACCKEYREQ(Signal* signal,
    * in all code paths that can be taken by the query threads. Those
    * code paths that cannot be taken by the query threads all have an
    * ndbassert on that m_is_in_query_thread is false.
-   *
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+p);
+}
+
+void
+Dbacc::execACCKEY_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+p);
+}
+
+void Dbacc::execACCKEY_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
    * We need to release the ACC fragment mutex before calling 
-   * prepareTUPKEYREQ since this function will acquire the TUP
+   * prepareTUPKEYREQ
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+since
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+this
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+opPtrI,
+>>>>>>> MySQL 8.0.36
+ function will acquire 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TUP
+||||||| Common ancestor
+opPtrI,
+=======
+>>>>>>> MySQL 8.0.36
    * page map mutex again and doing so without releasing the
    * ACC fragment mutex first would cause a mutex deadlock.
    */
@@ -1455,7 +1707,34 @@ void Dbacc::execACCKEYREQ(Signal* signal,
   const Uint32 found = getElement(req,
                                   lockOwnerPtr,
                                   bucketPageptr,
-                                  bucketConidx,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ndbabort();
+}
+
+void
+Dbacc::startNext(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndbabort();
+}
+
+void Dbacc::startNext(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               bucketConidx,
                                   elemPageptr,
                                   elemConptr,
                                   elemptr);
@@ -1463,8 +1742,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
 
   Uint32 opbits = operationRecPtr.p->m_op_bits;
 
-  if (unlikely(AccKeyReq::getTakeOver(req->requestInfo)))
-  {
+  if (unlikely(AccKeyReq::getTakeOver(req->requestInfo))) {
     /* Verify that lock taken over and operation are on same
      * element by checking that lockOwner match.
      */
@@ -1475,8 +1753,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
     if (lockOwnerPtr.i == RNIL ||
         !(lockOwnerPtr.i == lockOpPtr.i ||
         !is_valid ||
-        lockOwnerPtr.i == lockOpPtr.p->m_lock_owner_ptr_i))
-    {
+        lockOwnerPtr.i == lockOpPtr.p->m_lock_owner_ptr_i)) {
       signal->theData[0] = Uint32(-1);
       signal->theData[1] = ZTO_OP_STATE_ERROR;
       operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
@@ -1488,8 +1765,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
     signal->theData[2] = operationRecPtr.p->transId1;
     signal->theData[3] = operationRecPtr.p->transId2;
     execACC_TO_REQ(signal);
-    if (unlikely(signal->theData[0] == Uint32(-1)))
-    {
+    if (unlikely(signal->theData[0] == Uint32(-1))) {
       operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
       ndbassert(signal->theData[1] == ZTO_OP_STATE_ERROR);
       release_frag_mutex_hash(fragrecptr.p, hash);
@@ -1569,11 +1845,20 @@ void Dbacc::execACCKEYREQ(Signal* signal,
           release_frag_mutex_hash(fragrecptr.p, hash);
 
           fragrecptr.p->
-            m_lockStats.req_start_imm_ok((opbits & 
-                                          Operationrec::OP_LOCK_MODE) 
+            m_lockStats.req_start_imm_ok(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(opbits & 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+((nextbits & 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+        ((nextbits &          Operationrec::OP_LOCK_MODE) 
                                          != ZREADLOCK,
-                                         operationRecPtr.p->m_lockTime,
-                                          getHighResTimer());
+                                         operationRecPtr.p->m_lockTime,            getHighResTimer());
         }
         else
         {
@@ -1590,8 +1875,7 @@ void Dbacc::execACCKEYREQ(Signal* signal,
                                 fragrecptr.p->tupFragptr);
         sendAcckeyconf(signal);
         return;
-      }
-      else
+      }     else
       {
         jam();
         accIsLockedLab(signal, lockOwnerPtr, hash);
@@ -1631,7 +1915,28 @@ void Dbacc::execACCKEYREQ(Signal* signal,
       jam();
       acckeyref1Lab(signal, ZREAD_ERROR);
       return;
-    default:
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+Dbacc::accIsLockedLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::accIsLockedLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  default:
       ndbabort();
     }//switch
     return;
@@ -1666,13 +1971,35 @@ Dbacc::execACCKEY_ORD(Signal* signal,
    * ==>  Lock row
    *      Set exclusive access to row
    *
-   * STATE: Row locked by same transaction, no exclusive access
-   * ==>  Lock row
+   * STATE: Row 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+locked by
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragrecptr.p->m_lockStats.req_start_imm_ok((bits & 
+=======
+fragrecptr.p->m_lockStats.req_start_imm_ok(
+>>>>>>> MySQL 8.0.36
+ same transaction, no exclusive access
+   * ==> (bits 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Lock row
    *      Set exclusive access to row
    *
    * STATE: Row locked by same transaction, exclusive access set
    * ==>  Lock row
-   *      Wait in Parallel Lock Queue until row is free to use again
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *      Wait in Parallel Lock Queue until row is free to use again
    *
    * STATE: Row locked by other transaction in Read mode, no exclusive
    * Read Operation:
@@ -1691,10 +2018,44 @@ Dbacc::execACCKEY_ORD(Signal* signal,
    * After acquiring this we will either return directly from
    * execACCKEYREQ or we will send a return signal ACCKEYCONF to DBLQH.
    *
-   * DBLQH will upon returning be ready to read the row, insert the
-   * row, update the row or mark the row as deleted. During these operations
+   * DBLQH will upon returning be ready to read the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+row, insert the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragrecptr.p->m_lockStats.req_start((bits & 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+fragrecptr.p->m_lockStats.req_start(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   * row, update the row or mark 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+(bits
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+row as deleted. During these operations
    * no other operations can access the row with a row lock, thus the
-   * lock queue functions both as a logical lock on the row as well as a
+   * lock queue functions both as a logical
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ lock on the row as well as a
    * physical lock on the row ensuring that only one operation at a time
    * can access the row.
    *
@@ -1719,7 +2080,31 @@ Dbacc::execACCKEY_ORD(Signal* signal,
    * as well as the exclusive row access is released.
    *
    * The ACC fragment mutex is required to hold during the ACCKEYREQ
-   * message and the ACCKEY_ORD, ACC_ABORTREQ and ACC_COMMITREQ messages.
+   * message and the ACCKEY_ORD, ACC_ABORTREQ and ACC_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+COMMITREQ
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DISAPPEARED) &&
+	!
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DISAPPEARED) &&
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+messages
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lockOwnerPtr.p->localdata
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       !lockOwnerPtr.p->localdata
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.
    * It isn't necessary to hold any ACC fragment mutex if no query
    * threads are used.
    *
@@ -1759,13 +2144,58 @@ Dbacc::execACCKEY_ORD(Signal* signal,
     DEB_LOCK_TRANS(("(%u) ACCKEY_ORD on row(%u,%u) in tab(%u,%u), "
                     " trans(%u,%u) opPtrI: %u, opbits: %x",
                     instance(),
-                    lastOp.p->localdata.m_page_no,
-                    lastOp.p->localdata.m_page_idx,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbacc::insertExistElemLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::insertExistElemLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                lastOp.p->localdata.m_page_no,
+              
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      lastOp.p->localdata.m_page_idx,
                     fragrecptr.p->myTableId,
                     fragrecptr.p->fragmentid,
                     lastOp.p->transId1,
                     lastOp.p->transId2,
-                    lastOp.i,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbacc::insertelementLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::insertelementLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+lastOp.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                     lastOp.p->m_op_bits));
 
     /**
@@ -1851,14 +2281,68 @@ Dbacc::startNext(Signal* signal, OperationrecPtr lastOp, Uint32 hash)
   
   {
     const bool same = nextOp.p->is_same_trans(lastOp.p);
-    
-    if (!same && ((opbits & Operationrec::OP_ACC_LOCK_MODE) ||
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragrecptr.p->m_lockStats.req_start_imm_ok(true /* Exclusive */,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+fragrecptr.p->m_lockStats.req_start_imm_ok(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    if (!same 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+true
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+((opbits
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Exclusive
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Operationrec::OP_ACC_LOCK_MODE) ||
 		  (nextbits & Operationrec::OP_LOCK_MODE)))
     {
       jam();
       /**
        * Not same transaction
-       *  and either last hold exclusive lock
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   *  and either last hold exclusive lock
        *          or next need exclusive lock
        */
       validate_lock_queue(lastOp);
@@ -2083,9 +2567,34 @@ ref:
   {
     jam();
     signal->theData[0] = nextOp.p->userptr;
-    signal->theData[1] = errCode;
+    signal->theData[1] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+errCode;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if (running) 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if (running) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     sendSignal(nextOp.p->userblockref, GSN_ACCKEYREF, signal, 
-	       2, JBB);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	//
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       2, JBB);
   }    
   
   operationRecPtr = save;
@@ -2094,9 +2603,28 @@ ref:
 
 void 
 Dbacc::accIsLockedLab(Signal* signal,
-                      OperationrecPtr lockOwnerPtr,
-                      Uint32 hash)
+         else {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          OperationrecPtr lockOwnerPtr,
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                Uint32 hash)
 {
+||||||| Common ancestor
+{
+	if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   Uint32 bits = operationRecPtr.p->m_op_bits;
   validate_lock_queue(lockOwnerPtr);
   
@@ -2132,7 +2660,26 @@ Dbacc::accIsLockedLab(Signal* signal,
                     ", op: %u tcRef(%u,%x), lockOwnerPtrI: %u",
                     instance(),
                     operationRecPtr.p->localdata.m_page_no,
-                    operationRecPtr.p->localdata.m_page_idx,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(many)
+=======
+(many) {
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	vlqrequire(orlockmode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  vlqrequire(orlockmode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       operationRecPtr.p->localdata.m_page_idx,
                     fragrecptr.p->myTableId,
                     fragrecptr.p->fragmentid,
                     operationRecPtr.p->transId1,
@@ -2146,8 +2693,7 @@ Dbacc::accIsLockedLab(Signal* signal,
 
     release_frag_mutex_hash(fragrecptr.p, hash);
 
-    if (return_result == ZPARALLEL_QUEUE)
-    {
+    if (return_result == ZPARALLEL_QUEUE) {
       jamDebug();
       c_tup->prepareTUPKEYREQ(operationRecPtr.p->localdata.m_page_no,
                               operationRecPtr.p->localdata.m_page_idx,
@@ -2194,6 +2740,7 @@ Dbacc::accIsLockedLab(Signal* signal,
       c_tup->prepareTUPKEYREQ(operationRecPtr.p->localdata.m_page_no,
                               operationRecPtr.p->localdata.m_page_idx,
                               fragrecptr.p->tupFragptr);
+
       sendAcckeyconf(signal);
       operationRecPtr.p->m_op_bits = Operationrec::OP_EXECUTED_DIRTY_READ;
       return;
@@ -2240,8 +2787,29 @@ void Dbacc::insertelementLab(Signal* signal,
   if (unlikely(fragrecptr.p->dirRangeFull))
   {
     jam();
-    release_frag_mutex_hash(fragrecptr.p, hash);
-    acckeyref1Lab(signal, ZDIR_RANGE_FULL_ERROR);
+    release_frag_mutex_hash(fragrecptr.p, hash)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    acckeyref1Lab(signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZDIR_RANGE_FULL_ERROR);
+||||||| Common ancestor
+ {
+	ndbout
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   ndbout
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     return;
   }
   if (unlikely(fragrecptr.p->sparsepages.isEmpty()))
@@ -2304,7 +2872,32 @@ void Dbacc::insertelementLab(Signal* signal,
     tcBlockref);
 #endif
   DEB_LOCK_TRANS(("(%u) Insert Lock on row(%u,%u) in tab(%u,%u), "
-                   " trans(%u,%u) opPtrI: %u, tcRef(%u,%x)",
+                   " trans(%u,%u)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ {
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ opPtrI: 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	goto
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  goto
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ tcRef(%u,%x)",
                    instance(),
                    localKey.m_page_no,
                    localKey.m_page_idx,
@@ -2385,13 +2978,12 @@ Uint32
 Dbacc::getNoParallelTransactionFull(Operationrec * op) const
 {
   OperationrecPtr tmp;
-  
+
   tmp.p = op;
   while ((tmp.p->m_op_bits & Operationrec::OP_LOCK_OWNER) == 0)
   {
     tmp.i = tmp.p->prevParallelQue;
-    if (tmp.i != RNIL)
-    {
+    if (tmp.i != RNIL)   {
       ndbrequire(m_curr_acc->oprec_pool.getValidPtr(tmp));
     }
     else
@@ -2432,13 +3024,12 @@ Dbacc::validate_parallel_queue(OperationrecPtr opPtr, Uint32 ownerPtrI) const
     opPtr.i = opPtr.p->prevParallelQue;
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(opPtr));
   }    
-  
+
   return (opPtr.i == ownerPtrI);
 }
 
 bool
-Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
-{
+Dbacc::validate_lock_queue(OperationrecPtr opPtr) const {
   if (m_is_query_block)
   {
     return true;
@@ -2464,7 +3055,25 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
     while ((loPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER) == 0 &&
            loPtr.p->prevParallelQue != RNIL)
     {
-      vlqrequire(loPtr.p->m_op_bits & Operationrec::OP_RUN_QUEUE);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbacc::acckeyref1Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbacc::acckeyref1Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     vlqrequire(loPtr.p->m_op_bits & Operationrec::OP_RUN_QUEUE);
       if (cnt++ >= maxValidateCount && ownerPtrI != RNIL) {
         // Upper limit reached, skip to end
         loPtr.i = ownerPtrI;
@@ -2529,11 +3138,36 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
     OperationrecPtr lastP = loPtr;
     
     int cnt = 0;
-    while (lastP.p->nextParallelQue != RNIL)
+    while (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+lastP.p->nextParallelQue
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!= RNIL)
     {
       if (cnt++ >= maxValidateCount) {
         // Upper limit reached, skip to end
-        lastP.i = loPtr.p->m_lo_last_parallel_op_ptr_i;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       lastP.i = loPtr.p->m_lo_last_parallel_op_ptr_i;
         ndbrequire(m_curr_acc->oprec_pool.getValidPtr(lastP));
         vlqrequire(lastP.p->nextParallelQue == RNIL);
         // Note that 'orlockmode', 'aborting' and 'many' are cumulative.
@@ -2548,7 +3182,8 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
       }
       const Uint32 opbits = lastP.p->m_op_bits;
       many |= loPtr.p->is_same_trans(lastP.p) ? 0 : 1;
-      orlockmode |= ((opbits & Operationrec::OP_LOCK_MODE) != 0);
+      orlockmode |= ((opbits & Operationrec::OP_LOCK_MODE) !=
+      0);
       aborting |= ((opbits & Operationrec::OP_PENDING_ABORT) != 0);
       
       vlqrequire(opbits & Operationrec::OP_RUN_QUEUE);
@@ -2570,7 +3205,28 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
       }
       
       if (opbits & Operationrec::OP_LOCK_MODE)
-      {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Local_key*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Local_key
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+key)
+=======
+*key) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
         vlqrequire(opbits & Operationrec::OP_ACC_LOCK_MODE);
       }
       else
@@ -2622,7 +3278,31 @@ Dbacc::validate_lock_queue(OperationrecPtr opPtr) const
   // Validate serial queue  
   if (loPtr.p->nextSerialQue != RNIL)
   {
-    Uint32 prev = loPtr.i;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+prev
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = loPtr.i;
     OperationrecPtr lastS;
     lastS.i = loPtr.p->nextSerialQue;
     while (true)
@@ -2704,12 +3384,103 @@ operator<<(NdbOut & out, Dbacc::OperationrecPtr ptr)
 	<< hex << (opbits & Dbacc::Operationrec::OP_STATE_MASK)
 	<< "> ";
   }
-  
+
 /*
     OP_MASK                 = 0x0000F // 4 bits for operation type
     ,OP_LOCK_MODE           = 0x00010 // 0 - shared lock, 1 = exclusive lock
-    ,OP_ACC_LOCK_MODE       = 0x00020 // Or:de lock mode of all operation
-                                      // before me
+    ,OP_ACC_LOCK_MODE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal, 1,
+>>>>>>> MySQL 8.0.36
+      = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0x00020
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+1,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Or:de lock mode of all operation
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbacc::execACC_LOCKREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::execACC_LOCKREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AccLockReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AccLockReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sig
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*sig
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AccLockReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AccLockReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           // before me
     ,OP_LOCK_OWNER          = 0x00040
     ,OP_RUN_QUEUE           = 0x00080 // In parallel queue of lock owner
     ,OP_DIRTY_READ          = 0x00100
@@ -2774,7 +3545,29 @@ Dbacc::dump_lock_queue(OperationrecPtr loPtr)const
     while ((loPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER) == 0 &&
 	   loPtr.p->prevParallelQue != RNIL)
     {
-      loPtr.i = loPtr.p->prevParallelQue;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AccKeyReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AccKeyReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ loPtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+keyreq
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*keyreq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = loPtr.p->prevParallelQue;
       ndbrequire(m_curr_acc->oprec_pool.getValidPtr(loPtr));
     }
     
@@ -2822,8 +3615,7 @@ Dbacc::dump_lock_queue(OperationrecPtr loPtr)const
       ndbout << tmp2 << " ";
       tmp2.i = tmp2.p->nextParallelQue;
 
-      if (tmp2.i == tmp.i)
-      {
+      if (tmp2.i == tmp.i) {
 	ndbout << "<LOOP 3>";
 	break;
       }
@@ -2865,8 +3657,7 @@ Dbacc::placeWriteInLockQueue(OperationrecPtr lockOwnerPtr) const
   ndbassert(validate_parallel_queue(lastOpPtr, lockOwnerPtr.i));
 
   Uint32 lastbits = lastOpPtr.p->m_op_bits;
-  if (lastbits & Operationrec::OP_ACC_LOCK_MODE)
-  {
+  if (lastbits & Operationrec::OP_ACC_LOCK_MODE) {
     if(operationRecPtr.p->is_same_trans(lastOpPtr.p))
     {
       goto checkop;
@@ -3795,18 +4586,176 @@ void Dbacc::execACC_LOCKREQ(Signal* signal)
 /*               FRAGMENT RECORD. THIS IS MORE LESS STATIC ALWAYS DURING A SIGNAL    */
 /*               EXECUTION.                                                          */
 /*                                                                                   */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* INSERT_ELEMENT                                                                    */
-/*       INPUT:                                                                      */
-/*               IDR_PAGEPTR (POINTER TO THE ACTIVE PAGE REC)                        */
-/*               TIDR_PAGEINDEX (INDEX OF THE CONTAINER)                             */
-/*               TIDR_FORWARD (DIRECTION FORWARD OR BACKWARD)                        */
-/*               TIDR_ELEMHEAD (HEADER OF ELEMENT TO BE INSERTED                     */
+/* INSERT_ELEMENT 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                                                     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                                     */
+/*               THE FOLLOWING SUBROUTINES ARE ONLY USED BY INSERT_ELEMENT. THIS     */
+/*               ROUTINE IS THE SOLE INTERFACE TO INSERT ELEMENTS INTO THE INDEX.    */
+/*               CURRENT
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+/*               THE FOLLOWING SUBROUTINES ARE ONLY USED BY INSERT_ELEMENT. THIS
+ */
+/*               ROUTINE IS THE SOLE INTERFACE TO INSERT ELEMENTS INTO THE
+ * INDEX.    */
+/*               CURRENT
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              */
+/*       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+INPUT:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        CONTAINER.                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        CONTAINER. */
+/*                         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+/*  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                          */
+/*          */
+/*     THE FOLLOWING SUBROUTINES ARE INCLUDED IN THIS MODULE: */
+/*  IDR_PAGEPTR (POINTER TO THE ACTIVE PAGE REC)       INSERT_ELEMENT */
+/*               INSERT_CONTAINER */
+/*               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TIDR_PAGEINDEX (INDEX OF THE CONTAINER)   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+THE FOLLOWING SUBROUTINES ARE INCLUDED
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ADDNEWCONTAINER
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+IN
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               GETFREELIST          */
+/*      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+INSERT_ELEMENT     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+INCREASELISTCONT
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
+/*   TIDR_FORWARD (DIRECTION FORWARD OR BACKWARD)        SEIZE_LEFTLIST */
+/*               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+SEIZE_RIGHTLIST
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
+/*              TIDR_ELEMHEAD (HEADER 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+OF
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ ELEMENT TO BE INSERTED                     */
 /*               CIDR_KEYS(ARRAY OF TUPLE KEYS)                                      */
-/*               CLOCALKEY(ARRAY OF LOCAL KEYS).                                     */
-/*               FRAGRECPTR                                                          */
+/*  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+             CLOCALKEY(ARRAY OF
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ADDNEWCONTAINER              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+THESE
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LOCAL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ROUTINES
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+KEYS).
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ARE
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ONLY USED BY THIS MODULE AND BY NO ONE ELSE.
+ */
+/*               ALSO THE ROUTINES MAKE NO USE OF ROUTINES IN OTHER MODULES. */
+/*               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FRAGRECPTR 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GETFREELIST
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TAKE_REC_OUT_OF_FREE_OVERPAGE
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ AND RELEASE_OVERFLOW_REC ARE */
+/*               EXCEPTIONS TO THIS RULE. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                                  */
 /*               IDR_OPERATION_REC_PTR                                               */
 /*               TIDR_KEY_LEN                                                        */
 /*               conScanMask - ANY_SCANBITS or scan bits container must              */
@@ -3814,15 +4763,78 @@ void Dbacc::execACC_LOCKREQ(Signal* signal)
 /*                 container.                                                        */
 /*                                                                                   */
 /*       OUTPUT:                                                                     */
-/*               TIDR_PAGEINDEX (PAGE INDEX OF INSERTED ELEMENT)                     */
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                  */
+/*               INCREASELISTCONT                                                    */
+/*               SEIZE_LEFTLIST                                                      */
+/*               SEIZE_RIGHTLIST                                                     */
+/*                                                                                   */
+/*               THESE ROUTINES ARE ONLY USED BY THIS MODULE AND BY NO ONE ELSE.     */
+/*               ALSO THE ROUTINES MAKE NO USE OF ROUTINES IN OTHER MODULES.         */
+/*               TAKE_REC_OUT_OF_FREE_OVERPAGE AND RELEASE_OVERFLOW_REC ARE          */
+/*               EXCEPTIONS TO THIS RULE.                                            */
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               TIDR_PAGEINDEX (PAGE INDEX OF INSERTED ELEMENT)                     */
 /*               IDR_PAGEPTR    (PAGE POINTER OF INSERTED ELEMENT)                   */
-/*               TIDR_FORWARD   (CONTAINER DIRECTION OF INSERTED ELEMENT)            */
-/*               NONE                                                                */
+/*               TIDR_FORWARD   (CONTAINER DIRECTION OF INSERTED ELEMENT)          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+BLOCK
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BLOCK
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  */
+/*               NONE                                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+COMMON
+// RONDB-624 todo: Glue these lines together ^v
+=======
+COMMON
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                     */
 /* --------------------------------------------------------------------------------- */
 void Dbacc::insertElement(const Element   elem,
                           OperationrecPtr oprecptr,
                           Page8Ptr&       pageptr,
-                          Uint32&         conidx,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TO
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TO
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                        Uint32&    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+A
+// RONDB-624 todo: Glue these lines together ^v
+=======
+A
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     conidx,
                           bool&           isforward,
                           Uint32&         conptr,
                           Uint16          conScanMask,
@@ -3933,7 +4945,10 @@ void Dbacc::insertElement(const Element   elem,
     nextPtrI = RNIL;
     newcontainerhead.clearNext();
   }
-  inrNewPageptr.p->word32[containerptr] = newcontainerhead;
+  inrNewPageptr.p->word32[containerptr] 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= newcontainerhead;
   inrNewPageptr.p->word32[containerptr + 1] = nextPtrI;
   addnewcontainer(pageptr, conptr, newPageindex,
     newBuftype, nextOnSamePage, inrNewPageptr.i);
@@ -3948,14 +4963,35 @@ void Dbacc::insertElement(const Element   elem,
      * This makes the element look as scanned as possible still preserving
      * the invariant that containers and element towards the end of bucket
      * has less scan bits set than those towards the beginning.
-     */
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                                       */
+/*                                                                                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+*/
     conScanMask = scanmask;
-  }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
   insertContainer(elem,
-                  oprecptr,
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+OUTPUT:         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+           oprecptr,
                   pageptr,
                   conidx,
-                  isforward,
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     isforward,
                   conptr,
                   containerhead,
                   conScanMask,
@@ -3985,17 +5021,224 @@ void Dbacc::insertContainer(const Element          elem,
                             const OperationrecPtr  oprecptr,
                             const Page8Ptr         pageptr,
                             const Uint32           conidx,
-                            const bool             isforward,
-                            Uint32&                conptr,
-                            ContainerHeader&       containerhead,
-                            Uint16                 conScanMask,
-                            const bool             newContainer,
-                            Uint32&                result)
+             
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+/*               TIDR_PAGEINDEX (PAGE INDEX OF INSERTED ELEMENT)                     */
+/*               IDR_PAGEPTR    (PAGE POINTER OF INSERTED ELEMENT)                   */
+/*               TIDR_FORWARD   (CONTAINER DIRECTION OF INSERTED ELEMENT)            */
+/*               NONE                                                                */
+/* --------------------------------------------------------------------------------- */
+void Dbacc::insertElement(const Element   elem,
+                          OperationrecPtr oprecptr,
+                          Page8Ptr&       pageptr,
+                          Uint32&         conidx,
+                          bool&           isforward,
+                          Uint32&         conptr,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+               const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conScanMask,
+=======
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       OUTPUT: */
+/*     isforward,
+          TIDR_PAGEINDEX (PAGE INDEX 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+OF
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+INSERTED
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ELEMENT) */
+/*            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+IDR_PAGEPTR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    (PAGE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ContainerHeader
+// RONDB-624 todo: Glue these lines together ^v
+=======
+POINTER
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+containerhead;
+=======
+OF
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ INSERTED 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+do
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ELEMENT)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+conptr,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+insertContainer(elem,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+           TIDR_FORWARD   (CONTAINER DIRECTION OF INSERTED ELEMENT) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+oprecptr,
+=======
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        ContainerHeader&       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+containerhead,
+||||||| Common ancestor
+=======
+NONE
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::insertElement(const Element 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pageptr,
+=======
+elem,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ OperationrecPtr oprecptr,
+                     Uint16     Page8Ptr &pageptr, Uint32 &conidx, bool &isforward,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+conScanMask,
+||||||| Common ancestor
+isforward,
+=======
+>>>>>>> MySQL 8.0.36
+                   Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conptr,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&conptr, Uint16 conScanMask,
+>>>>>>> MySQL 8.0.36
+        const bool             newContainer,
+    const bool newBucket) {
+  Page8Ptr inrNewPageptr;
+  Uint32 tidrResult;
+  Uint16 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conScanMask,
+=======
+scanmask;
+>>>>>>> MySQL 8.0.36
+  bool newContainer = newBucket;
+
+  ContainerHeader containerhead;
+  do {
+ Uint32&   insertContainer(elem, oprecptr, pageptr, conidx, isforward, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+newContainer,
+=======
+conptr,
+>>>>>>> MySQL 8.0.36
+        result)
 {
   Uint32 tidrContainerlen;
   Uint32 tidrConfreelen;
   Uint32 tidrNextSide;
-  Uint32 tidrNextConLen;
+  Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tidrNextConLen
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tidrResult)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+containerhead, conScanMask, newContainer, tidrResult)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   Uint32 tidrIndex;
 
   result = ZFALSE;
@@ -4048,7 +5291,7 @@ void Dbacc::insertContainer(const Element          elem,
   if (tidrContainerlen >= (ZBUF_SIZE - fragrecptr.p->elementLength))
   {
     return;
-  }//if
+  }  // if
   tidrConfreelen = ZBUF_SIZE - tidrContainerlen;
   /* --------------------------------------------------------------------------------- */
   /*       WE CALCULATE THE TOTAL LENGTH THE CONTAINER CAN EXPAND TO                   */
@@ -4123,17 +5366,86 @@ void Dbacc::insertContainer(const Element          elem,
   }
   else
   {
-    ndbassert(!ElementHeader::getLocked(elemhead));
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  ndbassert(!ElementHeader::getLocked(elemhead));
   }
   /* --------------------------------------------------------------------------------- */
-  /*       WE CHOOSE TO UNDO LOG INSERTS BY WRITING THE BEFORE VALUE TO THE UNDO LOG.  */
-  /*       WE COULD ALSO HAVE DONE THIS BY WRITING THIS BEFORE VALUE WHEN DELETING     */
-  /*       ELEMENTS. WE CHOOSE TO PUT IT HERE SINCE WE THEREBY ENSURE THAT WE ALWAYS   */
+  /*     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32&               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conptr,
+=======
+&conptr,
+>>>>>>> MySQL 8.0.36
+ WE CHOOSE TO UNDO LOG INSERTS BY WRITING THE BEFORE VALUE TO THE UNDO LOG.  */
+  /*       WE COULD 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ALSO HAVE DONE THIS BY WRITING THIS
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ContainerHeader&      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ContainerHeader
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+BEFORE VALUE WHEN DELETING     */
+  /*       ELEMENTS. WE CHOOSE TO PUT IT HERE SINCE WE THEREBY ENSURE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+containerhead,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&containerhead,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ THAT WE ALWAYS   */
   /*       UNDO LOG ALL WRITES TO PAGE MEMORY. IT SHOULD BE EASIER TO MAINTAIN SUCH A  */
   /*       STRUCTURE. IT IS RATHER DIFFICULT TO MAINTAIN A LOGICAL STRUCTURE WHERE     */
-  /*       DELETES ARE INSERTS AND INSERTS ARE PURELY DELETES.                         */
+  /*       DELETES ARE INSERTS AND INSERTS ARE PURELY DELETES.                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        */
   /* --------------------------------------------------------------------------------- */
-  ndbrequire(fragrecptr.p->localkeylen == 1);
+  ndbrequire(fragrecptr.p->localkeylen ==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32&               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+result
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&result
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   arrGuard(tidrIndex + 1, 2048);
   pageptr.p->word32[tidrIndex] = elem.getHeader();
   pageptr.p->word32[tidrIndex + 1] = elem.getData(); /* INSERTS LOCALKEY */
@@ -4146,7 +5458,18 @@ void Dbacc::insertContainer(const Element          elem,
  * Set next link of a container to reference to next container.
  *
  * @param[in]  pageptr       Pointer to page of container to modify.
- * @param[in]  conptr        Pointer within page of container to modify.
+ * @param[in]  conptr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+POINTER
+// RONDB-624 todo: Glue these lines together ^v
+=======
+POINTER
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       Pointer within page of container to modify.
  * @param[in]  nextConidx    Index within page of next container.
  * @param[in]  nextContype   Type of next container, left or right end.
  * @param[in]  nextSamepage  True if next container is on same page as modified
@@ -4170,45 +5493,154 @@ void Dbacc::addnewcontainer(Page8Ptr pageptr,
 /* GETFREELIST                                                                       */
 /*         INPUT:                                                                    */
 /*               GFL_PAGEPTR (POINTER TO A PAGE RECORD).                             */
-/*         OUTPUT:                                                                   */
+/*         OUTPUT:                                                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+EXPAND
+// RONDB-624 todo: Glue these lines together ^v
+=======
+EXPAND
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          */
 /*                TGFL_PAGEINDEX(POINTER TO A FREE BUFFER IN THE FREEPAGE), AND      */
-/*                TGFL_BUF_TYPE( TYPE OF THE FREE BUFFER).                           */
+/*                TGFL_BUF_TYPE( TYPE OF THE FREE BUFFER).     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+THE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+THE
+     *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                      */
 /*         DESCRIPTION: SEARCHES IN THE FREE LIST OF THE FREE BUFFER IN THE PAGE HEAD*/
 /*                     (WORD32(1)),AND RETURN ADDRESS OF A FREE BUFFER OR NIL.       */
 /*                     THE FREE BUFFER CAN BE A RIGHT CONTAINER OR A LEFT ONE        */
-/*                     THE KIND OF THE CONTAINER IS NOTED BY TGFL_BUF_TYPE.          */
-/* --------------------------------------------------------------------------------- */
+/*                     THE KIND OF 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+THE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NEVER
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NEVER
+       *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ CONTAINER IS NOTED BY TGFL_BUF_TYPE.          */
+/* ---------------------------------------------------------------------------------
+       */
 void Dbacc::getfreelist(Page8Ptr pageptr, Uint32& pageindex, Uint32& buftype)
 {
   const Uint32 emptylist = pageptr.p->word32[Page8::EMPTY_LIST];
-  pageindex = (emptylist >> 7) & 0x7f;	/* LEFT FREE LIST */
+  pageindex = (emptylist >> 7) & 0x7f; /* LEFT FREE LIST */
   buftype = ZLEFT;
   if (pageindex == Container::NO_CONTAINER_INDEX) {
     jam();
-    pageindex = emptylist & 0x7f;	/* RIGHT FREE LIST */
+    pageindex = emptylist & 0x7f;	/* RIGHT FREE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LIST
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    THE CONTAINER COULD NOT BE EXPANDED TO FIT THE NEW ELEMENT. WE HAVE TO     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    THE CONTAINER COULD NOT BE EXPANDED TO FIT THE NEW ELEMENT. WE HAVE
+     * TO     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
     buftype = ZRIGHT;
   }//if
   ndbrequire((pageindex <= Container::MAX_CONTAINER_INDEX) ||
              (pageindex == Container::NO_CONTAINER_INDEX));
 }//Dbacc::getfreelist()
 
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+     */
 /* INCREASELISTCONT                                                                  */
 /*       INPUT:                                                                      */
 /*               ILC_PAGEPTR     PAGE POINTER TO INCREASE NUMBER OF CONTAINERS IN    */
-/*           A CONTAINER OF AN OVERFLOW PAGE (FREEPAGEPTR) IS ALLOCATED, NR OF       */
-/*           ALLOCATED CONTAINER HAVE TO BE INCREASED BY ONE.                        */
-/*           IF THE NUMBER OF ALLOCATED CONTAINERS IS ABOVE THE FREE LIMIT WE WILL   */
-/*           REMOVE THE PAGE FROM THE FREE LIST.                                     */
-/* --------------------------------------------------------------------------------- */
+/*           A CONTAINER OF AN OVERFLOW PAGE (FREEPAGEPTR) IS ALLOCATED, NR OF   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TUPLE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TUPLE
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    */
+/*           ALLOCATED CONTAINER HAVE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TO
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+WITH
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WITH
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ BE INCREASED BY ONE.                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TO
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TO
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    */
+/*           IF THE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NUMBER
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LOCAL KEY OR RETURN TO
+// RONDB-624 todo: Glue these lines together ^v
+=======
+LOCAL KEY OR RETURN TO
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ OF ALLOCATED CONTAINERS IS ABOVE THE FREE LIMIT WE WILL   */
+/*          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+WE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WE
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ REMOVE THE PAGE FROM THE FREE LIST.                    */
+/* ---------------------------------------------------------------------------------
+   */
 void Dbacc::increaselistcont(Page8Ptr ilcPageptr)
 {
   ilcPageptr.p->word32[Page8::ALLOC_CONTAINERS] = ilcPageptr.p->word32[Page8::ALLOC_CONTAINERS] + 1;
   // A sparse page just got full
   if (ilcPageptr.p->word32[Page8::ALLOC_CONTAINERS] == ZFREE_LIMIT + 1) {
     // Check that it is an overflow page
-    if (((ilcPageptr.p->word32[Page8::EMPTY_LIST] >> ZPOS_PAGE_TYPE_BIT) & 3) == 1)
-    {
+    if (((ilcPageptr.p->word32[Page8::EMPTY_LIST] >> ZPOS_PAGE_TYPE_BIT) & 3) == 1)   {
       jam();
       LocalContainerPageList sparselist(c_page8_pool, fragrecptr.p->sparsepages);
       LocalContainerPageList fulllist(c_page8_pool, fragrecptr.p->fullpages);
@@ -4218,17 +5650,78 @@ void Dbacc::increaselistcont(Page8Ptr ilcPageptr)
   }//if
 }//Dbacc::increaselistcont()
 
-/* --------------------------------------------------------------------------------- */
-/* SEIZE_LEFTLIST                                                                    */
-/*       INPUT:                                                                      */
-/*               TSL_PAGEINDEX           PAGE INDEX OF CONTAINER TO SEIZE            */
-/*               SL_PAGEPTR              PAGE POINTER OF CONTAINER TO SEIZE          */
-/*               TSL_UPDATE_HEADER       SHOULD WE UPDATE THE CONTAINER HEADER       */
+/* ---------------------------------------------------------------------------------
+   */
+/* SEIZE_LEFTLIST                                                                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+UNDO
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UNDO
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   */
+/*       INPUT:                                                                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+WHEN
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WHEN
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      */
+/*               TSL_PAGEINDEX           PAGE INDEX OF CONTAINER TO SEIZE        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+WE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WE
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    */
+/*               SL_PAGEPTR              PAGE POINTER OF CONTAINER TO 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SEIZE      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+MAINTAIN
+// RONDB-624 todo: Glue these lines together ^v
+=======
+MAINTAIN
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    */
+/*               TSL_UPDATE_HEADER       SHOULD WE UPDATE THE CONTAINER HEADER 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+STRUCTURE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+STRUCTURE
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      */
 /*                                                                                   */
 /*       OUTPUT:                                                                     */
 /*               NONE                                                                */
 /*         DESCRIPTION: THE BUFFER NOTED BY TSL_PAGEINDEX WILL BE REMOVED FROM THE   */
-/*                      LIST OF LEFT FREE CONTAINER, IN THE HEADER OF THE PAGE       */
+/*       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+               LIST OF LEFT FREE CONTAINER, IN THE HEADER OF THE PAGE       */
 /*                      (FREEPAGEPTR). PREVIOUS AND NEXT BUFFER OF REMOVED BUFFER    */
 /*                      WILL BE UPDATED.                                             */
 /* --------------------------------------------------------------------------------- */
@@ -4256,10 +5749,82 @@ void Dbacc::seizeLeftlist(Page8Ptr slPageptr, Uint32 tslPageindex)
     tsllTmp = getForwardContainerPtr(tslPrevfree);
     slPageptr.p->word32[tsllTmp] = tslNextfree;
   }//if
+||||||| Common ancestor
+conptr,
+                            Uint32 nextConidx,
+                            Uint32 nextContype,
+                            bool nextSamepage,
+                            Uint32 nextPagei) const
+{
+  ContainerHeader containerhead(pageptr.p->word32[conptr]);
+  containerhead.setNext(nextContype, nextConidx, nextSamepage);
+  pageptr.p->word32[conptr] = containerhead;
+  pageptr.p->word32[conptr + 1] = nextPagei;
+}//Dbacc::addnewcontainer()
+
+/* --------------------------------------------------------------------------------- */
+/* GETFREELIST                                                                       */
+/*         INPUT:                                                                    */
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+conptr, Uint32 nextConidx,
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   if (tslNextfree <= Container::MAX_CONTAINER_INDEX) {
     jam();
-    tsllTmp = getForwardContainerPtr(tslNextfree) + 1;
-    slPageptr.p->word32[tsllTmp] = tslPrevfree;
+    tsllTmp 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GFL_PAGEPTR
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+getForwardContainerPtr(tslNextfree)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(POINTER TO A PAGE RECORD). 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ + 1;
+   Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+slPageptr.p->word32[tsllTmp]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+nextContype,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tslPrevfree;
+||||||| Common ancestor
+=======
+nextSamepage,
+>>>>>>> MySQL 8.0.36
   } else {
     ndbrequire(tslNextfree == Container::NO_CONTAINER_INDEX);
     jam();
@@ -4267,13 +5832,48 @@ void Dbacc::seizeLeftlist(Page8Ptr slPageptr, Uint32 tslPageindex)
   increaselistcont(slPageptr);
 }//Dbacc::seizeLeftlist()
 
-/* --------------------------------------------------------------------------------- */
-/* SEIZE_RIGHTLIST                                                                   */
+/* ---------------------------------------------------------------------------------  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SEIZE_RIGHTLIST
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        OUTPUT:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       Uint32 nextPagei)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ const {
+  ContainerHeader containerhead(pageptr.p->word32[conptr]);
+  containerhead.setNext(nextContype, nextConidx, nextSamepage);
+  pageptr.p->word32[conptr] = containerhead;
+  pageptr.p->word32[conptr + 1] = nextPagei;
+}  // Dbacc::addnewcontainer()
+
+/* ---------------------------------------------------------------------------------
+ */
+/* GETFREELIST */
+/*         INPUT: */
+/*               GFL_PAGEPTR (POINTER TO A PAGE RECORD). */
+/*         OUTPUT: */
 /*         DESCRIPTION: THE BUFFER NOTED BY TSL_PAGEINDEX WILL BE REMOVED FROM THE   */
-/*                      LIST OF RIGHT FREE CONTAINER, IN THE HEADER OF THE PAGE      */
+/*                      LIST OF RIGHT FREE CONTAINER, IN THE HEADER OF THE PAGE     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+PAGE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PAGE
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
 /*                      (SL_PAGEPTR). PREVIOUS AND NEXT BUFFER OF REMOVED BUFFER     */
-/*                      WILL BE UPDATED.                                             */
-/* --------------------------------------------------------------------------------- */
+/*                      WILL BE UPDATED.                                    */
+/* ---------------------------------------------------------------------------------
+ */
 void Dbacc::seizeRightlist(Page8Ptr slPageptr, Uint32 tslPageindex)
 {
   Uint32 tsrlHeadIndex;
@@ -4284,7 +5884,49 @@ void Dbacc::seizeRightlist(Page8Ptr slPageptr, Uint32 tslPageindex)
   Uint32 tslNextfree = slPageptr.p->word32[tsrlHeadIndex];
   Uint32 tslPrevfree = slPageptr.p->word32[tsrlHeadIndex + 1];
   if (tslPrevfree == Container::NO_CONTAINER_INDEX) {
-    jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pageindex,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pageindex,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+buftype
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&buftype
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
     tsrlTmp = slPageptr.p->word32[Page8::EMPTY_LIST];
     slPageptr.p->word32[Page8::EMPTY_LIST] = ((tsrlTmp >> 7) << 7) | tslNextfree;
   } else {
@@ -4292,7 +5934,7 @@ void Dbacc::seizeRightlist(Page8Ptr slPageptr, Uint32 tslPageindex)
     jam();
     tsrlTmp = getBackwardContainerPtr(tslPrevfree);
     slPageptr.p->word32[tsrlTmp] = tslNextfree;
-  }//if
+  }  // if
   if (tslNextfree <= Container::MAX_CONTAINER_INDEX) {
     jam();
     tsrlTmp = getBackwardContainerPtr(tslNextfree) + 1;
@@ -4302,43 +5944,194 @@ void Dbacc::seizeRightlist(Page8Ptr slPageptr, Uint32 tslPageindex)
     jam();
   }//if
   increaselistcont(slPageptr);
-}//Dbacc::seizeRightlist()
+}  // Dbacc::seizeRightlist()
 
+/* ---------------------------------------------------------------------------------
+ */
 /* --------------------------------------------------------------------------------- */
 /* --------------------------------------------------------------------------------- */
+/*                                                                              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CONTAINERS
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CONTAINERS
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     */
+/*       END OF INSERT_ELEMENT MODULE                         */
+/*                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+WE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WE
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                         */
+/* ---------------------------------------------------------------------------------
+ */
 /* --------------------------------------------------------------------------------- */
-/*                                                                                   */
-/*       END OF INSERT_ELEMENT MODULE                                                */
-/*                                                                                   */
 /* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* -
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-------------------------------------------------------------------------------- */
 /* --------------------------------------------------------------------------------- */
 /*                                                                                   */
 /*       MODULE:         GET_ELEMENT                                                 */
 /*               THE FOLLOWING SUBROUTINES ARE ONLY USED BY GET_ELEMENT AND          */
 /*               GETDIRINDEX. THIS ROUTINE IS THE SOLE INTERFACE TO GET ELEMENTS     */
-/*               FROM THE INDEX. CURRENT USERS ARE ALL REQUESTS AND EXECUTE UNDO LOG */
-/*                                                                                   */
-/*               THE FOLLOWING SUBROUTINES ARE INCLUDED IN THIS MODULE:              */
-/*               GET_ELEMENT                                                         */
-/*               GET_DIRINDEX                                                        */
-/*               SEARCH_LONG_KEY                                                     */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+>word32[Page8::EMPTY_LIST] >> ZPOS_PAGE_TYPE_BIT) & 3) == 1)
+    {
+      jam();
+      LocalContainerPageList sparselist(c_page8_pool, fragrecptr.p->sparsepages);
+      LocalContainerPageList fulllist(c_page8_pool, fragrecptr.p->fullpages);
+      sparselist.remove(ilcPageptr);
+      fulllist.addLast(ilcPageptr);
+    }//if
+  }//if
+}//Dbacc::increaselistcont()
+
+/* --------------------------------------------------------------------------------- */
+/* SEIZE_LEFTLIST                                                                    */
+/*       INPUT:                                                                      */
+/*               TSL_PAGEINDEX           PAGE INDEX OF CONTAINER TO SEIZE            */
+/*               SL_PAGEPTR              PAGE POINTER OF CONTAINER TO SEIZE          */
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>word32[Page8::EMPTY_LIST] >> ZPOS_PAGE_TYPE_BIT) & 3) ==
+        1) {
+      jam();
+      LocalContainerPageList sparselist(c_page8_pool,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FROM THE INDEX. CURRENT USERS ARE ALL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TSL_UPDATE_HEADER       SHOULD WE UPDATE THE CONTAINER HEADER 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ REQUESTS AND EXECUTE UNDO LOG                                fragrecptr.p->sparsepages);
+      LocalContainerPageList fulllist(c_page8_pool, fragrecptr.p->fullpages);
+      sparselist.remove(ilcPageptr);
+      fulllist.addLast(ilcPageptr);
+    }  // if
+  }    // if
+}  // Dbacc::increaselistcont()
+
+/* ---------------------------------------------------------------------------------
+ */
+/* SEIZE_LEFTLIST */
+/*       INPUT: */
+/*       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+OUTPUT:                                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        TSL_PAGEINDEX           PAGE INDEX OF CONTAINER TO SEIZE */
+/*               SL_PAGEPTR             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ PAGE POINTER OF CONTAINER TO SEIZE */
+/*       THE FOLLOWING SUBROUTINES ARE INCLUDED IN THIS MODULE: TSL_UPDATE_HEADER       SHOULD WE UPDATE THE CONTAINER HEADER
+ */
+/*               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GET_ELEMENT
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NONE                             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    */
+/*       OUTPUT: */
+/*               NONE */
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FROM
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FROM
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    */
+/*               GET_DIRINDEX                                                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+REMOVED
+// RONDB-624 todo: Glue these lines together ^v
+=======
+REMOVED
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     */
+/*               SEARCH_LONG_KEY         */
 /*                                                                                   */
 /*               THESE ROUTINES ARE ONLY USED BY THIS MODULE AND BY NO ONE ELSE.     */
 /*               ALSO THE ROUTINES MAKE NO USE OF ROUTINES IN OTHER MODULES.         */
 /*               THE ONLY SHORT-LIVED VARIABLES USED IN OTHER PARTS OF THE BLOCK ARE */
 /*               THOSE DEFINED AS INPUT AND OUTPUT IN GET_ELEMENT AND GETDIRINDEX    */
-/*               SHORT-LIVED VARIABLES INCLUDE TEMPORARY VARIABLES, COMMON VARIABLES */
+/*               SHORT-LIVED VARIABLES INCLUDE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TEMPORARY
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FROM
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FROM
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ VARIABLES, COMMON VARIABLES */
 /*               AND POINTER VARIABLES.                                              */
 /*               THE ONLY EXCEPTION TO THIS RULE IS FRAGRECPTR WHICH POINTS TO THE   */
 /*               FRAGMENT RECORD. THIS IS MORE LESS STATIC ALWAYS DURING A SIGNAL    */
 /*               EXECUTION.                                                          */
 /*                                                                                   */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /* GETDIRINDEX                                                                       */
 /*       SUPPORT ROUTINE FOR INSERT ELEMENT, GET ELEMENT AND COMMITDELETE            */
 /*         INPUT:FRAGRECPTR ( POINTER TO THE ACTIVE FRAGMENT REC)                    */
@@ -4350,7 +6143,8 @@ void Dbacc::seizeRightlist(Page8Ptr slPageptr, Uint32 tslPageindex)
 /*         DESCRIPTION: CHECK THE HASH VALUE OF THE OPERATION REC AND CALCULATE THE  */
 /*                     THE ADDRESS OF THE ELEMENT IN THE HASH TABLE,(GDI_PAGEPTR,    */
 /*                     TGDI_PAGEINDEX) ACCORDING TO LH3.                             */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
 Uint32 Dbacc::getPagePtr(DynArr256::Head& directory, Uint32 index)
 {
   DynArr256 dir(directoryPoolPtr, directory);
@@ -4417,7 +6211,18 @@ Dbacc::find_key_operation(Ptr<Operationrec> opPtr, bool invalid_local_key)
 
 Uint32
 Dbacc::readTablePk(Uint32 localkey1,
-                   Uint32 localkey2,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+UNDO
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UNDO
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                 Uint32 localkey2,
                    Uint32 eh,
                    Ptr<Operationrec> opPtr,
                    Uint32 *keys,
@@ -4457,15 +6262,76 @@ Dbacc::readTablePk(Uint32 localkey1,
      *    attached to it. We will check the lock owner and all operations
      *    in the serial queue. If the local key is invalid we will find
      *    the key in the lock owner. We won't search the parallel queue
-     *    since these operations have likely already released the key
-     *    and also if the decision was taken to delete the record, then
-     *    no operation in the parallel queue will revert that decision.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+BLOCK
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BLOCK
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  *    since these operations have likely already released the key
+     *    and also 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AND
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AND
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ the decision was taken to delete the record, then
+     *    no operation in the parallel queue will 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+revert
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+COMMON
+// RONDB-624 todo: Glue these lines together ^v
+=======
+COMMON
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ that decision.
      *    However all operations in the serial queue have not yet
      *    released any key they might have. If none in the serial queue
      *    has a key attached to it, then there are either no operation
      *    there or there are only SCAN operations. Thus we can safely
-     *    return not found since the tuple is going away and we can start
-     *    a new tuple here.
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TO
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TO
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    return not found since the tuple is going away and we can start
+     *    a new tuple 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+here.
+||||||| Common ancestor
+A
+// RONDB-624 todo: Glue these lines together ^v
+=======
+A
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
      *
      * find_key_operation will only check lock owner if the local key is
      * invalid. This will only happen when INSERT has started, but not
@@ -4520,16 +6386,140 @@ Dbacc::readTablePk(Uint32 localkey1,
  * @param[out]  bucketConidx   Index within page of first container of bucket
                                there element should be.
  * @param[out]  elemPageptr    Page of found element.
- * @param[out]  elemConptr     Pointer within page to container of found
-                               element.
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CALCULATE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CALCULATE
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ @param[out]  elemConptr     Pointer within page to container of found
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+HASH
+// RONDB-624 todo: Glue these lines together ^v
+=======
+HASH
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+            element.
  * @param[out]  elemptr        Pointer within page to found element.
  * @return                     Returns ZTRUE if element was found.
  * ------------------------------------------------------------------------- */
 Uint32
 Dbacc::getElement(const AccKeyReq* signal,
-                  OperationrecPtr& lockOwnerPtr,
-                  Page8Ptr& bucketPageptr,
-                  Uint32& bucketConidx,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbacc::setPagePtr(DynArr256::Head&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::setPagePtr(DynArr256::Head
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+directory,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&directory,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      OperationrecPtr& lockOwnerPtr,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Page8Ptr&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbacc::unsetPagePtr(DynArr256::Head&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::unsetPagePtr(DynArr256::Head
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bucketPageptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+directory, Uint32 index)
+{
+  DynArr256 dir(directoryPoolPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&directory, Uint32 index) {
+  DynArr256 dir(directoryPoolPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbacc::getdirindex(Page8Ptr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::getdirindex(Page8Ptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pageptr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pageptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bucketConidx,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conidx)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&conidx) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
                   Page8Ptr& elemPageptr,
                   Uint32& elemConptr,
                   Uint32& elemptr)
@@ -4543,9 +6533,25 @@ Dbacc::getElement(const AccKeyReq* signal,
   const Uint32* Tkeydata = signal->keyInfo; /* or localKey if keyLen == 0 */
   const Uint32 localkeylen = fragrecptr.p->localkeylen;
   Uint32 bucket_number = fragrecptr.p->level.getBucketNumber(
-                          operationRecPtr.p->hashValue);
-  union {
-    Uint32 keys[2048];
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+operationRecPtr.p->hashValue);
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ eh,
+ union {
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+keys[2048];
+||||||| Common ancestor
+eh,
+=======
+>>>>>>> MySQL 8.0.36
     Uint64 keys_align;
   };
   (void)keys_align;
@@ -4674,20 +6680,167 @@ Dbacc::getElement(const AccKeyReq* signal,
                 jamDebug();
                 found = (len == operationRecPtr.p->tupkeylen) &&
                         (memcmp(Tkeydata, &keys[0], len << 2) == 0);
-              }
-            }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AccKeyReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AccKeyReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+         }
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+OperationrecPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+OperationrecPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lockOwnerPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&lockOwnerPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
           }
-          else
-          {
-            jam();
-            found = (localkey.m_page_no == Tkeydata[0] &&
-                     Uint32(localkey.m_page_idx) == Tkeydata[1]);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  else
+         
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Page8Ptr& bucketPageptr,
+         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ {
+      Page8Ptr &bucketPageptr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bucketConidx,
+=======
+&bucketConidx,
+>>>>>>> MySQL 8.0.36
+   jam();
+            found = (localkey.m_page_no 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== Tkeydata[0] &&
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Page8Ptr& elemPageptr,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+       Page8Ptr &elemPageptr, Uint32 &elemConptr,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   Uint32(localkey.m_page_idx)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== Tkeydata[1]);
+||||||| Common ancestor
+elemConptr,
+=======
+>>>>>>> MySQL 8.0.36
           }
-          if (found) 
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(found
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+elemptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&elemptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) 
           {
             jamDebug();
             operationRecPtr.p->localdata = localkey;
-            return ZTRUE;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tkeydata
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*Tkeydata
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        return ZTRUE;
           }
         }
         if (tgeRemLen <= Container::HEADER_SIZE)
@@ -4743,8 +6896,7 @@ Dbacc::report_pending_dealloc(Signal* signal,
 
   if (! localKey.isInvalid())
   {
-    if (scanInd)
-    {
+    if (scanInd) {
       jam();
       /**
        * Scan operation holding a lock on a key whose tuple
@@ -4817,21 +6969,83 @@ Dbacc::trigger_dealloc(Signal* signal, const Operationrec* opPtrP)
          * is a scan operation.
          * We must use a reference to the LQH deallocation operation
          * stored on the scan operation in commitDeleteCheck()/
-         * report_pending_dealloc() to inform LQH that the
-         * deallocation is triggered.
-         * LQH then decides when it is safe to deallocate.
+         * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+report_pending_dealloc()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  Uint32 len = readTablePk(localkey.m_page_no,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Uint32 len =
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to inform LQH that the
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+* deallocation is triggered.
+         * LQH then decides when it is safe to deallocate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                     localkey
+// RONDB-624 todo: Glue these lines together ^v
+=======
+readTablePk(localkey
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
          */
         userptr = opPtrP->m_scanOpDeleteCountOpRef;
-      }
+||||||| Common ancestor
+m_page_idx,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+m_page_no,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     }
       else
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                 tgeElementHeader,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+localkey.m_page_idx,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       {
         jam();
         ndbrequire((opbits & Operationrec::OP_PENDING_ABORT) != 0);
 
-        /**
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      /**
          * Operation triggering deallocation as part of abort
          * is a scan operation.
-         *
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         lockOwnerPtr,
+                                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tgeElementHeader, lockOwnerPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  *
          * We will inform LQH to deallocate immediately.
          */
         userptr = RNIL;
@@ -4933,10 +7147,47 @@ void Dbacc::commitdelete(Signal* signal)
        */
       ndbabort(); //ACC scans no longer used
       Uint16 scansInProgress =
-          fragrecptr.p->activeScanMask & ~conhead.getScanBits();
+      Operationrec *opPtrP,
+   fragrecptr.p->activeScanMask 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Operationrec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+~conhead.getScanBits();
+||||||| Common ancestor
+opPtrP,
+=======
+>>>>>>> MySQL 8.0.36
       scansInProgress = delPageptr.p->checkScans(scansInProgress, delConptr);
       for(int i = 0; scansInProgress != 0; i++, scansInProgress >>= 1)
-      {
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const Operationrec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+countOpPtrP)
+=======
+*countOpPtrP) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
         /**
          * For each scan in progress in container, move the scan bit for
          * last element to the delete elements place.  If it is the last
@@ -4976,14 +7227,65 @@ void Dbacc::commitdelete(Signal* signal)
     {
       /**
        * Initialize scanInProgress with the active scans which have not
-       * completely scanned the container.  Then check which scan actually
+       * completely scanned the container.  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Then
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+void
+Dbacc::trigger_dealloc(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Dbacc::trigger_dealloc(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+check
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ which 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scan
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Operationrec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+actually
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+opPtrP)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*opPtrP) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
        * currently scan the container.
        */
       ndbabort(); //ACC scans no longer used
       Uint16 scansInProgress = fragrecptr.p->activeScanMask & ~conhead.getScanBits();
       scansInProgress = delPageptr.p->checkScans(scansInProgress, delConptr);
-      for(int i = 0; scansInProgress != 0; i++, scansInProgress >>= 1)
-      {
+      for(int i = 0; scansInProgress != 0; i++, scansInProgress >>= 1) {
         if ((scansInProgress & 1) != 0)
         {
           ScanRecPtr scanPtr;
@@ -5011,7 +7313,26 @@ void Dbacc::commitdelete(Signal* signal)
   } else {
     /* --------------------------------------------------------------------------------- */
     /*  THE DELETED ELEMENT IS NOT THE LAST. WE READ THE LAST ELEMENT AND OVERWRITE THE  */
-    /*  DELETED ELEMENT.                                                                 */
+    /*  DELETED ELEMENT.                                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbacc::commitdelete(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::commitdelete(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+                       */
     /* --------------------------------------------------------------------------------- */
 #if defined(VM_TRACE) || !defined(NDEBUG) || defined(ERROR_INSERT)
     jamDebug();
@@ -5065,7 +7386,20 @@ void Dbacc::commitdelete(Signal* signal)
  *
  * @param[in]  delPageptr   Pointer to page of deleted element.
  * @param[in]  delConptr    Pointer within page to container of deleted element
- * @param[in]  delElemptr   Pointer within page to deleted element.
+ * @param[in]  delElemptr   Pointer within page to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+deleted
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+for
+// RONDB-624 todo: Glue these lines together ^v
+=======
+for
+   *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ element.
  * @param[in]  lastPageptr  Pointer to page of last element.
  * @param[in]  lastElemptr  Pointer within page to last element.
  * ------------------------------------------------------------------------- */
@@ -5129,16 +7463,39 @@ void Dbacc::deleteElement(Page8Ptr delPageptr,
  *                                    search, and on return the last container.
  * @param[in,out]  lastIsforward      Direction of first container to search,
  *                                    and on return the last container.
- * @param[out]     tlastElementptr    On return the pointer within page to last
+ * @param[out]     tlastElementptr    On return the pointer 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+within
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+never
+// RONDB-624 todo: Glue these lines together ^v
+=======
+never
+     *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ page to last
  *                                    element.
  * ------------------------------------------------------------------------ */
 void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
-                             Uint32 tlastPrevconptr,
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AND
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AND
+     *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+             Uint32 tlastPrevconptr,
                              Page8Ptr& lastPageptr,
                              Uint32& tlastPageindex,
                              Uint32& tlastContainerptr,
-                             bool& lastIsforward,
-                             Uint32& tlastElementptr)
+                             bool& lastIsforward,            Uint32& tlastElementptr)
 {
   /**
    * Should find the last container with same scanbits as the first.
@@ -5152,15 +7509,13 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
   ndbassert(tlastContainerlen != Container::HEADER_SIZE);
   const Uint16 activeScanMask = fragrecptr.p->activeScanMask;
   const Uint16 conScanMask = containerhead.getScanBits();
-  while (containerhead.getNextEnd() != 0)
-  {
+  while (containerhead.getNextEnd() != 0) {
     jam();
     Uint32 nextIndex = containerhead.getNextIndexNumber();
     Uint32 nextEnd = containerhead.getNextEnd();
     bool nextOnSamePage = containerhead.isNextOnSamePage();
     Page8Ptr nextPage;
-    if (nextOnSamePage)
-    {
+    if (nextOnSamePage)   {
       nextPage = lastPageptr;
     }
     else
@@ -5215,11 +7570,43 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
                        tlastContainerlen;
   }//if
   if (containerhead.isUsingBothEnds()) {
-    /* --------------------------------------------------------------------------------- */
-    /*       WE HAVE OWNERSHIP OF BOTH PARTS OF THE CONTAINER ENDS.                      */
-    /* --------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------------
+       */
+    /*     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+OPERATION
+// RONDB-624 todo: Glue these lines together ^v
+=======
+OPERATION
+       *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  WE HAVE OWNERSHIP OF BOTH PARTS OF THE CONTAINER ENDS.                      */
+    /* ---------------------------------------------------------------------------------
+       */
     if (tlastContainerlen < Container::DOWN_LIMIT) {
-      /* --------------------------------------------------------------------------------- */
+      /* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ Writing an invalid value only for sanity, the value should never be read.  */
+      jamDebug();
+      jamLineDebug(Uint16(lastPageptr.i));
+      jamLineDebug(Uint16(lastElemptr));
+      lastPageptr.p
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ Writing an invalid value only for sanity, the value should never be
+       * read.  */
+      jamDebug();
+      jamLineDebug(Uint16(lastPageptr.i));
+      jamLineDebug(Uint16(lastElemptr));
+      lastPageptr.p
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+--------------------------------------------------------------------------------- */
       /*       WE HAVE DECREASED THE SIZE BELOW THE DOWN LIMIT, WE MUST GIVE UP THE OTHER  */
       /*       SIDE OF THE BUFFER.                                                         */
       /* --------------------------------------------------------------------------------- */
@@ -5245,9 +7632,56 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
     {
       jam();
       /* --------------------------------------------------------------------------------- */
-      /*  THE LAST CONTAINER IS EMPTY AND IS NOT THE FIRST CONTAINER WHICH IS NOT REMOVED. */
+      /*  THE LAST CONTAINER IS EMPTY AND IS NOT THE FIRST CONTAINER WHICH IS NOT 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+REMOVED.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Page8Ptr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Page8Ptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
       /*  DELETE THE LAST CONTAINER AND UPDATE THE PREVIOUS CONTAINER. ALSO PUT THIS       */
-      /*  CONTAINER IN FREE CONTAINER LIST OF THE PAGE.                                    */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lastPageptr,
+                             Uint32& tlastPageindex,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&lastPageptr, Uint32 &tlastPageindex,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      /*  CONTAINER IN FREE CONTAINER LIST OF THE PAGE.                                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bool&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lastIsforward,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&lastIsforward,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       /* --------------------------------------------------------------------------------- */
       ndbrequire(tlastPrevconptr < 2048);
       ContainerHeader prevConhead(lastPrevpageptr.p->word32[tlastPrevconptr]);
@@ -5274,13 +7708,22 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
        * unscanned container at next call to getScanElement.
        */
 #if MAX_PARALLEL_SCANS_PER_FRAG > 0
-      if (containerhead.isScanInProgress())
-      {
+      if (containerhead.isScanInProgress())     {
         ndbabort(); //ACC scans no longer used
         Uint16 scansInProgress =
-            fragrecptr.p->activeScanMask & ~containerhead.getScanBits();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
++ (Container::HEADER_SIZE -
+=======
++
+>>>>>>> MySQL 8.0.36
+         fragrecptr.p->activeScanMask & ~containerhead.getScanBits();
         scansInProgress = lastPageptr.p->checkScans(scansInProgress,
-                                                    tlastContainerptr);
+  (Container::HEADER_SIZE -                              tlastContainerptr);
         Uint16 scanbit = 1;
         for(int i = 0 ;
             scansInProgress != 0 ;
@@ -5288,7 +7731,18 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
         {
           if ((scansInProgress & 1) != 0)
           {
-            ScanRecPtr scanPtr;
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+UP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UP
+       *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     ScanRecPtr scanPtr;
             scanPtr.i = fragrecptr.p->scan[i];
             ndbrequire(scanRec_pool.getValidPtr(scanPtr));
             scanPtr.p->leaveContainer(lastPageptr.i, tlastContainerptr);
@@ -5297,31 +7751,118 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
         }
         /**
          * All scans in progress for container are now canceled.
-         * No need to call clearScanInProgress for container header since
-         * container is about to be released anyway.
+         * No need to call clearScanInProgress for container header 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+since
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= tlastContainerptr +
+=======
+=
+>>>>>>> MySQL 8.0.36
+       * container is about to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+be
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tlastContainerptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+released anyway.
          */
-      }
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+             
+// RONDB-624 todo: Glue these lines together ^v
+=======
++
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   }
 #endif
       if (lastIsforward)
       {
         jam();
-        releaseLeftlist(lastPageptr, tlastPageindex, tlastContainerptr);
+        releaseLeftlist(lastPageptr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tlastPageindex, tlastContainerptr);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= tlastContainerptr -
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       }
-      else
-      {
-        jam();
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
+||||||| Common ancestor
+=======
+tlastContainerptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     {
+        jam
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+- 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+();
         releaseRightlist(lastPageptr, tlastPageindex, tlastContainerptr);
-      }//if
+      }  // if
       return;
-    }//if
+    }      // if
   }//if
   containerhead.setLength(tlastContainerlen);
   arrGuard(tlastContainerptr, 2048);
   lastPageptr.p->word32[tlastContainerptr] = containerhead;
 }//Dbacc::getLastAndRemove()
 
-/* --------------------------------------------------------------------------------- */
-/* RELEASE_LEFTLIST                                                                  */
+/* ---------------------------------------------------------------------------------
+       */
+/* RELEASE_LEFTLIST                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+IS
+// RONDB-624 todo: Glue these lines together ^v
+=======
+IS
+       *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+PUT
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PUT
+       *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                          */
 /*       INPUT:                                                                      */
 /*               RL_PAGEPTR              PAGE POINTER OF CONTAINER TO BE RELEASED    */
 /*               TRL_PAGEINDEX           PAGE INDEX OF CONTAINER TO BE RELEASED      */
@@ -5329,8 +7870,30 @@ void Dbacc::getLastAndRemove(Page8Ptr lastPrevpageptr,
 /*               TRL_REL_CON             TRUE IF CONTAINER RELEASED OTHERWISE ONLY   */
 /*                                       A PART IS RELEASED.                         */
 /*                                                                                   */
-/*       OUTPUT:                                                                     */
-/*               NONE                                                                */
+/*       OUTPUT:                                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= lastPageptr.p->checkScans(scansInProgress,
+=======
+=
+>>>>>>> MySQL 8.0.36
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+              */
+/*               NONE          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+lastPageptr.p->checkScans(scansInProgress,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                                      */
 /*                                                                                   */
 /*          THE FREE LIST OF LEFT FREE BUFFER IN THE PAGE WILL BE UPDATE             */
 /*     TULL_INDEX IS INDEX TO THE FIRST WORD IN THE LEFT SIDE OF THE BUFFER          */
@@ -5364,26 +7927,30 @@ void Dbacc::releaseLeftlist(Page8Ptr pageptr, Uint32 conidx, Uint32 conptr)
     c_page8_pool.getPtrForce(pageptr);
     checkoverfreelist(pageptr);
   }//if
-}//Dbacc::releaseLeftlist()
+}  // Dbacc::releaseLeftlist()
 
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
 /* RELEASE_RIGHTLIST                                                                 */
-/*       INPUT:                                                                      */
-/*               RL_PAGEPTR              PAGE POINTER OF CONTAINER TO BE RELEASED    */
-/*               TRL_PAGEINDEX           PAGE INDEX OF CONTAINER TO BE RELEASED      */
-/*               TURL_INDEX              INDEX OF CONTAINER TO BE RELEASED           */
-/*               TRL_REL_CON             TRUE IF CONTAINER RELEASED OTHERWISE ONLY   */
-/*                                       A PART IS RELEASED.                         */
+/*       INPUT: */
+/*               RL_PAGEPTR              PAGE POINTER OF CONTAINER TO BE
+ * RELEASED    */
+/*               TRL_PAGEINDEX           PAGE INDEX OF CONTAINER TO BE RELEASED
+ */
+/*               TURL_INDEX              INDEX OF CONTAINER TO BE RELEASED */
+/*               TRL_REL_CON             TRUE IF CONTAINER RELEASED OTHERWISE
+ * ONLY   */
+/*                                       A PART IS RELEASED. */
 /*                                                                                   */
-/*       OUTPUT:                                                                     */
-/*               NONE                                                                */
+/*       OUTPUT: */
+/*               NONE */
 /*                                                                                   */
 /*         THE FREE LIST OF RIGHT FREE BUFFER IN THE PAGE WILL BE UPDATE.            */
 /*         TURL_INDEX IS INDEX TO THE FIRST WORD IN THE RIGHT SIDE OF                */
-/*         THE BUFFER, WHICH IS THE LAST WORD IN THE BUFFER.                         */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::releaseRightlist(Page8Ptr pageptr, Uint32 conidx, Uint32 conptr)
-{
+/*         THE BUFFER, WHICH IS THE LAST WORD IN THE BUFFER.                */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::releaseRightlist(Page8Ptr pageptr, Uint32 conidx, Uint32 conptr) {
   Uint32 turlTmp1;
   Uint32 turlTmp;
 
@@ -5399,11 +7966,11 @@ void Dbacc::releaseRightlist(Page8Ptr pageptr, Uint32 conidx, Uint32 conptr)
     pageptr.p->word32[turlTmp] = conidx;
   } else {
     ndbrequire(turlTmp1 == Container::NO_CONTAINER_INDEX);
-  }//if
+  }  // if
   turlTmp = pageptr.p->word32[Page8::EMPTY_LIST];
   pageptr.p->word32[Page8::EMPTY_LIST] = ((turlTmp >> 7) << 7) | conidx;
   pageptr.p->word32[Page8::ALLOC_CONTAINERS] =
-    pageptr.p->word32[Page8::ALLOC_CONTAINERS] - 1;
+      pageptr.p->word32[Page8::ALLOC_CONTAINERS] - 1;
   ndbrequire(pageptr.p->word32[Page8::ALLOC_CONTAINERS] <= ZNIL);
   if (((pageptr.p->word32[Page8::EMPTY_LIST] >> ZPOS_PAGE_TYPE_BIT) & 3) == 1) {
     jam();
@@ -5436,15 +8003,38 @@ void Dbacc::checkoverfreelist(Page8Ptr colPageptr)
     LocalContainerPageList sparselist(c_page8_pool, fragrecptr.p->sparsepages);
     fulllist.remove(colPageptr);
     sparselist.addFirst(colPageptr);
-  }//if
-}//Dbacc::checkoverfreelist()
+  }  // if
+}  // Dbacc::checkoverfreelist()
 
 /* ------------------------------------------------------------------------- */
-/* ------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------
+ */
 /* ------------------------------------------------------------------------- */
 /*                                                                           */
-/*       END OF DELETE MODULE                                                */
-/*                                                                           */
+/*       END OF DELETE MODULE     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+RL_PAGEPTR              PAGE POINTER OF CONTAINER TO BE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RL_PAGEPTR              PAGE POINTER OF CONTAINER TO BE
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                           */
+/*                                                                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+OTHERWISE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+OTHERWISE
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
@@ -5453,10 +8043,11 @@ void Dbacc::checkoverfreelist(Page8Ptr colPageptr)
 /* ------------------------------------------------------------------------- */
 /*                                                                           */
 /*       COMMIT AND ABORT MODULE                                             */
-/*                                                                           */
+/*                                                   */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
-/* ------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------
+ */
 
 
 /**
@@ -5474,7 +8065,20 @@ void Dbacc::checkoverfreelist(Page8Ptr colPageptr)
  *     Later READ operations may or may not depend
  *       on earlier modify operations
  *       - READs have no state at TUP
- *       - READs may READ older (unaborted) row states
+ *       - READs may READ older 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(unaborted)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+BE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BE
+ *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ row states
  *       Since we do not know, we abort.
  *     Later operations do not depend on earlier
  *       READ operations
@@ -5482,8 +8086,7 @@ void Dbacc::checkoverfreelist(Page8Ptr colPageptr)
  *     There are no abort dependencies
  */
 void
-Dbacc::mark_pending_abort(OperationrecPtr abortingOp, Uint32 nextParallelOp)
-{
+Dbacc::mark_pending_abort(OperationrecPtr abortingOp, Uint32 nextParallelOp) {
   jam();
   const Uint32 abortingOpBits = abortingOp.p->m_op_bits;
   const Uint32 opType = abortingOpBits & Operationrec::OP_MASK;
@@ -5776,8 +8379,7 @@ Dbacc::abortSerieQueueOperation(Signal* signal,
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(prevS));
     ndbassert(prevS.p->nextSerialQue == opPtr.i);
     
-    if (nextP.i != RNIL)
-    {
+    if (nextP.i != RNIL)   {
       /**
        * Promote nextP to list head
        */
@@ -5831,20 +8433,54 @@ Dbacc::abortSerieQueueOperation(Signal* signal,
 	loPtr.i = loPtr.p->prevSerialQue;
         ndbrequire(m_curr_acc->oprec_pool.getValidPtr(loPtr));
       }
-      ndbassert(loPtr.p->m_lo_last_serial_op_ptr_i == opPtr.i);
-      if (prevS.i != loPtr.i)
+      ndbassert(loPtr.p->m_lo_last_serial_op_ptr_i == opPtr.i)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if (prevS
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	nextP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  nextP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.i != loPtr.i)
       {
 	jam();
 	loPtr.p->m_lo_last_serial_op_ptr_i = prevS.i;
-      }
-      else
-      {
-	loPtr.p->m_lo_last_serial_op_ptr_i = RNIL;
+      } else {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
+	loPtr.p->m_lo_last_serial_op_ptr_i = RNIL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ {
+	break
+// RONDB-624 todo: Glue these lines together ^v
+=======
+break
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
       }
       validate_lock_queue(loPtr);
     }
-    else if (nextP.i == RNIL)
-    {
+    else if (nextP.i == RNIL)   {
       ndbrequire(m_curr_acc->oprec_pool.getValidPtr(nextS));
       ndbassert(nextS.p->prevSerialQue == opPtr.i);
       prevS.p->nextSerialQue = nextS.i;
@@ -5872,7 +8508,28 @@ Dbacc::abortSerieQueueOperation(Signal* signal,
 	startNext(signal, lastOp, hash);
         return;
       }
-      else
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+Dbacc::abortSerieQueueOperation(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::abortSerieQueueOperation(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    else
       {
 	validate_lock_queue(prevS);
       }
@@ -5893,14 +8550,48 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
      * We only need to protect changes when the lock owner aborts or
      * commits, this is to ensure that the state of the operation
      * that is linked to the hash index doesn't change while a query
-     * thread is reading it. This could cause the query thread to
-     * consider a row deleted which isn't and vice versa.
+     * thread is reading it.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ This could cause the query thread to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+wait_fail((opbits & 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+wait_fail(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     * consider a row deleted 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+which
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+(opbits
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+isn't and vice versa.
      */
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
     takeOutLockOwnersList(operationRecPtr);
 #endif
     fragrecptr.p->lockCount[hash]--;
-    opbits &= ~(Uint32)Operationrec::OP_LOCK_OWNER;
+    opbits &=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ~(Uint32)Operationrec::OP_LOCK_OWNER;
     if (unlikely(opbits & Operationrec::OP_INSERT_IS_DONE))
     { 
       jam();
@@ -5920,8 +8611,21 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
                         false,
                         trigger_dealloc_op,
                         hash);
-      if (unlikely(trigger_dealloc_op))
-      {
+      if (unlikely(trigger_dealloc_op)) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+{
+	/**
+	 *
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  /**
+         *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
         jam();
         trigger_dealloc(signal, operationRecPtr.p);
       }
@@ -5947,18 +8651,101 @@ void Dbacc::abortOperation(Signal* signal, Uint32 hash)
         taboElementptr = operationRecPtr.p->elementPointer;
         aboPageidptr.i = operationRecPtr.p->elementPage;
         ndbassert(!operationRecPtr.p->localdata.isInvalid());
-        tmp2Olq = ElementHeader::setUnlocked(
-                      operationRecPtr.p->localdata.m_page_idx,
-                      operationRecPtr.p->reducedHashValue);
+        tmp2Olq = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ElementHeader::setUnlocked(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RNIL)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RNIL) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	jam();
+=======
+  jam();
+>>>>>>> MySQL 8.0.36
+                operationRecPtr.p->localdata.m_page_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+idx,
+||||||| Common ancestor
+queue(prevS);
+	return;
+=======
+queue(prevS);
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+=======
+  return;
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+} else {
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	//
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    operationRecPtr.p->reducedHashValue);
         c_page8_pool.getPtr(aboPageidptr);
         arrGuard(taboElementptr, 2048);
         aboPageidptr.p->word32[taboElementptr] = tmp2Olq;
         release_frag_mutex_hash(fragrecptr.p, hash);
         jam();
+<<<<<<< RonDB // RONDB-624 todo
         return;
-      } 
+||||||| Common ancestor
+	return;
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+} 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  return;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       else 
-      {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+
         commitdelete(signal);
         release_frag_mutex_hash(fragrecptr.p, hash);
         jam();
@@ -5985,11 +8772,36 @@ Dbacc::commitDeleteCheck(Signal* signal)
   OperationrecPtr opPtr;
   OperationrecPtr lastOpPtr;
   OperationrecPtr deleteOpPtr;
-  Uint32 elementDeleted = 0;
+  Uint32 elementDeleted = 0
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   bool deleteCheckOngoing = true;
-  LHBits32 hashValue;
+  LHBits32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+hashValue;
   lastOpPtr = operationRecPtr;
-  opPtr.i = operationRecPtr.p->nextParallelQue;
+  opPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	loPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  loPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.i = operationRecPtr.p->nextParallelQue;
   while (opPtr.i != RNIL) {
     jam();
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(opPtr));
@@ -5997,23 +8809,132 @@ Dbacc::commitDeleteCheck(Signal* signal)
     opPtr.i = opPtr.p->nextParallelQue;
   }//while
   deleteOpPtr = lastOpPtr;
-  do {
-    Uint32 opbits = deleteOpPtr.p->m_op_bits;
+  do 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+loPtr.i)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+loPtr.i) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    Uint32 opbits 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= deleteOpPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam();
+	loPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam();
+        loPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.p->m_op_bits;
     Uint32 op = opbits & Operationrec::OP_MASK;
     if (op == ZDELETE) {
-      jam();
-      /* -------------------------------------------------------------------
+   else {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/* 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	loPtr.p
+// RONDB-624 todo: Glue these lines together ^v
+=======
+loPtr.p
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+-------------------------------------------------------------------
        * IF THE CURRENT OPERATION TO BE COMMITTED IS A DELETE OPERATION DUE TO
        * A SCAN-TAKEOVER THE ACTUAL DELETE WILL BE PERFORMED BY THE PREVIOUS 
        * OPERATION (SCAN) IN THE PARALLEL QUEUE WHICH OWNS THE LOCK.
        * THE PROBLEM IS THAT THE SCAN OPERATION DOES NOT HAVE A HASH VALUE 
-       * ASSIGNED TO IT SO WE COPY IT FROM THIS OPERATION.
+       * ASSIGNED 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TO
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Operationrec::OP_LOCK_OWNER)
+=======
+Operationrec::OP_LOCK_OWNER) {
+>>>>>>> MySQL 8.0.36
+ IT SO WE COPY IT 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FROM THIS OPERATION.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	/**
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  /**
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
        *
        * WE ASSUME THAT THIS SOLUTION WILL WORK BECAUSE THE ONLY WAY A 
        * SCAN CAN PERFORM A DELETE IS BY BEING FOLLOWED BY A NORMAL 
-       * DELETE-OPERATION THAT HAS A HASH VALUE.
+  else {
+    * DELETE-OPERATION THAT HAS 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+A HASH
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ {
+	validate_lock_queue(prevS);
+=======
+validate_lock_queue(prevS);
+>>>>>>> MySQL 8.0.36
+ VALUE.
        * ----------------------------------------------------------------- */
-      hashValue = deleteOpPtr.p->hashValue;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+
+void Dbacc::abortOperation(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Dbacc::abortOperation(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+   hashValue = deleteOpPtr.p->hashValue;
       elementDeleted = Operationrec::OP_ELEMENT_DISAPPEARED;
       deleteCheckOngoing = false;
     } else if (op == ZREAD || op == ZSCAN_OP) {
@@ -6042,11 +8963,35 @@ Dbacc::commitDeleteCheck(Signal* signal)
        */
       deleteCheckOngoing = false;
     }//if
-  } while (deleteCheckOngoing);
+  } while 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(deleteCheckOngoing);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tmp2Olq = ElementHeader::setUnlocked(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tmp2Olq =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   opPtr = lastOpPtr;
   do {
     jam();
-    opPtr.p->m_op_bits |= Operationrec::OP_COMMIT_DELETE_CHECK;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   opPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+          operationRecPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ElementHeader::setUnlocked(operationRecPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.p->m_op_bits |= Operationrec::OP_COMMIT_DELETE_CHECK;
     if (elementDeleted) {
       jam();
       /* All pending dealloc operations are marked and reported to LQH */
@@ -6058,13 +9003,39 @@ Dbacc::commitDeleteCheck(Signal* signal)
     if (opPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER) {
       jam();
       break;
-    }//if
+    }    // if
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(opPtr));
   } while (true);
 }//Dbacc::commitDeleteCheck()
 
 /* ------------------------------------------------------------------------- */
-/* COMMIT_OPERATION                                                          */
+/* COMMIT_OPERATION                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Dbacc::commitDeleteCheck(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Dbacc::commitDeleteCheck(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+                                        */
 /* INPUT: OPERATION_REC_PTR, POINTER TO AN OPERATION RECORD                  */
 /* DESCRIPTION: THE OPERATION RECORD WILL BE TAKE OUT OF ANY LOCK QUEUE.     */
 /*         IF IT OWNS THE ELEMENT LOCK. HEAD OF THE ELEMENT WILL BE UPDATED. */
@@ -6164,7 +9135,26 @@ void Dbacc::commitOperation(Signal* signal)
        * No queue and elementIsDisappeared is true. 
        * We perform the actual delete operation.
        */
-      commitdelete(signal);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbacc::commitOperation(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbacc::commitOperation(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  commitdelete(signal);
       release_frag_mutex_hash(fragrecptr.p, hash);
       jam();
       trigger_dealloc(signal, operationRecPtr.p);
@@ -6231,9 +9221,29 @@ void Dbacc::commitOperation(Signal* signal)
        *
        * e.g
        *   T1(R) T1(X) T1*(R)
-       *   T2(R/X)
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+* 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= ElementHeader::setUnlocked(
+=======
+=
+>>>>>>> MySQL 8.0.36
+  T2(R/X)
        *
-       *   If T1*(R) commits T2(R/X) is not supposed to run
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      *   If T1*(R)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+          operationRecPtr.p->localdata.m_page_idx,
+=======
+ElementHeader::setUnlocked(operationRecPtr.p->localdata.m_page_idx,
+>>>>>>> MySQL 8.0.36
+ commits T2(R/X) is not supposed to run
        *     as T1(R),T2(x) should also commit
        */
       validate_lock_queue(prev);
@@ -6302,9 +9312,7 @@ Dbacc::release_lockowner(Signal* signal,
     {
       newOwner.p->m_lo_last_parallel_op_ptr_i = RNIL;
       lastP = nextP;
-    }
-    else
-    {
+    } else {
       ndbrequire(m_curr_acc->oprec_pool.getValidPtr(lastP));
       newOwner.p->m_lo_last_parallel_op_ptr_i = lastP.i;
       lastP.p->m_lock_owner_ptr_i = newOwner.i;
@@ -6320,7 +9328,7 @@ Dbacc::release_lockowner(Signal* signal,
       ndbassert(nextS.p->prevSerialQue == opPtr.i);
       nextS.p->prevSerialQue = newOwner.i;
     }
-    
+
     if (commit)
     {
       if ((opbits & Operationrec::OP_ACC_LOCK_MODE) == ZREADLOCK)
@@ -6363,21 +9371,99 @@ Dbacc::release_lockowner(Signal* signal,
 	ndbassert(opstate == Operationrec::OP_STATE_RUNNING);
 	if (opbits & Operationrec::OP_ELEMENT_DISAPPEARED)
 	{
-	  jam();
-          trigger_dealloc_op = true;
-	  newOwner.p->localdata.setInvalid();
+	  jam()
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    trigger_dealloc_op = true;
+	  newOwner.p->localdata.setInvalid
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+();
+<<<<<<< RonDB // RONDB-624 todo
 	}
 	else
 	{
-	  jam();
-	  newOwner.p->localdata = opPtr.p->localdata;
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	return;
+=======
+>>>>>>> MySQL 8.0.36
+  jam();
+	  newOwner.p->localdata = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+opPtr.p->localdata;
 	}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  return;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 	action = START_NEW;
-      }
-      
+        }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+
       /**
        * Update ACC_LOCK_MODE
-       */
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}//Dbacc::commitOperation()
+
+void 
+Dbacc::release_lockowner(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}  // Dbacc::commitOperation()
+
+void Dbacc::release_lockowner(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    */
       if (opbits & Operationrec::OP_LOCK_MODE)
       {
 	Uint32 nextbits = nextP.p->m_op_bits;
@@ -6421,16 +9507,38 @@ Dbacc::release_lockowner(Signal* signal,
     }
     
     lastP = newOwner;
-    while (lastP.p->nextParallelQue != RNIL)
-    {
+    while (lastP.p->nextParallelQue != RNIL) {
       lastP.i = lastP.p->nextParallelQue;
       ndbrequire(m_curr_acc->oprec_pool.getValidPtr(lastP));
       lastP.p->m_op_bits |= Operationrec::OP_RUN_QUEUE;
     }
-    
+
     if (newOwner.i != lastP.i)
-    {
-      jam();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  if ((opbits & Operationrec::OP_ACC_LOCK_MODE) == ZREADLOCK)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  if ((opbits & Operationrec::OP_ACC_LOCK_MODE) == ZREADLOCK) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+jam();
       newOwner.p->m_lo_last_parallel_op_ptr_i = lastP.i;
     }
     else
@@ -6443,9 +9551,22 @@ Dbacc::release_lockowner(Signal* signal,
     {
       jam();
       newOwner.p->m_lo_last_serial_op_ptr_i = lastS;
-    }
-    else
-    {
+    } else 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  {
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
       jam();
       newOwner.p->m_lo_last_serial_op_ptr_i = RNIL;
     }
@@ -6467,8 +9588,31 @@ Dbacc::release_lockowner(Signal* signal,
     newOwner.p->elementPage = opPtr.p->elementPage;
     newOwner.p->elementPointer = opPtr.p->elementPointer;
     newOwner.p->elementContainer = opPtr.p->elementContainer;
-    newOwner.p->reducedHashValue = opPtr.p->reducedHashValue;
-    newOwner.p->m_op_bits |= (opbits & Operationrec::OP_ELEMENT_DISAPPEARED);
+    newOwner.p->reducedHashValue = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+opPtr.p->reducedHashValue;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Operationrec::OP_STATE_EXECUTED)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Operationrec::OP_STATE_EXECUTED) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    newOwner.p->m_op_bits |= 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	ndbassert
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  ndbassert
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(opbits & Operationrec::OP_ELEMENT_DISAPPEARED);
     if (opbits & Operationrec::OP_ELEMENT_DISAPPEARED)
     {
       /* ------------------------------------------------------------------- */
@@ -6477,8 +9621,29 @@ Dbacc::release_lockowner(Signal* signal,
       // committing abort or a aborting insert. 
       // Scans do not initialise the hashValue and must have this 
       // value initialised if they are
-      // to successfully commit the delete.
-      /* ------------------------------------------------------------------- */
+      // to successfully 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+commit
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Operationrec::OP_LOCK_MODE)
+=======
+Operationrec::OP_LOCK_MODE) {
+>>>>>>> MySQL 8.0.36
+ the delete.
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  /* ------------------------------------------------------------------- */
       jam();
       newOwner.p->hashValue = opPtr.p->hashValue;
     }//if
@@ -6488,18 +9653,71 @@ Dbacc::release_lockowner(Signal* signal,
     c_page8_pool.getPtr(pagePtr);
     const Uint32 tmp = ElementHeader::setLocked(newOwner.i);
     arrGuard(newOwner.p->elementPointer, 2048);
-    pagePtr.p->word32[newOwner.p->elementPointer] = tmp;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pagePtr.p->word32[newOwner.p->elementPointer]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tmp;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    } else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
-    /**
-     * Invalidate page number in elements second word for test in initScanOp
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  /**
+||||||| Common ancestor
+}
+	}
+=======
+}
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     * Invalidate page number in elements second word for 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+test
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ initScanOp
      */
     if (newOwner.p->localdata.isInvalid())
     {
       pagePtr.p->word32[newOwner.p->elementPointer + 1] =
         newOwner.p->localdata.m_page_no;
-    }
-    else
-    {
+    } else {
       ndbrequire(newOwner.p->localdata.m_page_no ==
                    pagePtr.p->word32[newOwner.p->elementPointer+1]);
     }
@@ -6538,7 +9756,7 @@ Dbacc::startNew(Signal* signal, OperationrecPtr newOwner, Uint32 hash)
 
   opbits &= opbits & ~(Uint32)Operationrec::OP_STATE_MASK;
   opbits |= Operationrec::OP_STATE_RUNNING;
-  
+
   if (unlikely(op == ZSCAN_OP && (opbits & Operationrec::OP_LOCK_REQ) == 0))
     goto scan;
 
@@ -6583,7 +9801,7 @@ Dbacc::startNew(Signal* signal, OperationrecPtr newOwner, Uint32 hash)
   }
 
 conf:
-  newOwner.p->m_op_bits = opbits;
+    newOwner.p->m_op_bits = opbits;
   validate_lock_queue(newOwner);
   release_frag_mutex_hash(fragrecptr.p, hash);
 
@@ -6607,7 +9825,7 @@ scan:
   
 ref:
   newOwner.p->m_op_bits = opbits;
-  validate_lock_queue(newOwner);
+    validate_lock_queue(newOwner);
   release_frag_mutex_hash(fragrecptr.p, hash);
   
   signal->theData[0] = newOwner.p->userptr;
@@ -6627,8 +9845,7 @@ ref:
  * lock owners list on the fragment.
  *
  */
-void Dbacc::takeOutLockOwnersList(OperationrecPtr& outOperPtr)
-{
+void Dbacc::takeOutLockOwnersList(OperationrecPtr& outOperPtr) {
   LHBits32 hashVal = getElementHash(outOperPtr);
   Uint32 hash = hashVal.get_bits(NUM_ACC_FRAGMENT_MUTEXES - 1);
   const Uint32 Tprev = outOperPtr.p->prevLockOwnerOp;
@@ -6640,8 +9857,7 @@ void Dbacc::takeOutLockOwnersList(OperationrecPtr& outOperPtr)
   tmpOperPtr.i = fragrecptr.p->lockOwnersList[hash];
   while (tmpOperPtr.i != RNIL){
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(tmpOperPtr));
-    if (tmpOperPtr.i == outOperPtr.i)
-      inList = true;
+    if (tmpOperPtr.i == outOperPtr.i)   inList = true;
     tmpOperPtr.i = tmpOperPtr.p->nextLockOwnerOp;
   }
   ndbrequire(inList == true);
@@ -6704,12 +9920,12 @@ void Dbacc::insertLockOwnersList(OperationrecPtr& insOperPtr)
   }
 #endif
   tmpOperPtr.i = fragrecptr.p->lockOwnersList[hash];
-  
+
   ndbrequire(! (insOperPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER));
 
   insOperPtr.p->prevLockOwnerOp = RNIL;
   insOperPtr.p->nextLockOwnerOp = tmpOperPtr.i;
-  
+
   fragrecptr.p->lockOwnersList[hash] = insOperPtr.i;
   if (likely(tmpOperPtr.i == RNIL))
   {
@@ -6724,50 +9940,50 @@ void Dbacc::insertLockOwnersList(OperationrecPtr& insOperPtr)
 }//Dbacc::insertLockOwnersList()
 #endif
 
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /*                                                                                   */
-/*       END OF COMMIT AND ABORT MODULE                                              */
+/*       END OF COMMIT AND ABORT MODULE */
 /*                                                                                   */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* ALLOC_OVERFLOW_PAGE                                                               */
-/*          DESCRIPTION:                                                             */
-/* --------------------------------------------------------------------------------- */
-bool
-Dbacc::get_lock_information(Dbacc **acc_block, Dblqh** lqh_block)
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ALLOC_OVERFLOW_PAGE */
+/*          DESCRIPTION: */
+/* ---------------------------------------------------------------------------------
+ */
+bool Dbacc::get_lock_information(Dbacc **acc_block, Dblqh **lqh_block) {
   bool lock_flag = false;
-  if (m_is_query_block)
-  {
+  if (m_is_query_block) {
     Uint32 instanceNo = c_lqh->m_current_ldm_instance;
     ndbrequire(instanceNo != 0);
-    *acc_block = (Dbacc*) globalData.getBlock(DBACC, instanceNo);
-    *lqh_block = (Dblqh*) globalData.getBlock(DBLQH, instanceNo);
+    *acc_block = (Dbacc *)globalData.getBlock(DBACC, instanceNo);
+    *lqh_block = (Dblqh *)globalData.getBlock(DBLQH, instanceNo);
     ndbrequire(!(*lqh_block)->is_restore_phase_done());
     lock_flag = true;
-  }
-  else
-  {
+  } else {
     (*acc_block) = this;
     (*lqh_block) = c_lqh;
     if (!c_lqh->is_restore_phase_done() &&
-        (globalData.ndbMtRecoverThreads +
-         globalData.ndbMtQueryWorkers) > 0)
-    {
+        (globalData.ndbMtRecoverThreads + globalData.ndbMtQueryWorkers) > 0) {
       lock_flag = true;
     }
   }
   return lock_flag;
 }
 
-Uint32
-Dbacc::seizePage_lock(Page8Ptr& spPageptr, int sub_page_id)
-{
+Uint32 Dbacc::seizePage_lock(Page8Ptr &spPageptr, int sub_page_id) {
   Dblqh *lqh_block;
   Dbacc *acc_block;
   TabrecPtr tabPtr;
@@ -6784,29 +10000,23 @@ Dbacc::seizePage_lock(Page8Ptr& spPageptr, int sub_page_id)
   }
 
   bool lock_flag = get_lock_information(&acc_block, &lqh_block);
-  if (lock_flag)
-  {
+  if (lock_flag) {
     NdbMutex_Lock(lqh_block->m_lock_acc_page_mutex);
   }
-  Uint32 result = acc_block->seizePage(spPageptr,
-                                       Page32Lists::ANY_SUB_PAGE,
-                                       c_allow_use_of_emergency_pages,
-                                       use_spare,
-                                       fragrecptr,
-                                       jamBuffer());
-  if (lock_flag)
-  {
+  Uint32 result =
+      acc_block->seizePage(spPageptr, Page32Lists::ANY_SUB_PAGE,
+                           c_allow_use_of_emergency_pages, use_spare,
+                                       fragrecptr, jamBuffer());
+  if (lock_flag) {
     NdbMutex_Unlock(lqh_block->m_lock_acc_page_mutex);
   }
   return result;
 }
 
-Uint32 Dbacc::allocOverflowPage()
-{
+Uint32 Dbacc::allocOverflowPage() {
   Page8Ptr spPageptr;
   Uint32 result = seizePage_lock(spPageptr, Page32Lists::ANY_SUB_PAGE);
-  if (result > ZLIMIT_OF_ERROR)
-  {
+  if (result > ZLIMIT_OF_ERROR) {
     return result;
   }
   {
@@ -6815,33 +10025,40 @@ Uint32 Dbacc::allocOverflowPage()
   }
   initOverpage(spPageptr);
   return 0;
-}//Dbacc::allocOverflowPage()
+}  // Dbacc::allocOverflowPage()
 
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
 /*                                                                                   */
-/*       EXPAND/SHRINK MODULE                                                        */
+/*       EXPAND/SHRINK MODULE */
 /*                                                                                   */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* ******************--------------------------------------------------------------- */
-/*EXPANDCHECK                                        EXPAND BUCKET ORD               */
+/* ---------------------------------------------------------------------------------
+ */
+/* ---------------------------------------------------------------------------------
+ */
+/* ******************---------------------------------------------------------------
+ */
+/*EXPANDCHECK                                        EXPAND BUCKET ORD */
 /* SENDER: ACC,    LEVEL B         */
-/*   INPUT:   FRAGRECPTR, POINTS TO A FRAGMENT RECORD.                               */
-/*   DESCRIPTION: A BUCKET OF A FRAGMENT PAGE WILL BE EXPAND INTO TWO BUCKETS        */
-/*                                 ACCORDING TO LH3.                                 */
-/* ******************--------------------------------------------------------------- */
-/* ******************--------------------------------------------------------------- */
-/* EXPANDCHECK                                        EXPAND BUCKET ORD              */
-/* ******************------------------------------+                                 */
+/*   INPUT:   FRAGRECPTR, POINTS TO A FRAGMENT RECORD. */
+/*   DESCRIPTION: A BUCKET OF A FRAGMENT PAGE WILL BE EXPAND INTO TWO BUCKETS */
+/*                                 ACCORDING TO LH3. */
+/* ******************---------------------------------------------------------------
+ */
+/* ******************---------------------------------------------------------------
+ */
+/* EXPANDCHECK                                        EXPAND BUCKET ORD */
+/* ******************------------------------------+ */
 /* SENDER: ACC,    LEVEL B         */
 /* A BUCKET OF THE FRAGMENT WILL   */
 /* BE EXPANDED ACCORDING TO LH3,   */
 /* AND COMMIT TRANSACTION PROCESS  */
 /* WILL BE CONTINUED */
-Uint32 Dbacc::checkScanExpand(Uint32 splitBucket)
-{
+Uint32 Dbacc::checkScanExpand(Uint32 splitBucket) {
   Uint32 TreturnCode = 0;
   Uint32 TPageIndex;
   Uint32 TDirInd;
@@ -6855,11 +10072,9 @@ Uint32 Dbacc::checkScanExpand(Uint32 splitBucket)
   TSplit = splitBucket;
 #if MAX_PARALLEL_SCANS_PER_FRAG > 0
   Uint32 Ti;
-  //for (Ti = 0; Ti < 0; Ti++)
-  {
+  //for (Ti = 0; Ti < 0; Ti++) {
     ndbabort(); //ACC scans no longer used
-    if (fragrecptr.p->scan[Ti] != RNIL)
-    {
+    if (fragrecptr.p->scan[Ti] != RNIL) {
       //-------------------------------------------------------------
       // A scan is ongoing on this particular local fragment. We have
       // to check its current state.
@@ -6867,54 +10082,49 @@ Uint32 Dbacc::checkScanExpand(Uint32 splitBucket)
       TscanPtr.i = fragrecptr.p->scan[Ti];
       ndbrequire(scanRec_pool.getValidPtr(TscanPtr));
       if (TscanPtr.p->activeLocalFrag == fragrecptr.i) {
-        if (TscanPtr.p->scanBucketState ==  ScanRec::FIRST_LAP) {
+        if (TscanPtr.p->scanBucketState == ScanRec::FIRST_LAP) {
           if (TSplit == TscanPtr.p->nextBucketIndex) {
             jam();
-	    //-------------------------------------------------------------
-	    // We are currently scanning this bucket. We cannot split it
-	    // simultaneously with the scan. We have to pass this offer for
-	    // splitting the bucket.
-	    //-------------------------------------------------------------
+            //-------------------------------------------------------------
+            // We are currently scanning this bucket. We cannot split it
+            // simultaneously with the scan. We have to pass this offer for
+            // splitting the bucket.
+            //-------------------------------------------------------------
             TreturnCode = 1;
             return TreturnCode;
-          }
-          else if (TSplit > TscanPtr.p->nextBucketIndex)
-          {
+          } else if (TSplit > TscanPtr.p->nextBucketIndex) {
             jam();
             ndbassert(TSplit <= TscanPtr.p->startNoOfBuckets);
-            if (TSplit <= TscanPtr.p->startNoOfBuckets)
-            {
-	      //-------------------------------------------------------------
-	      // This bucket has not yet been scanned. We must reset the scanned
-	      // bit indicator for this scan on this bucket.
-	      //-------------------------------------------------------------
+            if (TSplit <= TscanPtr.p->startNoOfBuckets) {
+              //-------------------------------------------------------------
+              // This bucket has not yet been scanned. We must reset the scanned
+              // bit indicator for this scan on this bucket.
+              //-------------------------------------------------------------
               releaseScanMask |= TscanPtr.p->scanMask;
             }
-          }
-          else
-          {
+          } else {
             jam();
-          }//if
-        } else if (TscanPtr.p->scanBucketState ==  ScanRec::SECOND_LAP) {
+          }  // if
+        } else if (TscanPtr.p->scanBucketState == ScanRec::SECOND_LAP) {
           jam();
-	  //-------------------------------------------------------------
-	  // We are performing a second lap to handle buckets that was
-	  // merged during the first lap of scanning. During this second
-	  // lap we do not allow any splits or merges.
-	  //-------------------------------------------------------------
+          //-------------------------------------------------------------
+          // We are performing a second lap to handle buckets that was
+          // merged during the first lap of scanning. During this second
+          // lap we do not allow any splits or merges.
+          //-------------------------------------------------------------
           TreturnCode = 1;
           return TreturnCode;
         } else {
-          ndbrequire(TscanPtr.p->scanBucketState ==  ScanRec::SCAN_COMPLETED);
+          ndbrequire(TscanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED);
           jam();
-	  //-------------------------------------------------------------
-	  // The scan is completed and we can thus go ahead and perform
-	  // the split.
-	  //-------------------------------------------------------------
-        }//if
-      }//if
-    }//if
-  }//for
+          //-------------------------------------------------------------
+          // The scan is completed and we can thus go ahead and perform
+          // the split.
+          //-------------------------------------------------------------
+        }  // if
+      }    // if
+    }      // if
+  }        // for
 #endif
   TreleaseScanBucket = TSplit;
   TPageIndex = fragrecptr.p->getPageIndex(TreleaseScanBucket);
@@ -6923,14 +10133,12 @@ Uint32 Dbacc::checkScanExpand(Uint32 splitBucket)
   c_page8_pool.getPtr(TPageptr);
   releaseScanBucket(TPageptr, TPageIndex, releaseScanMask);
   return TreturnCode;
-}//Dbacc::checkScanExpand()
+}  // Dbacc::checkScanExpand()
 
-void Dbacc::execEXPANDCHECK2(Signal* signal)
-{
+void Dbacc::execEXPANDCHECK2(Signal *signal) {
   jamEntry();
 
-  if(refToBlock(signal->getSendersBlockRef()) == getDBLQH())
-  {
+  if (refToBlock(signal->getSendersBlockRef()) == getDBLQH()) {
     jam();
     return;
   }
@@ -6940,16 +10148,12 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
   fragrecptr.p->expandOrShrinkQueued = false;
 #ifdef ERROR_INSERT
   bool force_expand_shrink = false;
-  if (ERROR_INSERTED(3004) && fragrecptr.p->fragmentid == 0)
-  {
-    if (fragrecptr.p->level.getSize() > ERROR_INSERT_EXTRA)
-    {
+  if (ERROR_INSERTED(3004) && fragrecptr.p->fragmentid == 0) {
+    if (fragrecptr.p->level.getSize() > ERROR_INSERT_EXTRA) {
       jam();
       execSHRINKCHECK2(signal);
       return;
-    }
-    else if (fragrecptr.p->level.getSize() == ERROR_INSERT_EXTRA)
-    {
+    } else if (fragrecptr.p->level.getSize() == ERROR_INSERT_EXTRA) {
       return;
     }
     force_expand_shrink = true;
@@ -6965,16 +10169,14 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
     /*       THE SLACK HAS IMPROVED AND IS NOW ACCEPTABLE AND WE    */
     /*       CAN FORGET ABOUT THE EXPAND PROCESS.                   */
     /*--------------------------------------------------------------*/
-    if (ERROR_INSERTED(3002))
-      debug_lh_vars("SLK");
+    if (ERROR_INSERTED(3002)) debug_lh_vars("SLK");
     if (fragrecptr.p->dirRangeFull == ZTRUE) {
       jam();
       fragrecptr.p->dirRangeFull = ZFALSE;
     }
     return;
-  }//if
-  if (fragrecptr.p->level.isFull())
-  {
+  }  // if
+  if (fragrecptr.p->level.isFull()) {
     jam();
     /*
      * The level structure does not allow more buckets.
@@ -6982,8 +10184,7 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
      */
     return;
   }
-  if (fragrecptr.p->sparsepages.isEmpty())
-  {
+  if (fragrecptr.p->sparsepages.isEmpty()) {
     jam();
     Uint32 result = allocOverflowPage();
     if (result > ZLIMIT_OF_ERROR) {
@@ -6993,8 +10194,8 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
       /* THE EXPAND SINCE WE CANNOT GUARANTEE ITS COMPLETION.         */
       /*--------------------------------------------------------------*/
       return;
-    }//if
-  }//if
+    }  // if
+  }    // if
 
   Uint32 splitBucket;
   Uint32 receiveBucket;
@@ -7021,12 +10222,9 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
   /*-------------------------------------------------------------------------*/
   Uint32 expDirInd = fragrecptr.p->getPageNumber(receiveBucket);
   Page8Ptr expPageptr;
-  if (fragrecptr.p->getPageIndex(receiveBucket) == 0)
-  { // Need new bucket
+  if (fragrecptr.p->getPageIndex(receiveBucket) == 0) {  // Need new bucket
     expPageptr.i = RNIL;
-  }
-  else
-  {
+  } else {
     expPageptr.i = getPagePtr(fragrecptr.p->directory, expDirInd);
     ndbassert(expPageptr.i != RNIL);
   }
@@ -7037,19 +10235,18 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
       jam();
       release_frag_mutex_bucket(fragrecptr.p, splitBucket);
       return;
-    }//if
-    if (!setPagePtr(fragrecptr.p->directory, expDirInd, expPageptr.i))
-    {
+    }  // if
+    if (!setPagePtr(fragrecptr.p->directory, expDirInd, expPageptr.i)) {
       jam();
       releasePage_lock(expPageptr);
-      //result = ZDIR_RANGE_FULL_ERROR;
+      // result = ZDIR_RANGE_FULL_ERROR;
       release_frag_mutex_bucket(fragrecptr.p, splitBucket);
       return;
     }
     initPage(expPageptr, expDirInd);
   } else {
     c_page8_pool.getPtr(expPageptr);
-  }//if
+  }  // if
 
   /**
    * Allow use of extra index memory (m_free_pct) during expand
@@ -7073,20 +10270,19 @@ void Dbacc::execEXPANDCHECK2(Signal* signal)
   fragrecptr.p->expSenderPageptr = pageptr.i;
   if (pageptr.i == RNIL) {
     jam();
-    endofexpLab(signal);	/* EMPTY BUCKET */
+    endofexpLab(signal); /* EMPTY BUCKET */
     release_frag_mutex_bucket(fragrecptr.p, splitBucket);
     return;
-  }//if
+  }  // if
   fragrecptr.p->expReceiveIsforward = true;
   c_page8_pool.getPtr(pageptr);
   expandcontainer(pageptr, conidx);
   endofexpLab(signal);
   release_frag_mutex_bucket(fragrecptr.p, splitBucket);
   return;
-}//Dbacc::execEXPANDCHECK2()
-  
-void Dbacc::endofexpLab(Signal* signal)
-{
+}  // Dbacc::execEXPANDCHECK2()
+
+void Dbacc::endofexpLab(Signal *signal) {
   c_allow_use_of_emergency_pages = false;
   fragrecptr.p->slack += fragrecptr.p->maxloadfactor;
   fragrecptr.p->expandCounter++;
@@ -7096,10 +10292,8 @@ void Dbacc::endofexpLab(Signal* signal)
   fragrecptr.p->slackCheck = Int64(noOfBuckets) * Thysteres;
 #ifdef ERROR_INSERT
   bool force_expand_shrink = false;
-  if (ERROR_INSERTED(3004) &&
-      fragrecptr.p->fragmentid == 0 &&
-      fragrecptr.p->level.getSize() != ERROR_INSERT_EXTRA)
-  {
+  if (ERROR_INSERTED(3004) && fragrecptr.p->fragmentid == 0 &&
+      fragrecptr.p->level.getSize() != ERROR_INSERT_EXTRA) {
     force_expand_shrink = true;
   }
   if ((force_expand_shrink || fragrecptr.p->slack < 0) &&
@@ -7111,47 +10305,42 @@ void Dbacc::endofexpLab(Signal* signal)
     jam();
     /* IT MEANS THAT IF SLACK < ZERO */
     /* --------------------------------------------------------------------- */
-    /* IT IS STILL NECESSARY TO EXPAND THE FRAGMENT EVEN MORE. START IT FROM */
+    /* IT IS STILL NECESSARY TO EXPAND THE FRAGMENT EVEN MORE. START IT
+     * FROM */
     /* HERE WITHOUT WAITING FOR NEXT COMMIT ON THE FRAGMENT.                 */
     /* --------------------------------------------------------------------- */
     signal->theData[0] = fragrecptr.p->fragmentid;
     signal->theData[1] = fragrecptr.p->myTableId;
     fragrecptr.p->expandOrShrinkQueued = true;
     sendSignal(reference(), GSN_EXPANDCHECK2, signal, 2, JBB);
-  }//if
+  }  // if
   return;
-}//Dbacc::endofexpLab()
+}  // Dbacc::endofexpLab()
 
-void Dbacc::execDEBUG_SIG(Signal* signal) 
-{
+void Dbacc::execDEBUG_SIG(Signal *signal) {
   jamEntry();
 
   progError(__LINE__, NDBD_EXIT_SR_UNDOLOG);
   return;
-}//Dbacc::execDEBUG_SIG()
+}  // Dbacc::execDEBUG_SIG()
 
-LHBits32 Dbacc::getElementHash(OperationrecPtr& oprec)
-{
+LHBits32 Dbacc::getElementHash(OperationrecPtr &oprec) {
   ndbassert(!oprec.isNull());
 
   // Only calculate hash value if operation does not already have a
-  // complete hash value
-  ndbrequire(oprec.p->hashValue.valid_bits() >= fragrecptr.p->MAX_HASH_VALUE_BITS)
-  return oprec.p->hashValue;
+  // complete
+  // hash value
+  ndbrequire(oprec.p->hashValue.valid_bits() >= fragrecptr.p->MAX_HASH_VALUE_BITS) return oprec.p->hashValue;
   {
     jam();
     Uint32 keys[2048 * MAX_XFRM_MULTIPLY];
     Local_key localkey;
     localkey = oprec.p->localdata;
     const bool xfrm = fragrecptr.p->hasCharAttr;
-    Uint32 len = readTablePk(localkey.m_page_no,
-                              localkey.m_page_idx,
-                              ElementHeader::setLocked(oprec.i),
-                              oprec,
-                              &keys[0],
-                              xfrm);
-    if (len > 0)
-    {
+    Uint32 len =
+        readTablePk(localkey.m_page_no, localkey.m_page_idx,
+                    ElementHeader::setLocked(oprec.i), oprec, &keys[0], xfrm);
+    if (len > 0) {
       /**
        * Return of len == 0 can only happen when the element is ready to be
        * deleted and no new operations is linked to the element, thus the
@@ -7168,8 +10357,7 @@ LHBits32 Dbacc::getElementHash(OperationrecPtr& oprec)
   }
 }
 
-LHBits32 Dbacc::getElementHash(Uint32 const* elemptr)
-{
+LHBits32 Dbacc::getElementHash(Uint32 const *elemptr) {
   jam();
   assert(ElementHeader::getUnlocked(*elemptr));
 
@@ -7183,43 +10371,31 @@ LHBits32 Dbacc::getElementHash(Uint32 const* elemptr)
   OperationrecPtr oprec;
   oprec.i = RNIL;
   const bool xfrm = fragrecptr.p->hasCharAttr;
-  Uint32 len = readTablePk(localkey.m_page_no,
-                           localkey.m_page_idx,
-                           elemhead,
-                           oprec,
-                           &keys[0],
-                           xfrm);
-  if (len > 0)
-  {
+  Uint32 len = readTablePk(localkey.m_page_no, localkey.m_page_idx, elemhead,
+                           oprec, &keys[0], xfrm);
+  if (len > 0) {
     jam();
     return LHBits32(rondb_calc_hash_val((const char*)&keys[0],
                                    len,
                                    fragrecptr.p->m_use_new_hash_function));
-  }
-  else
-  { // Return an invalid hash value if no data
+  } else {  // Return an invalid hash value if no data
     jam();
-    ndbabort(); // TODO RONM, see if this ever happens
+    ndbabort();  // TODO RONM, see if this ever happens
     return LHBits32();
   }
 }
 
-LHBits32 Dbacc::getElementHash(Uint32 const* elemptr, OperationrecPtr& oprec)
-{
-  if (!oprec.isNull())
-  {
+LHBits32 Dbacc::getElementHash(Uint32 const *elemptr, OperationrecPtr &oprec) {
+  if (!oprec.isNull()) {
     jam();
     return getElementHash(oprec);
   }
 
   Uint32 elemhead = *elemptr;
-  if (ElementHeader::getUnlocked(elemhead))
-  {
+  if (ElementHeader::getUnlocked(elemhead)) {
     jam();
     return getElementHash(elemptr);
-  }
-  else
-  {
+  } else {
     jam();
     oprec.i = ElementHeader::getOpPtrI(elemhead);
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(oprec));
@@ -7227,16 +10403,19 @@ LHBits32 Dbacc::getElementHash(Uint32 const* elemptr, OperationrecPtr& oprec)
   }
 }
 
-/* --------------------------------------------------------------------------------- */
-/* EXPANDCONTAINER                                                                   */
-/*        INPUT: EXC_PAGEPTR (POINTER TO THE ACTIVE PAGE RECORD)                     */
-/*               CEXC_PAGEINDEX (INDEX OF THE BUCKET).                               */
+/* ---------------------------------------------------------------------------------
+ */
+/* EXPANDCONTAINER */
+/*        INPUT: EXC_PAGEPTR (POINTER TO THE ACTIVE PAGE RECORD) */
+/*               CEXC_PAGEINDEX (INDEX OF THE BUCKET). */
 /*                                                                                   */
-/*        DESCRIPTION: THE HASH VALUE OF ALL ELEMENTS IN THE CONTAINER WILL BE       */
-/*                  CHECKED. SOME OF THIS ELEMENTS HAVE TO MOVE TO THE NEW CONTAINER */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
-{
+/*        DESCRIPTION: THE HASH VALUE OF ALL ELEMENTS IN THE CONTAINER WILL BE
+ */
+/*                  CHECKED. SOME OF THIS ELEMENTS HAVE TO MOVE TO THE NEW
+ * CONTAINER */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx) {
   ContainerHeader containerhead;
   LHBits32 texcHashvalue;
   Uint32 tidrContainerptr;
@@ -7258,16 +10437,13 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
   const Uint32 elemLen = fragrecptr.p->elementLength;
   OperationrecPtr oprecptr;
   bool newBucket = true;
- EXP_CONTAINER_LOOP:
+EXP_CONTAINER_LOOP:
   Uint32 conptr = getContainerPtr(conidx, isforward);
-  if (isforward)
-  {
+  if (isforward) {
     jam();
     elemptr = conptr + Container::HEADER_SIZE;
     elemStep = elemLen;
-  }
-  else
-  {
+  } else {
     jam();
     elemStep = 0 - elemLen;
     elemptr = conptr + elemStep;
@@ -7280,24 +10456,26 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
     ndbrequire(conlen >= Container::HEADER_SIZE);
     jam();
     goto NEXT_ELEMENT;
-  }//if
- NEXT_ELEMENT_LOOP:
+  }  // if
+NEXT_ELEMENT_LOOP:
   oprecptr.i = RNIL;
   ptrNull(oprecptr);
-  /* --------------------------------------------------------------------------------- */
-  /*       CEXC_PAGEINDEX         PAGE INDEX OF CURRENT CONTAINER BEING EXAMINED.      */
-  /*       CEXC_CONTAINERPTR      INDEX OF CURRENT CONTAINER BEING EXAMINED.           */
-  /*       CEXC_ELEMENTPTR        INDEX OF CURRENT ELEMENT BEING EXAMINED.             */
-  /*       EXC_PAGEPTR            PAGE WHERE CURRENT ELEMENT RESIDES.                  */
-  /*       CEXC_PREVPAGEPTR        PAGE OF PREVIOUS CONTAINER.                         */
-  /*       CEXC_PREVCONPTR        INDEX OF PREVIOUS CONTAINER                          */
-  /*       CEXC_FORWARD           DIRECTION OF CURRENT CONTAINER                       */
-  /* --------------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       CEXC_PAGEINDEX         PAGE INDEX OF CURRENT CONTAINER BEING
+   * EXAMINED.      */
+  /*       CEXC_CONTAINERPTR      INDEX OF CURRENT CONTAINER BEING EXAMINED. */
+  /*       CEXC_ELEMENTPTR        INDEX OF CURRENT ELEMENT BEING EXAMINED. */
+  /*       EXC_PAGEPTR            PAGE WHERE CURRENT ELEMENT RESIDES. */
+  /*       CEXC_PREVPAGEPTR        PAGE OF PREVIOUS CONTAINER. */
+  /*       CEXC_PREVCONPTR        INDEX OF PREVIOUS CONTAINER */
+  /*       CEXC_FORWARD           DIRECTION OF CURRENT CONTAINER */
+  /* ---------------------------------------------------------------------------------
+   */
   arrGuard(elemptr, 2048);
   tidrElemhead = pageptr.p->word32[elemptr];
   bool move;
-  if (ElementHeader::getLocked(tidrElemhead))
-  {
+  if (ElementHeader::getLocked(tidrElemhead)) {
     jam();
     oprecptr.i = ElementHeader::getOpPtrI(tidrElemhead);
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(oprecptr));
@@ -7305,51 +10483,59 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
     move = oprecptr.p->reducedHashValue.get_bit(1);
     oprecptr.p->reducedHashValue.shift_out();
     const LHBits16 reducedHashValue = oprecptr.p->reducedHashValue;
-    if (!fragrecptr.p->enough_valid_bits(reducedHashValue))
-    {
+    if (!fragrecptr.p->enough_valid_bits(reducedHashValue)) {
       jam();
       oprecptr.p->reducedHashValue =
-        fragrecptr.p->level.reduceForSplit(getElementHash(oprecptr));
+          fragrecptr.p->level.reduceForSplit(getElementHash(oprecptr));
     }
-  }
-  else
-  {
+  } else {
     jam();
-    LHBits16 reducedHashValue = ElementHeader::getReducedHashValue(tidrElemhead);
+    LHBits16 reducedHashValue =
+        ElementHeader::getReducedHashValue(tidrElemhead);
     ndbassert(reducedHashValue.valid_bits() >= 1);
     move = reducedHashValue.get_bit(1);
     reducedHashValue.shift_out();
-    if (!fragrecptr.p->enough_valid_bits(reducedHashValue))
-    {
+    if (!fragrecptr.p->enough_valid_bits(reducedHashValue)) {
       jam();
-      const Uint32* elemwordptr = &pageptr.p->word32[elemptr];
+      const Uint32 *elemwordptr = &pageptr.p->word32[elemptr];
       const LHBits32 hashValue = getElementHash(elemwordptr);
-      reducedHashValue =
-        fragrecptr.p->level.reduceForSplit(hashValue);
+      reducedHashValue = fragrecptr.p->level.reduceForSplit(hashValue);
     }
-    tidrElemhead = ElementHeader::setReducedHashValue(tidrElemhead, reducedHashValue);
+    tidrElemhead =
+        ElementHeader::setReducedHashValue(tidrElemhead, reducedHashValue);
   }
-  if (!move)
-  {
+  if (!move) {
     jam();
     if (ElementHeader::getUnlocked(tidrElemhead))
       pageptr.p->word32[elemptr] = tidrElemhead;
-    /* --------------------------------------------------------------------------------- */
-    /*       THIS ELEMENT IS NOT TO BE MOVED. WE CALCULATE THE WHEREABOUTS OF THE NEXT   */
-    /*       ELEMENT AND PROCEED WITH THAT OR END THE SEARCH IF THERE ARE NO MORE        */
-    /*       ELEMENTS IN THIS CONTAINER.                                                 */
-    /* --------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------------
+     */
+    /*       THIS ELEMENT IS NOT TO BE MOVED. WE CALCULATE THE WHEREABOUTS OF
+     * THE NEXT   */
+    /*       ELEMENT AND PROCEED WITH THAT OR END THE SEARCH IF THERE ARE NO
+     * MORE        */
+    /*       ELEMENTS IN THIS CONTAINER. */
+    /* ---------------------------------------------------------------------------------
+     */
     goto NEXT_ELEMENT;
-  }//if
-  /* --------------------------------------------------------------------------------- */
-  /*       THE HASH BIT WAS SET AND WE SHALL MOVE THIS ELEMENT TO THE NEW BUCKET.      */
-  /*       WE START BY READING THE ELEMENT TO BE ABLE TO INSERT IT INTO THE NEW BUCKET.*/
-  /*       THEN WE INSERT THE ELEMENT INTO THE NEW BUCKET. THE NEXT STEP IS TO DELETE  */
-  /*       THE ELEMENT FROM THIS BUCKET. THIS IS PERFORMED BY REPLACING IT WITH THE    */
-  /*       LAST ELEMENT IN THE BUCKET. IF THIS ELEMENT IS TO BE MOVED WE MOVE IT AND   */
-  /*       GET THE LAST ELEMENT AGAIN UNTIL WE EITHER FIND ONE THAT STAYS OR THIS      */
-  /*       ELEMENT IS THE LAST ELEMENT.                                                */
-  /* --------------------------------------------------------------------------------- */
+  }  // if
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       THE HASH BIT WAS SET AND WE SHALL MOVE THIS ELEMENT TO THE NEW
+   * BUCKET.      */
+  /*       WE START BY READING THE ELEMENT TO BE ABLE TO INSERT IT INTO THE NEW
+   * BUCKET.*/
+  /*       THEN WE INSERT THE ELEMENT INTO THE NEW BUCKET. THE NEXT STEP IS TO
+   * DELETE  */
+  /*       THE ELEMENT FROM THIS BUCKET. THIS IS PERFORMED BY REPLACING IT WITH
+   * THE    */
+  /*       LAST ELEMENT IN THE BUCKET. IF THIS ELEMENT IS TO BE MOVED WE MOVE IT
+   * AND   */
+  /*       GET THE LAST ELEMENT AGAIN UNTIL WE EITHER FIND ONE THAT STAYS OR
+   * THIS      */
+  /*       ELEMENT IS THE LAST ELEMENT. */
+  /* ---------------------------------------------------------------------------------
+   */
   {
     ndbrequire(fragrecptr.p->localkeylen == 1);
     const Uint32 localkey = pageptr.p->word32[elemptr + 1];
@@ -7364,20 +10550,15 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
     idrPageptr.i = fragrecptr.p->expReceivePageptr;
     c_page8_pool.getPtr(idrPageptr);
     bool tidrIsforward = fragrecptr.p->expReceiveIsforward;
-    insertElement(Element(tidrElemhead, localkey),
-                  oprecptr,
-                  idrPageptr,
-                  tidrPageindex,
-                  tidrIsforward,
-                  tidrContainerptr,
-                  containerhead.getScanBits(),
-                  newBucket);
+    insertElement(Element(tidrElemhead, localkey), oprecptr, idrPageptr,
+                  tidrPageindex, tidrIsforward, tidrContainerptr,
+                  containerhead.getScanBits(), newBucket);
     fragrecptr.p->expReceiveIndex = tidrPageindex;
     fragrecptr.p->expReceivePageptr = idrPageptr.i;
     fragrecptr.p->expReceiveIsforward = tidrIsforward;
     newBucket = false;
   }
- REMOVE_LAST_LOOP:
+REMOVE_LAST_LOOP:
   jam();
   lastPageptr.i = pageptr.i;
   lastPageptr.p = pageptr.p;
@@ -7388,88 +10569,83 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
   arrGuard(tlastContainerptr, 2048);
   lastIsforward = isforward;
   tlastPageindex = conidx;
-  getLastAndRemove(lastPrevpageptr,
-                   tlastPrevconptr,
-                   lastPageptr,
-                   tlastPageindex,
-                   tlastContainerptr,
-                   lastIsforward,
+  getLastAndRemove(lastPrevpageptr, tlastPrevconptr, lastPageptr,
+                   tlastPageindex, tlastContainerptr, lastIsforward,
                    tlastElementptr);
-  if (pageptr.i == lastPageptr.i)
-  {
-    if (elemptr == tlastElementptr)
-    {
+  if (pageptr.i == lastPageptr.i) {
+    if (elemptr == tlastElementptr) {
       jam();
-      /* --------------------------------------------------------------------------------- */
-      /*       THE CURRENT ELEMENT WAS ALSO THE LAST ELEMENT.                              */
-      /* --------------------------------------------------------------------------------- */
+      /* ---------------------------------------------------------------------------------
+       */
+      /*       THE CURRENT ELEMENT WAS ALSO THE LAST ELEMENT. */
+      /* ---------------------------------------------------------------------------------
+       */
       return;
-    }//if
-  }//if
-  /* --------------------------------------------------------------------------------- */
-  /*       THE CURRENT ELEMENT WAS NOT THE LAST ELEMENT. IF THE LAST ELEMENT SHOULD    */
-  /*       STAY WE COPY IT TO THE POSITION OF THE CURRENT ELEMENT, OTHERWISE WE INSERT */
-  /*       INTO THE NEW BUCKET, REMOVE IT AND TRY WITH THE NEW LAST ELEMENT.           */
-  /* --------------------------------------------------------------------------------- */
+    }  // if
+  }    // if
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       THE CURRENT ELEMENT WAS NOT THE LAST ELEMENT. IF THE LAST ELEMENT
+   * SHOULD    */
+  /*       STAY WE COPY IT TO THE POSITION OF THE CURRENT ELEMENT, OTHERWISE WE
+   * INSERT */
+  /*       INTO THE NEW BUCKET, REMOVE IT AND TRY WITH THE NEW LAST ELEMENT. */
+  /* ---------------------------------------------------------------------------------
+   */
   oprecptr.i = RNIL;
   ptrNull(oprecptr);
   arrGuard(tlastElementptr, 2048);
   tidrElemhead = lastPageptr.p->word32[tlastElementptr];
-  if (ElementHeader::getLocked(tidrElemhead))
-  {
+  if (ElementHeader::getLocked(tidrElemhead)) {
     jam();
     oprecptr.i = ElementHeader::getOpPtrI(tidrElemhead);
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(oprecptr));
     ndbassert(oprecptr.p->reducedHashValue.valid_bits() >= 1);
     move = oprecptr.p->reducedHashValue.get_bit(1);
     oprecptr.p->reducedHashValue.shift_out();
-    if (!fragrecptr.p->enough_valid_bits(oprecptr.p->reducedHashValue))
-    {
+    if (!fragrecptr.p->enough_valid_bits(oprecptr.p->reducedHashValue)) {
       jam();
       oprecptr.p->reducedHashValue =
-        fragrecptr.p->level.reduceForSplit(getElementHash(oprecptr));
+          fragrecptr.p->level.reduceForSplit(getElementHash(oprecptr));
     }
-  }
-  else
-  {
+  } else {
     jam();
-    LHBits16 reducedHashValue = ElementHeader::getReducedHashValue(tidrElemhead);
+    LHBits16 reducedHashValue =
+        ElementHeader::getReducedHashValue(tidrElemhead);
     ndbassert(reducedHashValue.valid_bits() > 0);
     move = reducedHashValue.get_bit(1);
     reducedHashValue.shift_out();
-    if (!fragrecptr.p->enough_valid_bits(reducedHashValue))
-    {
+    if (!fragrecptr.p->enough_valid_bits(reducedHashValue)) {
       jam();
-      const Uint32* elemwordptr = &lastPageptr.p->word32[tlastElementptr];
+      const Uint32 *elemwordptr = &lastPageptr.p->word32[tlastElementptr];
       const LHBits32 hashValue = getElementHash(elemwordptr);
-      reducedHashValue =
-        fragrecptr.p->level.reduceForSplit(hashValue);
+      reducedHashValue = fragrecptr.p->level.reduceForSplit(hashValue);
     }
-    tidrElemhead = ElementHeader::setReducedHashValue(tidrElemhead, reducedHashValue);
+    tidrElemhead =
+        ElementHeader::setReducedHashValue(tidrElemhead, reducedHashValue);
   }
-  if (!move)
-  {
+  if (!move) {
     jam();
     if (ElementHeader::getUnlocked(tidrElemhead))
       lastPageptr.p->word32[tlastElementptr] = tidrElemhead;
-    /* --------------------------------------------------------------------------------- */
-    /*       THE LAST ELEMENT IS NOT TO BE MOVED. WE COPY IT TO THE CURRENT ELEMENT.     */
-    /* --------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------------
+     */
+    /*       THE LAST ELEMENT IS NOT TO BE MOVED. WE COPY IT TO THE CURRENT
+     * ELEMENT.     */
+    /* ---------------------------------------------------------------------------------
+     */
     const Page8Ptr delPageptr = pageptr;
     const Uint32 delConptr = conptr;
     const Uint32 delElemptr = elemptr;
-    deleteElement(delPageptr,
-                  delConptr,
-                  delElemptr,
-                  lastPageptr,
+    deleteElement(delPageptr, delConptr, delElemptr, lastPageptr,
                   tlastElementptr);
-  }
-  else
-  {
+  } else {
     jam();
-    /* --------------------------------------------------------------------------------- */
-    /*       THE LAST ELEMENT IS ALSO TO BE MOVED.                                       */
-    /* --------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------------
+     */
+    /*       THE LAST ELEMENT IS ALSO TO BE MOVED. */
+    /* ---------------------------------------------------------------------------------
+     */
     {
       ndbrequire(fragrecptr.p->localkeylen == 1);
       const Uint32 localkey = lastPageptr.p->word32[tlastElementptr + 1];
@@ -7478,69 +10654,69 @@ void Dbacc::expandcontainer(Page8Ptr pageptr, Uint32 conidx)
       idrPageptr.i = fragrecptr.p->expReceivePageptr;
       c_page8_pool.getPtr(idrPageptr);
       bool tidrIsforward = fragrecptr.p->expReceiveIsforward;
-      insertElement(Element(tidrElemhead, localkey),
-                    oprecptr,
-                    idrPageptr,
-                    tidrPageindex,
-                    tidrIsforward,
-                    tidrContainerptr,
-                    containerhead.getScanBits(),
-                    newBucket);
+      insertElement(Element(tidrElemhead, localkey), oprecptr, idrPageptr,
+                    tidrPageindex, tidrIsforward, tidrContainerptr,
+                    containerhead.getScanBits(), newBucket);
       fragrecptr.p->expReceiveIndex = tidrPageindex;
       fragrecptr.p->expReceivePageptr = idrPageptr.i;
       fragrecptr.p->expReceiveIsforward = tidrIsforward;
       newBucket = false;
     }
     goto REMOVE_LAST_LOOP;
-  }//if
- NEXT_ELEMENT:
+  }  // if
+NEXT_ELEMENT:
   arrGuard(conptr, 2048);
   containerhead = pageptr.p->word32[conptr];
   cexcMovedLen = cexcMovedLen + fragrecptr.p->elementLength;
   if (containerhead.getLength() > cexcMovedLen) {
     jam();
-    /* --------------------------------------------------------------------------------- */
-    /*       WE HAVE NOT YET MOVED THE COMPLETE CONTAINER. WE PROCEED WITH THE NEXT      */
-    /*       ELEMENT IN THE CONTAINER. IT IS IMPORTANT TO READ THE CONTAINER LENGTH      */
-    /*       FROM THE CONTAINER HEADER SINCE IT MIGHT CHANGE BY REMOVING THE LAST        */
-    /*       ELEMENT IN THE BUCKET.                                                      */
-    /* --------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------------
+     */
+    /*       WE HAVE NOT YET MOVED THE COMPLETE CONTAINER. WE PROCEED WITH THE
+     * NEXT      */
+    /*       ELEMENT IN THE CONTAINER. IT IS IMPORTANT TO READ THE CONTAINER
+     * LENGTH      */
+    /*       FROM THE CONTAINER HEADER SINCE IT MIGHT CHANGE BY REMOVING THE
+     * LAST        */
+    /*       ELEMENT IN THE BUCKET. */
+    /* ---------------------------------------------------------------------------------
+     */
     elemptr = elemptr + elemStep;
     goto NEXT_ELEMENT_LOOP;
-  }//if
+  }  // if
   if (containerhead.getNextEnd() != 0) {
     jam();
-    /* --------------------------------------------------------------------------------- */
-    /*       WE PROCEED TO THE NEXT CONTAINER IN THE BUCKET.                             */
-    /* --------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------------
+     */
+    /*       WE PROCEED TO THE NEXT CONTAINER IN THE BUCKET. */
+    /* ---------------------------------------------------------------------------------
+     */
     prevPageptr = pageptr.i;
     prevConptr = conptr;
-    nextcontainerinfo(pageptr,
-                      conptr,
-                      containerhead,
-                      conidx,
-                      isforward);
+    nextcontainerinfo(pageptr, conptr, containerhead, conidx, isforward);
     goto EXP_CONTAINER_LOOP;
-  }//if
-}//Dbacc::expandcontainer()
+  }  // if
+}  // Dbacc::expandcontainer()
 
-/* ******************--------------------------------------------------------------- */
-/* SHRINKCHECK                                        JOIN BUCKET ORD                */
-/*                                                   SENDER: ACC,    LEVEL B         */
-/*   INPUT:   FRAGRECPTR, POINTS TO A FRAGMENT RECORD.                               */
-/*   DESCRIPTION: TWO BUCKET OF A FRAGMENT PAGE WILL BE JOINED TOGETHER              */
-/*                                 ACCORDING TO LH3.                                 */
-/* ******************--------------------------------------------------------------- */
-/* ******************--------------------------------------------------------------- */
-/* SHRINKCHECK                                            JOIN BUCKET ORD            */
-/* ******************------------------------------+                                 */
+/* ******************---------------------------------------------------------------
+ */
+/* SHRINKCHECK                                        JOIN BUCKET ORD */
+/*                                                   SENDER: ACC,    LEVEL B */
+/*   INPUT:   FRAGRECPTR, POINTS TO A FRAGMENT RECORD. */
+/*   DESCRIPTION: TWO BUCKET OF A FRAGMENT PAGE WILL BE JOINED TOGETHER */
+/*                                 ACCORDING TO LH3. */
+/* ******************---------------------------------------------------------------
+ */
+/* ******************---------------------------------------------------------------
+ */
+/* SHRINKCHECK                                            JOIN BUCKET ORD */
+/* ******************------------------------------+ */
 /*   SENDER: ACC,    LEVEL B       */
 /* TWO BUCKETS OF THE FRAGMENT     */
 /* WILL BE JOINED ACCORDING TO LH3 */
 /* AND COMMIT TRANSACTION PROCESS  */
 /* WILL BE CONTINUED */
-Uint32 Dbacc::checkScanShrink(Uint32 sourceBucket, Uint32 destBucket)
-{
+Uint32 Dbacc::checkScanShrink(Uint32 sourceBucket, Uint32 destBucket) {
   Uint32 TreturnCode = 0;
   Uint32 TPageIndex;
   Uint32 TDirInd;
@@ -7560,40 +10736,36 @@ Uint32 Dbacc::checkScanShrink(Uint32 sourceBucket, Uint32 destBucket)
 #if MAX_PARALLEL_SCANS_PER_FRAG > 0
   Uint32 Ti;
   Bitmask<1> actions[MAX_PARALLEL_SCANS_PER_FRAG];
-  //for (Ti = 0; Ti < 0; Ti++)
-  {
+  //for (Ti = 0; Ti < 0; Ti++) {
     ndbabort(); //ACC scans no longer used
     actions[Ti].clear();
     if (fragrecptr.p->scan[Ti] != RNIL) {
       scanPtr.i = fragrecptr.p->scan[Ti];
       ndbrequire(scanRec_pool.getValidPtr(scanPtr));
       if (scanPtr.p->activeLocalFrag == fragrecptr.i) {
-	//-------------------------------------------------------------
-	// A scan is ongoing on this particular local fragment. We have
-	// to check its current state.
-	//-------------------------------------------------------------
-        if (scanPtr.p->scanBucketState ==  ScanRec::FIRST_LAP) {
+        //-------------------------------------------------------------
+        // A scan is ongoing on this particular local fragment. We have
+        // to check its current state.
+        //-------------------------------------------------------------
+        if (scanPtr.p->scanBucketState == ScanRec::FIRST_LAP) {
           jam();
           if ((TmergeDest == scanPtr.p->nextBucketIndex) ||
               (TmergeSource == scanPtr.p->nextBucketIndex)) {
             jam();
-	    //-------------------------------------------------------------
-	    // We are currently scanning one of the buckets involved in the
-	    // merge. We cannot merge while simultaneously performing a scan.
-	    // We have to pass this offer for merging the buckets.
-	    //-------------------------------------------------------------
+            //-------------------------------------------------------------
+            // We are currently scanning one of the buckets involved in the
+            // merge. We cannot merge while simultaneously performing a scan.
+            // We have to pass this offer for merging the buckets.
+            //-------------------------------------------------------------
             TreturnCode = 1;
             return TreturnCode;
-          }
-          else if (TmergeDest < scanPtr.p->nextBucketIndex)
-          {
+          } else if (TmergeDest < scanPtr.p->nextBucketIndex) {
             jam();
             /**
              * Merge bucket into scanned bucket.  Mark for rescan.
              */
             actions[Ti].set(ExtendRescan);
-            if (TmergeSource == scanPtr.p->startNoOfBuckets)
-            {
+            if (TmergeSource == scanPtr.p->startNoOfBuckets) {
               /**
                * Merge unscanned bucket with undefined scan bits into scanned
                * bucket.  Source buckets scan bits must be cleared.
@@ -7602,53 +10774,48 @@ Uint32 Dbacc::checkScanShrink(Uint32 sourceBucket, Uint32 destBucket)
               releaseSourceScanMask |= scanPtr.p->scanMask;
             }
             TreleaseInd = 1;
-          }//if
-          else
-          {
+          }  // if
+          else {
             /**
              * Merge unscanned bucket with undefined scan bits into unscanned
              * bucket with undefined scan bits.
              */
-            if (TmergeSource == scanPtr.p->startNoOfBuckets)
-            {
+            if (TmergeSource == scanPtr.p->startNoOfBuckets) {
               actions[Ti].set(ReduceUndefined);
               releaseSourceScanMask |= scanPtr.p->scanMask;
               TreleaseInd = 1;
             }
-            if (TmergeDest <= scanPtr.p->startNoOfBuckets)
-            {
+            if (TmergeDest <= scanPtr.p->startNoOfBuckets) {
               jam();
               // Destination bucket is not scanned by scan
               releaseDestScanMask |= scanPtr.p->scanMask;
             }
           }
-        }
-        else if (scanPtr.p->scanBucketState ==  ScanRec::SECOND_LAP)
-        {
+        } else if (scanPtr.p->scanBucketState == ScanRec::SECOND_LAP) {
           jam();
-	  //-------------------------------------------------------------
-	  // We are performing a second lap to handle buckets that was
-	  // merged during the first lap of scanning. During this second
-	  // lap we do not allow any splits or merges.
-	  //-------------------------------------------------------------
+          //-------------------------------------------------------------
+          // We are performing a second lap to handle buckets that was
+          // merged during the first lap of scanning. During this second
+          // lap we do not allow any splits or merges.
+          //-------------------------------------------------------------
           TreturnCode = 1;
           return TreturnCode;
-        } else if (scanPtr.p->scanBucketState ==  ScanRec::SCAN_COMPLETED) {
+        } else if (scanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED) {
           jam();
-	  //-------------------------------------------------------------
-	  // The scan is completed and we can thus go ahead and perform
-	  // the split.
-	  //-------------------------------------------------------------
+          //-------------------------------------------------------------
+          // The scan is completed and we can thus go ahead and perform
+          // the split.
+          //-------------------------------------------------------------
           releaseDestScanMask |= scanPtr.p->scanMask;
           releaseSourceScanMask |= scanPtr.p->scanMask;
         } else {
           jam();
           sendSystemerror(__LINE__);
           return TreturnCode;
-        }//if
-      }//if
-    }//if
-  }//for
+        }  // if
+      }    // if
+    }      // if
+  }        // for
 #endif
 
   TreleaseScanBucket = TmergeSource;
@@ -7671,45 +10838,39 @@ Uint32 Dbacc::checkScanShrink(Uint32 sourceBucket, Uint32 destBucket)
     //for (Ti = 0; Ti < 0; Ti++)
     {
       ndbabort(); //ACC scans no longer used
-      if (!actions[Ti].isclear())
-      {
+      if (!actions[Ti].isclear()) {
         jam();
         scanPtr.i = fragrecptr.p->scan[Ti];
         ndbrequire(scanRec_pool.getValidPtr(scanPtr));
-        if (actions[Ti].get(ReduceUndefined))
-        {
-          scanPtr.p->startNoOfBuckets --;
+        if (actions[Ti].get(ReduceUndefined)) {
+          scanPtr.p->startNoOfBuckets--;
         }
-        if (actions[Ti].get(ExtendRescan))
-        {
-          if (TmergeDest < scanPtr.p->minBucketIndexToRescan)
-          {
+        if (actions[Ti].get(ExtendRescan)) {
+          if (TmergeDest < scanPtr.p->minBucketIndexToRescan) {
             jam();
-	    //-------------------------------------------------------------
-	    // We have to keep track of the starting bucket to Rescan in the
-	    // second lap.
-	    //-------------------------------------------------------------
+            //-------------------------------------------------------------
+            // We have to keep track of the starting bucket to Rescan in the
+            // second lap.
+            //-------------------------------------------------------------
             scanPtr.p->minBucketIndexToRescan = TmergeDest;
-          }//if
-          if (TmergeDest > scanPtr.p->maxBucketIndexToRescan)
-          {
+          }  // if
+          if (TmergeDest > scanPtr.p->maxBucketIndexToRescan) {
             jam();
-	    //-------------------------------------------------------------
-	    // We have to keep track of the ending bucket to Rescan in the
-	    // second lap.
-	    //-------------------------------------------------------------
+            //-------------------------------------------------------------
+            // We have to keep track of the ending bucket to Rescan in the
+            // second lap.
+            //-------------------------------------------------------------
             scanPtr.p->maxBucketIndexToRescan = TmergeDest;
-          }//if
+          }  // if
         }
-      }//if
-    }//for
+      }  // if
+    }    // for
 #endif
-  }//if
+  }      // if
   return TreturnCode;
-}//Dbacc::checkScanShrink()
+}  // Dbacc::checkScanShrink()
 
-void Dbacc::execSHRINKCHECK2(Signal* signal) 
-{
+void Dbacc::execSHRINKCHECK2(Signal *signal) {
   jamEntry();
   Uint32 fragId = signal->theData[0];
   Uint32 tableId = signal->theData[1];
@@ -7717,22 +10878,17 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
   fragrecptr.p->expandOrShrinkQueued = false;
 #ifdef ERROR_INSERT
   bool force_expand_shrink = false;
-  if (ERROR_INSERTED(3004) && fragrecptr.p->fragmentid == 0)
-  {
-    if (fragrecptr.p->level.getSize() < ERROR_INSERT_EXTRA)
-    {
+  if (ERROR_INSERTED(3004) && fragrecptr.p->fragmentid == 0) {
+    if (fragrecptr.p->level.getSize() < ERROR_INSERT_EXTRA) {
       jam();
       execEXPANDCHECK2(signal);
       return;
-    }
-    else if (fragrecptr.p->level.getSize() == ERROR_INSERT_EXTRA)
-    {
+    } else if (fragrecptr.p->level.getSize() == ERROR_INSERT_EXTRA) {
       return;
     }
     force_expand_shrink = true;
   }
-  if (!force_expand_shrink &&
-      fragrecptr.p->slack <= fragrecptr.p->slackCheck)
+  if (!force_expand_shrink && fragrecptr.p->slack <= fragrecptr.p->slackCheck)
 #else
   if (fragrecptr.p->slack <= fragrecptr.p->slackCheck)
 #endif
@@ -7743,7 +10899,7 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
     /*       NO LONGER NECESSARY TO SHRINK THE FRAGMENT.            */
     /*--------------------------------------------------------------*/
     return;
-  }//if
+  }  // if
 #ifdef ERROR_INSERT
   if (!force_expand_shrink && fragrecptr.p->slack < 0)
 #else
@@ -7756,24 +10912,21 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
     /* SHRINK.                                                      */
     /*--------------------------------------------------------------*/
     return;
-  }//if
-  if (fragrecptr.p->level.isEmpty())
-  {
+  }  // if
+  if (fragrecptr.p->level.isEmpty()) {
     jam();
     /* no need to shrink empty hash table */
     return;
   }
-  if (fragrecptr.p->sparsepages.isEmpty())
-  {
+  if (fragrecptr.p->sparsepages.isEmpty()) {
     jam();
     Uint32 result = allocOverflowPage();
     if (result > ZLIMIT_OF_ERROR) {
       jam();
       return;
-    }//if
-  }//if
-  if (!pages.haveFreePage8(Page32Lists::ANY_SUB_PAGE))
-  {
+    }  // if
+  }    // if
+  if (!pages.haveFreePage8(Page32Lists::ANY_SUB_PAGE)) {
     jam();
     return;
   }
@@ -7784,9 +10937,11 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
 
   Uint32 mergeSourceBucket;
   Uint32 mergeDestBucket;
-  bool doMerge = fragrecptr.p->level.getMergeBuckets(mergeSourceBucket, mergeDestBucket);
+  bool doMerge =
+      fragrecptr.p->level.getMergeBuckets(mergeSourceBucket, mergeDestBucket);
 
-  ndbassert(doMerge); // Merge always needed since we never shrink below one page of buckets
+  ndbassert(doMerge);  // Merge always needed since we never shrink below one
+                       // page of buckets
 
   /* check that neither of source or destination bucket are currently scanned */
   if (doMerge && checkScanShrink(mergeSourceBucket, mergeDestBucket) == 1) {
@@ -7796,7 +10951,7 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
     // operation.
     /*--------------------------------------------------------------*/
     return;
-  }//if
+  }  // if
 
   acquire_frag_mutex_bucket(fragrecptr.p, mergeDestBucket);
   /**
@@ -7806,8 +10961,7 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
    */
   c_allow_use_of_emergency_pages = true;
 
-  if (ERROR_INSERTED(3002))
-    debug_lh_vars("SHR");
+  if (ERROR_INSERTED(3002)) debug_lh_vars("SHR");
   if (fragrecptr.p->dirRangeFull == ZTRUE) {
     jam();
     fragrecptr.p->dirRangeFull = ZFALSE;
@@ -7831,16 +10985,16 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
   /*       RECEIVING BUCKET.                                                  */
   /*--------------------------------------------------------------------------*/
   expDirInd = fragrecptr.p->getPageNumber(mergeDestBucket);
-  fragrecptr.p->expReceivePageptr = getPagePtr(fragrecptr.p->directory, expDirInd);
+  fragrecptr.p->expReceivePageptr =
+      getPagePtr(fragrecptr.p->directory, expDirInd);
   fragrecptr.p->expReceiveIndex = fragrecptr.p->getPageIndex(mergeDestBucket);
   fragrecptr.p->expReceiveIsforward = true;
-  if (pageptr.i == RNIL)
-  {
+  if (pageptr.i == RNIL) {
     jam();
-    endofshrinkbucketLab(signal);	/* EMPTY BUCKET */
+    endofshrinkbucketLab(signal); /* EMPTY BUCKET */
     release_frag_mutex_bucket(fragrecptr.p, mergeDestBucket);
     return;
-  }//if
+  }  // if
   /*--------------------------------------------------------------------------*/
   /*       INITIALISE THE VARIABLES FOR THE SHRINK PROCESS.                   */
   /*--------------------------------------------------------------------------*/
@@ -7855,7 +11009,7 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
   } else {
     jam();
     shrinkcontainer(pageptr, conptr, isforward, conlen);
-  }//if
+  }  // if
   /*--------------------------------------------------------------------------*/
   /*       THIS CONTAINER IS NOT YET EMPTY AND WE REMOVE ALL THE ELEMENTS.    */
   /*--------------------------------------------------------------------------*/
@@ -7863,7 +11017,7 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
     jam();
     Uint32 relconptr = conptr + (ZBUF_SIZE - Container::HEADER_SIZE);
     releaseRightlist(pageptr, cexcPageindex, relconptr);
-  }//if
+  }  // if
   ContainerHeader conthead;
   conthead.initInUse();
   arrGuard(conptr, 2048);
@@ -7873,12 +11027,8 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
     endofshrinkbucketLab(signal);
     release_frag_mutex_bucket(fragrecptr.p, mergeDestBucket);
     return;
-  }//if
-  nextcontainerinfo(pageptr,
-                    conptr,
-                    containerhead,
-                    cexcPageindex,
-                    isforward);
+  }  // if
+  nextcontainerinfo(pageptr, conptr, containerhead, cexcPageindex, isforward);
   do {
     conptr = getContainerPtr(cexcPageindex, isforward);
     arrGuard(conptr, 2048);
@@ -7886,7 +11036,7 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
     conlen = containerhead.getLength();
     ndbrequire(conlen > Container::HEADER_SIZE);
     /*--------------------------------------------------------------------------*/
-    /*       THIS CONTAINER IS NOT YET EMPTY AND WE REMOVE ALL THE ELEMENTS.    */
+    /*       THIS CONTAINER IS NOT YET EMPTY AND WE REMOVE ALL THE ELEMENTS. */
     /*--------------------------------------------------------------------------*/
     shrinkcontainer(pageptr, conptr, isforward, conlen);
     const Uint32 prevPageptr = pageptr.i;
@@ -7895,49 +11045,43 @@ void Dbacc::execSHRINKCHECK2(Signal* signal)
     if (containerhead.getNextEnd() != 0) {
       jam();
       /*--------------------------------------------------------------------------*/
-      /*       WE MUST CALL THE NEXT CONTAINER INFO ROUTINE BEFORE WE RELEASE THE */
-      /*       CONTAINER SINCE THE RELEASE WILL OVERWRITE THE NEXT POINTER.       */
+      /*       WE MUST CALL THE NEXT CONTAINER INFO ROUTINE BEFORE WE RELEASE
+       * THE */
+      /*       CONTAINER SINCE THE RELEASE WILL OVERWRITE THE NEXT POINTER. */
       /*--------------------------------------------------------------------------*/
-      nextcontainerinfo(pageptr,
-                        conptr,
-                        containerhead,
-                        cexcPageindex,
+      nextcontainerinfo(pageptr, conptr, containerhead, cexcPageindex,
                         isforward);
-    }//if
+    }  // if
     Page8Ptr rlPageptr;
     rlPageptr.i = prevPageptr;
     c_page8_pool.getPtr(rlPageptr);
     ndbassert(!containerhead.isScanInProgress());
-    if (cexcPrevisforward)
-    {
+    if (cexcPrevisforward) {
       jam();
       if (containerhead.isUsingBothEnds()) {
         jam();
         Uint32 relconptr = conptr + (ZBUF_SIZE - Container::HEADER_SIZE);
         releaseRightlist(rlPageptr, cexcPrevpageindex, relconptr);
-      }//if
+      }  // if
       ndbrequire(ContainerHeader(rlPageptr.p->word32[conptr]).isInUse());
       releaseLeftlist(rlPageptr, cexcPrevpageindex, conptr);
-    }
-    else
-    {
+    } else {
       jam();
       if (containerhead.isUsingBothEnds()) {
         jam();
         Uint32 relconptr = conptr - (ZBUF_SIZE - Container::HEADER_SIZE);
         releaseLeftlist(rlPageptr, cexcPrevpageindex, relconptr);
-      }//if
+      }  // if
       ndbrequire(ContainerHeader(rlPageptr.p->word32[conptr]).isInUse());
       releaseRightlist(rlPageptr, cexcPrevpageindex, conptr);
-    }//if
+    }  // if
   } while (containerhead.getNextEnd() != 0);
   endofshrinkbucketLab(signal);
   release_frag_mutex_bucket(fragrecptr.p, mergeDestBucket);
   return;
-}//Dbacc::execSHRINKCHECK2()
+}  // Dbacc::execSHRINKCHECK2()
 
-void Dbacc::endofshrinkbucketLab(Signal* signal)
-{
+void Dbacc::endofshrinkbucketLab(Signal *signal) {
   c_allow_use_of_emergency_pages = false;
   fragrecptr.p->level.shrink();
   fragrecptr.p->expandCounter--;
@@ -7951,8 +11095,9 @@ void Dbacc::endofshrinkbucketLab(Signal* signal)
       c_page8_pool.getPtr(rpPageptr);
       releasePage_lock(rpPageptr);
       unsetPagePtr(fragrecptr.p->directory, fragrecptr.p->expSenderDirIndex);
-    }//if
-    if ((fragrecptr.p->getPageNumber(fragrecptr.p->level.getSize()) & 0xff) == 0) {
+    }  // if
+    if ((fragrecptr.p->getPageNumber(fragrecptr.p->level.getSize()) & 0xff) ==
+        0) {
       jam();
       DynArr256 dir(directoryPoolPtr, fragrecptr.p->directory);
       DynArr256::ReleaseIterator iter;
@@ -7961,21 +11106,18 @@ void Dbacc::endofshrinkbucketLab(Signal* signal)
       Uint32 count = 0;
 #endif
       dir.init(iter);
-      while ((relcode = dir.trim(fragrecptr.p->expSenderDirIndex, iter)) != 0)
-      {
+      while ((relcode = dir.trim(fragrecptr.p->expSenderDirIndex, iter)) != 0) {
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
         count++;
         ndbrequire(count <= 256);
 #endif
       }
-    }//if
-  }//if
+    }  // if
+  }    // if
 #ifdef ERROR_INSERT
   bool force_expand_shrink = false;
-  if (ERROR_INSERTED(3004) &&
-      fragrecptr.p->fragmentid == 0 &&
-      fragrecptr.p->level.getSize() != ERROR_INSERT_EXTRA)
-  {
+  if (ERROR_INSERTED(3004) && fragrecptr.p->fragmentid == 0 &&
+      fragrecptr.p->level.getSize() != ERROR_INSERT_EXTRA) {
     force_expand_shrink = true;
   }
   if (force_expand_shrink || fragrecptr.p->slack > 0)
@@ -7989,7 +11131,8 @@ void Dbacc::endofshrinkbucketLab(Signal* signal)
     /* WE WILL CONTINUE PERFORM ANOTHER SHRINK.                     */
     /*--------------------------------------------------------------*/
     Uint32 noOfBuckets = fragrecptr.p->level.getSize();
-    Uint32 Thysteresis = fragrecptr.p->maxloadfactor - fragrecptr.p->minloadfactor;
+    Uint32 Thysteresis =
+        fragrecptr.p->maxloadfactor - fragrecptr.p->minloadfactor;
     fragrecptr.p->slackCheck = Int64(noOfBuckets) * Thysteresis;
 #ifdef ERROR_INSERT
     if (force_expand_shrink || fragrecptr.p->slack > Thysteresis)
@@ -8006,38 +11149,38 @@ void Dbacc::endofshrinkbucketLab(Signal* signal)
       /*--------------------------------------------------------------*/
       if (fragrecptr.p->expandCounter > 0) {
         jam();
-	/*--------------------------------------------------------------*/
-	/*       IT IS VERY IMPORTANT TO NOT TRY TO SHRINK MORE THAN    */
-	/*       WAS EXPANDED. IF MAXP IS SET TO A VALUE BELOW 63 THEN  */
-	/*       WE WILL LOSE RECORDS SINCE GETDIRINDEX CANNOT HANDLE   */
-	/*       SHRINKING BELOW 2^K - 1 (NOW 63). THIS WAS A BUG THAT  */
-	/*       WAS REMOVED 2000-05-12.                                */
-	/*--------------------------------------------------------------*/
+        /*--------------------------------------------------------------*/
+        /*       IT IS VERY IMPORTANT TO NOT TRY TO SHRINK MORE THAN    */
+        /*       WAS EXPANDED. IF MAXP IS SET TO A VALUE BELOW 63 THEN  */
+        /*       WE WILL LOSE RECORDS SINCE GETDIRINDEX CANNOT HANDLE   */
+        /*       SHRINKING BELOW 2^K - 1 (NOW 63). THIS WAS A BUG THAT  */
+        /*       WAS REMOVED 2000-05-12.                                */
+        /*--------------------------------------------------------------*/
         signal->theData[0] = fragrecptr.p->fragmentid;
         signal->theData[1] = fragrecptr.p->myTableId;
         ndbrequire(!fragrecptr.p->expandOrShrinkQueued);
         fragrecptr.p->expandOrShrinkQueued = true;
         sendSignal(reference(), GSN_SHRINKCHECK2, signal, 2, JBB);
-      }//if
-    }//if
-  }//if
+      }  // if
+    }    // if
+  }      // if
   ndbrequire(fragrecptr.p->getPageNumber(fragrecptr.p->level.getSize()) > 0);
   return;
-}//Dbacc::endofshrinkbucketLab()
+}  // Dbacc::endofshrinkbucketLab()
 
-/* --------------------------------------------------------------------------------- */
-/* SHRINKCONTAINER                                                                   */
-/*        INPUT: EXC_PAGEPTR (POINTER TO THE ACTIVE PAGE RECORD)                     */
-/*               CEXC_CONTAINERLEN (LENGTH OF THE CONTAINER).                        */
-/*               CEXC_CONTAINERPTR (ARRAY INDEX OF THE CONTAINER).                   */
-/*               CEXC_FORWARD (CONTAINER FORWARD (+1) OR BACKWARD (-1))              */
+/* ---------------------------------------------------------------------------------
+ */
+/* SHRINKCONTAINER */
+/*        INPUT: EXC_PAGEPTR (POINTER TO THE ACTIVE PAGE RECORD) */
+/*               CEXC_CONTAINERLEN (LENGTH OF THE CONTAINER). */
+/*               CEXC_CONTAINERPTR (ARRAY INDEX OF THE CONTAINER). */
+/*               CEXC_FORWARD (CONTAINER FORWARD (+1) OR BACKWARD (-1)) */
 /*                                                                                   */
-/*        DESCRIPTION: SCAN ALL ELEMENTS IN DESTINATION BUCKET BEFORE MERGE          */
-/*               AND ADJUST THE STORED REDUCED HASH VALUE (SHIFT IN ZERO).           */
-/* --------------------------------------------------------------------------------- */
-void
-Dbacc::shrink_adjust_reduced_hash_value(Uint32 bucket_number)
-{
+/*        DESCRIPTION: SCAN ALL ELEMENTS IN DESTINATION BUCKET BEFORE MERGE */
+/*               AND ADJUST THE STORED REDUCED HASH VALUE (SHIFT IN ZERO). */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::shrink_adjust_reduced_hash_value(Uint32 bucket_number) {
   /*
    * Note: function are a copy paste from getElement() with modified inner loop
    * instead of finding a specific element, scan through all and modify.
@@ -8054,7 +11197,8 @@ Dbacc::shrink_adjust_reduced_hash_value(Uint32 bucket_number)
 
   tgePageindex = fragrecptr.p->getPageIndex(bucket_number);
   Page8Ptr gePageptr;
-  gePageptr.i = getPagePtr(fragrecptr.p->directory, fragrecptr.p->getPageNumber(bucket_number));
+  gePageptr.i = getPagePtr(fragrecptr.p->directory,
+                           fragrecptr.p->getPageNumber(bucket_number));
   c_page8_pool.getPtr(gePageptr);
 
   ndbrequire(TelemLen == ZELEM_HEAD_SIZE + localkeylen);
@@ -8062,94 +11206,86 @@ Dbacc::shrink_adjust_reduced_hash_value(Uint32 bucket_number)
 
   /* Loop through all containers in a bucket */
   do {
-    if (tgeNextptrtype == ZLEFT)
-    {
+    if (tgeNextptrtype == ZLEFT) {
       jam();
       tgeContainerptr = getForwardContainerPtr(tgePageindex);
       tgeElementptr = tgeContainerptr + Container::HEADER_SIZE;
       tgeElemStep = TelemLen;
       ndbrequire(tgeContainerptr < 2048);
-      tgeRemLen = ContainerHeader(gePageptr.p->word32[tgeContainerptr]).getLength();
+      tgeRemLen =
+          ContainerHeader(gePageptr.p->word32[tgeContainerptr]).getLength();
       ndbrequire((tgeContainerptr + tgeRemLen - 1) < 2048);
-    }
-    else if (tgeNextptrtype == ZRIGHT)
-    {
+    } else if (tgeNextptrtype == ZRIGHT) {
       jam();
       tgeContainerptr = getBackwardContainerPtr(tgePageindex);
       tgeElementptr = tgeContainerptr - TelemLen;
       tgeElemStep = 0 - TelemLen;
       ndbrequire(tgeContainerptr < 2048);
-      tgeRemLen = ContainerHeader(gePageptr.p->word32[tgeContainerptr]).getLength();
+      tgeRemLen =
+          ContainerHeader(gePageptr.p->word32[tgeContainerptr]).getLength();
       ndbrequire((tgeContainerptr - tgeRemLen) < 2048);
-    }
-    else
-    {
+    } else {
       jam();
       jamLine(tgeNextptrtype);
       ndbabort();
-    }//if
-    if (tgeRemLen >= Container::HEADER_SIZE + TelemLen)
-    {
+    }  // if
+    if (tgeRemLen >= Container::HEADER_SIZE + TelemLen) {
       ndbrequire(tgeRemLen <= ZBUF_SIZE);
       /* ------------------------------------------------------------------- */
       /* Loop through all elements in a container */
-      do
-      {
+      do {
         tgeElementHeader = gePageptr.p->word32[tgeElementptr];
         tgeRemLen = tgeRemLen - TelemLen;
         /*
          * Adjust the stored reduced hash value for element, shifting in a zero
          */
-        if (ElementHeader::getLocked(tgeElementHeader))
-        {
+        if (ElementHeader::getLocked(tgeElementHeader)) {
           jam();
           OperationrecPtr oprec;
           oprec.i = ElementHeader::getOpPtrI(tgeElementHeader);
           ndbrequire(m_curr_acc->oprec_pool.getValidPtr(oprec));
           oprec.p->reducedHashValue.shift_in(false);
-        }
-        else
-        {
+        } else {
           jam();
-          LHBits16 reducedHashValue = ElementHeader::getReducedHashValue(tgeElementHeader);
+          LHBits16 reducedHashValue =
+              ElementHeader::getReducedHashValue(tgeElementHeader);
           reducedHashValue.shift_in(false);
-          tgeElementHeader = ElementHeader::setReducedHashValue(tgeElementHeader, reducedHashValue);
+          tgeElementHeader = ElementHeader::setReducedHashValue(
+              tgeElementHeader, reducedHashValue);
           gePageptr.p->word32[tgeElementptr] = tgeElementHeader;
         }
-        if (tgeRemLen <= Container::HEADER_SIZE)
-        {
+        if (tgeRemLen <= Container::HEADER_SIZE) {
           break;
         }
         tgeElementptr = tgeElementptr + tgeElemStep;
       } while (true);
-    }//if
+    }  // if
     ndbrequire(tgeRemLen == Container::HEADER_SIZE);
     ContainerHeader containerhead = gePageptr.p->word32[tgeContainerptr];
-    ndbassert((containerhead.getScanBits() & ~fragrecptr.p->activeScanMask) == 0);
+    ndbassert((containerhead.getScanBits() & ~fragrecptr.p->activeScanMask) ==
+              0);
     tgeNextptrtype = containerhead.getNextEnd();
-    if (tgeNextptrtype == 0)
-    {
+    if (tgeNextptrtype == 0) {
       jam();
-      return;	/* NO MORE CONTAINER */
-    }//if
-    tgePageindex = containerhead.getNextIndexNumber();	/* NEXT CONTAINER PAGE INDEX 7 BITS */
-    ndbrequire((tgePageindex <= Container::MAX_CONTAINER_INDEX) || (tgePageindex == Container::NO_CONTAINER_INDEX));
-    if (!containerhead.isNextOnSamePage())
-    {
+      return; /* NO MORE CONTAINER */
+    }         // if
+    tgePageindex =
+        containerhead
+            .getNextIndexNumber(); /* NEXT CONTAINER PAGE INDEX 7 BITS */
+    ndbrequire((tgePageindex <= Container::MAX_CONTAINER_INDEX) ||
+               (tgePageindex == Container::NO_CONTAINER_INDEX));
+    if (!containerhead.isNextOnSamePage()) {
       jam();
-      gePageptr.i = gePageptr.p->word32[tgeContainerptr + 1];  /* NEXT PAGE I */
+      gePageptr.i = gePageptr.p->word32[tgeContainerptr + 1]; /* NEXT PAGE I */
       c_page8_pool.getPtr(gePageptr);
-    }//if
+    }  // if
   } while (1);
 
   return;
-}//Dbacc::shrink_adjust_reduced_hash_value()
+}  // Dbacc::shrink_adjust_reduced_hash_value()
 
-void Dbacc::shrinkcontainer(Page8Ptr pageptr,
-                            Uint32 conptr,
-                            bool isforward,
-                            Uint32 conlen)
-{
+void Dbacc::shrinkcontainer(Page8Ptr pageptr, Uint32 conptr, bool isforward,
+                            Uint32 conlen) {
   Uint32 tshrElementptr;
   Uint32 tshrRemLen;
   Uint32 tidrContainerptr;
@@ -8158,44 +11294,50 @@ void Dbacc::shrinkcontainer(Page8Ptr pageptr,
   Uint32 elemStep;
   OperationrecPtr oprecptr;
   tshrRemLen = conlen - Container::HEADER_SIZE;
-  if (isforward)
-  {
+  if (isforward) {
     jam();
     tshrElementptr = conptr + Container::HEADER_SIZE;
     elemStep = elemLen;
-  }
-  else
-  {
+  } else {
     jam();
     elemStep = 0 - elemLen;
     tshrElementptr = conptr + elemStep;
-  }//if
- SHR_LOOP:
+  }  // if
+SHR_LOOP:
   oprecptr.i = RNIL;
   ptrNull(oprecptr);
-  /* --------------------------------------------------------------------------------- */
-  /*       THE CODE BELOW IS ALL USED TO PREPARE FOR THE CALL TO INSERT_ELEMENT AND    */
-  /*       HANDLE THE RESULT FROM INSERT_ELEMENT. INSERT_ELEMENT INSERTS THE ELEMENT   */
-  /*       INTO ANOTHER BUCKET.                                                        */
-  /* --------------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       THE CODE BELOW IS ALL USED TO PREPARE FOR THE CALL TO INSERT_ELEMENT
+   * AND    */
+  /*       HANDLE THE RESULT FROM INSERT_ELEMENT. INSERT_ELEMENT INSERTS THE
+   * ELEMENT   */
+  /*       INTO ANOTHER BUCKET. */
+  /* ---------------------------------------------------------------------------------
+   */
   arrGuard(tshrElementptr, 2048);
   tidrElemhead = pageptr.p->word32[tshrElementptr];
   if (ElementHeader::getLocked(tidrElemhead)) {
     jam();
-    /* --------------------------------------------------------------------------------- */
-    /*       IF THE ELEMENT IS LOCKED WE MUST UPDATE THE ELEMENT INFO IN THE OPERATION   */
-    /*       RECORD OWNING THE LOCK. WE DO THIS BY READING THE OPERATION RECORD POINTER  */
-    /*       FROM THE ELEMENT HEADER.                                                    */
-    /* --------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------------
+     */
+    /*       IF THE ELEMENT IS LOCKED WE MUST UPDATE THE ELEMENT INFO IN THE
+     * OPERATION   */
+    /*       RECORD OWNING THE LOCK. WE DO THIS BY READING THE OPERATION RECORD
+     * POINTER  */
+    /*       FROM THE ELEMENT HEADER. */
+    /* ---------------------------------------------------------------------------------
+     */
     oprecptr.i = ElementHeader::getOpPtrI(tidrElemhead);
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(oprecptr));
     oprecptr.p->reducedHashValue.shift_in(true);
-  }//if
-  else
-  {
-    LHBits16 reducedHashValue = ElementHeader::getReducedHashValue(tidrElemhead);
+  }  // if
+  else {
+    LHBits16 reducedHashValue =
+        ElementHeader::getReducedHashValue(tidrElemhead);
     reducedHashValue.shift_in(true);
-    tidrElemhead = ElementHeader::setReducedHashValue(tidrElemhead, reducedHashValue);
+    tidrElemhead =
+        ElementHeader::setReducedHashValue(tidrElemhead, reducedHashValue);
   }
   {
     ndbrequire(fragrecptr.p->localkeylen == 1);
@@ -8205,12 +11347,8 @@ void Dbacc::shrinkcontainer(Page8Ptr pageptr,
     idrPageptr.i = fragrecptr.p->expReceivePageptr;
     c_page8_pool.getPtr(idrPageptr);
     bool tidrIsforward = fragrecptr.p->expReceiveIsforward;
-    insertElement(Element(tidrElemhead, localkey),
-                  oprecptr,
-                  idrPageptr,
-                  tidrPageindex,
-                  tidrIsforward,
-                  tidrContainerptr,
+    insertElement(Element(tidrElemhead, localkey), oprecptr, idrPageptr,
+                  tidrPageindex, tidrIsforward, tidrContainerptr,
                   ContainerHeader(pageptr.p->word32[conptr]).getScanBits(),
                   false);
     /* --------------------------------------------------------------- */
@@ -8223,31 +11361,29 @@ void Dbacc::shrinkcontainer(Page8Ptr pageptr,
   if (tshrRemLen < elemLen) {
     jam();
     sendSystemerror(__LINE__);
-  }//if
+  }  // if
   tshrRemLen = tshrRemLen - elemLen;
   if (tshrRemLen != 0) {
     jam();
     tshrElementptr += elemStep;
     goto SHR_LOOP;
-  }//if
-}//Dbacc::shrinkcontainer()
+  }  // if
+}  // Dbacc::shrinkcontainer()
 
-void Dbacc::initFragAdd(Signal* signal,
-                        FragmentrecPtr regFragPtr) const
-{
-  const AccFragReq * const req = (AccFragReq*)&signal->theData[0];  
+void Dbacc::initFragAdd(Signal *signal, FragmentrecPtr regFragPtr) const {
+  const AccFragReq *const req = (AccFragReq *)&signal->theData[0];
   Uint32 minLoadFactor = (req->minLoadFactor * ZBUF_SIZE) / 100;
   Uint32 maxLoadFactor = (req->maxLoadFactor * ZBUF_SIZE) / 100;
-  if (ERROR_INSERTED(3003)) // use small LoadFactors to force sparse hash table
+  if (ERROR_INSERTED(3003))  // use small LoadFactors to force sparse hash table
   {
     jam();
     minLoadFactor = 1;
-    maxLoadFactor = 2; 
+    maxLoadFactor = 2;
   }
   if (minLoadFactor >= maxLoadFactor) {
     jam();
     minLoadFactor = maxLoadFactor - 1;
-  }//if
+  }  // if
   regFragPtr.p->fragState = ACTIVEFRAG;
   // NOTE: next line must match calculation in Dblqh::execLQHFRAGREQ
   regFragPtr.p->myfid = req->fragId;
@@ -8284,24 +11420,22 @@ void Dbacc::initFragAdd(Signal* signal,
   regFragPtr.p->slackCheck = Int64(Tmp1) * Tmp2;
   regFragPtr.p->mytabptr = req->tableId;
   regFragPtr.p->roothashcheck = req->kValue + req->lhFragBits;
-  regFragPtr.p->m_commit_count = 0; // stable results
+  regFragPtr.p->m_commit_count = 0;  // stable results
 #if MAX_PARALLEL_SCANS_PER_FRAG > 0
   //ACC scans no longer used
   for (Uint32 i = 0; i < MAX_PARALLEL_SCANS_PER_FRAG; i++) {
     regFragPtr.p->scan[i] = RNIL;
-  }//for
+  }  // for
 #endif
   
   Uint32 hasCharAttr = g_key_descriptor_pool.getPtr(req->tableId)->hasCharAttr;
   regFragPtr.p->hasCharAttr = hasCharAttr;
-  for (Uint32 i = 0; i < NUM_ACC_FRAGMENT_MUTEXES; i++)
-  {
+  for (Uint32 i = 0; i < NUM_ACC_FRAGMENT_MUTEXES; i++) {
     NdbMutex_Init(&regFragPtr.p->acc_frag_mutex[i]);
   }
-}//Dbacc::initFragAdd()
+}  // Dbacc::initFragAdd()
 
-void Dbacc::initFragGeneral(FragmentrecPtr regFragPtr)const
-{
+void Dbacc::initFragGeneral(FragmentrecPtr regFragPtr) const {
   new (&regFragPtr.p->directory) DynArr256::Head();
 
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
@@ -8324,14 +11458,13 @@ void Dbacc::initFragGeneral(FragmentrecPtr regFragPtr)const
   regFragPtr.p->activeScanMask = 0;
 
   regFragPtr.p->m_lockStats.init();
-}//Dbacc::initFragGeneral()
+}  // Dbacc::initFragGeneral()
 
-
-void Dbacc::execACC_SCANREQ(Signal* signal) //Direct Executed
+void Dbacc::execACC_SCANREQ(Signal *signal)  // Direct Executed
 {
   jamEntry();
   ndbabort();
-  AccScanReq * req = (AccScanReq*)&signal->theData[0];
+  AccScanReq *req = (AccScanReq *)&signal->theData[0];
   Uint32 userptr = req->senderData;
   BlockReference userblockref = req->senderRef;
   Uint32 fid = req->fragmentNo;
@@ -8340,7 +11473,7 @@ void Dbacc::execACC_SCANREQ(Signal* signal) //Direct Executed
   Uint32 scanTrid2 = req->transId2;
   ndbabort(); //ACC scans no longer used
   getFragPtr(fragrecptr, req->tableId, fid, false);
-  
+
   Uint32 i = 0;
 #if MAX_PARALLEL_SCANS_PER_FRAG > 0
   for (i = 0; i == 0; i++)
@@ -8352,8 +11485,7 @@ void Dbacc::execACC_SCANREQ(Signal* signal) //Direct Executed
   }
   ndbrequire(i != 0);
 #endif
-  if (unlikely(!scanRec_pool.seize(scanPtr)))
-  {
+  if (unlikely(!scanRec_pool.seize(scanPtr))) {
     signal->theData[8] = AccScanRef::AccNoFreeScanOp;
     return;
   }
@@ -8361,7 +11493,7 @@ void Dbacc::execACC_SCANREQ(Signal* signal) //Direct Executed
 #if MAX_PARALLEL_SCANS_PER_FRAG > 0
   fragrecptr.p->scan[i] = scanPtr.i;
 #endif
-  scanPtr.p->scanBucketState =  ScanRec::FIRST_LAP;
+  scanPtr.p->scanBucketState = ScanRec::FIRST_LAP;
   scanPtr.p->scanLockMode = AccScanReq::getLockMode(scanFlag);
   scanPtr.p->scanReadCommittedFlag = AccScanReq::getReadCommittedFlag(scanFlag);
   /* TWELVE BITS OF THE ELEMENT HEAD ARE SCAN */
@@ -8391,14 +11523,15 @@ void Dbacc::execACC_SCANREQ(Signal* signal) //Direct Executed
    * return signal.
    */
   return;
-}//Dbacc::execACC_SCANREQ()
+}  // Dbacc::execACC_SCANREQ()
 
-/* ******************--------------------------------------------------------------- */
-/*  NEXT_SCANREQ                                       REQUEST FOR NEXT ELEMENT OF   */
-/* ******************------------------------------+   A FRAGMENT.                   */
+/* ******************---------------------------------------------------------------
+ */
+/*  NEXT_SCANREQ                                       REQUEST FOR NEXT ELEMENT
+ * OF   */
+/* ******************------------------------------+   A FRAGMENT. */
 /*   SENDER: LQH,    LEVEL B       */
-void Dbacc::execNEXT_SCANREQ(Signal* signal) 
-{
+void Dbacc::execNEXT_SCANREQ(Signal *signal) {
   Uint32 tscanNextFlag;
   jamEntryDebug();
   ndbabort();
@@ -8419,61 +11552,62 @@ void Dbacc::execNEXT_SCANREQ(Signal* signal)
   ndbrequire(Magic::check_ptr(scanPtr.p));
 
   switch (tscanNextFlag) {
-  case NextScanReq::ZSCAN_NEXT:
-    jam();
-    /*empty*/;
-    break;
-  case NextScanReq::ZSCAN_NEXT_COMMIT:
-  case NextScanReq::ZSCAN_COMMIT:
-    jam();
-    /* --------------------------------------------------------------------- */
-    /* COMMIT ACTIVE OPERATION. 
-     * SEND NEXT SCAN ELEMENT IF IT IS ZCOPY_NEXT_COMMIT.
-     * --------------------------------------------------------------------- */
-    ndbrequire(m_curr_acc->oprec_pool.getUncheckedPtrRW(operationRecPtr));
-    fragrecptr.i = operationRecPtr.p->fragptr;
-    ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-    ndbrequire(Magic::check_ptr(operationRecPtr.p));
-    if (!scanPtr.p->scanReadCommittedFlag) {
-      commitOperation(signal);
-    }//if
-    operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
-    takeOutActiveScanOp();
-    releaseOpRec();
-    scanPtr.p->scanOpsAllocated--;
-    if (tscanNextFlag == NextScanReq::ZSCAN_COMMIT) {
+    case NextScanReq::ZSCAN_NEXT:
       jam();
-      signal->theData[0] = 0; /* Success */
-      /**
-       * signal->theData[0] = 0 indicates NEXT_SCANCONF return
-       * signal for NextScanReq::ZSCAN_COMMIT
+      /*empty*/;
+      break;
+    case NextScanReq::ZSCAN_NEXT_COMMIT:
+    case NextScanReq::ZSCAN_COMMIT:
+      jam();
+      /* ---------------------------------------------------------------------
        */
-      return;
-    }//if
-    break;
-  case NextScanReq::ZSCAN_CLOSE:
-    jam();
-    fragrecptr.i = scanPtr.p->activeLocalFrag;
+      /* COMMIT ACTIVE OPERATION.
+       * SEND NEXT SCAN ELEMENT IF IT IS ZCOPY_NEXT_COMMIT.
+       * ---------------------------------------------------------------------
+       */
+      ndbrequire(m_curr_acc->oprec_pool.getUncheckedPtrRW(operationRecPtr));
+      fragrecptr.i = operationRecPtr.p->fragptr;
     ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-    ndbassert(fragrecptr.p->activeScanMask & scanPtr.p->scanMask);
-    /* ---------------------------------------------------------------------
-     * THE SCAN PROCESS IS FINISHED. RELOCK ALL LOCKED EL. 
-     * RELEASE ALL INVOLVED REC.
-     * ------------------------------------------------------------------- */
-    releaseScanLab(signal);
-    return;
-  default:
-    ndbabort();
-  }//switch
+      ndbrequire(Magic::check_ptr(operationRecPtr.p));
+      if (!scanPtr.p->scanReadCommittedFlag) {
+        commitOperation(signal);
+      }  // if
+      operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
+      takeOutActiveScanOp();
+      releaseOpRec();
+      scanPtr.p->scanOpsAllocated--;
+      if (tscanNextFlag == NextScanReq::ZSCAN_COMMIT) {
+        jam();
+        signal->theData[0] = 0; /* Success */
+        /**
+         * signal->theData[0] = 0 indicates NEXT_SCANCONF return
+         * signal for NextScanReq::ZSCAN_COMMIT
+         */
+        return;
+      }  // if
+      break;
+    case NextScanReq::ZSCAN_CLOSE:
+      jam();
+      fragrecptr.i = scanPtr.p->activeLocalFrag;
+    ndbrequire(c_fragment_pool.getPtr(fragrecptr));
+      ndbassert(fragrecptr.p->activeScanMask & scanPtr.p->scanMask);
+      /* ---------------------------------------------------------------------
+       * THE SCAN PROCESS IS FINISHED. RELOCK ALL LOCKED EL.
+       * RELEASE ALL INVOLVED REC.
+       * ------------------------------------------------------------------- */
+      releaseScanLab(signal);
+      return;
+    default:
+      ndbabort();
+  }  // switch
   scanPtr.p->scan_lastSeen = __LINE__;
   signal->theData[0] = scanPtr.i;
   signal->theData[1] = AccCheckScan::ZNOT_CHECK_LCP_STOP;
   execACC_CHECK_SCAN(signal);
   return;
-}//Dbacc::execNEXT_SCANREQ()
+}  // Dbacc::execNEXT_SCANREQ()
 
-void Dbacc::checkNextBucketLab(Signal* signal)
-{
+void Dbacc::checkNextBucketLab(Signal *signal) {
   Page8Ptr nsPageptr;
   Page8Ptr gnsPageidptr;
   Page8Ptr tnsPageidptr;
@@ -8496,91 +11630,79 @@ void Dbacc::checkNextBucketLab(Signal* signal)
   bool isforward;
   Uint32 elemptr;
   Uint32 islocked;
-  if (!getScanElement(pageptr, conidx, conptr, isforward, elemptr, islocked))
-  {
+  if (!getScanElement(pageptr, conidx, conptr, isforward, elemptr, islocked)) {
     scanPtr.p->nextBucketIndex++;
-    if (scanPtr.p->scanBucketState ==  ScanRec::SECOND_LAP)
-    {
-      if (scanPtr.p->nextBucketIndex > scanPtr.p->maxBucketIndexToRescan)
-      {
-	/* ---------------------------------------------------------------- */
-	// We have finished the rescan phase. 
-	// We are ready to proceed with the next fragment part.
-	/* ---------------------------------------------------------------- */
+    if (scanPtr.p->scanBucketState == ScanRec::SECOND_LAP) {
+      if (scanPtr.p->nextBucketIndex > scanPtr.p->maxBucketIndexToRescan) {
+        /* ---------------------------------------------------------------- */
+        // We have finished the rescan phase.
+        // We are ready to proceed with the next fragment part.
+        /* ---------------------------------------------------------------- */
         jam();
         checkNextFragmentLab(signal);
         return;
-      }//if
-    }
-    else if (scanPtr.p->scanBucketState ==  ScanRec::FIRST_LAP)
-    {
-      if (fragrecptr.p->level.getTop() < scanPtr.p->nextBucketIndex)
-      {
-	/* ---------------------------------------------------------------- */
-	// All buckets have been scanned a first time.
-	/* ---------------------------------------------------------------- */
-        if (scanPtr.p->minBucketIndexToRescan == 0xFFFFFFFF)
-        {
+      }  // if
+    } else if (scanPtr.p->scanBucketState == ScanRec::FIRST_LAP) {
+      if (fragrecptr.p->level.getTop() < scanPtr.p->nextBucketIndex) {
+        /* ---------------------------------------------------------------- */
+        // All buckets have been scanned a first time.
+        /* ---------------------------------------------------------------- */
+        if (scanPtr.p->minBucketIndexToRescan == 0xFFFFFFFF) {
           jam();
-	  /* -------------------------------------------------------------- */
-	  // We have not had any merges behind the scan. 
-	  // Thus it is not necessary to perform any rescan any buckets 
-	  // and we can proceed immediately with the next fragment part.
-	  /* --------------------------------------------------------------- */
+          /* -------------------------------------------------------------- */
+          // We have not had any merges behind the scan.
+          // Thus it is not necessary to perform any rescan any buckets
+          // and we can proceed immediately with the next fragment part.
+          /* --------------------------------------------------------------- */
           checkNextFragmentLab(signal);
           return;
-        }
-        else
-        {
+        } else {
           jam();
-	  /**
-	   * Some buckets are in the need of rescanning due to merges that have
+          /**
+           * Some buckets are in the need of rescanning due to merges that have
            * moved records from in front of the scan to behind the scan. During
            * the merges we kept track of which buckets that need a rescan.
            * We start with the minimum and end with maximum.
            */
           scanPtr.p->nextBucketIndex = scanPtr.p->minBucketIndexToRescan;
-	  scanPtr.p->scanBucketState =  ScanRec::SECOND_LAP;
-          if (scanPtr.p->maxBucketIndexToRescan > fragrecptr.p->level.getTop())
-          {
+          scanPtr.p->scanBucketState = ScanRec::SECOND_LAP;
+          if (scanPtr.p->maxBucketIndexToRescan >
+              fragrecptr.p->level.getTop()) {
             jam();
-	    /**
-	     * If we have had so many merges that the maximum is bigger than
+            /**
+             * If we have had so many merges that the maximum is bigger than
              * the number of buckets then we will simply satisfy ourselves with
              * scanning to the end. This can only happen after bringing down
              * the total of buckets to less than half and the minimum should
-	     * be 0 otherwise there is some problem.
+             * be 0 otherwise there is some problem.
              */
-            if (scanPtr.p->minBucketIndexToRescan != 0)
-            {
+            if (scanPtr.p->minBucketIndexToRescan != 0) {
               jam();
               sendSystemerror(__LINE__);
               return;
-            }//if
+            }  // if
             scanPtr.p->maxBucketIndexToRescan = fragrecptr.p->level.getTop();
-          }//if
-        }//if
-      }//if
-    }//if
-    if ((scanPtr.p->scanBucketState ==  ScanRec::FIRST_LAP) &&
-        (scanPtr.p->nextBucketIndex <= scanPtr.p->startNoOfBuckets))
-    {
+          }  // if
+        }    // if
+      }      // if
+    }        // if
+    if ((scanPtr.p->scanBucketState == ScanRec::FIRST_LAP) &&
+        (scanPtr.p->nextBucketIndex <= scanPtr.p->startNoOfBuckets)) {
       /**
        * We will only reset the scan indicator on the buckets that existed at
        * the start of the scan. The others will be handled by the split and
        * merge code.
        */
       Uint32 conidx = fragrecptr.p->getPageIndex(scanPtr.p->nextBucketIndex);
-      if (conidx == 0)
-      {
+      if (conidx == 0) {
         jam();
         Uint32 pagei = fragrecptr.p->getPageNumber(scanPtr.p->nextBucketIndex);
         gnsPageidptr.i = getPagePtr(fragrecptr.p->directory, pagei);
         c_page8_pool.getPtr(gnsPageidptr);
-      }//if
+      }  // if
       ndbassert(!scanPtr.p->isInContainer());
       releaseScanBucket(gnsPageidptr, conidx, scanPtr.p->scanMask);
-    }//if
+    }  // if
     releaseFreeOpRec();
     scanPtr.p->scan_lastSeen = __LINE__;
     BlockReference ref = scanPtr.p->scanUserblockref;
@@ -8589,7 +11711,7 @@ void Dbacc::checkNextBucketLab(Signal* signal)
     signal->theData[2] = AccCheckScan::ZCHECK_LCP_STOP;
     sendSignal(ref, GSN_ACC_CHECK_SCAN, signal, 3, JBB);
     return;
-  }//if
+  }  // if
   /* ----------------------------------------------------------------------- */
   /*	AN ELEMENT WHICH HAVE NOT BEEN SCANNED WAS FOUND. WE WILL PREPARE IT */
   /*	TO BE SENT TO THE LQH BLOCK FOR FURTHER PROCESSING.                  */
@@ -8606,35 +11728,49 @@ void Dbacc::checkNextBucketLab(Signal* signal)
   cfreeopRec = RNIL;
   ndbrequire(m_curr_acc->oprec_pool.getValidPtr(operationRecPtr));
   initScanOpRec(nsPageptr, tnsContainerptr, tnsElementptr);
- 
-  if (!tnsIsLocked){
+
+  if (!tnsIsLocked) {
     if (!scanPtr.p->scanReadCommittedFlag) {
       jam();
       /* Immediate lock grant as element unlocked */
-      fragrecptr.p->m_lockStats.
-        req_start_imm_ok(scanPtr.p->scanLockMode != ZREADLOCK,
-                         operationRecPtr.p->m_lockTime,
-                         getHighResTimer());
+      fragrecptr.p->m_lockStats.req_start_imm_ok(
+          scanPtr.p->scanLockMode != ZREADLOCK, operationRecPtr.p->m_lockTime,
+          getHighResTimer());
+
+      setlock(nsPageptr, tnsElementptr);
+      fragrecptr.p->lockCount++;
+      operationRecPtr.p->m_op_bits |= Operationrec::OP_LOCK_OWNER |
+                                      Operationrec::OP_STATE_RUNNING |
       setlock(nsPageptr, tnsElementptr);
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
-      insertLockOwnersList(operationRecPtr);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  insertLockOwnersList(operationRecPtr);
 #endif
-      fragrecptr.p->lockCount[0]++;
-      operationRecPtr.p->m_op_bits |=
-        Operationrec::OP_LOCK_OWNER |
-        Operationrec::OP_STATE_RUNNING | Operationrec::OP_RUN_QUEUE;
-    }//if
+||||||| Common ancestor
+tnsElementptr);
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragrecptr.p->lockCount[0]++;
+||||||| Common ancestor
+fragrecptr.p->lockCount++;
+=======
+>>>>>>> MySQL 8.0.36
+                   Operationrec::OP_RUN_QUEUE;
+    }  // if
   } else {
     arrGuard(tnsElementptr, 2048);
-    queOperPtr.i = 
-      ElementHeader::getOpPtrI(nsPageptr.p->word32[tnsElementptr]);
+    queOperPtr.i = ElementHeader::getOpPtrI(nsPageptr.p->word32[tnsElementptr]);
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(queOperPtr));
     if (queOperPtr.p->m_op_bits & Operationrec::OP_ELEMENT_DISAPPEARED ||
-	queOperPtr.p->localdata.isInvalid())
-    {
+        queOperPtr.p->localdata.isInvalid()) {
       jam();
       /* ------------------------------------------------------------------ */
-      // If the lock owner indicates the element is disappeared then 
+      // If the lock owner indicates the element is disappeared then
       // we will not report this tuple. We will continue with the next tuple.
       /* ------------------------------------------------------------------ */
       /* FC : Is this correct, shouldn't we wait for lock holder commit? */
@@ -8648,7 +11784,7 @@ void Dbacc::checkNextBucketLab(Signal* signal)
       signal->theData[2] = AccCheckScan::ZCHECK_LCP_STOP;
       sendSignal(ref, GSN_ACC_CHECK_SCAN, signal, 3, JBB);
       return;
-    }//if
+    }  // if
     if (!scanPtr.p->scanReadCommittedFlag) {
       Uint32 return_result;
       if (scanPtr.p->scanLockMode == ZREADLOCK) {
@@ -8657,17 +11793,16 @@ void Dbacc::checkNextBucketLab(Signal* signal)
       } else {
         jam();
         return_result = placeWriteInLockQueue(queOperPtr);
-      }//if
+      }  // if
       if (return_result == ZSERIAL_QUEUE) {
-	/* -----------------------------------------------------------------
-	 * WE PLACED THE OPERATION INTO A SERIAL QUEUE AND THUS WE HAVE TO 
-	 * WAIT FOR THE LOCK TO BE RELEASED. WE CONTINUE WITH THE NEXT ELEMENT
-	 * ----------------------------------------------------------------- */
-        fragrecptr.p->
-          m_lockStats.req_start(scanPtr.p->scanLockMode != ZREADLOCK,
-                                operationRecPtr.p->m_lockTime,
-                                getHighResTimer());
-        putOpScanLockQue();	/* PUT THE OP IN A QUE IN THE SCAN REC */
+        /* -----------------------------------------------------------------
+         * WE PLACED THE OPERATION INTO A SERIAL QUEUE AND THUS WE HAVE TO
+         * WAIT FOR THE LOCK TO BE RELEASED. WE CONTINUE WITH THE NEXT ELEMENT
+         * ----------------------------------------------------------------- */
+        fragrecptr.p->m_lockStats.req_start(
+            scanPtr.p->scanLockMode != ZREADLOCK, operationRecPtr.p->m_lockTime,
+            getHighResTimer());
+        putOpScanLockQue(); /* PUT THE OP IN A QUE IN THE SCAN REC */
         scanPtr.p->scan_lastSeen = __LINE__;
         BlockReference ref = scanPtr.p->scanUserblockref;
         signal->theData[0] = scanPtr.p->scanUserptr;
@@ -8677,14 +11812,14 @@ void Dbacc::checkNextBucketLab(Signal* signal)
         return;
       } else if (return_result != ZPARALLEL_QUEUE) {
         jam();
-	/* ----------------------------------------------------------------- */
-	// The tuple is either not committed yet or a delete in 
-	// the same transaction (not possible here since we are a scan). 
-	// Thus we simply continue with the next tuple.
-	/* ----------------------------------------------------------------- */
-	operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
+        /* ----------------------------------------------------------------- */
+        // The tuple is either not committed yet or a delete in
+        // the same transaction (not possible here since we are a scan).
+        // Thus we simply continue with the next tuple.
+        /* ----------------------------------------------------------------- */
+        operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
         releaseOpRec();
-	scanPtr.p->scanOpsAllocated--;
+        scanPtr.p->scanOpsAllocated--;
         scanPtr.p->scan_lastSeen = __LINE__;
         BlockReference ref = scanPtr.p->scanUserblockref;
         signal->theData[0] = scanPtr.p->scanUserptr;
@@ -8692,31 +11827,28 @@ void Dbacc::checkNextBucketLab(Signal* signal)
         signal->theData[2] = AccCheckScan::ZCHECK_LCP_STOP;
         sendSignal(ref, GSN_ACC_CHECK_SCAN, signal, 3, JBB);
         return;
-      }//if
+      }  // if
       ndbassert(return_result == ZPARALLEL_QUEUE);
       /* We got into the parallel queue - immediate grant */
-      fragrecptr.p->m_lockStats.
-        req_start_imm_ok(scanPtr.p->scanLockMode != ZREADLOCK,
-                         operationRecPtr.p->m_lockTime,
-                         getHighResTimer());
-    }//if
-  }//if
+      fragrecptr.p->m_lockStats.req_start_imm_ok(
+          scanPtr.p->scanLockMode != ZREADLOCK, operationRecPtr.p->m_lockTime,
+          getHighResTimer());
+    }  // if
+  }    // if
   /* ----------------------------------------------------------------------- */
-  // Committed read proceed without caring for locks immediately 
-  // down here except when the tuple was deleted permanently 
+  // Committed read proceed without caring for locks immediately
+  // down here except when the tuple was deleted permanently
   // and no new operation has inserted it again.
   /* ----------------------------------------------------------------------- */
   scanPtr.p->scan_lastSeen = __LINE__;
   putActiveScanOp();
   sendNextScanConf(signal);
   return;
-}//Dbacc::checkNextBucketLab()
+}  // Dbacc::checkNextBucketLab()
 
-
-void Dbacc::checkNextFragmentLab(Signal* signal)
-{
-  scanPtr.p->scanBucketState =  ScanRec::SCAN_COMPLETED;
-  // The scan is completed. ACC_CHECK_SCAN will perform all the necessary 
+void Dbacc::checkNextFragmentLab(Signal *signal) {
+  scanPtr.p->scanBucketState = ScanRec::SCAN_COMPLETED;
+  // The scan is completed. ACC_CHECK_SCAN will perform all the necessary
   // checks to see
   // what the next step is.
   releaseFreeOpRec();
@@ -8724,22 +11856,21 @@ void Dbacc::checkNextFragmentLab(Signal* signal)
   signal->theData[1] = AccCheckScan::ZCHECK_LCP_STOP;
   execACC_CHECK_SCAN(signal);
   return;
-}//Dbacc::checkNextFragmentLab()
+}  // Dbacc::checkNextFragmentLab()
 
-void Dbacc::initScanFragmentPart()
-{
+void Dbacc::initScanFragmentPart() {
   Page8Ptr cnfPageidptr;
   /* ----------------------------------------------------------------------- */
   // Set the active fragment part.
   // Set the current bucket scanned to the first.
   // Start with the first lap.
   // Remember the number of buckets at start of the scan.
-  // Set the minimum and maximum to values that will always be smaller and 
+  // Set the minimum and maximum to values that will always be smaller and
   //    larger than.
   // Reset the scan indicator on the first bucket.
   /* ----------------------------------------------------------------------- */
   scanPtr.p->activeLocalFrag = fragrecptr.i;
-  scanPtr.p->nextBucketIndex = 0;	/* INDEX OF SCAN BUCKET */
+  scanPtr.p->nextBucketIndex = 0; /* INDEX OF SCAN BUCKET */
   ndbassert(!scanPtr.p->isInContainer());
   scanPtr.p->scanBucketState = ScanRec::FIRST_LAP;
   scanPtr.p->startNoOfBuckets = fragrecptr.p->level.getTop();
@@ -8752,15 +11883,14 @@ void Dbacc::initScanFragmentPart()
   ndbassert(!scanPtr.p->isInContainer());
   releaseScanBucket(cnfPageidptr, conidx, scanPtr.p->scanMask);
   fragrecptr.p->activeScanMask |= scanPtr.p->scanMask;
-}//Dbacc::initScanFragmentPart()
+}  // Dbacc::initScanFragmentPart()
 
 /* -------------------------------------------------------------------------
- * FLAG = 6 = ZCOPY_CLOSE THE SCAN PROCESS IS READY OR ABORTED. 
- * ALL OPERATION IN THE ACTIVE OR WAIT QUEUE ARE RELEASED, 
+ * FLAG = 6 = ZCOPY_CLOSE THE SCAN PROCESS IS READY OR ABORTED.
+ * ALL OPERATION IN THE ACTIVE OR WAIT QUEUE ARE RELEASED,
  * SCAN FLAG OF ROOT FRAG IS RESET AND THE SCAN RECORD IS RELEASED.
  * ------------------------------------------------------------------------ */
-void Dbacc::releaseScanLab(Signal* signal)
-{
+void Dbacc::releaseScanLab(Signal *signal) {
   ndbabort(); //ACC scan no longer used
   releaseAndCommitActiveOps(signal);
   releaseAndCommitQueuedOps(signal);
@@ -8774,11 +11904,10 @@ void Dbacc::releaseScanLab(Signal* signal)
    * Dont leave partial scanned bucket as partial scanned.
    * Elements scanbits must match containers scanbits.
    */
-  if ((scanPtr.p->scanBucketState ==  ScanRec::FIRST_LAP &&
+  if ((scanPtr.p->scanBucketState == ScanRec::FIRST_LAP &&
        scanPtr.p->nextBucketIndex <= fragrecptr.p->level.getTop()) ||
-      (scanPtr.p->scanBucketState ==  ScanRec::SECOND_LAP &&
-       scanPtr.p->nextBucketIndex <= scanPtr.p->maxBucketIndexToRescan))
-  {
+      (scanPtr.p->scanBucketState == ScanRec::SECOND_LAP &&
+       scanPtr.p->nextBucketIndex <= scanPtr.p->maxBucketIndexToRescan)) {
     jam();
     Uint32 conidx = fragrecptr.p->getPageIndex(scanPtr.p->nextBucketIndex);
     Uint32 pagei = fragrecptr.p->getPageNumber(scanPtr.p->nextBucketIndex);
@@ -8788,16 +11917,14 @@ void Dbacc::releaseScanLab(Signal* signal)
 
     Uint32 inPageI;
     Uint32 inConptr;
-    if(scanPtr.p->getContainer(inPageI, inConptr))
-    {
+    if (scanPtr.p->getContainer(inPageI, inConptr)) {
       Page8Ptr page;
       page.i = inPageI;
       c_page8_pool.getPtr(page);
       ContainerHeader conhead(page.p->word32[inConptr]);
       scanPtr.p->leaveContainer(inPageI, inConptr);
       page.p->clearScanContainer(scanPtr.p->scanMask, inConptr);
-      if (!page.p->checkScanContainer(inConptr))
-      {
+      if (!page.p->checkScanContainer(inConptr)) {
         conhead.clearScanInProgress();
         page.p->word32[inConptr] = Uint32(conhead);
       }
@@ -8808,15 +11935,14 @@ void Dbacc::releaseScanLab(Signal* signal)
 #if MAX_PARALLEL_SCANS_PER_FRAG > 0
   for (Uint32 i = 0; i < MAX_PARALLEL_SCANS_PER_FRAG; i++) {
     jam();
-    if (fragrecptr.p->scan[i] == scanPtr.i)
-    {
+    if (fragrecptr.p->scan[i] == scanPtr.i) {
       jam();
       fragrecptr.p->scan[i] = RNIL;
-    }//if
-  }//for
+    }  // if
+  }    // for
 #endif
   // Stops the heartbeat
-  NextScanConf* const conf = (NextScanConf*)signal->getDataPtrSend();
+  NextScanConf *const conf = (NextScanConf *)signal->getDataPtrSend();
   conf->scanPtr = scanPtr.p->scanUserptr;
   conf->accOperationPtr = RNIL;
   conf->fragId = RNIL;
@@ -8825,11 +11951,9 @@ void Dbacc::releaseScanLab(Signal* signal)
   signal->setLength(NextScanConf::SignalLengthNoTuple);
   c_lqh->exec_next_scan_conf(signal);
   return;
-}//Dbacc::releaseScanLab()
+}  // Dbacc::releaseScanLab()
 
-
-void Dbacc::releaseAndCommitActiveOps(Signal* signal)
-{
+void Dbacc::releaseAndCommitActiveOps(Signal *signal) {
   ndbabort();
   OperationrecPtr trsoOperPtr;
   operationRecPtr.i = scanPtr.p->scanFirstActiveOp;
@@ -8842,28 +11966,35 @@ void Dbacc::releaseAndCommitActiveOps(Signal* signal)
     if (!scanPtr.p->scanReadCommittedFlag) {
       jam();
       if ((operationRecPtr.p->m_op_bits & Operationrec::OP_STATE_MASK) ==
-	  Operationrec::OP_STATE_EXECUTED)
-      {
-	commitOperation(signal);
-      }
-      else
-      {
+          Operationrec::OP_STATE_EXECUTED) {
+        commitOperation(signal);
+      } else {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
         Uint32 hash = 0;
         acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
-	abortOperation(signal, hash);
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+abortOperation(signal, hash);
       }
-    }//if
+    }  // if
     operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
     takeOutActiveScanOp();
     releaseOpRec();
     scanPtr.p->scanOpsAllocated--;
     operationRecPtr.i = trsoOperPtr.i;
-  }//if
-}//Dbacc::releaseAndCommitActiveOps()
+  }  // if
+}  // Dbacc::releaseAndCommitActiveOps()
 
-
-void Dbacc::releaseAndCommitQueuedOps(Signal* signal)
-{
+void Dbacc::releaseAndCommitQueuedOps(Signal *signal) {
   ndbabort();
   OperationrecPtr trsoOperPtr;
   operationRecPtr.i = scanPtr.p->scanFirstQueuedOp;
@@ -8876,26 +12007,35 @@ void Dbacc::releaseAndCommitQueuedOps(Signal* signal)
     if (!scanPtr.p->scanReadCommittedFlag) {
       jam();
       if ((operationRecPtr.p->m_op_bits & Operationrec::OP_STATE_MASK) ==
-	  Operationrec::OP_STATE_EXECUTED)
-      {
-	commitOperation(signal);
-      }
-      else
-      {
+          Operationrec::OP_STATE_EXECUTED) {
+        commitOperation(signal);
+      } else {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
         Uint32 hash = 0;
         acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
-	abortOperation(signal, hash);
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+abortOperation(signal, hash);
       }
-    }//if
+    }  // if
     operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
     takeOutReadyScanQueue();
     releaseOpRec();
     scanPtr.p->scanOpsAllocated--;
     operationRecPtr.i = trsoOperPtr.i;
-  }//if
-}//Dbacc::releaseAndCommitQueuedOps()
+  }  // if
+}  // Dbacc::releaseAndCommitQueuedOps()
 
-void Dbacc::releaseAndAbortLockedOps(Signal* signal) {
+void Dbacc::releaseAndAbortLockedOps(Signal *signal) {
   ndbabort();
   OperationrecPtr trsoOperPtr;
   operationRecPtr.i = scanPtr.p->scanFirstLockedOp;
@@ -8910,26 +12050,28 @@ void Dbacc::releaseAndAbortLockedOps(Signal* signal) {
       Uint32 hash = 0;
       acquire_frag_mutex_hash(fragrecptr.p, operationRecPtr, hash);
       abortOperation(signal, hash);
-    }//if
+    }  // if
     takeOutScanLockQueue(scanPtr.i);
     operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
     releaseOpRec();
     scanPtr.p->scanOpsAllocated--;
     operationRecPtr.i = trsoOperPtr.i;
-  }//if
-}//Dbacc::releaseAndAbortLockedOps()
+  }  // if
+}  // Dbacc::releaseAndAbortLockedOps()
 
 /* 3.18.3  ACC_CHECK_SCAN */
-/* ******************--------------------------------------------------------------- */
-/* ACC_CHECK_SCAN                                                                    */
-/*          ENTER ACC_CHECK_SCAN WITH                                                */
-/*                    SCAN_PTR                                                       */
-/* ******************--------------------------------------------------------------- */
-/* ******************--------------------------------------------------------------- */
-/* ACC_CHECK_SCAN                                                                    */
-/* ******************------------------------------+                                 */
-void Dbacc::execACC_CHECK_SCAN(Signal* signal) 
-{
+/* ******************---------------------------------------------------------------
+ */
+/* ACC_CHECK_SCAN */
+/*          ENTER ACC_CHECK_SCAN WITH */
+/*                    SCAN_PTR */
+/* ******************---------------------------------------------------------------
+ */
+/* ******************---------------------------------------------------------------
+ */
+/* ACC_CHECK_SCAN */
+/* ******************------------------------------+ */
+void Dbacc::execACC_CHECK_SCAN(Signal *signal) {
   Uint32 TcheckLcpStop;
   jamEntryDebug();
   ndbabort();
@@ -8938,12 +12080,11 @@ void Dbacc::execACC_CHECK_SCAN(Signal* signal)
   TcheckLcpStop = signal->theData[1];
   Uint32 firstQueuedOp = scanPtr.p->scanFirstQueuedOp;
   ndbrequire(Magic::check_ptr(scanPtr.p));
-  while (firstQueuedOp != RNIL)
-  {
+  while (firstQueuedOp != RNIL) {
     jamDebug();
     //---------------------------------------------------------------------
-    // An operation has been released from the lock queue. 
-    // We are in the parallel queue of this tuple. We are 
+    // An operation has been released from the lock queue.
+    // We are in the parallel queue of this tuple. We are
     // ready to report the tuple now.
     //------------------------------------------------------------------------
     operationRecPtr.i = scanPtr.p->scanFirstQueuedOp;
@@ -8956,13 +12097,12 @@ void Dbacc::execACC_CHECK_SCAN(Signal* signal)
     fragrecptr.p->m_lockStats.wait_ok(scanPtr.p->scanLockMode != ZREADLOCK,
                                       operationRecPtr.p->m_lockTime,
                                       getHighResTimer());
-    if (operationRecPtr.p->m_op_bits & Operationrec::OP_ELEMENT_DISAPPEARED) 
-    {
+    if (operationRecPtr.p->m_op_bits & Operationrec::OP_ELEMENT_DISAPPEARED) {
       jam();
       /**
        * Despite aborting, this is an 'ok' wait.
        * This op is waking up to find the entity it locked has gone.
-       * As a 'QueuedOp', we are in the parallel queue of the element, so 
+       * As a 'QueuedOp', we are in the parallel queue of the element, so
        * at the abort below we don't double-count abort as a failure.
        */
       Uint32 hash = 0;
@@ -8973,44 +12113,44 @@ void Dbacc::execACC_CHECK_SCAN(Signal* signal)
       scanPtr.p->scanOpsAllocated--;
       firstQueuedOp = scanPtr.p->scanFirstQueuedOp;
       continue;
-    }//if
+    }  // if
     scanPtr.p->scan_lastSeen = __LINE__;
     putActiveScanOp();
     sendNextScanConf(signal);
     return;
-  }//while
-
+  }  // while
 
   if ((scanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED) &&
       (scanPtr.p->scanLockHeld == 0)) {
     jam();
     //----------------------------------------------------------------------------
-    // The scan is now completed and there are no more locks outstanding. Thus we
-    // we will report the scan as completed to LQH.
+    // The scan is now completed and there are no more locks outstanding. Thus
+    // we we will report the scan as completed to LQH.
     //----------------------------------------------------------------------------
     scanPtr.p->scan_lastSeen = __LINE__;
     releaseFreeOpRec();
-    NextScanConf* const conf = (NextScanConf*)signal->getDataPtrSend();
+    NextScanConf *const conf = (NextScanConf *)signal->getDataPtrSend();
     conf->scanPtr = scanPtr.p->scanUserptr;
     conf->accOperationPtr = RNIL;
     conf->fragId = RNIL;
     signal->setLength(NextScanConf::SignalLengthNoTuple);
     c_lqh->exec_next_scan_conf(signal);
     return;
-  }//if
+  }  // if
   if (TcheckLcpStop == AccCheckScan::ZCHECK_LCP_STOP) {
-  //---------------------------------------------------------------------------
-  // To ensure that the block of the fragment occurring at the start of a local
-  // checkpoint is not held for too long we insert a release and reacquiring of
-  // that lock here. This is performed in LQH. If we are blocked or if we have
-  // requested a sleep then we will receive RNIL in the returning signal word.
-  //---------------------------------------------------------------------------
+    //---------------------------------------------------------------------------
+    // To ensure that the block of the fragment occurring at the start of a
+    // local checkpoint is not held for too long we insert a release and
+    // reacquiring of that lock here. This is performed in LQH. If we are
+    // blocked or if we have requested a sleep then we will receive RNIL in the
+    // returning signal word.
+    //---------------------------------------------------------------------------
     signal->theData[0] = scanPtr.p->scanUserptr;
     signal->theData[1] =
-      (((scanPtr.p->scanLockHeld >= ZSCAN_MAX_LOCK) ||
-        (scanPtr.p->scanBucketState ==  ScanRec::SCAN_COMPLETED)) ?
-       CheckLcpStop::ZSCAN_RESOURCE_WAIT:
-       CheckLcpStop::ZSCAN_RUNNABLE);
+        (((scanPtr.p->scanLockHeld >= ZSCAN_MAX_LOCK) ||
+          (scanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED))
+             ? CheckLcpStop::ZSCAN_RESOURCE_WAIT
+             : CheckLcpStop::ZSCAN_RUNNABLE);
 
     c_lqh->execCHECK_LCP_STOP(signal);
     jamEntryDebug();
@@ -9019,8 +12159,8 @@ void Dbacc::execACC_CHECK_SCAN(Signal* signal)
       scanPtr.p->scan_lastSeen = __LINE__;
       /* WE ARE ENTERING A REAL-TIME BREAK FOR A SCAN HERE */
       return;
-    }//if
-  }//if
+    }  // if
+  }    // if
   /**
    * If we have more than max locks held OR
    * scan is completed AND at least one lock held
@@ -9028,25 +12168,20 @@ void Dbacc::execACC_CHECK_SCAN(Signal* signal)
    * Also when no free operation records to handle lock
    * operations.
    */
-  if (cfreeopRec == RNIL)
-  {
+  if (cfreeopRec == RNIL) {
     /**
      * If a query thread is to scan with locked reads, this must
      * allocate from owning LDM thread.
      */
     OperationrecPtr opPtr;
-    if (oprec_pool.seize(opPtr))
-    {
+    if (oprec_pool.seize(opPtr)) {
       jam();
       cfreeopRec = opPtr.i;
-    }
-    else
-    {
+    } else {
       signal->theData[0] = scanPtr.p->scanUserptr;
       signal->theData[1] = CheckLcpStop::ZSCAN_RESOURCE_WAIT_STOPPABLE;
       c_lqh->execCHECK_LCP_STOP(signal);
-      if (signal->theData[0] == CheckLcpStop::ZTAKE_A_BREAK)
-      {
+      if (signal->theData[0] == CheckLcpStop::ZTAKE_A_BREAK) {
         jamEntryDebug();
         scanPtr.p->scan_lastSeen = __LINE__;
         /* WE ARE ENTERING A REAL-TIME BREAK FOR A SCAN HERE */
@@ -9061,22 +12196,18 @@ void Dbacc::execACC_CHECK_SCAN(Signal* signal)
        */
     }
   }
-  if ((scanPtr.p->scanLockHeld >= ZSCAN_MAX_LOCK) ||
-      (cfreeopRec == RNIL) ||
+  if ((scanPtr.p->scanLockHeld >= ZSCAN_MAX_LOCK) || (cfreeopRec == RNIL) ||
       ((scanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED) &&
        (scanPtr.p->scanLockHeld > 0))) {
     jam();
     scanPtr.p->scan_lastSeen = __LINE__;
-    NextScanConf* const conf = (NextScanConf*)signal->getDataPtrSend();
+    NextScanConf *const conf = (NextScanConf *)signal->getDataPtrSend();
     conf->scanPtr = scanPtr.p->scanUserptr;
     conf->accOperationPtr = RNIL;
-    conf->fragId = 512; // MASV
+    conf->fragId = 512;  // MASV
     /* WE ARE ENTERING A REAL-TIME BREAK FOR A SCAN HERE */
-    sendSignal(scanPtr.p->scanUserblockref,
-               GSN_NEXT_SCANCONF,
-               signal,
-               NextScanConf::SignalLengthNoTuple,
-               JBB);
+    sendSignal(scanPtr.p->scanUserblockref, GSN_NEXT_SCANCONF, signal,
+               NextScanConf::SignalLengthNoTuple, JBB);
     return;
   }
   if (scanPtr.p->scanBucketState == ScanRec::SCAN_COMPLETED) {
@@ -9086,33 +12217,30 @@ void Dbacc::execACC_CHECK_SCAN(Signal* signal)
     signal->theData[1] = AccCheckScan::ZCHECK_LCP_STOP;
     execACC_CHECK_SCAN(signal);
     return;
-  }//if
+  }  // if
 
   fragrecptr.i = scanPtr.p->activeLocalFrag;
   ndbrequire(c_fragment_pool.getPtr(fragrecptr));
   ndbassert(fragrecptr.p->activeScanMask & scanPtr.p->scanMask);
   checkNextBucketLab(signal);
   return;
-}//Dbacc::execACC_CHECK_SCAN()
+}  // Dbacc::execACC_CHECK_SCAN()
 
 /* ******************---------------------------------------------------- */
 /* ACC_TO_REQ                                       PERFORM A TAKE OVER   */
 /* ******************-------------------+                                 */
 /*   SENDER: LQH,    LEVEL B       */
-void Dbacc::execACC_TO_REQ(Signal* signal) 
-{
+void Dbacc::execACC_TO_REQ(Signal *signal) {
   OperationrecPtr tatrOpPtr;
 
   jamEntry();
-  tatrOpPtr.i = signal->theData[1];     /*  OPER PTR OF ACC                */
+  tatrOpPtr.i = signal->theData[1]; /*  OPER PTR OF ACC                */
   ndbrequire(m_curr_acc->oprec_pool.getValidPtr(tatrOpPtr));
 
   /* Only scan locks can be taken over */
-  if ((tatrOpPtr.p->m_op_bits & Operationrec::OP_MASK) == ZSCAN_OP)
-  {
+  if ((tatrOpPtr.p->m_op_bits & Operationrec::OP_MASK) == ZSCAN_OP) {
     if (signal->theData[2] == tatrOpPtr.p->transId1 &&
-        signal->theData[3] == tatrOpPtr.p->transId2)
-    {
+        signal->theData[3] == tatrOpPtr.p->transId2) {
       /* If lock is from same transaction as take over, lock can
        * be taken over several times.
        *
@@ -9123,15 +12251,12 @@ void Dbacc::execACC_TO_REQ(Signal* signal)
        * begin;
        * # Scan and lock rows in t, update using take over operation.
        * update t set y = 1;
-       * # The second update on same row, will take over the same lock as previous update
-       * update t set y = 2;
-       * commit;
+       * # The second update on same row, will take over the same lock as
+       * previous update update t set y = 2; commit;
        */
       return;
-    }
-    else if (tatrOpPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER &&
-             tatrOpPtr.p->nextParallelQue == RNIL)
-    {
+    } else if (tatrOpPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER &&
+               tatrOpPtr.p->nextParallelQue == RNIL) {
       /* If lock is taken over from other transaction it must be
        * the only one in the parallel queue.  Otherwise one could
        * end up with mixing operations from different transaction
@@ -9147,7 +12272,7 @@ void Dbacc::execACC_TO_REQ(Signal* signal)
   signal->theData[0] = Uint32(-1);
   signal->theData[1] = ZTO_OP_STATE_ERROR;
   return;
-}//Dbacc::execACC_TO_REQ()
+}  // Dbacc::execACC_TO_REQ()
 
 /** ---------------------------------------------------------------------------
  * Get next unscanned element in fragment.
@@ -9164,38 +12289,30 @@ void Dbacc::execACC_TO_REQ(Signal* signal)
  * @param[out]     islocked   Indicates if element is locked.
  * @return                    Return true if an unscanned element was found.
  * ------------------------------------------------------------------------- */
-bool Dbacc::getScanElement(Page8Ptr& pageptr,
-                           Uint32& conidx,
-                           Uint32& conptr,
-                           bool& isforward,
-                           Uint32& elemptr,
-                           Uint32& islocked) const
-{
+bool Dbacc::getScanElement(Page8Ptr &pageptr, Uint32 &conidx, Uint32 &conptr,
+                           bool &isforward, Uint32 &elemptr,
+                           Uint32 &islocked) const {
   /* Input is always the bucket header container */
   isforward = true;
   /* Check if scan is already active in a container */
   Uint32 inPageI;
   Uint32 inConptr;
   ndbabort(); //ACC scan no longer used
-  if (scanPtr.p->getContainer(inPageI, inConptr))
-  {
+  if (scanPtr.p->getContainer(inPageI, inConptr)) {
     // TODO: in VM_TRACE double check container is in bucket!
     pageptr.i = inPageI;
     c_page8_pool.getPtr(pageptr);
     conptr = inConptr;
     ContainerHeader conhead(pageptr.p->word32[conptr]);
     ndbassert(conhead.isScanInProgress());
-    ndbassert((conhead.getScanBits() & scanPtr.p->scanMask)==0);
+    ndbassert((conhead.getScanBits() & scanPtr.p->scanMask) == 0);
     getContainerIndex(conptr, conidx, isforward);
-  }
-  else // if first bucket is not in scan nor scanned , start it
+  } else  // if first bucket is not in scan nor scanned , start it
   {
     Uint32 conptr = getContainerPtr(conidx, isforward);
     ContainerHeader containerhead(pageptr.p->word32[conptr]);
-    if (!(containerhead.getScanBits() & scanPtr.p->scanMask))
-    {
-      if(!containerhead.isScanInProgress())
-      {
+    if (!(containerhead.getScanBits() & scanPtr.p->scanMask)) {
+      if (!containerhead.isScanInProgress()) {
         containerhead.setScanInProgress();
         pageptr.p->word32[conptr] = containerhead;
       }
@@ -9203,68 +12320,56 @@ bool Dbacc::getScanElement(Page8Ptr& pageptr,
       pageptr.p->setScanContainer(scanPtr.p->scanMask, conptr);
     }
   }
- NEXTSEARCH_SCAN_LOOP:
+NEXTSEARCH_SCAN_LOOP:
   conptr = getContainerPtr(conidx, isforward);
   ContainerHeader containerhead(pageptr.p->word32[conptr]);
   Uint32 conlen = containerhead.getLength();
-  if (containerhead.getScanBits() & scanPtr.p->scanMask)
-  { // Already scanned, go to next.
+  if (containerhead.getScanBits() &
+      scanPtr.p->scanMask) {  // Already scanned, go to next.
     ndbassert(!pageptr.p->checkScans(scanPtr.p->scanMask, conptr));
-  }
-  else
-  {
+  } else {
     ndbassert(containerhead.isScanInProgress());
-    if (searchScanContainer(pageptr,
-                            conptr,
-                            isforward,
-                            conlen,
-                            elemptr,
-                            islocked))
-    {
+    if (searchScanContainer(pageptr, conptr, isforward, conlen, elemptr,
+                            islocked)) {
       jam();
       return true;
-    }//if
+    }  // if
   }
-  if ((containerhead.getScanBits() & scanPtr.p->scanMask) == 0)
-  {
+  if ((containerhead.getScanBits() & scanPtr.p->scanMask) == 0) {
     containerhead.setScanBits(scanPtr.p->scanMask);
     scanPtr.p->leaveContainer(pageptr.i, conptr);
     pageptr.p->clearScanContainer(scanPtr.p->scanMask, conptr);
-    if (!pageptr.p->checkScanContainer(conptr))
-    {
+    if (!pageptr.p->checkScanContainer(conptr)) {
       containerhead.clearScanInProgress();
     }
     pageptr.p->word32[conptr] = Uint32(containerhead);
   }
-  if (containerhead.haveNext())
-  {
+  if (containerhead.haveNext()) {
     jam();
     nextcontainerinfo(pageptr, conptr, containerhead, conidx, isforward);
-    conptr=getContainerPtr(conidx,isforward);
-    containerhead=pageptr.p->word32[conptr];
-    if ((containerhead.getScanBits() & scanPtr.p->scanMask) == 0)
-    {
-      if(!containerhead.isScanInProgress())
-      {
+    conptr = getContainerPtr(conidx, isforward);
+    containerhead = pageptr.p->word32[conptr];
+    if ((containerhead.getScanBits() & scanPtr.p->scanMask) == 0) {
+      if (!containerhead.isScanInProgress()) {
         containerhead.setScanInProgress();
       }
       pageptr.p->word32[conptr] = Uint32(containerhead);
       scanPtr.p->enterContainer(pageptr.i, conptr);
       pageptr.p->setScanContainer(scanPtr.p->scanMask, conptr);
-    } // else already scanned, get next
+    }  // else already scanned, get next
     goto NEXTSEARCH_SCAN_LOOP;
-  }//if
+  }  // if
   pageptr.p->word32[conptr] = Uint32(containerhead);
   return false;
-}//Dbacc::getScanElement()
+}  // Dbacc::getScanElement()
 
-/* --------------------------------------------------------------------------------- */
-/*  INIT_SCAN_OP_REC                                                                 */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::initScanOpRec(Page8Ptr pageptr,
-                          Uint32 conptr,
-                          Uint32 elemptr) const
-{
+/* ---------------------------------------------------------------------------------
+ */
+/*  INIT_SCAN_OP_REC */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::initScanOpRec(Page8Ptr pageptr, Uint32 conptr,
+                          Uint32 elemptr) const {
   Uint32 tisoLocalPtr;
   Uint32 localkeylen = fragrecptr.p->localkeylen;
 
@@ -9272,10 +12377,12 @@ void Dbacc::initScanOpRec(Page8Ptr pageptr,
 
   Uint32 opbits = 0;
   opbits |= ZSCAN_OP;
-  opbits |= scanPtr.p->scanLockMode ? (Uint32) Operationrec::OP_LOCK_MODE : 0;
-  opbits |= scanPtr.p->scanLockMode ? (Uint32) Operationrec::OP_ACC_LOCK_MODE : 0;
-  opbits |= (scanPtr.p->scanReadCommittedFlag ? 
-             (Uint32) Operationrec::OP_EXECUTED_DIRTY_READ : 0);
+  opbits |= scanPtr.p->scanLockMode ? (Uint32)Operationrec::OP_LOCK_MODE : 0;
+  opbits |=
+      scanPtr.p->scanLockMode ? (Uint32)Operationrec::OP_ACC_LOCK_MODE : 0;
+  opbits |= (scanPtr.p->scanReadCommittedFlag
+                 ? (Uint32)Operationrec::OP_EXECUTED_DIRTY_READ
+                 : 0);
   opbits |= Operationrec::OP_COMMIT_DELETE_CHECK;
   operationRecPtr.p->userptr = RNIL;
   operationRecPtr.p->scanRecPtr = scanPtr.i;
@@ -9294,15 +12401,12 @@ void Dbacc::initScanOpRec(Page8Ptr pageptr,
   tisoLocalPtr = elemptr + 1;
 
   arrGuard(tisoLocalPtr, 2048);
-  if(ElementHeader::getUnlocked(pageptr.p->word32[elemptr]))
-  {
+  if (ElementHeader::getUnlocked(pageptr.p->word32[elemptr])) {
     Local_key key;
     key.m_page_no = pageptr.p->word32[tisoLocalPtr];
     key.m_page_idx = ElementHeader::getPageIdx(pageptr.p->word32[elemptr]);
     operationRecPtr.p->localdata = key;
-  }
-  else
-  {
+  } else {
     OperationrecPtr oprec;
     oprec.i = ElementHeader::getOpPtrI(pageptr.p->word32[elemptr]);
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(oprec));
@@ -9310,12 +12414,11 @@ void Dbacc::initScanOpRec(Page8Ptr pageptr,
     operationRecPtr.p->localdata = oprec.p->localdata;
   }
   tisoLocalPtr = tisoLocalPtr + 1;
-  ndbrequire(localkeylen == 1)
-  operationRecPtr.p->hashValue.clear();
+  ndbrequire(localkeylen == 1) operationRecPtr.p->hashValue.clear();
   operationRecPtr.p->tupkeylen = fragrecptr.p->keyLength;
   operationRecPtr.p->m_scanOpDeleteCountOpRef = RNIL;
   NdbTick_Invalidate(&operationRecPtr.p->m_lockTime);
-}//Dbacc::initScanOpRec()
+}  // Dbacc::initScanOpRec()
 
 /* ----------------------------------------------------------------------------
  * Get information of next container.
@@ -9327,71 +12430,62 @@ void Dbacc::initScanOpRec(Page8Ptr pageptr,
  * @param[out]    nextConidx       Index within page to next container.
  * @param[out]    nextIsforward    Direction of next container.
  * ------------------------------------------------------------------------- */
-void Dbacc::nextcontainerinfo(Page8Ptr& pageptr,
-                              Uint32 conptr,
-                              ContainerHeader containerhead,
-                              Uint32& nextConidx,
-                              bool& nextIsforward) const
-{
+void Dbacc::nextcontainerinfo(Page8Ptr &pageptr, Uint32 conptr,
+                              ContainerHeader containerhead, Uint32 &nextConidx,
+                              bool &nextIsforward) const {
   /* THE NEXT CONTAINER IS IN THE SAME PAGE */
   nextConidx = containerhead.getNextIndexNumber();
-  if (containerhead.getNextEnd() == ZLEFT)
-  {
+  if (containerhead.getNextEnd() == ZLEFT) {
     jam();
     nextIsforward = true;
-  }
-  else if (containerhead.getNextEnd() == ZRIGHT)
-  {
+  } else if (containerhead.getNextEnd() == ZRIGHT) {
     jam();
     nextIsforward = false;
-  }
-  else
-  {
+  } else {
     ndbrequire(containerhead.getNextEnd() == ZLEFT ||
                containerhead.getNextEnd() == ZRIGHT);
   }
-  if (!containerhead.isNextOnSamePage())
-  {
+  if (!containerhead.isNextOnSamePage()) {
     jam();
     /* NEXT CONTAINER IS IN AN OVERFLOW PAGE */
     arrGuard(conptr + 1, 2048);
     pageptr.i = pageptr.p->word32[conptr + 1];
     c_page8_pool.getPtr(pageptr);
-  }//if
-}//Dbacc::nextcontainerinfo()
+  }  // if
+}  // Dbacc::nextcontainerinfo()
 
-/* --------------------------------------------------------------------------------- */
-/* PUT_ACTIVE_SCAN_OP                                                                */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::putActiveScanOp() const
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* PUT_ACTIVE_SCAN_OP */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::putActiveScanOp() const {
   OperationrecPtr pasOperationRecPtr;
   pasOperationRecPtr.i = scanPtr.p->scanFirstActiveOp;
   if (pasOperationRecPtr.i != RNIL) {
     jam();
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(pasOperationRecPtr));
     pasOperationRecPtr.p->prevOp = operationRecPtr.i;
-  }//if
+  }  // if
   operationRecPtr.p->nextOp = pasOperationRecPtr.i;
   operationRecPtr.p->prevOp = RNIL;
   scanPtr.p->scanFirstActiveOp = operationRecPtr.i;
-}//Dbacc::putActiveScanOp()
+}  // Dbacc::putActiveScanOp()
 
 /**
  * putOpScanLockQueue
  *
- * Description: Put an operation in the doubly linked 
- * lock list on a scan record. The list is used to 
+ * Description: Put an operation in the doubly linked
+ * lock list on a scan record. The list is used to
  * keep track of which operations belonging
- * to the scan are put in serial lock list of another 
+ * to the scan are put in serial lock list of another
  * operation
  *
  * @note Use takeOutScanLockQueue to remove an operation
  *       from the list
  *
  */
-void Dbacc::putOpScanLockQue() const
-{
+void Dbacc::putOpScanLockQue() const {
   OperationrecPtr pslOperationRecPtr;
   ScanRec theScanRec;
   theScanRec = *scanPtr.p;
@@ -9406,18 +12500,19 @@ void Dbacc::putOpScanLockQue() const
   } else {
     jam();
     scanPtr.p->scanFirstLockedOp = operationRecPtr.i;
-  }//if
+  }  // if
   scanPtr.p->scanLastLockedOp = operationRecPtr.i;
   scanPtr.p->scanLockHeld++;
   scanPtr.p->scanLockCount++;
 
-}//Dbacc::putOpScanLockQue()
+}  // Dbacc::putOpScanLockQue()
 
-/* --------------------------------------------------------------------------------- */
-/* PUT_READY_SCAN_QUEUE                                                              */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::putReadyScanQueue(Uint32 scanRecIndex) const
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* PUT_READY_SCAN_QUEUE */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::putReadyScanQueue(Uint32 scanRecIndex) const {
   OperationrecPtr prsOperationRecPtr;
   ScanRecPtr TscanPtr;
 
@@ -9435,8 +12530,8 @@ void Dbacc::putReadyScanQueue(Uint32 scanRecIndex) const
   } else {
     jam();
     TscanPtr.p->scanFirstQueuedOp = operationRecPtr.i;
-  }//if
-}//Dbacc::putReadyScanQueue()
+  }  // if
+}  // Dbacc::putReadyScanQueue()
 
 /** ---------------------------------------------------------------------------
  * Reset scan bit for all elements within a bucket.
@@ -9447,22 +12542,19 @@ void Dbacc::putReadyScanQueue(Uint32 scanRecIndex) const
  * @param[in]  conidx   Index within page to first container of bucket
  * @param[in]  scanMask Scan bit mask for scan bits that should be cleared
  * ------------------------------------------------------------------------- */
-void Dbacc::releaseScanBucket(Page8Ptr pageptr,
-                              Uint32 conidx,
-                              Uint16 scanMask) const
-{
+void Dbacc::releaseScanBucket(Page8Ptr pageptr, Uint32 conidx,
+                              Uint16 scanMask) const {
   ndbabort(); //ACC scans no longer used
   scanMask |= (~fragrecptr.p->activeScanMask &
                ((1 << 0) - 1));
   bool isforward = true;
- NEXTRELEASESCANLOOP:
+NEXTRELEASESCANLOOP:
   Uint32 conptr = getContainerPtr(conidx, isforward);
   ContainerHeader containerhead(pageptr.p->word32[conptr]);
   Uint32 conlen = containerhead.getLength();
   const Uint16 isScanned = containerhead.getScanBits() & scanMask;
   releaseScanContainer(pageptr, conptr, isforward, conlen, scanMask, isScanned);
-  if (isScanned)
-  {
+  if (isScanned) {
     containerhead.clearScanBits(isScanned);
     pageptr.p->word32[conptr] = Uint32(containerhead);
   }
@@ -9470,8 +12562,8 @@ void Dbacc::releaseScanBucket(Page8Ptr pageptr,
     jam();
     nextcontainerinfo(pageptr, conptr, containerhead, conidx, isforward);
     goto NEXTRELEASESCANLOOP;
-  }//if
-}//Dbacc::releaseScanBucket()
+  }  // if
+}  // Dbacc::releaseScanBucket()
 
 /** --------------------------------------------------------------------------
  * Reset scan bit of the element for each element in a container.
@@ -9484,13 +12576,10 @@ void Dbacc::releaseScanBucket(Page8Ptr pageptr,
  * @param[in]  scanMask   Scan bits that should be cleared if set
  * @param[in]  allScanned All elements should have this bits set (debug)
  * ------------------------------------------------------------------------- */
-void Dbacc::releaseScanContainer(const Page8Ptr pageptr,
-                                 const Uint32 conptr,
-                                 const bool isforward,
-                                 const Uint32 conlen,
+void Dbacc::releaseScanContainer(const Page8Ptr pageptr, const Uint32 conptr,
+                                 const bool isforward, const Uint32 conlen,
                                  const Uint16 scanMask,
-                                 const Uint16 allScanned) const
-{
+                                 const Uint16 allScanned) const {
   OperationrecPtr rscOperPtr;
   Uint32 trscElemStep;
   Uint32 trscElementptr;
@@ -9501,38 +12590,35 @@ void Dbacc::releaseScanContainer(const Page8Ptr pageptr,
     if (conlen != Container::HEADER_SIZE) {
       jam();
       sendSystemerror(__LINE__);
-    }//if
-    return;	/* 2 IS THE MINIMUM SIZE OF THE ELEMENT */
-  }//if
+    }       // if
+    return; /* 2 IS THE MINIMUM SIZE OF THE ELEMENT */
+  }         // if
   trscElemlens = conlen - Container::HEADER_SIZE;
   trscElemlen = fragrecptr.p->elementLength;
-  if (isforward)
-  {
+  if (isforward) {
     jam();
     trscElementptr = conptr + Container::HEADER_SIZE;
     trscElemStep = trscElemlen;
-  }
-  else
-  {
+  } else {
     jam();
     trscElementptr = conptr - trscElemlen;
     trscElemStep = 0 - trscElemlen;
-  }//if
-  if (trscElemlens % trscElemlen != 0)
-  {
+  }  // if
+  if (trscElemlens % trscElemlen != 0) {
     jam();
     sendSystemerror(__LINE__);
-  }//if
-}//Dbacc::releaseScanContainer()
+  }  // if
+}  // Dbacc::releaseScanContainer()
 
-/* --------------------------------------------------------------------------------- */
-/* RELEASE_SCAN_REC                                                                  */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::releaseScanRec()
-{  
-  // Check that all ops this scan has allocated have been 
+/* ---------------------------------------------------------------------------------
+ */
+/* RELEASE_SCAN_REC */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::releaseScanRec() {
+  // Check that all ops this scan has allocated have been
   // released
-  ndbrequire(scanPtr.p->scanOpsAllocated==0);
+  ndbrequire(scanPtr.p->scanOpsAllocated == 0);
 
   // Check that all locks this scan might have acquired
   // have been properly released
@@ -9540,41 +12626,41 @@ void Dbacc::releaseScanRec()
   ndbrequire(scanPtr.p->scanFirstLockedOp == RNIL);
   ndbrequire(scanPtr.p->scanLastLockedOp == RNIL);
 
-  // Check that all active operations have been 
+  // Check that all active operations have been
   // properly released
   ndbrequire(scanPtr.p->scanFirstActiveOp == RNIL);
 
-  // Check that all queued operations have been 
+  // Check that all queued operations have been
   // properly released
   ndbrequire(scanPtr.p->scanFirstQueuedOp == RNIL);
   ndbrequire(scanPtr.p->scanLastQueuedOp == RNIL);
 
   // Put scan record in free list
   scanRec_pool.release(scanPtr);
-  checkPoolShrinkNeed(DBACC_SCAN_RECORD_TRANSIENT_POOL_INDEX,
-                      scanRec_pool);
-}//Dbacc::releaseScanRec()
+  checkPoolShrinkNeed(DBACC_SCAN_RECORD_TRANSIENT_POOL_INDEX, scanRec_pool);
+}  // Dbacc::releaseScanRec()
 
-/* --------------------------------------------------------------------------------- */
-/*  SEARCH_SCAN_CONTAINER                                                            */
-/*       INPUT:           TSSC_CONTAINERLEN                                          */
-/*                        TSSC_CONTAINERPTR                                          */
-/*                        TSSC_ISFORWARD                                             */
-/*                        SSC_PAGEIDPTR                                              */
-/*                        SCAN_PTR                                                   */
-/*       OUTPUT:          TSSC_IS_LOCKED                                             */
+/* ---------------------------------------------------------------------------------
+ */
+/*  SEARCH_SCAN_CONTAINER */
+/*       INPUT:           TSSC_CONTAINERLEN */
+/*                        TSSC_CONTAINERPTR */
+/*                        TSSC_ISFORWARD */
+/*                        SSC_PAGEIDPTR */
+/*                        SCAN_PTR */
+/*       OUTPUT:          TSSC_IS_LOCKED */
 /*                                                                                   */
-/*            DESCRIPTION: SEARCH IN A CONTAINER TO FIND THE NEXT SCAN ELEMENT.      */
-/*                    TO DO THIS THE SCAN BIT OF THE ELEMENT HEADER IS CHECKED. IF   */
-/*                    THIS BIT IS ZERO, IT IS SET TO ONE AND THE ELEMENT IS RETURNED.*/
-/* --------------------------------------------------------------------------------- */
-bool Dbacc::searchScanContainer(Page8Ptr pageptr,
-                                Uint32 conptr,
-                                bool isforward,
-                                Uint32 conlen,
-                                Uint32& elemptr,
-                                Uint32& islocked) const
-{
+/*            DESCRIPTION: SEARCH IN A CONTAINER TO FIND THE NEXT SCAN ELEMENT.
+ */
+/*                    TO DO THIS THE SCAN BIT OF THE ELEMENT HEADER IS CHECKED.
+ * IF   */
+/*                    THIS BIT IS ZERO, IT IS SET TO ONE AND THE ELEMENT IS
+ * RETURNED.*/
+/* ---------------------------------------------------------------------------------
+ */
+bool Dbacc::searchScanContainer(Page8Ptr pageptr, Uint32 conptr, bool isforward,
+                                Uint32 conlen, Uint32 &elemptr,
+                                Uint32 &islocked) const {
   OperationrecPtr operPtr;
   Uint32 elemlens;
   Uint32 elemlen;
@@ -9584,48 +12670,44 @@ bool Dbacc::searchScanContainer(Page8Ptr pageptr,
 
 #ifdef VM_TRACE
   ContainerHeader chead(pageptr.p->word32[conptr]);
-  ndbassert((chead.getScanBits()&scanPtr.p->scanMask)==0);
+  ndbassert((chead.getScanBits() & scanPtr.p->scanMask) == 0);
   ndbassert(chead.isScanInProgress());
   ndbassert(scanPtr.p->isInContainer());
   {
-    Uint32 pagei; Uint32 cptr;
+    Uint32 pagei;
+    Uint32 cptr;
     ndbassert(scanPtr.p->getContainer(pagei, cptr));
-    ndbassert(pageptr.i==pagei);
-    ndbassert(conptr==cptr);
+    ndbassert(pageptr.i == pagei);
+    ndbassert(conptr == cptr);
   }
 #endif
 
   if (conlen < 4) {
     jam();
-    return false;	/* 2 IS THE MINIMUM SIZE OF THE ELEMENT */
-  }//if
+    return false; /* 2 IS THE MINIMUM SIZE OF THE ELEMENT */
+  }               // if
   elemlens = conlen - Container::HEADER_SIZE;
   elemlen = fragrecptr.p->elementLength;
   /* LENGTH OF THE ELEMENT */
-  if (isforward)
-  {
+  if (isforward) {
     jam();
     Telemptr = conptr + Container::HEADER_SIZE;
     elemStep = elemlen;
-  }
-  else
-  {
+  } else {
     jam();
     Telemptr = conptr - elemlen;
     elemStep = 0 - elemlen;
-  }//if
- SCANELEMENTLOOP001:
+  }  // if
+SCANELEMENTLOOP001:
   arrGuard(Telemptr, 2048);
   const Uint32 eh = pageptr.p->word32[Telemptr];
-  bool found=false;
-  if (!scanPtr.p->isScanned(Telemptr))
-  {
-    found=true;
+  bool found = false;
+  if (!scanPtr.p->isScanned(Telemptr)) {
+    found = true;
     scanPtr.p->setScanned(Telemptr);
   }
   Tislocked = ElementHeader::getLocked(eh);
-  if (found)
-  {
+  if (found) {
     elemptr = Telemptr;
     islocked = Tislocked;
     return true;
@@ -9638,15 +12720,16 @@ bool Dbacc::searchScanContainer(Page8Ptr pageptr,
     jam();
     Telemptr = Telemptr + elemStep;
     goto SCANELEMENTLOOP001;
-  }//if
+  }  // if
   return false;
-}//Dbacc::searchScanContainer()
+}  // Dbacc::searchScanContainer()
 
-/* --------------------------------------------------------------------------------- */
-/*  SEND THE RESPONSE NEXT_SCANCONF AND POSSIBLE KEYINFO SIGNALS AS WELL.            */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::sendNextScanConf(Signal* signal)
-{
+/* ---------------------------------------------------------------------------------
+ */
+/*  SEND THE RESPONSE NEXT_SCANCONF AND POSSIBLE KEYINFO SIGNALS AS WELL. */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::sendNextScanConf(Signal *signal) {
   const Local_key localKey = operationRecPtr.p->localdata;
 
   c_tup->prepare_scanTUPKEYREQ(localKey.m_page_no, localKey.m_page_idx);
@@ -9655,10 +12738,10 @@ void Dbacc::sendNextScanConf(Signal* signal)
   const Uint32 opPtrI = operationRecPtr.i;
   const Uint32 fid = operationRecPtr.p->fid;
   /** ---------------------------------------------------------------------
-   * LQH WILL NOT HAVE ANY USE OF THE TUPLE KEY LENGTH IN THIS CASE AND 
-   * SO WE DO NOT PROVIDE IT. IN THIS CASE THESE VALUES ARE UNDEFINED. 
+   * LQH WILL NOT HAVE ANY USE OF THE TUPLE KEY LENGTH IN THIS CASE AND
+   * SO WE DO NOT PROVIDE IT. IN THIS CASE THESE VALUES ARE UNDEFINED.
    * ---------------------------------------------------------------------- */
-  NextScanConf* const conf = (NextScanConf*)signal->getDataPtrSend();
+  NextScanConf *const conf = (NextScanConf *)signal->getDataPtrSend();
   conf->scanPtr = scanUserPtr;
   conf->accOperationPtr = opPtrI;
   conf->fragId = fid;
@@ -9666,7 +12749,7 @@ void Dbacc::sendNextScanConf(Signal* signal)
   conf->localKey[1] = localKey.m_page_idx;
   signal->setLength(NextScanConf::SignalLengthNoGCI);
   c_lqh->exec_next_scan_conf(signal);
-}//Dbacc::sendNextScanConf()
+}  // Dbacc::sendNextScanConf()
 
 /** ---------------------------------------------------------------------------
  * Sets lock on an element.
@@ -9678,25 +12761,27 @@ void Dbacc::sendNextScanConf(Signal* signal)
  * @param[in]  pageptr  Pointer to page holding element.
  * @param[in]  elemptr  Pointer within page to element.
  * ------------------------------------------------------------------------- */
-void Dbacc::setlock(Page8Ptr pageptr, Uint32 elemptr) const
-{
+void Dbacc::setlock(Page8Ptr pageptr, Uint32 elemptr) const {
   Uint32 tselTmp1;
 
   arrGuard(elemptr, 2048);
   tselTmp1 = pageptr.p->word32[elemptr];
-  operationRecPtr.p->reducedHashValue = ElementHeader::getReducedHashValue(tselTmp1);
+  operationRecPtr.p->reducedHashValue =
+      ElementHeader::getReducedHashValue(tselTmp1);
 
   tselTmp1 = ElementHeader::setLocked(operationRecPtr.i);
   pageptr.p->word32[elemptr] = tselTmp1;
-}//Dbacc::setlock()
+}  // Dbacc::setlock()
 
-/* --------------------------------------------------------------------------------- */
-/*  TAKE_OUT_ACTIVE_SCAN_OP                                                          */
-/*         DESCRIPTION: AN ACTIVE SCAN OPERATION IS BELOGED TO AN ACTIVE LIST OF THE */
-/*                      SCAN RECORD. BY THIS SUBRUTIN THE LIST IS UPDATED.           */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::takeOutActiveScanOp() const
-{
+/* ---------------------------------------------------------------------------------
+ */
+/*  TAKE_OUT_ACTIVE_SCAN_OP */
+/*         DESCRIPTION: AN ACTIVE SCAN OPERATION IS BELOGED TO AN ACTIVE LIST OF
+ * THE */
+/*                      SCAN RECORD. BY THIS SUBRUTIN THE LIST IS UPDATED. */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::takeOutActiveScanOp() const {
   OperationrecPtr tasOperationRecPtr;
 
   if (operationRecPtr.p->prevOp != RNIL) {
@@ -9707,27 +12792,26 @@ void Dbacc::takeOutActiveScanOp() const
   } else {
     jam();
     scanPtr.p->scanFirstActiveOp = operationRecPtr.p->nextOp;
-  }//if
+  }  // if
   if (operationRecPtr.p->nextOp != RNIL) {
     jam();
     tasOperationRecPtr.i = operationRecPtr.p->nextOp;
     ndbrequire(m_curr_acc->oprec_pool.getValidPtr(tasOperationRecPtr));
     tasOperationRecPtr.p->prevOp = operationRecPtr.p->prevOp;
-  }//if
-}//Dbacc::takeOutActiveScanOp()
+  }  // if
+}  // Dbacc::takeOutActiveScanOp()
 
 /**
  * takeOutScanLockQueue
  *
- * Description: Take out an operation from the doubly linked 
+ * Description: Take out an operation from the doubly linked
  * lock list on a scan record.
  *
- * @note Use putOpScanLockQue to insert a operation in 
+ * @note Use putOpScanLockQue to insert a operation in
  *       the list
  *
  */
-void Dbacc::takeOutScanLockQueue(Uint32 scanRecIndex) const
-{
+void Dbacc::takeOutScanLockQueue(Uint32 scanRecIndex) const {
   OperationrecPtr tslOperationRecPtr;
   ScanRecPtr TscanPtr;
 
@@ -9742,9 +12826,9 @@ void Dbacc::takeOutScanLockQueue(Uint32 scanRecIndex) const
   } else {
     jam();
     // Check that first are pointing at operation to take out
-    ndbrequire(TscanPtr.p->scanFirstLockedOp==operationRecPtr.i);
+    ndbrequire(TscanPtr.p->scanFirstLockedOp == operationRecPtr.i);
     TscanPtr.p->scanFirstLockedOp = operationRecPtr.p->nextOp;
-  }//if
+  }  // if
   if (operationRecPtr.p->nextOp != RNIL) {
     jam();
     tslOperationRecPtr.i = operationRecPtr.p->nextOp;
@@ -9753,17 +12837,18 @@ void Dbacc::takeOutScanLockQueue(Uint32 scanRecIndex) const
   } else {
     jam();
     // Check that last are pointing at operation to take out
-    ndbrequire(TscanPtr.p->scanLastLockedOp==operationRecPtr.i);
+    ndbrequire(TscanPtr.p->scanLastLockedOp == operationRecPtr.i);
     TscanPtr.p->scanLastLockedOp = operationRecPtr.p->prevOp;
-  }//if
+  }  // if
   TscanPtr.p->scanLockHeld--;
-}//Dbacc::takeOutScanLockQueue()
+}  // Dbacc::takeOutScanLockQueue()
 
-/* --------------------------------------------------------------------------------- */
-/* TAKE_OUT_READY_SCAN_QUEUE                                                         */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::takeOutReadyScanQueue() const
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* TAKE_OUT_READY_SCAN_QUEUE */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::takeOutReadyScanQueue() const {
   OperationrecPtr trsOperationRecPtr;
 
   if (operationRecPtr.p->prevOp != RNIL) {
@@ -9774,7 +12859,7 @@ void Dbacc::takeOutReadyScanQueue() const
   } else {
     jam();
     scanPtr.p->scanFirstQueuedOp = operationRecPtr.p->nextOp;
-  }//if
+  }  // if
   if (operationRecPtr.p->nextOp != RNIL) {
     jam();
     trsOperationRecPtr.i = operationRecPtr.p->nextOp;
@@ -9783,14 +12868,38 @@ void Dbacc::takeOutReadyScanQueue() const
   } else {
     jam();
     scanPtr.p->scanLastQueuedOp = operationRecPtr.p->nextOp;
-  }//if
-}//Dbacc::takeOutReadyScanQueue()
+  }  // if
+}  // Dbacc::takeOutReadyScanQueue()
 
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
-/*                                                                           */
-/*       END OF SCAN MODULE                                                  */
+/*                                                                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+/*       END OF SCAN MODULE                                               
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        */
+/*       END OF SCAN MODULE                                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        */
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    END OF SCAN MODULE 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+*/
 /*                                                                           */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
@@ -9815,15 +12924,17 @@ void Dbacc::getFragPtr(FragmentrecPtr &rootPtr,
   return;
 }
 
-/* --------------------------------------------------------------------------------- */
-/* INIT_OVERPAGE                                                                     */
-/*         INPUT. IOP_PAGEPTR, POINTER TO AN OVERFLOW PAGE RECORD                    */
-/*         DESCRIPTION: CONTAINERS AND FREE LISTS OF THE PAGE, GET INITIALE VALUE    */
-/*         ACCORDING TO LH3 AND PAGE STRUCTOR DESCRIPTION OF NDBACC BLOCK            */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::initOverpage(Page8Ptr iopPageptr)
-{
-  Page32* p32 = reinterpret_cast<Page32*>(iopPageptr.p - (iopPageptr.i % 4));
+/* ---------------------------------------------------------------------------------
+ */
+/* INIT_OVERPAGE */
+/*         INPUT. IOP_PAGEPTR, POINTER TO AN OVERFLOW PAGE RECORD */
+/*         DESCRIPTION: CONTAINERS AND FREE LISTS OF THE PAGE, GET INITIALE
+ * VALUE    */
+/*         ACCORDING TO LH3 AND PAGE STRUCTOR DESCRIPTION OF NDBACC BLOCK */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::initOverpage(Page8Ptr iopPageptr) {
+  Page32 *p32 = reinterpret_cast<Page32 *>(iopPageptr.p - (iopPageptr.i % 4));
   ndbrequire(p32->magic == Page32::MAGIC);
   Uint32 tiopPrevFree;
   Uint32 tiopNextFree;
@@ -9832,180 +12943,217 @@ void Dbacc::initOverpage(Page8Ptr iopPageptr)
   // Setting word32[ALLOC_CONTAINERS] and word32[CHECK_SUM] to zero is essential
   Uint32 nextPage = iopPageptr.p->word32[Page8::NEXT_PAGE];
   Uint32 prevPage = iopPageptr.p->word32[Page8::PREV_PAGE];
-  std::memset(iopPageptr.p->word32 + Page8::P32_WORD_COUNT,
-              0,
-              sizeof(iopPageptr.p->word32) - Page8::P32_WORD_COUNT * sizeof(Uint32));
+  std::memset(
+      iopPageptr.p->word32 + Page8::P32_WORD_COUNT, 0,
+      sizeof(iopPageptr.p->word32) - Page8::P32_WORD_COUNT * sizeof(Uint32));
   iopPageptr.p->word32[Page8::NEXT_PAGE] = nextPage;
   iopPageptr.p->word32[Page8::PREV_PAGE] = prevPage;
 
   iopPageptr.p->word32[Page8::EMPTY_LIST] = (1 << ZPOS_PAGE_TYPE_BIT);
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE PREVIOUS PART OF DOUBLY LINKED LIST FOR LEFT CONTAINERS.         */
-  /* --------------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE PREVIOUS PART OF DOUBLY LINKED LIST FOR LEFT CONTAINERS.
+   */
+  /* ---------------------------------------------------------------------------------
+   */
   Uint32 iopIndex = ZHEAD_SIZE + 1;
   iopPageptr.p->word32[iopIndex] = Container::NO_CONTAINER_INDEX;
-  for (tiopPrevFree = 0; tiopPrevFree <= Container::MAX_CONTAINER_INDEX - 1; tiopPrevFree++) {
+  for (tiopPrevFree = 0; tiopPrevFree <= Container::MAX_CONTAINER_INDEX - 1;
+       tiopPrevFree++) {
     iopIndex = iopIndex + ZBUF_SIZE;
     iopPageptr.p->word32[iopIndex] = tiopPrevFree;
-  }//for
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE NEXT PART OF DOUBLY LINKED LIST FOR LEFT CONTAINERS.             */
-  /* --------------------------------------------------------------------------------- */
+  }  // for
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE NEXT PART OF DOUBLY LINKED LIST FOR LEFT CONTAINERS. */
+  /* ---------------------------------------------------------------------------------
+   */
   iopIndex = ZHEAD_SIZE;
-  for (tiopNextFree = 1; tiopNextFree <= Container::MAX_CONTAINER_INDEX; tiopNextFree++) {
+  for (tiopNextFree = 1; tiopNextFree <= Container::MAX_CONTAINER_INDEX;
+       tiopNextFree++) {
     iopPageptr.p->word32[iopIndex] = tiopNextFree;
     iopIndex = iopIndex + ZBUF_SIZE;
-  }//for
-  iopPageptr.p->word32[iopIndex] = Container::NO_CONTAINER_INDEX;	/* LEFT_LIST IS UPDATED */
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE PREVIOUS PART OF DOUBLY LINKED LIST FOR RIGHT CONTAINERS.        */
-  /* --------------------------------------------------------------------------------- */
+  }  // for
+  iopPageptr.p->word32[iopIndex] =
+      Container::NO_CONTAINER_INDEX; /* LEFT_LIST IS UPDATED */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE PREVIOUS PART OF DOUBLY LINKED LIST FOR RIGHT CONTAINERS.
+   */
+  /* ---------------------------------------------------------------------------------
+   */
   iopIndex = (ZBUF_SIZE + ZHEAD_SIZE) - 1;
   iopPageptr.p->word32[iopIndex] = Container::NO_CONTAINER_INDEX;
-  for (tiopPrevFree = 0; tiopPrevFree <= Container::MAX_CONTAINER_INDEX - 1; tiopPrevFree++) {
+  for (tiopPrevFree = 0; tiopPrevFree <= Container::MAX_CONTAINER_INDEX - 1;
+       tiopPrevFree++) {
     iopIndex = iopIndex + ZBUF_SIZE;
     iopPageptr.p->word32[iopIndex] = tiopPrevFree;
-  }//for
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE NEXT PART OF DOUBLY LINKED LIST FOR RIGHT CONTAINERS.            */
-  /* --------------------------------------------------------------------------------- */
+  }  // for
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE NEXT PART OF DOUBLY LINKED LIST FOR RIGHT CONTAINERS. */
+  /* ---------------------------------------------------------------------------------
+   */
   iopIndex = (ZBUF_SIZE + ZHEAD_SIZE) - 2;
-  for (tiopNextFree = 1; tiopNextFree <= Container::MAX_CONTAINER_INDEX; tiopNextFree++) {
+  for (tiopNextFree = 1; tiopNextFree <= Container::MAX_CONTAINER_INDEX;
+       tiopNextFree++) {
     iopPageptr.p->word32[iopIndex] = tiopNextFree;
     iopIndex = iopIndex + ZBUF_SIZE;
-  }//for
-  iopPageptr.p->word32[iopIndex] = Container::NO_CONTAINER_INDEX;	/* RIGHT_LIST IS UPDATED */
-}//Dbacc::initOverpage()
+  }  // for
+  iopPageptr.p->word32[iopIndex] =
+      Container::NO_CONTAINER_INDEX; /* RIGHT_LIST IS UPDATED */
+}  // Dbacc::initOverpage()
 
-/* --------------------------------------------------------------------------------- */
-/* INIT_PAGE                                                                         */
-/*         INPUT. INP_PAGEPTR, POINTER TO A PAGE RECORD                              */
-/*         DESCRIPTION: CONTAINERS AND FREE LISTS OF THE PAGE, GET INITIALE VALUE    */
-/*         ACCORDING TO LH3 AND PAGE STRUCTOR DISACRIPTION OF NDBACC BLOCK           */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::initPage(Page8Ptr inpPageptr, Uint32 tipPageId)
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* INIT_PAGE */
+/*         INPUT. INP_PAGEPTR, POINTER TO A PAGE RECORD */
+/*         DESCRIPTION: CONTAINERS AND FREE LISTS OF THE PAGE, GET INITIALE
+ * VALUE    */
+/*         ACCORDING TO LH3 AND PAGE STRUCTOR DISACRIPTION OF NDBACC BLOCK */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::initPage(Page8Ptr inpPageptr, Uint32 tipPageId) {
   Uint32 tinpIndex;
   Uint32 tinpTmp;
   Uint32 tinpPrevFree;
   Uint32 tinpNextFree;
 
-  Page32* p32 = reinterpret_cast<Page32*>(inpPageptr.p - (inpPageptr.i % 4));
+  Page32 *p32 = reinterpret_cast<Page32 *>(inpPageptr.p - (inpPageptr.i % 4));
   ndbrequire(p32->magic == Page32::MAGIC);
-  for (Uint32 i = Page8::P32_WORD_COUNT; i <= 2047; i++)
-  {
+  for (Uint32 i = Page8::P32_WORD_COUNT; i <= 2047; i++) {
     // Do not clear page list
     if (i == Page8::NEXT_PAGE) continue;
     if (i == Page8::PREV_PAGE) continue;
 
     inpPageptr.p->word32[i] = 0;
-  }//for
-  /* --------------------------------------------------------------------------------- */
-  /*       SET PAGE ID FOR USE OF CHECKPOINTER.                                        */
-  /*       PREPARE CONTAINER HEADERS INDICATING EMPTY CONTAINERS WITHOUT NEXT.         */
-  /* --------------------------------------------------------------------------------- */
+  }  // for
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       SET PAGE ID FOR USE OF CHECKPOINTER. */
+  /*       PREPARE CONTAINER HEADERS INDICATING EMPTY CONTAINERS WITHOUT NEXT.
+   */
+  /* ---------------------------------------------------------------------------------
+   */
   inpPageptr.p->word32[Page8::PAGE_ID] = tipPageId;
   ContainerHeader tinpTmp1;
   tinpTmp1.initInUse();
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE ZNO_CONTAINERS PREDEFINED HEADERS ON LEFT SIZE.                  */
-  /* --------------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE ZNO_CONTAINERS PREDEFINED HEADERS ON LEFT SIZE. */
+  /* ---------------------------------------------------------------------------------
+   */
   tinpIndex = ZHEAD_SIZE;
   for (tinpTmp = 0; tinpTmp <= ZNO_CONTAINERS - 1; tinpTmp++) {
     inpPageptr.p->word32[tinpIndex] = tinpTmp1;
     tinpIndex = tinpIndex + ZBUF_SIZE;
-  }//for
+  }  // for
   /* WORD32(Page8::EMPTY_LIST) DATA STRUCTURE:*/
   /*--------------------------------------- */
   /*| PAGE TYPE|LEFT FREE|RIGHT FREE        */
   /*|     1    |  LIST   |  LIST            */
   /*|    BIT   | 7 BITS  | 7 BITS           */
   /*--------------------------------------- */
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE FIRST POINTER TO DOUBLY LINKED LIST OF FREE CONTAINERS.          */
-  /*       INITIALISE LEFT FREE LIST TO 64 AND RIGHT FREE LIST TO ZERO.                */
-  /*       ALSO INITIALISE PAGE TYPE TO NOT OVERFLOW PAGE.                             */
-  /* --------------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE FIRST POINTER TO DOUBLY LINKED LIST OF FREE CONTAINERS. */
+  /*       INITIALISE LEFT FREE LIST TO 64 AND RIGHT FREE LIST TO ZERO. */
+  /*       ALSO INITIALISE PAGE TYPE TO NOT OVERFLOW PAGE. */
+  /* ---------------------------------------------------------------------------------
+   */
   tinpTmp = (ZNO_CONTAINERS << 7);
   inpPageptr.p->word32[Page8::EMPTY_LIST] = tinpTmp;
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE PREVIOUS PART OF DOUBLY LINKED LIST FOR RIGHT CONTAINERS.        */
-  /* --------------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE PREVIOUS PART OF DOUBLY LINKED LIST FOR RIGHT CONTAINERS.
+   */
+  /* ---------------------------------------------------------------------------------
+   */
   tinpIndex = (ZHEAD_SIZE + ZBUF_SIZE) - 1;
   inpPageptr.p->word32[tinpIndex] = Container::NO_CONTAINER_INDEX;
-  for (tinpPrevFree = 0; tinpPrevFree <= Container::MAX_CONTAINER_INDEX - 1; tinpPrevFree++) {
+  for (tinpPrevFree = 0; tinpPrevFree <= Container::MAX_CONTAINER_INDEX - 1;
+       tinpPrevFree++) {
     tinpIndex = tinpIndex + ZBUF_SIZE;
     inpPageptr.p->word32[tinpIndex] = tinpPrevFree;
-  }//for
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE NEXT PART OF DOUBLY LINKED LIST FOR RIGHT CONTAINERS.            */
-  /* --------------------------------------------------------------------------------- */
+  }  // for
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE NEXT PART OF DOUBLY LINKED LIST FOR RIGHT CONTAINERS. */
+  /* ---------------------------------------------------------------------------------
+   */
   tinpIndex = (ZHEAD_SIZE + ZBUF_SIZE) - 2;
-  for (tinpNextFree = 1; tinpNextFree <= Container::MAX_CONTAINER_INDEX; tinpNextFree++) {
+  for (tinpNextFree = 1; tinpNextFree <= Container::MAX_CONTAINER_INDEX;
+       tinpNextFree++) {
     inpPageptr.p->word32[tinpIndex] = tinpNextFree;
     tinpIndex = tinpIndex + ZBUF_SIZE;
-  }//for
+  }  // for
   inpPageptr.p->word32[tinpIndex] = Container::NO_CONTAINER_INDEX;
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE PREVIOUS PART OF DOUBLY LINKED LIST FOR LEFT CONTAINERS.         */
-  /*       THE FIRST ZNO_CONTAINERS ARE NOT PUT INTO FREE LIST SINCE THEY ARE          */
-  /*       PREDEFINED AS OCCUPIED.                                                     */
-  /* --------------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE PREVIOUS PART OF DOUBLY LINKED LIST FOR LEFT CONTAINERS.
+   */
+  /*       THE FIRST ZNO_CONTAINERS ARE NOT PUT INTO FREE LIST SINCE THEY ARE */
+  /*       PREDEFINED AS OCCUPIED. */
+  /* ---------------------------------------------------------------------------------
+   */
   tinpIndex = (ZNO_CONTAINERS * ZBUF_SIZE) + ZHEAD_SIZE;
-  for (tinpNextFree = ZNO_CONTAINERS + 1; tinpNextFree <= Container::MAX_CONTAINER_INDEX; tinpNextFree++) {
+  for (tinpNextFree = ZNO_CONTAINERS + 1;
+       tinpNextFree <= Container::MAX_CONTAINER_INDEX; tinpNextFree++) {
     inpPageptr.p->word32[tinpIndex] = tinpNextFree;
     tinpIndex = tinpIndex + ZBUF_SIZE;
-  }//for
+  }  // for
   inpPageptr.p->word32[tinpIndex] = Container::NO_CONTAINER_INDEX;
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE NEXT PART OF DOUBLY LINKED LIST FOR LEFT CONTAINERS.             */
-  /*       THE FIRST ZNO_CONTAINERS ARE NOT PUT INTO FREE LIST SINCE THEY ARE          */
-  /*       PREDEFINED AS OCCUPIED.                                                     */
-  /* --------------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE NEXT PART OF DOUBLY LINKED LIST FOR LEFT CONTAINERS. */
+  /*       THE FIRST ZNO_CONTAINERS ARE NOT PUT INTO FREE LIST SINCE THEY ARE */
+  /*       PREDEFINED AS OCCUPIED. */
+  /* ---------------------------------------------------------------------------------
+   */
   tinpIndex = ((ZNO_CONTAINERS * ZBUF_SIZE) + ZHEAD_SIZE) + 1;
   inpPageptr.p->word32[tinpIndex] = Container::NO_CONTAINER_INDEX;
-  for (tinpPrevFree = ZNO_CONTAINERS; tinpPrevFree <= Container::MAX_CONTAINER_INDEX - 1; tinpPrevFree++) {
+  for (tinpPrevFree = ZNO_CONTAINERS;
+       tinpPrevFree <= Container::MAX_CONTAINER_INDEX - 1; tinpPrevFree++) {
     tinpIndex = tinpIndex + ZBUF_SIZE;
     inpPageptr.p->word32[tinpIndex] = tinpPrevFree;
-  }//for
-  /* --------------------------------------------------------------------------------- */
-  /*       INITIALISE HEADER POSITIONS NOT CURRENTLY USED AND ENSURE USE OF OVERFLOW   */
-  /*       RECORD POINTER ON THIS PAGE LEADS TO ERROR.                                 */
-  /* --------------------------------------------------------------------------------- */
+  }  // for
+  /* ---------------------------------------------------------------------------------
+   */
+  /*       INITIALISE HEADER POSITIONS NOT CURRENTLY USED AND ENSURE USE OF
+   * OVERFLOW   */
+  /*       RECORD POINTER ON THIS PAGE LEADS TO ERROR. */
+  /* ---------------------------------------------------------------------------------
+   */
   inpPageptr.p->word32[Page8::CHECKSUM] = 0;
   inpPageptr.p->word32[Page8::ALLOC_CONTAINERS] = 0;
-}//Dbacc::initPage()
+}  // Dbacc::initPage()
 
-/* --------------------------------------------------------------------------------- */
-/* RELEASE OP RECORD                                                                 */
-/*         PUT A FREE OPERATION IN A FREE LIST OF THE OPERATIONS                     */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::releaseOpRec()
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* RELEASE OP RECORD */
+/*         PUT A FREE OPERATION IN A FREE LIST OF THE OPERATIONS */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::releaseOpRec() {
   /**
    * Need to interact with LDM owning blocks here if SCANs will be able
    * to use locked reads in query threads.
    */
   ndbrequire(operationRecPtr.p->m_op_bits == Operationrec::OP_INITIAL);
-  if (operationRecPtr.p->m_reserved == 0)
-  {
+  if (operationRecPtr.p->m_reserved == 0) {
     c_lqh->lock_alloc_operation();
     oprec_pool.release(operationRecPtr);
     c_lqh->unlock_alloc_operation();
     checkPoolShrinkNeed(DBACC_OPERATION_RECORD_TRANSIENT_POOL_INDEX,
                         oprec_pool);
-  }
-  else
-  {
+  } else {
     operationRecPtr.p = new (operationRecPtr.p) Operationrec;
     m_reserved_copy_frag_lock.addFirst(operationRecPtr);
   }
 }
 
-void Dbacc::releaseFreeOpRec()
-{
-  if (cfreeopRec != RNIL)
-  {
+void Dbacc::releaseFreeOpRec() {
+  if (cfreeopRec != RNIL) {
     OperationrecPtr opPtr;
     opPtr.i = cfreeopRec;
     cfreeopRec = RNIL;
@@ -10019,11 +13167,12 @@ void Dbacc::releaseFreeOpRec()
   }
 }
 
-/* --------------------------------------------------------------------------------- */
-/* RELEASE_OVERPAGE                                                                  */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::releaseOverpage(Page8Ptr ropPageptr)
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* RELEASE_OVERPAGE */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::releaseOverpage(Page8Ptr ropPageptr) {
   jam();
   {
     LocalContainerPageList sparselist(c_page8_pool, fragrecptr.p->sparsepages);
@@ -10031,32 +13180,26 @@ void Dbacc::releaseOverpage(Page8Ptr ropPageptr)
   }
   jam();
   releasePage_lock(ropPageptr);
-}//Dbacc::releaseOverpage()
-
+}  // Dbacc::releaseOverpage()
 
 /* ------------------------------------------------------------------------- */
 /* RELEASE_PAGE                                                              */
 /* ------------------------------------------------------------------------- */
-void Dbacc::releasePage_lock(Page8Ptr rpPageptr)
-{
+void Dbacc::releasePage_lock(Page8Ptr rpPageptr) {
   Dblqh *lqh_block;
   Dbacc *acc_block;
   bool lock_flag = get_lock_information(&acc_block, &lqh_block);
-  if (lock_flag)
-  {
+  if (lock_flag) {
     NdbMutex_Lock(lqh_block->m_lock_acc_page_mutex);
   }
   acc_block->releasePage(rpPageptr, fragrecptr, jamBuffer());
-  if (lock_flag)
-  {
+  if (lock_flag) {
     NdbMutex_Unlock(lqh_block->m_lock_acc_page_mutex);
   }
 }
 
-void Dbacc::releasePage(Page8Ptr rpPageptr,
-                        FragmentrecPtr fragPtr,
-                        EmulatedJamBuffer *jamBuf)
-{
+void Dbacc::releasePage(Page8Ptr rpPageptr, FragmentrecPtr fragPtr,
+                        EmulatedJamBuffer *jamBuf) {
   thrjam(jamBuf);
   ndbrequire(!m_is_in_query_thread);
   pages.releasePage8(c_page_pool, rpPageptr);
@@ -10065,36 +13208,30 @@ void Dbacc::releasePage(Page8Ptr rpPageptr,
 
   Page32Ptr page32ptr;
   pages.dropLastPage32(c_page_pool, page32ptr, 5);
-  if (page32ptr.i != RNIL)
-  {
+  if (page32ptr.i != RNIL) {
     g_acc_pages_used[instance()]--;
     ndbassert(cpageCount >= 4);
-    cpageCount -= 4; // 8KiB pages per 32KiB page
+    cpageCount -= 4;  // 8KiB pages per 32KiB page
     m_ctx.m_mm.release_page(RT_DBACC_PAGE, page32ptr.i);
   }
 
-  ndbassert(pages.getCount() ==
-            cfreepages.getCount() + cnoOfAllocatedPages);
+  ndbassert(pages.getCount() == cfreepages.getCount() + cnoOfAllocatedPages);
   ndbassert(pages.getCount() <= cpageCount);
-}//Dbacc::releasePage()
+}  // Dbacc::releasePage()
 
 #if 0
-bool Dbacc::validatePageCount() const
-{
+bool Dbacc::validatePageCount() const {
   jam();
   FragmentrecPtr regFragPtr;
   Uint32 pageCount = 0;
-  for (regFragPtr.i = 0; regFragPtr.i < cfragmentsize; regFragPtr.i++)
-  {
+  for (regFragPtr.i = 0; regFragPtr.i < cfragmentsize; regFragPtr.i++) {
     ptrAss(regFragPtr, fragmentrec);
     pageCount += regFragPtr.p->m_noOfAllocatedPages;
   }
-  return pageCount==cnoOfAllocatedPages;
-}//Dbacc::validatePageCount()
+  return pageCount == cnoOfAllocatedPages;
+}  // Dbacc::validatePageCount()
 #endif
-
-Uint64 Dbacc::getLinHashByteSize(Uint64 fragPtrI) const
-{
+Uint64 Dbacc::getLinHashByteSize(Uint64 fragPtrI) const {
   jam();
   //ndbassert(validatePageCount());
   FragmentrecPtr fragPtr;
@@ -10107,8 +13244,7 @@ Uint64 Dbacc::getLinHashByteSize(Uint64 fragPtrI) const
 /* ------------------------------------------------------------------------- */
 /* SEIZE    FRAGREC                                                          */
 /* ------------------------------------------------------------------------- */
-bool Dbacc::seizeFragrec()
-{
+bool Dbacc::seizeFragrec() {
   bool succ = c_fragment_pool.seize(fragrecptr);
   if (succ)
   {
@@ -10116,41 +13252,35 @@ bool Dbacc::seizeFragrec()
     fragrecptr.p = new (fragrecptr.p) Fragmentrec();
   }
   return succ;
-}//Dbacc::seizeFragrec()
+}  // Dbacc::seizeFragrec()
 
-/** 
+/**
  * A ZPAGESIZE_ERROR has occurred, out of index pages
  * Print some debug info if debug compiled
  */
-void Dbacc::zpagesize_error(const char* where){
+void Dbacc::zpagesize_error(const char *where) {
   ACC_DEBUG(where << endl
-	<< "  ZPAGESIZE_ERROR" << endl
-        << "  cfreepages.getCount()=" << cfreepages.getCount() << endl
-	<< "  cnoOfAllocatedPages="<<cnoOfAllocatedPages);
+                  << "  ZPAGESIZE_ERROR" << endl
+                  << "  cfreepages.getCount()=" << cfreepages.getCount() << endl
+                  << "  cnoOfAllocatedPages=" << cnoOfAllocatedPages);
 }
-
 
 /* ------------------------------------------------------------------------- */
 /* SEIZE_PAGE                                                                */
 /* ------------------------------------------------------------------------- */
-Uint32 Dbacc::seizePage(Page8Ptr& spPageptr,
-                        int sub_page_id,
-                        bool allow_use_of_emergency_pages,
-                        bool use_spare,
+Uint32 Dbacc::seizePage(Page8Ptr &spPageptr, int sub_page_id,
+                        bool allow_use_of_emergency_pages, bool use_spare,
                         FragmentrecPtr fragPtr,
-                        EmulatedJamBuffer *jamBuf)
-{
+                        EmulatedJamBuffer *jamBuf) {
   thrjam(jamBuf);
   pages.seizePage8(c_page_pool, spPageptr, sub_page_id);
-  if (spPageptr.i == RNIL)
-  {
+  if (spPageptr.i == RNIL) {
     thrjam(jamBuf);
     /**
      * Need to allocate a new 32KiB page
      */
     Page32Ptr ptr;
-    void * p = m_ctx.m_mm.alloc_page(RT_DBACC_PAGE,
-                                     &ptr.i,
+    void *p = m_ctx.m_mm.alloc_page(RT_DBACC_PAGE, &ptr.i,
                                      Ndbd_mem_manager::NDB_ZONE_LE_30,
                                      use_spare);
     if (p == NULL && allow_use_of_emergency_pages)
@@ -10162,8 +13292,7 @@ Uint32 Dbacc::seizePage(Page8Ptr& spPageptr,
                                           false,
                                           FORCE_RESERVED);
     }
-    if (p == NULL)
-    {
+    if (p == NULL) {
       thrjam(jamBuf);
       zpagesize_error("Dbacc::seizePage");
       g_eventLogger->error("Global memory manager is out of memory completely,"
@@ -10171,10 +13300,10 @@ Uint32 Dbacc::seizePage(Page8Ptr& spPageptr,
                           " memory in reserved memory that we can steal either.");
       return Uint32(ZPAGESIZE_ERROR);
     }
-    ptr.p = static_cast<Page32*>(p);
+    ptr.p = static_cast<Page32 *>(p);
 
     g_acc_pages_used[instance()]++;
-    cpageCount += 4; // 8KiB pages per 32KiB page
+    cpageCount += 4;  // 8KiB pages per 32KiB page
     pages.addPage32(c_page_pool, ptr);
     pages.seizePage8(c_page_pool, spPageptr, sub_page_id);
     ndbrequire(spPageptr.i != RNIL);
@@ -10186,400 +13315,380 @@ Uint32 Dbacc::seizePage(Page8Ptr& spPageptr,
   ndbassert(pages.getCount() <= cpageCount);
   fragPtr.p->m_noOfAllocatedPages++;
 
-  if (cnoOfAllocatedPages > cnoOfAllocatedPagesMax)
-  {
+  if (cnoOfAllocatedPages > cnoOfAllocatedPagesMax) {
     cnoOfAllocatedPagesMax = cnoOfAllocatedPages;
   }
   return Uint32(0);
-}//Dbacc::seizePage()
+}  // Dbacc::seizePage()
 
-/* --------------------------------------------------------------------------------- */
-/* SEND_SYSTEMERROR                                                                  */
-/* --------------------------------------------------------------------------------- */
-void Dbacc::sendSystemerror(int line)const
-{
+/* ---------------------------------------------------------------------------------
+ */
+/* SEND_SYSTEMERROR */
+/* ---------------------------------------------------------------------------------
+ */
+void Dbacc::sendSystemerror(int line) const {
   progError(line, NDBD_EXIT_PRGERR);
-}//Dbacc::sendSystemerror()
+}  // Dbacc::sendSystemerror()
 
-void Dbacc::execDBINFO_SCANREQ(Signal *signal)
-{
+void Dbacc::execDBINFO_SCANREQ(Signal *signal) {
   jamEntry();
-  DbinfoScanReq req= *(DbinfoScanReq*)signal->theData;
-  const Ndbinfo::ScanCursor* cursor =
-    CAST_CONSTPTR(Ndbinfo::ScanCursor, DbinfoScan::getCursorPtr(&req));
+  DbinfoScanReq req = *(DbinfoScanReq *)signal->theData;
+  const Ndbinfo::ScanCursor *cursor =
+      CAST_CONSTPTR(Ndbinfo::ScanCursor, DbinfoScan::getCursorPtr(&req));
 
   Ndbinfo::Ratelimit rl;
 
-  switch(req.tableId){
-  case Ndbinfo::POOLS_TABLEID:
-  {
-    jam();
-    const DynArr256Pool::Info pmpInfo = directoryPool.getInfo();
-
-    Ndbinfo::pool_entry pools[] =
-    {
-      { "ACC Operation Record",
-        oprec_pool.getUsed(),
-        oprec_pool.getSize(),
-        oprec_pool.getEntrySize(),
-        oprec_pool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBACC_OPERATION},
-      { "ACC Scan Record",
-        scanRec_pool.getUsed(),
-        scanRec_pool.getSize(),
-        scanRec_pool.getEntrySize(),
-        scanRec_pool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBACC_SCAN},
-      { "Index memory",
-        cnoOfAllocatedPages,
-        cpageCount,
-        sizeof(Page8),
-        cnoOfAllocatedPagesMax,
-        { CFG_DB_INDEX_MEM,0,0,0 },
-        RG_DATAMEM},
-      { "L2PMap pages",
-        pmpInfo.pg_count,
-        0,                  /* No real limit */
-        pmpInfo.pg_byte_sz,
-        /*
-          No HWM for this row as it would be a fixed fraction of "Data memory"
-          and therefore of limited interest.
-        */
-        0,
-        { 0, 0, 0},
-        RG_DATAMEM},
-      { "L2PMap nodes",
-        pmpInfo.inuse_nodes,
-        pmpInfo.pg_count * pmpInfo.nodes_per_page, // Max within current pages.
-        pmpInfo.node_byte_sz,
-        /*
-          No HWM for this row as it would be a fixed fraction of "Data memory"
-          and therefore of limited interest.
-        */
-        0,
-        { 0, 0, 0 },
-        RT_DBACC_DIRECTORY},
-      { NULL, 0,0,0,0,{ 0,0,0,0 }, 0}
-    };
-
-    static const size_t num_config_params =
-      sizeof(pools[0].config_params)/sizeof(pools[0].config_params[0]);
-    const Uint32 numPools = NDB_ARRAY_SIZE(pools);
-    Uint32 pool = cursor->data[0];
-    ndbrequire(pool < numPools);
-    BlockNumber bn = blockToMain(number());
-    while(pools[pool].poolname)
-    {
+  switch (req.tableId) {
+    case Ndbinfo::POOLS_TABLEID: {
       jam();
-      Ndbinfo::Row row(signal, req);
-      row.write_uint32(getOwnNodeId());
-      row.write_uint32(bn);           // block number
-      row.write_uint32(instance());   // block instance
-      row.write_string(pools[pool].poolname);
+      const DynArr256Pool::Info pmpInfo = directoryPool.getInfo();
 
-      row.write_uint64(pools[pool].used);
-      row.write_uint64(pools[pool].total);
-      row.write_uint64(pools[pool].used_hi);
-      row.write_uint64(pools[pool].entry_size);
-      for (size_t i = 0; i < num_config_params; i++)
-        row.write_uint32(pools[pool].config_params[i]);
-      row.write_uint32(GET_RG(pools[pool].record_type));
-      row.write_uint32(GET_TID(pools[pool].record_type));
-      ndbinfo_send_row(signal, req, row, rl);
-      pool++;
-      if (rl.need_break(req))
-      {
+      Ndbinfo::pool_entry pools[] = {
+          {"ACC Operation Record",
+           oprec_pool.getUsed(),
+           oprec_pool.getSize(),
+           oprec_pool.getEntrySize(),
+           oprec_pool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBACC_OPERATION},
+          {"ACC Scan Record",
+           scanRec_pool.getUsed(),
+           scanRec_pool.getSize(),
+           scanRec_pool.getEntrySize(),
+           scanRec_pool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBACC_SCAN},
+          {"Index memory",
+           cnoOfAllocatedPages,
+           cpageCount,
+           sizeof(Page8),
+           cnoOfAllocatedPagesMax,
+           {CFG_DB_INDEX_MEM, 0, 0, 0},
+           RG_DATAMEM},
+          {"L2PMap pages",
+           pmpInfo.pg_count,
+           0, /* No real limit */
+           pmpInfo.pg_byte_sz,
+           /*
+             No HWM for this row as it would be a fixed fraction of "Data
+             memory" and therefore of limited interest.
+           */
+           0,
+           {0, 0, 0},
+           RG_DATAMEM},
+          {"L2PMap nodes",
+           pmpInfo.inuse_nodes,
+           pmpInfo.pg_count *
+               pmpInfo.nodes_per_page,  // Max within current pages.
+           pmpInfo.node_byte_sz,
+           /*
+             No HWM for this row as it would be a fixed fraction of "Data
+             memory" and therefore of limited interest.
+           */
+           0,
+           {0, 0, 0},
+           RT_DBACC_DIRECTORY},
+          {NULL, 0, 0, 0, 0, {0, 0, 0, 0}, 0}};
+
+      static const size_t num_config_params =
+          sizeof(pools[0].config_params) / sizeof(pools[0].config_params[0]);
+      const Uint32 numPools = NDB_ARRAY_SIZE(pools);
+      Uint32 pool = cursor->data[0];
+      ndbrequire(pool < numPools);
+      BlockNumber bn = blockToMain(number());
+      while (pools[pool].poolname) {
         jam();
-        ndbinfo_send_scan_break(signal, req, rl, pool);
-        return;
+        Ndbinfo::Row row(signal, req);
+        row.write_uint32(getOwnNodeId());
+        row.write_uint32(bn);          // block number
+        row.write_uint32(instance());  // block instance
+        row.write_string(pools[pool].poolname);
+
+        row.write_uint64(pools[pool].used);
+        row.write_uint64(pools[pool].total);
+        row.write_uint64(pools[pool].used_hi);
+        row.write_uint64(pools[pool].entry_size);
+        for (size_t i = 0; i < num_config_params; i++)
+          row.write_uint32(pools[pool].config_params[i]);
+        row.write_uint32(GET_RG(pools[pool].record_type));
+        row.write_uint32(GET_TID(pools[pool].record_type));
+        ndbinfo_send_row(signal, req, row, rl);
+        pool++;
+        if (rl.need_break(req)) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, pool);
+          return;
+        }
       }
+      break;
     }
-    break;
-  }
-  case Ndbinfo::FRAG_LOCKS_TABLEID:
-  {
-    Uint32 tableid = cursor->data[0];
-    
-    for (;tableid < ctablesize; tableid++)
-    {
-      TabrecPtr tabPtr;
-      tabPtr.i = tableid;
-      ptrAss(tabPtr, tabrec);
+    case Ndbinfo::FRAG_LOCKS_TABLEID: {
+      Uint32 tableid = cursor->data[0];
+
+      for (; tableid < ctablesize; tableid++) {
+        TabrecPtr tabPtr;
+        tabPtr.i = tableid;
+        ptrAss(tabPtr, tabrec);
       Uint32 f = 0;
       Uint32 fragId = c_lqh->getNextAccFragid(tabPtr.i, f);
-      if (fragId != RNIL)
-      {
-        jam();
-        // Loop over all fragments for this table.
-        for (; f < MAX_FRAG_PER_LQH; f++)
-        {
+      if (fragId != RNIL) {
+          jam();
+          // Loop over all fragments for this table.
+          for (; f < MAX_FRAG_PER_LQH; f++) {
           FragmentrecPtr frp;
           frp.i = c_lqh->getNextAccFragrec(tabPtr.i, f);
-          if (frp.i != RNIL64)
-          {
-            jam();
+          if (frp.i != RNIL64) {
+              jam();
             ndbrequire(c_fragment_pool.getPtr(frp));
             
             const Fragmentrec::LockStats& ls = frp.p->m_lockStats;
             Uint32 f_save = f;
+
             Uint32 fragId = c_lqh->getNextAccFragid(tabPtr.i, f);
-            ndbrequire(f == f_save);
-            
-            Ndbinfo::Row row(signal, req);
-            row.write_uint32(getOwnNodeId());
-            row.write_uint32(instance());
-            row.write_uint32(tableid);
-            row.write_uint32(fragId);
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Fragmentrec::LockStats&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragmentrec::LockStats
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ls
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&ls
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ndbrequire(f == f_save);
 
-            row.write_uint64(ls.m_ex_req_count);
-            row.write_uint64(ls.m_ex_imm_ok_count);
-            row.write_uint64(ls.m_ex_wait_ok_count);
-            row.write_uint64(ls.m_ex_wait_fail_count);
-            
-            row.write_uint64(ls.m_sh_req_count);
-            row.write_uint64(ls.m_sh_imm_ok_count);
-            row.write_uint64(ls.m_sh_wait_ok_count);
-            row.write_uint64(ls.m_sh_wait_fail_count);
+              Ndbinfo::Row row(signal, req);
+              row.write_uint32(getOwnNodeId());
+              row.write_uint32(instance());
+              row.write_uint32(tableid);
+              row.write_uint32(fragId);
 
-            row.write_uint64(ls.m_wait_ok_millis);
-            row.write_uint64(ls.m_wait_fail_millis);
+              row.write_uint64(ls.m_ex_req_count);
+              row.write_uint64(ls.m_ex_imm_ok_count);
+              row.write_uint64(ls.m_ex_wait_ok_count);
+              row.write_uint64(ls.m_ex_wait_fail_count);
 
-            ndbinfo_send_row(signal, req, row, rl);
+              row.write_uint64(ls.m_sh_req_count);
+              row.write_uint64(ls.m_sh_imm_ok_count);
+              row.write_uint64(ls.m_sh_wait_ok_count);
+              row.write_uint64(ls.m_sh_wait_fail_count);
+
+              row.write_uint64(ls.m_wait_ok_millis);
+              row.write_uint64(ls.m_wait_fail_millis);
+
+              ndbinfo_send_row(signal, req, row, rl);
+            }
           }
         }
-      }
 
-      /*
-        If a break is needed, break on a table boundary, 
-        as we use the table id as a cursor.
-      */
-      if (rl.need_break(req))
-      {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, tableid + 1);
-        return;
+        /*
+          If a break is needed, break on a table boundary,
+          as we use the table id as a cursor.
+        */
+        if (rl.need_break(req)) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, tableid + 1);
+          return;
+        }
       }
+      break;
     }
-    break;
-  }
-  case Ndbinfo::ACC_OPERATIONS_TABLEID:
-  {
-    jam();
-    /* Take a break periodically when scanning records */
-    Uint32 maxToCheck = 100;
-    NDB_TICKS now = getHighResTimer();
-    OperationrecPtr opRecPtr;
-    Uint32 i = cursor->data[0];
-    do
-    {
-      if (rl.need_break(req) || maxToCheck == 0)
-      {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, i);
-        return;
-      }
+    case Ndbinfo::ACC_OPERATIONS_TABLEID: {
+      jam();
+      /* Take a break periodically when scanning records */
+      Uint32 maxToCheck = 100;
+      NDB_TICKS now = getHighResTimer();
+      OperationrecPtr opRecPtr;
+      Uint32 i = cursor->data[0];
+      do {
+        if (rl.need_break(req) || maxToCheck == 0) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, i);
+          return;
+        }
       NdbMutex_Lock(&c_lqh->alloc_operation_mutex);
       bool found = getNextOpRec(i, opRecPtr, 10);
-      /**
-       * ACC holds lock requests/operations in a 2D queue 
-       * structure.
-       * The lock owning operation is directly linked from the
-       * PK hash element.  Only one operation is the 'owner'
-       * at any one time.
-       * 
-       * The lock owning operation may have other operations
-       * concurrently holding the lock, for example other
-       * operations in the same transaction, or, for shared
-       * reads, in other transactions.
-       * These operations are in the 'parallel' queue of the
-       * lock owning operation, linked from its 
-       * nextParallelQue member.
-       *
-       * Non-compatible lock requests must wait until some/
-       * all of the current lock holder(s) have released the
-       * lock before they can run.  They are held in the
-       * 'serial' queue, lined from the lockOwner's 
-       * nextSerialQue member.
-       * 
-       * Note also : Only one operation per row can 'run' 
-       * in LDM at any one time, but this serialisation 
-       * is not considered as locking overhead.
-       *
-       * Note also : These queue members are part of overlays
-       * and are not always guaranteed to be valid, m_op_bits
-       * often must be consulted too.
-       */
-      if (found &&
-          opRecPtr.p->m_op_bits != Operationrec::OP_INITIAL)
-      {
-        jam();
+        /**
+         * ACC holds lock requests/operations in a 2D queue
+         * structure.
+         * The lock owning operation is directly linked from the
+         * PK hash element.  Only one operation is the 'owner'
+         * at any one time.
+         *
+         * The lock owning operation may have other operations
+         * concurrently holding the lock, for example other
+         * operations in the same transaction, or, for shared
+         * reads, in other transactions.
+         * These operations are in the 'parallel' queue of the
+         * lock owning operation, linked from its
+         * nextParallelQue member.
+         *
+         * Non-compatible lock requests must wait until some/
+         * all of the current lock holder(s) have released the
+         * lock before they can run.  They are held in the
+         * 'serial' queue, lined from the lockOwner's
+         * nextSerialQue member.
+         *
+         * Note also : Only one operation per row can 'run'
+         * in LDM at any one time, but this serialisation
+         * is not considered as locking overhead.
+         *
+         * Note also : These queue members are part of overlays
+         * and are not always guaranteed to be valid, m_op_bits
+         * often must be consulted too.
+         */
+        if (found && opRecPtr.p->m_op_bits != Operationrec::OP_INITIAL) {
+          jam();
 
-        FragmentrecPtr fp;
-        fp.i = opRecPtr.p->fragptr;
+          FragmentrecPtr fp;
+          fp.i = opRecPtr.p->fragptr;
         ndbrequire(c_fragment_pool.getPtr(fp));
 
-        const Uint32 tableId = fp.p->myTableId;
-        const Uint32 fragId = fp.p->myfid;
-        const Uint64 rowId = 
-          Uint64(opRecPtr.p->localdata.m_page_no) << 32 |
-          Uint64(opRecPtr.p->localdata.m_page_idx);
-        /* Send as separate attrs, as in cluster_operations */
-        const Uint32 transId0 = opRecPtr.p->transId1;
-        const Uint32 transId1 = opRecPtr.p->transId2;
-        const Uint32 prevSerialQue = opRecPtr.p->prevSerialQue;
-        const Uint32 nextSerialQue = opRecPtr.p->nextSerialQue;
-        const Uint32 prevParallelQue = opRecPtr.p->prevParallelQue;
-        const Uint32 nextParallelQue = opRecPtr.p->nextParallelQue;
-        const Uint32 flags = opRecPtr.p->m_op_bits;
-        /* Ignore Uint32 overflow at ~ 50 days */
-        const Uint32 durationMillis = 
-          (Uint32) NdbTick_Elapsed(opRecPtr.p->m_lockTime,
-                                   now).milliSec();
-        const Uint32 userPtr = opRecPtr.p->userptr;
+          const Uint32 tableId = fp.p->myTableId;
+          const Uint32 fragId = fp.p->myfid;
+          const Uint64 rowId = Uint64(opRecPtr.p->localdata.m_page_no) << 32 |
+                               Uint64(opRecPtr.p->localdata.m_page_idx);
+          /* Send as separate attrs, as in cluster_operations */
+          const Uint32 transId0 = opRecPtr.p->transId1;
+          const Uint32 transId1 = opRecPtr.p->transId2;
+          const Uint32 prevSerialQue = opRecPtr.p->prevSerialQue;
+          const Uint32 nextSerialQue = opRecPtr.p->nextSerialQue;
+          const Uint32 prevParallelQue = opRecPtr.p->prevParallelQue;
+          const Uint32 nextParallelQue = opRecPtr.p->nextParallelQue;
+          const Uint32 flags = opRecPtr.p->m_op_bits;
+          /* Ignore Uint32 overflow at ~ 50 days */
+          const Uint32 durationMillis =
+              (Uint32)NdbTick_Elapsed(opRecPtr.p->m_lockTime, now).milliSec();
+          const Uint32 userPtr = opRecPtr.p->userptr;
 
-        /* Live operation */
-        Ndbinfo::Row row(signal, req);
-        row.write_uint32(getOwnNodeId());
-        row.write_uint32(instance());
-        row.write_uint32(tableId);
-        row.write_uint32(fragId);
-        row.write_uint64(rowId);
-        row.write_uint32(transId0);
-        row.write_uint32(transId1);
-        row.write_uint32(opRecPtr.i);
-        row.write_uint32(flags);
-        row.write_uint32(prevSerialQue);
-        row.write_uint32(nextSerialQue);
-        row.write_uint32(prevParallelQue);
-        row.write_uint32(nextParallelQue);
-        row.write_uint32(durationMillis);
-        row.write_uint32(userPtr);
+          /* Live operation */
+          Ndbinfo::Row row(signal, req);
+          row.write_uint32(getOwnNodeId());
+          row.write_uint32(instance());
+          row.write_uint32(tableId);
+          row.write_uint32(fragId);
+          row.write_uint64(rowId);
+          row.write_uint32(transId0);
+          row.write_uint32(transId1);
+          row.write_uint32(opRecPtr.i);
+          row.write_uint32(flags);
+          row.write_uint32(prevSerialQue);
+          row.write_uint32(nextSerialQue);
+          row.write_uint32(prevParallelQue);
+          row.write_uint32(nextParallelQue);
+          row.write_uint32(durationMillis);
+          row.write_uint32(userPtr);
         NdbMutex_Unlock(&c_lqh->alloc_operation_mutex);
 
-        ndbinfo_send_row(signal, req, row, rl);
-      }
+          ndbinfo_send_row(signal, req, row, rl);
+        }
       else
       {
         NdbMutex_Unlock(&c_lqh->alloc_operation_mutex);
       }
       maxToCheck--;
-      if (i == RNIL)
-      {
-        /* No more rows left to scan */
-        ndbinfo_send_scan_conf(signal, req, rl);
-        return;
-      }
-    } while (true);
+        if (i == RNIL) {
+          /* No more rows left to scan */
+          ndbinfo_send_scan_conf(signal, req, rl);
+          return;
+        }
+      } while (true);
 
-    break;
-  }
-  default:
-    break;
+      break;
+    }
+    default:
+      break;
   }
 
   ndbinfo_send_scan_conf(signal, req, rl);
 }
 
-bool
-Dbacc::getNextScanRec(Uint32 &next, ScanRecPtr &loc_scanptr)
-{
+bool Dbacc::getNextScanRec(Uint32 &next, ScanRecPtr &loc_scanptr) {
   Uint32 found = 0;
   Uint32 loop_count = 0;
 
-  while (found == 0 && next != RNIL && loop_count < 10)
-  {
+  while (found == 0 && next != RNIL && loop_count < 10) {
     found = scanRec_pool.getUncheckedPtrs(&next, &loc_scanptr, 1);
-    if (found > 0 &&
-        !Magic::check_ptr(loc_scanptr.p))
-      found = 0;
+    if (found > 0 && !Magic::check_ptr(loc_scanptr.p)) found = 0;
     loop_count++;
   }
   return (found > 0);
 }
 
-bool
-Dbacc::getNextOpRec(Uint32 &next,
-                    OperationrecPtr &loc_opptr,
-                    Uint32 max_loops)
-{
+bool Dbacc::getNextOpRec(Uint32 &next, OperationrecPtr &loc_opptr,
+                         Uint32 max_loops) {
   Uint32 found = 0;
   Uint32 loop_count = 0;
   while (found == 0 && next != RNIL &&
-         (max_loops == 0 || loop_count < max_loops))
-  {
+         (max_loops == 0 || loop_count < max_loops)) {
     found = oprec_pool.getUncheckedPtrs(&next, &loc_opptr, 1);
-    if (found > 0 &&
-        !Magic::check_ptr(loc_opptr.p))
-      found = 0;
+    if (found > 0 && !Magic::check_ptr(loc_opptr.p)) found = 0;
     loop_count++;
   }
   return (found > 0);
 }
 
-void
-Dbacc::execDUMP_STATE_ORD(Signal* signal)
-{
-  DumpStateOrd * const dumpState = (DumpStateOrd *)&signal->theData[0];
-  if (dumpState->args[0] == DumpStateOrd::AccDumpOneScanRec)
-  {
+void Dbacc::execDUMP_STATE_ORD(Signal *signal) {
+  DumpStateOrd *const dumpState = (DumpStateOrd *)&signal->theData[0];
+  if (dumpState->args[0] == DumpStateOrd::AccDumpOneScanRec) {
     ScanRecPtr scanPtr;
     Uint32 recordNo = RNIL;
-    if (signal->length() == 2)
-    {
+    if (signal->length() == 2) {
       jam();
       recordNo = dumpState->args[1];
-    }
-    else
-    {
+    } else {
       jam();
       return;
     }
     scanPtr.i = recordNo;
-    if (!scanRec_pool.getValidPtr(scanPtr))
-    {
+    if (!scanRec_pool.getValidPtr(scanPtr)) {
       jam();
       return;
     }
     jam();
-    
+
     g_eventLogger->info("Dbacc::ScanRec[%d]: state=%d, transid(0x%x, 0x%x)",
-	      scanPtr.i, scanPtr.p->scanState,scanPtr.p->scanTrid1,
-	      scanPtr.p->scanTrid2);
+                        scanPtr.i, scanPtr.p->scanState, scanPtr.p->scanTrid1,
+                        scanPtr.p->scanTrid2);
     g_eventLogger->info("activeLocalFrag=%lld, nextBucketIndex=%d",
-	      scanPtr.p->activeLocalFrag,
-	      scanPtr.p->nextBucketIndex);
+                        scanPtr.p->activeLocalFrag, scanPtr.p->nextBucketIndex);
     g_eventLogger->info("firstActOp=%d firstLockedOp=%d",
-	      scanPtr.p->scanFirstActiveOp,
-	      scanPtr.p->scanFirstLockedOp);
+                        scanPtr.p->scanFirstActiveOp,
+                        scanPtr.p->scanFirstLockedOp);
     g_eventLogger->info("scanLastLockedOp=%d firstQOp=%d lastQOp=%d",
-	      scanPtr.p->scanLastLockedOp,
-	      scanPtr.p->scanFirstQueuedOp,
-	      scanPtr.p->scanLastQueuedOp);
-    g_eventLogger->info("scanUserP=%d, startNoBuck=%d,"
-                        " minBucketIndexToRescan=%d",
-	      scanPtr.p->scanUserptr,
-	      scanPtr.p->startNoOfBuckets,
-	      scanPtr.p->minBucketIndexToRescan);
+                        scanPtr.p->scanLastLockedOp,
+                        scanPtr.p->scanFirstQueuedOp,
+                        scanPtr.p->scanLastQueuedOp);
+    g_eventLogger->info(
+        "scanUserP=%d, startNoBuck=%d,"
+        " minBucketIndexToRescan=%d",
+        scanPtr.p->scanUserptr, scanPtr.p->startNoOfBuckets,
+        scanPtr.p->minBucketIndexToRescan);
     g_eventLogger->info("maxBucketIndexToRescan=%d, scan_lastSeen = %d, ",
-	      scanPtr.p->maxBucketIndexToRescan,
-              scanPtr.p->scan_lastSeen);
+                        scanPtr.p->maxBucketIndexToRescan,
+                        scanPtr.p->scan_lastSeen);
     g_eventLogger->info("scanBucketState=%d, scanLockHeld=%d, userBlockRef=%d",
-	      scanPtr.p->scanBucketState,
-	      scanPtr.p->scanLockHeld,
-	      scanPtr.p->scanUserblockref);
+                        scanPtr.p->scanBucketState, scanPtr.p->scanLockHeld,
+                        scanPtr.p->scanUserblockref);
     g_eventLogger->info("scanMask=%d scanLockMode=%d, scanLockCount=%d",
-	      scanPtr.p->scanMask,
-	      scanPtr.p->scanLockMode,
-              scanPtr.p->scanLockCount);
+                        scanPtr.p->scanMask, scanPtr.p->scanLockMode,
+                        scanPtr.p->scanLockCount);
     return;
   }
 
   // Dump all ScanRec(ords)
   if (dumpState->args[0] == DumpStateOrd::AccDumpAllScanRec ||
-      dumpState->args[0] == DumpStateOrd::AccDumpAllActiveScanRec)
-  {
+      dumpState->args[0] == DumpStateOrd::AccDumpAllActiveScanRec) {
     Uint32 recordNo = 0;
     if (signal->length() == 1)
       infoEvent("ACC: Dump all active ScanRec");
@@ -10589,14 +13698,12 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
       return;
     ScanRecPtr loc_scanptr;
     bool found = getNextScanRec(recordNo, loc_scanptr);
-    if (found)
-    {
+    if (found) {
       dumpState->args[0] = DumpStateOrd::AccDumpOneScanRec;
       dumpState->args[1] = loc_scanptr.i;
       execDUMP_STATE_ORD(signal);
     }
-    if (recordNo != RNIL)
-    {
+    if (recordNo != RNIL) {
       dumpState->args[0] = DumpStateOrd::AccDumpAllScanRec;
       dumpState->args[1] = recordNo;
       sendSignal(reference(), GSN_DUMP_STATE_ORD, signal, 2, JBB);
@@ -10604,33 +13711,29 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
     return;
   }
 
-  if(dumpState->args[0] == DumpStateOrd::EnableUndoDelayDataWrite){
-    ndbout << "Dbacc:: delay write of datapages for table = " 
-	   << dumpState->args[1]<< endl;
+  if (dumpState->args[0] == DumpStateOrd::EnableUndoDelayDataWrite) {
+    ndbout << "Dbacc:: delay write of datapages for table = "
+           << dumpState->args[1] << endl;
     SET_ERROR_INSERT_VALUE(3000);
     return;
   }
 
-  if(dumpState->args[0] == DumpStateOrd::AccDumpOneOperationRec){
+  if (dumpState->args[0] == DumpStateOrd::AccDumpOneOperationRec) {
     Uint32 recordNo = RNIL;
     if (signal->length() == 2)
       recordNo = dumpState->args[1];
-    else 
+    else
       return;
 
     OperationrecPtr tmpOpPtr;
     tmpOpPtr.i = recordNo;
-    if (!oprec_pool.getValidPtr(tmpOpPtr))
-      return;
-    
-    infoEvent("Dbacc::operationrec[%d]: transid(0x%x, 0x%x)",
-	      tmpOpPtr.i, tmpOpPtr.p->transId1,
-	      tmpOpPtr.p->transId2);
-    infoEvent("elementPage=%d, elementPointer=%d ",
-	      tmpOpPtr.p->elementPage, 
-	      tmpOpPtr.p->elementPointer);
-    infoEvent("fid=%d, fragptr=%lld ",
-              tmpOpPtr.p->fid, tmpOpPtr.p->fragptr);
+    if (!oprec_pool.getValidPtr(tmpOpPtr)) return;
+
+    infoEvent("Dbacc::operationrec[%d]: transid(0x%x, 0x%x)", tmpOpPtr.i,
+              tmpOpPtr.p->transId1, tmpOpPtr.p->transId2);
+    infoEvent("elementPage=%d, elementPointer=%d ", tmpOpPtr.p->elementPage,
+              tmpOpPtr.p->elementPointer);
+    infoEvent("fid=%d, fragptr=%lld ", tmpOpPtr.p->fid, tmpOpPtr.p->fragptr);
     infoEvent("hashValue=%d", tmpOpPtr.p->hashValue.pack());
     infoEvent("nextLockOwnerOp=%d, nextOp=%d, nextParallelQue=%d ",
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
@@ -10638,11 +13741,11 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
 #else
               0,
 #endif
-              tmpOpPtr.p->nextOp, 
+              tmpOpPtr.p->nextOp,
+              
 	      tmpOpPtr.p->nextParallelQue);
-    infoEvent("nextSerialQue=%d, prevOp=%d ",
-	      tmpOpPtr.p->nextSerialQue, 
-	      tmpOpPtr.p->prevOp);
+    infoEvent("nextSerialQue=%d, prevOp=%d ", tmpOpPtr.p->nextSerialQue,
+              tmpOpPtr.p->prevOp);
     infoEvent("prevLockOwnerOp=%d, prevParallelQue=%d",
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
 	      tmpOpPtr.p->prevLockOwnerOp,
@@ -10650,28 +13753,24 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
               0,
 #endif
               tmpOpPtr.p->nextParallelQue);
-    infoEvent("prevSerialQue=%d, scanRecPtr=%d",
-	      tmpOpPtr.p->prevSerialQue, tmpOpPtr.p->scanRecPtr);
-    infoEvent("m_op_bits=0x%x, reducedHashValue=%x ",
-              tmpOpPtr.p->m_op_bits, tmpOpPtr.p->reducedHashValue.pack());
+    infoEvent("prevSerialQue=%d, scanRecPtr=%d", tmpOpPtr.p->prevSerialQue,
+              tmpOpPtr.p->scanRecPtr);
+    infoEvent("m_op_bits=0x%x, reducedHashValue=%x ", tmpOpPtr.p->m_op_bits,
+              tmpOpPtr.p->reducedHashValue.pack());
     return;
   }
 
 #ifdef ERROR_INSERT
-  if(dumpState->args[0] == DumpStateOrd::AccDumpNumOpRecs)
-  {
+  if (dumpState->args[0] == DumpStateOrd::AccDumpNumOpRecs) {
     Uint32 freeOpRecs = oprec_pool.getUsed();
-    infoEvent("Dbacc::OperationRecords: free=%d",	      
-	      freeOpRecs);
+    infoEvent("Dbacc::OperationRecords: free=%d", freeOpRecs);
 
     return;
   }
 #endif
 
-  if (dumpState->args[0] == DumpStateOrd::AccDumpOneOpRecLocal)
-  {
-    if (signal->length() != 2)
-    {
+  if (dumpState->args[0] == DumpStateOrd::AccDumpOneOpRecLocal) {
+    if (signal->length() != 2) {
       return;
     }
 
@@ -10686,19 +13785,15 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
 
       buffOut << opPtr;
 
-      g_eventLogger->info("ACC %u : %s",
-                          instance(),
-                          buff);
+      g_eventLogger->info("ACC %u : %s", instance(), buff);
     }
 
     return;
   }
 
-  if (dumpState->args[0] == DumpStateOrd::AccDumpOpPrecedingLocks)
-  {
+  if (dumpState->args[0] == DumpStateOrd::AccDumpOpPrecedingLocks) {
     jam();
-    if (signal->length() != 2)
-    {
+    if (signal->length() != 2) {
       return;
     }
 
@@ -10714,19 +13809,16 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
     signal->theData[1] = startOpPtr.i;
     execDUMP_STATE_ORD(signal);
 
-    if (getPrecedingOperation(currOpPtr))
-    {
+    if (getPrecedingOperation(currOpPtr)) {
       jam();
 
-      do
-      {
+      do {
         /* Dump dependent op */
         signal->theData[1] = currOpPtr.i;
         execDUMP_STATE_ORD(signal);
       } while (getPrecedingOperation(currOpPtr));
     }
   }
-
 
 #if 0
   if (type == 100) {
@@ -10802,8 +13894,7 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
     return;
   }
 
-  if (signal->theData[0] == DumpStateOrd::SchemaResourceCheckLeak)
-  {
+  if (signal->theData[0] == DumpStateOrd::SchemaResourceCheckLeak) {
 #ifdef ERROR_INSERT
     g_eventLogger->info("(%u) CHECK:cnoOfAllocatedFragrec: %u",
 		        instance(),
@@ -10813,35 +13904,27 @@ Dbacc::execDUMP_STATE_ORD(Signal* signal)
     return;
   }
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
-  if (signal->theData[0] == DumpStateOrd::AccSetTransientPoolMaxSize)
-  {
+  if (signal->theData[0] == DumpStateOrd::AccSetTransientPoolMaxSize) {
     jam();
-    if (signal->getLength() < 3)
-      return;
+    if (signal->getLength() < 3) return;
     const Uint32 pool_index = signal->theData[1];
     const Uint32 new_size = signal->theData[2];
-    if (pool_index >= c_transient_pool_count)
-      return;
+    if (pool_index >= c_transient_pool_count) return;
     c_transient_pools[pool_index]->setMaxSize(new_size);
     return;
   }
-  if (signal->theData[0] == DumpStateOrd::AccResetTransientPoolMaxSize)
-  {
+  if (signal->theData[0] == DumpStateOrd::AccResetTransientPoolMaxSize) {
     jam();
-    if(signal->getLength() < 2)
-      return;
+    if (signal->getLength() < 2) return;
     const Uint32 pool_index = signal->theData[1];
-    if (pool_index >= c_transient_pool_count)
-      return;
+    if (pool_index >= c_transient_pool_count) return;
     c_transient_pools[pool_index]->resetMaxSize();
     return;
   }
 #endif
-}//Dbacc::execDUMP_STATE_ORD()
+}  // Dbacc::execDUMP_STATE_ORD()
 
-Uint32
-Dbacc::getL2PMapAllocBytes(Uint64 fragPtrI) const
-{
+Uint32 Dbacc::getL2PMapAllocBytes(Uint64 fragPtrI) const {
   jam();
   FragmentrecPtr fragPtr;
   fragPtr.i = fragPtrI;
@@ -10850,23 +13933,15 @@ Dbacc::getL2PMapAllocBytes(Uint64 fragPtrI) const
 }
 
 #ifdef VM_TRACE
-void
-Dbacc::debug_lh_vars(const char* where)const
-{
+void Dbacc::debug_lh_vars(const char *where) const {
   Uint32 b = fragrecptr.p->level.getTop();
   Uint32 di = fragrecptr.p->getPageNumber(b);
   Uint32 ri = di >> 8;
-  ndbout
-    << "DBACC: " << where << ":"
-    << " frag:" << fragrecptr.p->myTableId
-    << "/" << fragrecptr.p->myfid
-    << " slack:" << fragrecptr.p->slack
-    << "/" << fragrecptr.p->slackCheck
-    << " top:" << fragrecptr.p->level.getTop()
-    << " di:" << di
-    << " ri:" << ri
-    << " full:" << fragrecptr.p->dirRangeFull
-    << "\n";
+  ndbout << "DBACC: " << where << ":"
+         << " frag:" << fragrecptr.p->myTableId << "/" << fragrecptr.p->myfid
+         << " slack:" << fragrecptr.p->slack << "/" << fragrecptr.p->slackCheck
+         << " top:" << fragrecptr.p->level.getTop() << " di:" << di
+         << " ri:" << ri << " full:" << fragrecptr.p->dirRangeFull << "\n";
 }
 #endif
 
@@ -10881,55 +13956,44 @@ Dbacc::debug_lh_vars(const char* where)const
  *  2.  Return a pointer to a preceding operation in terms
  *      of lock ownership order, or RNIL
  */
-bool
-Dbacc::getPrecedingOperation(OperationrecPtr& opPtr) const
-{
+bool Dbacc::getPrecedingOperation(OperationrecPtr &opPtr) const {
   ndbrequire(oprec_pool.getValidPtr(opPtr));
 
-  if ((opPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER) != 0)
-  {
+  if ((opPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER) != 0) {
     /* owner, nothing precedes */
     ndbrequire((opPtr.p->m_op_bits & Operationrec::OP_RUN_QUEUE) != 0);
     opPtr.i = RNIL;
-    //ndbout_c("OWNER");
-  }
-  else
-  {
+    // ndbout_c("OWNER");
+  } else {
     /* !owner, anything preceding? */
-    if (opPtr.p->prevParallelQue != RNIL)
-    {
+    if (opPtr.p->prevParallelQue != RNIL) {
       /* Traverse parallel first */
       opPtr.i = opPtr.p->prevParallelQue;
-      //ndbout_c("PREV PARALLEL");
+      // ndbout_c("PREV PARALLEL");
       ndbrequire(oprec_pool.getValidPtr(opPtr));
-    }
-    else if (opPtr.p->prevSerialQue != RNIL)
-    {
+    } else if (opPtr.p->prevSerialQue != RNIL) {
       /* Traverse serial */
       opPtr.i = opPtr.p->prevSerialQue;
-      //ndbout_c("PREV SERIAL");
+      // ndbout_c("PREV SERIAL");
       ndbrequire(oprec_pool.getValidPtr(opPtr));
 
       /* Do we have a parallel queue here? */
-      if (opPtr.p->nextParallelQue != RNIL)
-      {
+      if (opPtr.p->nextParallelQue != RNIL) {
         /* AFAIK, only the first serial entry can have parallel ops */
-        ndbrequire((opPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER) !=0);
+        ndbrequire((opPtr.p->m_op_bits & Operationrec::OP_LOCK_OWNER) != 0);
 
         /* Jump to end of parallel queue */
         OperationrecPtr lo = opPtr;
         opPtr.i = opPtr.p->m_lo_last_parallel_op_ptr_i;
         ndbrequire(oprec_pool.getValidPtr(opPtr));
-        //ndbout_c("PREV SERIAL HAS PARALLEL QUEUE, JUMP TO END");
+        // ndbout_c("PREV SERIAL HAS PARALLEL QUEUE, JUMP TO END");
 
         /* Check end of parallel queue refs start */
         ndbrequire(opPtr.p->m_lock_owner_ptr_i == lo.i);
       }
-    }
-    else
-    {
+    } else {
       /* !owner, nothing precedes - not locked */
-      //ndbout_c("NOTHING PRECEDES");
+      // ndbout_c("NOTHING PRECEDES");
     }
   }
 
@@ -10940,9 +14004,8 @@ Dbacc::getPrecedingOperation(OperationrecPtr& opPtr) const
  * Implementation of Dbacc::Page32Lists
  */
 
-void Dbacc::Page32Lists::addPage32(Page32_pool& pool, Page32Ptr p)
-{
-  const Uint8 list_id = 0; // List of 32KiB pages with all 8KiB pages free
+void Dbacc::Page32Lists::addPage32(Page32_pool &pool, Page32Ptr p) {
+  const Uint8 list_id = 0;  // List of 32KiB pages with all 8KiB pages free
   LocalPage32_list list(pool, lists[list_id]);
   list.addFirst(p);
   nonempty_lists |= (1 << list_id);
@@ -10950,12 +14013,9 @@ void Dbacc::Page32Lists::addPage32(Page32_pool& pool, Page32Ptr p)
   p.p->magic = Page32::MAGIC;
 }
 
-void Dbacc::Page32Lists::dropLastPage32(Page32_pool& pool,
-                                         Page32Ptr& p,
-                                         Uint32 keep)
-{
-  if (lists[0].getCount() <= keep)
-  {
+void Dbacc::Page32Lists::dropLastPage32(Page32_pool &pool, Page32Ptr &p,
+                                        Uint32 keep) {
+  if (lists[0].getCount() <= keep) {
     p.i = RNIL;
     p.p = NULL;
     return;
@@ -10965,70 +14025,56 @@ void Dbacc::Page32Lists::dropLastPage32(Page32_pool& pool,
   dropPage32(pool, p);
 }
 
-void Dbacc::Page32Lists::dropPage32(Page32_pool& pool, Page32Ptr p)
-{
+void Dbacc::Page32Lists::dropPage32(Page32_pool &pool, Page32Ptr p) {
   require(p.p->magic == Page32::MAGIC);
   require(p.p->list_id == 0);
   p.p->magic = ~Page32::MAGIC;
-  const Uint8 list_id = 0; // The list of pages with all its four 8KiB pages free
+  const Uint8 list_id =
+      0;  // The list of pages with all its four 8KiB pages free
   LocalPage32_list list(pool, lists[list_id]);
   list.remove(p);
-  if (list.isEmpty())
-  {
+  if (list.isEmpty()) {
     nonempty_lists &= ~(1 << list_id);
   }
 }
 
-void Dbacc::Page32Lists::seizePage8(Page32_pool& pool,
-                                    Page8Ptr& /* out */ p8,
-                                    int sub_page_id)
-{
+void Dbacc::Page32Lists::seizePage8(Page32_pool &pool, Page8Ptr & /* out */ p8,
+                                    int sub_page_id) {
   Uint16 list_id_set;
   Uint8 sub_page_id_set;
-  if (sub_page_id == LEAST_COMMON_SUB_PAGE)
-  { // Find out least common sub_page_ids
+  if (sub_page_id ==
+      LEAST_COMMON_SUB_PAGE) {  // Find out least common sub_page_ids
     Uint32 min_sub_page_count = UINT32_MAX;
-    for (int i = 0; i < 4; i++)
-    {
-      if (sub_page_id_count[i] < min_sub_page_count)
-      {
+    for (int i = 0; i < 4; i++) {
+      if (sub_page_id_count[i] < min_sub_page_count) {
         min_sub_page_count = sub_page_id_count[i];
       }
     }
     list_id_set = 0;
     sub_page_id_set = 0;
-    for (int i = 0; i < 4; i++)
-    {
-      if (sub_page_id_count[i] == min_sub_page_count)
-      {
+    for (int i = 0; i < 4; i++) {
+      if (sub_page_id_count[i] == min_sub_page_count) {
         list_id_set |= sub_page_id_to_list_id_set(sub_page_id);
         sub_page_id_set |= (1 << i);
       }
     }
-  }
-  else
-  {
+  } else {
     list_id_set = sub_page_id_to_list_id_set(sub_page_id);
-    if (sub_page_id < 0)
-    {
+    if (sub_page_id < 0) {
       sub_page_id_set = 0xf;
-    }
-    else
-    {
+    } else {
       sub_page_id_set = 1 << sub_page_id;
     }
   }
   list_id_set &= nonempty_lists;
-  if (list_id_set == 0)
-  {
+  if (list_id_set == 0) {
     p8.i = RNIL;
     p8.p = NULL;
     return;
   }
   Uint8 list_id = least_free_list(list_id_set);
   Uint8 list_sub_page_id_set = list_id_to_sub_page_id_set(list_id);
-  if (sub_page_id < 0)
-  {
+  if (sub_page_id < 0) {
     Uint32 set = sub_page_id_set & list_sub_page_id_set;
     require(set != 0);
     sub_page_id = BitmaskImpl::fls(set);
@@ -11041,8 +14087,7 @@ void Dbacc::Page32Lists::seizePage8(Page32_pool& pool,
 
   Page32Ptr p;
   old_list.removeFirst(p);
-  if (old_list.isEmpty())
-  {
+  if (old_list.isEmpty()) {
     nonempty_lists &= ~(1 << list_id);
   }
   require(p.p->magic == Page32::MAGIC);
@@ -11052,15 +14097,14 @@ void Dbacc::Page32Lists::seizePage8(Page32_pool& pool,
   p.p->list_id = new_list_id;
   p8.i = (p.i << 2) | sub_page_id;
   p8.p = &p.p->page8[sub_page_id];
-  sub_page_id_count[sub_page_id] ++;
+  sub_page_id_count[sub_page_id]++;
 }
 
-void Dbacc::Page32Lists::releasePage8(Page32_pool& pool, Page8Ptr p8)
-{
+void Dbacc::Page32Lists::releasePage8(Page32_pool &pool, Page8Ptr p8) {
   int sub_page_id = p8.i & 3;
   Page32Ptr p;
   p.i = p8.i >> 2;
-  p.p = reinterpret_cast<Page32*>(p8.p-sub_page_id);
+  p.p = reinterpret_cast<Page32 *>(p8.p - sub_page_id);
 
   Uint8 list_id = p.p->list_id;
   Uint8 sub_page_id_set = list_id_to_sub_page_id_set(list_id);
@@ -11071,8 +14115,7 @@ void Dbacc::Page32Lists::releasePage8(Page32_pool& pool, Page8Ptr p8)
   LocalPage32_list new_list(pool, lists[new_list_id]);
 
   old_list.remove(p);
-  if (old_list.isEmpty())
-  {
+  if (old_list.isEmpty()) {
     nonempty_lists &= ~(1 << list_id);
   }
   require(p.p->magic == Page32::MAGIC);
@@ -11080,16 +14123,13 @@ void Dbacc::Page32Lists::releasePage8(Page32_pool& pool, Page8Ptr p8)
   new_list.addFirst(p);
   nonempty_lists |= (1 << new_list_id);
   p.p->list_id = new_list_id;
-  sub_page_id_count[sub_page_id] --;
+  sub_page_id_count[sub_page_id]--;
 }
 
-void
-Dbacc::sendPoolShrink(const Uint32 pool_index)
-{
+void Dbacc::sendPoolShrink(const Uint32 pool_index) {
   const bool need_send = c_transient_pools_shrinking.get(pool_index) == 0;
   c_transient_pools_shrinking.set(pool_index);
-  if (need_send)
-  {
+  if (need_send) {
     Signal25 signal[1] = {};
     signal->theData[0] = ZACC_SHRINK_TRANSIENT_POOLS;
     signal->theData[1] = pool_index;
@@ -11097,17 +14137,12 @@ Dbacc::sendPoolShrink(const Uint32 pool_index)
   }
 }
 
-void
-Dbacc::shrinkTransientPools(Uint32 pool_index)
-{
+void Dbacc::shrinkTransientPools(Uint32 pool_index) {
   ndbrequire(pool_index < c_transient_pool_count);
   ndbrequire(c_transient_pools_shrinking.get(pool_index));
-  if (c_transient_pools[pool_index]->rearrange_free_list_and_shrink())
-  {
+  if (c_transient_pools[pool_index]->rearrange_free_list_and_shrink()) {
     sendPoolShrink(pool_index);
-  }
-  else
-  {
+  } else {
     c_transient_pools_shrinking.clear(pool_index);
   }
 }

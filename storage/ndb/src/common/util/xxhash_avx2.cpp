@@ -34,7 +34,18 @@
 #include <util/ndb_xxhash.h>
 
 Uint64
-rondb_xxhash_avx2(const char* keybuf, Uint32 keylen_bytes)
-{
+rondb_xxhash_avx2(const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+char*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *keybuf, Uint32 keylen_bytes) {
   return XXH3_64bits(keybuf, keylen_bytes);
 }

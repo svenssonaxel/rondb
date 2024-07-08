@@ -49,10 +49,21 @@ struct LcRopeHandle {
 };
 
 class LcConstRope {
-public:
-  LcConstRope(const LcRopeHandle& handle)
-    : src(handle)
-  {
+ public:
+  LcConstRope(const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LcRopeHandle&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RopeHandle&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RopeHandle
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &handle)
+    : src(handle) {
     m_string = src.m_string;
     m_length = src.m_length;
   }
@@ -62,36 +73,58 @@ public:
   Uint32 size() const;
   bool empty() const;
 
-  void copy(char* buf, Uint32 size) const;
-  bool copy(class LcLocalRope & dest);
+  void copy(char *buf, Uint32 size) const;
+  bool copy(class LcLocalRope &dest);
 
   /* Returns number of bytes read, or 0 at EOF.
      Context is maintained in rope_offset.
      The caller must initialize rope_offset to 0 before the first read.
   */
-  int readBuffered(char* buf, Uint32 buf_size, Uint32 & rope_offset) const;
+  int readBuffered(char *buf, Uint32 buf_size, Uint32 &rope_offset) const;
 
-  int compare(const char * s) const { return compare(s, (Uint32)strlen(s) + 1);}
-  int compare(const char *, Uint32 len) const; 
+  int compare(const char *s) const { return compare(s, (Uint32)strlen(s) + 1); }
+  int compare(const char *, Uint32 len) const;
 
-  bool equal(const LcConstRope& r2) const;
+  bool equal(const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LcConstRope&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ConstRope&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ConstRope
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &r2) const;
 
-private:
+ private:
   const LcRopeHandle & src;
   Uint32 m_length;
   char *m_string;
 };
 
 class LcLocalRope {
-public:
-  LcLocalRope(LcRopeHandle& handle)
-    : src(handle)
-  {
+ public:
+  LcLocalRope(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LcRopeHandle&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RopePool& pool, RopeHandle&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RopePool &pool, RopeHandle
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &handle) : src(handle) {
     m_string = src.m_string;
     m_length = src.m_length;
     m_hash = src.m_hash;
   }
-  
+
   ~LcLocalRope()
   {
     src.m_string = m_string;
@@ -102,53 +135,40 @@ public:
   Uint32 size() const;
   bool empty() const;
 
-  void copy(char* buf, Uint32 size) const;
-  
-  int compare(const char * s) const { return compare(s, Uint32(strlen(s) + 1));}
-  int compare(const char *, Uint32 len) const; 
-  
-  bool assign(const char * s) { return assign(s, Uint32(strlen(s) + 1));}
-  bool assign(const char * s, Uint32 l) { return assign(s, l, hash(s, l));}
+  void copy(char *buf, Uint32 size) const;
+
+  int compare(const char *s) const { return compare(s, Uint32(strlen(s) + 1)); }
+  int compare(const char *, Uint32 len) const;
+
+  bool assign(const char *s) { return assign(s, Uint32(strlen(s) + 1)); }
+  bool assign(const char *s, Uint32 l) { return assign(s, l, hash(s, l)); }
   bool assign(const char *, Uint32 len, Uint32 hash);
 
-  bool appendBuffer(const char * buf, Uint32 len);
+  bool appendBuffer(const char *buf, Uint32 len);
 
   void erase();
-  
-  static Uint32 hash(const char * str, Uint32 len, Uint32 starter = 0);
+
+  static Uint32 hash(const char *str, Uint32 len, Uint32 starter = 0);
 
 private:
   Uint32 m_hash;
   Uint32 m_length;
   char *m_string;
-  LcRopeHandle & src;
+  LcRopeHandle &src;
 };
 
-inline
-Uint32
-LcLocalRope::size() const {
-  return m_length;
-}
+inline Uint32
+LcLocalRope::size() const { return m_length; }
 
-inline
-bool
-LcLocalRope::empty() const {
-  return m_length == 0;
-}
+inline bool
+LcLocalRope::empty() const { return m_length == 0; }
 
-inline
-Uint32
-LcConstRope::size() const {
-  return m_length;
-}
+inline Uint32
+LcConstRope::size() const { return m_length; }
 
-inline
-bool
-LcConstRope::empty() const {
-  return m_length == 0;
-}
+inline bool
+LcConstRope::empty() const { return m_length == 0; }
 
 #undef JAM_FILE_ID
 
 #endif
-

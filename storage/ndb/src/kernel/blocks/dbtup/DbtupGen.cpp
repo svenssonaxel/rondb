@@ -25,26 +25,26 @@
 
 #define DBTUP_C
 #define DBTUP_GEN_CPP
-#include "util/require.h"
-#include <dblqh/Dblqh.hpp>
-#include "Dbtup.hpp"
-#include <RefConvert.hpp>
 #include <ndb_limits.h>
-#include <pc.hpp>
 #include <AttributeDescriptor.hpp>
-#include "AttributeOffset.hpp"
 #include <AttributeHeader.hpp>
 #include <Interpreter.hpp>
+#include <RefConvert.hpp>
+#include <dblqh/Dblqh.hpp>
+#include <pc.hpp>
 #include <signaldata/FsConf.hpp>
 #include <signaldata/FsRef.hpp>
 #include <signaldata/FsRemoveReq.hpp>
-#include <signaldata/TupCommit.hpp>
-#include <signaldata/TupKey.hpp>
 #include <signaldata/NodeFailRep.hpp>
 #include <signaldata/NodeStateSignalData.hpp>
+#include <signaldata/TupCommit.hpp>
+#include <signaldata/TupKey.hpp>
+#include "AttributeOffset.hpp"
+#include "Dbtup.hpp"
+#include "util/require.h"
 
-#include <signaldata/DropTab.hpp>
 #include <IntrusiveList.hpp>
+#include <signaldata/DropTab.hpp>
 
 #include <EventLogger.hpp>
 
@@ -61,13 +61,11 @@
 
 #define JAM_FILE_ID 420
 
-
-void Dbtup::initData() 
-{
+void Dbtup::initData() {
   m_curr_tup = this;
   cownNodeId = getOwnNodeId();
   TablerecPtr tablePtr;
-  (void)tablePtr; // hide unused warning
+  (void)tablePtr;  // hide unused warning
   cnoOfFragoprec = 16;
   cnoOfAlterTabOps = 16;
   c_maxTriggersPerTable = ZDEFAULT_MAX_NO_TRIGGERS_PER_TABLE;
@@ -78,36 +76,32 @@ void Dbtup::initData()
   // Records with constant sizes
   init_list_sizes();
   cpackedListIndex = 0;
-}//Dbtup::initData()
+}  // Dbtup::initData()
 
-Dbtup::Dbtup(Block_context& ctx,
-             Uint32 instanceNumber,
-             Uint32 blockNo)
-  : SimulatedBlock(blockNo, ctx, instanceNumber),
-    c_lqh(0),
-    c_backup(0),
-    c_tsman(0),
-    c_lgman(0),
-    c_pgman(0),
-    c_acc(0),
-    c_tux(0),
-    c_suma(0),
+Dbtup::Dbtup(Block_context &ctx, Uint32 instanceNumber, Uint32 blockNo)
+    : SimulatedBlock(blockNo, ctx, instanceNumber),
+      c_lqh(0),
+      c_backup(0),
+      c_tsman(0),
+      c_lgman(0),
+      c_pgman(0),
+      c_acc(0),
+      c_tux(0),
+      c_suma(0),
     m_reserved_copy_frag_lock(c_scanLockPool),
     m_reserved_copy_frag(c_scanOpPool),
-    c_extent_hash(c_extent_pool),
+      c_extent_hash(c_extent_pool),
     c_storedProcPool(),
-    m_reserved_stored_proc_copy_frag(c_storedProcPool),
+      m_reserved_stored_proc_copy_frag(c_storedProcPool),
     c_buildIndexList(c_buildIndexPool),
     c_undo_buffer(&ctx.m_mm),
     m_pages_allocated(0),
     m_pages_allocated_max(0),
-    c_pending_undo_page_hash(c_pending_undo_page_pool),
-    f_undo_done(true)
-{
+      c_pending_undo_page_hash(c_pending_undo_page_pool),
+      f_undo_done(true) {
   BLOCK_CONSTRUCTOR(Dbtup);
 
-  if (blockNo == DBTUP)
-  {
+  if (blockNo == DBTUP) {
     addRecSignal(GSN_DEBUG_SIG, &Dbtup::execDEBUG_SIG);
     addRecSignal(GSN_CONTINUEB, &Dbtup::execCONTINUEB);
     addRecSignal(GSN_NODE_FAILREP, &Dbtup::execNODE_FAILREP);
@@ -118,7 +112,7 @@ Dbtup::Dbtup(Block_context& ctx,
     addRecSignal(GSN_STTOR, &Dbtup::execSTTOR);
     addRecSignal(GSN_MEMCHECKREQ, &Dbtup::execMEMCHECKREQ);
     addRecSignal(GSN_TUPSEIZEREQ, &Dbtup::execTUPSEIZEREQ);
-    addRecSignal(GSN_STORED_PROCREQ, &Dbtup::execSTORED_PROCREQ); 
+    addRecSignal(GSN_STORED_PROCREQ, &Dbtup::execSTORED_PROCREQ);
     addRecSignal(GSN_CREATE_TAB_REQ, &Dbtup::execCREATE_TAB_REQ);
     addRecSignal(GSN_TUPFRAGREQ, &Dbtup::execTUPFRAGREQ);
     addRecSignal(GSN_TUP_ADD_ATTRREQ, &Dbtup::execTUP_ADD_ATTRREQ);
@@ -130,7 +124,7 @@ Dbtup::Dbtup(Block_context& ctx,
 
     // Trigger Signals
     addRecSignal(GSN_CREATE_TRIG_IMPL_REQ, &Dbtup::execCREATE_TRIG_IMPL_REQ);
-    addRecSignal(GSN_DROP_TRIG_IMPL_REQ,  &Dbtup::execDROP_TRIG_IMPL_REQ);
+    addRecSignal(GSN_DROP_TRIG_IMPL_REQ, &Dbtup::execDROP_TRIG_IMPL_REQ);
 
     addRecSignal(GSN_DROP_TAB_REQ, &Dbtup::execDROP_TAB_REQ);
 
@@ -174,9 +168,7 @@ Dbtup::Dbtup(Block_context& ctx,
     m_tux_block = DBTUX;
     m_backup_block = BACKUP;
     m_ldm_instance_used = this;
-  }
-  else
-  {
+  } else {
     ndbrequire(blockNo == DBQTUP);
     m_is_query_block = true;
     m_is_in_query_thread = true;
@@ -217,70 +209,62 @@ Dbtup::Dbtup(Block_context& ctx,
   c_storedProcCountNonAPI = 0;
 
   {
-    CallbackEntry& ce = m_callbackEntry[THE_NULL_CALLBACK];
+    CallbackEntry &ce = m_callbackEntry[THE_NULL_CALLBACK];
     ce.m_function = TheNULLCallback.m_callbackFunction;
     ce.m_flags = 0;
   }
-  { // 1
-    CallbackEntry& ce = m_callbackEntry[DROP_TABLE_LOG_BUFFER_CALLBACK];
+  {  // 1
+    CallbackEntry &ce = m_callbackEntry[DROP_TABLE_LOG_BUFFER_CALLBACK];
     ce.m_function = safe_cast(&Dbtup::drop_table_log_buffer_callback);
     ce.m_flags = 0;
   }
-  { // 2
-    CallbackEntry& ce = m_callbackEntry[NR_DELETE_LOG_BUFFER_CALLBACK];
+  {  // 2
+    CallbackEntry &ce = m_callbackEntry[NR_DELETE_LOG_BUFFER_CALLBACK];
     ce.m_function = safe_cast(&Dbtup::nr_delete_log_buffer_callback);
     ce.m_flags = 0;
   }
-  { // 3
-    CallbackEntry& ce = m_callbackEntry[DISK_PAGE_LOG_BUFFER_CALLBACK];
+  {  // 3
+    CallbackEntry &ce = m_callbackEntry[DISK_PAGE_LOG_BUFFER_CALLBACK];
     ce.m_function = safe_cast(&Dbtup::disk_page_log_buffer_callback);
     ce.m_flags = CALLBACK_ACK;
   }
   {
-    CallbackTable& ct = m_callbackTable;
+    CallbackTable &ct = m_callbackTable;
     ct.m_count = COUNT_CALLBACKS;
     ct.m_entry = m_callbackEntry;
     m_callbackTableAddr = &ct;
   }
   c_transient_pools[DBTUP_OPERATION_RECORD_TRANSIENT_POOL_INDEX] =
-    &c_operation_pool;
+      &c_operation_pool;
   c_transient_pools[DBTUP_STORED_PROCEDURE_TRANSIENT_POOL_INDEX] =
-    &c_storedProcPool;
-  c_transient_pools[DBTUP_SCAN_LOCK_TRANSIENT_POOL_INDEX] =
-    &c_scanLockPool;
-  c_transient_pools[DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX] =
-    &c_scanOpPool;
+      &c_storedProcPool;
+  c_transient_pools[DBTUP_SCAN_LOCK_TRANSIENT_POOL_INDEX] = &c_scanLockPool;
+  c_transient_pools[DBTUP_SCAN_OPERATION_TRANSIENT_POOL_INDEX] = &c_scanOpPool;
   static_assert(c_transient_pool_count == 4);
   c_transient_pools_shrinking.clear();
-}//Dbtup::Dbtup()
+}  // Dbtup::Dbtup()
 
-Dbtup::~Dbtup() 
-{
+Dbtup::~Dbtup() {
   /* Free Fragment Copy Procedure info */
   freeCopyProcedure();
 
   // Records with dynamic sizes
   c_page_pool.clear();
-  
-  deallocRecord((void **)&fragoperrec,"Fragoperrec",
-		sizeof(Fragoperrec),
-		cnoOfFragoprec);
-  
-  deallocRecord((void **)&alterTabOperRec,"AlterTabOperRec",
-                sizeof(alterTabOperRec),
-                cnoOfAlterTabOps);
-  
-  deallocRecord((void **)&hostBuffer,"HostBuffer",
-		sizeof(HostBuffer), 
-		MAX_NODES);
-  
-  deallocRecord((void **)&tablerec,"Tablerec",
-		sizeof(Tablerec), 
-		cnoOfTablerec);
-}//Dbtup::~Dbtup()
 
-Dbtup::Apply_undo::Apply_undo()
-{
+  deallocRecord((void **)&fragoperrec, "Fragoperrec", sizeof(Fragoperrec),
+                cnoOfFragoprec);
+
+  deallocRecord((void **)&alterTabOperRec, "AlterTabOperRec",
+                sizeof(alterTabOperRec), cnoOfAlterTabOps);
+
+  deallocRecord((void **)&hostBuffer, "HostBuffer", sizeof(HostBuffer),
+                MAX_NODES);
+
+  deallocRecord((void **)&tablerec, "Tablerec", sizeof(Tablerec),
+                cnoOfTablerec);
+}  // Dbtup::~Dbtup()
+
+Dbtup::Apply_undo::Apply_undo() {
   m_in_intermediate_log_record = false;
   m_type = 0;
   m_len = 0;
@@ -297,24 +281,20 @@ BLOCK_FUNCTIONS(Dbtup)
 
 Uint64 Dbtup::getTransactionMemoryNeed(
     const Uint32 ldm_instance_count,
-    const ndb_mgm_configuration_iterator * mgm_cfg)
-{
+    const ndb_mgm_configuration_iterator *mgm_cfg) {
   Uint32 tup_scan_recs = 0;
   Uint32 tup_op_recs = 0;
   Uint32 tup_sp_recs = 0;
   Uint32 tup_scan_lock_recs = 0;
 
   {
-    require(!ndb_mgm_get_int_parameter(mgm_cfg,
-                                       CFG_TUP_RESERVED_SCAN_RECORDS,
+    require(!ndb_mgm_get_int_parameter(mgm_cfg, CFG_TUP_RESERVED_SCAN_RECORDS,
                                        &tup_scan_recs));
-    require(!ndb_mgm_get_int_parameter(mgm_cfg,
-                                       CFG_LDM_RESERVED_OPERATIONS,
+    require(!ndb_mgm_get_int_parameter(mgm_cfg, CFG_LDM_RESERVED_OPERATIONS,
                                        &tup_op_recs));
     tup_sp_recs = tup_scan_recs;
     tup_scan_lock_recs = 1000;
-  }
-  Uint64 scan_op_byte_count = 0;
+  } Uint64 scan_op_byte_count = 0;
   scan_op_byte_count += ScanOp_pool::getMemoryNeed(tup_scan_recs + 1);
   scan_op_byte_count *= ldm_instance_count;
 
@@ -327,7 +307,10 @@ Uint64 Dbtup::getTransactionMemoryNeed(
   sp_byte_count *= ldm_instance_count;
 
   Uint64 scan_lock_byte_count = 0;
-  scan_lock_byte_count += ScanLock_pool::getMemoryNeed(tup_scan_lock_recs);
+  scan_lock_byte_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+count += ScanLock_pool::getMemoryNeed(tup_scan_lock_recs);
   scan_lock_byte_count *= ldm_instance_count;
 
   return (op_byte_count +
@@ -346,10 +329,38 @@ void Dbtup::execCONTINUEB(Signal* signal)
   case ZTUP_REPORT_COMMIT_PERFORMED:
   {
     jam();
-    continue_report_commit_performed(signal, dataPtr);
+||||||| Common ancestor
+OP,
+                                       &tup_scan_recs));
+    require(!ndb_mgm_get_int_parameter(mgm_cfg,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+OP,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &tup_scan_recs));
+   continue_report_commit_performed(signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+dataPtr);
+||||||| Common ancestor
+=======
+require(
+>>>>>>> MySQL 8.0.36
     return;
   }
-  case ZTUP_SHRINK_TRANSIENT_POOLS:
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+!ndb_mgm_get_int_parameter(mgm_cfg,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ZTUP_SHRINK_TRANSIENT_POOLS:
   {
     jam();
     Uint32 pool_index = signal->theData[1];
@@ -406,14 +417,49 @@ void Dbtup::execCONTINUEB(Signal* signal)
       c_lqh->checkLcpStopBlockedLab(signal, scanPtr.p->m_userPtr);
     }
     return;
-  case ZFREE_EXTENT:
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtup::execCONTINUEB(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtup::execCONTINUEB(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ZFREE_EXTENT:
   {
     jam();
     TablerecPtr tabPtr;
     FragrecordPtr fragPtr;
     ndbrequire(get_fragment_record(tabPtr,
                                    fragPtr,
-                                   dataPtr,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+\
+     defined(ERROR_INSERT))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+defined(ERROR_INSERT))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           dataPtr,
                                    signal->theData[2]));
     drop_fragment_free_extent(signal, tabPtr, fragPtr, signal->theData[3]);
     return;
@@ -425,141 +471,138 @@ void Dbtup::execCONTINUEB(Signal* signal)
     FragrecordPtr fragPtr;
     ndbrequire(get_fragment_record(tabPtr,
                                    fragPtr,
-                                   dataPtr,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+instance(),
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     instance(),                      dataPtr,
                                    signal->theData[2]));
     drop_fragment_unmap_pages(signal, tabPtr, fragPtr, signal->theData[3]);
     return;
-  }
-  case ZFREE_VAR_PAGES:
+    }
+    case ZFREE_VAR_PAGES:
   {
-    jam();
-    TablerecPtr tabPtr;
-    FragrecordPtr fragPtr;
-    ndbrequire(get_fragment_record(tabPtr,
-                                   fragPtr,
-                                   dataPtr,
-                                   signal->theData[2]));
-    drop_fragment_free_var_pages(signal, tabPtr, fragPtr);
-    return;
-  }
-  case ZFREE_PAGES:
-  {
-    jam();
-    TablerecPtr tabPtr;
-    FragrecordPtr fragPtr;
-    ndbrequire(get_fragment_record(tabPtr,
-                                   fragPtr,
-                                   dataPtr,
-                                   signal->theData[2]));
-    drop_fragment_free_pages(signal, tabPtr, fragPtr);
-    return;
-  }
-  case ZREBUILD_FREE_PAGE_LIST:
-  {
-    jam();
-    rebuild_page_free_list(signal);
-    return;
-  }
-  case ZDISK_RESTART_UNDO:
-  {
-    jam();
-    if (!assembleFragments(signal)) {
       jam();
+    TablerecPtr tabPtr;
+    FragrecordPtr fragPtr;
+    ndbrequire(get_fragment_record(tabPtr,
+                                   fragPtr,
+                                   dataPtr,
+                                   signal->theData[2]));
+      drop_fragment_free_var_pages(signal, tabPtr, fragPtr);
       return;
     }
-    Uint32 type = signal->theData[1];
-    Uint32 len = signal->theData[2];
-    Uint64 lsn_hi = signal->theData[3];
-    Uint64 lsn_lo = signal->theData[4];
-    Uint64 lsn = (lsn_hi << 32) | lsn_lo;
-    SectionHandle handle(this, signal);
-    ndbrequire(handle.m_cnt == 1);
-    SegmentedSectionPtr ssptr;
-    ndbrequire(handle.getSection(ssptr, 0));
-    ndbrequire(ssptr.sz <= NDB_ARRAY_SIZE(f_undo.m_data));
-    ::copy(f_undo.m_data, ssptr);
-    releaseSections(handle);
-    disk_restart_undo(signal,
-                      lsn,
-                      type,
-                      f_undo.m_data,
-                      len);
-    return;
-  }
+    case ZFREE_PAGES: {
+      jam();
+      TablerecPtr tabPtr;
+    FragrecordPtr fragPtr;
+    ndbrequire(get_fragment_record(tabPtr,
+                                   fragPtr,
+                                   dataPtr,
+                                   signal->theData[2]));
+      drop_fragment_free_pages(signal, tabPtr, fragPtr);
+      return;
+    }
+    case ZREBUILD_FREE_PAGE_LIST: {
+      jam();
+      rebuild_page_free_list(signal);
+      return;
+    }
+    case ZDISK_RESTART_UNDO: {
+      jam();
+      if (!assembleFragments(signal)) {
+        jam();
+        return;
+      }
+      Uint32 type = signal->theData[1];
+      Uint32 len = signal->theData[2];
+      Uint64 lsn_hi = signal->theData[3];
+      Uint64 lsn_lo = signal->theData[4];
+      Uint64 lsn = (lsn_hi << 32) | lsn_lo;
+      SectionHandle handle(this, signal);
+      ndbrequire(handle.m_cnt == 1);
+      SegmentedSectionPtr ssptr;
+      ndbrequire(handle.getSection(ssptr, 0));
+      ndbrequire(ssptr.sz <= NDB_ARRAY_SIZE(f_undo.m_data));
+      ::copy(f_undo.m_data, ssptr);
+      releaseSections(handle);
+      disk_restart_undo(signal, lsn, type, f_undo.m_data, len);
+      return;
+    }
 
-  default:
-    ndbabort();
-  }//switch
-}//Dbtup::execTUP_CONTINUEB()
+    default:
+      ndbabort();
+  }  // switch
+}  // Dbtup::execTUP_CONTINUEB()
 
 /* **************************************************************** */
 /* ---------------------------------------------------------------- */
 /* ------------------- SYSTEM RESTART MODULE ---------------------- */
 /* ---------------------------------------------------------------- */
 /* **************************************************************** */
-void Dbtup::execSTTOR(Signal* signal) 
-{
+void Dbtup::execSTTOR(Signal *signal) {
   jamEntry();
   Uint32 startPhase = signal->theData[1];
   Uint32 sigKey = signal->theData[6];
   switch (startPhase) {
-  case ZSTARTPHASE1:
-    jam();
-    c_started = false;
-    if (m_is_query_block)
-    {
-      ndbrequire((c_tux = (Dbtux*)globalData.getBlock(DBQTUX,
-                                                      instance())) != 0);
-      ndbrequire((c_acc = (Dbacc*)globalData.getBlock(DBQACC,
-                                                      instance())) != 0);
-      ndbrequire((c_lqh = (Dblqh*)globalData.getBlock(DBQLQH,
-                                                      instance())) != 0);
-      ndbrequire((c_backup =
-        (Backup*)globalData.getBlock(QBACKUP, instance())) != 0);
-    }
-    else
-    {
-      ndbrequire((c_tux = (Dbtux*)globalData.getBlock(DBTUX,
-                                                      instance())) != 0);
-      ndbrequire((c_acc = (Dbacc*)globalData.getBlock(DBACC,
-                                                      instance())) != 0);
-      ndbrequire((c_lqh = (Dblqh*)globalData.getBlock(DBLQH,
-                                                      instance())) != 0);
-      ndbrequire((c_backup =
-        (Backup*)globalData.getBlock(BACKUP, instance())) != 0);
-    }
-    ndbrequire((c_suma = (Suma*)globalData.getBlock(SUMA)) != 0);
-    ndbrequire((c_tsman = (Tsman*)globalData.getBlock(TSMAN)) != 0);
-    ndbrequire((c_lgman = (Lgman*)globalData.getBlock(LGMAN)) != 0);
-    ndbrequire((c_pgman =
-                (Pgman*)globalData.getBlock(PGMAN, instance())) != 0);
-    cownref = reference();
-    break;
-  case 3:
-  {
-#if (defined(VM_TRACE) || \
-     defined(ERROR_INSERT)) && \
+    case ZSTARTPHASE1:
+      jam();
+      c_started = false;
+      if (m_is_query_block) {
+        ndbrequire((c_tux = (Dbtux *)globalData.getBlock(DBQTUX, instance())) !=
+                   0);
+        ndbrequire((c_acc = (Dbacc *)globalData.getBlock(DBQACC, instance())) !=
+                   0);
+        ndbrequire((c_lqh = (Dblqh *)globalData.getBlock(DBQLQH, instance())) !=
+                   0);
+        ndbrequire((c_backup = (Backup *)globalData.getBlock(QBACKUP,
+                                                             instance())) != 0);
+      } else {
+        ndbrequire((c_tux = (Dbtux *)globalData.getBlock(DBTUX, instance())) !=
+                   0);
+        ndbrequire((c_acc = (Dbacc *)globalData.getBlock(DBACC, instance())) !=
+                   0);
+        ndbrequire((c_lqh = (Dblqh *)globalData.getBlock(DBLQH, instance())) !=
+                   0);
+        ndbrequire((c_backup = (Backup *)globalData.getBlock(BACKUP,
+                                                             instance())) != 0);
+      }
+      ndbrequire((c_suma = (Suma*)globalData.getBlock(SUMA)) != 0);
+    ndbrequire((c_tsman = (Tsman *)globalData.getBlock(TSMAN)) != 0);
+      ndbrequire((c_lgman = (Lgman *)globalData.getBlock(LGMAN)) != 0);
+      ndbrequire((c_pgman = (Pgman *)globalData.getBlock(PGMAN, instance())) !=
+                 0);
+      cownref = reference();
+      break;
+    case 3: {
+#if (defined(VM_TRACE) || defined(ERROR_INSERT)) && \
     defined(DO_TRANSIENT_POOL_STAT)
-    /* Start reporting statistics for transient pools */
-    signal->theData[0] = ZTUP_TRANSIENT_POOL_STAT;
-    sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
+      /* Start reporting statistics for transient pools */
+      signal->theData[0] = ZTUP_TRANSIENT_POOL_STAT;
+      sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
 #endif
-    break;
-  }
-  case 8:
+      break;
+    }
+    case 8:
   {
     c_restart_allow_use_spare = false;
     break;
   }
   case 50:
-    c_started = true;
-    break;
-  default:
-    jam();
-    break;
-  }//switch
-  if (m_is_query_block)
-  {
+      c_started = true;
+      break;
+    default:
+      jam();
+      break;
+  }  // switch
+  if (m_is_query_block) {
     jam();
     signal->theData[0] = sigKey;
     signal->theData[1] = 3;
@@ -570,9 +613,7 @@ void Dbtup::execSTTOR(Signal* signal)
     signal->theData[6] = 50;
     signal->theData[7] = 255;
     sendSignal(DBQTUP_REF, GSN_STTORRY, signal, 8, JBB);
-  }
-  else
-  {
+  } else {
     jam();
     signal->theData[0] = sigKey;
     signal->theData[1] = 3;
@@ -585,25 +626,24 @@ void Dbtup::execSTTOR(Signal* signal)
     BlockReference cntrRef = !isNdbMtLqh() ? NDBCNTR_REF : DBTUP_REF;
     sendSignal(cntrRef, GSN_STTORRY, signal, 8, JBB);
   }
-}//Dbtup::execSTTOR()
+}  // Dbtup::execSTTOR()
 
 /************************************************************************************************/
-// SIZE_ALTREP INITIALIZE DATA STRUCTURES, FILES AND DS VARIABLES, GET READY FOR EXTERNAL 
-// CONNECTIONS.
+// SIZE_ALTREP INITIALIZE DATA STRUCTURES, FILES AND DS VARIABLES, GET READY FOR
+// EXTERNAL CONNECTIONS.
 /************************************************************************************************/
-void Dbtup::execREAD_CONFIG_REQ(Signal* signal) 
-{
-  const ReadConfigReq * req = (ReadConfigReq*)signal->getDataPtr();
+void Dbtup::execREAD_CONFIG_REQ(Signal *signal) {
+  const ReadConfigReq *req = (ReadConfigReq *)signal->getDataPtr();
   Uint32 ref = req->senderRef;
   Uint32 senderData = req->senderData;
   ndbrequire(req->noOfParameters == 0);
-  
+
   jamEntry();
 
-  const ndb_mgm_configuration_iterator * p = 
-    m_ctx.m_config.getOwnConfigIterator();
+  const ndb_mgm_configuration_iterator *p =
+      m_ctx.m_config.getOwnConfigIterator();
   ndbrequire(p != 0);
-  
+
   ndbrequire(!ndb_mgm_get_int_parameter(p, CFG_TUP_TABLE, &cnoOfTablerec));
 
   initRecords(p);
@@ -650,7 +690,7 @@ void Dbtup::execREAD_CONFIG_REQ(Signal* signal)
     Uint64 page_cache_size = globalData.theDiskPageBufferMemory;
     page_cache_size = (page_cache_size  + GLOBAL_PAGE_SIZE - 1) /
                        GLOBAL_PAGE_SIZE; // in pages
-    // never read ahead more than 32 pages
+      // never read ahead more than 32 pages
     if (page_cache_size > 32)
       m_max_page_read_ahead = 32;
     else
@@ -769,7 +809,29 @@ void Dbtup::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
 				    cnoOfTablerec);
 
   for (i = 0; i<cnoOfTablerec; i++) {
-    void * p = &tablerec[i];
+    void
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tmp[]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tmp[]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = &tablerec[i];
     new (p) Tablerec(c_triggerPool);
   }
 
@@ -777,9 +839,8 @@ void Dbtup::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
   pc.m_block = this;
 
   Uint32 reserveOpRecs = 1;
-  ndbrequire(!ndb_mgm_get_int_parameter(mgm_cfg,
-                             CFG_LDM_RESERVED_OPERATIONS,
-                             &reserveOpRecs));
+  ndbrequire(!ndb_mgm_get_int_parameter(mgm_cfg,                        CFG_LDM_RESERVED_OPERATIONS,
+                               &reserveOpRecs));
   if (m_is_query_block)
   {
     reserveOpRecs = 200;
@@ -797,8 +858,29 @@ void Dbtup::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
   Uint32 reserveSpRecs = 200;
   ndbrequire(!ndb_mgm_get_int_parameter(mgm_cfg,
                              CFG_TUP_RESERVED_SCAN_RECORDS,
-                             &reserveSpRecs));
-  if (m_is_query_block)
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+         &reserveSpRecs));
+||||||| Common ancestor
+sizeof(Fragoperrec),
+					  cnoOfFragoprec);
+
+  fragrecord = (Fragrecord*)allocRecord("Fragrecord",
+					sizeof(Fragrecord), 
+					cnoOfFragrec);
+  
+=======
+sizeof(Fragoperrec),
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if (m_is_query_block)
+||||||| Common ancestor
+alterTabOperRec = (AlterTabOperation*)allocRecord("AlterTabOperation",
+=======
+>>>>>>> MySQL 8.0.36
   {
     reserveSpRecs = 1;
   }
@@ -812,9 +894,71 @@ void Dbtup::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
     refresh_watch_dog();
   }
 
-  Uint32 tup_scan_lock_recs = 1000;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+cnoOfFragoprec);
+
+>>>>>>> MySQL 8.0.36
+ tup_scan_lock_recs 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1000;
+||||||| Common ancestor
+=======
+=
+>>>>>>> MySQL 8.0.36
   c_freeScanLock = RNIL;
-  if (m_is_query_block)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+(Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ sizeof
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*)allocRecord("Fragrecord", sizeof
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_is_query_block
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AlterTabOperation
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
   {
     tup_scan_lock_recs = 1;
   }
@@ -822,6 +966,17 @@ void Dbtup::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
     ScanLock::TYPE_ID,
     pc,
     tup_scan_lock_recs,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+,
+                                                    cnoOfAlterTabOps);
+=======
+, cnoOfFragrec);
+
+  alterTabOperRec = (AlterTabOperation *)allocRecord(
+      "AlterTabOperation", sizeof(AlterTabOperation), cnoOfAlterTabOps);
+>>>>>>> MySQL 8.0.36
+
     UINT32_MAX);
   while (c_scanLockPool.startup())
   {
@@ -839,12 +994,8 @@ void Dbtup::initRecords(const ndb_mgm_configuration_iterator *mgm_cfg)
   }
 
   c_scanOpPool.init(
-    ScanOp::TYPE_ID,
-    pc,
-    reserveSpRecs + 1,
-    UINT32_MAX);
-  while (c_scanOpPool.startup())
-  {
+    ScanOp::TYPE_ID, pc, reserveSpRecs + 1, UINT32_MAX);
+  while (c_scanOpPool.startup()) {
     refresh_watch_dog();
   }
 }//Dbtup::initRecords()
@@ -899,33 +1050,33 @@ void Dbtup::initialiseRecordsLab(Signal* signal, Uint32 switchData,
   signal->theData[3] = retData;
   sendSignal(reference(), GSN_CONTINUEB, signal, 4, JBB);
   return;
-}//Dbtup::initialiseRecordsLab()
+}  // Dbtup::initialiseRecordsLab()
 
-void Dbtup::execNDB_STTOR(Signal* signal) 
+void Dbtup::execNDB_STTOR(Signal *signal) 
 {
   jamEntry();
   cndbcntrRef = signal->theData[0];
   Uint32 startPhase = signal->theData[2];
   switch (startPhase) {
-  case ZSTARTPHASE1:
-    jam();
+    case ZSTARTPHASE1:
+      jam();
     ndbassert(!m_is_query_block);
     initializeDefaultValuesFrag();
+      break;
+    case ZSTARTPHASE2:
+      jam();
     break;
-  case ZSTARTPHASE2:
-    jam();
+    case ZSTARTPHASE3:
+      jam();
     break;
-  case ZSTARTPHASE3:
-    jam();
+    case ZSTARTPHASE4:
+      jam();
     break;
-  case ZSTARTPHASE4:
-    jam();
-    break;
-  case ZSTARTPHASE6:
-    jam();
+    case ZSTARTPHASE6:
+      jam();
     break;
   default:
-    jam();
+      jam();
     break;
   }//switch
   signal->theData[0] = cownref;
@@ -935,14 +1086,36 @@ void Dbtup::execNDB_STTOR(Signal* signal)
 
 void Dbtup::initializeDefaultValuesFrag()
 {
-  /* Grab and initialize a fragment record for storing default
+  /* Grab and initialize a fragment record for storing   default
    * values for the table fragments held by this TUP instance
    */
   ndbrequire(seizeFragrecord(DefaultValuesFragment));
   DefaultValuesFragment.p->fragStatus = Fragrecord::FS_ONLINE;
   DefaultValuesFragment.p->m_undo_complete= 0;
   DefaultValuesFragment.p->m_lcp_scan_op = RNIL;
-  DefaultValuesFragment.p->noOfPages = 0;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}//Dbtup::initialiseRecordsLab()
+
+void Dbtup::execNDB_STTOR(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  // Dbtup::initialiseRecordsLab()
+
+void Dbtup::execNDB_STTOR(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ DefaultValuesFragment.p->noOfPages = 0;
   DefaultValuesFragment.p->noOfVarPages = 0;
   DefaultValuesFragment.p->m_varWordsFree = 0;
   DefaultValuesFragment.p->m_max_page_cnt = 0;
@@ -963,15 +1136,14 @@ void Dbtup::initializeFragoperrec()
   for (fragoperPtr.i = 0; fragoperPtr.i < cnoOfFragoprec; fragoperPtr.i++) {
     ptrAss(fragoperPtr, fragoperrec);
     fragoperPtr.p->nextFragoprec = fragoperPtr.i + 1;
-  }//for
+  }  //for
   fragoperPtr.i = cnoOfFragoprec - 1;
   ptrAss(fragoperPtr, fragoperrec);
   fragoperPtr.p->nextFragoprec = RNIL;
   cfirstfreeFragopr = 0;
-}//Dbtup::initializeFragoperrec()
+}  // Dbtup::initializeFragoperrec()
 
-void Dbtup::initializeAlterTabOperation()
-{
+void Dbtup::initializeAlterTabOperation() {
   if (m_is_query_block)
   {
     cfirstfreeAlterTabOp = RNIL;
@@ -993,8 +1165,7 @@ void Dbtup::initializeAlterTabOperation()
   cfirstfreeAlterTabOp= 0;
 }
 
-void Dbtup::initializeHostBuffer() 
-{
+void Dbtup::initializeHostBuffer() {
   Uint32 hostId;
   cpackedListIndex = 0;
   for (hostId = 0; hostId < MAX_NODES; hostId++) {
@@ -1002,11 +1173,10 @@ void Dbtup::initializeHostBuffer()
     hostBuffer[hostId].noOfPacketsTA = 0;
     hostBuffer[hostId].packetLenTA = 0;
   }//for
-}//Dbtup::initializeHostBuffer()
+}  // Dbtup::initializeHostBuffer()
 
 
-void Dbtup::initializeTablerec() 
-{
+void Dbtup::initializeTablerec() {
   TablerecPtr regTabPtr;
   jam();
   jamData(cnoOfTablerec);
@@ -1066,7 +1236,34 @@ Dbtup::initTab(Tablerec* const regTabPtr)
   regTabPtr->tableStatus = NOT_DEFINED;
   regTabPtr->m_default_value_location.setNull();
 
-  // Clear trigger data
+  //
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtup::initializeTablerec()
+
+void
+Dbtup::initTab(Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ Dbtup::initializeTablerec()
+
+void Dbtup::initTab(Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Clear
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ trigger data
   if (!regTabPtr->afterInsertTriggers.isEmpty())
     while (regTabPtr->afterInsertTriggers.releaseFirst());
   if (!regTabPtr->afterDeleteTriggers.isEmpty())
@@ -1112,25 +1309,19 @@ void Dbtup::execTUPSEIZEREQ(Signal* signal)
   return;
 }//Dbtup::execTUPSEIZEREQ()
 
-Dbtup::Operationrec*
-Dbtup::get_operation_ptr(Uint32 i)
-{
+Dbtup::Operationrec *Dbtup::get_operation_ptr(Uint32 i) {
   OperationrecPtr opPtr;
   opPtr.i = i;
   require(c_operation_pool.getValidPtr(opPtr));
   return opPtr.p;
 }
 
-bool Dbtup::seize_op_rec(Uint32 userPtr,
-                         BlockReference ref,
-                         Uint32 &i_val,
-                         Dbtup::Operationrec **opPtrP)
-{
+bool Dbtup::seize_op_rec(Uint32 userPtr, BlockReference ref, Uint32 &i_val,
+                         Dbtup::Operationrec **opPtrP) {
   /* Cannot use jam here, called from other thread */
   OperationrecPtr opPtr;
   (void)ref;
-  if (unlikely(!c_operation_pool.seize(opPtr)))
-  {
+  if (unlikely(!c_operation_pool.seize(opPtr))) {
     return false;
   }
   opPtr.p->userpointer = userPtr;
@@ -1140,24 +1331,19 @@ bool Dbtup::seize_op_rec(Uint32 userPtr,
   return true;
 }
 
-void Dbtup::releaseFragrec(FragrecordPtr regFragPtr) 
-{
-  for (Uint32 i = 0; i < NUM_TUP_FRAGMENT_MUTEXES; i++)
-  {
+void Dbtup::releaseFragrec(FragrecordPtr regFragPtr) {
+  for (Uint32 i = 0; i < NUM_TUP_FRAGMENT_MUTEXES; i++) {
     NdbMutex_Deinit(&regFragPtr.p->tup_frag_mutex[i]);
   }
   NdbMutex_Deinit(&regFragPtr.p->tup_frag_page_map_mutex);
   RSS_OP_FREE(cnoOfAllocatedFragrec);
   c_fragment_pool.release(regFragPtr);
-}//Dbtup::releaseFragrec()
+}  // Dbtup::releaseFragrec()
 
-
-void Dbtup::execNODE_FAILREP(Signal* signal)
-{
+void Dbtup::execNODE_FAILREP(Signal *signal) {
   jamEntry();
-  NodeFailRep * rep = (NodeFailRep*)signal->getDataPtr();
-  if(signal->getLength() == NodeFailRep::SignalLength)
-  {
+  NodeFailRep *rep = (NodeFailRep *)signal->getDataPtr();
+  if (signal->getLength() == NodeFailRep::SignalLength) {
     ndbrequire(signal->getNoOfSections() == 1);
     ndbrequire(ndbd_send_node_bitmask_in_section(
         getNodeInfo(refToNode(signal->getSendersBlockRef())).m_version));
@@ -1167,35 +1353,28 @@ void Dbtup::execNODE_FAILREP(Signal* signal)
     memset(rep->theNodes, 0, sizeof(rep->theNodes));
     copy(rep->theNodes, ptr);
     releaseSections(handle);
+  } else {
+    memset(rep->theNodes + NdbNodeBitmask48::Size, 0, _NDB_NBM_DIFF_BYTES);
   }
-  else
-  {
-    memset(rep->theNodes + NdbNodeBitmask48::Size,
-           0,
-           _NDB_NBM_DIFF_BYTES);
-  }
-  NdbNodeBitmask failed; 
+  NdbNodeBitmask failed;
   failed.assign(NdbNodeBitmask::Size, rep->theNodes);
 
   /* Block level cleanup */
-  for(unsigned i = 1; i < MAX_NDB_NODES; i++) {
+  for (unsigned i = 1; i < MAX_NDB_NODES; i++) {
     jam();
-    if(failed.get(i)) {
+    if (failed.get(i)) {
       jam();
-      Uint32 elementsCleaned = simBlockNodeFailure(signal, i); // No callback
-      ndbassert(elementsCleaned == 0); // No distributed fragmented signals
-      (void) elementsCleaned; // Remove compiler warning
-    }//if
-  }//for
+      Uint32 elementsCleaned = simBlockNodeFailure(signal, i);  // No callback
+      ndbassert(elementsCleaned == 0);  // No distributed fragmented signals
+      (void)elementsCleaned;            // Remove compiler warning
+    }                                   // if
+  }                                     // for
 }
 
-void
-Dbtup::sendPoolShrink(const Uint32 pool_index)
-{
+void Dbtup::sendPoolShrink(const Uint32 pool_index) {
   const bool need_send = c_transient_pools_shrinking.get(pool_index) == 0;
   c_transient_pools_shrinking.set(pool_index);
-  if (need_send)
-  {
+  if (need_send) {
     Signal25 signal[1] = {};
     signal->theData[0] = ZTUP_SHRINK_TRANSIENT_POOLS;
     signal->theData[1] = pool_index;
@@ -1203,17 +1382,12 @@ Dbtup::sendPoolShrink(const Uint32 pool_index)
   }
 }
 
-void
-Dbtup::shrinkTransientPools(Uint32 pool_index)
-{
+void Dbtup::shrinkTransientPools(Uint32 pool_index) {
   ndbrequire(pool_index < c_transient_pool_count);
   ndbrequire(c_transient_pools_shrinking.get(pool_index));
-  if (c_transient_pools[pool_index]->rearrange_free_list_and_shrink())
-  {
+  if (c_transient_pools[pool_index]->rearrange_free_list_and_shrink()) {
     sendPoolShrink(pool_index);
-  }
-  else
-  {
+  } else {
     c_transient_pools_shrinking.clear(pool_index);
   }
 }

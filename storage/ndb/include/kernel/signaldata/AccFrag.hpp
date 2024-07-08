@@ -30,7 +30,6 @@
 
 #define JAM_FILE_ID 166
 
-
 class AccFragReq {
   /**
    * Sender(s)
@@ -41,10 +40,11 @@ class AccFragReq {
    * Receiver(s)
    */
   friend class Dbacc;
-public:
+
+ public:
   static constexpr Uint32 SignalLength = 13;
 
-private:
+ private:
   Uint32 userPtr;
   Uint32 userRef;
   Uint32 tableId;
@@ -70,10 +70,11 @@ class AccFragConf {
    * Receiver(s)
    */
   friend class Dblqh;
-public:
+
+ public:
   static constexpr Uint32 SignalLength = 7;
 
-private:
+ private:
   Uint32 userPtr;
   Uint32 rootFragPtr;
   Uint32 fragId[2];
@@ -91,14 +92,14 @@ class AccFragRef {
    * Receiver(s)
    */
   friend class Dblqh;
-public:
+
+ public:
   static constexpr Uint32 SignalLength = 2;
 
-private:
+ private:
   Uint32 userPtr;
   Uint32 errorCode;
 };
-
 
 #undef JAM_FILE_ID
 

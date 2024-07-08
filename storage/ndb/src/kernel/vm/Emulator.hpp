@@ -37,12 +37,11 @@
 
 #define JAM_FILE_ID 260
 
-
-extern class  JobTable            globalJobTable;
-extern class  TimeQueue           globalTimeQueue;
-extern class  FastScheduler       globalScheduler;
-extern class  TransporterRegistry globalTransporterRegistry;
-extern struct GlobalData          globalData;
+extern class JobTable globalJobTable;
+extern class TimeQueue globalTimeQueue;
+extern class FastScheduler globalScheduler;
+extern class TransporterRegistry globalTransporterRegistry;
+extern struct GlobalData globalData;
 
 #ifdef VM_TRACE
 extern class SignalLoggerManager globalSignalLoggers;
@@ -870,12 +869,52 @@ private:
     ----------+-------------+---------+------------+------------------+-------
     Bit  0-15 | Line number | Data    | Signal id  | Signal id        | 0xffff
     Bit 16-24 | File id     | File id | Signal id  | Signal id        | 0x1ff
-    Bit 25-29 | File id     | File id | Signal id  | Pack index       | 0x1f
+    Bit 25-29 | File id     | File id | Signal id  | Pack index 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pathName);
+
+=======
+*pathName);
+
+>>>>>>> MySQL 8.0.36
+     | 0x1f
     Bit 30-31 | 1           | 2       | 3          | 0                | 1
 
     Motivation for choice of bit 30-31:
       LINE:
-        Can be anything since the whole entry will be known at compile time.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+getFileName()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*getFileName()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    Can be anything since the whole entry will be known at compile time.
       DATA:
         Can be anything. Since fileId is known at compile time, compiler
         optimization should make it so that only a bitwise or is required to
@@ -897,8 +936,7 @@ private:
 /***
  * This is a ring buffer of JamEvents for a thread.
  */
-struct EmulatedJamBuffer
-{
+struct EmulatedJamBuffer {
   // Index of the next entry.
   Uint32 theEmulatedJamIndex;
   JamEvent theEmulatedJam[EMULATED_JAM_SIZE];
@@ -910,8 +948,7 @@ struct EmulatedJamBuffer
   }
 
   // Insert a JamEvent marking the start of a signal.
-  inline void markStartOfSigExec(Uint32 theSignalId)
-  {
+  inline void markStartOfSigExec(Uint32 theSignalId) {
     insertJamEvent(JamEvent(theSignalId));
   }
 
@@ -923,12 +960,12 @@ struct EmulatedJamBuffer
 };
 
 struct EmulatorData {
-  class Configuration * theConfiguration;
-  class WatchDog      * theWatchDog;
-  class ThreadConfig  * theThreadConfig;
-  class SimBlockList  * theSimBlockList;
-  class SocketServer  * m_socket_server;
-  class Ndbd_mem_manager * m_mem_manager;
+  class Configuration *theConfiguration;
+  class WatchDog *theWatchDog;
+  class ThreadConfig *theThreadConfig;
+  class SimBlockList *theSimBlockList;
+  class SocketServer *m_socket_server;
+  class Ndbd_mem_manager *m_mem_manager;
 
   /**
    * Constructor
@@ -936,12 +973,12 @@ struct EmulatorData {
    *  Sets all the pointers to NULL
    */
   EmulatorData();
-  
+
   /**
    * Create all the objects
    */
   void create();
-  
+
   /**
    * Destroys all the objects
    */
@@ -953,9 +990,8 @@ extern struct EmulatorData globalEmulatorData;
 /**
  * Compute no of pages to be used as job-buffer
  */
-Uint32 compute_jb_pages(struct EmulatorData* ed);
-
+Uint32 compute_jb_pages(struct EmulatorData *ed);
 
 #undef JAM_FILE_ID
 
-#endif 
+#endif

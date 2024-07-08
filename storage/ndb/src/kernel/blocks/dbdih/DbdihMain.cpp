@@ -24,70 +24,83 @@
 */
 
 #define DBDIH_C
-#include "util/require.h"
 #include <ndb_global.h>
 #include <ndb_limits.h>
-#include <string.h>
 #include <ndb_version.h>
+#include <string.h>
 #include <NdbOut.hpp>
+#include "util/require.h"
 
-#include "Dbdih.hpp"
 #include "Configuration.hpp"
+#include "Dbdih.hpp"
 
-#include <signaldata/CopyTab.hpp>
-#include <signaldata/DbinfoScan.hpp>
 #include <signaldata/AllocNodeId.hpp>
-#include <signaldata/NodeRecoveryStatusRep.hpp>
 #include <signaldata/BlockCommitOrd.hpp>
 #include <signaldata/CheckNodeGroups.hpp>
 #include <signaldata/CopyActive.hpp>
 #include <signaldata/CopyFrag.hpp>
 #include <signaldata/CopyGCIReq.hpp>
+#include <signaldata/CopyTab.hpp>
+#include <signaldata/DbinfoScan.hpp>
 #include <signaldata/DiAddTab.hpp>
-#include <signaldata/DictStart.hpp>
 #include <signaldata/DiGetNodes.hpp>
+#include <signaldata/DictStart.hpp>
 #include <signaldata/DihContinueB.hpp>
+#include <signaldata/DihStartTab.hpp>
 #include <signaldata/DihSwitchReplica.hpp>
 #include <signaldata/DumpStateOrd.hpp>
 #include <signaldata/EventReport.hpp>
 #include <signaldata/FsConf.hpp>
 #include <signaldata/FsReadWriteReq.hpp>
 #include <signaldata/GCP.hpp>
+#include <signaldata/LCP.hpp>
 #include <signaldata/MasterGCP.hpp>
 #include <signaldata/MasterLCP.hpp>
 #include <signaldata/NFCompleteRep.hpp>
 #include <signaldata/NodeFailRep.hpp>
+#include <signaldata/NodeRecoveryStatusRep.hpp>
 #include <signaldata/ReadNodesConf.hpp>
 #include <signaldata/StartFragReq.hpp>
 #include <signaldata/StartInfo.hpp>
 #include <signaldata/StartMe.hpp>
 #include <signaldata/StartPerm.hpp>
 #include <signaldata/StartRec.hpp>
-#include <signaldata/StopPerm.hpp>
 #include <signaldata/StopMe.hpp>
+#include <signaldata/StopPerm.hpp>
+#include <signaldata/SystemError.hpp>
 #include <signaldata/TestOrd.hpp>
 #include <signaldata/WaitGCP.hpp>
-#include <signaldata/DihStartTab.hpp>
-#include <signaldata/LCP.hpp>
-#include <signaldata/SystemError.hpp>
 
 #include <signaldata/TakeOver.hpp>
 
-#include <signaldata/DropTab.hpp>
+#include <NdbEnv.h>
+#include <ndb_constants.h>
+#include <DebuggerNames.hpp>
+#include <SectionReader.hpp>
 #include <signaldata/AlterTab.hpp>
 #include <signaldata/AlterTable.hpp>
-#include <signaldata/PrepDropTab.hpp>
-#include <signaldata/SumaImpl.hpp>
-#include <signaldata/DictTabInfo.hpp>
 #include <signaldata/CreateFragmentation.hpp>
-#include <signaldata/LqhFrag.hpp>
+#include <signaldata/CreateNodegroup.hpp>
+#include <signaldata/CreateNodegroupImpl.hpp>
+#include <signaldata/DictLock.hpp>
+#include <signaldata/DictTabInfo.hpp>
+#include <signaldata/DihGetTabInfo.hpp>
+#include <signaldata/DihRestart.hpp>
+#include <signaldata/DihScanTab.hpp>
+#include <signaldata/DropNodegroup.hpp>
+#include <signaldata/DropNodegroupImpl.hpp>
+#include <signaldata/DropTab.hpp>
 #include <signaldata/FsCloseReq.hpp>
 #include <signaldata/FsOpenReq.hpp>
-#include <signaldata/DihScanTab.hpp>
-#include <signaldata/DictLock.hpp>
-#include <DebuggerNames.hpp>
+#include <signaldata/IsolateOrd.hpp>
+#include <signaldata/LqhFrag.hpp>
+#include <signaldata/PrepDropTab.hpp>
+#include <signaldata/SumaImpl.hpp>
 #include <signaldata/Upgrade.hpp>
-#include <NdbEnv.h>
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<NdbEnv.h>
 #include <signaldata/CreateNodegroup.hpp>
 #include <signaldata/CreateNodegroupImpl.hpp>
 #include <signaldata/DropNodegroup.hpp>
@@ -98,14 +111,30 @@
 #include <signaldata/IsolateOrd.hpp>
 #include <ndb_constants.h>
 #include <ndbd_malloc.hpp>
-#include "portlib/mt-asm.h"
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<NdbEnv.h>
+#include <signaldata/CreateNodegroup.hpp>
+#include <signaldata/CreateNodegroupImpl.hpp>
+#include <signaldata/DropNodegroup.hpp>
+#include <signaldata/DropNodegroupImpl.hpp>
+#include <signaldata/DihGetTabInfo.hpp>
+#include <SectionReader.hpp>
+#include <signaldata/DihRestart.hpp>
+#include <signaldata/IsolateOrd.hpp>
+#include <ndb_constants.h>
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+"portlib/mt-asm.h"
 
 #include <EventLogger.hpp>
 
 #define JAM_FILE_ID 354
 
 static const Uint32 WaitTableStateChangeMillis = 10;
-
 
 #if (defined(VM_TRACE) || defined(ERROR_INSERT))
 //#define DEBUG_MULTI_TRP 1
@@ -120,7 +149,10 @@ static const Uint32 WaitTableStateChangeMillis = 10;
 #endif
 
 #ifdef DEBUG_NODE_STATUS
-#define DEB_NODE_STATUS(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_NODE_STATUS(arglist) \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
 #define DEB_NODE_STATUS(arglist) do { } while (0)
 #endif
@@ -128,7 +160,9 @@ static const Uint32 WaitTableStateChangeMillis = 10;
 #ifdef DEBUG_ACTIVE_NODES
 #define DEB_ACTIVE_NODES(arglist) do { g_eventLogger->info arglist ; } while (0)
 #else
-#define DEB_ACTIVE_NODES(arglist) do { } while (0)
+#define DEB_ACTIVE_NODES(arglist) \
+  do {                           \
+  } while (0)
 #endif
 
 #ifdef DEBUG_TCGETOPSIZE
@@ -138,21 +172,36 @@ static const Uint32 WaitTableStateChangeMillis = 10;
 #endif
 
 #ifdef DEBUG_COPY_ACTIVE
-#define DEB_COPY_ACTIVE(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_COPY_ACTIVE(arglist)   \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_COPY_ACTIVE(arglist) do { } while (0)
+#define DEB_COPY_ACTIVE(arglist) \
+  do {                         \
+  } while (0)
 #endif
 
 #ifdef DEBUG_MULTI_TRP
-#define DEB_MULTI_TRP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_MULTI_TRP(arglist)   \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_MULTI_TRP(arglist) do { } while (0)
+#define DEB_MULTI_TRP(arglist) \
+  do {                         \
+  } while (0)
 #endif
 
 #ifdef DEBUG_NODE_STOP
-#define DEB_NODE_STOP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_NODE_STOP(arglist) \
+  do {                            \
+    g_eventLogger->info arglist;  \
+  } while (0)
 #else
-#define DEB_NODE_STOP(arglist) do { } while (0)
+#define DEB_NODE_STOP(arglist) \
+  do {                            \
+  } while (0)
 #endif
 
 #ifdef DEBUG_REDO_CONTROL
@@ -162,15 +211,25 @@ static const Uint32 WaitTableStateChangeMillis = 10;
 #endif
 
 #ifdef DEBUG_LCP
-#define DEB_LCP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP(arglist)         \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP(arglist) do { } while (0)
+#define DEB_LCP(arglist) \
+  do {                   \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP_COMP
-#define DEB_LCP_COMP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP_COMP(arglist)    \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP_COMP(arglist) do { } while (0)
+#define DEB_LCP_COMP(arglist) \
+  do {                        \
+  } while (0)
 #endif
 
 #define SYSFILE (&sysfile)
@@ -178,75 +237,64 @@ static const Uint32 WaitTableStateChangeMillis = 10;
 #define ZINIT_REPLICA_LAST_GCI Uint32(-1)
 
 #define RETURN_IF_NODE_NOT_ALIVE(node) \
-  if (!checkNodeAlive((node))) { \
-    jam(); \
-    return; \
-  } \
+  if (!checkNodeAlive((node))) {       \
+    jam();                             \
+    return;                            \
+  }
 
-#define receiveLoopMacro(sigName, receiveNodeId)\
-{                                                \
-  c_##sigName##_Counter.clearWaitingFor(receiveNodeId); \
-  if(c_##sigName##_Counter.done() == false){     \
-     jam();                                      \
-     return;                                     \
-  }                                              \
-}
+#define receiveLoopMacro(sigName, receiveNodeId)          \
+  {                                                       \
+    c_##sigName##_Counter.clearWaitingFor(receiveNodeId); \
+    if (c_##sigName##_Counter.done() == false) {          \
+      jam();                                              \
+      return;                                             \
+    }                                                     \
+  }
 
-#define sendLoopMacro(sigName, signalRoutine, extra)                    \
-{                                                                       \
-  c_##sigName##_Counter.clearWaitingFor();                              \
-  NodeRecordPtr specNodePtr;                                            \
-  specNodePtr.i = cfirstAliveNode;                                      \
-  do {                                                                  \
-    jam();                                                              \
-    ptrCheckGuard(specNodePtr, MAX_NDB_NODES, nodeRecord);              \
-    c_##sigName##_Counter.setWaitingFor(specNodePtr.i);                 \
-    signalRoutine(signal, specNodePtr.i, extra);                        \
-    specNodePtr.i = specNodePtr.p->nextNode;                            \
-  } while (specNodePtr.i != RNIL);                                      \
-}
+#define sendLoopMacro(sigName, signalRoutine, extra)         \
+  {                                                          \
+    c_##sigName##_Counter.clearWaitingFor();                 \
+    NodeRecordPtr specNodePtr;                               \
+    specNodePtr.i = cfirstAliveNode;                         \
+    do {                                                     \
+      jam();                                                 \
+      ptrCheckGuard(specNodePtr, MAX_NDB_NODES, nodeRecord); \
+      c_##sigName##_Counter.setWaitingFor(specNodePtr.i);    \
+      signalRoutine(signal, specNodePtr.i, extra);           \
+      specNodePtr.i = specNodePtr.p->nextNode;               \
+    } while (specNodePtr.i != RNIL);                         \
+  }
 
-static
-Uint32
-prevLcpNo(Uint32 lcpNo){
-  if(lcpNo == 0)
-    return MAX_LCP_USED - 1;
+static Uint32 prevLcpNo(Uint32 lcpNo) {
+  if (lcpNo == 0) return MAX_LCP_USED - 1;
   return lcpNo - 1;
 }
 
-static
-Uint32
-nextLcpNo(Uint32 lcpNo){
+static Uint32 nextLcpNo(Uint32 lcpNo) {
   lcpNo++;
-  if(lcpNo >= MAX_LCP_USED)
-    return 0;
+  if (lcpNo >= MAX_LCP_USED) return 0;
   return lcpNo;
 }
 
-void Dbdih::nullRoutine(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
-}//Dbdih::nullRoutine()
+void Dbdih::nullRoutine(Signal *signal, Uint32 nodeId, Uint32 extra) {
+}  // Dbdih::nullRoutine()
 
-void Dbdih::sendCOPY_GCIREQ(Signal* signal, Uint32 nodeId, Uint32 extra) 
-{
+void Dbdih::sendCOPY_GCIREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   ndbrequire(c_copyGCIMaster.m_copyReason != CopyGCIReq::IDLE);
-  CopyGCIReq * const copyGCI = (CopyGCIReq *)&signal->theData[0];  
+  CopyGCIReq *const copyGCI = (CopyGCIReq *)&signal->theData[0];
   copyGCI->anyData = nodeId;
   copyGCI->copyReason = c_copyGCIMaster.m_copyReason;
   copyGCI->startWord = 0;
 
   const BlockReference ref = calcDihBlockRef(nodeId);
   Uint32 cdata_size_in_words = DIH_CDATA_SIZE;
-  if (ndbd_send_node_bitmask_in_section(getNodeInfo(nodeId).m_version))
-  {
+  if (ndbd_send_node_bitmask_in_section(getNodeInfo(nodeId).m_version)) {
     jam();
     int ret = SYSFILE->pack_sysfile_format_v2(cdata, &cdata_size_in_words);
     jamLine((Uint16)ret);
     ndbrequire(ret == 0);
     send_COPY_GCIREQ_data_v2(signal, ref, cdata_size_in_words);
-  }
-  else
-  {
+  } else {
     jam();
     int ret = SYSFILE->pack_sysfile_format_v1(cdata, &cdata_size_in_words);
     jamLine((Uint16)ret);
@@ -255,10 +303,8 @@ void Dbdih::sendCOPY_GCIREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
   }
 }
 
-void Dbdih::send_COPY_GCIREQ_data_v2(Signal *signal,
-                                     BlockReference ref,
-                                     Uint32 cdata_size_in_words)
-{
+void Dbdih::send_COPY_GCIREQ_data_v2(Signal *signal, BlockReference ref,
+                                     Uint32 cdata_size_in_words) {
   LinearSectionPtr lsptr[3];
   lsptr[0].p = &cdata[0];
   lsptr[0].sz = cdata_size_in_words;
@@ -269,150 +315,114 @@ void Dbdih::send_COPY_GCIREQ_data_v2(Signal *signal,
   }
   g_eventLogger->info("ref = %x", ref);
 #endif
-  sendSignal(ref,
-             GSN_COPY_GCIREQ,
-             signal,
-             CopyGCIReq::SignalLength,
-             JBB,
-             lsptr,
+  sendSignal(ref, GSN_COPY_GCIREQ, signal, CopyGCIReq::SignalLength, JBB, lsptr,
              1);
 }
 
-void Dbdih::send_START_MECONF_data_v2(Signal *signal,
-                                      BlockReference ref,
-                                      Uint32 cdata_size_in_words)
-{
+void Dbdih::send_START_MECONF_data_v2(Signal *signal, BlockReference ref,
+                                      Uint32 cdata_size_in_words) {
   LinearSectionPtr lsptr[3];
   lsptr[0].p = &cdata[0];
   lsptr[0].sz = cdata_size_in_words;
-  sendSignal(ref,
-             GSN_START_MECONF,
-             signal,
-             StartMeConf::SignalLength_v2,
-             JBB,
-             lsptr,
-             1);
+  sendSignal(ref, GSN_START_MECONF, signal, StartMeConf::SignalLength_v2, JBB,
+             lsptr, 1);
 }
 
-void Dbdih::send_COPY_GCIREQ_data_v1(Signal *signal, BlockReference ref)
-{
+void Dbdih::send_COPY_GCIREQ_data_v1(Signal *signal, BlockReference ref) {
   const Uint32 wordPerSignal = CopyGCIReq::DATA_SIZE;
-  const Uint32 noOfSignals = ((Sysfile::SYSFILE_SIZE32_v1 +
-                              (wordPerSignal - 1)) /
-			       wordPerSignal);
- 
-  CopyGCIReq * const copyGCI = (CopyGCIReq *)&signal->theData[0];  
-  for(Uint32 i = 0; i < noOfSignals; i++)
-  {
+  const Uint32 noOfSignals =
+      ((Sysfile::SYSFILE_SIZE32_v1 + (wordPerSignal - 1)) / wordPerSignal);
+
+  CopyGCIReq *const copyGCI = (CopyGCIReq *)&signal->theData[0];
+  for (Uint32 i = 0; i < noOfSignals; i++) {
     const int startWord = copyGCI->startWord;
-    for(Uint32 j = 0; j < wordPerSignal; j++)
-    {
-      copyGCI->data[j] = cdata[j+startWord];
+    for (Uint32 j = 0; j < wordPerSignal; j++) {
+      copyGCI->data[j] = cdata[j + startWord];
     }
     sendSignal(ref, GSN_COPY_GCIREQ, signal, 25, JBB);
     copyGCI->startWord += wordPerSignal;
   }
 }
 
-void Dbdih::send_START_MECONF_data_v1(Signal *signal, BlockReference ref)
-{
+void Dbdih::send_START_MECONF_data_v1(Signal *signal, BlockReference ref) {
   const int wordPerSignal = StartMeConf::DATA_SIZE;
-  const int noOfSignals = ((Sysfile::SYSFILE_SIZE32_v1 +
-                            (wordPerSignal - 1)) /
-                              wordPerSignal);
-  StartMeConf * const startMe = (StartMeConf *)&signal->theData[0];
-  for(int i = 0; i < noOfSignals; i++)
-  {
+  const int noOfSignals =
+      ((Sysfile::SYSFILE_SIZE32_v1 + (wordPerSignal - 1)) / wordPerSignal);
+  StartMeConf *const startMe = (StartMeConf *)&signal->theData[0];
+  for (int i = 0; i < noOfSignals; i++) {
     const int startWord = startMe->startWord;
-    for(int j = 0; j < wordPerSignal; j++)
-    {
-      startMe->data[j] = cdata[j+startWord];
+    for (int j = 0; j < wordPerSignal; j++) {
+      startMe->data[j] = cdata[j + startWord];
     }
-    sendSignal(ref,
-               GSN_START_MECONF,
-               signal,
-               StartMeConf::SignalLength_v1,
+    sendSignal(ref, GSN_START_MECONF, signal, StartMeConf::SignalLength_v1,
                JBB);
     startMe->startWord += wordPerSignal;
   }
 }
 
-void Dbdih::sendDIH_SWITCH_REPLICA_REQ(Signal* signal, Uint32 nodeId, 
-                                       Uint32 extra)
-{
-  const BlockReference ref    = calcDihBlockRef(nodeId);
-  sendSignal(ref, GSN_DIH_SWITCH_REPLICA_REQ, signal, 
+void Dbdih::sendDIH_SWITCH_REPLICA_REQ(Signal *signal, Uint32 nodeId,
+                                       Uint32 extra) {
+  const BlockReference ref = calcDihBlockRef(nodeId);
+  sendSignal(ref, GSN_DIH_SWITCH_REPLICA_REQ, signal,
              DihSwitchReplicaReq::SignalLength, JBB);
-}//Dbdih::sendDIH_SWITCH_REPLICA_REQ()
+}  // Dbdih::sendDIH_SWITCH_REPLICA_REQ()
 
-void Dbdih::sendGCP_COMMIT(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendGCP_COMMIT(Signal *signal, Uint32 nodeId, Uint32 extra) {
   BlockReference ref = calcDihBlockRef(nodeId);
-  GCPCommit *req = (GCPCommit*)signal->getDataPtrSend();
+  GCPCommit *req = (GCPCommit *)signal->getDataPtrSend();
   req->nodeId = cownNodeId;
   req->gci_hi = Uint32(m_micro_gcp.m_master.m_new_gci >> 32);
   req->gci_lo = Uint32(m_micro_gcp.m_master.m_new_gci);
-  DEB_NODE_STOP(("Send GCP_COMMIT(%u,%u) to %u",
-                 req->gci_hi, req->gci_lo, nodeId));
+  DEB_NODE_STOP(
+      ("Send GCP_COMMIT(%u,%u) to %u", req->gci_hi, req->gci_lo, nodeId));
   sendSignal(ref, GSN_GCP_COMMIT, signal, GCPCommit::SignalLength, JBA);
 
   ndbassert(m_micro_gcp.m_enabled || Uint32(m_micro_gcp.m_new_gci) == 0);
-}//Dbdih::sendGCP_COMMIT()
+}  // Dbdih::sendGCP_COMMIT()
 
-void Dbdih::sendGCP_PREPARE(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendGCP_PREPARE(Signal *signal, Uint32 nodeId, Uint32 extra) {
   BlockReference ref = calcDihBlockRef(nodeId);
-  GCPPrepare *req = (GCPPrepare*)signal->getDataPtrSend();
+  GCPPrepare *req = (GCPPrepare *)signal->getDataPtrSend();
   req->nodeId = cownNodeId;
   req->gci_hi = Uint32(m_micro_gcp.m_master.m_new_gci >> 32);
   req->gci_lo = Uint32(m_micro_gcp.m_master.m_new_gci);
 
-  DEB_NODE_STOP(("Send GCP_PREPARE(%u,%u) to %u",
-                 req->gci_hi, req->gci_lo, nodeId));
+  DEB_NODE_STOP(
+      ("Send GCP_PREPARE(%u,%u) to %u", req->gci_hi, req->gci_lo, nodeId));
 
-  if (! (ERROR_INSERTED(7201) || ERROR_INSERTED(7202)))
-  {
+  if (!(ERROR_INSERTED(7201) || ERROR_INSERTED(7202))) {
     sendSignal(ref, GSN_GCP_PREPARE, signal, GCPPrepare::SignalLength, JBA);
-  }
-  else if (ERROR_INSERTED(7201))
-  {
+  } else if (ERROR_INSERTED(7201)) {
     sendSignal(ref, GSN_GCP_PREPARE, signal, GCPPrepare::SignalLength, JBB);
-  } 
-  else if (ERROR_INSERTED(7202))
-  {
+  } else if (ERROR_INSERTED(7202)) {
     ndbrequire(nodeId == getOwnNodeId());
-    sendSignalWithDelay(ref, GSN_GCP_PREPARE, signal, 2000, 
-                        GCPPrepare::SignalLength);    
-  }
-  else
-  {
-    ndbabort(); // should be dead code #ifndef ERROR_INSERT
+    sendSignalWithDelay(ref, GSN_GCP_PREPARE, signal, 2000,
+                        GCPPrepare::SignalLength);
+  } else {
+    ndbabort();  // should be dead code #ifndef ERROR_INSERT
   }
 
   ndbassert(m_micro_gcp.m_enabled || Uint32(m_micro_gcp.m_new_gci) == 0);
-}//Dbdih::sendGCP_PREPARE()
+}  // Dbdih::sendGCP_PREPARE()
 
-void
-Dbdih::sendSUB_GCP_COMPLETE_REP(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendSUB_GCP_COMPLETE_REP(Signal *signal, Uint32 nodeId,
+                                     Uint32 extra) {
   ndbassert(m_micro_gcp.m_enabled || Uint32(m_micro_gcp.m_new_gci) == 0);
   BlockReference ref = calcDihBlockRef(nodeId);
   sendSignal(ref, GSN_SUB_GCP_COMPLETE_REP, signal,
              SubGcpCompleteRep::SignalLength, JBA);
 }
 
-void Dbdih::sendGCP_SAVEREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
-  GCPSaveReq * const saveReq = (GCPSaveReq*)&signal->theData[0];
+void Dbdih::sendGCP_SAVEREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
+  GCPSaveReq *const saveReq = (GCPSaveReq *)&signal->theData[0];
   BlockReference ref = calcDihBlockRef(nodeId);
   saveReq->dihBlockRef = reference();
   saveReq->dihPtr = nodeId;
   saveReq->gci = m_gcp_save.m_master.m_new_gci;
   sendSignal(ref, GSN_GCP_SAVEREQ, signal, GCPSaveReq::SignalLength, JBB);
-}//Dbdih::sendGCP_SAVEREQ()
+}  // Dbdih::sendGCP_SAVEREQ()
 
-void Dbdih::sendINCL_NODEREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendINCL_NODEREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   BlockReference nodeDihRef = calcDihBlockRef(nodeId);
   signal->theData[0] = reference();
   signal->theData[1] = c_nodeStartMaster.startNode;
@@ -421,30 +431,25 @@ void Dbdih::sendINCL_NODEREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
   signal->theData[4] = (Uint32)(m_micro_gcp.m_current_gci >> 32);
   signal->theData[5] = (Uint32)(m_micro_gcp.m_current_gci & 0xFFFFFFFF);
   sendSignal(nodeDihRef, GSN_INCL_NODEREQ, signal, 6, JBA);
-}//Dbdih::sendINCL_NODEREQ()
+}  // Dbdih::sendINCL_NODEREQ()
 
-void Dbdih::sendMASTER_GCPREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendMASTER_GCPREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   BlockReference ref = calcDihBlockRef(nodeId);
   sendSignal(ref, GSN_MASTER_GCPREQ, signal, MasterGCPReq::SignalLength, JBB);
-}//Dbdih::sendMASTER_GCPREQ()
+}  // Dbdih::sendMASTER_GCPREQ()
 
-void Dbdih::sendMASTER_LCPREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendMASTER_LCPREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   BlockReference ref = calcDihBlockRef(nodeId);
   sendSignal(ref, GSN_MASTER_LCPREQ, signal, MasterLCPReq::SignalLength, JBB);
-}//Dbdih::sendMASTER_LCPREQ()
+}  // Dbdih::sendMASTER_LCPREQ()
 
-void Dbdih::sendSTART_INFOREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendSTART_INFOREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   const BlockReference ref = calcDihBlockRef(nodeId);
   sendSignal(ref, GSN_START_INFOREQ, signal, StartInfoReq::SignalLength, JBB);
-}//sendSTART_INFOREQ()
+}  // sendSTART_INFOREQ()
 
-void Dbdih::sendSTART_RECREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
-  if (!m_sr_nodes.get(nodeId))
-  {
+void Dbdih::sendSTART_RECREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
+  if (!m_sr_nodes.get(nodeId)) {
     jam();
     c_START_RECREQ_Counter.clearWaitingFor(nodeId);
     return;
@@ -452,13 +457,12 @@ void Dbdih::sendSTART_RECREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
 
   Uint32 keepGCI = SYSFILE->keepGCI;
   Uint32 lastCompletedGCI = SYSFILE->lastCompletedGCI[nodeId];
-  if (keepGCI > lastCompletedGCI)
-  {
+  if (keepGCI > lastCompletedGCI) {
     jam();
     keepGCI = lastCompletedGCI;
   }
 
-  StartRecReq * const req = (StartRecReq*)&signal->theData[0];
+  StartRecReq *const req = (StartRecReq *)&signal->theData[0];
   BlockReference ref = calcLqhBlockRef(nodeId);
   req->receivingNodeId = nodeId;
   req->senderRef = reference();
@@ -469,21 +473,18 @@ void Dbdih::sendSTART_RECREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
   m_sr_nodes.copyto(NdbNodeBitmask::Size, req->sr_nodes);
   Uint32 packed_length = m_sr_nodes.getPackedLengthInWords();
 
-  if (ndbd_send_node_bitmask_in_section(getNodeInfo(refToNode(ref)).m_version))
-  {
+  if (ndbd_send_node_bitmask_in_section(
+          getNodeInfo(refToNode(ref)).m_version)) {
     jam();
     LinearSectionPtr lsptr[3];
     lsptr[0].p = req->sr_nodes;
     lsptr[0].sz = NdbNodeBitmask::getPackedLengthInWords(req->sr_nodes);
     sendSignal(ref, GSN_START_RECREQ, signal, StartRecReq::SignalLength, JBB,
                lsptr, 1);
-  }
-  else if (packed_length <= NdbNodeBitmask48::Size)
-  {
-    sendSignal(ref, GSN_START_RECREQ, signal, StartRecReq::SignalLength_v1, JBB);
-  }
-  else
-  {
+  } else if (packed_length <= NdbNodeBitmask48::Size) {
+    sendSignal(ref, GSN_START_RECREQ, signal, StartRecReq::SignalLength_v1,
+               JBB);
+  } else {
     ndbabort();
   }
 
@@ -493,145 +494,117 @@ void Dbdih::sendSTART_RECREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
   signal->theData[3] = lastCompletedGCI;
   signal->theData[4] = SYSFILE->newestRestorableGCI;
   sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 5, JBB);
-}//Dbdih::sendSTART_RECREQ()
+}  // Dbdih::sendSTART_RECREQ()
 
-void Dbdih::sendSTOP_ME_REQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendSTOP_ME_REQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   if (nodeId != getOwnNodeId()) {
     jam();
     const BlockReference ref = calcDihBlockRef(nodeId);
     sendSignal(ref, GSN_STOP_ME_REQ, signal, StopMeReq::SignalLength, JBB);
-  }//if
-}//Dbdih::sendSTOP_ME_REQ()
+  }  // if
+}  // Dbdih::sendSTOP_ME_REQ()
 
-void Dbdih::sendTC_CLOPSIZEREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendTC_CLOPSIZEREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   BlockReference ref = calcTcBlockRef(nodeId);
   signal->theData[0] = nodeId;
   signal->theData[1] = reference();
   sendSignal(ref, GSN_TC_CLOPSIZEREQ, signal, 2, JBB);
-}//Dbdih::sendTC_CLOPSIZEREQ()
+}  // Dbdih::sendTC_CLOPSIZEREQ()
 
-void Dbdih::sendTCGETOPSIZEREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendTCGETOPSIZEREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   BlockReference ref = calcTcBlockRef(nodeId);
   signal->theData[0] = nodeId;
   signal->theData[1] = reference();
   sendSignal(ref, GSN_TCGETOPSIZEREQ, signal, 2, JBB);
   DEB_TCGETOPSIZE(("Send TCGETOPSIZEREQ to node %u, to ref: %x", nodeId, ref));
-}//Dbdih::sendTCGETOPSIZEREQ()
+}  // Dbdih::sendTCGETOPSIZEREQ()
 
-void Dbdih::sendUPDATE_TOREQ(Signal* signal, Uint32 nodeId, Uint32 extra)
-{
+void Dbdih::sendUPDATE_TOREQ(Signal *signal, Uint32 nodeId, Uint32 extra) {
   const BlockReference ref = calcDihBlockRef(nodeId);
   sendSignal(ref, GSN_UPDATE_TOREQ, signal, UpdateToReq::SignalLength, JBB);
-}//sendUPDATE_TOREQ()
+}  // sendUPDATE_TOREQ()
 
-void Dbdih::print_lcp_state(void)
-{
-  if (c_lcpState.lcpStatus == LCP_STATUS_ACTIVE)
-  {
+void Dbdih::print_lcp_state(void) {
+  if (c_lcpState.lcpStatus == LCP_STATUS_ACTIVE) {
     TabRecordPtr tabPtr;
     g_eventLogger->info("c_lcpState.lcpStatus = LCP_STATUS_ACTIVE");
-    for (tabPtr.i = 0; tabPtr.i < ctabFileSize; tabPtr.i++)
-    {
+    for (tabPtr.i = 0; tabPtr.i < ctabFileSize; tabPtr.i++) {
       ptrAss(tabPtr, tabRecord);
       if ((tabPtr.p->tabStatus == TabRecord::TS_ACTIVE) &&
-          (tabPtr.p->tabLcpStatus == TabRecord::TLS_ACTIVE))
-      {
+          (tabPtr.p->tabLcpStatus == TabRecord::TLS_ACTIVE)) {
         g_eventLogger->info("Table(%u) tabStatus: %u, tabLcpStatus: %u",
-                            tabPtr.i,
-                            tabPtr.p->tabStatus,
+                            tabPtr.i, tabPtr.p->tabStatus,
                             tabPtr.p->tabLcpStatus);
         return;
-      }//if
-    }//for
-  }
-  else if (c_lcpState.lcpStatus == LCP_TAB_COMPLETED)
-  {
+      }  // if
+    }    // for
+  } else if (c_lcpState.lcpStatus == LCP_TAB_COMPLETED) {
     g_eventLogger->info("c_lcpState.lcpStatus = LCP_TAB_COMPLETED");
-    if (c_lcp_id_paused != RNIL)
-    {
+    if (c_lcp_id_paused != RNIL) {
       g_eventLogger->info("c_lcp_id_paused stops us from completing LCP");
       return;
     }
     TabRecordPtr tabPtr;
-    for (tabPtr.i = 0; tabPtr.i < ctabFileSize; tabPtr.i++)
-    {
+    for (tabPtr.i = 0; tabPtr.i < ctabFileSize; tabPtr.i++) {
       ptrAss(tabPtr, tabRecord);
-      if (tabPtr.p->tabLcpStatus != TabRecord::TLS_COMPLETED)
-      {
+      if (tabPtr.p->tabLcpStatus != TabRecord::TLS_COMPLETED) {
         g_eventLogger->info("Table(%u) tabStatus: %u, tabLcpStatus: %u",
-                            tabPtr.i,
-                            tabPtr.p->tabStatus,
+                            tabPtr.i, tabPtr.p->tabStatus,
                             tabPtr.p->tabLcpStatus);
         return;
       }
     }
-  }
-  else if (c_lcpState.lcpStatus == LCP_TAB_SAVED)
-  {
+  } else if (c_lcpState.lcpStatus == LCP_TAB_SAVED) {
     g_eventLogger->info("c_lcpState.lcpStatus = LCP_TAB_SAVED");
     bool is_complete = true;
-    if (!c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.done())
-    {
+    if (!c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.done()) {
       jam();
       is_complete = false;
       DEB_LCP_COMP(("LCP_COMPLETE_REQ not complete, LQH not done"));
     }
-    if (!c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.done())
-    {
+    if (!c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.done()) {
       jam();
       is_complete = false;
       DEB_LCP_COMP(("LCP_COMPLETE_REQ not complete, DIH not done"));
     }
 
-    if (!isMaster() && 
-        c_lcpState.m_LCP_COMPLETE_REP_From_Master_Received == false)
-    {
+    if (!isMaster() &&
+        c_lcpState.m_LCP_COMPLETE_REP_From_Master_Received == false) {
       jam();
       is_complete = false;
       DEB_LCP_COMP(("LCP_COMPLETE_REQ not complete, Master not done"));
     }
 
-    if(c_lcpMasterTakeOverState.state != LMTOS_IDLE)
-    {
+    if (c_lcpMasterTakeOverState.state != LMTOS_IDLE) {
       is_complete = false;
       g_eventLogger->info("c_lcpMasterTakeOverState.state not IDLE");
     }
-    if (is_complete)
-    {
+    if (is_complete) {
       g_eventLogger->info("LCP is suppposed to be completed");
     }
-  }
-  else if (c_lcpState.lcpStatus != LCP_STATUS_IDLE)
-  {
+  } else if (c_lcpState.lcpStatus != LCP_STATUS_IDLE) {
     g_eventLogger->info("c_lcpState.lcpStatus = %u", c_lcpState.lcpStatus);
   }
   return;
 }
 
-void Dbdih::execCONTINUEB(Signal* signal)
-{
+void Dbdih::execCONTINUEB(Signal *signal) {
   jamEntry();
   switch ((DihContinueB::Type)signal->theData[0]) {
-  case DihContinueB::ZPRINT_LCP_STATE:
-    {
+    case DihContinueB::ZPRINT_LCP_STATE: {
       jam();
       print_lcp_state();
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 1000, 1);
       return;
     }
-  case DihContinueB::ZPACK_TABLE_INTO_PAGES:
-    {
+    case DihContinueB::ZPACK_TABLE_INTO_PAGES: {
       jam();
       Uint32 tableId = signal->theData[1];
       packTableIntoPagesLab(signal, tableId);
       return;
       break;
     }
-  case DihContinueB::ZPACK_FRAG_INTO_PAGES:
-    {
+    case DihContinueB::ZPACK_FRAG_INTO_PAGES: {
       RWFragment wf;
       jam();
       wf.rwfTabPtr.i = signal->theData[1];
@@ -644,16 +617,14 @@ void Dbdih::execCONTINUEB(Signal* signal)
       return;
       break;
     }
-  case DihContinueB::ZREAD_PAGES_INTO_TABLE:
-    {
+    case DihContinueB::ZREAD_PAGES_INTO_TABLE: {
       jam();
       Uint32 tableId = signal->theData[1];
       readPagesIntoTableLab(signal, tableId);
       return;
       break;
     }
-  case DihContinueB::ZREAD_PAGES_INTO_FRAG:
-    {
+    case DihContinueB::ZREAD_PAGES_INTO_FRAG: {
       RWFragment rf;
       jam();
       rf.rwfTabPtr.i = signal->theData[1];
@@ -665,15 +636,13 @@ void Dbdih::execCONTINUEB(Signal* signal)
       return;
       break;
     }
-  case DihContinueB::ZCOPY_TABLE:
-    {
+    case DihContinueB::ZCOPY_TABLE: {
       jam();
       Uint32 tableId = signal->theData[1];
       copyTableLab(signal, tableId);
       return;
     }
-  case DihContinueB::ZCOPY_TABLE_NODE:
-    {
+    case DihContinueB::ZCOPY_TABLE_NODE: {
       NodeRecordPtr nodePtr;
       CopyTableNode ctn;
       jam();
@@ -687,20 +656,18 @@ void Dbdih::execCONTINUEB(Signal* signal)
       copyTableNode(signal, &ctn, nodePtr);
       return;
     }
-  case DihContinueB::ZSTART_FRAGMENT:
-    {
+    case DihContinueB::ZSTART_FRAGMENT: {
       jam();
       Uint32 tableId = signal->theData[1];
       Uint32 fragId = signal->theData[2];
       startFragment(signal, tableId, fragId);
       return;
     }
-  case DihContinueB::ZCOMPLETE_RESTART:
-    jam();
-    completeRestartLab(signal);
-    return;
-  case DihContinueB::ZREAD_TABLE_FROM_PAGES:
-    {
+    case DihContinueB::ZCOMPLETE_RESTART:
+      jam();
+      completeRestartLab(signal);
+      return;
+    case DihContinueB::ZREAD_TABLE_FROM_PAGES: {
       TabRecordPtr tabPtr;
       jam();
       tabPtr.i = signal->theData[1];
@@ -708,8 +675,7 @@ void Dbdih::execCONTINUEB(Signal* signal)
       readTableFromPagesLab(signal, tabPtr);
       return;
     }
-  case DihContinueB::ZSR_PHASE2_READ_TABLE:
-    {
+    case DihContinueB::ZSR_PHASE2_READ_TABLE: {
       TabRecordPtr tabPtr;
       jam();
       tabPtr.i = signal->theData[1];
@@ -717,26 +683,24 @@ void Dbdih::execCONTINUEB(Signal* signal)
       srPhase2ReadTableLab(signal, tabPtr);
       return;
     }
-  case DihContinueB::ZCHECK_TC_COUNTER:
-    jam();
+    case DihContinueB::ZCHECK_TC_COUNTER:
+      jam();
 #ifndef NO_LCP
-    checkTcCounterLab(signal);
+      checkTcCounterLab(signal);
 #endif
-    return;
-  case DihContinueB::ZCALCULATE_KEEP_GCI:
-    {
+      return;
+    case DihContinueB::ZCALCULATE_KEEP_GCI: {
       jam();
       Uint32 tableId = signal->theData[1];
       Uint32 fragId = signal->theData[2];
       calculateKeepGciLab(signal, tableId, fragId);
       return;
     }
-  case DihContinueB::ZSTORE_NEW_LCP_ID:
-    jam();
-    storeNewLcpIdLab(signal);
-    return;
-  case DihContinueB::ZTABLE_UPDATE:
-    {
+    case DihContinueB::ZSTORE_NEW_LCP_ID:
+      jam();
+      storeNewLcpIdLab(signal);
+      return;
+    case DihContinueB::ZTABLE_UPDATE: {
       TabRecordPtr tabPtr;
       jam();
       tabPtr.i = signal->theData[1];
@@ -744,22 +708,19 @@ void Dbdih::execCONTINUEB(Signal* signal)
       tableUpdateLab(signal, tabPtr);
       return;
     }
-  case DihContinueB::ZCHECK_LCP_COMPLETED:
-    {
+    case DihContinueB::ZCHECK_LCP_COMPLETED: {
       jam();
       checkLcpCompletedLab(signal, __LINE__);
       return;
     }
-  case DihContinueB::ZINIT_LCP:
-    {
+    case DihContinueB::ZINIT_LCP: {
       jam();
       Uint32 senderRef = signal->theData[1];
       Uint32 tableId = signal->theData[2];
       initLcpLab(signal, senderRef, tableId);
       return;
     }
-  case DihContinueB::ZADD_TABLE_MASTER_PAGES:
-    {
+    case DihContinueB::ZADD_TABLE_MASTER_PAGES: {
       TabRecordPtr tabPtr;
       jam();
       tabPtr.i = signal->theData[1];
@@ -769,14 +730,12 @@ void Dbdih::execCONTINUEB(Signal* signal)
       return;
       break;
     }
-  case DihContinueB::ZDIH_ADD_TABLE_MASTER:
-    {
+    case DihContinueB::ZDIH_ADD_TABLE_MASTER: {
       jam();
       addTable_closeConf(signal, signal->theData[1]);
       return;
     }
-  case DihContinueB::ZADD_TABLE_SLAVE_PAGES:
-    {
+    case DihContinueB::ZADD_TABLE_SLAVE_PAGES: {
       TabRecordPtr tabPtr;
       jam();
       tabPtr.i = signal->theData[1];
@@ -785,85 +744,77 @@ void Dbdih::execCONTINUEB(Signal* signal)
       tableUpdateLab(signal, tabPtr);
       return;
     }
-  case DihContinueB::ZDIH_ADD_TABLE_SLAVE:
-    {
+    case DihContinueB::ZDIH_ADD_TABLE_SLAVE: {
       ndbabort();
     }
-  case DihContinueB::ZSTART_GCP:
-    jam();
+    case DihContinueB::ZSTART_GCP:
+      jam();
 #ifndef NO_GCP
-    startGcpLab(signal);
+      startGcpLab(signal);
 #endif
-    return;
-    break;
-  case DihContinueB::ZCOPY_GCI:{
-    jam();
-    CopyGCIReq::CopyReason reason = (CopyGCIReq::CopyReason)signal->theData[1];
-    ndbrequire(c_copyGCIMaster.m_copyReason == reason);
+      return;
+      break;
+    case DihContinueB::ZCOPY_GCI: {
+      jam();
+      CopyGCIReq::CopyReason reason =
+          (CopyGCIReq::CopyReason)signal->theData[1];
+      ndbrequire(c_copyGCIMaster.m_copyReason == reason);
 
-    // set to idle, to be able to reuse method
-    c_copyGCIMaster.m_copyReason = CopyGCIReq::IDLE;
-    copyGciLab(signal, reason);
-    return;
-  }
-    break;
-  case DihContinueB::ZEMPTY_VERIFY_QUEUE:
-    jam();
-    emptyverificbuffer(signal, signal->theData[1], true);
-    return;
-    break;
-  case DihContinueB::ZCHECK_GCP_STOP:
-    jam();
+      // set to idle, to be able to reuse method
+      c_copyGCIMaster.m_copyReason = CopyGCIReq::IDLE;
+      copyGciLab(signal, reason);
+      return;
+    } break;
+    case DihContinueB::ZEMPTY_VERIFY_QUEUE:
+      jam();
+      emptyverificbuffer(signal, signal->theData[1], true);
+      return;
+      break;
+    case DihContinueB::ZCHECK_GCP_STOP:
+      jam();
 #ifndef NO_GCP
-    checkGcpStopLab(signal);
+      checkGcpStopLab(signal);
 #endif
-    return;
-    break;
-  case DihContinueB::ZREMOVE_NODE_FROM_TABLE:
-    {
+      return;
+      break;
+    case DihContinueB::ZREMOVE_NODE_FROM_TABLE: {
       jam();
       Uint32 nodeId = signal->theData[1];
       Uint32 tableId = signal->theData[2];
       removeNodeFromTables(signal, nodeId, tableId);
       return;
     }
-  case DihContinueB::ZCOPY_NODE:
-    {
+    case DihContinueB::ZCOPY_NODE: {
       jam();
       Uint32 tableId = signal->theData[1];
       copyNodeLab(signal, tableId);
       return;
     }
-  case DihContinueB::ZTO_START_COPY_FRAG:
-    {
+    case DihContinueB::ZTO_START_COPY_FRAG: {
       jam();
       Uint32 takeOverPtrI = signal->theData[1];
       startNextCopyFragment(signal, takeOverPtrI);
       return;
     }
-  case DihContinueB::ZINVALIDATE_NODE_LCP:
-    {
+    case DihContinueB::ZINVALIDATE_NODE_LCP: {
       jam();
       const Uint32 nodeId = signal->theData[1];
       const Uint32 tableId = signal->theData[2];
       invalidateNodeLCP(signal, nodeId, tableId);
       return;
     }
-  case DihContinueB::ZINITIALISE_RECORDS:
-    jam();
-    initialiseRecordsLab(signal, 
-			 signal->theData[1], 
-			 signal->theData[2], 
-			 signal->theData[3]);
-    return;
-    break;
-  case DihContinueB::ZSTART_PERMREQ_AGAIN:
-    jam();
-    nodeRestartPh2Lab2(signal);
-    return;
-    break;
-  case DihContinueB::SwitchReplica:
-    {
+    case DihContinueB::ZINITIALISE_RECORDS:
+      jam();
+      initialiseRecordsLab(signal, signal->theData[1], signal->theData[2],
+                           signal->theData[3]);
+      return;
+      break;
+    case DihContinueB::ZSTART_PERMREQ_AGAIN:
+      jam();
+      nodeRestartPh2Lab2(signal);
+      return;
+      break;
+    case DihContinueB::SwitchReplica: {
       jam();
       const Uint32 nodeId = signal->theData[1];
       const Uint32 tableId = signal->theData[2];
@@ -871,113 +822,96 @@ void Dbdih::execCONTINUEB(Signal* signal)
       switchReplica(signal, nodeId, tableId, fragNo);
       return;
     }
-  case DihContinueB::ZSEND_ADD_FRAG:
-    {
+    case DihContinueB::ZSEND_ADD_FRAG: {
       jam();
       Uint32 takeOverPtrI = signal->theData[1];
       toCopyFragLab(signal, takeOverPtrI);
       return;
     }
-  case DihContinueB::ZSEND_START_TO:
-    {
+    case DihContinueB::ZSEND_START_TO: {
       jam();
       Ptr<TakeOverRecord> takeOverPtr;
       ndbrequire(c_takeOverPool.getPtr(takeOverPtr, signal->theData[1]));
       sendStartTo(signal, takeOverPtr);
       return;
     }
-  case DihContinueB::ZSEND_UPDATE_TO:
-    {
+    case DihContinueB::ZSEND_UPDATE_TO: {
       jam();
       Ptr<TakeOverRecord> takeOverPtr;
       ndbrequire(c_takeOverPool.getPtr(takeOverPtr, signal->theData[1]));
       sendUpdateTo(signal, takeOverPtr);
       return;
     }
-  case DihContinueB::WAIT_DROP_TAB_WRITING_TO_FILE:{
-    jam();
-    TabRecordPtr tabPtr;
-    tabPtr.i = signal->theData[1];
-    ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
-    waitDropTabWritingToFile(signal, tabPtr);
-    return;
-  }
-  case DihContinueB::ZTO_START_FRAGMENTS:
-  {
-    TakeOverRecordPtr takeOverPtr;
-    ndbrequire(c_takeOverPool.getPtr(takeOverPtr, signal->theData[1]));
-    nr_start_fragments(signal, takeOverPtr);
-    return;
-  }
-  case DihContinueB::ZWAIT_OLD_SCAN:
-  {
-    jam();
-    wait_old_scan(signal);
-    return;
-  }
-  case DihContinueB::ZLCP_TRY_LOCK:
-  {
-    jam();
-    Mutex mutex(signal, c_mutexMgr, c_fragmentInfoMutex_lcp);
-    Callback c = { safe_cast(&Dbdih::lcpFragmentMutex_locked),
-                   signal->theData[1] };
-    ndbrequire(mutex.trylock(c, false));
-    return;
-  }
-  case DihContinueB::ZTO_START_LOGGING:
-  {
-    jam();
-    TakeOverRecordPtr takeOverPtr;
-    ndbrequire(c_takeOverPool.getPtr(takeOverPtr, signal->theData[1]));
-    nr_start_logging(signal, takeOverPtr);
-    return;
-  }
-  case DihContinueB::ZGET_TABINFO:
-  {
-    jam();
-    getTabInfo(signal);
-    return;
-  }
-  case DihContinueB::ZGET_TABINFO_SEND:
-  {
-    jam();
-    TabRecordPtr tabPtr;
-    tabPtr.i = signal->theData[1];
-    ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
-    getTabInfo_send(signal, tabPtr);
-    return;
-  }
-  case DihContinueB::ZDEQUEUE_LCP_REP:
-  {
-    jam();
-    dequeue_lcp_rep(signal);
-    return;
-  }
+    case DihContinueB::WAIT_DROP_TAB_WRITING_TO_FILE: {
+      jam();
+      TabRecordPtr tabPtr;
+      tabPtr.i = signal->theData[1];
+      ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
+      waitDropTabWritingToFile(signal, tabPtr);
+      return;
+    }
+    case DihContinueB::ZTO_START_FRAGMENTS: {
+      TakeOverRecordPtr takeOverPtr;
+      ndbrequire(c_takeOverPool.getPtr(takeOverPtr, signal->theData[1]));
+      nr_start_fragments(signal, takeOverPtr);
+      return;
+    }
+    case DihContinueB::ZWAIT_OLD_SCAN: {
+      jam();
+      wait_old_scan(signal);
+      return;
+    }
+    case DihContinueB::ZLCP_TRY_LOCK: {
+      jam();
+      Mutex mutex(signal, c_mutexMgr, c_fragmentInfoMutex_lcp);
+      Callback c = {safe_cast(&Dbdih::lcpFragmentMutex_locked),
+                    signal->theData[1]};
+      ndbrequire(mutex.trylock(c, false));
+      return;
+    }
+    case DihContinueB::ZTO_START_LOGGING: {
+      jam();
+      TakeOverRecordPtr takeOverPtr;
+      ndbrequire(c_takeOverPool.getPtr(takeOverPtr, signal->theData[1]));
+      nr_start_logging(signal, takeOverPtr);
+      return;
+    }
+    case DihContinueB::ZGET_TABINFO: {
+      jam();
+      getTabInfo(signal);
+      return;
+    }
+    case DihContinueB::ZGET_TABINFO_SEND: {
+      jam();
+      TabRecordPtr tabPtr;
+      tabPtr.i = signal->theData[1];
+      ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
+      getTabInfo_send(signal, tabPtr);
+      return;
+    }
+    case DihContinueB::ZDEQUEUE_LCP_REP: {
+      jam();
+      dequeue_lcp_rep(signal);
+      return;
+    }
   }
 
   ndbabort();
-}//Dbdih::execCONTINUEB()
+}  // Dbdih::execCONTINUEB()
 
-void Dbdih::execCOPY_GCIREQ(Signal* signal) 
-{
-  CopyGCIReq * const copyGCI = (CopyGCIReq *)&signal->theData[0];
+void Dbdih::execCOPY_GCIREQ(Signal *signal) {
+  CopyGCIReq *const copyGCI = (CopyGCIReq *)&signal->theData[0];
   jamEntry();
-  if (ERROR_INSERTED(7241))
-  {
+  if (ERROR_INSERTED(7241)) {
     jam();
     g_eventLogger->info("Delayed COPY_GCIREQ 5s");
-    if (ndbd_send_node_bitmask_in_section(getNodeInfo(cmasterNodeId).m_version))
-    {
+    if (ndbd_send_node_bitmask_in_section(
+            getNodeInfo(cmasterNodeId).m_version)) {
       SectionHandle handle(this, signal);
-      sendSignalWithDelay(reference(), GSN_COPY_GCIREQ,
-                          signal, 5000,
-                          signal->getLength(),
-                          &handle);
-    }
-    else
-    {
-      sendSignalWithDelay(reference(), GSN_COPY_GCIREQ,
-                          signal, 5000,
+      sendSignalWithDelay(reference(), GSN_COPY_GCIREQ, signal, 5000,
+                          signal->getLength(), &handle);
+    } else {
+      sendSignalWithDelay(reference(), GSN_COPY_GCIREQ, signal, 5000,
                           signal->getLength());
     }
     return;
@@ -994,220 +928,205 @@ void Dbdih::execCOPY_GCIREQ(Signal* signal)
 
   Uint32 num_sections = signal->getNoOfSections();
   SectionHandle handle(this, signal);
-  if (num_sections > 0)
-  {
+  if (num_sections > 0) {
     jam();
     ndbrequire(ndbd_send_node_bitmask_in_section(
-      getNodeInfo(cmasterNodeId).m_version));
+        getNodeInfo(cmasterNodeId).m_version));
     SegmentedSectionPtr ptr;
     ndbrequire(num_sections == 1);
     ndbrequire(handle.getSection(ptr, 0));
-    ndbrequire(ptr.sz <= (sizeof(cdata)/4));
+    ndbrequire(ptr.sz <= (sizeof(cdata) / 4));
     copy(cdata, ptr);
     cdata_size_in_words = ptr.sz;
     releaseSections(handle);
-  }
-  else
-  {
+  } else {
     jam();
     const Uint32 tstart = copyGCI->startWord;
-    v2_format = false; 
-    ndbrequire(cmasterdihref == signal->senderBlockRef()) ;
+    v2_format = false;
+    ndbrequire(cmasterdihref == signal->senderBlockRef());
     ndbrequire(c_copyGCISlave.m_expectedNextWord == tstart);
     isdone = (tstart + CopyGCIReq::DATA_SIZE) >= Sysfile::SYSFILE_SIZE32_v1;
 
-    ndbrequire(tstart <= (sizeof(cdata)/4 - CopyGCIReq::DATA_SIZE));
-    for(Uint32 i = 0; i<CopyGCIReq::DATA_SIZE; i++)
-      cdata[tstart+i] = copyGCI->data[i];
+    ndbrequire(tstart <= (sizeof(cdata) / 4 - CopyGCIReq::DATA_SIZE));
+    for (Uint32 i = 0; i < CopyGCIReq::DATA_SIZE; i++)
+      cdata[tstart + i] = copyGCI->data[i];
     cdata_size_in_words = tstart + CopyGCIReq::DATA_SIZE;
   }
-  if (isdone)
-  {
+  if (isdone) {
     jam();
     c_copyGCISlave.m_expectedNextWord = 0;
-  } 
-  else 
-  {
+  } else {
     jam();
     c_copyGCISlave.m_expectedNextWord += CopyGCIReq::DATA_SIZE;
     return;
   }
-  if (cmasterdihref != reference())
-  {
-    Uint32 tmp= SYSFILE->m_restart_seq;
-    if (v2_format)
-    {
+  if (cmasterdihref != reference()) {
+    Uint32 tmp = SYSFILE->m_restart_seq;
+    if (v2_format) {
       jam();
       int ret = SYSFILE->unpack_sysfile_format_v2(cdata, &cdata_size_in_words);
       jamLine((Uint16)ret);
       ndbrequire(ret == 0);
-    }
-    else
-    {
+    } else {
       jam();
       int ret = SYSFILE->unpack_sysfile_format_v1(cdata, &cdata_size_in_words);
       jamLine((Uint16)ret);
       ndbrequire(ret == 0);
     }
     SYSFILE->m_restart_seq = tmp;
-    if (c_set_initial_start_flag)
-    {
+    if (c_set_initial_start_flag) {
       jam();
       SYSFILE->setInitialStartOngoing();
     }
   }
 
   c_copyGCISlave.m_copyReason = reason;
-  c_copyGCISlave.m_senderRef  = signal->senderBlockRef();
+  c_copyGCISlave.m_senderRef = signal->senderBlockRef();
   c_copyGCISlave.m_senderData = copyGCI->anyData;
 
-  CRASH_INSERTION2(7020, reason==CopyGCIReq::LOCAL_CHECKPOINT);
-  CRASH_INSERTION2(7008, reason==CopyGCIReq::GLOBAL_CHECKPOINT);
+  CRASH_INSERTION2(7020, reason == CopyGCIReq::LOCAL_CHECKPOINT);
+  CRASH_INSERTION2(7008, reason == CopyGCIReq::GLOBAL_CHECKPOINT);
 
-  if (m_local_lcp_state.check_cut_log_tail(c_newest_restorable_gci))
-  {
+  if (m_local_lcp_state.check_cut_log_tail(c_newest_restorable_gci)) {
     jam();
 
 #ifdef NOT_YET
-    LcpCompleteRep* rep = (LcpCompleteRep*)signal->getDataPtrSend();
+    LcpCompleteRep *rep = (LcpCompleteRep *)signal->getDataPtrSend();
     rep->nodeId = getOwnNodeId();
     rep->blockNo = 0;
     rep->lcpId = m_local_lcp_state.m_start_lcp_req.lcpId;
     rep->keepGci = m_local_lcp_state.m_keep_gci;
-    sendSignal(DBLQH_REF, GSN_LCP_COMPLETE_REP, signal, 
+    sendSignal(DBLQH_REF, GSN_LCP_COMPLETE_REP, signal,
                LcpCompleteRep::SignalLength, JBB);
 
     warningEvent("CUT LOG TAIL: reason: %u lcp: %u m_keep_gci: %u stop: %u",
-                 reason,
-                 m_local_lcp_state.m_start_lcp_req.lcpId,
-                 m_local_lcp_state.m_keep_gci,
-                 m_local_lcp_state.m_stop_gci);
+                 reason, m_local_lcp_state.m_start_lcp_req.lcpId,
+                 m_local_lcp_state.m_keep_gci, m_local_lcp_state.m_stop_gci);
 #endif
     m_local_lcp_state.reset();
   }
-  
+
   /* -------------------------------------------------------------------------*/
   /*     WE SET THE REQUESTER OF THE COPY GCI TO THE CURRENT MASTER. IF THE   */
   /*     CURRENT MASTER WE DO NOT WANT THE NEW MASTER TO RECEIVE CONFIRM OF   */
   /*     SOMETHING HE HAS NOT SENT. THE TAKE OVER MUST BE CAREFUL.            */
   /* -------------------------------------------------------------------------*/
   bool ok = false;
-  switch(reason){
-  case CopyGCIReq::IDLE:
-    ok = true;
-    jam();
-    ndbabort();
-  case CopyGCIReq::LOCAL_CHECKPOINT: {
-    ok = true;
-    jam();
-    c_lcpState.setLcpStatus(LCP_COPY_GCI, __LINE__);
-    DEB_LCP_COMP(("c_lcpState.setLcpStatus = LCP_COPY_GCI"));
-    c_lcpState.m_masterLcpDihRef = cmasterdihref;
-    setNodeActiveStatus();
-    break;
-  }
-  case CopyGCIReq::RESTART: {
-    ok = true;
-    jam();
-    Uint32 newest = SYSFILE->newestRestorableGCI;
-    m_micro_gcp.m_old_gci = Uint64(newest) << 32;
-    crestartGci = newest;
-    c_newest_restorable_gci = newest;
-    SYSFILE->setRestartOngoing();
-    m_micro_gcp.m_current_gci = Uint64(newest + 1) << 32;
-    setNodeActiveStatus();
-    setNodeGroups();
-    if (SYSFILE->getLCPOngoing())
-    {
+  switch (reason) {
+    case CopyGCIReq::IDLE:
+      ok = true;
       jam();
-      /* -------------------------------------------------------------------- */
-      //  IF THERE WAS A LOCAL CHECKPOINT ONGOING AT THE CRASH MOMENT WE WILL
-      //    INVALIDATE THAT LOCAL CHECKPOINT.
-      /* -------------------------------------------------------------------- */
-      invalidateLcpInfoAfterSr(signal);
-    }//if
-
-    if (m_micro_gcp.m_enabled == false && 
-        m_micro_gcp.m_master.m_time_between_gcp)
-    {
-      /**
-       * Micro GCP is disabled...but configured...
-       */
+      ndbabort();
+    case CopyGCIReq::LOCAL_CHECKPOINT: {
+      ok = true;
       jam();
-      m_micro_gcp.m_enabled = true;
-      UpgradeProtocolOrd * ord = (UpgradeProtocolOrd*)signal->getDataPtrSend();
-      ord->type = UpgradeProtocolOrd::UPO_ENABLE_MICRO_GCP;
-      EXECUTE_DIRECT(QMGR,GSN_UPGRADE_PROTOCOL_ORD,signal,signal->getLength());
+      c_lcpState.setLcpStatus(LCP_COPY_GCI, __LINE__);
+      DEB_LCP_COMP(("c_lcpState.setLcpStatus = LCP_COPY_GCI"));
+      c_lcpState.m_masterLcpDihRef = cmasterdihref;
+      setNodeActiveStatus();
+      break;
     }
-    break;
-  }
-  case CopyGCIReq::GLOBAL_CHECKPOINT: {
-    ok = true;
-    jam();
-
-    if (m_gcp_save.m_state == GcpSave::GCP_SAVE_COPY_GCI)
-    {
+    case CopyGCIReq::RESTART: {
+      ok = true;
       jam();
-      /**
-       * This must be master take over...and it already running...
-       */
-      ndbrequire(c_newest_restorable_gci == SYSFILE->newestRestorableGCI);
+      Uint32 newest = SYSFILE->newestRestorableGCI;
+      m_micro_gcp.m_old_gci = Uint64(newest) << 32;
+      crestartGci = newest;
+      c_newest_restorable_gci = newest;
+      SYSFILE->setRestartOngoing();
+      m_micro_gcp.m_current_gci = Uint64(newest + 1) << 32;
+      setNodeActiveStatus();
+      setNodeGroups();
+      if (SYSFILE->getLCPOngoing()) {
+        jam();
+        /* --------------------------------------------------------------------
+         */
+        //  IF THERE WAS A LOCAL CHECKPOINT ONGOING AT THE CRASH MOMENT WE WILL
+        //    INVALIDATE THAT LOCAL CHECKPOINT.
+        /* --------------------------------------------------------------------
+         */
+        invalidateLcpInfoAfterSr(signal);
+      }  // if
+
+      if (m_micro_gcp.m_enabled == false &&
+          m_micro_gcp.m_master.m_time_between_gcp) {
+        /**
+         * Micro GCP is disabled...but configured...
+         */
+        jam();
+        m_micro_gcp.m_enabled = true;
+        UpgradeProtocolOrd *ord =
+            (UpgradeProtocolOrd *)signal->getDataPtrSend();
+        ord->type = UpgradeProtocolOrd::UPO_ENABLE_MICRO_GCP;
+        EXECUTE_DIRECT(QMGR, GSN_UPGRADE_PROTOCOL_ORD, signal,
+                       signal->getLength());
+      }
+      break;
+    }
+    case CopyGCIReq::GLOBAL_CHECKPOINT: {
+      ok = true;
+      jam();
+
+      if (m_gcp_save.m_state == GcpSave::GCP_SAVE_COPY_GCI) {
+        jam();
+        /**
+         * This must be master take over...and it already running...
+         */
+        ndbrequire(c_newest_restorable_gci == SYSFILE->newestRestorableGCI);
+        m_gcp_save.m_master_ref = c_copyGCISlave.m_senderRef;
+        return;
+      }
+
+      if (c_newest_restorable_gci == SYSFILE->newestRestorableGCI) {
+        jam();
+
+        /**
+         * This must be master take over...and it already complete...
+         */
+        m_gcp_save.m_master_ref = c_copyGCISlave.m_senderRef;
+        c_copyGCISlave.m_copyReason = CopyGCIReq::IDLE;
+        signal->theData[0] = c_copyGCISlave.m_senderData;
+        sendSignal(m_gcp_save.m_master_ref, GSN_COPY_GCICONF, signal, 1, JBB);
+        return;
+      }
+
+      ndbrequire(m_gcp_save.m_state == GcpSave::GCP_SAVE_CONF);
+      m_gcp_save.m_state = GcpSave::GCP_SAVE_COPY_GCI;
       m_gcp_save.m_master_ref = c_copyGCISlave.m_senderRef;
-      return;
-    }
-
-    if (c_newest_restorable_gci == SYSFILE->newestRestorableGCI)
-    {
+      c_newest_restorable_gci = SYSFILE->newestRestorableGCI;
+      setNodeActiveStatus();
+      break;
+    }  // if
+    case CopyGCIReq::INITIAL_START_COMPLETED:
+      ok = true;
       jam();
-
+      break;
+    case CopyGCIReq::RESTART_NR:
+      jam();
+      setNodeGroups();
       /**
-       * This must be master take over...and it already complete...
+       * We dont really need to make anything durable here...skip it
+       *
+       * We have received the current setting of node groups from the
+       * master node, we are thus ready to setup multi sockets to our
+       * neighbour nodes in the same node group.
+       *
+       * We should only reach here in the context of node restarts,
+       * initial and normal ones.
        */
-      m_gcp_save.m_master_ref = c_copyGCISlave.m_senderRef;
-      c_copyGCISlave.m_copyReason = CopyGCIReq::IDLE;
-      signal->theData[0] = c_copyGCISlave.m_senderData;
-      sendSignal(m_gcp_save.m_master_ref, GSN_COPY_GCICONF, signal, 1, JBB);
+      ndbrequire(cstarttype == NodeState::ST_INITIAL_NODE_RESTART ||
+                 cstarttype == NodeState::ST_NODE_RESTART);
+      jam();
+      m_set_up_multi_trp_in_node_restart = true;
+      signal->theData[0] = reference();
+      sendSignal(QMGR_REF, GSN_SET_UP_MULTI_TRP_REQ, signal, 1, JBB);
       return;
-    }
-
-    ndbrequire(m_gcp_save.m_state == GcpSave::GCP_SAVE_CONF);
-    m_gcp_save.m_state = GcpSave::GCP_SAVE_COPY_GCI;
-    m_gcp_save.m_master_ref = c_copyGCISlave.m_senderRef;
-    c_newest_restorable_gci = SYSFILE->newestRestorableGCI;
-    setNodeActiveStatus();
-    break;
-  }//if
-  case CopyGCIReq::INITIAL_START_COMPLETED:
-    ok = true;
-    jam();
-    break;
-  case CopyGCIReq::RESTART_NR:
-    jam();
-    setNodeGroups();
-    /**
-     * We dont really need to make anything durable here...skip it
-     *
-     * We have received the current setting of node groups from the
-     * master node, we are thus ready to setup multi sockets to our
-     * neighbour nodes in the same node group.
-     *
-     * We should only reach here in the context of node restarts,
-     * initial and normal ones.
-     */
-    ndbrequire(cstarttype == NodeState::ST_INITIAL_NODE_RESTART ||
-               cstarttype == NodeState::ST_NODE_RESTART);
-    jam();
-    m_set_up_multi_trp_in_node_restart = true;
-    signal->theData[0] = reference();
-    sendSignal(QMGR_REF, GSN_SET_UP_MULTI_TRP_REQ, signal, 1, JBB);
-    return;
   }
   ndbrequire(ok);
-  
+
   CRASH_INSERTION(7183);
-  
-  if (ERROR_INSERTED(7185) && reason==CopyGCIReq::GLOBAL_CHECKPOINT)
-  {
+
+  if (ERROR_INSERTED(7185) && reason == CopyGCIReq::GLOBAL_CHECKPOINT) {
     jam();
     return;
   }
@@ -1228,24 +1147,20 @@ void Dbdih::execCOPY_GCIREQ(Signal* signal)
     jam();
     openingCopyGciSkipInitLab(signal, filePtr);
     return;
-  }//if
+  }  // if
   openFileRw(signal, filePtr);
   filePtr.p->reqStatus = FileRecord::OPENING_COPY_GCI;
   return;
-}//Dbdih::execCOPY_GCIREQ()
+}  // Dbdih::execCOPY_GCIREQ()
 
-void
-Dbdih::execSET_UP_MULTI_TRP_CONF(Signal *signal)
-{
-  if (m_set_up_multi_trp_in_node_restart)
-  {
+void Dbdih::execSET_UP_MULTI_TRP_CONF(Signal *signal) {
+  if (m_set_up_multi_trp_in_node_restart) {
     jam();
-    g_eventLogger->info("Completed setting up multiple transporters to nodes"
-                        " in the same node group");
+    g_eventLogger->info(
+        "Completed setting up multiple transporters to nodes"
+        " in the same node group");
     complete_restart_nr(signal);
-  }
-  else
-  {
+  } else {
     jam();
     /**
      * Newly created multi sockets between nodes in a new nodegroup is now
@@ -1254,17 +1169,14 @@ Dbdih::execSET_UP_MULTI_TRP_CONF(Signal *signal)
   }
 }
 
-void
-Dbdih::complete_restart_nr(Signal* signal)
-{
+void Dbdih::complete_restart_nr(Signal *signal) {
   jam();
   c_copyGCISlave.m_copyReason = CopyGCIReq::IDLE;
   signal->theData[0] = c_copyGCISlave.m_senderData;
   sendSignal(c_copyGCISlave.m_senderRef, GSN_COPY_GCICONF, signal, 1, JBB);
 }
 
-void Dbdih::execDICTSTARTCONF(Signal* signal) 
-{
+void Dbdih::execDICTSTARTCONF(Signal *signal) {
   jamEntry();
   Uint32 nodeId = refToNode(signal->getSendersBlockRef());
   if (nodeId != getOwnNodeId()) {
@@ -1273,11 +1185,10 @@ void Dbdih::execDICTSTARTCONF(Signal* signal)
   } else {
     jam();
     dictStartConfLab(signal);
-  }//if
-}//Dbdih::execDICTSTARTCONF()
+  }  // if
+}  // Dbdih::execDICTSTARTCONF()
 
-void Dbdih::execFSCLOSECONF(Signal* signal) 
-{
+void Dbdih::execFSCLOSECONF(Signal *signal) {
   FileRecordPtr filePtr;
   jamEntry();
   filePtr.i = signal->theData[0];
@@ -1286,38 +1197,37 @@ void Dbdih::execFSCLOSECONF(Signal* signal)
   FileRecord::ReqStatus status = filePtr.p->reqStatus;
   filePtr.p->reqStatus = FileRecord::IDLE;
   switch (status) {
-  case FileRecord::CLOSING_GCP:
-    jam();
-    closingGcpLab(signal, filePtr);
-    break;
-  case FileRecord::CLOSING_GCP_CRASH:
-    jam();
-    closingGcpCrashLab(signal, filePtr);
-    break;
-  case FileRecord::CLOSING_TABLE_CRASH:
-    jam();
-    closingTableCrashLab(signal, filePtr);
-    break;
-  case FileRecord::CLOSING_TABLE_SR:
-    jam();
-    closingTableSrLab(signal, filePtr);
-    break;
-  case FileRecord::TABLE_CLOSE:
-    jam();
-    tableCloseLab(signal, filePtr);
-    break;
-  case FileRecord::TABLE_CLOSE_DELETE:
-    jam();
-    tableDeleteLab(signal, filePtr);
-    break;
-  default:
-    ndbabort();
-  }//switch
+    case FileRecord::CLOSING_GCP:
+      jam();
+      closingGcpLab(signal, filePtr);
+      break;
+    case FileRecord::CLOSING_GCP_CRASH:
+      jam();
+      closingGcpCrashLab(signal, filePtr);
+      break;
+    case FileRecord::CLOSING_TABLE_CRASH:
+      jam();
+      closingTableCrashLab(signal, filePtr);
+      break;
+    case FileRecord::CLOSING_TABLE_SR:
+      jam();
+      closingTableSrLab(signal, filePtr);
+      break;
+    case FileRecord::TABLE_CLOSE:
+      jam();
+      tableCloseLab(signal, filePtr);
+      break;
+    case FileRecord::TABLE_CLOSE_DELETE:
+      jam();
+      tableDeleteLab(signal, filePtr);
+      break;
+    default:
+      ndbabort();
+  }  // switch
   return;
-}//Dbdih::execFSCLOSECONF()
+}  // Dbdih::execFSCLOSECONF()
 
-void Dbdih::execFSCLOSEREF(Signal* signal) 
-{
+void Dbdih::execFSCLOSEREF(Signal *signal) {
   FileRecordPtr filePtr;
   jamEntry();
   filePtr.i = signal->theData[0];
@@ -1325,41 +1235,41 @@ void Dbdih::execFSCLOSEREF(Signal* signal)
   FileRecord::ReqStatus status = filePtr.p->reqStatus;
   filePtr.p->reqStatus = FileRecord::IDLE;
   switch (status) {
-  case FileRecord::CLOSING_GCP:
-    jam();
-    break;
-  case FileRecord::CLOSING_GCP_CRASH:
-    jam();
-    closingGcpCrashLab(signal, filePtr);
-    return;
-  case FileRecord::CLOSING_TABLE_CRASH:
-    jam();
-    closingTableCrashLab(signal, filePtr);
-    return;
-  case FileRecord::CLOSING_TABLE_SR:
-    jam();
-    break;
-  case FileRecord::TABLE_CLOSE:
-    jam();
-    break;
-  case FileRecord::TABLE_CLOSE_DELETE:
-    jam();
-    break;
-  default:
-    jam();
-    break;
+    case FileRecord::CLOSING_GCP:
+      jam();
+      break;
+    case FileRecord::CLOSING_GCP_CRASH:
+      jam();
+      closingGcpCrashLab(signal, filePtr);
+      return;
+    case FileRecord::CLOSING_TABLE_CRASH:
+      jam();
+      closingTableCrashLab(signal, filePtr);
+      return;
+    case FileRecord::CLOSING_TABLE_SR:
+      jam();
+      break;
+    case FileRecord::TABLE_CLOSE:
+      jam();
+      break;
+    case FileRecord::TABLE_CLOSE_DELETE:
+      jam();
+      break;
+    default:
+      jam();
+      break;
 
-  }//switch
+  }  // switch
   {
     char msg[100];
-    sprintf(msg, "File system close failed during FileRecord status %d", (Uint32)status);
-    fsRefError(signal,__LINE__,msg);
+    sprintf(msg, "File system close failed during FileRecord status %d",
+            (Uint32)status);
+    fsRefError(signal, __LINE__, msg);
   }
   return;
-}//Dbdih::execFSCLOSEREF()
+}  // Dbdih::execFSCLOSEREF()
 
-void Dbdih::execFSOPENCONF(Signal* signal) 
-{
+void Dbdih::execFSOPENCONF(Signal *signal) {
   FileRecordPtr filePtr;
   jamEntry();
   filePtr.i = signal->theData[0];
@@ -1369,42 +1279,41 @@ void Dbdih::execFSOPENCONF(Signal* signal)
   FileRecord::ReqStatus status = filePtr.p->reqStatus;
   filePtr.p->reqStatus = FileRecord::IDLE;
   switch (status) {
-  case FileRecord::CREATING_GCP:
-    jam();
-    creatingGcpLab(signal, filePtr);
-    break;
-  case FileRecord::OPENING_COPY_GCI:
-    jam();
-    openingCopyGciSkipInitLab(signal, filePtr);
-    break;
-  case FileRecord::CREATING_COPY_GCI:
-    jam();
-    openingCopyGciSkipInitLab(signal, filePtr);
-    break;
-  case FileRecord::OPENING_GCP:
-    jam();
-    openingGcpLab(signal, filePtr);
-    break;
-  case FileRecord::OPENING_TABLE:
-    jam();
-    openingTableLab(signal, filePtr);
-    break;
-  case FileRecord::TABLE_CREATE:
-    jam();
-    tableCreateLab(signal, filePtr);
-    break;
-  case FileRecord::TABLE_OPEN_FOR_DELETE:
-    jam();
-    tableOpenLab(signal, filePtr);
-    break;
-  default:
-    ndbabort();
-  }//switch
+    case FileRecord::CREATING_GCP:
+      jam();
+      creatingGcpLab(signal, filePtr);
+      break;
+    case FileRecord::OPENING_COPY_GCI:
+      jam();
+      openingCopyGciSkipInitLab(signal, filePtr);
+      break;
+    case FileRecord::CREATING_COPY_GCI:
+      jam();
+      openingCopyGciSkipInitLab(signal, filePtr);
+      break;
+    case FileRecord::OPENING_GCP:
+      jam();
+      openingGcpLab(signal, filePtr);
+      break;
+    case FileRecord::OPENING_TABLE:
+      jam();
+      openingTableLab(signal, filePtr);
+      break;
+    case FileRecord::TABLE_CREATE:
+      jam();
+      tableCreateLab(signal, filePtr);
+      break;
+    case FileRecord::TABLE_OPEN_FOR_DELETE:
+      jam();
+      tableOpenLab(signal, filePtr);
+      break;
+    default:
+      ndbabort();
+  }  // switch
   return;
-}//Dbdih::execFSOPENCONF()
+}  // Dbdih::execFSOPENCONF()
 
-void Dbdih::execFSOPENREF(Signal* signal) 
-{
+void Dbdih::execFSOPENREF(Signal *signal) {
   FileRecordPtr filePtr;
   jamEntry();
   filePtr.i = signal->theData[0];
@@ -1412,50 +1321,53 @@ void Dbdih::execFSOPENREF(Signal* signal)
   FileRecord::ReqStatus status = filePtr.p->reqStatus;
   filePtr.p->reqStatus = FileRecord::IDLE;
   switch (status) {
-  case FileRecord::CREATING_GCP:
-    /* --------------------------------------------------------------------- */
-    /*   WE DID NOT MANAGE TO CREATE A GLOBAL CHECKPOINT FILE. SERIOUS ERROR */
-    /*   WHICH CAUSES A SYSTEM RESTART.                                      */
-    /* --------------------------------------------------------------------- */
-    jam();
-    break;
-  case FileRecord::OPENING_COPY_GCI:
-    jam();
-    openingCopyGciErrorLab(signal, filePtr);
-    return;
-  case FileRecord::CREATING_COPY_GCI:
-    jam();
-    break;
-  case FileRecord::OPENING_GCP:
-    jam();
-    openingGcpErrorLab(signal, filePtr);
-    return;
-  case FileRecord::OPENING_TABLE:
-    jam();
-    openingTableErrorLab(signal, filePtr);
-    return;
-  case FileRecord::TABLE_CREATE:
-    jam();
-    break;
-  case FileRecord::TABLE_OPEN_FOR_DELETE:
-    jam();
-    tableDeleteLab(signal, filePtr);
-    return;
-  default:
-    jam();
-    break;
-  }//switch
+    case FileRecord::CREATING_GCP:
+      /* ---------------------------------------------------------------------
+       */
+      /*   WE DID NOT MANAGE TO CREATE A GLOBAL CHECKPOINT FILE. SERIOUS ERROR
+       */
+      /*   WHICH CAUSES A SYSTEM RESTART. */
+      /* ---------------------------------------------------------------------
+       */
+      jam();
+      break;
+    case FileRecord::OPENING_COPY_GCI:
+      jam();
+      openingCopyGciErrorLab(signal, filePtr);
+      return;
+    case FileRecord::CREATING_COPY_GCI:
+      jam();
+      break;
+    case FileRecord::OPENING_GCP:
+      jam();
+      openingGcpErrorLab(signal, filePtr);
+      return;
+    case FileRecord::OPENING_TABLE:
+      jam();
+      openingTableErrorLab(signal, filePtr);
+      return;
+    case FileRecord::TABLE_CREATE:
+      jam();
+      break;
+    case FileRecord::TABLE_OPEN_FOR_DELETE:
+      jam();
+      tableDeleteLab(signal, filePtr);
+      return;
+    default:
+      jam();
+      break;
+  }  // switch
   {
     char msg[100];
-    sprintf(msg, "File system open failed during FileRecord status %d", (Uint32)status);
-    fsRefError(signal,__LINE__,msg);
+    sprintf(msg, "File system open failed during FileRecord status %d",
+            (Uint32)status);
+    fsRefError(signal, __LINE__, msg);
   }
   return;
-}//Dbdih::execFSOPENREF()
+}  // Dbdih::execFSOPENREF()
 
-void Dbdih::execFSREADCONF(Signal* signal) 
-{
-  const FsConf* conf = (const FsConf*)&signal->theData[0];
+void Dbdih::execFSREADCONF(Signal *signal) {
+  const FsConf *conf = (const FsConf *)&signal->theData[0];
   FileRecordPtr filePtr;
   jamEntry();
   filePtr.i = conf->userPointer;
@@ -1463,84 +1375,21 @@ void Dbdih::execFSREADCONF(Signal* signal)
   FileRecord::ReqStatus status = filePtr.p->reqStatus;
   filePtr.p->reqStatus = FileRecord::IDLE;
   switch (status) {
-  case FileRecord::READING_GCP:
-    jam();
-    readingGcpLab(signal, filePtr, conf->bytes_read);
-    break;
-  case FileRecord::READING_TABLE:
-    jam();
-    readingTableLab(signal, filePtr);
-    break;
-  default:
-    ndbabort();
-  }//switch
-  return;
-}//Dbdih::execFSREADCONF()
-
-void Dbdih::execFSREADREF(Signal* signal) 
-{
-  FileRecordPtr filePtr;
-  jamEntry();
-  filePtr.i = signal->theData[0];
-  ptrCheckGuard(filePtr, cfileFileSize, fileRecord);
-  FileRecord::ReqStatus status = filePtr.p->reqStatus;
-  filePtr.p->reqStatus = FileRecord::IDLE;
-  switch (status) {
-  case FileRecord::READING_GCP:
-    jam();
-    readingGcpErrorLab(signal, filePtr);
-    return;
-  case FileRecord::READING_TABLE:
-    jam();
-    readingTableErrorLab(signal, filePtr);
-    return;
-  default:
-    break;
-  }//switch
-  {
-    char msg[100];
-    sprintf(msg, "File system read failed during FileRecord status %d", (Uint32)status);
-    fsRefError(signal,__LINE__,msg);
-  }
-}//Dbdih::execFSREADREF()
-
-void Dbdih::execFSWRITECONF(Signal* signal) 
-{
-  FileRecordPtr filePtr;
-  jamEntry();
-  filePtr.i = signal->theData[0];
-  ptrCheckGuard(filePtr, cfileFileSize, fileRecord);
-  FileRecord::ReqStatus status = filePtr.p->reqStatus;
-  filePtr.p->reqStatus = FileRecord::IDLE;
-  switch (status) {
-  case FileRecord::WRITING_COPY_GCI:
-    jam();
-    writingCopyGciLab(signal, filePtr);
-    break;
-  case FileRecord::WRITE_INIT_GCP:
-    jam();
-    writeInitGcpLab(signal, filePtr);
-    break;
-  case FileRecord::TABLE_WRITE:
-    jam();
-    if (ERROR_INSERTED(7235))
-    {
+    case FileRecord::READING_GCP:
       jam();
-      filePtr.p->reqStatus = status;
-      /* Suspend processing of WRITECONFs */
-      sendSignalWithDelay(reference(), GSN_FSWRITECONF, signal, 1000, signal->getLength());
-      return;
-    }
-    tableWriteLab(signal, filePtr);
-    break;
-  default:
-    ndbabort();
-  }//switch
+      readingGcpLab(signal, filePtr, conf->bytes_read);
+      break;
+    case FileRecord::READING_TABLE:
+      jam();
+      readingTableLab(signal, filePtr);
+      break;
+    default:
+      ndbabort();
+  }  // switch
   return;
-}//Dbdih::execFSWRITECONF()
+}  // Dbdih::execFSREADCONF()
 
-void Dbdih::execFSWRITEREF(Signal* signal) 
-{
+void Dbdih::execFSREADREF(Signal *signal) {
   FileRecordPtr filePtr;
   jamEntry();
   filePtr.i = signal->theData[0];
@@ -1548,100 +1397,160 @@ void Dbdih::execFSWRITEREF(Signal* signal)
   FileRecord::ReqStatus status = filePtr.p->reqStatus;
   filePtr.p->reqStatus = FileRecord::IDLE;
   switch (status) {
-  case FileRecord::WRITING_COPY_GCI:
-    /* --------------------------------------------------------------------- */
-    /*  EVEN CREATING THE FILE DID NOT WORK. WE WILL THEN CRASH.             */
-    /*  ERROR IN WRITING FILE. WE WILL NOT CONTINUE FROM HERE.               */
-    /* --------------------------------------------------------------------- */
-    jam();
-    break;
-  case FileRecord::WRITE_INIT_GCP:
-    /* --------------------------------------------------------------------- */
-    /*   AN ERROR OCCURRED IN WRITING A GCI FILE WHICH IS A SERIOUS ERROR    */
-    /*   THAT CAUSE A SYSTEM RESTART.                                        */
-    /* --------------------------------------------------------------------- */
-    jam();
-    break;
-  case FileRecord::TABLE_WRITE:
-    jam();
-    break;
-  default:
-    jam();
-    break;
-  }//switch
+    case FileRecord::READING_GCP:
+      jam();
+      readingGcpErrorLab(signal, filePtr);
+      return;
+    case FileRecord::READING_TABLE:
+      jam();
+      readingTableErrorLab(signal, filePtr);
+      return;
+    default:
+      break;
+  }  // switch
   {
     char msg[100];
-    sprintf(msg, "File system write failed during FileRecord status %d", (Uint32)status);
-    fsRefError(signal,__LINE__,msg);
+    sprintf(msg, "File system read failed during FileRecord status %d",
+            (Uint32)status);
+    fsRefError(signal, __LINE__, msg);
+  }
+}  // Dbdih::execFSREADREF()
+
+void Dbdih::execFSWRITECONF(Signal *signal) {
+  FileRecordPtr filePtr;
+  jamEntry();
+  filePtr.i = signal->theData[0];
+  ptrCheckGuard(filePtr, cfileFileSize, fileRecord);
+  FileRecord::ReqStatus status = filePtr.p->reqStatus;
+  filePtr.p->reqStatus = FileRecord::IDLE;
+  switch (status) {
+    case FileRecord::WRITING_COPY_GCI:
+      jam();
+      writingCopyGciLab(signal, filePtr);
+      break;
+    case FileRecord::WRITE_INIT_GCP:
+      jam();
+      writeInitGcpLab(signal, filePtr);
+      break;
+    case FileRecord::TABLE_WRITE:
+      jam();
+      if (ERROR_INSERTED(7235)) {
+        jam();
+        filePtr.p->reqStatus = status;
+        /* Suspend processing of WRITECONFs */
+        sendSignalWithDelay(reference(), GSN_FSWRITECONF, signal, 1000,
+                            signal->getLength());
+        return;
+      }
+      tableWriteLab(signal, filePtr);
+      break;
+    default:
+      ndbabort();
+  }  // switch
+  return;
+}  // Dbdih::execFSWRITECONF()
+
+void Dbdih::execFSWRITEREF(Signal *signal) {
+  FileRecordPtr filePtr;
+  jamEntry();
+  filePtr.i = signal->theData[0];
+  ptrCheckGuard(filePtr, cfileFileSize, fileRecord);
+  FileRecord::ReqStatus status = filePtr.p->reqStatus;
+  filePtr.p->reqStatus = FileRecord::IDLE;
+  switch (status) {
+    case FileRecord::WRITING_COPY_GCI:
+      /* ---------------------------------------------------------------------
+       */
+      /*  EVEN CREATING THE FILE DID NOT WORK. WE WILL THEN CRASH. */
+      /*  ERROR IN WRITING FILE. WE WILL NOT CONTINUE FROM HERE. */
+      /* ---------------------------------------------------------------------
+       */
+      jam();
+      break;
+    case FileRecord::WRITE_INIT_GCP:
+      /* ---------------------------------------------------------------------
+       */
+      /*   AN ERROR OCCURRED IN WRITING A GCI FILE WHICH IS A SERIOUS ERROR */
+      /*   THAT CAUSE A SYSTEM RESTART. */
+      /* ---------------------------------------------------------------------
+       */
+      jam();
+      break;
+    case FileRecord::TABLE_WRITE:
+      jam();
+      break;
+    default:
+      jam();
+      break;
+  }  // switch
+  {
+    char msg[100];
+    sprintf(msg, "File system write failed during FileRecord status %d",
+            (Uint32)status);
+    fsRefError(signal, __LINE__, msg);
   }
   return;
-}//Dbdih::execFSWRITEREF()
+}  // Dbdih::execFSWRITEREF()
 
-void Dbdih::execGETGCIREQ(Signal* signal) 
-{
-
+void Dbdih::execGETGCIREQ(Signal *signal) {
   jamEntry();
   Uint32 userPtr = signal->theData[0];
   BlockReference userRef = signal->theData[1];
   Uint32 type = signal->theData[2];
-  
+
   Uint32 gci_hi = 0;
   Uint32 gci_lo = 0;
-  switch(type){
-  case 0:
-    jam();
-    gci_hi = SYSFILE->newestRestorableGCI;
-    break;
-  case 1:
-    jam();
-    gci_hi = Uint32(m_micro_gcp.m_current_gci >> 32);
-    gci_lo = Uint32(m_micro_gcp.m_current_gci);
-    break;
+  switch (type) {
+    case 0:
+      jam();
+      gci_hi = SYSFILE->newestRestorableGCI;
+      break;
+    case 1:
+      jam();
+      gci_hi = Uint32(m_micro_gcp.m_current_gci >> 32);
+      gci_lo = Uint32(m_micro_gcp.m_current_gci);
+      break;
   }
-  
+
   signal->theData[0] = userPtr;
   signal->theData[1] = gci_hi;
   signal->theData[2] = gci_lo;
-  
-  if (userRef)
-  {
+
+  if (userRef) {
     jam();
     sendSignal(userRef, GSN_GETGCICONF, signal, 3, JBB);
-  }
-  else
-  {
+  } else {
     jam();
     // Execute direct
   }
-}//Dbdih::execGETGCIREQ()
+}  // Dbdih::execGETGCIREQ()
 
-void Dbdih::execREAD_CONFIG_REQ(Signal* signal) 
-{
-  const ReadConfigReq * req = (ReadConfigReq*)signal->getDataPtr();
+void Dbdih::execREAD_CONFIG_REQ(Signal *signal) {
+  const ReadConfigReq *req = (ReadConfigReq *)signal->getDataPtr();
   Uint32 ref = req->senderRef;
   Uint32 senderData = req->senderData;
   ndbrequire(req->noOfParameters == 0);
 
   jamEntry();
 
-  const ndb_mgm_configuration_iterator * p = 
-    m_ctx.m_config.getOwnConfigIterator();
+  const ndb_mgm_configuration_iterator *p =
+      m_ctx.m_config.getOwnConfigIterator();
   ndbrequireErr(p != 0, NDBD_EXIT_INVALID_CONFIG);
 
   initData();
 
   cnoReplicas = 1;
   ndb_mgm_get_int_parameter(p, CFG_DB_NO_REPLICAS, &cnoReplicas);
-  if (cnoReplicas > MAX_REPLICAS)
-  {
+  if (cnoReplicas > MAX_REPLICAS) {
     progError(__LINE__, NDBD_EXIT_INVALID_CONFIG,
-	      "Only up to four replicas are supported. Check NoOfReplicas.");
+              "Only up to four replicas are supported. Check NoOfReplicas.");
   }
 
-  cconnectFileSize = 256; // Only used for DDL
+  cconnectFileSize = 256;  // Only used for DDL
 
-  ndbrequireErr(!ndb_mgm_get_int_parameter(p, CFG_DIH_TABLE, &ctabFileSize),
-		NDBD_EXIT_INVALID_CONFIG);
+  ndbrequireErr(
+      !ndb_mgm_get_int_parameter(p, CFG_DIH_TABLE, &ctabFileSize),
+      NDBD_EXIT_INVALID_CONFIG);
 
   Uint32 use_auto_thread_config = 0;
   ndb_mgm_get_int_parameter(p,
@@ -1649,19 +1558,16 @@ void Dbdih::execREAD_CONFIG_REQ(Signal* signal)
                             &use_auto_thread_config);
 
   Uint32 use_classic_fragmentation = 1;
-  ndb_mgm_get_int_parameter(p,
-                            CFG_DB_CLASSIC_FRAGMENTATION,
+  ndb_mgm_get_int_parameter(p, CFG_DB_CLASSIC_FRAGMENTATION,
                             &use_classic_fragmentation);
   m_use_classic_fragmentation = use_classic_fragmentation;
-  if (m_use_classic_fragmentation && use_auto_thread_config)
-  {
+  if (m_use_classic_fragmentation && use_auto_thread_config) {
     jam();
     m_use_classic_fragmentation = 0;
   }
 
   c_fragments_per_node_ = 0;
-  if (!m_use_classic_fragmentation)
-  {
+  if (!m_use_classic_fragmentation) {
     jam();
     c_fragments_per_node_ = 2;
     ndb_mgm_get_int_parameter(p, CFG_DB_PARTITIONS_PER_NODE,
@@ -1672,7 +1578,7 @@ void Dbdih::execREAD_CONFIG_REQ(Signal* signal)
       g_eventLogger->info("Using %u fragments per node", c_fragments_per_node_);
     }
   }
-  ndb_mgm_get_int_parameter(p, CFG_DB_LCP_TRY_LOCK_TIMEOUT, 
+  ndb_mgm_get_int_parameter(p, CFG_DB_LCP_TRY_LOCK_TIMEOUT,
                             &c_lcpState.m_lcp_trylock_timeout);
 
   cfileFileSize = (2 * ctabFileSize) + 2;
@@ -1681,8 +1587,7 @@ void Dbdih::execREAD_CONFIG_REQ(Signal* signal)
 
   {
     Uint32 val = 0;
-    ndb_mgm_get_int_parameter(p, CFG_DB_2PASS_INR,
-                              &val);
+    ndb_mgm_get_int_parameter(p, CFG_DB_2PASS_INR, &val);
     c_2pass_inr = val ? true : false;
   }
 
@@ -1691,8 +1596,7 @@ void Dbdih::execREAD_CONFIG_REQ(Signal* signal)
    */
   {
     NodeRecordPtr nodePtr;
-    for (nodePtr.i = 1; nodePtr.i < MAX_NDB_NODES; nodePtr.i++)
-    {
+    for (nodePtr.i = 1; nodePtr.i < MAX_NDB_NODES; nodePtr.i++) {
       ptrAss(nodePtr, nodeRecord);
       initNodeRecord(nodePtr);
       nodePtr.p->nodeGroup = ZNIL;
@@ -1705,27 +1609,24 @@ void Dbdih::execREAD_CONFIG_REQ(Signal* signal)
     Uint16 nodegroup_mapping[MAX_NDB_NODES];
     create_nodegroup_mapping(&nodegroup_mapping[0]);
 
-    ndb_mgm_configuration_iterator * iter =
-      m_ctx.m_config.getClusterConfigIterator();
-    for(ndb_mgm_first(iter); ndb_mgm_valid(iter); ndb_mgm_next(iter))
-    {
+    ndb_mgm_configuration_iterator *iter =
+        m_ctx.m_config.getClusterConfigIterator();
+    for (ndb_mgm_first(iter); ndb_mgm_valid(iter); ndb_mgm_next(iter)) {
       jam();
       Uint32 nodeId;
       Uint32 nodeType;
 
-      ndbrequire(!ndb_mgm_get_int_parameter(iter,CFG_NODE_ID, &nodeId));
-      ndbrequire(!ndb_mgm_get_int_parameter(iter,CFG_TYPE_OF_SECTION,
-                                            &nodeType));
+      ndbrequire(!ndb_mgm_get_int_parameter(iter, CFG_NODE_ID, &nodeId));
+      ndbrequire(
+          !ndb_mgm_get_int_parameter(iter, CFG_TYPE_OF_SECTION, &nodeType));
 
-      if (nodeType == NodeInfo::DB)
-      {
+      if (nodeType == NodeInfo::DB) {
         jam();
         Uint32 ng;
         nodePtr.i = nodeId;
         ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
         setNodeRecoveryStatusInitial(nodePtr);
-        if (ndb_mgm_get_int_parameter(iter, CFG_DB_NODEGROUP, &ng) == 0)
-        {
+        if (ndb_mgm_get_int_parameter(iter, CFG_DB_NODEGROUP, &ng) == 0) {
           if (ng == NDB_NO_NODEGROUP)
           {
             jam();
@@ -1747,9 +1648,7 @@ void Dbdih::execREAD_CONFIG_REQ(Signal* signal)
                              nodegroup_mapping[ng],
                              __LINE__));
           }
-        }
-        else
-        {
+        } else {
           jam();
           nodePtr.p->nodeGroup = ZNIL;
           set_node_group_id(nodePtr.i, ZNIL);
@@ -1762,14 +1661,12 @@ void Dbdih::execREAD_CONFIG_REQ(Signal* signal)
   return;
 }
 
-void Dbdih::execSTART_COPYREF(Signal* signal) 
-{
+void Dbdih::execSTART_COPYREF(Signal *signal) {
   jamEntry();
   ndbabort();
-}//Dbdih::execSTART_COPYREF()
+}  // Dbdih::execSTART_COPYREF()
 
-void Dbdih::execSTART_FRAGCONF(Signal* signal) 
-{
+void Dbdih::execSTART_FRAGCONF(Signal *signal) {
   (void)signal;  // Don't want compiler warning
   /* ********************************************************************* */
   /*  If anyone wants to add functionality in this method, be aware that   */
@@ -1778,36 +1675,33 @@ void Dbdih::execSTART_FRAGCONF(Signal* signal)
   /* ********************************************************************* */
   jamEntry();
   return;
-}//Dbdih::execSTART_FRAGCONF()
+}  // Dbdih::execSTART_FRAGCONF()
 
-void Dbdih::execSTART_FRAGREF(Signal* signal) 
-{
+void Dbdih::execSTART_FRAGREF(Signal *signal) {
   jamEntry();
- 
+
   /**
    * Kill starting node
    */
   Uint32 errCode = signal->theData[1];
   Uint32 nodeId = signal->theData[2];
-  
-  SystemError * const sysErr = (SystemError*)&signal->theData[0];
+
+  SystemError *const sysErr = (SystemError *)&signal->theData[0];
   sysErr->errorCode = SystemError::StartFragRefError;
   sysErr->errorRef = reference();
   sysErr->data[0] = errCode;
   sysErr->data[1] = 0;
-  sendSignal(calcNdbCntrBlockRef(nodeId), GSN_SYSTEM_ERROR, signal, 
-	     SystemError::SignalLength, JBB);
+  sendSignal(calcNdbCntrBlockRef(nodeId), GSN_SYSTEM_ERROR, signal,
+             SystemError::SignalLength, JBB);
   return;
-}//Dbdih::execSTART_FRAGCONF()
+}  // Dbdih::execSTART_FRAGCONF()
 
-void Dbdih::execSTART_MEREF(Signal* signal) 
-{
+void Dbdih::execSTART_MEREF(Signal *signal) {
   jamEntry();
   ndbabort();
-}//Dbdih::execSTART_MEREF()
+}  // Dbdih::execSTART_MEREF()
 
-void Dbdih::execTAB_COMMITREQ(Signal* signal) 
-{
+void Dbdih::execTAB_COMMITREQ(Signal *signal) {
   TabRecordPtr tabPtr;
   jamEntry();
   Uint32 tdictPtr = signal->theData[0];
@@ -1824,7 +1718,7 @@ void Dbdih::execTAB_COMMITREQ(Signal* signal)
   signal->theData[2] = tabPtr.i;
   sendSignal(tdictBlockref, GSN_TAB_COMMITCONF, signal, 3, JBB);
   return;
-}//Dbdih::execTAB_COMMITREQ()
+}  // Dbdih::execTAB_COMMITREQ()
 
 /*
   3.2   S T A N D A R D   S U B P R O G R A M S   I N   P L E X
@@ -1841,27 +1735,20 @@ void Dbdih::execTAB_COMMITREQ(Signal* signal)
   3.2.1.1    LOADING   O W N   B L O C K  R E F E R E N C E (ABSOLUTE PHASE 1)
   *****************************************************************************
   */
-void Dbdih::execDIH_RESTARTREQ(Signal* signal)
-{
+void Dbdih::execDIH_RESTARTREQ(Signal *signal) {
   jamEntry();
-  DihRestartReq* req = (DihRestartReq*)signal->getDataPtr();
-  if (req->senderRef != 0)
-  {
+  DihRestartReq *req = (DihRestartReq *)signal->getDataPtr();
+  if (req->senderRef != 0) {
     jam();
     cntrlblockref = req->senderRef;
-    if(m_ctx.m_config.getInitialStart())
-    {
+    if (m_ctx.m_config.getInitialStart()) {
       jam();
       sendDihRestartRef(signal);
-    }
-    else
-    {
+    } else {
       jam();
       readGciFileLab(signal);
     }
-  }
-  else
-  {
+  } else {
     /**
      * Precondition, (not checked)
      *   at least 1 node in each node group
@@ -1872,24 +1759,20 @@ void Dbdih::execDIH_RESTARTREQ(Signal* signal)
     NdbNodeBitmask mask;
     mask.assign(NdbNodeBitmask::Size, req->nodemask);
     const Uint32 *node_gcis = req->node_gcis;
-    Uint32 node_group_gcis[MAX_NDB_NODES+1];
+    Uint32 node_group_gcis[MAX_NDB_NODES + 1];
     memset(node_group_gcis, 0, sizeof(node_group_gcis));
-    for (i = 0; i<MAX_NDB_NODES; i++)
-    {
-      if (mask.get(i))
-      {
-	jam();
+    for (i = 0; i < MAX_NDB_NODES; i++) {
+      if (mask.get(i)) {
+        jam();
         jamLine(Uint16(i));
         Uint32 ng = SYSFILE->getNodeGroup(i);
-        if (ng != NO_NODE_GROUP_ID)
-        {
+        if (ng != NO_NODE_GROUP_ID) {
           jam();
           jamLine(Uint16(ng));
           ndbrequire(ng < MAX_NDB_NODE_GROUPS);
           Uint32 gci = node_gcis[i];
           if (gci > ZUNDEFINED_GCI_LIMIT &&
-              gci + 1 == SYSFILE->lastCompletedGCI[i])
-          {
+              gci + 1 == SYSFILE->lastCompletedGCI[i]) {
             jam();
             /**
              * Handle case, where *I* know that node complete GCI
@@ -1900,116 +1783,100 @@ void Dbdih::execDIH_RESTARTREQ(Signal* signal)
             gci = SYSFILE->lastCompletedGCI[i];
           }
 
-          if (gci > node_group_gcis[ng])
-          {
+          if (gci > node_group_gcis[ng]) {
             jam();
             jamLine(Uint16(gci));
             node_group_gcis[ng] = gci;
-          }
-          else
-          {
+          } else {
             jam();
             jamLine(Uint16(node_group_gcis[ng]));
           }
         }
       }
     }
-    for (i = 0; i<MAX_NDB_NODES && node_group_gcis[i] == 0; i++);
-    
+    for (i = 0; i < MAX_NDB_NODES && node_group_gcis[i] == 0; i++)
+      ;
+
     Uint32 gci = node_group_gcis[i];
-    if (gci == ZUNDEFINED_GCI_LIMIT)
-    {
+    if (gci == ZUNDEFINED_GCI_LIMIT) {
       jam();
       signal->theData[0] = i;
       return;
-    }
-    else
-    {
+    } else {
       jam();
       bool return_flag = false;
-      for (i++ ; i<MAX_NDB_NODES; i++)
-      {
-        if (node_group_gcis[i] && node_group_gcis[i] != gci)
-        {
-	  jam();
+      for (i++; i < MAX_NDB_NODES; i++) {
+        if (node_group_gcis[i] && node_group_gcis[i] != gci) {
+          jam();
           jamLine(Uint16(i));
-	  signal->theData[0] = i;
+          signal->theData[0] = i;
           return_flag = true;
           break;
         }
       }
-      if (!return_flag)
-      {
+      if (!return_flag) {
         jam();
         signal->theData[0] = MAX_NDB_NODES;
       }
     }
-    memcpy(req->node_gcis, &node_group_gcis[0], 4*MAX_NDB_NODES);
+    memcpy(req->node_gcis, &node_group_gcis[0], 4 * MAX_NDB_NODES);
     return;
   }
   return;
-}//Dbdih::execDIH_RESTARTREQ()
+}  // Dbdih::execDIH_RESTARTREQ()
 
-void Dbdih::execSET_LATEST_LCP_ID(Signal *signal)
-{
+void Dbdih::execSET_LATEST_LCP_ID(Signal *signal) {
   Uint32 nodeId = signal->theData[0];
   Uint32 latestLcpId = signal->theData[1];
-  if (latestLcpId > SYSFILE->latestLCP_ID)
-  {
+  if (latestLcpId > SYSFILE->latestLCP_ID) {
     jam();
     g_eventLogger->info("Node %u saw more recent LCP id = %u, previously = %u",
-                        nodeId,
-                        latestLcpId,
-                        SYSFILE->latestLCP_ID);
+                        nodeId, latestLcpId, SYSFILE->latestLCP_ID);
     ndbrequire(latestLcpId == (SYSFILE->latestLCP_ID + 1));
     SYSFILE->latestLCP_ID = latestLcpId;
   }
 }
 
-void Dbdih::execGET_LATEST_GCI_REQ(Signal *signal)
-{
+void Dbdih::execGET_LATEST_GCI_REQ(Signal *signal) {
   Uint32 nodeId = signal->theData[0];
   ndbrequire(nodeId < MAX_NDB_NODES);
   Uint32 latestGci = SYSFILE->lastCompletedGCI[nodeId];
   signal->theData[0] = latestGci;
 }
 
-void Dbdih::execSTTOR(Signal* signal) 
-{
+void Dbdih::execSTTOR(Signal *signal) {
   jamEntry();
 
-  Callback c = { safe_cast(&Dbdih::sendSTTORRY), 0 };
+  Callback c = {safe_cast(&Dbdih::sendSTTORRY), 0};
   m_sendSTTORRY = c;
 
-  switch(signal->theData[1]){
-  case 1:
-    jam();
-    createMutexes(signal, 0);
-    init_lcp_pausing_module();
+  switch (signal->theData[1]) {
+    case 1:
+      jam();
+      createMutexes(signal, 0);
+      init_lcp_pausing_module();
 #ifdef DEBUG_LCP_COMP
-    signal->theData[0] = DihContinueB::ZPRINT_LCP_STATE;
-    sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 1000, 1);
+      signal->theData[0] = DihContinueB::ZPRINT_LCP_STATE;
+      sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 1000, 1);
 #endif
-    return;
-  case 3:
-    jam();
-    signal->theData[0] = reference();
-    sendSignal(NDBCNTR_REF, GSN_READ_NODESREQ, signal, 1, JBB);
-    return;
+      return;
+    case 3:
+      jam();
+      signal->theData[0] = reference();
+      sendSignal(NDBCNTR_REF, GSN_READ_NODESREQ, signal, 1, JBB);
+      return;
   }
 
   sendSTTORRY(signal);
-}//Dbdih::execSTTOR()
+}  // Dbdih::execSTTOR()
 
-void
-Dbdih::sendSTTORRY(Signal* signal, Uint32 senderData, Uint32 retVal)
-{
+void Dbdih::sendSTTORRY(Signal *signal, Uint32 senderData, Uint32 retVal) {
   signal->theData[0] = 0;
   signal->theData[1] = 0;
   signal->theData[2] = 0;
-  signal->theData[3] = 1;   // Next start phase
+  signal->theData[3] = 1;  // Next start phase
   signal->theData[4] = 3;
-  signal->theData[5] = 255; // Next start phase
+  signal->theData[5] = 255;  // Next start phase
   sendSignal(NDBCNTR_REF, GSN_STTORRY, signal, 6, JBB);
   return;
 }
@@ -2019,8 +1886,7 @@ Dbdih::sendSTTORRY(Signal* signal, Uint32 senderData, Uint32 retVal)
  * S E N D I N G   R E P L Y  T O  S T A R T /  R E S T A R T   R E Q U E S T S
  * ****************************************************************************
  */
-void Dbdih::ndbsttorry10Lab(Signal* signal, Uint32 _line) 
-{
+void Dbdih::ndbsttorry10Lab(Signal *signal, Uint32 _line) {
   /*-------------------------------------------------------------------------*/
   // AN NDB START PHASE HAS BEEN COMPLETED. WHEN START PHASE 6 IS COMPLETED WE
   // RECORD THAT THE SYSTEM IS RUNNING.
@@ -2028,7 +1894,7 @@ void Dbdih::ndbsttorry10Lab(Signal* signal, Uint32 _line)
   signal->theData[0] = reference();
   sendSignal(cntrlblockref, GSN_NDB_STTORRY, signal, 1, JBB);
   return;
-}//Dbdih::ndbsttorry10Lab()
+}  // Dbdih::ndbsttorry10Lab()
 
 /*
 ****************************************
@@ -2038,238 +1904,235 @@ I N T E R N A L  P H A S E S
 /*---------------------------------------------------------------------------*/
 /*NDB_STTOR                              START SIGNAL AT START/RESTART       */
 /*---------------------------------------------------------------------------*/
-void Dbdih::execNDB_STTOR(Signal* signal) 
-{
+void Dbdih::execNDB_STTOR(Signal *signal) {
   jamEntry();
-  BlockReference cntrRef = signal->theData[0];    /* SENDERS BLOCK REFERENCE */
-  Uint32 ownNodeId = signal->theData[1];          /* OWN PROCESSOR ID*/
-  Uint32 phase = signal->theData[2];              /* INTERNAL START PHASE*/
+  BlockReference cntrRef = signal->theData[0]; /* SENDERS BLOCK REFERENCE */
+  Uint32 ownNodeId = signal->theData[1];       /* OWN PROCESSOR ID*/
+  Uint32 phase = signal->theData[2];           /* INTERNAL START PHASE*/
   Uint32 typestart = signal->theData[3];
 
   cstarttype = typestart;
   cstartPhase = phase;
 
-  switch (phase){
-  case ZNDB_SPH1:
-    jam();
-    /*-----------------------------------------------------------------------*/
-    // Compute all static block references in this node as part of
-    // ndb start phase 1.    
-    /*-----------------------------------------------------------------------*/
-    cownNodeId = ownNodeId;
-    cntrlblockref = cntrRef;
-    clocaltcblockref = calcTcBlockRef(ownNodeId);
-    clocallqhblockref = calcLqhBlockRef(ownNodeId);
-    clocalqlqhblockref = calcQlqhBlockRef(ownNodeId);
-    cdictblockref = calcDictBlockRef(ownNodeId);
-    c_lcpState.lcpStallStart = 0;
-    c_lcpState.lcpManualStallStart = false;
-    NdbTick_Invalidate(&c_lcpState.m_start_lcp_check_time);
-    ndbsttorry10Lab(signal, __LINE__);
-    break;
-    
-  case ZNDB_SPH2:
-    jam();
-    /*-----------------------------------------------------------------------*/
-    // For node restarts we will also add a request for permission
-    // to continue the system restart.
-    // The permission is given by the master node in the alive set.  
-    /*-----------------------------------------------------------------------*/
-    if (cstarttype == NodeState::ST_INITIAL_NODE_RESTART)
-    {
+  switch (phase) {
+    case ZNDB_SPH1:
       jam();
-      globalData.m_restart_seq = SYSFILE->m_restart_seq = 1;
-      g_eventLogger->info("Starting with m_restart_seq set to 1");
-      c_set_initial_start_flag = true; // In sysfile...
-    }
-
-    if (cstarttype == NodeState::ST_INITIAL_START) {
-      jam();
-      // setInitialActiveStatus is moved into makeNodeGroups
-    } else if (cstarttype == NodeState::ST_SYSTEM_RESTART) {
-      jam();
-      /*empty*/;
-    } else if ((cstarttype == NodeState::ST_NODE_RESTART) ||
-               (cstarttype == NodeState::ST_INITIAL_NODE_RESTART)) {
-      jam();
-      nodeRestartPh2Lab(signal);
-      return;
-    } else {
-      ndbabort();
-    }//if
-    ndbsttorry10Lab(signal, __LINE__);
-    return;
-
-  case ZNDB_SPH3:
-    jam();
-    /*-----------------------------------------------------------------------*/
-    // Non-master nodes performing an initial start will execute
-    // the start request here since the
-    // initial start do not synchronise so much from the master.
-    // In the master nodes the start
-    // request will be sent directly to dih (in ndb_startreq) when all
-    // nodes have completed phase 3 of the start.    
-    /*-----------------------------------------------------------------------*/
-    cmasterState = MASTER_IDLE;
-    if(cstarttype == NodeState::ST_INITIAL_START ||
-       cstarttype == NodeState::ST_SYSTEM_RESTART){
-      jam();
-      cmasterState = isMaster() ? MASTER_ACTIVE : MASTER_IDLE;
-    }
-    if (!isMaster() && cstarttype == NodeState::ST_INITIAL_START) {
-      jam();
-      ndbStartReqLab(signal, cntrRef);
-      return;
-    }//if
-    ndbsttorry10Lab(signal, __LINE__);
-    break;
-    
-  case ZNDB_SPH4:
-    jam();
-    {
-      /* Calculate GCP stop timer now */
-      m_gcp_monitor.m_gcp_save.m_need_max_lag_recalc = true;
-      m_gcp_monitor.m_micro_gcp.m_need_max_lag_recalc = true;
-      setGCPStopTimeouts(signal);
-    }
-    cmasterTakeOverNode = ZNIL;
-    switch(typestart){
-    case NodeState::ST_INITIAL_START:
-      jam();
-      ndbassert(c_lcpState.lcpStatus == LCP_STATUS_IDLE);
-      c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
+      /*-----------------------------------------------------------------------*/
+      // Compute all static block references in this node as part of
+      // ndb start phase 1.
+      /*-----------------------------------------------------------------------*/
+      cownNodeId = ownNodeId;
+      cntrlblockref = cntrRef;
+      clocaltcblockref = calcTcBlockRef(ownNodeId);
+      clocallqhblockref = calcLqhBlockRef(ownNodeId);
+      clocalqlqhblockref = calcQlqhBlockRef(ownNodeId);
+      cdictblockref = calcDictBlockRef(ownNodeId);
+      c_lcpState.lcpStallStart = 0;
+      c_lcpState.lcpManualStallStart = false;
+      NdbTick_Invalidate(&c_lcpState.m_start_lcp_check_time);
       ndbsttorry10Lab(signal, __LINE__);
-      return;
-    case NodeState::ST_SYSTEM_RESTART:
+      break;
+
+    case ZNDB_SPH2:
       jam();
-      if (!c_performed_copy_phase)
-      {
+      /*-----------------------------------------------------------------------*/
+      // For node restarts we will also add a request for permission
+      // to continue the system restart.
+      // The permission is given by the master node in the alive set.
+      /*-----------------------------------------------------------------------*/
+      if (cstarttype == NodeState::ST_INITIAL_NODE_RESTART) {
         jam();
-        /**
-         * We are not performing the copy phase, it is a normal
-         * system restart, we initialise the LCP status to IDLE.
-         *
-         * When copy phase is performed the LCP processing have
-         * already started when we arrive here.
-         */
-        ndbassert(c_lcpState.lcpStatus == LCP_STATUS_IDLE);
-        c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
+        globalData.m_restart_seq = SYSFILE->m_restart_seq = 1;
+        g_eventLogger->info("Starting with m_restart_seq set to 1");
+        c_set_initial_start_flag = true;  // In sysfile...
       }
+
+      if (cstarttype == NodeState::ST_INITIAL_START) {
+        jam();
+        // setInitialActiveStatus is moved into makeNodeGroups
+      } else if (cstarttype == NodeState::ST_SYSTEM_RESTART) {
+        jam();
+        /*empty*/;
+      } else if ((cstarttype == NodeState::ST_NODE_RESTART) ||
+                 (cstarttype == NodeState::ST_INITIAL_NODE_RESTART)) {
+        jam();
+        nodeRestartPh2Lab(signal);
+        return;
+      } else {
+        ndbabort();
+      }  // if
       ndbsttorry10Lab(signal, __LINE__);
       return;
-    case NodeState::ST_INITIAL_NODE_RESTART:
-    case NodeState::ST_NODE_RESTART:
-      jam();
 
-      /***********************************************************************
-       * When starting nodes while system is operational we must be controlled
-       * by the master. There can be multiple node restarts ongoing, but this
-       * phase only allows for one node at a time. So it has to be controlled
-       * from the master node.
-       *
-       * When this signal is confirmed the master has also copied the 
-       * dictionary and the distribution information.
-       */
-      ndbassert(c_lcpState.lcpStatus == LCP_STATUS_IDLE);
-      c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
-      g_eventLogger->info("Request copying of distribution and dictionary"
-                          " information from master(%u) Starting",
+    case ZNDB_SPH3:
+      jam();
+      /*-----------------------------------------------------------------------*/
+      // Non-master nodes performing an initial start will execute
+      // the start request here since the
+      // initial start do not synchronise so much from the master.
+      // In the master nodes the start
+      // request will be sent directly to dih (in ndb_startreq) when all
+      // nodes have completed phase 3 of the start.
+      /*-----------------------------------------------------------------------*/
+      cmasterState = MASTER_IDLE;
+      if (cstarttype == NodeState::ST_INITIAL_START ||
+          cstarttype == NodeState::ST_SYSTEM_RESTART) {
+        jam();
+        cmasterState = isMaster() ? MASTER_ACTIVE : MASTER_IDLE;
+      }
+      if (!isMaster() && cstarttype == NodeState::ST_INITIAL_START) {
+        jam();
+        ndbStartReqLab(signal, cntrRef);
+        return;
+      }  // if
+      ndbsttorry10Lab(signal, __LINE__);
+      break;
+
+    case ZNDB_SPH4:
+      jam();
+      {
+        /* Calculate GCP stop timer now */
+        m_gcp_monitor.m_gcp_save.m_need_max_lag_recalc = true;
+        m_gcp_monitor.m_micro_gcp.m_need_max_lag_recalc = true;
+        setGCPStopTimeouts(signal);
+      }
+      cmasterTakeOverNode = ZNIL;
+      switch (typestart) {
+        case NodeState::ST_INITIAL_START:
+          jam();
+          ndbassert(c_lcpState.lcpStatus == LCP_STATUS_IDLE);
+          c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
+          ndbsttorry10Lab(signal, __LINE__);
+          return;
+        case NodeState::ST_SYSTEM_RESTART:
+          jam();
+          if (!c_performed_copy_phase) {
+            jam();
+            /**
+             * We are not performing the copy phase, it is a normal
+             * system restart, we initialise the LCP status to IDLE.
+             *
+             * When copy phase is performed the LCP processing have
+             * already started when we arrive here.
+             */
+            ndbassert(c_lcpState.lcpStatus == LCP_STATUS_IDLE);
+            c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
+          }
+          ndbsttorry10Lab(signal, __LINE__);
+          return;
+        case NodeState::ST_INITIAL_NODE_RESTART:
+        case NodeState::ST_NODE_RESTART:
+          jam();
+
+          /***********************************************************************
+           * When starting nodes while system is operational we must be
+           * controlled by the master. There can be multiple node restarts
+           * ongoing, but this phase only allows for one node at a time. So it
+           * has to be controlled from the master node.
+           *
+           * When this signal is confirmed the master has also copied the
+           * dictionary and the distribution information.
+           */
+          ndbassert(c_lcpState.lcpStatus == LCP_STATUS_IDLE);
+          c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
+          g_eventLogger->info(
+              "Request copying of distribution and dictionary"
+              " information from master(%u) Starting",
                           refToNode(cmasterdihref));
 
-      StartMeReq * req = (StartMeReq*)&signal->theData[0];
-      req->startingRef = reference();
-      req->startingVersion = 0; // Obsolete
-      sendSignal(cmasterdihref, GSN_START_MEREQ, signal, 
-                 StartMeReq::SignalLength, JBB);
-      return;
-    }
-    ndbabort();
-  case ZNDB_SPH5:
-    jam();
-    switch(typestart){
-    case NodeState::ST_INITIAL_START:
-    case NodeState::ST_SYSTEM_RESTART:
-      jam();
-      /*---------------------------------------------------------------------*/
-      // WE EXECUTE A LOCAL CHECKPOINT AS A PART OF A SYSTEM RESTART.
-      // THE IDEA IS THAT WE NEED TO
-      // ENSURE THAT WE CAN RECOVER FROM PROBLEMS CAUSED BY MANY NODE
-      // CRASHES THAT CAUSES THE LOG
-      // TO GROW AND THE NUMBER OF LOG ROUNDS TO EXECUTE TO GROW.
-      // THIS CAN OTHERWISE GET US INTO
-      // A SITUATION WHICH IS UNREPAIRABLE. THUS WE EXECUTE A CHECKPOINT
-      // BEFORE ALLOWING ANY TRANSACTIONS TO START.
-      /*---------------------------------------------------------------------*/
-      if (!isMaster()) {
-	jam();
-	ndbsttorry10Lab(signal, __LINE__);
-	return;
-      }//if
-
-      infoEvent("Make On-line Database recoverable by waiting for LCP"
-                " Starting, LCP id = %u",
-                SYSFILE->latestLCP_ID + 1);
-
-      c_lcpState.immediateLcpStart = true;
-      cwaitLcpSr = true;
-      checkLcpStart(signal, __LINE__, 0);
-      return;
-    case NodeState::ST_NODE_RESTART:
-    case NodeState::ST_INITIAL_NODE_RESTART:
-      jam();
-      {
-        StartCopyReq* req = (StartCopyReq*)signal->getDataPtrSend();
-        req->senderRef = reference();
-        req->senderData = RNIL;
-        req->flags = StartCopyReq::WAIT_LCP;
-        req->startingNodeId = getOwnNodeId();
-        sendSignal(reference(), GSN_START_COPYREQ, signal,
-                   StartCopyReq::SignalLength, JBB);
+          StartMeReq *req = (StartMeReq *)&signal->theData[0];
+          req->startingRef = reference();
+          req->startingVersion = 0;  // Obsolete
+          sendSignal(cmasterdihref, GSN_START_MEREQ, signal,
+                     StartMeReq::SignalLength, JBB);
+          return;
       }
-      return;
-    }
-    ndbabort();
-  case ZNDB_SPH6:
-    jam();
-    switch(typestart){
-    case NodeState::ST_INITIAL_START:
-    case NodeState::ST_SYSTEM_RESTART:
+      ndbabort();
+    case ZNDB_SPH5:
       jam();
-      if(isMaster()){
-	jam();
-        if (typestart == NodeState::ST_INITIAL_START)
-        {
-          /**
-           * Skip GCI 1 at initial start, has special meaning
-           * in CM_REGREQ protocol. Means node isn't restartable
-           * on its own. Setting it to 2 such that we will
-           * start preparing GCI 3 immediately.
-           *
-           * Only required to avoid restarting from GCI = 1.
-           */
+      switch (typestart) {
+        case NodeState::ST_INITIAL_START:
+        case NodeState::ST_SYSTEM_RESTART:
           jam();
-          m_micro_gcp.m_current_gci = ((Uint64(ZUNDEFINED_GCI_LIMIT + 1)) << 32);
-        }
-	startGcp(signal);
-      }
-      ndbsttorry10Lab(signal, __LINE__);
-      return;
-    case NodeState::ST_NODE_RESTART:
-    case NodeState::ST_INITIAL_NODE_RESTART:
-      ndbsttorry10Lab(signal, __LINE__);
-      return;
-    }
-    ndbabort();
-  default:
-    jam();
-    ndbsttorry10Lab(signal, __LINE__);
-    break;
-  }//switch
-}//Dbdih::execNDB_STTOR()
+          /*---------------------------------------------------------------------*/
+          // WE EXECUTE A LOCAL CHECKPOINT AS A PART OF A SYSTEM RESTART.
+          // THE IDEA IS THAT WE NEED TO
+          // ENSURE THAT WE CAN RECOVER FROM PROBLEMS CAUSED BY MANY NODE
+          // CRASHES THAT CAUSES THE LOG
+          // TO GROW AND THE NUMBER OF LOG ROUNDS TO EXECUTE TO GROW.
+          // THIS CAN OTHERWISE GET US INTO
+          // A SITUATION WHICH IS UNREPAIRABLE. THUS WE EXECUTE A CHECKPOINT
+          // BEFORE ALLOWING ANY TRANSACTIONS TO START.
+          /*---------------------------------------------------------------------*/
+          if (!isMaster()) {
+            jam();
+            ndbsttorry10Lab(signal, __LINE__);
+            return;
+          }  // if
 
-void
-Dbdih::execNODE_START_REP(Signal* signal)
-{
+          infoEvent(
+              "Make On-line Database recoverable by waiting for LCP"
+              " Starting, LCP id = %u",
+              SYSFILE->latestLCP_ID + 1);
+
+          c_lcpState.immediateLcpStart = true;
+          cwaitLcpSr = true;
+          checkLcpStart(signal, __LINE__, 0);
+          return;
+        case NodeState::ST_NODE_RESTART:
+        case NodeState::ST_INITIAL_NODE_RESTART:
+          jam();
+          {
+            StartCopyReq *req = (StartCopyReq *)signal->getDataPtrSend();
+            req->senderRef = reference();
+            req->senderData = RNIL;
+            req->flags = StartCopyReq::WAIT_LCP;
+            req->startingNodeId = getOwnNodeId();
+            sendSignal(reference(), GSN_START_COPYREQ, signal,
+                       StartCopyReq::SignalLength, JBB);
+          }
+          return;
+      }
+      ndbabort();
+    case ZNDB_SPH6:
+      jam();
+      switch (typestart) {
+        case NodeState::ST_INITIAL_START:
+        case NodeState::ST_SYSTEM_RESTART:
+          jam();
+          if (isMaster()) {
+            jam();
+            if (typestart == NodeState::ST_INITIAL_START) {
+              /**
+               * Skip GCI 1 at initial start, has special meaning
+               * in CM_REGREQ protocol. Means node isn't restartable
+               * on its own. Setting it to 2 such that we will
+               * start preparing GCI 3 immediately.
+               *
+               * Only required to avoid restarting from GCI = 1.
+               */
+              jam();
+              m_micro_gcp.m_current_gci =
+                  ((Uint64(ZUNDEFINED_GCI_LIMIT + 1)) << 32);
+            }
+            startGcp(signal);
+          }
+          ndbsttorry10Lab(signal, __LINE__);
+          return;
+        case NodeState::ST_NODE_RESTART:
+        case NodeState::ST_INITIAL_NODE_RESTART:
+          ndbsttorry10Lab(signal, __LINE__);
+          return;
+      }
+      ndbabort();
+    default:
+      jam();
+      ndbsttorry10Lab(signal, __LINE__);
+      break;
+  }  // switch
+}  // Dbdih::execNDB_STTOR()
+
+void Dbdih::execNODE_START_REP(Signal *signal) {
   /*
    * Send DICT_UNLOCK_ORD when this node is SL_STARTED.
    *
@@ -2282,8 +2145,7 @@ Dbdih::execNODE_START_REP(Signal* signal)
    * For these reasons there are no consistency checks and
    * we rely on c_dictLockSlavePtrI_nodeRestart alone.
    */
-  if (signal->theData[0] == getOwnNodeId())
-  {
+  if (signal->theData[0] == getOwnNodeId()) {
     /**
      * With parallel node restart, only unlock self, if it's self that has
      *   started
@@ -2299,57 +2161,57 @@ Dbdih::execNODE_START_REP(Signal* signal)
   // after a node start
   m_gcp_monitor.m_gcp_save.m_need_max_lag_recalc = true;
   m_gcp_monitor.m_micro_gcp.m_need_max_lag_recalc = true;
-  if (! isMaster()) { setGCPStopTimeouts(signal); }
+  if (!isMaster()) {
+    setGCPStopTimeouts(signal);
+  }
 }
 
-void
-Dbdih::createMutexes(Signal * signal, Uint32 count){
-  Callback c = { safe_cast(&Dbdih::createMutex_done), count };
+void Dbdih::createMutexes(Signal *signal, Uint32 count) {
+  Callback c = {safe_cast(&Dbdih::createMutex_done), count};
 
-  switch(count){
-  case 0:{
-    Mutex mutex(signal, c_mutexMgr, c_startLcpMutexHandle);
-    mutex.create(c);
-    return;
-  }
-  case 1:{
-    Mutex mutex(signal, c_mutexMgr, c_switchPrimaryMutexHandle);
-    mutex.create(c);
-    return;
-  }
-  case 2:{
-    Mutex mutex(signal, c_mutexMgr, c_fragmentInfoMutex_lcp);
-    mutex.create(c);
-    return;
-  }
+  switch (count) {
+    case 0: {
+      Mutex mutex(signal, c_mutexMgr, c_startLcpMutexHandle);
+      mutex.create(c);
+      return;
+    }
+    case 1: {
+      Mutex mutex(signal, c_mutexMgr, c_switchPrimaryMutexHandle);
+      mutex.create(c);
+      return;
+    }
+    case 2: {
+      Mutex mutex(signal, c_mutexMgr, c_fragmentInfoMutex_lcp);
+      mutex.create(c);
+      return;
+    }
   }
 
   execute(signal, m_sendSTTORRY, 0);
 }
 
-void
-Dbdih::createMutex_done(Signal* signal, Uint32 senderData, Uint32 retVal){
+void Dbdih::createMutex_done(Signal *signal, Uint32 senderData, Uint32 retVal) {
   jamEntry();
   ndbrequire(retVal == 0);
 
-  switch(senderData){
-  case 0:{
-    Mutex mutex(signal, c_mutexMgr, c_startLcpMutexHandle);
-    mutex.release();
-    break;
+  switch (senderData) {
+    case 0: {
+      Mutex mutex(signal, c_mutexMgr, c_startLcpMutexHandle);
+      mutex.release();
+      break;
+    }
+    case 1: {
+      Mutex mutex(signal, c_mutexMgr, c_switchPrimaryMutexHandle);
+      mutex.release();
+      break;
+    }
+    case 2: {
+      Mutex mutex(signal, c_mutexMgr, c_fragmentInfoMutex_lcp);
+      mutex.release();
+      break;
+    }
   }
-  case 1:{
-    Mutex mutex(signal, c_mutexMgr, c_switchPrimaryMutexHandle);
-    mutex.release();
-    break;
-  }
-  case 2:{
-    Mutex mutex(signal, c_mutexMgr, c_fragmentInfoMutex_lcp);
-    mutex.release();
-    break;
-  }
-  }    
-  
+
   createMutexes(signal, senderData + 1);
 }
 
@@ -2362,16 +2224,14 @@ Dbdih::createMutex_done(Signal* signal, Uint32 senderData, Uint32 retVal){
 /*       INITIAL START.                                                      */
 /* ------------------------------------------------------------------------- */
 /*****************************************************************************/
-void Dbdih::execNDB_STARTREQ(Signal* signal) 
-{
+void Dbdih::execNDB_STARTREQ(Signal *signal) {
   jamEntry();
   BlockReference ref = signal->theData[0];
   cstarttype = signal->theData[1];
   ndbStartReqLab(signal, ref);
-}//Dbdih::execNDB_STARTREQ()
+}  // Dbdih::execNDB_STARTREQ()
 
-void Dbdih::ndbStartReqLab(Signal* signal, BlockReference ref) 
-{
+void Dbdih::ndbStartReqLab(Signal *signal, BlockReference ref) {
   cndbStartReqBlockref = ref;
   if (cstarttype == NodeState::ST_INITIAL_START) {
     jam();
@@ -2379,18 +2239,16 @@ void Dbdih::ndbStartReqLab(Signal* signal, BlockReference ref)
     initGciFilesLab(signal);
     return;
   }
-  
+
   NodeRecordPtr nodePtr;
   Uint32 gci = SYSFILE->lastCompletedGCI[getOwnNodeId()];
-  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) 
-  {
+  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) {
     jam();
     ptrAss(nodePtr, nodeRecord);
-    if (SYSFILE->lastCompletedGCI[nodePtr.i] > gci) 
-    {
+    if (SYSFILE->lastCompletedGCI[nodePtr.i] > gci) {
       jam();
       /**
-       * Since we're starting(is master) and there 
+       * Since we're starting(is master) and there
        *   there are other nodes with higher GCI...
        *   their gci's must be invalidated...
        *   and they _must_ do an initial start
@@ -2399,21 +2257,17 @@ void Dbdih::ndbStartReqLab(Signal* signal, BlockReference ref)
       SYSFILE->lastCompletedGCI[nodePtr.i] = 0;
       ndbrequire(nodePtr.p->nodeStatus != NodeRecord::ALIVE);
       warningEvent("Making filesystem for node %d unusable (need --initial)",
-		   nodePtr.i);
-    }
-    else if (nodePtr.p->nodeStatus == NodeRecord::ALIVE &&
-	     SYSFILE->lastCompletedGCI[nodePtr.i] == 0)
-    {
+                   nodePtr.i);
+    } else if (nodePtr.p->nodeStatus == NodeRecord::ALIVE &&
+               SYSFILE->lastCompletedGCI[nodePtr.i] == 0) {
       jam();
       CRASH_INSERTION(7170);
       char buf[255];
-      BaseString::snprintf(buf, sizeof(buf), 
-			   "Cluster requires this node to be started "
-			   " with --initial as partial start has been performed"
-			   " and this filesystem is unusable");
-      progError(__LINE__, 
-		NDBD_EXIT_SR_RESTARTCONFLICT,
-		buf);
+      BaseString::snprintf(buf, sizeof(buf),
+                           "Cluster requires this node to be started "
+                           " with --initial as partial start has been performed"
+                           " and this filesystem is unusable");
+      progError(__LINE__, NDBD_EXIT_SR_RESTARTCONFLICT, buf);
     }
   }
 
@@ -2424,15 +2278,14 @@ void Dbdih::ndbStartReqLab(Signal* signal, BlockReference ref)
   infoEvent("Restarting cluster to GCI: %u", gci);
 
   ndbrequire(isMaster());
-  copyGciLab(signal, CopyGCIReq::RESTART); // We have already read the file!
-}//Dbdih::ndbStartReqLab()
+  copyGciLab(signal, CopyGCIReq::RESTART);  // We have already read the file!
+}  // Dbdih::ndbStartReqLab()
 
-void Dbdih::execREAD_NODESCONF(Signal* signal) 
-{
+void Dbdih::execREAD_NODESCONF(Signal *signal) {
   unsigned i;
-  ReadNodesConf * const readNodes = (ReadNodesConf *)&signal->theData[0];
+  ReadNodesConf *const readNodes = (ReadNodesConf *)&signal->theData[0];
   jamEntry();
-  Uint32 nodeArray[MAX_NDB_NODES+1];
+  Uint32 nodeArray[MAX_NDB_NODES + 1];
 
   {
     ndbrequire(signal->getNoOfSections() == 1);
@@ -2440,34 +2293,31 @@ void Dbdih::execREAD_NODESCONF(Signal* signal)
     SectionHandle handle(this, signal);
     ndbrequire(handle.getSection(ptr, 0));
     ndbrequire(ptr.sz == 5 * NdbNodeBitmask::Size);
-    copy((Uint32*)&readNodes->definedNodes.rep.data, ptr);
+    copy((Uint32 *)&readNodes->definedNodes.rep.data, ptr);
     releaseSections(handle);
   }
 
-  csystemnodes  = readNodes->noOfNodes;
+  csystemnodes = readNodes->noOfNodes;
   cmasterNodeId = readNodes->masterNodeId;
   unsigned index = 0;
   NdbNodeBitmask tmp = readNodes->definedNodes;
   m_max_node_id = 0;
-  for (i = 1; i < MAX_NDB_NODES; i++){
+  for (i = 1; i < MAX_NDB_NODES; i++) {
     jam();
-    if(tmp.get(i)){
+    if (tmp.get(i)) {
       jam();
       m_max_node_id = i;
       nodeArray[index] = i;
-      if (readNodes->inactiveNodes.get(i) == false)
-      {
+      if (readNodes->inactiveNodes.get(i) == false) {
         jam();
-        con_lineNodes++;        
-      }//if      
+        con_lineNodes++;
+      }  // if
       index++;
-    }//if
-  }//for
-  nodeArray[index] = RNIL; // terminate
+    }                       // if
+  }                         // for
+  nodeArray[index] = RNIL;  // terminate
 
-  if (cmasterNodeId == getOwnNodeId() &&
-      con_lineNodes >= 16)
-  {
+  if (cmasterNodeId == getOwnNodeId() && con_lineNodes >= 16) {
     /**
      * In large clusters the main thread can be quite busy, ensure it
      * doesn't assist the send thread in this scenario.
@@ -2475,31 +2325,25 @@ void Dbdih::execREAD_NODESCONF(Signal* signal)
     log_setNoSend();
     setNoSend(1);
   }
-  if (c_2pass_inr)
-  {
+  if (c_2pass_inr) {
     jam();
     Uint32 workers = getNodeInfo(getOwnNodeId()).m_lqh_workers;
 #ifdef VM_TRACE
     printf("Checking 2-pass initial node restart: ");
 #endif
-    for (i = 0; i<index; i++)
-    {
-      if (readNodes->inactiveNodes.get(nodeArray[i]))
-        continue;
+    for (i = 0; i < index; i++) {
+      if (readNodes->inactiveNodes.get(nodeArray[i])) continue;
 
-      if (workers > 1 &&
-          workers != getNodeInfo(nodeArray[i]).m_lqh_workers)
-      {
+      if (workers > 1 && workers != getNodeInfo(nodeArray[i]).m_lqh_workers) {
         c_2pass_inr = false;
 #ifdef VM_TRACE
-        printf("not ok (different worker cnt node %u) => disabled\n", 
+        printf("not ok (different worker cnt node %u) => disabled\n",
                nodeArray[i]);
 #endif
         break;
       }
     }
-    if (c_2pass_inr)
-    {
+    if (c_2pass_inr) {
 #ifdef VM_TRACE
       g_eventLogger->info("ok");
 #endif
@@ -2514,50 +2358,43 @@ void Dbdih::execREAD_NODESCONF(Signal* signal)
      */
   }
 
-  if(cstarttype == NodeState::ST_SYSTEM_RESTART || 
-     cstarttype == NodeState::ST_NODE_RESTART)
-  {
-
-    for(i = 1; i <= m_max_node_id; i++)
-    {
+  if (cstarttype == NodeState::ST_SYSTEM_RESTART ||
+      cstarttype == NodeState::ST_NODE_RESTART) {
+    for (i = 1; i <= m_max_node_id; i++) {
       const Uint32 stat = SYSFILE->getNodeStatus(i);
-      if(stat == Sysfile::NS_NotDefined && !tmp.get(i))
-      {
-	jam();
-	continue;
-      }
-      
-      if(tmp.get(i) && stat != Sysfile::NS_NotDefined)
-      {
-	jam();
-	continue;
+      if (stat == Sysfile::NS_NotDefined && !tmp.get(i)) {
+        jam();
+        continue;
       }
 
-      if (stat == Sysfile::NS_NotDefined && tmp.get(i))
-      {
+      if (tmp.get(i) && stat != Sysfile::NS_NotDefined) {
+        jam();
+        continue;
+      }
+
+      if (stat == Sysfile::NS_NotDefined && tmp.get(i)) {
         jam();
         infoEvent("Discovered new node %u", i);
         continue;
       }
 
-      if (stat == Sysfile::NS_Configured && !tmp.get(i))
-      {
+      if (stat == Sysfile::NS_Configured && !tmp.get(i)) {
         jam();
-        infoEvent("Configured node %u not present, ignoring",
-                  i);
+        infoEvent("Configured node %u not present, ignoring", i);
         continue;
       }
 
       char buf[255];
-      BaseString::snprintf(buf, sizeof(buf), 
+      BaseString::snprintf(buf, sizeof(buf),
                            "Illegal configuration change."
                            " Initial start needs to be performed"
-                           " when removing nodes with nodegroup (node %d)", i);
+                           " when removing nodes with nodegroup (node %d)",
+                           i);
       progError(__LINE__, NDBD_EXIT_INVALID_CONFIG, buf);
     }
   }
-  
-  ndbrequire(csystemnodes >= 1 && csystemnodes < MAX_NDB_NODES);  
+
+  ndbrequire(csystemnodes >= 1 && csystemnodes < MAX_NDB_NODES);
 
   cmasterdihref = calcDihBlockRef(cmasterNodeId);
   /*-------------------------------------------------------------------------*/
@@ -2567,16 +2404,16 @@ void Dbdih::execREAD_NODESCONF(Signal* signal)
   if (cstarttype == NodeState::ST_INITIAL_START) {
     jam();
     /**----------------------------------------------------------------------
-     * WHEN WE INITIALLY START A DATABASE WE WILL CREATE NODE GROUPS. 
-     * ALL NODES ARE PUT INTO NODE GROUPS ALTHOUGH HOT SPARE NODES ARE PUT 
-     * INTO A SPECIAL NODE GROUP. IN EACH NODE GROUP WE HAVE THE SAME AMOUNT 
-     * OF NODES AS THERE ARE NUMBER OF REPLICAS. 
-     * ONE POSSIBLE USAGE OF NODE GROUPS ARE TO MAKE A NODE GROUP A COMPLETE 
+     * WHEN WE INITIALLY START A DATABASE WE WILL CREATE NODE GROUPS.
+     * ALL NODES ARE PUT INTO NODE GROUPS ALTHOUGH HOT SPARE NODES ARE PUT
+     * INTO A SPECIAL NODE GROUP. IN EACH NODE GROUP WE HAVE THE SAME AMOUNT
+     * OF NODES AS THERE ARE NUMBER OF REPLICAS.
+     * ONE POSSIBLE USAGE OF NODE GROUPS ARE TO MAKE A NODE GROUP A COMPLETE
      * FRAGMENT OF THE DATABASE. THIS MEANS THAT ALL REPLICAS WILL BE STORED
      * IN THE NODE GROUP.
      *-----------------------------------------------------------------------*/
     makeNodeGroups(nodeArray);
-  }//if
+  }  // if
   ndbrequire(checkNodeAlive(cmasterNodeId));
 
   /**
@@ -2600,13 +2437,12 @@ void Dbdih::execREAD_NODESCONF(Signal* signal)
   }
 
   execute(signal, m_sendSTTORRY, 0);
-}//Dbdih::execREAD_NODESCONF()
+}  // Dbdih::execREAD_NODESCONF()
 
 /*---------------------------------------------------------------------------*/
 /*                    START NODE LOGIC FOR NODE RESTART                      */
 /*---------------------------------------------------------------------------*/
-void Dbdih::nodeRestartPh2Lab(Signal* signal) 
-{
+void Dbdih::nodeRestartPh2Lab(Signal *signal) {
   /*
    * Lock master DICT to avoid metadata operations during INR/NR.
    * Done just before START_PERMREQ.
@@ -2621,12 +2457,12 @@ void Dbdih::nodeRestartPh2Lab(Signal* signal)
   CRASH_INSERTION(7174);
 
   Uint32 lockType = DictLockReq::NodeRestartLock;
-  Callback c = { safe_cast(&Dbdih::recvDictLockConf_nodeRestart), 0 };
+  Callback c = {safe_cast(&Dbdih::recvDictLockConf_nodeRestart), 0};
   sendDictLockReq(signal, lockType, c);
 }
 
-void Dbdih::recvDictLockConf_nodeRestart(Signal* signal, Uint32 data, Uint32 ret)
-{
+void Dbdih::recvDictLockConf_nodeRestart(Signal *signal, Uint32 data,
+                                         Uint32 ret) {
   ndbrequire(c_dictLockSlavePtrI_nodeRestart == RNIL);
   ndbrequire(data != RNIL);
   c_dictLockSlavePtrI_nodeRestart = data;
@@ -2634,54 +2470,48 @@ void Dbdih::recvDictLockConf_nodeRestart(Signal* signal, Uint32 data, Uint32 ret
   nodeRestartPh2Lab2(signal);
 }
 
-void Dbdih::nodeRestartPh2Lab2(Signal* signal)
-{
+void Dbdih::nodeRestartPh2Lab2(Signal *signal) {
   /*------------------------------------------------------------------------*/
   // REQUEST FOR PERMISSION FROM MASTER TO START A NODE IN AN ALREADY
   // RUNNING SYSTEM.
   /*------------------------------------------------------------------------*/
 
-  g_eventLogger->info("Request permission to start our node from master Starting");
+  g_eventLogger->info(
+      "Request permission to start our node from master Starting");
 
-  StartPermReq * const req = (StartPermReq *)&signal->theData[0];
+  StartPermReq *const req = (StartPermReq *)&signal->theData[0];
 
-  req->blockRef  = reference();
-  req->nodeId    = cownNodeId;
+  req->blockRef = reference();
+  req->nodeId = cownNodeId;
   req->startType = cstarttype;
   sendSignal(cmasterdihref, GSN_START_PERMREQ, signal, 3, JBB);
 
-  if (ERROR_INSERTED(7203))
-  {
+  if (ERROR_INSERTED(7203)) {
     signal->theData[0] = 9999;
     sendSignalWithDelay(CMVMI_REF, GSN_NDB_TAMPER, signal, 200, 1);
   }
 }
 
-void Dbdih::execSTART_PERMCONF(Signal* signal) 
-{
+void Dbdih::execSTART_PERMCONF(Signal *signal) {
   jamEntry();
   CRASH_INSERTION(7121);
   Uint32 nodeId = signal->theData[0];
   cfailurenr = signal->theData[1];
-  
+
   bool microGCP = signal->theData[2];
-  if (signal->getLength() < StartPermConf::SignalLength)
-  {
+  if (signal->getLength() < StartPermConf::SignalLength) {
     microGCP = false;
   }
   m_micro_gcp.m_enabled = microGCP;
   ndbrequire(nodeId == cownNodeId);
   ndbsttorry10Lab(signal, __LINE__);
 
-  if (m_micro_gcp.m_enabled)
-  {
+  if (m_micro_gcp.m_enabled) {
     jam();
-    UpgradeProtocolOrd * ord = (UpgradeProtocolOrd*)signal->getDataPtrSend();
+    UpgradeProtocolOrd *ord = (UpgradeProtocolOrd *)signal->getDataPtrSend();
     ord->type = UpgradeProtocolOrd::UPO_ENABLE_MICRO_GCP;
-    EXECUTE_DIRECT(QMGR,GSN_UPGRADE_PROTOCOL_ORD,signal,signal->getLength());
-  }
-  else if(isMultiThreaded())
-  {
+    EXECUTE_DIRECT(QMGR, GSN_UPGRADE_PROTOCOL_ORD, signal, signal->getLength());
+  } else if (isMultiThreaded()) {
     /**
      * Prevent this start, as there is some non-thread-safe upgrade code for
      * this case in LQH.
@@ -2692,12 +2522,12 @@ void Dbdih::execSTART_PERMCONF(Signal* signal)
               "multi-threaded ndbmtd data nodes.");
   }
 
-  g_eventLogger->info("Request permission to start our node from master Completed");
+  g_eventLogger->info(
+      "Request permission to start our node from master Completed");
 
-}//Dbdih::execSTART_PERMCONF()
+}  // Dbdih::execSTART_PERMCONF()
 
-void Dbdih::execSTART_PERMREF(Signal* signal) 
-{
+void Dbdih::execSTART_PERMREF(Signal *signal) {
   jamEntry();
   Uint32 errorCode = signal->theData[1];
   if (errorCode == StartPermRef::ZNODE_ALREADY_STARTING_ERROR ||
@@ -2712,68 +2542,59 @@ void Dbdih::execSTART_PERMREF(Signal* signal)
     signal->theData[0] = DihContinueB::ZSTART_PERMREQ_AGAIN;
     sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 3000, 1);
     return;
-  }//if
+  }  // if
 
-  if (errorCode == StartPermRef::InitialStartRequired)
-  {
+  if (errorCode == StartPermRef::InitialStartRequired) {
     CRASH_INSERTION(7170);
     char buf[255];
-    BaseString::snprintf(buf, sizeof(buf), 
-			 "Cluster requires this node to be started "
-			 " with --initial as partial start has been performed"
-			 " and this filesystem is unusable");
-    progError(__LINE__, 
-	      NDBD_EXIT_SR_RESTARTCONFLICT,
-	      buf);
+    BaseString::snprintf(buf, sizeof(buf),
+                         "Cluster requires this node to be started "
+                         " with --initial as partial start has been performed"
+                         " and this filesystem is unusable");
+    progError(__LINE__, NDBD_EXIT_SR_RESTARTCONFLICT, buf);
   }
 
   /*------------------------------------------------------------------------*/
   // Some node process in another node involving our node was still active. We
-  // will recover from this by crashing here. 
+  // will recover from this by crashing here.
   // This is controlled restart using the
   // already existing features of node crashes. It is not a bug getting here.
   /*-------------------------------------------------------------------------*/
   ndbabort();
-}//Dbdih::execSTART_PERMREF()
+}  // Dbdih::execSTART_PERMREF()
 
 /*---------------------------------------------------------------------------*/
 /*       THIS SIGNAL IS RECEIVED IN THE STARTING NODE WHEN THE START_MEREQ   */
 /*       HAS BEEN EXECUTED IN THE MASTER NODE.                               */
 /*---------------------------------------------------------------------------*/
-void Dbdih::execSTART_MECONF(Signal* signal) 
-{
+void Dbdih::execSTART_MECONF(Signal *signal) {
   jamEntry();
-  StartMeConf * const startMe = (StartMeConf *)&signal->theData[0];  
+  StartMeConf *const startMe = (StartMeConf *)&signal->theData[0];
   Uint32 nodeId = startMe->startingNodeId;
   const Uint32 startWord = startMe->startWord;
-  
+
   CRASH_INSERTION(7130);
   ndbrequire(nodeId == cownNodeId);
   bool v2_format = true;
   Uint32 cdata_size_in_words;
-  if (ndbd_send_node_bitmask_in_section(getNodeInfo(cmasterNodeId).m_version))
-  {
+  if (ndbd_send_node_bitmask_in_section(getNodeInfo(cmasterNodeId).m_version)) {
     jam();
     ndbrequire(signal->getNoOfSections() == 1);
     SegmentedSectionPtr ptr;
     SectionHandle handle(this, signal);
     ndbrequire(handle.getSection(ptr, 0));
-    ndbrequire(ptr.sz <= (sizeof(cdata)/4));
+    ndbrequire(ptr.sz <= (sizeof(cdata) / 4));
     copy(cdata, ptr);
     cdata_size_in_words = ptr.sz;
     releaseSections(handle);
-  }
-  else
-  {
+  } else {
     jam();
     v2_format = false;
-    ndbrequire(startWord <= (sizeof(cdata)/4 - StartMeConf::DATA_SIZE));
-    for(Uint32 i = 0; i < StartMeConf::DATA_SIZE; i++)
-    {
-      cdata[startWord+i] = startMe->data[i];
+    ndbrequire(startWord <= (sizeof(cdata) / 4 - StartMeConf::DATA_SIZE));
+    for (Uint32 i = 0; i < StartMeConf::DATA_SIZE; i++) {
+      cdata[startWord + i] = startMe->data[i];
     }
-    if(startWord + StartMeConf::DATA_SIZE < Sysfile::SYSFILE_SIZE32_v1)
-    {
+    if (startWord + StartMeConf::DATA_SIZE < Sysfile::SYSFILE_SIZE32_v1) {
       jam();
       /**
        * We are still waiting for data
@@ -2790,84 +2611,75 @@ void Dbdih::execSTART_MECONF(Signal* signal)
    */
   Uint32 key = SYSFILE->m_restart_seq;
   Uint32 tempGCP[MAX_NDB_NODES];
-  for (Uint32 i = 1; i <= m_max_node_id; i++)
-  {
+  for (Uint32 i = 1; i <= m_max_node_id; i++) {
     tempGCP[i] = SYSFILE->lastCompletedGCI[i];
   }
 
-  if (v2_format)
-  {
+  if (v2_format) {
     jam();
     int ret = SYSFILE->unpack_sysfile_format_v2(cdata, &cdata_size_in_words);
     jamLine((Uint16)ret);
     ndbrequire(ret == 0);
-  }
-  else
-  {
+  } else {
     jam();
     int ret = SYSFILE->unpack_sysfile_format_v1(cdata, &cdata_size_in_words);
     jamLine((Uint16)ret);
     ndbrequire(ret == 0);
   }
   SYSFILE->m_restart_seq = key;
-  for (Uint32 i = 1; i <= m_max_node_id; i++)
-  {
+  for (Uint32 i = 1; i <= m_max_node_id; i++) {
     SYSFILE->lastCompletedGCI[i] = tempGCP[i];
   }
   setNodeActiveStatus();
   setNodeGroups();
 
-  g_eventLogger->info("Request copying of distribution and dictionary"
-                      " information from master Completed");
+  g_eventLogger->info(
+      "Request copying of distribution and dictionary"
+      " information from master Completed");
 
   ndbsttorry10Lab(signal, __LINE__);
 
-  if (getNodeActiveStatus(getOwnNodeId()) == Sysfile::NS_Configured)
-  {
+  if (getNodeActiveStatus(getOwnNodeId()) == Sysfile::NS_Configured) {
     jam();
     c_set_initial_start_flag = false;
   }
-}//Dbdih::execSTART_MECONF()
+}  // Dbdih::execSTART_MECONF()
 
-void Dbdih::execSTART_COPYCONF(Signal* signal) 
-{
+void Dbdih::execSTART_COPYCONF(Signal *signal) {
   jamEntry();
-  
-  StartCopyConf* conf = (StartCopyConf*)signal->getDataPtr();
+
+  StartCopyConf *conf = (StartCopyConf *)signal->getDataPtr();
   Uint32 nodeId = conf->startingNodeId;
   Uint32 senderData = conf->senderData;
 
-  if (senderData == RNIL)
-  {
+  if (senderData == RNIL) {
     /**
      * This is NR
      */
     jam();
 
-    g_eventLogger->info("Make On-line Database recoverable by waiting for"
-                        " LCP Completed, LCP id = %u",
-                        SYSFILE->latestLCP_ID);
- 
+    g_eventLogger->info(
+        "Make On-line Database recoverable by waiting for"
+        " LCP Completed, LCP id = %u",
+        SYSFILE->latestLCP_ID);
+
     ndbrequire(nodeId == cownNodeId);
     CRASH_INSERTION(7132);
     ndbsttorry10Lab(signal, __LINE__);
-  }
-  else
-  {
+  } else {
     /**
      * This is TO during SR...waiting for all nodes
      */
-    infoEvent("Make On-line Database recoverable by waiting for LCP Completed"
-              " on node %u, LCP id = %u",
-              nodeId,
-              SYSFILE->latestLCP_ID);
+    infoEvent(
+        "Make On-line Database recoverable by waiting for LCP Completed"
+        " on node %u, LCP id = %u",
+        nodeId, SYSFILE->latestLCP_ID);
 
     ndbrequire(senderData == getOwnNodeId());
     ndbrequire(m_to_nodes.get(nodeId));
     m_to_nodes.clear(nodeId);
     m_sr_nodes.set(nodeId);
-    if (!m_to_nodes.isclear())
-    {
+    if (!m_to_nodes.isclear()) {
       jam();
       return;
     }
@@ -2875,31 +2687,25 @@ void Dbdih::execSTART_COPYCONF(Signal* signal)
     infoEvent("Restore Database from disk Completed");
 
     signal->theData[0] = reference();
-    m_sr_nodes.copyto(NdbNodeBitmask::Size, signal->theData+1);
+    m_sr_nodes.copyto(NdbNodeBitmask::Size, signal->theData + 1);
 
     Uint32 packed_length = m_sr_nodes.getPackedLengthInWords();
     if (ndbd_send_node_bitmask_in_section(
-        getNodeInfo(refToNode(cntrlblockref)).m_version))
-    {
+            getNodeInfo(refToNode(cntrlblockref)).m_version)) {
       LinearSectionPtr lsptr[3];
       lsptr[0].p = signal->theData + 1;
       lsptr[0].sz = m_sr_nodes.getPackedLengthInWords();
-      sendSignal(cntrlblockref, GSN_NDB_STARTCONF, signal,
-                     1, JBB, lsptr, 1);
-    }
-    else if (packed_length <= NdbNodeBitmask48::Size)
-    {
+      sendSignal(cntrlblockref, GSN_NDB_STARTCONF, signal, 1, JBB, lsptr, 1);
+    } else if (packed_length <= NdbNodeBitmask48::Size) {
       sendSignal(cntrlblockref, GSN_NDB_STARTCONF, signal,
                  1 + NdbNodeBitmask48::Size, JBB);
-    }
-    else
-    {
+    } else {
       ndbabort();
     }
     return;
   }
   return;
-}//Dbdih::execSTART_COPYCONF()
+}  // Dbdih::execSTART_COPYCONF()
 
 /*---------------------------------------------------------------------------*/
 /*                    MASTER LOGIC FOR NODE RESTART                          */
@@ -2910,61 +2716,57 @@ void Dbdih::execSTART_COPYCONF(Signal* signal)
 // IS ACTIVE IN PERFORMING A NODE RESTART AND THERE ARE NO ACTIVE PROCESSES IN
 // THIS NODE INVOLVING THE STARTING NODE  THIS REQUEST WILL BE GRANTED.
 /*---------------------------------------------------------------------------*/
-void Dbdih::execSTART_PERMREQ(Signal* signal)
-{
-  StartPermReq * const req = (StartPermReq*)&signal->theData[0];  
+void Dbdih::execSTART_PERMREQ(Signal *signal) {
+  StartPermReq *const req = (StartPermReq *)&signal->theData[0];
   jamEntry();
   const BlockReference retRef = req->blockRef;
-  const Uint32 nodeId   = req->nodeId;
+  const Uint32 nodeId = req->nodeId;
   const Uint32 typeStart = req->startType;
   CRASH_INSERTION(7122);
   ndbrequire(isMaster());
   ndbrequire(refToNode(retRef) == nodeId);
-  if (c_lcpMasterTakeOverState.state != LMTOS_IDLE)
-  {
+  if (c_lcpMasterTakeOverState.state != LMTOS_IDLE) {
     jam();
-    infoEvent("DIH : Denied request for start permission from %u "
-              "while LCP Master takeover in progress.",
-              nodeId);
-    g_eventLogger->info("DIH : Denied request for start permission from %u "
-                        "while LCP Master takeover in progress.",
-                        nodeId);
+    infoEvent(
+        "DIH : Denied request for start permission from %u "
+        "while LCP Master takeover in progress.",
+        nodeId);
+    g_eventLogger->info(
+        "DIH : Denied request for start permission from %u "
+        "while LCP Master takeover in progress.",
+        nodeId);
     signal->theData[0] = nodeId;
     signal->theData[1] = StartPermRef::ZNODE_START_DISALLOWED_ERROR;
     sendSignal(retRef, GSN_START_PERMREF, signal, 2, JBB);
     return;
   }
-  if ((c_nodeStartMaster.activeState) ||
-      (c_nodeStartMaster.wait != ZFALSE) ||
+  if ((c_nodeStartMaster.activeState) || (c_nodeStartMaster.wait != ZFALSE) ||
       ERROR_INSERTED_CLEAR(7175)) {
     jam();
     signal->theData[0] = nodeId;
     signal->theData[1] = StartPermRef::ZNODE_ALREADY_STARTING_ERROR;
     sendSignal(retRef, GSN_START_PERMREF, signal, 2, JBB);
     return;
-  }//if
+  }  // if
 
-  if (!getAllowNodeStart(nodeId))
-  {
+  if (!getAllowNodeStart(nodeId)) {
     jam();
     g_eventLogger->info("Rejecting attempt to start node %u", nodeId);
-ref:
+  ref:
     signal->theData[0] = nodeId;
     signal->theData[1] = StartPermRef::ZNODE_START_DISALLOWED_ERROR;
     sendSignal(retRef, GSN_START_PERMREF, signal, 2, JBB);
     return;
   }
-  if (getNodeStatus(nodeId) != NodeRecord::DEAD)
-  {
+  if (getNodeStatus(nodeId) != NodeRecord::DEAD) {
     jam();
     g_eventLogger->error("nodeStatus in START_PERMREQ = %u",
-                         (Uint32) getNodeStatus(nodeId));
+                         (Uint32)getNodeStatus(nodeId));
     goto ref;
-  }//if
+  }  // if
 
   if (SYSFILE->lastCompletedGCI[nodeId] == 0 &&
-      typeStart != NodeState::ST_INITIAL_NODE_RESTART)
-  {
+      typeStart != NodeState::ST_INITIAL_NODE_RESTART) {
     jam();
     signal->theData[0] = nodeId;
     signal->theData[1] = StartPermRef::InitialStartRequired;
@@ -2973,15 +2775,15 @@ ref:
   }
 
   /*----------------------------------------------------------------------
-   * WE START THE INCLUSION PROCEDURE 
+   * WE START THE INCLUSION PROCEDURE
    * ---------------------------------------------------------------------*/
-  c_nodeStartMaster.failNr   = cfailurenr;
-  c_nodeStartMaster.wait     = ZFALSE;
+  c_nodeStartMaster.failNr = cfailurenr;
+  c_nodeStartMaster.wait = ZFALSE;
   c_nodeStartMaster.startInfoErrorCode = 0;
   c_nodeStartMaster.startNode = nodeId;
   c_nodeStartMaster.activeState = true;
-  c_nodeStartMaster.m_outstandingGsn =  GSN_START_INFOREQ;
-  
+  c_nodeStartMaster.m_outstandingGsn = GSN_START_INFOREQ;
+
   setNodeStatus(nodeId, NodeRecord::STARTING);
   DEB_NODE_STATUS(("Node[%u].nodeStatus = STARTING, line: %u",
                    nodeId, __LINE__));
@@ -2992,45 +2794,41 @@ ref:
    * For normal node restart we simply ensure that all nodes
    * are informed of the node restart
    */
-  StartInfoReq *const r =(StartInfoReq*)&signal->theData[0];
+  StartInfoReq *const r = (StartInfoReq *)&signal->theData[0];
   r->startingNodeId = nodeId;
   r->typeStart = typeStart;
   r->systemFailureNo = cfailurenr;
   sendLoopMacro(START_INFOREQ, sendSTART_INFOREQ, RNIL);
-}//Dbdih::execSTART_PERMREQ()
+}  // Dbdih::execSTART_PERMREQ()
 
-void Dbdih::execSTART_INFOREF(Signal* signal)
-{
-  StartInfoRef * ref = (StartInfoRef*)&signal->theData[0];
+void Dbdih::execSTART_INFOREF(Signal *signal) {
+  StartInfoRef *ref = (StartInfoRef *)&signal->theData[0];
   if (getNodeStatus(ref->startingNodeId) != NodeRecord::STARTING) {
     jam();
     return;
-  }//if
+  }  // if
   ndbrequire(c_nodeStartMaster.startNode == ref->startingNodeId);
   c_nodeStartMaster.startInfoErrorCode = ref->errorCode;
   startInfoReply(signal, ref->sendingNodeId);
-}//Dbdih::execSTART_INFOREF()
+}  // Dbdih::execSTART_INFOREF()
 
-void Dbdih::execSTART_INFOCONF(Signal* signal)
-{
+void Dbdih::execSTART_INFOCONF(Signal *signal) {
   jamEntry();
-  StartInfoConf * conf = (StartInfoConf*)&signal->theData[0];
+  StartInfoConf *conf = (StartInfoConf *)&signal->theData[0];
   if (getNodeStatus(conf->startingNodeId) != NodeRecord::STARTING) {
     jam();
     return;
-  }//if
+  }  // if
   ndbrequire(c_nodeStartMaster.startNode == conf->startingNodeId);
   startInfoReply(signal, conf->sendingNodeId);
-}//Dbdih::execSTART_INFOCONF()
+}  // Dbdih::execSTART_INFOCONF()
 
-void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
-{
+void Dbdih::startInfoReply(Signal *signal, Uint32 nodeId) {
   receiveLoopMacro(START_INFOREQ, nodeId);
   /**
-   * We're finished with the START_INFOREQ's 
+   * We're finished with the START_INFOREQ's
    */
-  if (c_nodeStartMaster.startInfoErrorCode == 0)
-  {
+  if (c_nodeStartMaster.startInfoErrorCode == 0) {
     jam();
     /**
      * Everything has been a success so far
@@ -3042,16 +2840,14 @@ void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
     setNodeRecoveryStatus(c_nodeStartMaster.startNode,
                           NodeRecord::START_PERMITTED);
 
-    StartPermConf * conf = (StartPermConf*)&signal->theData[0];
+    StartPermConf *conf = (StartPermConf *)&signal->theData[0];
     conf->startingNodeId = c_nodeStartMaster.startNode;
     conf->systemFailureNo = cfailurenr;
     conf->microGCP = m_micro_gcp.m_enabled;
-    sendSignal(calcDihBlockRef(c_nodeStartMaster.startNode), 
-               GSN_START_PERMCONF, signal, StartPermConf::SignalLength, JBB);
+    sendSignal(calcDihBlockRef(c_nodeStartMaster.startNode), GSN_START_PERMCONF,
+               signal, StartPermConf::SignalLength, JBB);
     c_nodeStartMaster.m_outstandingGsn = GSN_START_PERMCONF;
-  }
-  else
-  {
+  } else {
     /**
      * Failure of START_INFO protocol, another node wasn't ready to
      * start this node, some part of handling a previous node failure
@@ -3059,17 +2855,17 @@ void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
      * We need to restore the state such that the retry is possible.
      */
     jam();
-    StartPermRef * ref = (StartPermRef*)&signal->theData[0];
+    StartPermRef *ref = (StartPermRef *)&signal->theData[0];
     ref->startingNodeId = c_nodeStartMaster.startNode;
     ref->errorCode = c_nodeStartMaster.startInfoErrorCode;
-    sendSignal(calcDihBlockRef(c_nodeStartMaster.startNode), 
-	       GSN_START_PERMREF, signal, StartPermRef::SignalLength, JBB);
+    sendSignal(calcDihBlockRef(c_nodeStartMaster.startNode), GSN_START_PERMREF,
+               signal, StartPermRef::SignalLength, JBB);
     setNodeStatus(c_nodeStartMaster.startNode, NodeRecord::DEAD);
     DEB_NODE_STATUS(("Node[%u].nodeStatus = DEAD, line: %u",
                      nodeId, __LINE__));
     nodeResetStart(signal);
-  }//if
-}//Dbdih::startInfoReply()
+  }  // if
+}  // Dbdih::startInfoReply()
 
 /**
  *---------------------------------------------------------------------------
@@ -3124,7 +2920,7 @@ void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
  * we can cut away when starting the new LCP. At the first order of a
  * LCP of a fragment in an LDM instance we will set the new log tail in
  * that LDM instance.
- * 
+ *
  * After calculating the new GCI values and setting the LCP id we will
  * synchronize this information with all other nodes in the cluster.
  * This information will also be synchronized to the file system in
@@ -3135,7 +2931,7 @@ void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
  * When all nodes have synchronized this information to disk and confirmed
  * this to the master then we are ready to start sending orders to perform
  * the individual checkpoints of the fragment replicas.
- * 
+ *
  * The next step is that we want to set the tables to be involved in the
  * LCP. At this point we want to ensure that the same set of tables is
  * calculated in all nodes. To ensure this we grab the mutex that ensures
@@ -3210,7 +3006,7 @@ void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
  * LCP_FRAG_REP. This message is broadcasted to all participating DIHs. First
  * the message is sent from DBLQH to the local DIH. Finally the local DIH will
  * broadcast it to all participating DIHs.
- * 
+ *
  * This new Pausing LCP module is involved here by being able to queue also
  * LCP_FRAG_REP before they are broadcast to the participating DIHs. They are
  * queued on the fragment replica records in the local DIH and thus we have
@@ -3228,7 +3024,7 @@ void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
  * After all these activities have completed the LQH will send
  * LCP_COMPLETE_REP to the local DIH. The local DIH will broadcast it to all
  * participating DIHs.
- * 
+ *
  * When all LQHs have sent all LCP_FRAG_REP and it has also sent the
  * LCP_COMPLETE_REP, then the LCP is completed. So a node that has seen
  * LCP_COMPLETE_REP from all nodes participating in the LCP knows that
@@ -3296,7 +3092,7 @@ void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
  * While distributing above can be interpreted as one test case of before
  * distributing, one in the middle of distributing and one when all
  * responses have been received.
- * 
+ *
  * It is also important to similarly test PAUSE_LCP_REQ handling in all of
  * the above states. This can be handled by inserting an ERROR_INSERT that
  * effectively stops the process to copy meta data at some point and then
@@ -3304,8 +3100,7 @@ void Dbdih::startInfoReply(Signal* signal, Uint32 nodeId)
  * at a state that we wanted to accomplish.
  *---------------------------------------------------------------------------*/
 /* Initialisation routine, called once at startup of the node */
-void Dbdih::init_lcp_pausing_module(void)
-{
+void Dbdih::init_lcp_pausing_module(void) {
   /* Master state variables */
   c_pause_lcp_master_state = PAUSE_LCP_IDLE;
   c_lcp_runs_with_pause_support = false;
@@ -3321,8 +3116,7 @@ void Dbdih::init_lcp_pausing_module(void)
   c_lcp_id_while_copy_meta_data = RNIL;
 }
 
-void Dbdih::check_pause_state_lcp_idle(void)
-{
+void Dbdih::check_pause_state_lcp_idle(void) {
   /**
    * We should not be able to complete an LCP while still having
    * queued LCP_COMPLETE_REP and LCP_FRAG_REP.
@@ -3332,38 +3126,33 @@ void Dbdih::check_pause_state_lcp_idle(void)
 }
 
 /* Support function only called within ndbassert */
-bool Dbdih::check_pause_state_sanity(void)
-{
-  if (is_lcp_paused())
-  {
+bool Dbdih::check_pause_state_sanity(void) {
+  if (is_lcp_paused()) {
     ndbrequire(!c_dequeue_lcp_rep_ongoing);
   }
-  ndbrequire(c_lcp_id_paused == RNIL ||
-             is_lcp_paused() ||
+  ndbrequire(c_lcp_id_paused == RNIL || is_lcp_paused() ||
              c_dequeue_lcp_rep_ongoing);
   return true;
 }
 
 /* Support function for execLCP_FRAG_REP */
-void Dbdih::queue_lcp_frag_rep(Signal *signal, LcpFragRep *lcpReport)
-{
+void Dbdih::queue_lcp_frag_rep(Signal *signal, LcpFragRep *lcpReport) {
   Uint32 tableId = lcpReport->tableId;
   Uint32 fragId = lcpReport->fragId;
 
   TabRecordPtr tabPtr;
   tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
-  
+
   if (tabPtr.p->tabStatus == TabRecord::TS_DROPPING ||
-      tabPtr.p->tabStatus == TabRecord::TS_IDLE)
-  {
+      tabPtr.p->tabStatus == TabRecord::TS_IDLE) {
     jam();
     return;
   }
 
   FragmentstorePtr fragPtr;
   getFragstore(tabPtr.p, fragId, fragPtr);
-  
+
   ReplicaRecordPtr replicaPtr;
   findReplica(replicaPtr, fragPtr.p, lcpReport->nodeId);
   c_queued_lcp_frag_rep.addLast(replicaPtr);
@@ -3371,8 +3160,7 @@ void Dbdih::queue_lcp_frag_rep(Signal *signal, LcpFragRep *lcpReport)
   ndbrequire(replicaPtr.p->fragId == fragId);
   ndbrequire(replicaPtr.p->tableId == tableId);
   ndbrequire(replicaPtr.p->procNode == lcpReport->nodeId);
-  ndbrequire(c_lcp_id_paused == RNIL ||
-             c_lcp_id_paused == lcpReport->lcpId);
+  ndbrequire(c_lcp_id_paused == RNIL || c_lcp_id_paused == lcpReport->lcpId);
   c_lcp_id_paused = lcpReport->lcpId;
   replicaPtr.p->repMaxGciStarted = lcpReport->maxGciStarted;
   replicaPtr.p->repMaxGciCompleted = lcpReport->maxGciCompleted;
@@ -3380,19 +3168,16 @@ void Dbdih::queue_lcp_frag_rep(Signal *signal, LcpFragRep *lcpReport)
 }
 
 /* Support function for execLCP_COMPLETE_REP */
-void Dbdih::queue_lcp_complete_rep(Signal *signal, Uint32 lcpId)
-{
+void Dbdih::queue_lcp_complete_rep(Signal *signal, Uint32 lcpId) {
   ndbrequire(!c_queued_lcp_complete_rep);
   c_queued_lcp_complete_rep = true;
-  ndbrequire(c_lcp_id_paused == RNIL ||
-             c_lcp_id_paused == lcpId);
+  ndbrequire(c_lcp_id_paused == RNIL || c_lcp_id_paused == lcpId);
   c_lcp_id_paused = lcpId;
   ndbassert(check_pause_state_sanity());
 }
 
 /* Support function to start copying of meta data */
-void Dbdih::start_copy_meta_data(Signal *signal)
-{
+void Dbdih::start_copy_meta_data(Signal *signal) {
   /**
    * Now that we have locked both the DICT lock and the LCPs are locked from
    * starting we are ready to copy both the distribution information and the
@@ -3413,43 +3198,40 @@ void Dbdih::start_copy_meta_data(Signal *signal)
  * MASTER FUNCTIONALITY
  **--------------------------------------------------------------*/
 /* Support function to check if LCP is still running */
-bool Dbdih::check_if_lcp_idle(void)
-{
+bool Dbdih::check_if_lcp_idle(void) {
   ndbrequire(isMaster());
-  switch (c_lcpState.lcpStatus)
-  {
-  case LCP_STATUS_IDLE:
-  case LCP_TCGET:
-  case LCP_TC_CLOPSIZE:
-  case LCP_WAIT_MUTEX:
-    jam();
-    check_pause_state_lcp_idle();
-    return true;
-  case LCP_STATUS_ACTIVE:
-    jam();
-    return false;
-  case LCP_TAB_COMPLETED:
-    jam();
-    [[fallthrough]];
-  case LCP_TAB_SAVED:
-    jam();
-    /**
-     * For LCP_TAB_COMPLETED and LCP_TAB_SAVED we have already received
-     * all the table information and thus there is no need to get the new
-     * node into the LCP, there won't be any updates to the LCP data until
-     * the next LCP happens.
-     */
-    return true;
-  default:
-    jam();
-    return false;
+  switch (c_lcpState.lcpStatus) {
+    case LCP_STATUS_IDLE:
+    case LCP_TCGET:
+    case LCP_TC_CLOPSIZE:
+    case LCP_WAIT_MUTEX:
+      jam();
+      check_pause_state_lcp_idle();
+      return true;
+    case LCP_STATUS_ACTIVE:
+      jam();
+      return false;
+    case LCP_TAB_COMPLETED:
+      jam();
+      [[fallthrough]];
+    case LCP_TAB_SAVED:
+      jam();
+      /**
+       * For LCP_TAB_COMPLETED and LCP_TAB_SAVED we have already received
+       * all the table information and thus there is no need to get the new
+       * node into the LCP, there won't be any updates to the LCP data until
+       * the next LCP happens.
+       */
+      return true;
+    default:
+      jam();
+      return false;
   }
 }
 
 /* Send PAUSE_LCP_REQ to pause or to unpause, master code */
-void Dbdih::sendPAUSE_LCP_REQ(Signal *signal, bool pause)
-{
-  PauseLcpReq *req = (PauseLcpReq*)signal->getDataPtrSend();
+void Dbdih::sendPAUSE_LCP_REQ(Signal *signal, bool pause) {
+  PauseLcpReq *req = (PauseLcpReq *)signal->getDataPtrSend();
 
   /**
    * Send to all DIHs that participate in the LCP, including ourselves.
@@ -3457,42 +3239,34 @@ void Dbdih::sendPAUSE_LCP_REQ(Signal *signal, bool pause)
    * handle node failures in the middle of the pause process.
    */
   ndbrequire(isMaster());
-  if (pause)
-  {
+  if (pause) {
     jam();
     ndbrequire(c_pause_lcp_master_state == PAUSE_LCP_IDLE);
     c_pause_lcp_master_state = PAUSE_LCP_REQUESTED;
     req->pauseAction = PauseLcpReq::Pause;
     c_pause_participants = c_lcpState.m_participatingLQH;
     infoEvent("PAUSE LCP for starting node %u", c_nodeStartMaster.startNode);
-  }
-  else
-  {
+  } else {
     /**
      * We are unpausing the LCP again after completing the copy of the meta
      * data, slightly different dependent on whether the starting node was
      * included into the LCP or not.
      */
-    if (c_pause_lcp_master_state == PAUSE_COMPLETE_LCP_INCLUSION)
-    {
+    if (c_pause_lcp_master_state == PAUSE_COMPLETE_LCP_INCLUSION) {
       jam();
       ndbrequire(!check_if_lcp_idle());
       c_pause_lcp_master_state = PAUSE_IN_LCP_UNPAUSE;
       req->pauseAction = PauseLcpReq::UnPauseIncludedInLcp;
       infoEvent("UNPAUSE LCP for starting node %u, included in LCP",
                 c_nodeStartMaster.startNode);
-    }
-    else if (c_pause_lcp_master_state == PAUSE_NOT_IN_LCP_COPY_META_DATA)
-    {
+    } else if (c_pause_lcp_master_state == PAUSE_NOT_IN_LCP_COPY_META_DATA) {
       jam();
       ndbrequire(check_if_lcp_idle());
       c_pause_lcp_master_state = PAUSE_NOT_IN_LCP_UNPAUSE;
       req->pauseAction = PauseLcpReq::UnPauseNotIncludedInLcp;
       infoEvent("UNPAUSE LCP for starting node %u, not included in LCP",
                 c_nodeStartMaster.startNode);
-    }
-    else
-    {
+    } else {
       ndbabort();
     }
   }
@@ -3525,17 +3299,15 @@ void Dbdih::sendPAUSE_LCP_REQ(Signal *signal, bool pause)
 
   req->senderRef = reference();
   req->startNodeId = c_nodeStartMaster.startNode;
-  if (req->pauseAction == PauseLcpReq::UnPauseIncludedInLcp)
-  {
+  if (req->pauseAction == PauseLcpReq::UnPauseIncludedInLcp) {
     jam();
     c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.setWaitingFor(
-      c_nodeStartMaster.startNode);
+        c_nodeStartMaster.startNode);
   }
   c_PAUSE_LCP_REQ_Counter.setWaitingFor(c_pause_participants);
   NodeReceiverGroup rg(DBDIH, c_pause_participants);
   rg.m_nodes.clear(getOwnNodeId());
-  sendSignal(rg, GSN_PAUSE_LCP_REQ, signal,
-             PauseLcpReq::SignalLength, JBB);
+  sendSignal(rg, GSN_PAUSE_LCP_REQ, signal, PauseLcpReq::SignalLength, JBB);
   /**
    * We execute the signal to ourself immediately, the reason is to
    * avoid having to add a specific state variable to detect when the
@@ -3546,16 +3318,14 @@ void Dbdih::sendPAUSE_LCP_REQ(Signal *signal, bool pause)
 }
 
 /* Master code, other node has completed PAUSE_LCP_REQ */
-void Dbdih::execPAUSE_LCP_CONF(Signal *signal)
-{
-  PauseLcpConf *conf = (PauseLcpConf*)&signal->theData[0];
+void Dbdih::execPAUSE_LCP_CONF(Signal *signal) {
+  PauseLcpConf *conf = (PauseLcpConf *)&signal->theData[0];
   Uint32 nodeId = refToNode(conf->senderRef);
   Uint32 startNode = conf->startNodeId;
 
   ndbrequire(isMaster());
-  
-  if (!is_pause_for_this_node(startNode))
-  {
+
+  if (!is_pause_for_this_node(startNode)) {
     /* Ignore, node died in the process */
     jam();
     return;
@@ -3563,8 +3333,7 @@ void Dbdih::execPAUSE_LCP_CONF(Signal *signal)
   ndbassert(check_pause_state_sanity());
   receiveLoopMacro(PAUSE_LCP_REQ, nodeId);
 
-  if (c_pause_lcp_master_state == PAUSE_LCP_REQUESTED)
-  {
+  if (c_pause_lcp_master_state == PAUSE_LCP_REQUESTED) {
     jam();
     /**
      * We have paused the reporting of LCPs, we are now ready to process the
@@ -3607,18 +3376,13 @@ void Dbdih::execPAUSE_LCP_CONF(Signal *signal)
   jam();
   ndbrequire(c_pause_lcp_master_state == PAUSE_NOT_IN_LCP_UNPAUSE ||
              c_pause_lcp_master_state == PAUSE_IN_LCP_UNPAUSE);
-  if (c_pause_lcp_master_state == PAUSE_NOT_IN_LCP_UNPAUSE)
-  {
+  if (c_pause_lcp_master_state == PAUSE_NOT_IN_LCP_UNPAUSE) {
     jam();
     end_pause(signal, PauseLcpReq::UnPauseNotIncludedInLcp);
-  }
-  else if (c_pause_lcp_master_state == PAUSE_IN_LCP_UNPAUSE)
-  {
+  } else if (c_pause_lcp_master_state == PAUSE_IN_LCP_UNPAUSE) {
     jam();
     end_pause(signal, PauseLcpReq::UnPauseIncludedInLcp);
-  }
-  else
-  {
+  } else {
     ndbabort();
   }
   dihCopyCompletedLab(signal);
@@ -3642,37 +3406,28 @@ void Dbdih::execPAUSE_LCP_CONF(Signal *signal)
  * sending it on the same path and we have a guarantee that signals using
  * the same path won't race each other.
  */
-void Dbdih::execPAUSE_LCP_REQ(Signal *signal)
-{
-  PauseLcpReq *req = (PauseLcpReq*) &signal->theData[0];
+void Dbdih::execPAUSE_LCP_REQ(Signal *signal) {
+  PauseLcpReq *req = (PauseLcpReq *)&signal->theData[0];
   PauseLcpReq::PauseAction pauseAction =
-    (PauseLcpReq::PauseAction)req->pauseAction;
+      (PauseLcpReq::PauseAction)req->pauseAction;
   Uint32 startNode = req->startNodeId;
 
   ndbrequire(req->senderRef == cmasterdihref);
   ndbassert(check_pause_state_sanity());
 
   /* TODO: Insert check that startNode is still alive here */
-  if (pauseAction == PauseLcpReq::Pause)
-  {
+  if (pauseAction == PauseLcpReq::Pause) {
     jam();
     pause_lcp(signal, startNode, req->senderRef);
-  }
-  else
-  {
+  } else {
     jam();
-    unpause_lcp(signal,
-                startNode,
-                req->senderRef,
-                pauseAction);
+    unpause_lcp(signal, startNode, req->senderRef, pauseAction);
   }
   return;
 }
 
-void Dbdih::pause_lcp(Signal *signal,
-                      Uint32 startNode,
-                      BlockReference sender_ref)
-{
+void Dbdih::pause_lcp(Signal *signal, Uint32 startNode,
+                      BlockReference sender_ref) {
   /**
    * Since the message comes from the master on behalf of the starting
    * node we need to ensure that the starting node hasn't failed already.
@@ -3680,8 +3435,7 @@ void Dbdih::pause_lcp(Signal *signal,
    * after we already received NODE_FAILREP we need to ensure that we
    * don't proceed since this will cause havoc.
    */
-  if (!isMaster())
-  {
+  if (!isMaster()) {
     /**
      * We should come here after getting permit to start node, but before
      * we the node is included into the LCP and GCP protocol, this happens
@@ -3691,8 +3445,7 @@ void Dbdih::pause_lcp(Signal *signal,
     NodeRecordPtr nodePtr;
     nodePtr.i = startNode;
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-    if (!nodePtr.p->is_pausable)
-    {
+    if (!nodePtr.p->is_pausable) {
       jam();
       /* Ignore, node already died */
       return;
@@ -3700,8 +3453,7 @@ void Dbdih::pause_lcp(Signal *signal,
   }
 
   ndbrequire(sender_ref == cmasterdihref);
-  if (c_dequeue_lcp_rep_ongoing)
-  {
+  if (c_dequeue_lcp_rep_ongoing) {
     jam();
     /**
      * Stop unpause mechanism as we are starting a new pause action.
@@ -3716,24 +3468,22 @@ void Dbdih::pause_lcp(Signal *signal,
    * to ourselves. We need to keep track of which nodes that have
    * replied to the message.
    */
-  FlushLcpRepReq *req = (FlushLcpRepReq*) signal->getDataPtrSend();
+  FlushLcpRepReq *req = (FlushLcpRepReq *)signal->getDataPtrSend();
   req->senderRef = reference();
   req->startNodeId = startNode;
   c_FLUSH_LCP_REP_REQ_Counter.setWaitingFor(c_lcpState.m_participatingDIH);
   NodeReceiverGroup rg(DBDIH, c_lcpState.m_participatingDIH);
 
-  sendSignal(rg, GSN_FLUSH_LCP_REP_REQ, signal,
-             FlushLcpRepReq::SignalLength, JBB);
+  sendSignal(rg, GSN_FLUSH_LCP_REP_REQ, signal, FlushLcpRepReq::SignalLength,
+             JBB);
 
   ndbassert(check_pause_state_sanity());
 }
 
 void Dbdih::check_for_pause_action(Signal *signal,
-                                   StartLcpReq::PauseStart pauseStart)
-{
+                                   StartLcpReq::PauseStart pauseStart) {
   ndbrequire(is_lcp_paused());
-  if (!check_if_lcp_idle())
-  {
+  if (!check_if_lcp_idle()) {
     jam();
     /**
      * A next step when we have paused the LCP execution is to get the
@@ -3762,7 +3512,7 @@ void Dbdih::check_for_pause_action(Signal *signal,
      * data since the m_participatingLQH bitmap is needed to set
      * the lcpOngoing flag on the replicas set correctly.
      */
-    StartLcpReq* req = (StartLcpReq*)signal->getDataPtrSend();
+    StartLcpReq *req = (StartLcpReq *)signal->getDataPtrSend();
     BlockReference ref = calcDihBlockRef(c_nodeStartMaster.startNode);
     req->senderRef = reference();
     req->lcpId = SYSFILE->latestLCP_ID;
@@ -3770,21 +3520,23 @@ void Dbdih::check_for_pause_action(Signal *signal,
     Uint32 rec_node_version =
         getNodeInfo(c_nodeStartMaster.startNode).m_version;
 
-    if (pauseStart == StartLcpReq::PauseLcpStartFirst)
-    {
+    if (pauseStart == StartLcpReq::PauseLcpStartFirst) {
       jam();
       ndbrequire(c_pause_lcp_master_state == PAUSE_LCP_REQUESTED);
       c_pause_lcp_master_state = PAUSE_START_LCP_INCLUSION;
-      Uint32 packed_length1 = c_lcpState.m_participatingLQH.getPackedLengthInWords();
-      Uint32 packed_length2 = c_lcpState.m_participatingDIH.getPackedLengthInWords();
+      Uint32 packed_length1 =
+          c_lcpState.m_participatingLQH.getPackedLengthInWords();
+      Uint32 packed_length2 =
+          c_lcpState.m_participatingDIH.getPackedLengthInWords();
 
-      if (ndbd_send_node_bitmask_in_section(rec_node_version))
-      {
+      if (ndbd_send_node_bitmask_in_section(rec_node_version)) {
         jam();
         Uint32 participatingLQH[NdbNodeBitmask::Size];
         Uint32 participatingDIH[NdbNodeBitmask::Size];
-        c_lcpState.m_participatingLQH.copyto(NdbNodeBitmask::Size, participatingLQH);
-        c_lcpState.m_participatingDIH.copyto(NdbNodeBitmask::Size, participatingDIH);
+        c_lcpState.m_participatingLQH.copyto(NdbNodeBitmask::Size,
+                                             participatingLQH);
+        c_lcpState.m_participatingDIH.copyto(NdbNodeBitmask::Size,
+                                             participatingDIH);
         LinearSectionPtr lsptr[3];
         lsptr[0].p = participatingLQH;
         lsptr[0].sz = packed_length1;
@@ -3793,25 +3545,19 @@ void Dbdih::check_for_pause_action(Signal *signal,
         req->participatingLQH_v1.clear();
         req->participatingDIH_v1.clear();
 
-        sendSignal(ref, GSN_START_LCP_REQ, signal,
-                           StartLcpReq::SignalLength, JBB, lsptr, 2);
-      }
-      else if ((packed_length1 <= NdbNodeBitmask48::Size) &&
-               (packed_length2 <= NdbNodeBitmask48::Size))
-      {
+        sendSignal(ref, GSN_START_LCP_REQ, signal, StartLcpReq::SignalLength,
+                   JBB, lsptr, 2);
+      } else if ((packed_length1 <= NdbNodeBitmask48::Size) &&
+                 (packed_length2 <= NdbNodeBitmask48::Size)) {
         jam();
         req->participatingLQH_v1 = c_lcpState.m_participatingLQH;
         req->participatingDIH_v1 = c_lcpState.m_participatingDIH;
-        sendSignal(ref, GSN_START_LCP_REQ, signal,
-                   StartLcpReq::SignalLength, JBB);
-      }
-      else
-      {
+        sendSignal(ref, GSN_START_LCP_REQ, signal, StartLcpReq::SignalLength,
+                   JBB);
+      } else {
         ndbabort();
       }
-    }
-    else
-    {
+    } else {
       bool found = false;
       bool found_high_node_id = false;
       NdbNodeBitmask participatingLQH;
@@ -3819,15 +3565,12 @@ void Dbdih::check_for_pause_action(Signal *signal,
       ndbrequire(c_pause_lcp_master_state == PAUSE_IN_LCP_COPY_META_DATA);
       c_pause_lcp_master_state = PAUSE_COMPLETE_LCP_INCLUSION;
       req->participatingLQH_v1.clear();
-      for (Uint32 nodeId = 1; nodeId <= m_max_node_id; nodeId++)
-      {
-        if (c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(nodeId))
-        {
+      for (Uint32 nodeId = 1; nodeId <= m_max_node_id; nodeId++) {
+        if (c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(nodeId)) {
           jamLine(nodeId);
           participatingLQH.set(nodeId);
           found = true;
-          if (nodeId >= MAX_NDB_NODES_v1)
-            found_high_node_id = true;
+          if (nodeId >= MAX_NDB_NODES_v1) found_high_node_id = true;
         }
       }
       /**
@@ -3836,37 +3579,30 @@ void Dbdih::check_for_pause_action(Signal *signal,
        */
       ndbrequire(found);
 
-      if (ndbd_send_node_bitmask_in_section(rec_node_version))
-      {
+      if (ndbd_send_node_bitmask_in_section(rec_node_version)) {
         jam();
         LinearSectionPtr lsptr[3];
         lsptr[0].p = participatingLQH.rep.data;
         lsptr[0].sz = participatingLQH.getPackedLengthInWords();
         req->participatingLQH_v1.clear();
         req->participatingDIH_v1.clear();
-        sendSignal(ref, GSN_START_LCP_REQ, signal,
-                   StartLcpReq::SignalLength, JBB, lsptr, 1);
-      }
-      else if (participatingLQH.getPackedLengthInWords() <= NdbNodeBitmask48::Size)
-      {
+        sendSignal(ref, GSN_START_LCP_REQ, signal, StartLcpReq::SignalLength,
+                   JBB, lsptr, 1);
+      } else if (participatingLQH.getPackedLengthInWords() <=
+                 NdbNodeBitmask48::Size) {
         jam();
         req->participatingLQH_v1 = participatingLQH;
         req->participatingDIH_v1.clear();
         ndbrequire(!found_high_node_id);
-        sendSignal(ref, GSN_START_LCP_REQ, signal,
-                   StartLcpReq::SignalLength, JBB);
-      }
-      else
-      {
+        sendSignal(ref, GSN_START_LCP_REQ, signal, StartLcpReq::SignalLength,
+                   JBB);
+      } else {
         ndbabort();
       }
       return;
     }
-  }
-  else
-  {
-    if (pauseStart == StartLcpReq::PauseLcpStartFirst)
-    {
+  } else {
+    if (pauseStart == StartLcpReq::PauseLcpStartFirst) {
       jam();
       /**
        * The LCP completed while we paused, no need to prepare the starting
@@ -3877,9 +3613,7 @@ void Dbdih::check_for_pause_action(Signal *signal,
       ndbrequire(c_pause_lcp_master_state == PAUSE_LCP_REQUESTED);
       c_pause_lcp_master_state = PAUSE_NOT_IN_LCP_COPY_META_DATA;
       start_copy_meta_data(signal);
-    }
-    else
-    {
+    } else {
       jam();
       /**
        * The LCP completed while we paused and we have now copied the meta
@@ -3894,13 +3628,10 @@ void Dbdih::check_for_pause_action(Signal *signal,
   }
 }
 
-void Dbdih::unpause_lcp(Signal *signal,
-                        Uint32 startNode,
+void Dbdih::unpause_lcp(Signal *signal, Uint32 startNode,
                         BlockReference sender_ref,
-                        PauseLcpReq::PauseAction pauseAction)
-{
-  if (!is_pause_for_this_node(startNode))
-  {
+                        PauseLcpReq::PauseAction pauseAction) {
+  if (!is_pause_for_this_node(startNode)) {
     jam();
     /* Ignore, node already died */
     return;
@@ -3912,14 +3643,13 @@ void Dbdih::unpause_lcp(Signal *signal,
    * order isn't absolutely necessary, but it makes it easier to debug
    * the system.
    */
-  PauseLcpConf *conf = (PauseLcpConf*)signal->getDataPtrSend();
+  PauseLcpConf *conf = (PauseLcpConf *)signal->getDataPtrSend();
   conf->senderRef = reference();
   conf->startNodeId = startNode;
   sendSignal(cmasterdihref, GSN_PAUSE_LCP_CONF, signal,
              PauseLcpConf::SignalLength, JBB);
 
-  if (isMaster())
-  {
+  if (isMaster()) {
     jam();
     /**
      * We complete the Pause LCP protocol in master when all nodes
@@ -3930,21 +3660,16 @@ void Dbdih::unpause_lcp(Signal *signal,
   end_pause(signal, pauseAction);
 }
 
-void Dbdih::end_pause(Signal *signal,
-                      PauseLcpReq::PauseAction pauseAction)
-{
-  if (pauseAction == PauseLcpReq::UnPauseIncludedInLcp)
-  {
+void Dbdih::end_pause(Signal *signal, PauseLcpReq::PauseAction pauseAction) {
+  if (pauseAction == PauseLcpReq::UnPauseIncludedInLcp) {
     jam();
     c_lcpState.m_participatingDIH.set(c_pause_lcp_start_node);
   }
   stop_pause(signal);
 }
 
-void Dbdih::stop_pause(Signal *signal)
-{
-  if (isMaster())
-  {
+void Dbdih::stop_pause(Signal *signal) {
+  if (isMaster()) {
     jam();
     c_pause_participants.clear();
     c_pause_lcp_master_state = PAUSE_LCP_IDLE;
@@ -3966,8 +3691,7 @@ void Dbdih::stop_pause(Signal *signal)
  *
  * This means we need no code to handle unpausing at node failures.
  */
-void Dbdih::handle_node_failure_in_pause(Signal *signal)
-{
+void Dbdih::handle_node_failure_in_pause(Signal *signal) {
   c_FLUSH_LCP_REP_REQ_Counter.clearWaitingFor();
   c_PAUSE_LCP_REQ_Counter.clearWaitingFor();
   stop_pause(signal);
@@ -3988,14 +3712,12 @@ void Dbdih::handle_node_failure_in_pause(Signal *signal)
  * CONTINUEB. So if one wants to add asserts on queue not empty while
  * flag is set, then this needs to be checked before CONTINUEB is sent.
  */
-void Dbdih::dequeue_lcp_rep(Signal *signal)
-{
+void Dbdih::dequeue_lcp_rep(Signal *signal) {
   ReplicaRecordPtr replicaPtr;
   bool empty;
   bool lcp_frag_rep_empty = c_queued_lcp_frag_rep.isEmpty();
   bool lcp_complete_rep_empty = !c_queued_lcp_complete_rep;
-  if (!c_dequeue_lcp_rep_ongoing)
-  {
+  if (!c_dequeue_lcp_rep_ongoing) {
     jam();
     ndbassert(check_pause_state_sanity());
     /**
@@ -4007,10 +3729,8 @@ void Dbdih::dequeue_lcp_rep(Signal *signal)
   }
   empty = lcp_frag_rep_empty && lcp_complete_rep_empty;
   /* Perform dequeueing of one LCP report */
-  if (!empty)
-  {
-    if (!lcp_frag_rep_empty)
-    {
+  if (!empty) {
+    if (!lcp_frag_rep_empty) {
       jam();
       /**
        * 1) Remove from queue
@@ -4025,7 +3745,7 @@ void Dbdih::dequeue_lcp_rep(Signal *signal)
        * So we send the signals from here to all nodes in the DIH set
        * (including the starting node).
        */
-      LcpFragRep *lcpFragRep = (LcpFragRep*)signal->getDataPtrSend();
+      LcpFragRep *lcpFragRep = (LcpFragRep *)signal->getDataPtrSend();
 
       ndbrequire(c_queued_lcp_frag_rep.first(replicaPtr));
       c_queued_lcp_frag_rep.removeFirst(replicaPtr);
@@ -4039,8 +3759,7 @@ void Dbdih::dequeue_lcp_rep(Signal *signal)
       lcpFragRep->maxGciStarted = replicaPtr.p->repMaxGciStarted;
 
       NodeReceiverGroup rg(DBDIH, c_lcpState.m_participatingDIH);
-      sendSignal(rg, GSN_LCP_FRAG_REP, signal,
-                 LcpFragRep::SignalLength, JBB);
+      sendSignal(rg, GSN_LCP_FRAG_REP, signal, LcpFragRep::SignalLength, JBB);
 
       /**
        * Send signal as delayed signals to avoid overloading ourself
@@ -4048,12 +3767,9 @@ void Dbdih::dequeue_lcp_rep(Signal *signal)
        * short time. The dequeue should not be time critical.
        */
       signal->theData[0] = DihContinueB::ZDEQUEUE_LCP_REP;
-      sendSignalWithDelay(reference(), GSN_CONTINUEB, signal,
-                          1, 1);
+      sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 1, 1);
       return;
-    }
-    else
-    {
+    } else {
       /**
        * 1) Reset c_queued_lcp_complete_rep
        * 2) Set up LCP_COMPLETE_REP signal
@@ -4062,7 +3778,7 @@ void Dbdih::dequeue_lcp_rep(Signal *signal)
        */
       ndbassert(c_queued_lcp_complete_rep);
       LcpCompleteRep *lcpCompleteRep =
-        (LcpCompleteRep*)signal->getDataPtrSend();
+          (LcpCompleteRep *)signal->getDataPtrSend();
 
       c_queued_lcp_complete_rep = false;
 
@@ -4071,8 +3787,8 @@ void Dbdih::dequeue_lcp_rep(Signal *signal)
       lcpCompleteRep->blockNo = DBLQH;
 
       NodeReceiverGroup rg(DBDIH, c_lcpState.m_participatingDIH);
-      sendSignal(rg, GSN_LCP_COMPLETE_REP, signal,
-                 LcpCompleteRep::SignalLength, JBB);
+      sendSignal(rg, GSN_LCP_COMPLETE_REP, signal, LcpCompleteRep::SignalLength,
+                 JBB);
     }
   }
   jam();
@@ -4103,16 +3819,14 @@ void Dbdih::dequeue_lcp_rep(Signal *signal)
  * node instance with the same node id. The same applies to a number of
  * similar scenarios in the NDB code.
  */
-void Dbdih::execFLUSH_LCP_REP_CONF(Signal *signal)
-{
-  FlushLcpRepConf *conf = (FlushLcpRepConf*)&signal->theData[0];
+void Dbdih::execFLUSH_LCP_REP_CONF(Signal *signal) {
+  FlushLcpRepConf *conf = (FlushLcpRepConf *)&signal->theData[0];
   jamEntry();
 
   Uint32 nodeId = refToNode(conf->senderRef);
   Uint32 startNode = conf->startNodeId;
 
-  if (!is_pause_for_this_node(startNode))
-  {
+  if (!is_pause_for_this_node(startNode)) {
     /* Ignore, node died in the process */
     jam();
     return;
@@ -4121,8 +3835,8 @@ void Dbdih::execFLUSH_LCP_REP_CONF(Signal *signal)
   receiveLoopMacro(FLUSH_LCP_REP_REQ, nodeId);
   {
     jam();
-   /* Normal path, master is still alive */
-    PauseLcpConf *conf = (PauseLcpConf*)signal->getDataPtrSend();
+    /* Normal path, master is still alive */
+    PauseLcpConf *conf = (PauseLcpConf *)signal->getDataPtrSend();
     conf->senderRef = reference();
     conf->startNodeId = startNode;
     sendSignal(cmasterdihref, GSN_PAUSE_LCP_CONF, signal,
@@ -4150,10 +3864,9 @@ void Dbdih::execFLUSH_LCP_REP_CONF(Signal *signal)
  * purpose is to ensure that the signal links are flushed such that we know
  * that we don't have any outstanding LCP_FRAG_REPs and LCP_COMPLETE_REPs.
  */
-void Dbdih::execFLUSH_LCP_REP_REQ(Signal *signal)
-{
-  FlushLcpRepReq *req = (FlushLcpRepReq*)&signal->theData[0];
-  FlushLcpRepConf *conf = (FlushLcpRepConf*)signal->getDataPtrSend();
+void Dbdih::execFLUSH_LCP_REP_REQ(Signal *signal) {
+  FlushLcpRepReq *req = (FlushLcpRepReq *)&signal->theData[0];
+  FlushLcpRepConf *conf = (FlushLcpRepConf *)signal->getDataPtrSend();
   jamEntry();
   ndbassert(check_pause_state_sanity());
 
@@ -4168,7 +3881,6 @@ void Dbdih::execFLUSH_LCP_REP_REQ(Signal *signal)
 /* END Pausing LCP Module */
 /*---------------------------------------------------------------------------*/
 
-
 /*---------------------------------------------------------------------------*/
 /*                    NODE RESTART CONTINUE REQUEST                          */
 /*---------------------------------------------------------------------------*/
@@ -4176,9 +3888,8 @@ void Dbdih::execFLUSH_LCP_REP_REQ(Signal *signal)
 // REQUESTED TO START UP A NEW NODE. The master instructs the starting node
 // how to set up its log for continued execution.
 /*---------------------------------------------------------------------------*/
-void Dbdih::execSTART_MEREQ(Signal* signal) 
-{
-  StartMeReq * req = (StartMeReq*)&signal->theData[0];
+void Dbdih::execSTART_MEREQ(Signal *signal) {
+  StartMeReq *req = (StartMeReq *)&signal->theData[0];
   jamEntry();
   const BlockReference Tblockref = req->startingRef;
   const Uint32 Tnodeid = refToNode(Tblockref);
@@ -4207,12 +3918,12 @@ void Dbdih::execSTART_MEREQ(Signal* signal)
 /**
  * We have come to a point in the node restart where we need to copy
  * the meta data to the starting node.
- * 
+ *
  * In older versions we did this by acquiring a mutex that is held by
  * the following actions:
  * 1) Execution of LCP. The mutex is held for the entire time we are
  *   executing an LCP. This could be all the way up to hours.
- * 
+ *
  * 2) Take over a fragment. This action happens in the phase where we
  *   are synchronizing the starting node with the alive nodes. In order
  *   to do so we need to lock the meta data in DBDIH to ensure that we
@@ -4264,9 +3975,7 @@ void Dbdih::execSTART_MEREQ(Signal* signal)
  * different tables could be synched at the same time. This might
  * require changing the table layout on disk for DIH and DICT tables.
  */
-void
-Dbdih::startme_copygci_conf(Signal* signal)
-{
+void Dbdih::startme_copygci_conf(Signal *signal) {
   jam();
 
   /**
@@ -4275,28 +3984,24 @@ Dbdih::startme_copygci_conf(Signal* signal)
    * status to control the start of local checkpoints in a proper manner.
    * This code is only executed in master nodes.
    */
-  if (c_nodeStartMaster.startNode != RNIL)
-  {
+  if (c_nodeStartMaster.startNode != RNIL) {
     setNodeRecoveryStatus(c_nodeStartMaster.startNode,
                           NodeRecord::WAIT_LCP_TO_COPY_DICT);
 
-    Callback c = { safe_cast(&Dbdih::lcpBlockedLab), 
-                   c_nodeStartMaster.startNode };
+    Callback c = {safe_cast(&Dbdih::lcpBlockedLab),
+                  c_nodeStartMaster.startNode};
     Mutex mutex(signal, c_mutexMgr, c_nodeStartMaster.m_fragmentInfoMutex);
     mutex.lock(c, true, true);
   }
 }
 
-void Dbdih::lcpBlockedLab(Signal* signal, Uint32 nodeId, Uint32 retVal)
-{
+void Dbdih::lcpBlockedLab(Signal *signal, Uint32 nodeId, Uint32 retVal) {
   jamEntry();
-  if (c_nodeStartMaster.startNode != nodeId)
-  {
+  if (c_nodeStartMaster.startNode != nodeId) {
     jam();
-    if (retVal == 0 || retVal == UtilLockRef::InLockQueue)
-    {
+    if (retVal == 0 || retVal == UtilLockRef::InLockQueue) {
       infoEvent("Releasing table/fragment info lock for node %u", nodeId);
-      
+
       Mutex mutex(signal, c_mutexMgr, c_nodeStartMaster.m_fragmentInfoMutex);
       mutex.unlock();
       return;
@@ -4304,19 +4009,18 @@ void Dbdih::lcpBlockedLab(Signal* signal, Uint32 nodeId, Uint32 retVal)
     return;
   }
 
-  if (retVal == UtilLockRef::InLockQueue)
-  {
+  if (retVal == UtilLockRef::InLockQueue) {
     jam();
     infoEvent("Node %u enqueued is waiting to copy table/fragment info",
               c_nodeStartMaster.startNode);
     return;
   }
 
-  ndbrequire(retVal == 0); // Mutex error
-  ndbrequire(getNodeStatus(c_nodeStartMaster.startNode)==NodeRecord::STARTING);
+  ndbrequire(retVal == 0);  // Mutex error
+  ndbrequire(getNodeStatus(c_nodeStartMaster.startNode) ==
+             NodeRecord::STARTING);
 
-  if (c_lcp_runs_with_pause_support)
-  {
+  if (c_lcp_runs_with_pause_support) {
     {
       /**
        * All nodes running the LCP supports the PAUSE LCP protocol. Also the
@@ -4330,17 +4034,16 @@ void Dbdih::lcpBlockedLab(Signal* signal, Uint32 nodeId, Uint32 retVal)
     }
   }
   /**
-   * Either we don't support the PAUSE protocol or some other node doesn't. We 
+   * Either we don't support the PAUSE protocol or some other node doesn't. We
    * can also arrive here simply because no LCP is ongoing. In this case we
    * can be sure that no LCP is ongoing in both cases. So we ensure that no
    * LCP starts up until we have completed the copying of meta data by keeping
    * the Fragment Info mutex until we have completed the copying of meta data.
    */
   start_copy_meta_data(signal);
-}//Dbdih::lcpBlockedLab()
+}  // Dbdih::lcpBlockedLab()
 
-void Dbdih::nodeDictStartConfLab(Signal* signal, Uint32 nodeId)
-{
+void Dbdih::nodeDictStartConfLab(Signal *signal, Uint32 nodeId) {
   /**
    * Report that node restart has completed copy of dictionary.
    *
@@ -4371,26 +4074,23 @@ void Dbdih::nodeDictStartConfLab(Signal* signal, Uint32 nodeId)
   c_nodeStartMaster.blockGcp = 1;
 
   return;
-}//Dbdih::nodeDictStartConfLab()
+}  // Dbdih::nodeDictStartConfLab()
 
-void Dbdih::dihCopyCompletedLab(Signal* signal)
-{
+void Dbdih::dihCopyCompletedLab(Signal *signal) {
   signal->theData[0] = NDB_LE_NR_CopyDistr;
   signal->theData[1] = c_nodeStartMaster.startNode;
   sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 2, JBB);
 
   BlockReference ref = calcDictBlockRef(c_nodeStartMaster.startNode);
-  DictStartReq * req = (DictStartReq*)&signal->theData[0];
+  DictStartReq *req = (DictStartReq *)&signal->theData[0];
   req->restartGci = (Uint32)(m_micro_gcp.m_new_gci >> 32);
   req->senderRef = reference();
-  sendSignal(ref, GSN_DICTSTARTREQ,
-             signal, DictStartReq::SignalLength, JBB);
+  sendSignal(ref, GSN_DICTSTARTREQ, signal, DictStartReq::SignalLength, JBB);
   c_nodeStartMaster.m_outstandingGsn = GSN_DICTSTARTREQ;
   c_nodeStartMaster.wait = 0;
-}//Dbdih::dihCopyCompletedLab()
+}  // Dbdih::dihCopyCompletedLab()
 
-void Dbdih::gcpBlockedLab(Signal* signal)
-{
+void Dbdih::gcpBlockedLab(Signal *signal) {
   /**
    * The node DIH will be part of LCP
    */
@@ -4398,16 +4098,14 @@ void Dbdih::gcpBlockedLab(Signal* signal)
   nodePtr.i = c_nodeStartMaster.startNode;
   ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
   nodePtr.p->m_inclDihLcp = true;
-  
+
   /**
    * If node is new...this is the place to do things,
    *   gcp+lcp is blocked
    */
-  if (getNodeActiveStatus(nodePtr.i) == Sysfile::NS_NotDefined)
-  {
+  if (getNodeActiveStatus(nodePtr.i) == Sysfile::NS_NotDefined) {
     jam();
-    infoEvent("Adding node %d to sysfile, NS_Configured",
-              nodePtr.i);
+    infoEvent("Adding node %d to sysfile, NS_Configured", nodePtr.i);
     setNodeActiveStatus(nodePtr.i, Sysfile::NS_Configured);
     SYSFILE->setNodeGroup(nodePtr.i, NO_NODE_GROUP_ID);
     SYSFILE->setNodeStatus(nodePtr.i, Sysfile::NS_Configured);
@@ -4425,13 +4123,12 @@ void Dbdih::gcpBlockedLab(Signal* signal)
   /*-------------------------------------------------------------------------*/
   c_INCL_NODEREQ_Counter.setWaitingFor(c_nodeStartMaster.startNode);
   sendINCL_NODEREQ(signal, c_nodeStartMaster.startNode, RNIL);
-}//Dbdih::gcpBlockedLab()
+}  // Dbdih::gcpBlockedLab()
 
 /*---------------------------------------------------------------------------*/
 // THIS SIGNAL IS EXECUTED IN BOTH SLAVES AND IN THE MASTER
 /*---------------------------------------------------------------------------*/
-void Dbdih::execINCL_NODECONF(Signal* signal) 
-{
+void Dbdih::execINCL_NODECONF(Signal *signal) {
   jamEntry();
   Uint32 TstartNode = signal->theData[0];
   Uint32 TsendNodeId_or_blockref = signal->theData[1];
@@ -4445,76 +4142,66 @@ void Dbdih::execINCL_NODECONF(Signal* signal)
   blocklist[5] = numberToRef(SUMA, getOwnNodeId());
   blocklist[6] = numberToRef(DBSPJ, getOwnNodeId());
   blocklist[7] = 0;
-  
-  for (Uint32 i = 0; blocklist[i] != 0; i++)
-  {
-    if (TsendNodeId_or_blockref == blocklist[i])
-    {
+
+  for (Uint32 i = 0; blocklist[i] != 0; i++) {
+    if (TsendNodeId_or_blockref == blocklist[i]) {
       jam();
 
-      if (TstartNode != c_nodeStartSlave.nodeId)
-      {
+      if (TstartNode != c_nodeStartSlave.nodeId) {
         jam();
-        warningEvent("Received INCL_NODECONF for %u from %s"
-                     " while %u is starting",
-                     TstartNode,
-                     getBlockName(refToBlock(TsendNodeId_or_blockref)),
-                     c_nodeStartSlave.nodeId);
+        warningEvent(
+            "Received INCL_NODECONF for %u from %s"
+            " while %u is starting",
+            TstartNode, getBlockName(refToBlock(TsendNodeId_or_blockref)),
+            c_nodeStartSlave.nodeId);
         return;
       }
-      
-      if (getNodeStatus(c_nodeStartSlave.nodeId) == NodeRecord::ALIVE && 
-	  blocklist[i+1] != 0)
-      {
-	/**
-	 * Send to next in block list
-	 */
-	jam();
-	signal->theData[0] = reference();
-	signal->theData[1] = c_nodeStartSlave.nodeId;
+
+      if (getNodeStatus(c_nodeStartSlave.nodeId) == NodeRecord::ALIVE &&
+          blocklist[i + 1] != 0) {
+        /**
+         * Send to next in block list
+         */
+        jam();
+        signal->theData[0] = reference();
+        signal->theData[1] = c_nodeStartSlave.nodeId;
         signal->theData[2] = Uint32(m_micro_gcp.m_current_gci >> 32);
-	sendSignal(blocklist[i+1], GSN_INCL_NODEREQ, signal, 3, JBB);
-	return;
-      }
-      else
-      {
-	/**
-	 * All done, reply to master if node is still up.
-	 */
-	jam();
-        if (getNodeStatus(c_nodeStartSlave.nodeId) == NodeRecord::ALIVE)
-        {
+        sendSignal(blocklist[i + 1], GSN_INCL_NODEREQ, signal, 3, JBB);
+        return;
+      } else {
+        /**
+         * All done, reply to master if node is still up.
+         */
+        jam();
+        if (getNodeStatus(c_nodeStartSlave.nodeId) == NodeRecord::ALIVE) {
           jam();
-          if (!isMaster())
-          {
+          if (!isMaster()) {
             jam();
             setNodeRecoveryStatus(c_nodeStartSlave.nodeId,
                                   NodeRecord::NODE_GETTING_INCLUDED);
           }
-	  signal->theData[0] = c_nodeStartSlave.nodeId;
-	  signal->theData[1] = cownNodeId;
-	  sendSignal(cmasterdihref, GSN_INCL_NODECONF, signal, 2, JBB);
+          signal->theData[0] = c_nodeStartSlave.nodeId;
+          signal->theData[1] = cownNodeId;
+          sendSignal(cmasterdihref, GSN_INCL_NODECONF, signal, 2, JBB);
         }
-	c_nodeStartSlave.nodeId = 0;
-	return;
+        c_nodeStartSlave.nodeId = 0;
+        return;
       }
     }
   }
 
-  if (c_nodeStartMaster.startNode != TstartNode)
-  {
+  if (c_nodeStartMaster.startNode != TstartNode) {
     jam();
-    warningEvent("Received INCL_NODECONF for %u from %u"
-                 " while %u is starting",
-                 TstartNode,
-                 TsendNodeId_or_blockref,
-                 c_nodeStartMaster.startNode);
+    warningEvent(
+        "Received INCL_NODECONF for %u from %u"
+        " while %u is starting",
+        TstartNode, TsendNodeId_or_blockref, c_nodeStartMaster.startNode);
     return;
   }
-  
+
   ndbrequire(reference() == cmasterdihref);
   receiveLoopMacro(INCL_NODEREQ, TsendNodeId_or_blockref);
-  
+
   CRASH_INSERTION(7128);
   /*-------------------------------------------------------------------------*/
   // Now that we have included the starting node in the node lists in the
@@ -4534,45 +4221,40 @@ void Dbdih::execINCL_NODECONF(Signal* signal)
 
   Mutex mutex(signal, c_mutexMgr, c_nodeStartMaster.m_fragmentInfoMutex);
   mutex.unlock();
-}//Dbdih::execINCL_NODECONF()
+}  // Dbdih::execINCL_NODECONF()
 
-void Dbdih::execUNBLO_DICTCONF(Signal* signal) 
-{
+void Dbdih::execUNBLO_DICTCONF(Signal *signal) {
   jamEntry();
   c_nodeStartMaster.wait = ZFALSE;
   if (!c_nodeStartMaster.activeState) {
     jam();
     return;
-  }//if
+  }  // if
 
   CRASH_INSERTION(7129);
   /**-----------------------------------------------------------------------
-   * WE HAVE NOW PREPARED IT FOR INCLUSION IN THE LCP PROTOCOL. 
-   * WE CAN NOW START THE LCP PROTOCOL AGAIN. 
-   * WE HAVE ALSO MADE THIS FOR THE GCP PROTOCOL. 
-   * WE ARE READY TO START THE PROTOCOLS AND RESPOND TO THE START REQUEST 
-   * FROM THE STARTING NODE. 
+   * WE HAVE NOW PREPARED IT FOR INCLUSION IN THE LCP PROTOCOL.
+   * WE CAN NOW START THE LCP PROTOCOL AGAIN.
+   * WE HAVE ALSO MADE THIS FOR THE GCP PROTOCOL.
+   * WE ARE READY TO START THE PROTOCOLS AND RESPOND TO THE START REQUEST
+   * FROM THE STARTING NODE.
    *------------------------------------------------------------------------*/
-  
-  StartMeConf * const startMe = (StartMeConf *)&signal->theData[0];
-  
-  
+
+  StartMeConf *const startMe = (StartMeConf *)&signal->theData[0];
+
   Uint32 nodeId = startMe->startingNodeId = c_nodeStartMaster.startNode;
   startMe->startWord = 0;
 
   const Uint32 ref = calcDihBlockRef(c_nodeStartMaster.startNode);
   Uint32 node_version = getNodeInfo(c_nodeStartMaster.startNode).m_version;
   Uint32 cdata_size_in_words = DIH_CDATA_SIZE;
-  if (ndbd_send_node_bitmask_in_section(node_version))
-  {
+  if (ndbd_send_node_bitmask_in_section(node_version)) {
     jam();
     int ret = SYSFILE->pack_sysfile_format_v2(cdata, &cdata_size_in_words);
     jamLine((Uint16)ret);
     ndbrequire(ret == 0);
     send_START_MECONF_data_v2(signal, ref, cdata_size_in_words);
-  }
-  else
-  {
+  } else {
     jam();
     int ret = SYSFILE->pack_sysfile_format_v1(cdata, &cdata_size_in_words);
     jamLine((Uint16)ret);
@@ -4623,12 +4305,12 @@ void Dbdih::execUNBLO_DICTCONF(Signal* signal)
   /**
    * Allow next node to start...
    */
-  StartPermRep *rep = (StartPermRep*)signal->getDataPtrSend();
+  StartPermRep *rep = (StartPermRep *)signal->getDataPtrSend();
   rep->startNodeId = nodeId;
   rep->reason = StartPermRep::PermissionToStart;
-  sendSignal(NDBCNTR_REF, GSN_START_PERMREP, signal,
-             StartPermRep::SignalLength, JBB);
-}//Dbdih::execUNBLO_DICTCONF()
+  sendSignal(NDBCNTR_REF, GSN_START_PERMREP, signal, StartPermRep::SignalLength,
+             JBB);
+}  // Dbdih::execUNBLO_DICTCONF()
 
 /*---------------------------------------------------------------------------*/
 /*                    NODE RESTART COPY REQUEST                              */
@@ -4636,17 +4318,16 @@ void Dbdih::execUNBLO_DICTCONF(Signal* signal)
 // A NODE RESTART HAS REACHED ITS FINAL PHASE WHEN THE DATA IS TO BE COPIED
 // TO THE NODE. START_COPYREQ IS EXECUTED BY THE STARTING NODE.
 /*---------------------------------------------------------------------------*/
-void Dbdih::execSTART_COPYREQ(Signal* signal) 
-{
+void Dbdih::execSTART_COPYREQ(Signal *signal) {
   jamEntry();
-  StartCopyReq req = *(StartCopyReq*)signal->getDataPtr();
+  StartCopyReq req = *(StartCopyReq *)signal->getDataPtr();
 
   Uint32 startNodeId = req.startingNodeId;
 
   /*-------------------------------------------------------------------------*/
   /*
    * REPORT Copy process of node restart is now about to start up.
-   * 
+   *
    * We will report this both in an internal state that can be used to
    * report progress in NDBINFO tables as well as being used to keep track of
    * node restart status to make correct decisions on when to start LCPs.
@@ -4659,55 +4340,53 @@ void Dbdih::execSTART_COPYREQ(Signal* signal)
   signal->theData[1] = req.startingNodeId;
   sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 2, JBB);
 
-  g_eventLogger->info("Restore Database Off-line Starting"); 
-  infoEvent("Restore Database Off-line Starting on node %u", 
-            startNodeId); 
+  g_eventLogger->info("Restore Database Off-line Starting");
+  infoEvent("Restore Database Off-line Starting on node %u", startNodeId);
 
   CRASH_INSERTION(7131);
 
   switch (getNodeActiveStatus(startNodeId)) {
-  case Sysfile::NS_Active:
-  case Sysfile::NS_ActiveMissed_1:
-  case Sysfile::NS_ActiveMissed_2:
-  case Sysfile::NS_NotActive_NotTakenOver:
-  case Sysfile::NS_Configured:
-    jam();
-    /*-----------------------------------------------------------------------*/
-    // AN ACTIVE NODE HAS BEEN STARTED. THE ACTIVE NODE MUST THEN GET ALL DATA
-    // IT HAD BEFORE ITS CRASH. WE START THE TAKE OVER IMMEDIATELY. 
-    // SINCE WE ARE AN ACTIVE NODE WE WILL TAKE OVER OUR OWN NODE THAT 
-    // PREVIOUSLY CRASHED.
-    /*-----------------------------------------------------------------------*/
-    startTakeOver(signal, startNodeId, startNodeId, &req);
-    break;
-  case Sysfile::NS_TakeOver:{
-    jam();
-    /*--------------------------------------------------------------------
-     * We were in the process of taking over but it was not completed.
-     * We will complete it now instead.
-     *--------------------------------------------------------------------*/
-    Uint32 takeOverNode = SYSFILE->getTakeOverNode(startNodeId);
-    if(takeOverNode == 0){
+    case Sysfile::NS_Active:
+    case Sysfile::NS_ActiveMissed_1:
+    case Sysfile::NS_ActiveMissed_2:
+    case Sysfile::NS_NotActive_NotTakenOver:
+    case Sysfile::NS_Configured:
       jam();
-      warningEvent("Bug in take-over code restarting");
-      takeOverNode = startNodeId;
-    }
+      /*-----------------------------------------------------------------------*/
+      // AN ACTIVE NODE HAS BEEN STARTED. THE ACTIVE NODE MUST THEN GET ALL DATA
+      // IT HAD BEFORE ITS CRASH. WE START THE TAKE OVER IMMEDIATELY.
+      // SINCE WE ARE AN ACTIVE NODE WE WILL TAKE OVER OUR OWN NODE THAT
+      // PREVIOUSLY CRASHED.
+      /*-----------------------------------------------------------------------*/
+      startTakeOver(signal, startNodeId, startNodeId, &req);
+      break;
+    case Sysfile::NS_TakeOver: {
+      jam();
+      /*--------------------------------------------------------------------
+       * We were in the process of taking over but it was not completed.
+       * We will complete it now instead.
+       *--------------------------------------------------------------------*/
+      Uint32 takeOverNode = SYSFILE->getTakeOverNode(startNodeId);
+      if (takeOverNode == 0) {
+        jam();
+        warningEvent("Bug in take-over code restarting");
+        takeOverNode = startNodeId;
+      }
 
-    startTakeOver(signal, startNodeId, takeOverNode, &req);
-    break;
-  }
-  default:
-    ndbabort();
-  }//switch
-}//Dbdih::execSTART_COPYREQ()
+      startTakeOver(signal, startNodeId, takeOverNode, &req);
+      break;
+    }
+    default:
+      ndbabort();
+  }  // switch
+}  // Dbdih::execSTART_COPYREQ()
 
 /*---------------------------------------------------------------------------*/
 /*                    SLAVE LOGIC FOR NODE RESTART                           */
 /*---------------------------------------------------------------------------*/
-void Dbdih::execSTART_INFOREQ(Signal* signal)
-{
+void Dbdih::execSTART_INFOREQ(Signal *signal) {
   jamEntry();
-  StartInfoReq *const req =(StartInfoReq*)&signal->theData[0];
+  StartInfoReq *const req = (StartInfoReq *)&signal->theData[0];
   Uint32 startNode = req->startingNodeId;
   if (cfailurenr != req->systemFailureNo) {
     jam();
@@ -4716,15 +4395,14 @@ void Dbdih::execSTART_INFOREQ(Signal* signal)
     // this request since the node is already dead that is starting.
     //---------------------------------------------------------------
     return;
-  }//if
+  }  // if
   CRASH_INSERTION(7123);
   if (isMaster()) {
     jam();
     ndbrequire(getNodeStatus(startNode) == NodeRecord::STARTING);
   } else {
     jam();
-    if (getNodeStatus(startNode) == NodeRecord::STARTING)
-    {
+    if (getNodeStatus(startNode) == NodeRecord::STARTING) {
       /**
        * The master is sending out a new START_INFOREQ, obviously some
        * other node wasn't ready to start it yet, we are still ready.
@@ -4738,49 +4416,41 @@ void Dbdih::execSTART_INFOREQ(Signal* signal)
                  NodeRecord::NODE_GETTING_PERMIT);
       ndbrequire(getAllowNodeStart(startNode));
 
-      StartInfoConf * c = (StartInfoConf*)&signal->theData[0];
+      StartInfoConf *c = (StartInfoConf *)&signal->theData[0];
       c->sendingNodeId = cownNodeId;
       c->startingNodeId = startNode;
       sendSignal(cmasterdihref, GSN_START_INFOCONF, signal,
-	         StartInfoConf::SignalLength, JBB);
+                 StartInfoConf::SignalLength, JBB);
       return;
-    }
-    else
-    {
+    } else {
       jam();
       ndbrequire(getNodeStatus(startNode) == NodeRecord::DEAD);
     }
-  }//if
-  if ((!getAllowNodeStart(startNode)) ||
-      (c_nodeStartSlave.nodeId != 0) ||
+  }  // if
+  if ((!getAllowNodeStart(startNode)) || (c_nodeStartSlave.nodeId != 0) ||
       (ERROR_INSERTED(7124))) {
     jam();
-    if (!getAllowNodeStart(startNode))
-    {
+    if (!getAllowNodeStart(startNode)) {
       jam();
       g_eventLogger->info("Not allowed to start now for node %u", startNode);
-    }
-    else if (c_nodeStartSlave.nodeId != 0)
-    {
+    } else if (c_nodeStartSlave.nodeId != 0) {
       jam();
-      g_eventLogger->info("INCL_NODEREQ protocol still ongoing node = %u"
-                          " c_nodeStartSlave.nodeId = %u",
-                          startNode,
-                          c_nodeStartSlave.nodeId);
-    }
-    else
-    {
+      g_eventLogger->info(
+          "INCL_NODEREQ protocol still ongoing node = %u"
+          " c_nodeStartSlave.nodeId = %u",
+          startNode, c_nodeStartSlave.nodeId);
+    } else {
       jam();
       g_eventLogger->info("ERROR INSERT 7124");
     }
-    StartInfoRef *const ref =(StartInfoRef*)&signal->theData[0];
+    StartInfoRef *const ref = (StartInfoRef *)&signal->theData[0];
     ref->startingNodeId = startNode;
     ref->sendingNodeId = cownNodeId;
     ref->errorCode = StartPermRef::ZNODE_START_DISALLOWED_ERROR;
-    sendSignal(cmasterdihref, GSN_START_INFOREF, signal, 
-	       StartInfoRef::SignalLength, JBB);
+    sendSignal(cmasterdihref, GSN_START_INFOREF, signal,
+               StartInfoRef::SignalLength, JBB);
     return;
-  }//if
+  }  // if
   setNodeStatus(startNode, NodeRecord::STARTING);
   DEB_NODE_STATUS(("Node[%u].nodeStatus = STARTING, line: %u",
                    startNode, __LINE__));
@@ -4791,42 +4461,38 @@ void Dbdih::execSTART_INFOREQ(Signal* signal)
     invalidateNodeLCP(signal, startNode, 0);
   } else {
     jam();
-    if (!isMaster())
-    {
+    if (!isMaster()) {
       jam();
       setNodeRecoveryStatus(startNode, NodeRecord::NODE_GETTING_PERMIT);
     }
-    StartInfoConf * c = (StartInfoConf*)&signal->theData[0];
+    StartInfoConf *c = (StartInfoConf *)&signal->theData[0];
     c->sendingNodeId = cownNodeId;
     c->startingNodeId = startNode;
     sendSignal(cmasterdihref, GSN_START_INFOCONF, signal,
-	       StartInfoConf::SignalLength, JBB);
+               StartInfoConf::SignalLength, JBB);
     return;
-  }//if
-}//Dbdih::execSTART_INFOREQ()
+  }  // if
+}  // Dbdih::execSTART_INFOREQ()
 
-void Dbdih::execINCL_NODEREQ(Signal* signal) 
-{
+void Dbdih::execINCL_NODEREQ(Signal *signal) {
   jamEntry();
   Uint32 retRef = signal->theData[0];
   Uint32 nodeId = signal->theData[1];
-  if (nodeId == getOwnNodeId() && ERROR_INSERTED(7165))
-  {
+  if (nodeId == getOwnNodeId() && ERROR_INSERTED(7165)) {
     CLEAR_ERROR_INSERT_VALUE;
-    sendSignalWithDelay(reference(), GSN_INCL_NODEREQ, signal, 5000, 
+    sendSignalWithDelay(reference(), GSN_INCL_NODEREQ, signal, 5000,
                         signal->getLength());
     return;
   }
-  
+
   Uint32 tnodeStartFailNr = signal->theData[2];
   Uint32 gci_hi = signal->theData[4];
   Uint32 gci_lo = signal->theData[5];
-  if (unlikely(signal->getLength() < 6))
-  {
+  if (unlikely(signal->getLength() < 6)) {
     jam();
     gci_lo = 0;
   }
-  
+
   Uint64 gci = gci_lo | (Uint64(gci_hi) << 32);
   CRASH_INSERTION(7127);
   m_micro_gcp.m_current_gci = gci;
@@ -4835,7 +4501,7 @@ void Dbdih::execINCL_NODEREQ(Signal* signal)
   /*-------------------------------------------------------------------------*/
   // When a node is restarted we must ensure that a lcp will be run
   // as soon as possible and the reset the delay according to the original
-  // configuration. 
+  // configuration.
   // Without an initial local checkpoint the new node will not be available.
   /*-------------------------------------------------------------------------*/
   if (getOwnNodeId() == nodeId) {
@@ -4849,16 +4515,16 @@ void Dbdih::execINCL_NODEREQ(Signal* signal)
     signal->theData[1] = getOwnNodeId();
     sendSignal(cmasterdihref, GSN_INCL_NODECONF, signal, 2, JBB);
     return;
-  }//if
+  }  // if
   if (getNodeStatus(nodeId) != NodeRecord::STARTING) {
     jam();
     return;
-  }//if
+  }  // if
   ndbrequire(cfailurenr == tnodeStartFailNr);
-  ndbrequire (c_nodeStartSlave.nodeId == 0);
+  ndbrequire(c_nodeStartSlave.nodeId == 0);
   c_nodeStartSlave.nodeId = nodeId;
-  
-  ndbrequire (retRef == cmasterdihref);
+
+  ndbrequire(retRef == cmasterdihref);
 
   NodeRecordPtr nodePtr;
   nodePtr.i = nodeId;
@@ -4880,9 +4546,7 @@ void Dbdih::execINCL_NODEREQ(Signal* signal)
   removeDeadNode(nodePtr);
   insertAlive(nodePtr);
   con_lineNodes++;
-  if (cmasterNodeId == getOwnNodeId() &&
-      con_lineNodes >= 16)
-  {
+  if (cmasterNodeId == getOwnNodeId() && con_lineNodes >= 16) {
     log_setNoSend();
     setNoSend(1);
   }
@@ -4891,8 +4555,7 @@ void Dbdih::execINCL_NODEREQ(Signal* signal)
    * Reset default fragments per node which may depend the LDM count of all
    * alive nodes.
    */
-  if (m_use_classic_fragmentation)
-  {
+  if (m_use_classic_fragmentation) {
     c_fragments_per_node_ = 0;
   }
 
@@ -4903,7 +4566,7 @@ void Dbdih::execINCL_NODEREQ(Signal* signal)
   signal->theData[1] = nodeId;
   signal->theData[2] = Uint32(m_micro_gcp.m_current_gci >> 32);
   sendSignal(clocallqhblockref, GSN_INCL_NODEREQ, signal, 3, JBB);
-}//Dbdih::execINCL_NODEREQ()
+}  // Dbdih::execINCL_NODEREQ()
 
 /* ------------------------------------------------------------------------- */
 // execINCL_NODECONF() is found in the master logic part since it is used by
@@ -4915,16 +4578,14 @@ void Dbdih::execINCL_NODEREQ(Signal* signal)
  * Node takeover functionality
  * MASTER part
  *****************************************************************************/
-void Dbdih::execSTART_TOREQ(Signal* signal) 
-{
+void Dbdih::execSTART_TOREQ(Signal *signal) {
   jamEntry();
   StartToReq req = *(StartToReq *)&signal->theData[0];
-  
 
   {
     jam();
     TakeOverRecordPtr takeOverPtr;
-    
+
     ndbrequire(c_takeOverPool.seize(takeOverPtr));
     c_masterActiveTakeOverList.addFirst(takeOverPtr);
     takeOverPtr.p->toStartingNode = req.startingNodeId;
@@ -4933,20 +4594,18 @@ void Dbdih::execSTART_TOREQ(Signal* signal)
     takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MASTER_IDLE;
     takeOverPtr.p->toStartTime = c_current_time;
   }
-  
-  setNodeRecoveryStatus(req.startingNodeId,
-                        NodeRecord::COPY_FRAGMENTS_STARTED);
 
-  StartToConf * conf = (StartToConf *)&signal->theData[0];
+  setNodeRecoveryStatus(req.startingNodeId, NodeRecord::COPY_FRAGMENTS_STARTED);
+
+  StartToConf *conf = (StartToConf *)&signal->theData[0];
   conf->senderData = req.senderData;
   conf->sendingNodeId = cownNodeId;
   conf->startingNodeId = req.startingNodeId;
-  sendSignal(req.senderRef, GSN_START_TOCONF, 
-             signal, StartToConf::SignalLength, JBB);
-}//Dbdih::execSTART_TOREQ()
+  sendSignal(req.senderRef, GSN_START_TOCONF, signal, StartToConf::SignalLength,
+             JBB);
+}  // Dbdih::execSTART_TOREQ()
 
-void Dbdih::execUPDATE_TOREQ(Signal* signal)
-{
+void Dbdih::execUPDATE_TOREQ(Signal *signal) {
   jamEntry();
   UpdateToReq req = *(UpdateToReq *)&signal->theData[0];
 
@@ -4957,19 +4616,18 @@ void Dbdih::execUPDATE_TOREQ(Signal* signal)
   {
     jam();
     /**
-     * 
+     *
      */
     TakeOverRecordPtr takeOverPtr;
-    if (findTakeOver(takeOverPtr, req.startingNodeId) == false)
-    {
+    if (findTakeOver(takeOverPtr, req.startingNodeId) == false) {
       g_eventLogger->info("Unknown takeOver node: %u", req.startingNodeId);
       errCode = UpdateToRef::UnknownTakeOver;
       extra = RNIL;
       goto ref;
     }
-    
+
     CRASH_INSERTION(7141);
-    
+
     takeOverPtr.p->toCopyNode = req.copyNodeId;
     takeOverPtr.p->toCurrentTabref = req.tableId;
     takeOverPtr.p->toCurrentFragid = req.fragmentNo;
@@ -4980,114 +4638,103 @@ void Dbdih::execUPDATE_TOREQ(Signal* signal)
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
     NGPtr.i = nodePtr.p->nodeGroup;
     ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
-    
+
     Mutex mutex(signal, c_mutexMgr, takeOverPtr.p->m_fragmentInfoMutex);
-    Callback c = { safe_cast(&Dbdih::updateToReq_fragmentMutex_locked), 
-                   takeOverPtr.i };
-    
-    switch(req.requestType){
-    case UpdateToReq::BEFORE_STORED:
-      jam();
+    Callback c = {safe_cast(&Dbdih::updateToReq_fragmentMutex_locked),
+                  takeOverPtr.i};
 
-      if (NGPtr.p->activeTakeOver == 0)
-      {
+    switch (req.requestType) {
+      case UpdateToReq::BEFORE_STORED:
         jam();
-        NGPtr.p->activeTakeOver = req.startingNodeId;
-        NGPtr.p->activeTakeOverCount = 1;
-      }
-      else if (NGPtr.p->activeTakeOver == req.startingNodeId)
-      {
-        NGPtr.p->activeTakeOverCount++;
-      }
-      else
-      {
-        jam();
-        errCode = UpdateToRef::CopyFragInProgress;
-        extra = NGPtr.p->activeTakeOver;
-        g_eventLogger->info("takeOver node in progress: %u",
-                            NGPtr.p->activeTakeOver);
-        goto ref;
-      }
 
-      takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MUTEX_BEFORE_STORED;
-      mutex.lock(c, false, true);
-      return;
-    case UpdateToReq::AFTER_STORED:
-    {
-      jam();
-      mutex.unlock();
-      takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_AFTER_STORED;
-      // Send conf
-      break; 
-    }
-    case UpdateToReq::BEFORE_COMMIT_STORED:
-      jam();
-      takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MUTEX_BEFORE_COMMIT;
-      mutex.lock(c, false, true);
-      return;
-    case UpdateToReq::AFTER_COMMIT_STORED:
-    {
-      jam();
-      mutex.unlock();
-      
-      Mutex mutex2(signal, c_mutexMgr, 
-                   takeOverPtr.p->m_switchPrimaryMutexHandle);
-      mutex2.unlock();
-      takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MASTER_IDLE;      
-      break; // send conf
-    }
+        if (NGPtr.p->activeTakeOver == 0) {
+          jam();
+          NGPtr.p->activeTakeOver = req.startingNodeId;
+          NGPtr.p->activeTakeOverCount = 1;
+        } else if (NGPtr.p->activeTakeOver == req.startingNodeId) {
+          NGPtr.p->activeTakeOverCount++;
+        } else {
+          jam();
+          errCode = UpdateToRef::CopyFragInProgress;
+          extra = NGPtr.p->activeTakeOver;
+          g_eventLogger->info("takeOver node in progress: %u",
+                              NGPtr.p->activeTakeOver);
+          goto ref;
+        }
+
+        takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MUTEX_BEFORE_STORED;
+        mutex.lock(c, false, true);
+        return;
+      case UpdateToReq::AFTER_STORED: {
+        jam();
+        mutex.unlock();
+        takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_AFTER_STORED;
+        // Send conf
+        break;
+      }
+      case UpdateToReq::BEFORE_COMMIT_STORED:
+        jam();
+        takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MUTEX_BEFORE_COMMIT;
+        mutex.lock(c, false, true);
+        return;
+      case UpdateToReq::AFTER_COMMIT_STORED: {
+        jam();
+        mutex.unlock();
+
+        Mutex mutex2(signal, c_mutexMgr,
+                     takeOverPtr.p->m_switchPrimaryMutexHandle);
+        mutex2.unlock();
+        takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MASTER_IDLE;
+        break;  // send conf
+      }
     }
   }
   {
-    UpdateToConf * conf = (UpdateToConf *)&signal->theData[0];
+    UpdateToConf *conf = (UpdateToConf *)&signal->theData[0];
     conf->senderData = req.senderData;
     conf->sendingNodeId = cownNodeId;
     conf->startingNodeId = req.startingNodeId;
-    sendSignal(req.senderRef, GSN_UPDATE_TOCONF, signal, 
+    sendSignal(req.senderRef, GSN_UPDATE_TOCONF, signal,
                UpdateToConf::SignalLength, JBB);
   }
   return;
 
 ref:
-  UpdateToRef* ref = (UpdateToRef*)signal->getDataPtrSend();
+  UpdateToRef *ref = (UpdateToRef *)signal->getDataPtrSend();
   ref->senderData = req.senderData;
   ref->senderRef = reference();
   ref->errorCode = errCode;
   ref->extra = extra;
-  sendSignal(req.senderRef, GSN_UPDATE_TOREF, signal,
-             UpdateToRef::SignalLength, JBB);
+  sendSignal(req.senderRef, GSN_UPDATE_TOREF, signal, UpdateToRef::SignalLength,
+             JBB);
 }
 
-void
-Dbdih::updateToReq_fragmentMutex_locked(Signal * signal, 
-                                        Uint32 toPtrI, Uint32 retVal)
-{
+void Dbdih::updateToReq_fragmentMutex_locked(Signal *signal, Uint32 toPtrI,
+                                             Uint32 retVal) {
   jamEntry();
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, toPtrI));
-  
+
   Uint32 nodeId = takeOverPtr.p->toStartingNode;
 
-  if (retVal == UtilLockRef::InLockQueue)
-  {
+  if (retVal == UtilLockRef::InLockQueue) {
     jam();
-    infoEvent("Node %u waiting to continue copying table %u fragment: %u (%s)",
-              nodeId,
-              takeOverPtr.p->toCurrentTabref,
-              takeOverPtr.p->toCurrentFragid,
-              takeOverPtr.p->toMasterStatus ==
-                TakeOverRecord::TO_MUTEX_BEFORE_STORED ? "STORED" : "COMMIT");
+    infoEvent(
+        "Node %u waiting to continue copying table %u fragment: %u (%s)",
+        nodeId, takeOverPtr.p->toCurrentTabref, takeOverPtr.p->toCurrentFragid,
+        takeOverPtr.p->toMasterStatus == TakeOverRecord::TO_MUTEX_BEFORE_STORED
+            ? "STORED"
+            : "COMMIT");
     return;
   }
 
   Uint32 errCode;
   Uint32 extra;
-  
+
   NodeRecordPtr nodePtr;
   nodePtr.i = nodeId;
   ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-  if (unlikely(nodePtr.p->nodeStatus != NodeRecord::ALIVE))
-  {
+  if (unlikely(nodePtr.p->nodeStatus != NodeRecord::ALIVE)) {
     jam();
     /**
      * Node died while we waited for lock...
@@ -5096,90 +4743,85 @@ Dbdih::updateToReq_fragmentMutex_locked(Signal * signal,
     return;
   }
 
-  switch(takeOverPtr.p->toMasterStatus){
-  case TakeOverRecord::TO_MUTEX_BEFORE_STORED:
-  {
-    jam();
-    // send conf
-    takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MUTEX_BEFORE_LOCKED;
-    break; 
-  }
-  case TakeOverRecord::TO_MUTEX_BEFORE_COMMIT:
-  {
-    jam();
-
-    NodeRecordPtr nodePtr;
-    NodeGroupRecordPtr NGPtr;
-    nodePtr.i = takeOverPtr.p->toCopyNode;
-    ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-    NGPtr.i = nodePtr.p->nodeGroup;
-    ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
-    
-    if (NGPtr.p->activeTakeOver != nodeId)
-    {
-      ndbassert(false);
-      errCode = UpdateToRef::InvalidRequest;
-      extra = NGPtr.p->activeTakeOver;
-      goto ref;
-    }
-    ndbrequire(NGPtr.p->activeTakeOverCount > 0);
-    NGPtr.p->activeTakeOverCount--;
-    if (NGPtr.p->activeTakeOverCount == 0)
-    {
-      /**
-       * Last active copy thread, give up activeTakeOver for now
-       */
+  switch (takeOverPtr.p->toMasterStatus) {
+    case TakeOverRecord::TO_MUTEX_BEFORE_STORED: {
       jam();
-      NGPtr.p->activeTakeOver = 0;
-      NGPtr.p->activeTakeOverCount = 0;
+      // send conf
+      takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MUTEX_BEFORE_LOCKED;
+      break;
     }
-    takeOverPtr.p->toCopyNode = RNIL;
-    Mutex mutex(signal, c_mutexMgr, 
-                takeOverPtr.p->m_switchPrimaryMutexHandle);
-    Callback c = { safe_cast(&Dbdih::switchPrimaryMutex_locked), 
-                   takeOverPtr.i };
-    ndbrequire(mutex.lock(c));
-    takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MUTEX_BEFORE_SWITCH_REPLICA;
-    return;
-    break;
+    case TakeOverRecord::TO_MUTEX_BEFORE_COMMIT: {
+      jam();
+
+      NodeRecordPtr nodePtr;
+      NodeGroupRecordPtr NGPtr;
+      nodePtr.i = takeOverPtr.p->toCopyNode;
+      ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
+      NGPtr.i = nodePtr.p->nodeGroup;
+      ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
+
+      if (NGPtr.p->activeTakeOver != nodeId) {
+        ndbassert(false);
+        errCode = UpdateToRef::InvalidRequest;
+        extra = NGPtr.p->activeTakeOver;
+        goto ref;
+      }
+      ndbrequire(NGPtr.p->activeTakeOverCount > 0);
+      NGPtr.p->activeTakeOverCount--;
+      if (NGPtr.p->activeTakeOverCount == 0) {
+        /**
+         * Last active copy thread, give up activeTakeOver for now
+         */
+        jam();
+        NGPtr.p->activeTakeOver = 0;
+        NGPtr.p->activeTakeOverCount = 0;
+      }
+      takeOverPtr.p->toCopyNode = RNIL;
+      Mutex mutex(signal, c_mutexMgr,
+                  takeOverPtr.p->m_switchPrimaryMutexHandle);
+      Callback c = {safe_cast(&Dbdih::switchPrimaryMutex_locked),
+                    takeOverPtr.i};
+      ndbrequire(mutex.lock(c));
+      takeOverPtr.p->toMasterStatus =
+          TakeOverRecord::TO_MUTEX_BEFORE_SWITCH_REPLICA;
+      return;
+      break;
+    }
+    default:
+      jamLine(takeOverPtr.p->toMasterStatus);
+      ndbabort();
   }
-  default:
-    jamLine(takeOverPtr.p->toMasterStatus);
-    ndbabort();
-  }
-  
+
   {
-    UpdateToConf * conf = (UpdateToConf *)&signal->theData[0];
+    UpdateToConf *conf = (UpdateToConf *)&signal->theData[0];
     conf->senderData = takeOverPtr.p->m_senderData;
     conf->sendingNodeId = cownNodeId;
     conf->startingNodeId = takeOverPtr.p->toStartingNode;
-    sendSignal(takeOverPtr.p->m_senderRef, GSN_UPDATE_TOCONF, signal, 
+    sendSignal(takeOverPtr.p->m_senderRef, GSN_UPDATE_TOCONF, signal,
                UpdateToConf::SignalLength, JBB);
   }
   return;
 
-ref:
-  {
-    Mutex mutex(signal, c_mutexMgr, takeOverPtr.p->m_fragmentInfoMutex);
-    mutex.unlock();
-    
-    UpdateToRef* ref = (UpdateToRef*)signal->getDataPtrSend();
-    ref->senderData = takeOverPtr.p->m_senderData;
-    ref->senderRef = reference();
-    ref->errorCode = errCode;
-    ref->extra = extra;
-    sendSignal(takeOverPtr.p->m_senderRef, GSN_UPDATE_TOREF, signal,
-               UpdateToRef::SignalLength, JBB);
-    return;
-  }
+ref : {
+  Mutex mutex(signal, c_mutexMgr, takeOverPtr.p->m_fragmentInfoMutex);
+  mutex.unlock();
+
+  UpdateToRef *ref = (UpdateToRef *)signal->getDataPtrSend();
+  ref->senderData = takeOverPtr.p->m_senderData;
+  ref->senderRef = reference();
+  ref->errorCode = errCode;
+  ref->extra = extra;
+  sendSignal(takeOverPtr.p->m_senderRef, GSN_UPDATE_TOREF, signal,
+             UpdateToRef::SignalLength, JBB);
+  return;
+}
 }
 
-void
-Dbdih::switchPrimaryMutex_locked(Signal* signal, Uint32 toPtrI, Uint32 retVal)
-{
+void Dbdih::switchPrimaryMutex_locked(Signal *signal, Uint32 toPtrI,
+                                      Uint32 retVal) {
   jamEntry();
   ndbrequire(retVal == 0);
-  
+
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, toPtrI));
 
@@ -5188,8 +4830,7 @@ Dbdih::switchPrimaryMutex_locked(Signal* signal, Uint32 toPtrI, Uint32 retVal)
   nodePtr.i = nodeId;
   ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
 
-  if (unlikely(nodePtr.p->nodeStatus != NodeRecord::ALIVE))
-  {
+  if (unlikely(nodePtr.p->nodeStatus != NodeRecord::ALIVE)) {
     jam();
     /**
      * Node died while we waited for lock...
@@ -5200,83 +4841,68 @@ Dbdih::switchPrimaryMutex_locked(Signal* signal, Uint32 toPtrI, Uint32 retVal)
 
   takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MUTEX_AFTER_SWITCH_REPLICA;
 
-  UpdateToConf * conf = (UpdateToConf *)&signal->theData[0];
+  UpdateToConf *conf = (UpdateToConf *)&signal->theData[0];
   conf->senderData = takeOverPtr.p->m_senderData;
   conf->sendingNodeId = cownNodeId;
   conf->startingNodeId = takeOverPtr.p->toStartingNode;
-  sendSignal(takeOverPtr.p->m_senderRef, GSN_UPDATE_TOCONF, signal, 
+  sendSignal(takeOverPtr.p->m_senderRef, GSN_UPDATE_TOCONF, signal,
              UpdateToConf::SignalLength, JBB);
 }
 
-void
-Dbdih::switchPrimaryMutex_unlocked(Signal* signal, Uint32 toPtrI, Uint32 retVal)
-{
+void Dbdih::switchPrimaryMutex_unlocked(Signal *signal, Uint32 toPtrI,
+                                        Uint32 retVal) {
   jamEntry();
   ndbrequire(retVal == 0);
-  
+
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, toPtrI));
 
-  UpdateToConf * conf = (UpdateToConf *)&signal->theData[0];
+  UpdateToConf *conf = (UpdateToConf *)&signal->theData[0];
   conf->senderData = takeOverPtr.p->m_senderData;
   conf->sendingNodeId = cownNodeId;
   conf->startingNodeId = takeOverPtr.p->toStartingNode;
-  sendSignal(takeOverPtr.p->m_senderRef, GSN_UPDATE_TOCONF, signal, 
+  sendSignal(takeOverPtr.p->m_senderRef, GSN_UPDATE_TOCONF, signal,
              UpdateToConf::SignalLength, JBB);
 }
 
-void
-Dbdih::abortTakeOver(Signal* signal, TakeOverRecordPtr takeOverPtr)
-{
-  if (!takeOverPtr.p->m_switchPrimaryMutexHandle.isNull())
-  {
+void Dbdih::abortTakeOver(Signal *signal, TakeOverRecordPtr takeOverPtr) {
+  if (!takeOverPtr.p->m_switchPrimaryMutexHandle.isNull()) {
     jam();
-    Mutex mutex(signal, c_mutexMgr, 
-                takeOverPtr.p->m_switchPrimaryMutexHandle);
+    Mutex mutex(signal, c_mutexMgr, takeOverPtr.p->m_switchPrimaryMutexHandle);
     mutex.unlock();
+  }
 
-  }
-  
-  if (!takeOverPtr.p->m_fragmentInfoMutex.isNull())
-  {
+  if (!takeOverPtr.p->m_fragmentInfoMutex.isNull()) {
     jam();
-    Mutex mutex(signal, c_mutexMgr, 
-                takeOverPtr.p->m_fragmentInfoMutex);
+    Mutex mutex(signal, c_mutexMgr, takeOverPtr.p->m_fragmentInfoMutex);
     mutex.unlock();
   }
-  
+
   NodeRecordPtr nodePtr;
   nodePtr.i = takeOverPtr.p->toCopyNode;
-  if (nodePtr.i != RNIL)
-  {
+  if (nodePtr.i != RNIL) {
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
     NodeGroupRecordPtr NGPtr;
     NGPtr.i = nodePtr.p->nodeGroup;
     ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
-    if (NGPtr.p->activeTakeOver == takeOverPtr.p->toStartingNode)
-    {
+    if (NGPtr.p->activeTakeOver == takeOverPtr.p->toStartingNode) {
       jam();
       NGPtr.p->activeTakeOver = 0;
       NGPtr.p->activeTakeOverCount = 0;
     }
   }
-  
+
   releaseTakeOver(takeOverPtr, true);
 }
 
-static 
-void 
-add_lcp_counter(Uint32 * counter, Uint32 add)
-{
-  Uint64 tmp = * counter;
+static void add_lcp_counter(Uint32 *counter, Uint32 add) {
+  Uint64 tmp = *counter;
   tmp += add;
-  if (tmp > 0xFFFFFFFF)
-    tmp = 0xFFFFFFFF;
-  * counter = Uint32(tmp);
+  if (tmp > 0xFFFFFFFF) tmp = 0xFFFFFFFF;
+  *counter = Uint32(tmp);
 }
 
-void Dbdih::execEND_TOREQ(Signal* signal)
-{
+void Dbdih::execEND_TOREQ(Signal *signal) {
   jamEntry();
   EndToReq req = *(EndToReq *)&signal->theData[0];
 
@@ -5286,21 +4912,19 @@ void Dbdih::execEND_TOREQ(Signal* signal)
   {
     jam();
     /**
-     * 
+     *
      */
     ndbrequire(findTakeOver(takeOverPtr, nodeId));
     NodeRecordPtr nodePtr;
     nodePtr.i = nodeId;
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
 
-    if (req.flags & StartCopyReq::WAIT_LCP)
-    {
+    if (req.flags & StartCopyReq::WAIT_LCP) {
       /**
        * Wait for LCP
        */
       Uint32 latestLCP_ID = SYSFILE->latestLCP_ID;
-      switch (c_lcpState.lcpStatus)
-      {
+      switch (c_lcpState.lcpStatus) {
         case LCP_STATUS_IDLE:
         case LCP_WAIT_MUTEX:
         case LCP_TCGET:
@@ -5310,28 +4934,27 @@ void Dbdih::execEND_TOREQ(Signal* signal)
            * nodes to participate in this LCP, so we will wait for the next
            * LCP started.
            */
-         jam();
-         latestLCP_ID++;
-         break;
-       default:
-         /**
-          * All the remaining status codes means that the LCP has been started
-          * and that the participating nodes have been set. So if our node is
-          * part of the participating nodes we will wait for this LCP,
-          * otherwise we will wait for the next LCP to start.
-          */
-         jam();
-         if (!c_lcpState.m_participatingLQH.get(nodeId))
-         {
-           jam();
-           latestLCP_ID++;
-         }
-         break;
+          jam();
+          latestLCP_ID++;
+          break;
+        default:
+          /**
+           * All the remaining status codes means that the LCP has been started
+           * and that the participating nodes have been set. So if our node is
+           * part of the participating nodes we will wait for this LCP,
+           * otherwise we will wait for the next LCP to start.
+           */
+          jam();
+          if (!c_lcpState.m_participatingLQH.get(nodeId)) {
+            jam();
+            latestLCP_ID++;
+          }
+          break;
       }
-      infoEvent("Make On-line Database recoverable by waiting"
-                " for LCP Starting on node %u, LCP id %u",
-                nodeId,
-                latestLCP_ID);
+      infoEvent(
+          "Make On-line Database recoverable by waiting"
+          " for LCP Starting on node %u, LCP id %u",
+          nodeId, latestLCP_ID);
 
       nodePtr.p->copyCompleted = 2;
       takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_WAIT_LCP;
@@ -5359,23 +4982,22 @@ void Dbdih::execEND_TOREQ(Signal* signal)
     nodePtr.p->copyCompleted = 1;
     releaseTakeOver(takeOverPtr, true);
   }
-  
-  EndToConf * conf = (EndToConf *)&signal->theData[0];
+
+  EndToConf *conf = (EndToConf *)&signal->theData[0];
   conf->senderData = req.senderData;
   conf->sendingNodeId = cownNodeId;
   conf->startingNodeId = req.startingNodeId;
-  sendSignal(req.senderRef, GSN_END_TOCONF, signal, 
-             EndToConf::SignalLength, JBB);
-}//Dbdih::execEND_TOREQ()
+  sendSignal(req.senderRef, GSN_END_TOCONF, signal, EndToConf::SignalLength,
+             JBB);
+}  // Dbdih::execEND_TOREQ()
 
 /* --------------------------------------------------------------------------*/
 /*       AN ORDER TO START OR COMMIT THE REPLICA CREATION ARRIVED FROM THE   */
 /*       MASTER.                                                             */
 /* --------------------------------------------------------------------------*/
-void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal) 
-{
+void Dbdih::execUPDATE_FRAG_STATEREQ(Signal *signal) {
   jamEntry();
-  UpdateFragStateReq * const req = (UpdateFragStateReq *)&signal->theData[0];
+  UpdateFragStateReq *const req = (UpdateFragStateReq *)&signal->theData[0];
 
   Uint32 senderData = req->senderData;
   Uint32 senderRef = req->senderRef;
@@ -5386,7 +5008,7 @@ void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal)
 
   Uint32 fragId = req->fragId;
   Uint32 tdestNodeid = req->startingNodeId;
-  //Uint32 tsourceNodeid = req->copyNodeId;
+  // Uint32 tsourceNodeid = req->copyNodeId;
   Uint32 startGci = req->startGci;
   Uint32 replicaType = req->replicaType;
   Uint32 tFailedNodeId = req->failedNodeId;
@@ -5402,16 +5024,12 @@ void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal)
   ReplicaRecordPtr frReplicaPtr;
   findReplica(frReplicaPtr, fragPtr.p, tFailedNodeId,
               replicaType == UpdateFragStateReq::START_LOGGING ? false : true);
-  if (frReplicaPtr.i == RNIL64)
-  {
+  if (frReplicaPtr.i == RNIL64) {
     dump_replica_info(fragPtr.p);
   }
   ndbrequire(frReplicaPtr.i != RNIL64);
 
-  make_table_use_new_replica(signal,
-                             tabPtr,
-                             fragPtr,
-                             primaryNode,
+  make_table_use_new_replica(signal, tabPtr, fragPtr, primaryNode,
                              frReplicaPtr,
                              replicaType,
                              tdestNodeid);
@@ -5419,13 +5037,12 @@ void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal)
   /* ------------------------------------------------------------------------*/
   /*       THE NEW NODE OF THIS REPLICA IS THE STARTING NODE.                */
   /* ------------------------------------------------------------------------*/
-  if (tFailedNodeId != tdestNodeid)
-  {
+  if (tFailedNodeId != tdestNodeid) {
     jam();
     /**
      * This is a Hot-spare or move partition
      */
-    
+
     /*  IF WE ARE STARTING A TAKE OVER NODE WE MUST INVALIDATE ALL LCP'S.   */
     /*  OTHERWISE WE WILL TRY TO START LCP'S THAT DO NOT EXIST.             */
     /* ---------------------------------------------------------------------*/
@@ -5433,13 +5050,10 @@ void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal)
     frReplicaPtr.p->noCrashedReplicas = 0;
     frReplicaPtr.p->createGci[0] = startGci;
     frReplicaPtr.p->replicaLastGci[0] = (Uint32)-1;
-    for (Uint32 i = 0; i < MAX_LCP_STORED; i++) 
-    {
+    for (Uint32 i = 0; i < MAX_LCP_STORED; i++) {
       frReplicaPtr.p->lcpStatus[i] = ZINVALID;
     }
-  } 
-  else 
-  {
+  } else {
     jam();
     const Uint32 noCrashed = frReplicaPtr.p->noCrashedReplicas;
     arrGuard(noCrashed, 8);
@@ -5447,14 +5061,12 @@ void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal)
     frReplicaPtr.p->replicaLastGci[noCrashed] = (Uint32)-1;
   }
 
-  if (!isMaster())
-  {
+  if (!isMaster()) {
     jam();
     NodeRecordPtr nodePtr;
     nodePtr.i = tdestNodeid;
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-    if (nodePtr.p->nodeRecoveryStatus != NodeRecord::NODE_GETTING_SYNCHED)
-    {
+    if (nodePtr.p->nodeRecoveryStatus != NodeRecord::NODE_GETTING_SYNCHED) {
       jam();
       /**
        * We come here many times, we will call the state transition
@@ -5463,8 +5075,7 @@ void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal)
       setNodeRecoveryStatus(tdestNodeid, NodeRecord::NODE_GETTING_SYNCHED);
     }
   }
-  UpdateFragStateConf * const conf =
-    (UpdateFragStateConf *)&signal->theData[0];
+  UpdateFragStateConf *const conf = (UpdateFragStateConf *)&signal->theData[0];
   conf->senderData = senderData;
   conf->tableId = tabPtr.i;
   conf->fragId = fragId;
@@ -5473,7 +5084,7 @@ void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal)
   conf->failedNodeId = tFailedNodeId;
   sendSignal(senderRef, GSN_UPDATE_FRAG_STATECONF, signal,
              UpdateFragStateConf::SignalLength, JBB);
-}//Dbdih::execUPDATE_FRAG_STATEREQ()
+}  // Dbdih::execUPDATE_FRAG_STATEREQ()
 
 /**
  * Node Recovery Status Module
@@ -5499,13 +5110,11 @@ void Dbdih::execUPDATE_FRAG_STATEREQ(Signal* signal)
 #define DBG_NRS(a)
 //#define DBG_NRS(a) ndbout << a << endl
 
-void Dbdih::initNodeRecoveryStatus()
-{
+void Dbdih::initNodeRecoveryStatus() {
   NodeRecordPtr nodePtr;
 
   jam();
-  for (nodePtr.i = 0; nodePtr.i < MAX_NDB_NODES; nodePtr.i++)
-  {
+  for (nodePtr.i = 0; nodePtr.i < MAX_NDB_NODES; nodePtr.i++) {
     ptrAss(nodePtr, nodeRecord);
     nodePtr.p->nodeRecoveryStatus = NodeRecord::NOT_DEFINED_IN_CLUSTER;
     nodePtr.p->is_pausable = false;
@@ -5513,8 +5122,7 @@ void Dbdih::initNodeRecoveryStatus()
   }
 }
 
-void Dbdih::initNodeRecoveryTimers(NodeRecordPtr nodePtr)
-{
+void Dbdih::initNodeRecoveryTimers(NodeRecordPtr nodePtr) {
   jam();
   NdbTick_Invalidate(&nodePtr.p->nodeFailTime);
   NdbTick_Invalidate(&nodePtr.p->nodeFailCompletedTime);
@@ -5545,21 +5153,18 @@ void Dbdih::initNodeRecoveryTimers(NodeRecordPtr nodePtr)
  * A node has allocated a node id, this happens even before the angel starts
  * a new ndbd/ndbmtd process or in a very early phase of ndbd/ndbmtd startup.
  */
-void Dbdih::execALLOC_NODEID_REP(Signal *signal)
-{
+void Dbdih::execALLOC_NODEID_REP(Signal *signal) {
   NodeRecordPtr nodePtr;
-  AllocNodeIdRep *rep = (AllocNodeIdRep*)&signal->theData[0];
+  AllocNodeIdRep *rep = (AllocNodeIdRep *)&signal->theData[0];
 
   jamEntry();
-  if (rep->nodeId >= MAX_NDB_NODES)
-  {
+  if (rep->nodeId >= MAX_NDB_NODES) {
     jam();
     return;
   }
   nodePtr.i = rep->nodeId;
   ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-  if (nodePtr.p->nodeStatus == NodeRecord::NOT_IN_CLUSTER)
-  {
+  if (nodePtr.p->nodeStatus == NodeRecord::NOT_IN_CLUSTER) {
     jam();
     return;
   }
@@ -5571,9 +5176,8 @@ void Dbdih::execALLOC_NODEID_REP(Signal *signal)
  * on in the restart, from here the node need to act as a real-time engine and
  * thus has to avoid extremely time consuming activities that block execution.
  */
-void Dbdih::execINCL_NODE_HB_PROTOCOL_REP(Signal *signal)
-{
-  InclNodeHBProtocolRep *rep = (InclNodeHBProtocolRep*)&signal->theData[0];
+void Dbdih::execINCL_NODE_HB_PROTOCOL_REP(Signal *signal) {
+  InclNodeHBProtocolRep *rep = (InclNodeHBProtocolRep *)&signal->theData[0];
   jamEntry();
 
   setNodeRecoveryStatus(rep->nodeId, NodeRecord::INCLUDED_IN_HB_PROTOCOL);
@@ -5584,9 +5188,8 @@ void Dbdih::execINCL_NODE_HB_PROTOCOL_REP(Signal *signal)
  * node is currently going through the stages to among other things copy the
  * meta data.
  */
-void Dbdih::execNDBCNTR_START_WAIT_REP(Signal *signal)
-{
-  NdbcntrStartWaitRep *rep = (NdbcntrStartWaitRep*)&signal->theData[0];
+void Dbdih::execNDBCNTR_START_WAIT_REP(Signal *signal) {
+  NdbcntrStartWaitRep *rep = (NdbcntrStartWaitRep *)&signal->theData[0];
   jamEntry();
 
   setNodeRecoveryStatus(rep->nodeId, NodeRecord::NDBCNTR_START_WAIT);
@@ -5596,9 +5199,8 @@ void Dbdih::execNDBCNTR_START_WAIT_REP(Signal *signal)
  * The node wasn't blocked by another node restart anymore, we can now
  * continue processing the restart and soon go on to copy the meta data.
  */
-void Dbdih::execNDBCNTR_STARTED_REP(Signal *signal)
-{
-  NdbcntrStartedRep *rep = (NdbcntrStartedRep*)&signal->theData[0];
+void Dbdih::execNDBCNTR_STARTED_REP(Signal *signal) {
+  NdbcntrStartedRep *rep = (NdbcntrStartedRep *)&signal->theData[0];
   jamEntry();
 
   setNodeRecoveryStatus(rep->nodeId, NodeRecord::NDBCNTR_STARTED);
@@ -5608,46 +5210,42 @@ void Dbdih::execNDBCNTR_STARTED_REP(Signal *signal)
  * SUMA handover for the node has completed, this is the very final step
  * of the node restart after which the node is fully up and running.
  */
-void Dbdih::execSUMA_HANDOVER_COMPLETE_REP(Signal *signal)
-{
-  SumaHandoverCompleteRep *rep = (SumaHandoverCompleteRep*)&signal->theData[0];
+void Dbdih::execSUMA_HANDOVER_COMPLETE_REP(Signal *signal) {
+  SumaHandoverCompleteRep *rep = (SumaHandoverCompleteRep *)&signal->theData[0];
   jamEntry();
 
   setNodeRecoveryStatus(rep->nodeId, NodeRecord::RESTART_COMPLETED);
 }
 
-void Dbdih::execLOCAL_RECOVERY_COMP_REP(Signal *signal)
-{
+void Dbdih::execLOCAL_RECOVERY_COMP_REP(Signal *signal) {
   jamEntry();
-  if (reference() != cmasterdihref)
-  {
+  if (reference() != cmasterdihref) {
     jam();
     sendSignal(cmasterdihref, GSN_LOCAL_RECOVERY_COMP_REP, signal,
                LocalRecoveryCompleteRep::SignalLengthMaster, JBB);
     return;
   }
   LocalRecoveryCompleteRep *rep =
-    (LocalRecoveryCompleteRep*)&signal->theData[0];
+      (LocalRecoveryCompleteRep *)&signal->theData[0];
   LocalRecoveryCompleteRep::PhaseIds phaseId =
-    (LocalRecoveryCompleteRep::PhaseIds)rep->phaseId;
+      (LocalRecoveryCompleteRep::PhaseIds)rep->phaseId;
   Uint32 nodeId = rep->nodeId;
 
-  switch (phaseId)
-  {
-  case LocalRecoveryCompleteRep::RESTORE_FRAG_COMPLETED:
-    jam();
-    setNodeRecoveryStatus(nodeId, NodeRecord::RESTORE_FRAG_COMPLETED);
-    break;
-  case LocalRecoveryCompleteRep::UNDO_DD_COMPLETED:
-    jam();
-    setNodeRecoveryStatus(nodeId, NodeRecord::UNDO_DD_COMPLETED);
-    break;
-  case LocalRecoveryCompleteRep::EXECUTE_REDO_LOG_COMPLETED:
-    jam();
-    setNodeRecoveryStatus(nodeId, NodeRecord::EXECUTE_REDO_LOG_COMPLETED);
-    break;
-  default:
-    ndbabort();
+  switch (phaseId) {
+    case LocalRecoveryCompleteRep::RESTORE_FRAG_COMPLETED:
+      jam();
+      setNodeRecoveryStatus(nodeId, NodeRecord::RESTORE_FRAG_COMPLETED);
+      break;
+    case LocalRecoveryCompleteRep::UNDO_DD_COMPLETED:
+      jam();
+      setNodeRecoveryStatus(nodeId, NodeRecord::UNDO_DD_COMPLETED);
+      break;
+    case LocalRecoveryCompleteRep::EXECUTE_REDO_LOG_COMPLETED:
+      jam();
+      setNodeRecoveryStatus(nodeId, NodeRecord::EXECUTE_REDO_LOG_COMPLETED);
+      break;
+    default:
+      ndbabort();
   }
 }
 
@@ -5655,24 +5253,20 @@ void Dbdih::execLOCAL_RECOVERY_COMP_REP(Signal *signal)
  * Called by starting nodes to provide non-master nodes with an estimate of how
  * long time it takes to synchronize the starting node with the alive nodes.
  */
-void Dbdih::sendEND_TOREP(Signal *signal, Uint32 startingNodeId)
-{
-  EndToRep *rep = (EndToRep*)signal->getDataPtrSend();
+void Dbdih::sendEND_TOREP(Signal *signal, Uint32 startingNodeId) {
+  EndToRep *rep = (EndToRep *)signal->getDataPtrSend();
   NodeRecordPtr nodePtr;
   nodePtr.i = cfirstAliveNode;
   rep->nodeId = startingNodeId;
 
-  do
-  {
+  do {
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
     {
       jamLine(nodePtr.i);
       BlockReference ref = calcDihBlockRef(nodePtr.i);
-      if (ref != cmasterdihref)
-      {
+      if (ref != cmasterdihref) {
         jam();
-        sendSignal(ref, GSN_END_TOREP, signal, 
-	           EndToRep::SignalLength, JBB);
+        sendSignal(ref, GSN_END_TOREP, signal, EndToRep::SignalLength, JBB);
       }
     }
     nodePtr.i = nodePtr.p->nextNode;
@@ -5683,12 +5277,10 @@ void Dbdih::sendEND_TOREP(Signal *signal, Uint32 startingNodeId)
  * Received in non-master nodes, to ensure we get estimate on synch time
  * between starting node and alive nodes.
  */
-void Dbdih::execEND_TOREP(Signal *signal)
-{
-  EndToRep *rep = (EndToRep*)&signal->theData[0];
+void Dbdih::execEND_TOREP(Signal *signal) {
+  EndToRep *rep = (EndToRep *)&signal->theData[0];
   jamEntry();
-  if (isMaster())
-  {
+  if (isMaster()) {
     jam();
     return;
   }
@@ -5701,11 +5293,8 @@ void Dbdih::execEND_TOREP(Signal *signal)
  * while we've been master and potentially could even have allocated
  * its node id before we became master.
  */
-void Dbdih::check_node_not_restarted_yet(NodeRecordPtr nodePtr)
-{
-  if (nodePtr.p->nodeRecoveryStatus ==
-      NodeRecord::NODE_NOT_RESTARTED_YET)
-  {
+void Dbdih::check_node_not_restarted_yet(NodeRecordPtr nodePtr) {
+  if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_NOT_RESTARTED_YET) {
     jam();
     /**
      * A node which has been dead since we started is restarted.
@@ -5719,8 +5308,7 @@ void Dbdih::check_node_not_restarted_yet(NodeRecordPtr nodePtr)
 }
 
 void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
-                                  NodeRecord::NodeRecoveryStatus new_status)
-{
+                                  NodeRecord::NodeRecoveryStatus new_status) {
   NodeRecordPtr nodePtr;
   NDB_TICKS current_time;
 
@@ -5741,19 +5329,15 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
    * the state variable alone yet since we cannot handle
    * all restart types yet.
    */
-  if (new_status == NodeRecord::NODE_GETTING_PERMIT)
-  {
+  if (new_status == NodeRecord::NODE_GETTING_PERMIT) {
     jam();
     nodePtr.p->is_pausable = true;
-  }
-  else
-  {
+  } else {
     jam();
     nodePtr.p->is_pausable = false;
   }
 
-  if (getNodeState().startLevel != NodeState::SL_STARTED)
-  {
+  if (getNodeState().startLevel != NodeState::SL_STARTED) {
     jam();
     /**
      * We will ignore all state transitions until we are started ourselves
@@ -5764,8 +5348,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
     return;
   }
   if (new_status != NodeRecord::NODE_FAILED &&
-      new_status != NodeRecord::NODE_FAILURE_COMPLETED)
-  {
+      new_status != NodeRecord::NODE_FAILURE_COMPLETED) {
     jam();
     /**
      * Given that QMGR, NDBCNTR, DBDICT and DBDIH executes in the same thread
@@ -5773,11 +5356,9 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
      * any of those into separate threads in the future it is important to
      * check that the ndbrequire's in this function still holds.
      */
-    if (!isMaster())
-    {
+    if (!isMaster()) {
       if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_NOT_RESTARTED_YET &&
-          new_status != NodeRecord::NODE_GETTING_PERMIT)
-      {
+          new_status != NodeRecord::NODE_GETTING_PERMIT) {
         jam();
         /**
          * We're getting into the game too late, we will ignore state changes
@@ -5786,13 +5367,10 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
          */
         return;
       }
-    }
-    else if (nodePtr.p->nodeRecoveryStatus ==
-             NodeRecord::NODE_NOT_RESTARTED_YET)
-    {
+    } else if (nodePtr.p->nodeRecoveryStatus ==
+               NodeRecord::NODE_NOT_RESTARTED_YET) {
       jam();
-      switch (new_status)
-      {
+      switch (new_status) {
         case NodeRecord::ALLOCATED_NODE_ID:
           jam();
           [[fallthrough]];
@@ -5825,10 +5403,9 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       }
     }
   }
-  switch (new_status)
-  {
+  switch (new_status) {
     case NodeRecord::NODE_FAILED:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       /**
        * A node failure can happen at any time and from any state as long as
@@ -5846,26 +5423,24 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->nodeFailTime = current_time;
       break;
     case NodeRecord::NODE_FAILURE_COMPLETED:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       /* This state change will be reported in all nodes at all times */
-      ndbrequire(nodePtr.p->nodeRecoveryStatus ==
-                 NodeRecord::NODE_FAILED);
+      ndbrequire(nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_FAILED);
       nodePtr.p->nodeFailCompletedTime = current_time;
       break;
     case NodeRecord::ALLOCATED_NODE_ID:
-    /* State generated in QMGR */
+      /* State generated in QMGR */
       jam();
       ndbrequire(isMaster());
-      ndbrequire((nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NODE_FAILURE_COMPLETED) ||
-                 (nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::ALLOCATED_NODE_ID) ||
-                 (nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NODE_NOT_RESTARTED_YET));
+      ndbrequire(
+          (nodePtr.p->nodeRecoveryStatus ==
+           NodeRecord::NODE_FAILURE_COMPLETED) ||
+          (nodePtr.p->nodeRecoveryStatus == NodeRecord::ALLOCATED_NODE_ID) ||
+          (nodePtr.p->nodeRecoveryStatus ==
+           NodeRecord::NODE_NOT_RESTARTED_YET));
       check_node_not_restarted_yet(nodePtr);
-      if (nodePtr.p->nodeRecoveryStatus == NodeRecord::ALLOCATED_NODE_ID)
-      {
+      if (nodePtr.p->nodeRecoveryStatus == NodeRecord::ALLOCATED_NODE_ID) {
         jam();
         /**
          * If a node first allocates a node id and then comes back again to
@@ -5879,7 +5454,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->allocatedNodeIdTime = current_time;
       break;
     case NodeRecord::INCLUDED_IN_HB_PROTOCOL:
-    /* State generated in QMGR */
+      /* State generated in QMGR */
       jam();
       /**
        * We can come here from ALLOCATED_NODE_ID obviously.
@@ -5896,16 +5471,15 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
        * node not restarted yet or node failure completed.
        */
       ndbrequire(isMaster());
-      ndbrequire((nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::ALLOCATED_NODE_ID) ||
-                 (nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NODE_NOT_RESTARTED_YET) ||
-                 (nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NODE_FAILURE_COMPLETED));
+      ndbrequire(
+          (nodePtr.p->nodeRecoveryStatus == NodeRecord::ALLOCATED_NODE_ID) ||
+          (nodePtr.p->nodeRecoveryStatus ==
+           NodeRecord::NODE_NOT_RESTARTED_YET) ||
+          (nodePtr.p->nodeRecoveryStatus ==
+           NodeRecord::NODE_FAILURE_COMPLETED));
       check_node_not_restarted_yet(nodePtr);
       if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_NOT_RESTARTED_YET ||
-          nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_FAILURE_COMPLETED)
-      {
+          nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_FAILURE_COMPLETED) {
         jam();
         nodePtr.p->allocatedNodeIdTime = current_time;
       }
@@ -5932,40 +5506,37 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->ndbcntrStartWaitTime = current_time;
       break;
     case NodeRecord::NDBCNTR_STARTED:
-    /* State generated in NDBCNTR */
+      /* State generated in NDBCNTR */
       jam();
       ndbrequire(isMaster());
-      ndbrequire((nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NDBCNTR_START_WAIT) ||
-                 (nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::INCLUDED_IN_HB_PROTOCOL));
+      ndbrequire(
+          (nodePtr.p->nodeRecoveryStatus == NodeRecord::NDBCNTR_START_WAIT) ||
+          (nodePtr.p->nodeRecoveryStatus ==
+           NodeRecord::INCLUDED_IN_HB_PROTOCOL));
 
       if (nodePtr.p->nodeRecoveryStatus ==
-          NodeRecord::INCLUDED_IN_HB_PROTOCOL)
-      {
+          NodeRecord::INCLUDED_IN_HB_PROTOCOL) {
         jam();
         nodePtr.p->ndbcntrStartWaitTime = current_time;
       }
       nodePtr.p->ndbcntrStartedTime = current_time;
       break;
     case NodeRecord::START_PERMITTED:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       ndbrequire(isMaster());
-      ndbrequire(nodePtr.p->nodeRecoveryStatus ==
-                 NodeRecord::NDBCNTR_STARTED);
+      ndbrequire(nodePtr.p->nodeRecoveryStatus == NodeRecord::NDBCNTR_STARTED);
       nodePtr.p->startPermittedTime = current_time;
       break;
     case NodeRecord::WAIT_LCP_TO_COPY_DICT:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       ndbrequire(isMaster());
-      ndbrequire(nodePtr.p->nodeRecoveryStatus ==
-                 NodeRecord::START_PERMITTED);
+      ndbrequire(nodePtr.p->nodeRecoveryStatus == NodeRecord::START_PERMITTED);
       nodePtr.p->waitLCPToCopyDictTime = current_time;
       break;
     case NodeRecord::COPY_DICT_TO_STARTING_NODE:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -5973,7 +5544,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->copyDictToStartingNodeTime = current_time;
       break;
     case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -5981,7 +5552,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->includeNodeInLCPAndGCPTime = current_time;
       break;
     case NodeRecord::LOCAL_RECOVERY_STARTED:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -5989,7 +5560,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->startDatabaseRecoveryTime = current_time;
       break;
     case NodeRecord::RESTORE_FRAG_COMPLETED:
-    /* State generated in DBLQH in starting node */
+      /* State generated in DBLQH in starting node */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -5997,7 +5568,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->startUndoDDTime = current_time;
       break;
     case NodeRecord::UNDO_DD_COMPLETED:
-    /* State generated in DBLQH in starting node */
+      /* State generated in DBLQH in starting node */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -6005,7 +5576,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->startExecREDOLogTime = current_time;
       break;
     case NodeRecord::EXECUTE_REDO_LOG_COMPLETED:
-    /* State generated in DBLQH in starting node */
+      /* State generated in DBLQH in starting node */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -6013,7 +5584,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->startBuildIndexTime = current_time;
       break;
     case NodeRecord::COPY_FRAGMENTS_STARTED:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       ndbrequire(isMaster());
       /**
@@ -6025,9 +5596,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
        */
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
                  NodeRecord::EXECUTE_REDO_LOG_COMPLETED);
-      if (nodePtr.p->nodeRecoveryStatus ==
-          NodeRecord::LOCAL_RECOVERY_STARTED)
-      {
+      if (nodePtr.p->nodeRecoveryStatus == NodeRecord::LOCAL_RECOVERY_STARTED) {
         /**
          * We handle this state transition even for old versions since
          * it still gives all the information we need to make the right
@@ -6043,7 +5612,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->copyFragmentsStartedTime = current_time;
       break;
     case NodeRecord::WAIT_LCP_FOR_RESTART:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -6051,7 +5620,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->waitLCPForRestartTime = current_time;
       break;
     case NodeRecord::WAIT_SUMA_HANDOVER:
-    /* State generated in DBDIH */
+      /* State generated in DBDIH */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -6059,7 +5628,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->waitSumaHandoverTime = current_time;
       break;
     case NodeRecord::RESTART_COMPLETED:
-    /* State generated in DBDICT */
+      /* State generated in DBDICT */
       jam();
       ndbrequire(isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
@@ -6068,8 +5637,7 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       break;
 
     /* Non-master states */
-    case NodeRecord::NODE_GETTING_PERMIT:
-    {
+    case NodeRecord::NODE_GETTING_PERMIT: {
       jam();
       ndbrequire(!isMaster());
       /**
@@ -6087,13 +5655,10 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
        * NODE_NOT_RESTARTED_YET can be there through a major part of
        * a node restart.
        */
-      ndbrequire(nodePtr.p->nodeRecoveryStatus ==
-                 NodeRecord::NODE_FAILURE_COMPLETED ||
-                 nodePtr.p->nodeRecoveryStatus ==
-                 NodeRecord::NODE_NOT_RESTARTED_YET);
-      if (nodePtr.p->nodeRecoveryStatus ==
-          NodeRecord::NODE_NOT_RESTARTED_YET)
-      {
+      ndbrequire(
+          nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_FAILURE_COMPLETED ||
+          nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_NOT_RESTARTED_YET);
+      if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_NOT_RESTARTED_YET) {
         jam();
         nodePtr.p->nodeFailTime = current_time;
         nodePtr.p->nodeFailCompletedTime = current_time;
@@ -6101,26 +5666,23 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       nodePtr.p->nodeGettingPermitTime = current_time;
       break;
     }
-    case NodeRecord::NODE_GETTING_INCLUDED:
-    {
+    case NodeRecord::NODE_GETTING_INCLUDED: {
       jam();
       ndbrequire(!isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NODE_GETTING_PERMIT);
+                 NodeRecord::NODE_GETTING_PERMIT);
       nodePtr.p->nodeGettingIncludedTime = current_time;
       break;
     }
-    case NodeRecord::NODE_GETTING_SYNCHED:
-    {
+    case NodeRecord::NODE_GETTING_SYNCHED: {
       jam();
       ndbrequire(!isMaster());
       ndbrequire(nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NODE_GETTING_INCLUDED);
+                 NodeRecord::NODE_GETTING_INCLUDED);
       nodePtr.p->nodeGettingSynchedTime = current_time;
       break;
     }
-    case NodeRecord::NODE_IN_LCP_WAIT_STATE:
-    {
+    case NodeRecord::NODE_IN_LCP_WAIT_STATE: {
       jam();
       ndbrequire(!isMaster());
       /**
@@ -6128,12 +5690,11 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
        * there are no tables that require being synched. This is an
        * unusual case, but still possible.
        */
-      ndbrequire((nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NODE_GETTING_INCLUDED) ||
-                 (nodePtr.p->nodeRecoveryStatus ==
-                  NodeRecord::NODE_GETTING_SYNCHED));
-      if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_GETTING_INCLUDED)
-      {
+      ndbrequire(
+          (nodePtr.p->nodeRecoveryStatus ==
+           NodeRecord::NODE_GETTING_INCLUDED) ||
+          (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_GETTING_SYNCHED));
+      if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_GETTING_INCLUDED) {
         jam();
         /* No fragment updates, set time to 0 for synch */
         nodePtr.p->nodeGettingSynchedTime = nodePtr.p->nodeGettingIncludedTime;
@@ -6152,13 +5713,11 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
       ndbabort();
   }
 
-  infoEvent("NR Status: node=%u,OLD=%s,NEW=%s",
-            nodeId,
+  infoEvent("NR Status: node=%u,OLD=%s,NEW=%s", nodeId,
             get_status_str(nodePtr.p->nodeRecoveryStatus),
             get_status_str(new_status));
 
-  g_eventLogger->info("NR Status: node=%u,OLD=%s,NEW=%s",
-                      nodeId,
+  g_eventLogger->info("NR Status: node=%u,OLD=%s,NEW=%s", nodeId,
                       get_status_str(nodePtr.p->nodeRecoveryStatus),
                       get_status_str(new_status));
 
@@ -6169,10 +5728,10 @@ void Dbdih::setNodeRecoveryStatus(Uint32 nodeId,
   ndbassert(check_node_recovery_timers(nodePtr.i, old_status));
 }
 
-void Dbdih::setNodeRecoveryStatusInitial(NodeRecordPtr nodePtr)
-{
-  DBG_NRS("setNodeRecoveryStatusInitial: node= " << nodePtr.i << "state= " <<
-          (Uint32)NodeRecord::NODE_NOT_RESTARTED_YET);
+void Dbdih::setNodeRecoveryStatusInitial(NodeRecordPtr nodePtr) {
+  DBG_NRS("setNodeRecoveryStatusInitial: node= "
+          << nodePtr.i
+          << "state= " << (Uint32)NodeRecord::NODE_NOT_RESTARTED_YET);
   nodePtr.p->nodeRecoveryStatus = NodeRecord::NODE_NOT_RESTARTED_YET;
 }
 
@@ -6184,7 +5743,7 @@ void Dbdih::setNodeRecoveryStatusInitial(NodeRecordPtr nodePtr)
  * We will never wait for more than 35% of this time. We will check this
  * even before attempting to wait any further. We will also cap the wait
  * to never exceed an hour.
- * 
+ *
  * Next we will adjust the maximum wait time down to 85% of this value
  * when we are calculating the estimate based on node states. This means
  * that if we estimate that we will wait for more than around 30% of an
@@ -6205,9 +5764,7 @@ void Dbdih::setNodeRecoveryStatusInitial(NodeRecordPtr nodePtr)
 #define MAX_PERCENTAGE_ADJUSTMENT_FOR_NO_ESTIMATE 25
 
 bool Dbdih::check_for_too_long_wait(Uint64 &lcp_max_wait_time,
-                                    Uint64 &lcp_stall_time,
-                                    NDB_TICKS now)
-{
+                                    Uint64 &lcp_stall_time, NDB_TICKS now) {
   /**
    * We first get the time of the latest LCP execution. We want to stall
    * execution of LCPs, but never for so long that we get into other
@@ -6216,16 +5773,13 @@ bool Dbdih::check_for_too_long_wait(Uint64 &lcp_max_wait_time,
   Uint64 lcp_proc_time;
   Uint64 lcp_time = c_lcpState.m_lcp_time;
   Uint32 lcp_start = c_lcpState.lcpStallStart;
-  if (lcp_start == 0)
-  {
+  if (lcp_start == 0) {
     jam();
     lcp_stall_time = 0;
-  }
-  else
-  {
+  } else {
     jam();
-    lcp_stall_time = NdbTick_Elapsed(c_lcpState.m_start_lcp_check_time,
-                                     now).milliSec();
+    lcp_stall_time =
+        NdbTick_Elapsed(c_lcpState.m_start_lcp_check_time, now).milliSec();
   }
 
   /**
@@ -6236,21 +5790,19 @@ bool Dbdih::check_for_too_long_wait(Uint64 &lcp_max_wait_time,
   lcp_proc_time = MAX_PERCENTAGE_OF_LCP_TIME_WE_STALL * lcp_time;
   lcp_proc_time /= 100;
   lcp_max_wait_time = STALL_MAX_ONE_HOUR;
-  if (lcp_max_wait_time > lcp_proc_time)
-  {
+  if (lcp_max_wait_time > lcp_proc_time) {
     jam();
     lcp_max_wait_time = lcp_proc_time;
   }
 
-  DBG_NRS("lcp_stall_time is = " << lcp_stall_time
-           << " lcp_max_wait_time is = " << lcp_max_wait_time);
+  DBG_NRS("lcp_stall_time is = " << lcp_stall_time << " lcp_max_wait_time is = "
+                                 << lcp_max_wait_time);
   /**
    * If we have already stalled for longer time than the maximum wait we
    * will allow, then we need not check the states of node restarts, we
    * will start the LCP anyways.
    */
-  if (lcp_stall_time > lcp_max_wait_time)
-  {
+  if (lcp_stall_time > lcp_max_wait_time) {
     jam();
     return true;
   }
@@ -6262,39 +5814,31 @@ bool Dbdih::check_for_too_long_wait(Uint64 &lcp_max_wait_time,
    * over.
    */
   lcp_max_wait_time *= MAX_PERCENTAGE_ADJUSTMENT_FOR_ESTIMATE;
-  lcp_max_wait_time /= 100; /* Decrease max time by 15% */
+  lcp_max_wait_time /= 100;            /* Decrease max time by 15% */
   lcp_max_wait_time -= lcp_stall_time; /* Decrease by time we already waited */
   return false;
 }
 
 void Dbdih::calculate_time_remaining(
-                                Uint32 nodeId,
-                                NDB_TICKS state_start_time,
-                                NDB_TICKS now,
-                                NodeRecord::NodeRecoveryStatus state,
-                                Uint32 *node_waited_for,
-                                Uint64 *time_since_state_start,
-                                NodeRecord::NodeRecoveryStatus *max_status)
-{
+    Uint32 nodeId, NDB_TICKS state_start_time, NDB_TICKS now,
+    NodeRecord::NodeRecoveryStatus state, Uint32 *node_waited_for,
+    Uint64 *time_since_state_start,
+    NodeRecord::NodeRecoveryStatus *max_status) {
   ndbassert(NdbTick_IsValid(now));
   ndbassert(NdbTick_IsValid(state_start_time));
 
-  if (state > (*max_status))
-  {
+  if (state > (*max_status)) {
     jam();
     (*time_since_state_start) =
-      NdbTick_Elapsed(state_start_time, now).milliSec();
+        NdbTick_Elapsed(state_start_time, now).milliSec();
     (*max_status) = state;
     (*node_waited_for) = nodeId;
-  }
-  else if (state == (*max_status))
-  {
+  } else if (state == (*max_status)) {
     jam();
     Uint64 loc_time_since_state_start;
     loc_time_since_state_start =
-      NdbTick_Elapsed(state_start_time, now).milliSec();
-    if (loc_time_since_state_start > (*time_since_state_start))
-    {
+        NdbTick_Elapsed(state_start_time, now).milliSec();
+    if (loc_time_since_state_start > (*time_since_state_start)) {
       jam();
       (*time_since_state_start) = loc_time_since_state_start;
       (*node_waited_for) = nodeId;
@@ -6303,47 +5847,33 @@ void Dbdih::calculate_time_remaining(
 }
 
 void Dbdih::calculate_most_recent_node(
-                        Uint32 nodeId,
-                        NDB_TICKS state_start_time,
-                        NodeRecord::NodeRecoveryStatus state,
-                        Uint32 *most_recent_node,
-                        NDB_TICKS *most_recent_start_time,
-                        NodeRecord::NodeRecoveryStatus *most_recent_state)
-{
+    Uint32 nodeId, NDB_TICKS state_start_time,
+    NodeRecord::NodeRecoveryStatus state, Uint32 *most_recent_node,
+    NDB_TICKS *most_recent_start_time,
+    NodeRecord::NodeRecoveryStatus *most_recent_state) {
   ndbassert(NdbTick_IsValid(state_start_time));
-  if ((*most_recent_node) == 0)
-  {
+  if ((*most_recent_node) == 0) {
     /* No state set, set this as state */
     jam();
-  }
-  else if ((*most_recent_state) == state)
-  {
+  } else if ((*most_recent_state) == state) {
     jam();
     /* Same state as before, use most recent */
-    if (NdbTick_Compare((*most_recent_start_time),
-                        state_start_time) > 0)
-    {
+    if (NdbTick_Compare((*most_recent_start_time), state_start_time) > 0) {
       jam();
       return;
     }
     jam();
-  }
-  else if ((*most_recent_state) == NodeRecord::NODE_ACTIVE)
-  {
+  } else if ((*most_recent_state) == NodeRecord::NODE_ACTIVE) {
     /* Old state from non-master, new from master, use this one */
     jam();
-  }
-  else if ((*most_recent_state) > state)
-  {
+  } else if ((*most_recent_state) > state) {
     /**
      * Two master states, use the latest (this one)
      * Latest is the one with the lowest state since
      * the older one has progressed longer.
      */
     jam();
-  }
-  else
-  {
+  } else {
     /* Ignore this state, we already have a better one */
     jam();
     return;
@@ -6367,77 +5897,75 @@ void Dbdih::check_all_node_recovery_timers(void)
 #endif
 
 bool Dbdih::check_node_recovery_timers(Uint32 nodeId,
-                       NodeRecord::NodeRecoveryStatus old_status)
-{
+                       NodeRecord::NodeRecoveryStatus old_status) {
   NodeRecordPtr nodePtr;
   nodePtr.i = nodeId;
   ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
 
 #if defined VM_TRACE || defined ERROR_INSERT
-  switch (nodePtr.p->nodeRecoveryStatus)
-  {
-  case NodeRecord::RESTART_COMPLETED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->restartCompletedTime));
-    [[fallthrough]];
-  case NodeRecord::WAIT_SUMA_HANDOVER:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->waitSumaHandoverTime));
-    [[fallthrough]];
-  case NodeRecord::WAIT_LCP_FOR_RESTART:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->waitLCPForRestartTime));
-    [[fallthrough]];
-  case NodeRecord::COPY_FRAGMENTS_STARTED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->copyFragmentsStartedTime));
-    [[fallthrough]];
-  case NodeRecord::EXECUTE_REDO_LOG_COMPLETED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->startBuildIndexTime));
-    [[fallthrough]];
-  case NodeRecord::UNDO_DD_COMPLETED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->startExecREDOLogTime));
-    [[fallthrough]];
-  case NodeRecord::RESTORE_FRAG_COMPLETED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->startUndoDDTime));
-    [[fallthrough]];
-  case NodeRecord::LOCAL_RECOVERY_STARTED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->startDatabaseRecoveryTime));
-    [[fallthrough]];
-  case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->includeNodeInLCPAndGCPTime));
-    [[fallthrough]];
-  case NodeRecord::COPY_DICT_TO_STARTING_NODE:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->copyDictToStartingNodeTime));
-    [[fallthrough]];
-  case NodeRecord::WAIT_LCP_TO_COPY_DICT:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->waitLCPToCopyDictTime));
-    [[fallthrough]];
-  case NodeRecord::START_PERMITTED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->startPermittedTime));
-    [[fallthrough]];
-  case NodeRecord::NDBCNTR_STARTED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->ndbcntrStartedTime));
-    [[fallthrough]];
-  case NodeRecord::NDBCNTR_START_WAIT:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->ndbcntrStartWaitTime));
-    [[fallthrough]];
-  case NodeRecord::INCLUDED_IN_HB_PROTOCOL:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->includedInHBProtocolTime));
+  switch (nodePtr.p->nodeRecoveryStatus) {
+    case NodeRecord::RESTART_COMPLETED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->restartCompletedTime));
+      [[fallthrough]];
+    case NodeRecord::WAIT_SUMA_HANDOVER:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->waitSumaHandoverTime));
+      [[fallthrough]];
+    case NodeRecord::WAIT_LCP_FOR_RESTART:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->waitLCPForRestartTime));
+      [[fallthrough]];
+    case NodeRecord::COPY_FRAGMENTS_STARTED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->copyFragmentsStartedTime));
+      [[fallthrough]];
+    case NodeRecord::EXECUTE_REDO_LOG_COMPLETED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->startBuildIndexTime));
+      [[fallthrough]];
+    case NodeRecord::UNDO_DD_COMPLETED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->startExecREDOLogTime));
+      [[fallthrough]];
+    case NodeRecord::RESTORE_FRAG_COMPLETED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->startUndoDDTime));
+      [[fallthrough]];
+    case NodeRecord::LOCAL_RECOVERY_STARTED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->startDatabaseRecoveryTime));
+      [[fallthrough]];
+    case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->includeNodeInLCPAndGCPTime));
+      [[fallthrough]];
+    case NodeRecord::COPY_DICT_TO_STARTING_NODE:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->copyDictToStartingNodeTime));
+      [[fallthrough]];
+    case NodeRecord::WAIT_LCP_TO_COPY_DICT:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->waitLCPToCopyDictTime));
+      [[fallthrough]];
+    case NodeRecord::START_PERMITTED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->startPermittedTime));
+      [[fallthrough]];
+    case NodeRecord::NDBCNTR_STARTED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->ndbcntrStartedTime));
+      [[fallthrough]];
+    case NodeRecord::NDBCNTR_START_WAIT:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->ndbcntrStartWaitTime));
+      [[fallthrough]];
+    case NodeRecord::INCLUDED_IN_HB_PROTOCOL:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->includedInHBProtocolTime));
     if (old_status == NodeRecord::NODE_NOT_RESTARTED_YET)
     {
       break;
     }
     [[fallthrough]];
-  case NodeRecord::ALLOCATED_NODE_ID:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->allocatedNodeIdTime));
+    case NodeRecord::ALLOCATED_NODE_ID:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->allocatedNodeIdTime));
     ndbrequire(NdbTick_IsValid(nodePtr.p->nodeFailCompletedTime));
     ndbrequire(NdbTick_IsValid(nodePtr.p->nodeFailTime));
     break;
-  case NodeRecord::NODE_ACTIVE:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->nodeActiveTime));
+    case NodeRecord::NODE_ACTIVE:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->nodeActiveTime));
+      [[fallthrough]];
+    case NodeRecord::NODE_IN_LCP_WAIT_STATE:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->nodeInLCPWaitStateTime));
     [[fallthrough]];
-  case NodeRecord::NODE_IN_LCP_WAIT_STATE:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->nodeInLCPWaitStateTime));
-    [[fallthrough]];
-  case NodeRecord::NODE_GETTING_SYNCHED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->nodeGettingSynchedTime));
+    case NodeRecord::NODE_GETTING_SYNCHED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->nodeGettingSynchedTime));
     [[fallthrough]];
   case NodeRecord::NODE_GETTING_INCLUDED:
     ndbrequire(NdbTick_IsValid(nodePtr.p->nodeGettingIncludedTime));
@@ -6449,31 +5977,31 @@ bool Dbdih::check_node_recovery_timers(Uint32 nodeId,
     break;
   case NodeRecord::NODE_FAILURE_COMPLETED:
     ndbrequire(NdbTick_IsValid(nodePtr.p->nodeFailCompletedTime));
-    [[fallthrough]];
-  case NodeRecord::NODE_FAILED:
-    ndbrequire(NdbTick_IsValid(nodePtr.p->nodeFailTime));
-    break;
-  default:
-    jam();
+      [[fallthrough]];
+    case NodeRecord::NODE_FAILED:
+      ndbrequire(NdbTick_IsValid(nodePtr.p->nodeFailTime));
+      break;
+    default:
+      jam();
   }
 #endif
   return true;
 }
- 
+
 /**
  * We want to stall the LCP start if any node is encountering the place where
  * we need to participate in an LCP to complete our restart. If any node is
  * close to reaching this state we want to block the LCP until it has reached
  * this state.
  */
-bool Dbdih::check_stall_lcp_start(void)
-{
+bool Dbdih::check_stall_lcp_start(void) {
   const NDB_TICKS now = c_current_time = NdbTick_getCurrentTicks();
   /**
    * The following variables are calculated to measure the node closest to
    * reaching the WAIT_LCP_FOR_RESTART state.
    */
-  NodeRecord::NodeRecoveryStatus max_status = NodeRecord::NOT_DEFINED_IN_CLUSTER;
+  NodeRecord::NodeRecoveryStatus max_status =
+      NodeRecord::NOT_DEFINED_IN_CLUSTER;
   Uint64 time_since_state_start = 0;
   Uint32 node_waited_for = 0;
   NDB_TICKS state_start_time;
@@ -6485,7 +6013,7 @@ bool Dbdih::check_stall_lcp_start(void)
    * to get the most recent estimate.
    */
   NodeRecord::NodeRecoveryStatus most_recent_node_status =
-    NodeRecord::ALLOCATED_NODE_ID;
+      NodeRecord::ALLOCATED_NODE_ID;
   Uint32 most_recent_node = 0;
   NDB_TICKS most_recent_node_start_time;
 
@@ -6511,10 +6039,7 @@ bool Dbdih::check_stall_lcp_start(void)
   NdbTick_Invalidate(&most_recent_node_start_time);
   NdbTick_Invalidate(&state_start_time);
 
-  if (check_for_too_long_wait(lcp_max_wait_time,
-                              lcp_stall_time,
-                              now))
-  {
+  if (check_for_too_long_wait(lcp_max_wait_time, lcp_stall_time, now)) {
     jam();
     goto immediate_start_label;
   }
@@ -6523,14 +6048,11 @@ bool Dbdih::check_stall_lcp_start(void)
    * It is ok to wait before starting the new LCP, we will go through the
    * data nodes and see if we have reasons to wait.
    */
-  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
-  {
+  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) {
     ptrAss(nodePtr, nodeRecord);
-    switch (nodePtr.p->nodeRecoveryStatus)
-    {
+    switch (nodePtr.p->nodeRecoveryStatus) {
       case NodeRecord::NOT_DEFINED_IN_CLUSTER:
-      case NodeRecord::NODE_NOT_RESTARTED_YET:
-      {
+      case NodeRecord::NODE_NOT_RESTARTED_YET: {
         jam();
         /**
          * We have no useful information about estimated time remaining
@@ -6545,54 +6067,42 @@ bool Dbdih::check_stall_lcp_start(void)
        * the WAIT_LCP_FOR_RESTART being most recent, then WAIT_SUMA_HANDOVER,
        * then RESTART_COMPLETED and finally NODE_ACTIVE.
        */
-      case NodeRecord::NODE_ACTIVE:
-      {
+      case NodeRecord::NODE_ACTIVE: {
         jam();
         state_start_time = nodePtr.p->nodeActiveTime;
-        calculate_most_recent_node(nodePtr.i,
-                                   state_start_time,
-                                   nodePtr.p->nodeRecoveryStatus,
-                                   &most_recent_node,
-                                   &most_recent_node_start_time,
-                                   &most_recent_node_status);
+        calculate_most_recent_node(
+            nodePtr.i, state_start_time, nodePtr.p->nodeRecoveryStatus,
+            &most_recent_node, &most_recent_node_start_time,
+            &most_recent_node_status);
         break;
       }
-      case NodeRecord::RESTART_COMPLETED:
-      {
+      case NodeRecord::RESTART_COMPLETED: {
         jam();
         state_start_time = nodePtr.p->restartCompletedTime;
-        calculate_most_recent_node(nodePtr.i,
-                                   state_start_time,
-                                   nodePtr.p->nodeRecoveryStatus,
-                                   &most_recent_node,
-                                   &most_recent_node_start_time,
-                                   &most_recent_node_status);
+        calculate_most_recent_node(
+            nodePtr.i, state_start_time, nodePtr.p->nodeRecoveryStatus,
+            &most_recent_node, &most_recent_node_start_time,
+            &most_recent_node_status);
         break;
       }
-      case NodeRecord::WAIT_SUMA_HANDOVER:
-      {
+      case NodeRecord::WAIT_SUMA_HANDOVER: {
         jam();
         state_start_time = nodePtr.p->waitSumaHandoverTime;
-        calculate_most_recent_node(nodePtr.i,
-                                   state_start_time,
-                                   nodePtr.p->nodeRecoveryStatus,
-                                   &most_recent_node,
-                                   &most_recent_node_start_time,
-                                   &most_recent_node_status);
+        calculate_most_recent_node(
+            nodePtr.i, state_start_time, nodePtr.p->nodeRecoveryStatus,
+            &most_recent_node, &most_recent_node_start_time,
+            &most_recent_node_status);
         break;
       }
-      case NodeRecord::WAIT_LCP_FOR_RESTART:
-      {
+      case NodeRecord::WAIT_LCP_FOR_RESTART: {
         jam();
         state_start_time = nodePtr.p->waitLCPForRestartTime;
         ndbassert(NdbTick_IsValid(nodePtr.p->includeNodeInLCPAndGCPTime));
         ndbassert(NdbTick_IsValid(nodePtr.p->copyDictToStartingNodeTime));
-        calculate_most_recent_node(nodePtr.i,
-                                   state_start_time,
-                                   nodePtr.p->nodeRecoveryStatus,
-                                   &most_recent_node,
-                                   &most_recent_node_start_time,
-                                   &most_recent_node_status);
+        calculate_most_recent_node(
+            nodePtr.i, state_start_time, nodePtr.p->nodeRecoveryStatus,
+            &most_recent_node, &most_recent_node_start_time,
+            &most_recent_node_status);
         break;
       }
       /**
@@ -6607,217 +6117,139 @@ bool Dbdih::check_stall_lcp_start(void)
        * estimating the time remaining but will still be used with some
        * extra heuristics.
        */
-      case NodeRecord::NODE_FAILED:
-      {
+      case NodeRecord::NODE_FAILED: {
         jam();
         state_start_time = nodePtr.p->nodeFailTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::NODE_FAILURE_COMPLETED:
-      {
+      case NodeRecord::NODE_FAILURE_COMPLETED: {
         jam();
         state_start_time = nodePtr.p->nodeFailCompletedTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::ALLOCATED_NODE_ID:
-      {
+      case NodeRecord::ALLOCATED_NODE_ID: {
         jam();
         state_start_time = nodePtr.p->allocatedNodeIdTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::INCLUDED_IN_HB_PROTOCOL:
-      {
+      case NodeRecord::INCLUDED_IN_HB_PROTOCOL: {
         jam();
         state_start_time = nodePtr.p->includedInHBProtocolTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::NDBCNTR_START_WAIT:
-      {
+      case NodeRecord::NDBCNTR_START_WAIT: {
         jam();
         state_start_time = nodePtr.p->ndbcntrStartWaitTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::NDBCNTR_STARTED:
-      {
+      case NodeRecord::NDBCNTR_STARTED: {
         jam();
         state_start_time = nodePtr.p->ndbcntrStartedTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::START_PERMITTED:
-      {
+      case NodeRecord::START_PERMITTED: {
         jam();
         state_start_time = nodePtr.p->startPermittedTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::WAIT_LCP_TO_COPY_DICT:
-      {
+      case NodeRecord::WAIT_LCP_TO_COPY_DICT: {
         jam();
         state_start_time = nodePtr.p->waitLCPToCopyDictTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::COPY_DICT_TO_STARTING_NODE:
-      {
+      case NodeRecord::COPY_DICT_TO_STARTING_NODE: {
         jam();
         state_start_time = nodePtr.p->copyDictToStartingNodeTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP:
-      {
+      case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP: {
         jam();
         state_start_time = nodePtr.p->includeNodeInLCPAndGCPTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::LOCAL_RECOVERY_STARTED:
-      {
+      case NodeRecord::LOCAL_RECOVERY_STARTED: {
         jam();
         state_start_time = nodePtr.p->startDatabaseRecoveryTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::RESTORE_FRAG_COMPLETED:
-      {
+      case NodeRecord::RESTORE_FRAG_COMPLETED: {
         jam();
         state_start_time = nodePtr.p->startUndoDDTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::UNDO_DD_COMPLETED:
-      {
+      case NodeRecord::UNDO_DD_COMPLETED: {
         jam();
         state_start_time = nodePtr.p->startExecREDOLogTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::EXECUTE_REDO_LOG_COMPLETED:
-      {
+      case NodeRecord::EXECUTE_REDO_LOG_COMPLETED: {
         jam();
         state_start_time = nodePtr.p->startBuildIndexTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      case NodeRecord::COPY_FRAGMENTS_STARTED:
-      {
+      case NodeRecord::COPY_FRAGMENTS_STARTED: {
         jam();
         state_start_time = nodePtr.p->copyFragmentsStartedTime;
-        calculate_time_remaining(nodePtr.i,
-                                 state_start_time,
-                                 now,
-                                 nodePtr.p->nodeRecoveryStatus,
-                                 &node_waited_for,
-                                 &time_since_state_start,
-                                 &max_status);
+        calculate_time_remaining(
+            nodePtr.i, state_start_time, now, nodePtr.p->nodeRecoveryStatus,
+            &node_waited_for, &time_since_state_start, &max_status);
         break;
       }
-      default:
-      {
+      default: {
         jamLine(nodePtr.p->nodeRecoveryStatus);
         /* The states only used on non-masters should never occur here */
         ndbabort();
       }
     }
   }
-  if (node_waited_for == 0)
-  {
+  if (node_waited_for == 0) {
     jam();
     /* No restart is ongoing, we can safely proceed with starting the LCP. */
     goto immediate_start_label;
   }
-  if (most_recent_node == 0)
-  {
+  if (most_recent_node == 0) {
     jam();
     /**
      * We have restarts ongoing, but we have no node that can be used to
@@ -6829,13 +6261,10 @@ bool Dbdih::check_stall_lcp_start(void)
      */
     lcp_max_wait_time *= MAX_PERCENTAGE_ADJUSTMENT_FOR_NO_ESTIMATE;
     lcp_max_wait_time /= 100;
-    if (lcp_stall_time > lcp_max_wait_time)
-    {
+    if (lcp_stall_time > lcp_max_wait_time) {
       jam();
       goto immediate_start_label;
-    }
-    else
-    {
+    } else {
       jam();
       goto wait_label;
     }
@@ -6851,8 +6280,7 @@ bool Dbdih::check_stall_lcp_start(void)
   jamLine(most_recent_node);
   jamLine(node_waited_for);
 
-  if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_ACTIVE)
-  {
+  if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_ACTIVE) {
     /**
      * We have only access to a node where we gathered measurements during
      * the time we were non-master node. We transfer times from non-master
@@ -6867,21 +6295,16 @@ bool Dbdih::check_stall_lcp_start(void)
      * Also given that our estimates are less accurate we will decrease the
      * maximum wait time by 50%.
      */
-    if (max_status < NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP)
-    {
+    if (max_status < NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP) {
       jam();
       max_status = NodeRecord::NDBCNTR_STARTED;
       nodePtr.p->ndbcntrStartedTime = nodePtr.p->nodeGettingPermitTime;
-    }
-    else if (max_status < NodeRecord::COPY_FRAGMENTS_STARTED)
-    {
+    } else if (max_status < NodeRecord::COPY_FRAGMENTS_STARTED) {
       jam();
       max_status = NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP;
       nodePtr.p->includeNodeInLCPAndGCPTime =
-        nodePtr.p->nodeGettingIncludedTime;
-    }
-    else
-    {
+          nodePtr.p->nodeGettingIncludedTime;
+    } else {
       jam();
       max_status = NodeRecord::COPY_FRAGMENTS_STARTED;
       nodePtr.p->copyFragmentsStartedTime = nodePtr.p->nodeGettingSynchedTime;
@@ -6895,14 +6318,12 @@ bool Dbdih::check_stall_lcp_start(void)
   /**
    * Calculate estimated time remaining from start of the max state we've seen.
    */
-  switch (max_status)
-  {
+  switch (max_status) {
     case NodeRecord::NODE_FAILED:
     case NodeRecord::NODE_FAILURE_COMPLETED:
     case NodeRecord::ALLOCATED_NODE_ID:
     case NodeRecord::INCLUDED_IN_HB_PROTOCOL:
-    case NodeRecord::NDBCNTR_START_WAIT:
-    {
+    case NodeRecord::NDBCNTR_START_WAIT: {
       jam();
       /**
        * Estimate a complete restart, these states have wait states that are
@@ -6913,99 +6334,95 @@ bool Dbdih::check_stall_lcp_start(void)
       lcp_max_wait_time *= 50;
       lcp_max_wait_time /= 100;
       estimated_time = NdbTick_Elapsed(nodePtr.p->ndbcntrStartedTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::NDBCNTR_STARTED:
-    {
+    case NodeRecord::NDBCNTR_STARTED: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->ndbcntrStartedTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::START_PERMITTED:
-    {
+    case NodeRecord::START_PERMITTED: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->startPermittedTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::WAIT_LCP_TO_COPY_DICT:
-    {
+    case NodeRecord::WAIT_LCP_TO_COPY_DICT: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->waitLCPToCopyDictTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::COPY_DICT_TO_STARTING_NODE:
-    {
+    case NodeRecord::COPY_DICT_TO_STARTING_NODE: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->copyDictToStartingNodeTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP:
-    {
+    case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->includeNodeInLCPAndGCPTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::LOCAL_RECOVERY_STARTED:
-    {
+    case NodeRecord::LOCAL_RECOVERY_STARTED: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->startDatabaseRecoveryTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::RESTORE_FRAG_COMPLETED:
-    {
+    case NodeRecord::RESTORE_FRAG_COMPLETED: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->startUndoDDTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::UNDO_DD_COMPLETED:
-    {
+    case NodeRecord::UNDO_DD_COMPLETED: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->startExecREDOLogTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::EXECUTE_REDO_LOG_COMPLETED:
-    {
+    case NodeRecord::EXECUTE_REDO_LOG_COMPLETED: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->startBuildIndexTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    case NodeRecord::COPY_FRAGMENTS_STARTED:
-    {
+    case NodeRecord::COPY_FRAGMENTS_STARTED: {
       jam();
       estimated_time = NdbTick_Elapsed(nodePtr.p->copyFragmentsStartedTime,
-                              nodePtr.p->waitLCPForRestartTime).milliSec();
+                                       nodePtr.p->waitLCPForRestartTime)
+                           .milliSec();
       break;
     }
-    default:
-    {
+    default: {
       jamLine(max_status);
       ndbabort();
       return true; /* Will never reach here, silence compiler warnings */
     }
   }
 
-  if (estimated_time < time_since_state_start)
-  {
+  if (estimated_time < time_since_state_start) {
     jam();
     time_remaining = 0;
-  }
-  else
-  {
+  } else {
     jam();
     time_remaining = estimated_time - time_since_state_start;
   }
-  if (time_remaining > lcp_max_wait_time)
-  {
+  if (time_remaining > lcp_max_wait_time) {
     jam();
     goto immediate_start_label;
   }
@@ -7018,16 +6435,14 @@ wait_label:
    * information about the stalling decisions.
    */
   jam();
-  if (c_lcpState.lcpStallStart == 0)
-  {
+  if (c_lcpState.lcpStallStart == 0) {
     jam();
     c_lcpState.m_start_lcp_check_time = now;
   }
   if (c_lcpState.lcpStallStart == 0 ||
       node_waited_for != c_lcpState.stall_node_waiting_for ||
       NdbTick_Elapsed(c_lcpState.lastLogTime, now).milliSec() >
-      Uint64(1200000))
-  {
+          Uint64(1200000)) {
     /**
      * Output a log message every time we start stalling
      * and every time we change node waiting for and every
@@ -7035,15 +6450,15 @@ wait_label:
      */
     jam();
     c_lcpState.lastLogTime = now;
-    infoEvent("Stall LCP, LCP time = %u secs,"
-              " wait for Node%u, state %s",
-              Uint32(c_lcpState.m_lcp_time / 1000),
-              node_waited_for,
-              get_status_str(max_status));
-    infoEvent("Stall LCP: current stall time: %u secs,"
-              " max wait time:%u secs",
-              Uint32(lcp_stall_time/1000),
-              Uint32(lcp_max_wait_time/1000));
+    infoEvent(
+        "Stall LCP, LCP time = %u secs,"
+        " wait for Node%u, state %s",
+        Uint32(c_lcpState.m_lcp_time / 1000), node_waited_for,
+        get_status_str(max_status));
+    infoEvent(
+        "Stall LCP: current stall time: %u secs,"
+        " max wait time:%u secs",
+        Uint32(lcp_stall_time / 1000), Uint32(lcp_max_wait_time / 1000));
   }
   c_lcpState.lcpStallStart = 1;
   c_lcpState.stall_node_waiting_for = node_waited_for;
@@ -7059,78 +6474,75 @@ immediate_start_label:
   return false;
 }
 
-const char*
-Dbdih::get_status_str(NodeRecord::NodeRecoveryStatus status)
-{
+const char *Dbdih::get_status_str(NodeRecord::NodeRecoveryStatus status) {
   const char *status_str;
-  switch (status)
-  {
-  case NodeRecord::ALLOCATED_NODE_ID:
-    status_str="Allocated node id";
-    break;
-  case NodeRecord::INCLUDED_IN_HB_PROTOCOL:
-    status_str="Included in heartbeat protocol";
-    break;
-  case NodeRecord::NDBCNTR_START_WAIT:
-    status_str="Wait for NDBCNTR master permit";
-    break;
-  case NodeRecord::NDBCNTR_STARTED:
-    status_str="NDBCNTR master permitted us";
-    break;
-  case NodeRecord::NODE_GETTING_PERMIT:
-  case NodeRecord::START_PERMITTED:
-    status_str="All nodes permitted us";
-    break;
-  case NodeRecord::WAIT_LCP_TO_COPY_DICT:
-    status_str="Wait for LCP complete to copy meta data";
-    break;
-  case NodeRecord::COPY_DICT_TO_STARTING_NODE:
-    status_str="Copy meta data to start node";
-    break;
-  case NodeRecord::NODE_GETTING_INCLUDED:
-  case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP:
-    status_str="Include node in LCP/GCP protocols";
-    break;
-  case NodeRecord::LOCAL_RECOVERY_STARTED:
-    status_str="Restore fragments ongoing";
-    break;
-  case NodeRecord::RESTORE_FRAG_COMPLETED:
-    status_str="Undo Disk data ongoing";
-    break;
-  case NodeRecord::UNDO_DD_COMPLETED:
-    status_str="Execute REDO logs ongoing";
-    break;
-  case NodeRecord::EXECUTE_REDO_LOG_COMPLETED:
-    status_str="Build indexes ongoing";
-    break;
-  case NodeRecord::NODE_GETTING_SYNCHED:
-  case NodeRecord::COPY_FRAGMENTS_STARTED:
-    status_str="Synchronize start node with live nodes";
-    break;
-  case NodeRecord::NODE_IN_LCP_WAIT_STATE:
-  case NodeRecord::WAIT_LCP_FOR_RESTART:
-    status_str="Wait LCP to ensure durability";
-    break;
-  case NodeRecord::WAIT_SUMA_HANDOVER:
-    status_str="Wait handover of subscriptions";
-    break;
-  case NodeRecord::NODE_ACTIVE:
-  case NodeRecord::RESTART_COMPLETED:
-    status_str="Restart completed";
-    break;
-  case NodeRecord::NODE_FAILED:
-    status_str="Node failed, fail handling ongoing";
-    break;
-  case NodeRecord::NODE_FAILURE_COMPLETED:
-    status_str="Node failure handling complete";
-    break;
-  case NodeRecord::NODE_NOT_RESTARTED_YET:
-    status_str="Initial state";
-    break;
-  default:
-    jamLine(status);
-    ndbabort();
-    return NULL; /* Will never reach here, silence compiler warnings */
+  switch (status) {
+    case NodeRecord::ALLOCATED_NODE_ID:
+      status_str = "Allocated node id";
+      break;
+    case NodeRecord::INCLUDED_IN_HB_PROTOCOL:
+      status_str = "Included in heartbeat protocol";
+      break;
+    case NodeRecord::NDBCNTR_START_WAIT:
+      status_str = "Wait for NDBCNTR master permit";
+      break;
+    case NodeRecord::NDBCNTR_STARTED:
+      status_str = "NDBCNTR master permitted us";
+      break;
+    case NodeRecord::NODE_GETTING_PERMIT:
+    case NodeRecord::START_PERMITTED:
+      status_str = "All nodes permitted us";
+      break;
+    case NodeRecord::WAIT_LCP_TO_COPY_DICT:
+      status_str = "Wait for LCP complete to copy meta data";
+      break;
+    case NodeRecord::COPY_DICT_TO_STARTING_NODE:
+      status_str = "Copy meta data to start node";
+      break;
+    case NodeRecord::NODE_GETTING_INCLUDED:
+    case NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP:
+      status_str = "Include node in LCP/GCP protocols";
+      break;
+    case NodeRecord::LOCAL_RECOVERY_STARTED:
+      status_str = "Restore fragments ongoing";
+      break;
+    case NodeRecord::RESTORE_FRAG_COMPLETED:
+      status_str = "Undo Disk data ongoing";
+      break;
+    case NodeRecord::UNDO_DD_COMPLETED:
+      status_str = "Execute REDO logs ongoing";
+      break;
+    case NodeRecord::EXECUTE_REDO_LOG_COMPLETED:
+      status_str = "Build indexes ongoing";
+      break;
+    case NodeRecord::NODE_GETTING_SYNCHED:
+    case NodeRecord::COPY_FRAGMENTS_STARTED:
+      status_str = "Synchronize start node with live nodes";
+      break;
+    case NodeRecord::NODE_IN_LCP_WAIT_STATE:
+    case NodeRecord::WAIT_LCP_FOR_RESTART:
+      status_str = "Wait LCP to ensure durability";
+      break;
+    case NodeRecord::WAIT_SUMA_HANDOVER:
+      status_str = "Wait handover of subscriptions";
+      break;
+    case NodeRecord::NODE_ACTIVE:
+    case NodeRecord::RESTART_COMPLETED:
+      status_str = "Restart completed";
+      break;
+    case NodeRecord::NODE_FAILED:
+      status_str = "Node failed, fail handling ongoing";
+      break;
+    case NodeRecord::NODE_FAILURE_COMPLETED:
+      status_str = "Node failure handling complete";
+      break;
+    case NodeRecord::NODE_NOT_RESTARTED_YET:
+      status_str = "Initial state";
+      break;
+    default:
+      jamLine(status);
+      ndbabort();
+      return NULL; /* Will never reach here, silence compiler warnings */
   }
   return status_str;
 }
@@ -7185,17 +6597,14 @@ Dbdih::get_status_str(NodeRecord::NodeRecoveryStatus status)
  *   node permitted the node to start.
  * IncludeNodeInLCPAndGCPTime: Time from we permitted the node to start until
  *   we completed including the node in the LCP and GCP protocol.
- * LocalRecoveryTime: Time from we were included in the LCP and GCP protocol until
- *   we started copying the fragments.
- * CopyFragmentsTime: Time from we started synchronizing the starting node
- *   until we completed the node restart.
+ * LocalRecoveryTime: Time from we were included in the LCP and GCP protocol
+ * until we started copying the fragments. CopyFragmentsTime: Time from we
+ * started synchronizing the starting node until we completed the node restart.
  *
  * Any time not happened yet will be reported as 0.
  */
-void Dbdih::write_zero_columns(Ndbinfo::Row &row, Uint32 num_rows)
-{
-  for (Uint32 i = 0; i < num_rows; i++)
-  {
+void Dbdih::write_zero_columns(Ndbinfo::Row &row, Uint32 num_rows) {
+  for (Uint32 i = 0; i < num_rows; i++) {
     jam();
     row.write_uint32(Uint32(0));
   }
@@ -7203,8 +6612,7 @@ void Dbdih::write_zero_columns(Ndbinfo::Row &row, Uint32 num_rows)
 }
 
 void Dbdih::fill_row_with_node_restart_status(NodeRecordPtr nodePtr,
-                                              Ndbinfo::Row &row)
-{
+                                              Ndbinfo::Row &row) {
   Uint64 elapsed;
   NodeRecord::NodeRecoveryStatus status = nodePtr.p->nodeRecoveryStatus;
   row.write_uint32(nodePtr.i);
@@ -7212,230 +6620,227 @@ void Dbdih::fill_row_with_node_restart_status(NodeRecordPtr nodePtr,
   row.write_string(status_str);
   row.write_uint32(Uint32(nodePtr.p->nodeRecoveryStatus));
 
-  if (status == NodeRecord::NODE_ACTIVE)
-  {
+  if (status == NodeRecord::NODE_ACTIVE) {
     handle_before_master(nodePtr, row);
     return;
   }
-  if (status == NodeRecord::NODE_FAILED)
-  {
+  if (status == NodeRecord::NODE_FAILED) {
     write_zero_columns(row, 19);
     return;
   }
-  elapsed = NdbTick_Elapsed(nodePtr.p->nodeFailTime,
-                            nodePtr.p->nodeFailCompletedTime).milliSec();
-  elapsed/= 1000;
+  elapsed =
+      NdbTick_Elapsed(nodePtr.p->nodeFailTime, nodePtr.p->nodeFailCompletedTime)
+          .milliSec();
+  elapsed /= 1000;
   /* Time to complete node failure */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::NODE_FAILURE_COMPLETED)
-  {
+  if (status == NodeRecord::NODE_FAILURE_COMPLETED) {
     write_zero_columns(row, 18);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->nodeFailCompletedTime,
-                            nodePtr.p->allocatedNodeIdTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->allocatedNodeIdTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to allocate node id */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::ALLOCATED_NODE_ID)
-  {
+  if (status == NodeRecord::ALLOCATED_NODE_ID) {
     write_zero_columns(row, 17);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->allocatedNodeIdTime,
-                            nodePtr.p->includedInHBProtocolTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->includedInHBProtocolTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to include in HB Protocol */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::INCLUDED_IN_HB_PROTOCOL)
-  {
+  if (status == NodeRecord::INCLUDED_IN_HB_PROTOCOL) {
     write_zero_columns(row, 16);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->includedInHBProtocolTime,
-                            nodePtr.p->ndbcntrStartWaitTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->ndbcntrStartWaitTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time until wait for for ndbcntr master */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::NDBCNTR_START_WAIT)
-  {
+  if (status == NodeRecord::NDBCNTR_START_WAIT) {
     write_zero_columns(row, 15);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->ndbcntrStartWaitTime,
-                            nodePtr.p->ndbcntrStartedTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->ndbcntrStartedTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time wait for NDBCNTR master */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::NDBCNTR_STARTED)
-  {
+  if (status == NodeRecord::NDBCNTR_STARTED) {
     write_zero_columns(row, 14);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->ndbcntrStartedTime,
-                            nodePtr.p->startPermittedTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->startPermittedTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to get start permitted */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::START_PERMITTED)
-  {
+  if (status == NodeRecord::START_PERMITTED) {
     write_zero_columns(row, 13);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->startPermittedTime,
-                            nodePtr.p->waitLCPToCopyDictTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->waitLCPToCopyDictTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to wait for LCP to copy meta data */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::WAIT_LCP_TO_COPY_DICT)
-  {
+  if (status == NodeRecord::WAIT_LCP_TO_COPY_DICT) {
     write_zero_columns(row, 12);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->waitLCPToCopyDictTime,
-                            nodePtr.p->copyDictToStartingNodeTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->copyDictToStartingNodeTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to copy meta data */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::COPY_DICT_TO_STARTING_NODE)
-  {
+  if (status == NodeRecord::COPY_DICT_TO_STARTING_NODE) {
     write_zero_columns(row, 11);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->copyDictToStartingNodeTime,
-                            nodePtr.p->includeNodeInLCPAndGCPTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->includeNodeInLCPAndGCPTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to include node in GCP+LCP protocols */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP)
-  {
+  if (status == NodeRecord::INCLUDE_NODE_IN_LCP_AND_GCP) {
     write_zero_columns(row, 10);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->includeNodeInLCPAndGCPTime,
-                            nodePtr.p->startDatabaseRecoveryTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->startDatabaseRecoveryTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time for starting node to request local recovery */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::LOCAL_RECOVERY_STARTED)
-  {
+  if (status == NodeRecord::LOCAL_RECOVERY_STARTED) {
     write_zero_columns(row, 9);
     return;
   }
 
   /* Total time of local recovery */
-  if (status < NodeRecord::COPY_FRAGMENTS_STARTED)
-  {
+  if (status < NodeRecord::COPY_FRAGMENTS_STARTED) {
     row.write_uint32(Uint32(0));
-  }
-  else
-  {
+  } else {
     elapsed = NdbTick_Elapsed(nodePtr.p->startDatabaseRecoveryTime,
-                              nodePtr.p->copyFragmentsStartedTime).milliSec();
-    elapsed/= 1000;
+                              nodePtr.p->copyFragmentsStartedTime)
+                  .milliSec();
+    elapsed /= 1000;
     row.write_uint32(Uint32(elapsed));
   }
 
   elapsed = NdbTick_Elapsed(nodePtr.p->startDatabaseRecoveryTime,
-                            nodePtr.p->startUndoDDTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->startUndoDDTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to restore fragments */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::RESTORE_FRAG_COMPLETED)
-  {
+  if (status == NodeRecord::RESTORE_FRAG_COMPLETED) {
     write_zero_columns(row, 7);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->startUndoDDTime,
-                            nodePtr.p->startExecREDOLogTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->startExecREDOLogTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to UNDO disk data parts */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::UNDO_DD_COMPLETED)
-  {
+  if (status == NodeRecord::UNDO_DD_COMPLETED) {
     write_zero_columns(row, 6);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->startExecREDOLogTime,
-                            nodePtr.p->startBuildIndexTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->startBuildIndexTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to execute REDO logs */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::EXECUTE_REDO_LOG_COMPLETED)
-  {
+  if (status == NodeRecord::EXECUTE_REDO_LOG_COMPLETED) {
     write_zero_columns(row, 5);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->startBuildIndexTime,
-                            nodePtr.p->copyFragmentsStartedTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->copyFragmentsStartedTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to build indexes */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::COPY_FRAGMENTS_STARTED)
-  {
+  if (status == NodeRecord::COPY_FRAGMENTS_STARTED) {
     write_zero_columns(row, 4);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->copyFragmentsStartedTime,
-                            nodePtr.p->waitLCPForRestartTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->waitLCPForRestartTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to synchronize starting node with alive nodes */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::WAIT_LCP_FOR_RESTART)
-  {
+  if (status == NodeRecord::WAIT_LCP_FOR_RESTART) {
     write_zero_columns(row, 3);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->waitLCPForRestartTime,
-                            nodePtr.p->waitSumaHandoverTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->waitSumaHandoverTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to wait for completion of LCPs */
   row.write_uint32(Uint32(elapsed));
 
-  if (status == NodeRecord::WAIT_SUMA_HANDOVER)
-  {
+  if (status == NodeRecord::WAIT_SUMA_HANDOVER) {
     write_zero_columns(row, 2);
     return;
   }
   elapsed = NdbTick_Elapsed(nodePtr.p->waitSumaHandoverTime,
-                            nodePtr.p->restartCompletedTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->restartCompletedTime)
+                .milliSec();
+  elapsed /= 1000;
   /* Time to handover subscriptions to starting node */
   row.write_uint32(Uint32(elapsed));
 
-  elapsed = NdbTick_Elapsed(nodePtr.p->nodeFailTime,
-                            nodePtr.p->restartCompletedTime).milliSec();
-  elapsed/= 1000;
+  elapsed =
+      NdbTick_Elapsed(nodePtr.p->nodeFailTime, nodePtr.p->restartCompletedTime)
+          .milliSec();
+  elapsed /= 1000;
   /* Total recovery time */
   row.write_uint32(Uint32(elapsed));
 
   return;
 }
 
-void Dbdih::handle_before_master(NodeRecordPtr nodePtr,
-                                 Ndbinfo::Row &row)
-{
+void Dbdih::handle_before_master(NodeRecordPtr nodePtr, Ndbinfo::Row &row) {
   Uint64 elapsed;
 
   /* Time to complete node failure */
-  elapsed = NdbTick_Elapsed(nodePtr.p->nodeFailTime,
-                            nodePtr.p->nodeFailCompletedTime).milliSec();
-  elapsed/= 1000;
+  elapsed =
+      NdbTick_Elapsed(nodePtr.p->nodeFailTime, nodePtr.p->nodeFailCompletedTime)
+          .milliSec();
+  elapsed /= 1000;
   row.write_uint32(Uint32(elapsed));
 
   /**
@@ -7451,9 +6856,10 @@ void Dbdih::handle_before_master(NodeRecordPtr nodePtr,
   row.write_uint32(Uint32(0));
 
   /* Time to get from failure to start permitted */
-  elapsed = NdbTick_Elapsed(nodePtr.p->nodeFailTime,
-                            nodePtr.p->nodeGettingPermitTime).milliSec();
-  elapsed/= 1000;
+  elapsed =
+      NdbTick_Elapsed(nodePtr.p->nodeFailTime, nodePtr.p->nodeGettingPermitTime)
+          .milliSec();
+  elapsed /= 1000;
   row.write_uint32(Uint32(elapsed));
 
   /**
@@ -7466,8 +6872,9 @@ void Dbdih::handle_before_master(NodeRecordPtr nodePtr,
 
   /* Time from getting start permitted to getting included */
   elapsed = NdbTick_Elapsed(nodePtr.p->nodeGettingPermitTime,
-                            nodePtr.p->nodeGettingIncludedTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->nodeGettingIncludedTime)
+                .milliSec();
+  elapsed /= 1000;
   row.write_uint32(Uint32(elapsed));
 
   /**
@@ -7478,8 +6885,9 @@ void Dbdih::handle_before_master(NodeRecordPtr nodePtr,
 
   /* Time for local recovery */
   elapsed = NdbTick_Elapsed(nodePtr.p->nodeGettingIncludedTime,
-                            nodePtr.p->nodeGettingSynchedTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->nodeGettingSynchedTime)
+                .milliSec();
+  elapsed /= 1000;
   row.write_uint32(Uint32(elapsed));
 
   /**
@@ -7496,8 +6904,9 @@ void Dbdih::handle_before_master(NodeRecordPtr nodePtr,
 
   /* Time to synchronize starting node with alive nodes */
   elapsed = NdbTick_Elapsed(nodePtr.p->nodeGettingSynchedTime,
-                            nodePtr.p->nodeInLCPWaitStateTime).milliSec();
-  elapsed/= 1000;
+                            nodePtr.p->nodeInLCPWaitStateTime)
+                .milliSec();
+  elapsed /= 1000;
   row.write_uint32(Uint32(elapsed));
 
   /**
@@ -7509,306 +6918,259 @@ void Dbdih::handle_before_master(NodeRecordPtr nodePtr,
   row.write_uint32(Uint32(0));
 
   /* Total time from node failure to node restarted */
-  elapsed = NdbTick_Elapsed(nodePtr.p->nodeFailTime,
-                            nodePtr.p->nodeActiveTime).milliSec();
-  elapsed/= 1000;
+  elapsed = NdbTick_Elapsed(nodePtr.p->nodeFailTime, nodePtr.p->nodeActiveTime)
+                .milliSec();
+  elapsed /= 1000;
   row.write_uint32(Uint32(elapsed));
 
   return;
 }
 
-void Dbdih::execDBINFO_SCANREQ(Signal *signal)
-{
-  DbinfoScanReq req = *(DbinfoScanReq*)signal->theData;
+void Dbdih::execDBINFO_SCANREQ(Signal *signal) {
+  DbinfoScanReq req = *(DbinfoScanReq *)signal->theData;
   const Ndbinfo::ScanCursor *cursor =
-    CAST_CONSTPTR(Ndbinfo::ScanCursor, DbinfoScan::getCursorPtr(&req));
+      CAST_CONSTPTR(Ndbinfo::ScanCursor, DbinfoScan::getCursorPtr(&req));
   Ndbinfo::Ratelimit rl;
   bool sent_any = false;
   jamEntry();
 
-  switch (req.tableId)
-  {
-  case Ndbinfo::RESTART_INFO_TABLEID:
-  {
-    if (isMaster() == false)
-    {
-      /* Only report from master node's view on restarts */
-      break;
-    }
-    if (getNodeState().startLevel != NodeState::SL_STARTED)
-    {
-      jam();
-      /* Ignore when we are starting up or shutting down */
-      break;
-    }
-
-    NodeRecordPtr nodePtr;
-    jam();
-    nodePtr.i = cursor->data[0];
-    if (nodePtr.i == 0)
-    {
-      nodePtr.i = 1; /* Ignore node 0 */
-    }
-    else if (nodePtr.i > m_max_node_id)
-    {
-      break;
-    }
-    for (; nodePtr.i <= m_max_node_id; nodePtr.i++)
-    {
-      ptrAss(nodePtr, nodeRecord);
-      if (nodePtr.p->nodeRecoveryStatus == NodeRecord::NODE_NOT_RESTARTED_YET ||
-          nodePtr.p->nodeRecoveryStatus == NodeRecord::NOT_DEFINED_IN_CLUSTER)
-        continue;
-      jamLine(nodePtr.i);
-      sent_any = true;
-      Ndbinfo::Row row(signal, req);
-      fill_row_with_node_restart_status(nodePtr, row);
-      ndbinfo_send_row(signal, req, row, rl);
-      if (rl.need_break(req))
-      {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, nodePtr.i + 1);
-        return;
+  switch (req.tableId) {
+    case Ndbinfo::RESTART_INFO_TABLEID: {
+      if (isMaster() == false) {
+        /* Only report from master node's view on restarts */
+        break;
       }
-    }
-    if (cursor->data[0] == 0 && !sent_any)
-    {
-      /* No nodes had any node restart data to report */
-      jam();
-      break;
-    }
-    break;
-  }
-  case Ndbinfo::TABLE_DIST_STATUS_TABLEID:
-  case Ndbinfo::TABLE_DIST_STATUS_ALL_TABLEID:
-  {
-    jam();
-    TabRecordPtr tabPtr;
-    tabPtr.i = cursor->data[0];
-    if (!isMaster() && req.tableId == Ndbinfo::TABLE_DIST_STATUS_TABLEID)
-    {
-      jam();
-      break;
-    }
-    for ( ; tabPtr.i < ctabFileSize ; tabPtr.i++)
-    {
-      jamLine(tabPtr.i);
-      ptrAss(tabPtr, tabRecord);
-      if (tabPtr.p->tabStatus != TabRecord::TS_IDLE)
-      {
+      if (getNodeState().startLevel != NodeState::SL_STARTED) {
         jam();
+        /* Ignore when we are starting up or shutting down */
+        break;
+      }
+
+      NodeRecordPtr nodePtr;
+      jam();
+      nodePtr.i = cursor->data[0];
+      if (nodePtr.i == 0) {
+        nodePtr.i = 1; /* Ignore node 0 */
+      } else if (nodePtr.i > m_max_node_id) {
+        break;
+      }
+      for (; nodePtr.i <= m_max_node_id; nodePtr.i++) {
+        ptrAss(nodePtr, nodeRecord);
+        if (nodePtr.p->nodeRecoveryStatus ==
+                NodeRecord::NODE_NOT_RESTARTED_YET ||
+            nodePtr.p->nodeRecoveryStatus == NodeRecord::NOT_DEFINED_IN_CLUSTER)
+          continue;
+        jamLine(nodePtr.i);
+        sent_any = true;
         Ndbinfo::Row row(signal, req);
-        row.write_uint32(cownNodeId);
-        row.write_uint32(tabPtr.i);
-        row.write_uint32(tabPtr.p->tabCopyStatus);
-        row.write_uint32(tabPtr.p->tabUpdateState);
-        row.write_uint32(tabPtr.p->tabLcpStatus);
-        row.write_uint32(tabPtr.p->tabStatus);
-        row.write_uint32(tabPtr.p->tabStorage);
-        row.write_uint32(tabPtr.p->tableType);
-        row.write_uint32(tabPtr.p->partitionCount);
-        row.write_uint32(tabPtr.p->totalfragments);
-        row.write_uint32(tabPtr.p->m_scan_count[0]);
-        row.write_uint32(tabPtr.p->m_scan_count[1]);
-        row.write_uint32(tabPtr.p->m_scan_reorg_flag);
+        fill_row_with_node_restart_status(nodePtr, row);
         ndbinfo_send_row(signal, req, row, rl);
-        if (rl.need_break(req))
-        {
+        if (rl.need_break(req)) {
           jam();
-          ndbinfo_send_scan_break(signal, req, rl, tabPtr.i + 1);
+          ndbinfo_send_scan_break(signal, req, rl, nodePtr.i + 1);
           return;
         }
       }
-    }
-    break;
-  }
-  case Ndbinfo::TABLE_FRAGMENTS_TABLEID:
-  case Ndbinfo::TABLE_FRAGMENTS_ALL_TABLEID:
-  {
-    jam();
-    TabRecordPtr tabPtr;
-    FragmentstorePtr fragPtr;
-    tabPtr.i = cursor->data[0] & 0xFFFF;
-    Uint32 fragId = cursor->data[0] >> 16;
-    if (!isMaster() && req.tableId == Ndbinfo::TABLE_FRAGMENTS_TABLEID)
-    {
-      jam();
+      if (cursor->data[0] == 0 && !sent_any) {
+        /* No nodes had any node restart data to report */
+        jam();
+        break;
+      }
       break;
     }
-    for ( ; tabPtr.i < ctabFileSize ; tabPtr.i++)
-    {
-      jamLine(tabPtr.i);
-      ptrAss(tabPtr, tabRecord);
-      if (tabPtr.p->tabStatus != TabRecord::TS_IDLE &&
-          (DictTabInfo::isTable(tabPtr.p->tableType) ||
-           DictTabInfo::isUniqueIndex(tabPtr.p->tableType)))
-      {
-        for ( ; fragId < tabPtr.p->totalfragments ; fragId++)
-        {
-          jamLine(fragId);
-          getFragstore(tabPtr.p, fragId, fragPtr);
+    case Ndbinfo::TABLE_DIST_STATUS_TABLEID:
+    case Ndbinfo::TABLE_DIST_STATUS_ALL_TABLEID: {
+      jam();
+      TabRecordPtr tabPtr;
+      tabPtr.i = cursor->data[0];
+      if (!isMaster() && req.tableId == Ndbinfo::TABLE_DIST_STATUS_TABLEID) {
+        jam();
+        break;
+      }
+      for (; tabPtr.i < ctabFileSize; tabPtr.i++) {
+        jamLine(tabPtr.i);
+        ptrAss(tabPtr, tabRecord);
+        if (tabPtr.p->tabStatus != TabRecord::TS_IDLE) {
+          jam();
           Ndbinfo::Row row(signal, req);
           row.write_uint32(cownNodeId);
           row.write_uint32(tabPtr.i);
-          row.write_uint32(fragPtr.p->partition_id);
-          row.write_uint32(fragPtr.p->fragId);
-          if ((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED) == 0)
-          {
-            row.write_uint32(0);
-          }
-          else
-          {
-            row.write_uint32(findPartitionOrder(tabPtr.p, fragPtr));
-          }
-
-          row.write_uint32(fragPtr.p->m_log_part_id);
-          row.write_uint32(fragPtr.p->fragReplicas);
-          row.write_uint32(fragPtr.p->activeNodes[0]);
-          row.write_uint32(fragPtr.p->preferredPrimary);
-
-          if (fragPtr.p->noStoredReplicas > 1)
-          {
-            row.write_uint32(fragPtr.p->activeNodes[1]);
-          }
-          else
-          {
-            row.write_uint32(0);
-          }
-
-          if (fragPtr.p->noStoredReplicas > 2)
-          {
-            row.write_uint32(fragPtr.p->activeNodes[2]);
-          }
-          else
-          {
-            row.write_uint32(0);
-          }
-
-          if (fragPtr.p->noStoredReplicas > 3)
-          {
-            row.write_uint32(fragPtr.p->activeNodes[3]);
-          }
-          else
-          {
-            row.write_uint32(0);
-          }
-
-          row.write_uint32(fragPtr.p->noStoredReplicas);
-          row.write_uint32(fragPtr.p->noOldStoredReplicas);
-          row.write_uint32(fragPtr.p->noLcpReplicas);
+          row.write_uint32(tabPtr.p->tabCopyStatus);
+          row.write_uint32(tabPtr.p->tabUpdateState);
+          row.write_uint32(tabPtr.p->tabLcpStatus);
+          row.write_uint32(tabPtr.p->tabStatus);
+          row.write_uint32(tabPtr.p->tabStorage);
+          row.write_uint32(tabPtr.p->tableType);
+          row.write_uint32(tabPtr.p->partitionCount);
+          row.write_uint32(tabPtr.p->totalfragments);
+          row.write_uint32(tabPtr.p->m_scan_count[0]);
+          row.write_uint32(tabPtr.p->m_scan_count[1]);
+          row.write_uint32(tabPtr.p->m_scan_reorg_flag);
           ndbinfo_send_row(signal, req, row, rl);
-          if (rl.need_break(req))
-          {
+          if (rl.need_break(req)) {
             jam();
-            Uint32 new_cursor = tabPtr.i + ((fragId + 1) << 16);
-            ndbinfo_send_scan_break(signal, req, rl, new_cursor);
+            ndbinfo_send_scan_break(signal, req, rl, tabPtr.i + 1);
             return;
           }
         }
       }
-      fragId = 0;
-    }
-    break;
-  }
-  case Ndbinfo::TABLE_REPLICAS_TABLEID:
-  case Ndbinfo::TABLE_REPLICAS_ALL_TABLEID:
-  {
-    jam();
-    TabRecordPtr tabPtr;
-    FragmentstorePtr fragPtr;
-    ReplicaRecordPtr replicaPtr;
-    tabPtr.i = cursor->data[0] & 0xFFFF;
-    Uint32 fragId = cursor->data[0] >> 16;
-    if (!isMaster() && req.tableId == Ndbinfo::TABLE_REPLICAS_TABLEID)
-    {
-      jam();
       break;
     }
-    for ( ; tabPtr.i < ctabFileSize ; tabPtr.i++)
-    {
-      jamLine(tabPtr.i);
-      ptrAss(tabPtr, tabRecord);
-      if (tabPtr.p->tabStatus != TabRecord::TS_IDLE &&
-          (DictTabInfo::isTable(tabPtr.p->tableType) ||
-           DictTabInfo::isUniqueIndex(tabPtr.p->tableType)))
-      {
-        jamLine(fragId);
-        jamLine(tabPtr.p->totalfragments);
-        jamLine(tabPtr.p->partitionCount);
-        for ( ; fragId < tabPtr.p->totalfragments ; fragId++)
-        {
-          jamLine(fragId);
-          getFragstore(tabPtr.p, fragId, fragPtr);
-          for (Uint32 i = 0; i < 2; i++)
-          {
-            if (i == 0)
-            {
-              jam();
-              replicaPtr.i = fragPtr.p->storedReplicas;
+    case Ndbinfo::TABLE_FRAGMENTS_TABLEID:
+    case Ndbinfo::TABLE_FRAGMENTS_ALL_TABLEID: {
+      jam();
+      TabRecordPtr tabPtr;
+      FragmentstorePtr fragPtr;
+      tabPtr.i = cursor->data[0] & 0xFFFF;
+      Uint32 fragId = cursor->data[0] >> 16;
+      if (!isMaster() && req.tableId == Ndbinfo::TABLE_FRAGMENTS_TABLEID) {
+        jam();
+        break;
+      }
+      for (; tabPtr.i < ctabFileSize; tabPtr.i++) {
+        jamLine(tabPtr.i);
+        ptrAss(tabPtr, tabRecord);
+        if (tabPtr.p->tabStatus != TabRecord::TS_IDLE &&
+            (DictTabInfo::isTable(tabPtr.p->tableType) ||
+             DictTabInfo::isUniqueIndex(tabPtr.p->tableType))) {
+          for (; fragId < tabPtr.p->totalfragments; fragId++) {
+            jamLine(fragId);
+            getFragstore(tabPtr.p, fragId, fragPtr);
+            Ndbinfo::Row row(signal, req);
+            row.write_uint32(cownNodeId);
+            row.write_uint32(tabPtr.i);
+            row.write_uint32(fragPtr.p->partition_id);
+            row.write_uint32(fragPtr.p->fragId);
+            if ((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED) == 0) {
+              row.write_uint32(0);
+            } else {
+              row.write_uint32(findPartitionOrder(tabPtr.p, fragPtr));
             }
-            else
-            {
-              jam();
-              replicaPtr.i = fragPtr.p->oldStoredReplicas;
+
+            row.write_uint32(fragPtr.p->m_log_part_id);
+            row.write_uint32(fragPtr.p->fragReplicas);
+            row.write_uint32(fragPtr.p->activeNodes[0]);
+            row.write_uint32(fragPtr.p->preferredPrimary);
+
+            if (fragPtr.p->noStoredReplicas > 1) {
+              row.write_uint32(fragPtr.p->activeNodes[1]);
+            } else {
+              row.write_uint32(0);
             }
-            while (replicaPtr.i != RNIL64)
-            {
-              jam();
-              Ndbinfo::Row row(signal, req);
-              ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
-              row.write_uint32(cownNodeId);
-              row.write_uint32(tabPtr.i);
-              row.write_uint32(fragPtr.p->fragId);
-              row.write_uint32(replicaPtr.p->initialGci);
-              row.write_uint32(replicaPtr.p->procNode);
-              row.write_uint32(replicaPtr.p->lcpOngoingFlag);
-              row.write_uint32(replicaPtr.p->noCrashedReplicas);
-              Uint32 lastId = 0;
-              Uint32 maxLcpId = 0;
-              for (Uint32 j = 0; j < MAX_LCP_USED; j++)
-              {
-                jam();
-                if (replicaPtr.p->lcpStatus[j] == ZVALID)
-                {
-                  jam();
-                  if (replicaPtr.p->lcpId[j] > maxLcpId)
-                  {
-                    jam();
-                    lastId = j;
-                    maxLcpId = replicaPtr.p->lcpId[j];
-                  }
-                }
-              }
-              Uint32 prevId = prevLcpNo(lastId);
-              row.write_uint32(replicaPtr.p->maxGciStarted[lastId]);
-              row.write_uint32(replicaPtr.p->maxGciCompleted[lastId]);
-              row.write_uint32(replicaPtr.p->lcpId[lastId]);
-              row.write_uint32(replicaPtr.p->maxGciStarted[prevId]);
-              row.write_uint32(replicaPtr.p->maxGciCompleted[prevId]);
-              row.write_uint32(replicaPtr.p->lcpId[prevId]);
-              Uint32 last_replica_id = replicaPtr.p->noCrashedReplicas;
-              row.write_uint32(replicaPtr.p->createGci[last_replica_id]);
-              row.write_uint32(replicaPtr.p->replicaLastGci[last_replica_id]);
-              row.write_uint32(i == 0 ? 1 : 0);
-              ndbinfo_send_row(signal, req, row, rl);
-              replicaPtr.i = replicaPtr.p->nextPool;
+
+            if (fragPtr.p->noStoredReplicas > 2) {
+              row.write_uint32(fragPtr.p->activeNodes[2]);
+            } else {
+              row.write_uint32(0);
             }
-          }
-          if (rl.need_break(req))
-          {
-            jam();
-            Uint32 new_cursor = tabPtr.i + ((fragId + 1) << 16);
-            ndbinfo_send_scan_break(signal, req, rl, new_cursor);
-            return;
+
+            if (fragPtr.p->noStoredReplicas > 3) {
+              row.write_uint32(fragPtr.p->activeNodes[3]);
+            } else {
+              row.write_uint32(0);
+            }
+
+            row.write_uint32(fragPtr.p->noStoredReplicas);
+            row.write_uint32(fragPtr.p->noOldStoredReplicas);
+            row.write_uint32(fragPtr.p->noLcpReplicas);
+            ndbinfo_send_row(signal, req, row, rl);
+            if (rl.need_break(req)) {
+              jam();
+              Uint32 new_cursor = tabPtr.i + ((fragId + 1) << 16);
+              ndbinfo_send_scan_break(signal, req, rl, new_cursor);
+              return;
+            }
           }
         }
         fragId = 0;
       }
+      break;
     }
-    break;
-  }
-  default:
-    break;
+    case Ndbinfo::TABLE_REPLICAS_TABLEID:
+    case Ndbinfo::TABLE_REPLICAS_ALL_TABLEID: {
+      jam();
+      TabRecordPtr tabPtr;
+      FragmentstorePtr fragPtr;
+      ReplicaRecordPtr replicaPtr;
+      tabPtr.i = cursor->data[0] & 0xFFFF;
+      Uint32 fragId = cursor->data[0] >> 16;
+      if (!isMaster() && req.tableId == Ndbinfo::TABLE_REPLICAS_TABLEID) {
+        jam();
+        break;
+      }
+      for (; tabPtr.i < ctabFileSize; tabPtr.i++) {
+        jamLine(tabPtr.i);
+        ptrAss(tabPtr, tabRecord);
+        if (tabPtr.p->tabStatus != TabRecord::TS_IDLE &&
+            (DictTabInfo::isTable(tabPtr.p->tableType) ||
+             DictTabInfo::isUniqueIndex(tabPtr.p->tableType))) {
+          jamLine(fragId);
+          jamLine(tabPtr.p->totalfragments);
+          jamLine(tabPtr.p->partitionCount);
+          for (; fragId < tabPtr.p->totalfragments; fragId++) {
+            jamLine(fragId);
+            getFragstore(tabPtr.p, fragId, fragPtr);
+            for (Uint32 i = 0; i < 2; i++) {
+              if (i == 0) {
+                jam();
+                replicaPtr.i = fragPtr.p->storedReplicas;
+              } else {
+                jam();
+                replicaPtr.i = fragPtr.p->oldStoredReplicas;
+              }
+              while (replicaPtr.i != RNIL64) {
+                jam();
+                Ndbinfo::Row row(signal, req);
+              ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
+                row.write_uint32(cownNodeId);
+                row.write_uint32(tabPtr.i);
+                row.write_uint32(fragPtr.p->fragId);
+                row.write_uint32(replicaPtr.p->initialGci);
+                row.write_uint32(replicaPtr.p->procNode);
+                row.write_uint32(replicaPtr.p->lcpOngoingFlag);
+                row.write_uint32(replicaPtr.p->noCrashedReplicas);
+                Uint32 lastId = 0;
+                Uint32 maxLcpId = 0;
+                for (Uint32 j = 0; j < MAX_LCP_USED; j++) {
+                  jam();
+                  if (replicaPtr.p->lcpStatus[j] == ZVALID) {
+                    jam();
+                    if (replicaPtr.p->lcpId[j] > maxLcpId) {
+                      jam();
+                      lastId = j;
+                      maxLcpId = replicaPtr.p->lcpId[j];
+                    }
+                  }
+                }
+                Uint32 prevId = prevLcpNo(lastId);
+                row.write_uint32(replicaPtr.p->maxGciStarted[lastId]);
+                row.write_uint32(replicaPtr.p->maxGciCompleted[lastId]);
+                row.write_uint32(replicaPtr.p->lcpId[lastId]);
+                row.write_uint32(replicaPtr.p->maxGciStarted[prevId]);
+                row.write_uint32(replicaPtr.p->maxGciCompleted[prevId]);
+                row.write_uint32(replicaPtr.p->lcpId[prevId]);
+                Uint32 last_replica_id = replicaPtr.p->noCrashedReplicas;
+                row.write_uint32(replicaPtr.p->createGci[last_replica_id]);
+                row.write_uint32(replicaPtr.p->replicaLastGci[last_replica_id]);
+                row.write_uint32(i == 0 ? 1 : 0);
+                ndbinfo_send_row(signal, req, row, rl);
+                replicaPtr.i = replicaPtr.p->nextPool;
+              }
+            }
+            if (rl.need_break(req)) {
+              jam();
+              Uint32 new_cursor = tabPtr.i + ((fragId + 1) << 16);
+              ndbinfo_send_scan_break(signal, req, rl, new_cursor);
+              return;
+            }
+          }
+          fragId = 0;
+        }
+      }
+      break;
+    }
+    default:
+      break;
   }
   ndbinfo_send_scan_conf(signal, req, rl);
 }
@@ -7829,14 +7191,11 @@ void Dbdih::execDBINFO_SCANREQ(Signal *signal)
 //    for this to happen. (This is not yet implemented).
 //
 // To support multiple node failures efficiently the code is written such that
-// only one take over can handle transitions in state but during a copy 
+// only one take over can handle transitions in state but during a copy
 // fragment other take over's can perform state transitions.
 /*****************************************************************************/
-void Dbdih::startTakeOver(Signal* signal,
-                          Uint32 startNode,
-                          Uint32 nodeTakenOver,
-                          const StartCopyReq* req)
-{
+void Dbdih::startTakeOver(Signal *signal, Uint32 startNode,
+                          Uint32 nodeTakenOver, const StartCopyReq *req) {
   jam();
 
   TakeOverRecordPtr takeOverPtr;
@@ -7856,13 +7215,10 @@ void Dbdih::startTakeOver(Signal* signal,
 
   takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_START_FRAGMENTS;
   nr_start_fragments(signal, takeOverPtr);
-}//Dbdih::startTakeOver()
+}  // Dbdih::startTakeOver()
 
-void
-Dbdih::nr_start_fragments(Signal* signal, 
-			  TakeOverRecordPtr takeOverPtr)
-{
-  Uint32 loopCount = 0 ;
+void Dbdih::nr_start_fragments(Signal *signal, TakeOverRecordPtr takeOverPtr) {
+  Uint32 loopCount = 0;
   TabRecordPtr tabPtr;
   const Uint32 MaxFragsToSearch = 100;
   while (loopCount++ < MaxFragsToSearch) {
@@ -7871,23 +7227,22 @@ Dbdih::nr_start_fragments(Signal* signal,
       jam();
       nr_run_redo(signal, takeOverPtr);
       return;
-    }//if
+    }  // if
     ptrAss(tabPtr, tabRecord);
     if (tabPtr.p->tabStatus != TabRecord::TS_ACTIVE ||
-	tabPtr.p->tabStorage != TabRecord::ST_NORMAL)
-    {
+        tabPtr.p->tabStorage != TabRecord::ST_NORMAL) {
       jam();
       takeOverPtr.p->toCurrentFragid = 0;
       takeOverPtr.p->toCurrentTabref++;
       continue;
-    }//if
+    }  // if
     Uint32 fragId = takeOverPtr.p->toCurrentFragid;
     if (fragId >= tabPtr.p->totalfragments) {
       jam();
       takeOverPtr.p->toCurrentFragid = 0;
       takeOverPtr.p->toCurrentTabref++;
       continue;
-    }//if
+    }  // if
     FragmentstorePtr fragPtr;
     getFragstore(tabPtr.p, fragId, fragPtr);
     ReplicaRecordPtr loopReplicaPtr;
@@ -7896,30 +7251,27 @@ Dbdih::nr_start_fragments(Signal* signal,
       ndbrequire(c_replicaRecordPool.getPtr(loopReplicaPtr));
       if (loopReplicaPtr.p->procNode == takeOverPtr.p->toStartingNode) {
         jam();
-	nr_start_fragment(signal, takeOverPtr, loopReplicaPtr);
-        loopCount+= MaxFragsToSearch; /* Take a break */
-	break;
+        nr_start_fragment(signal, takeOverPtr, loopReplicaPtr);
+        loopCount += MaxFragsToSearch; /* Take a break */
+        break;
       } else {
         jam();
         loopReplicaPtr.i = loopReplicaPtr.p->nextPool;
-      }//if
-    }//while
+      }  // if
+    }    // while
     takeOverPtr.p->toCurrentFragid++;
-  }//while
+  }  // while
   signal->theData[0] = DihContinueB::ZTO_START_FRAGMENTS;
   signal->theData[1] = takeOverPtr.i;
   sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
 }
 
-void
-Dbdih::nr_start_fragment(Signal* signal, 
-			 TakeOverRecordPtr takeOverPtr,
-			 ReplicaRecordPtr replicaPtr)
-{
+void Dbdih::nr_start_fragment(Signal *signal, TakeOverRecordPtr takeOverPtr,
+                              ReplicaRecordPtr replicaPtr) {
   Uint32 i;
   Uint32 maxLcpId = 0;
   Uint32 maxLcpIndex = ~0;
-  
+
   Uint32 gci = 0;
   Uint32 restorableGCI = takeOverPtr.p->restorableGci;
 
@@ -7946,8 +7298,7 @@ Dbdih::nr_start_fragment(Signal* signal,
    * problems in cases of partial system restarts.
    */
   Uint32 idx = prevLcpNo(replicaPtr.p->nextLcp);
-  for(i = 0; i<MAX_LCP_USED; i++, idx = prevLcpNo(idx))
-  {
+  for (i = 0; i < MAX_LCP_USED; i++, idx = prevLcpNo(idx)) {
     Int32 j = replicaPtr.p->noCrashedReplicas - 1;
 #if defined VM_TRACE || defined ERROR_INSERT
     g_eventLogger->info(
@@ -7955,8 +7306,7 @@ Dbdih::nr_start_fragment(Signal* signal,
         replicaPtr.p->lcpId[idx], replicaPtr.p->noCrashedReplicas,
         replicaPtr.p->lcpStatus[idx] == ZVALID ? "VALID" : "NOT VALID");
 #endif
-    if (replicaPtr.p->lcpStatus[idx] == ZVALID) 
-    {
+    if (replicaPtr.p->lcpStatus[idx] == ZVALID) {
       Uint32 startGci = replicaPtr.p->maxGciCompleted[idx] + 1;
       Uint32 stopGci = replicaPtr.p->maxGciStarted[idx];
 #if defined VM_TRACE || defined ERROR_INSERT
@@ -7968,50 +7318,44 @@ Dbdih::nr_start_fragment(Signal* signal,
        * non-restorable. This forces the older LCP to be
        * restored, which failed to happen previously.
        */
-      if (ERROR_INSERTED(7248))
-      {
+      if (ERROR_INSERTED(7248)) {
         g_eventLogger->info("Inserting error to skip most recent LCP");
-        if (i == 0)
-        {
+        if (i == 0) {
           continue;
         }
       }
-      for (; j>= 0; j--)
-      {
+      for (; j >= 0; j--) {
 #if defined VM_TRACE || defined ERROR_INSERT
         g_eventLogger->info(
             "crashed replica: %d(%d) replica(createGci: %u lastGci: %d )", j,
             replicaPtr.p->noCrashedReplicas, replicaPtr.p->createGci[j],
             replicaPtr.p->replicaLastGci[j]);
 #endif
-	if (replicaPtr.p->createGci[j] <= startGci &&
+        if (replicaPtr.p->createGci[j] <= startGci &&
             replicaPtr.p->replicaLastGci[j] >= stopGci &&
             replicaPtr.p->maxGciCompleted[idx] <=
-              SYSFILE->lastCompletedGCI[replicaPtr.p->procNode] &&
+                SYSFILE->lastCompletedGCI[replicaPtr.p->procNode] &&
             replicaPtr.p->maxGciStarted[idx] <=
-              SYSFILE->lastCompletedGCI[replicaPtr.p->procNode])
-	{
-	  maxLcpId = replicaPtr.p->lcpId[idx];
-	  maxLcpIndex = idx;
+                SYSFILE->lastCompletedGCI[replicaPtr.p->procNode]) {
+          maxLcpId = replicaPtr.p->lcpId[idx];
+          maxLcpIndex = idx;
           gci = replicaPtr.p->replicaLastGci[j];
-	  goto done;
-	}
+          goto done;
+        }
       }
     }
   }
-  
-  idx = 2; // backward compat code
+
+  idx = 2;  // backward compat code
 #if defined VM_TRACE || defined ERROR_INSERT
   g_eventLogger->info("- scanning idx: %d lcpId: %d", idx,
                       replicaPtr.p->lcpId[idx]);
 #endif
-  if (replicaPtr.p->lcpStatus[idx] == ZVALID) 
-  {
+  if (replicaPtr.p->lcpStatus[idx] == ZVALID) {
     Uint32 startGci = replicaPtr.p->maxGciCompleted[idx] + 1;
     Uint32 stopGci = replicaPtr.p->maxGciStarted[idx];
     Int32 j = replicaPtr.p->noCrashedReplicas - 1;
-    for (;j >= 0; j--)
-    {
+    for (; j >= 0; j--) {
 #if defined VM_TRACE || defined ERROR_INSERT
       g_eventLogger->info(
           "crashed replica: %d(%d) replica(createGci: %u lastGci: %d )", j,
@@ -8021,10 +7365,9 @@ Dbdih::nr_start_fragment(Signal* signal,
       if (replicaPtr.p->createGci[j] <= startGci &&
           replicaPtr.p->replicaLastGci[j] >= stopGci &&
           replicaPtr.p->maxGciCompleted[idx] <=
-            SYSFILE->lastCompletedGCI[replicaPtr.p->procNode] &&
+              SYSFILE->lastCompletedGCI[replicaPtr.p->procNode] &&
           replicaPtr.p->maxGciStarted[idx] <=
-            SYSFILE->lastCompletedGCI[replicaPtr.p->procNode])
-      {
+              SYSFILE->lastCompletedGCI[replicaPtr.p->procNode]) {
         maxLcpId = replicaPtr.p->lcpId[idx];
         maxLcpIndex = idx;
         gci = replicaPtr.p->replicaLastGci[j];
@@ -8032,14 +7375,13 @@ Dbdih::nr_start_fragment(Signal* signal,
       }
     }
   }
-  
+
 done:
-  
+
   StartFragReq *req = (StartFragReq *)signal->getDataPtrSend();
   req->requestInfo = StartFragReq::SFR_RESTORE_LCP;
   req->nodeRestorableGci = takeOverPtr.p->restorableGci;
-  if (maxLcpIndex == ~ (Uint32) 0)
-  {
+  if (maxLcpIndex == ~(Uint32)0) {
     /**
      * we didn't find a local LCP that we can restore
      */
@@ -8055,8 +7397,7 @@ done:
     req->fragId = takeOverPtr.p->toCurrentFragid;
     req->noOfLogNodes = 0;
 
-    if (c_2pass_inr && cstarttype == NodeState::ST_INITIAL_NODE_RESTART)
-    {
+    if (c_2pass_inr && cstarttype == NodeState::ST_INITIAL_NODE_RESTART) {
       /**
        * Check if we can make 2-phase copy
        *   1) non-transaction, (after we rebuild indexes)
@@ -8067,8 +7408,7 @@ done:
        *       supports this
        */
 
-      if (takeOverPtr.p->startGci == 0)
-      {
+      if (takeOverPtr.p->startGci == 0) {
         jam();
         /**
          * Set a startGci to currently lastCompletedGCI of master
@@ -8087,38 +7427,30 @@ done:
       Uint32 nodes[MAX_REPLICAS];
       extractNodeInfo(jamBuffer(), fragPtr.p, nodes);
 
-      req->lqhLogNode[0] = nodes[0]; // Source
+      req->lqhLogNode[0] = nodes[0];  // Source
       req->requestInfo = StartFragReq::SFR_COPY_FRAG;
       replicaPtr.p->m_restorable_gci = takeOverPtr.p->startGci;
     }
 
-    if (req->requestInfo == StartFragReq::SFR_RESTORE_LCP)
-    {
+    if (req->requestInfo == StartFragReq::SFR_RESTORE_LCP) {
       g_eventLogger->debug("node: %d tab: %d frag: %d no lcp to restore",
                            takeOverPtr.p->toStartingNode,
                            takeOverPtr.p->toCurrentTabref,
                            takeOverPtr.p->toCurrentFragid);
-    }
-    else
-    {
-      g_eventLogger->debug("node: %d tab: %d frag: %d copying data from %u"
-                           " (gci: %u)",
-                           takeOverPtr.p->toStartingNode,
-                           takeOverPtr.p->toCurrentTabref,
-                           takeOverPtr.p->toCurrentFragid,
-                           req->lqhLogNode[0],
-                           takeOverPtr.p->startGci);
+    } else {
+      g_eventLogger->debug(
+          "node: %d tab: %d frag: %d copying data from %u"
+          " (gci: %u)",
+          takeOverPtr.p->toStartingNode, takeOverPtr.p->toCurrentTabref,
+          takeOverPtr.p->toCurrentFragid, req->lqhLogNode[0],
+          takeOverPtr.p->startGci);
     }
 
     BlockReference ref = numberToRef(DBLQH, takeOverPtr.p->toStartingNode);
-    sendSignal(ref, GSN_START_FRAGREQ, signal, 
-	       StartFragReq::SignalLength, JBB);
-  }
-  else
-  {
+    sendSignal(ref, GSN_START_FRAGREQ, signal, StartFragReq::SignalLength, JBB);
+  } else {
     jam();
-    if (gci != restorableGCI)
-    {
+    if (gci != restorableGCI) {
       Ptr<TabRecord> tabPtr;
       tabPtr.i = takeOverPtr.p->toCurrentTabref;
       ptrAss(tabPtr, tabRecord);
@@ -8130,22 +7462,18 @@ done:
     ndbassert(gci == restorableGCI);
     replicaPtr.p->m_restorable_gci = gci;
     Uint32 startGci = replicaPtr.p->maxGciCompleted[maxLcpIndex] + 1;
-    if (startGci > gci)
-      startGci = gci;
-    g_eventLogger->debug("Requesting start of fragment: "
-             "node: %d tab: %d frag: %d restore lcp: %u(idx: %u)"
-             " maxGciStarted: %u maxGciCompleted: %u (restorable:"
-             " %u(%u) newestRestorableGCI: %u)",
-             takeOverPtr.p->toStartingNode,
-             takeOverPtr.p->toCurrentTabref,
-             takeOverPtr.p->toCurrentFragid,
-	     maxLcpId,
-             maxLcpIndex,
-	     replicaPtr.p->maxGciStarted[maxLcpIndex],
-	     replicaPtr.p->maxGciCompleted[maxLcpIndex],
-	     restorableGCI,
-	     SYSFILE->lastCompletedGCI[takeOverPtr.p->toStartingNode],
-	     SYSFILE->newestRestorableGCI);
+    if (startGci > gci) startGci = gci;
+    g_eventLogger->debug(
+        "Requesting start of fragment: "
+        "node: %d tab: %d frag: %d restore lcp: %u(idx: %u)"
+        " maxGciStarted: %u maxGciCompleted: %u (restorable:"
+        " %u(%u) newestRestorableGCI: %u)",
+        takeOverPtr.p->toStartingNode, takeOverPtr.p->toCurrentTabref,
+        takeOverPtr.p->toCurrentFragid, maxLcpId, maxLcpIndex,
+        replicaPtr.p->maxGciStarted[maxLcpIndex],
+        replicaPtr.p->maxGciCompleted[maxLcpIndex], restorableGCI,
+        SYSFILE->lastCompletedGCI[takeOverPtr.p->toStartingNode],
+        SYSFILE->newestRestorableGCI);
 
     StartFragReq *req = (StartFragReq *)signal->getDataPtrSend();
     req->userPtr = 0;
@@ -8160,20 +7488,16 @@ done:
     req->lastGci[0] = gci;
 
     BlockReference ref = numberToRef(DBLQH, takeOverPtr.p->toStartingNode);
-    sendSignal(ref, GSN_START_FRAGREQ, signal, 
-	       StartFragReq::SignalLength, JBB);
+    sendSignal(ref, GSN_START_FRAGREQ, signal, StartFragReq::SignalLength, JBB);
 
-    if (startGci < takeOverPtr.p->startGci)
-    {
+    if (startGci < takeOverPtr.p->startGci) {
       jam();
       takeOverPtr.p->startGci = startGci;
     }
   }
 }
 
-void
-Dbdih::nr_run_redo(Signal* signal, TakeOverRecordPtr takeOverPtr)
-{
+void Dbdih::nr_run_redo(Signal *signal, TakeOverRecordPtr takeOverPtr) {
   /**
    * sendSTART_RECREQ uses m_sr_nodes
    *   and for TO during SR, we don't want to modify it
@@ -8184,67 +7508,62 @@ Dbdih::nr_run_redo(Signal* signal, TakeOverRecordPtr takeOverPtr)
   m_sr_nodes.set(takeOverPtr.p->toStartingNode);
 
   Uint32 save_keepGCI = SYSFILE->keepGCI;
-  if (takeOverPtr.p->startGci < SYSFILE->keepGCI)
-  {
+  if (takeOverPtr.p->startGci < SYSFILE->keepGCI) {
     jam();
     SYSFILE->keepGCI = takeOverPtr.p->startGci;
     g_eventLogger->info("GSN_START_RECREQ keepGci: %u (%u)",
                         takeOverPtr.p->startGci, save_keepGCI);
   }
 
-  g_eventLogger->info("All start fragments sent, requesting LDM to restore"
-                      " all fragments and to execute the REDO log to bring"
-                      " the database to an off-line but consistent state");
+  g_eventLogger->info(
+      "All start fragments sent, requesting LDM to restore"
+      " all fragments and to execute the REDO log to bring"
+      " the database to an off-line but consistent state");
 
   takeOverPtr.p->toCurrentTabref = 0;
   takeOverPtr.p->toCurrentFragid = 0;
   takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_RUN_REDO;
   sendSTART_RECREQ(signal, takeOverPtr.p->toStartingNode, takeOverPtr.i);
 
-  m_sr_nodes = save; // restore
+  m_sr_nodes = save;  // restore
   SYSFILE->keepGCI = save_keepGCI;
 }
 
-void
-Dbdih::nr_start_logging(Signal* signal, TakeOverRecordPtr takeOverPtr)
-{
-  Uint32 loopCount = 0 ;
+void Dbdih::nr_start_logging(Signal *signal, TakeOverRecordPtr takeOverPtr) {
+  Uint32 loopCount = 0;
   TabRecordPtr tabPtr;
-  while (loopCount++ < 100)
-  {
+  while (loopCount++ < 100) {
     tabPtr.i = takeOverPtr.p->toCurrentTabref;
-    if (tabPtr.i >= ctabFileSize)
-    {
+    if (tabPtr.i >= ctabFileSize) {
       jam();
       g_eventLogger->debug("Copy thread %u complete",
-                          takeOverPtr.p->m_copy_thread_id);
-      if (!thread_takeover_completed(signal, takeOverPtr))
-      {
+                           takeOverPtr.p->m_copy_thread_id);
+      if (!thread_takeover_completed(signal, takeOverPtr)) {
         jam();
         return;
       }
       check_take_over_completed_correctly();
-      g_eventLogger->info("Make On-line Database recoverable by waiting"
-                          " for LCP Starting, all parallel threads have"
-                          " now ceased their activity and we have a single"
-                          " wait state here");
+      g_eventLogger->info(
+          "Make On-line Database recoverable by waiting"
+          " for LCP Starting, all parallel threads have"
+          " now ceased their activity and we have a single"
+          " wait state here");
 
       takeOverPtr = c_mainTakeOverPtr;
 
       takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_END_TO;
-      EndToReq* req = (EndToReq*)signal->getDataPtrSend();
+      EndToReq *req = (EndToReq *)signal->getDataPtrSend();
       req->senderData = takeOverPtr.i;
       req->senderRef = reference();
       req->flags = takeOverPtr.p->m_flags;
-      sendSignal(cmasterdihref, GSN_END_TOREQ,
-                 signal, EndToReq::SignalLength, JBB);
+      sendSignal(cmasterdihref, GSN_END_TOREQ, signal, EndToReq::SignalLength,
+                 JBB);
       sendEND_TOREP(signal, takeOverPtr.p->toStartingNode);
       return;
     }
     ptrAss(tabPtr, tabRecord);
     if (tabPtr.p->tabStatus != TabRecord::TS_ACTIVE ||
-	tabPtr.p->tabStorage != TabRecord::ST_NORMAL)
-    {
+        tabPtr.p->tabStorage != TabRecord::ST_NORMAL) {
       jam();
       takeOverPtr.p->toCurrentFragid = 0;
       takeOverPtr.p->toCurrentTabref++;
@@ -8252,8 +7571,7 @@ Dbdih::nr_start_logging(Signal* signal, TakeOverRecordPtr takeOverPtr)
     }
 
     Uint32 fragId = takeOverPtr.p->toCurrentFragid;
-    if (fragId >= tabPtr.p->totalfragments)
-    {
+    if (fragId >= tabPtr.p->totalfragments) {
       jam();
       takeOverPtr.p->toCurrentFragid = 0;
       takeOverPtr.p->toCurrentTabref++;
@@ -8263,11 +7581,8 @@ Dbdih::nr_start_logging(Signal* signal, TakeOverRecordPtr takeOverPtr)
     getFragstore(tabPtr.p, fragId, fragPtr);
 
     Uint32 instanceKey = dihGetInstanceKey(fragPtr);
-    if (!check_takeover_thread(takeOverPtr,
-                               fragPtr,
-                               tabPtr.i,
-                               instanceKey))
-    {
+    if (!check_takeover_thread(takeOverPtr, fragPtr, tabPtr.i,
+                               instanceKey)) {
       jam();
       /**
        * We are scanning for fragment replicas to take over, but this replica
@@ -8280,24 +7595,21 @@ Dbdih::nr_start_logging(Signal* signal, TakeOverRecordPtr takeOverPtr)
 
     ReplicaRecordPtr loopReplicaPtr;
     loopReplicaPtr.i = fragPtr.p->storedReplicas;
-    while (loopReplicaPtr.i != RNIL64)
-    {
+    while (loopReplicaPtr.i != RNIL64) {
       ndbrequire(c_replicaRecordPool.getPtr(loopReplicaPtr));
-      if (loopReplicaPtr.p->procNode == takeOverPtr.p->toStartingNode)
-      {
+      if (loopReplicaPtr.p->procNode == takeOverPtr.p->toStartingNode) {
         jam();
         ndbrequire(loopReplicaPtr.p->procNode == getOwnNodeId());
         takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_SL_COPY_ACTIVE;
-        Uint32 instanceNo = getInstanceNo(takeOverPtr.p->toStartingNode,
-                                          instanceKey);
-        BlockReference lqhRef = numberToRef(DBLQH, instanceNo,
-                                            takeOverPtr.p->toStartingNode);
+        Uint32 instanceNo =
+            getInstanceNo(takeOverPtr.p->toStartingNode, instanceKey);
+        BlockReference lqhRef =
+            numberToRef(DBLQH, instanceNo, takeOverPtr.p->toStartingNode);
 
         DEB_COPY_ACTIVE(("COPY_ACTIVEREQ: takeOverPtr.i: %u, tab(%u,%u)",
-                         takeOverPtr.i,
-                         takeOverPtr.p->toCurrentTabref,
+                         takeOverPtr.i, takeOverPtr.p->toCurrentTabref,
                          takeOverPtr.p->toCurrentFragid));
-        CopyActiveReq * const req = (CopyActiveReq *)&signal->theData[0];
+        CopyActiveReq *const req = (CopyActiveReq *)&signal->theData[0];
         req->userPtr = takeOverPtr.i;
         req->userRef = reference();
         req->tableId = takeOverPtr.p->toCurrentTabref;
@@ -8307,9 +7619,7 @@ Dbdih::nr_start_logging(Signal* signal, TakeOverRecordPtr takeOverPtr)
         sendSignal(lqhRef, GSN_COPY_ACTIVEREQ, signal,
                    CopyActiveReq::SignalLength, JBB);
         return;
-      }
-      else
-      {
+      } else {
         jam();
         loopReplicaPtr.i = loopReplicaPtr.p->nextPool;
       }
@@ -8358,7 +7668,7 @@ Dbdih::nr_start_logging(Signal* signal, TakeOverRecordPtr takeOverPtr)
  * After completing the update of the fragment state we are removed as active
  * thread and placed back in the list
  * c_activeTakeOverList
- * 
+ *
  * We proceed with the next fragment until we're out of fragments to handle
  * for this thread.
  *
@@ -8400,55 +7710,45 @@ Dbdih::nr_start_logging(Signal* signal, TakeOverRecordPtr takeOverPtr)
  * no thread should be active and only the main record should remain.
  */
 
-
-void
-Dbdih::sendStartTo(Signal* signal, TakeOverRecordPtr takeOverPtr)
-{
+void Dbdih::sendStartTo(Signal *signal, TakeOverRecordPtr takeOverPtr) {
   takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_START_TO;
-  
-  StartToReq* req = (StartToReq*)signal->getDataPtrSend();
+
+  StartToReq *req = (StartToReq *)signal->getDataPtrSend();
   req->senderData = takeOverPtr.i;
   req->senderRef = reference();
   req->startingNodeId = takeOverPtr.p->toStartingNode;
-  sendSignal(cmasterdihref, GSN_START_TOREQ, 
-             signal, StartToReq::SignalLength, JBB);
+  sendSignal(cmasterdihref, GSN_START_TOREQ, signal, StartToReq::SignalLength,
+             JBB);
 }
 
-void
-Dbdih::execSTART_TOREF(Signal* signal)
-{
+void Dbdih::execSTART_TOREF(Signal *signal) {
   jamEntry();
 
-  StartToRef* ref = (StartToRef*)signal->getDataPtr();
+  StartToRef *ref = (StartToRef *)signal->getDataPtr();
   Uint32 errCode = ref->errorCode;
-  (void)errCode; // TODO check for "valid" error
+  (void)errCode;  // TODO check for "valid" error
 
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, ref->senderData));
-  
+
   signal->theData[0] = DihContinueB::ZSEND_START_TO;
   signal->theData[1] = takeOverPtr.i;
-  
-  sendSignalWithDelay(reference(), GSN_CONTINUEB,
-                      signal, 5000, 2);
+
+  sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 2);
 }
 
 /**
  * We have completed one thread's communication with the master and we're
  * ready to start off another which have been queued.
  */
-void
-Dbdih::start_next_takeover_thread(Signal *signal)
-{
+void Dbdih::start_next_takeover_thread(Signal *signal) {
   TakeOverRecordPtr takeOverPtr;
   bool dequeued_from_commit_take_over = true;
   bool dequeued_from_start_take_over = false;
 
-  if (!c_queued_for_commit_takeover_list.removeFirst(takeOverPtr))
-  {
+  if (!c_queued_for_commit_takeover_list.removeFirst(takeOverPtr)) {
     dequeued_from_commit_take_over = false;
-    if (!c_queued_for_start_takeover_list.removeFirst(takeOverPtr))
-    {
+    if (!c_queued_for_start_takeover_list.removeFirst(takeOverPtr)) {
       jam();
       /**
        * No threads are queued up for master communication, so we can
@@ -8464,49 +7764,37 @@ Dbdih::start_next_takeover_thread(Signal *signal)
   }
   c_activeThreadTakeOverPtr = takeOverPtr;
   g_eventLogger->debug("New active takeover thread: %u, state: %u",
-                      takeOverPtr.i,
-                      takeOverPtr.p->toSlaveStatus);
+                       takeOverPtr.i, takeOverPtr.p->toSlaveStatus);
   if (takeOverPtr.p->toSlaveStatus ==
-        TakeOverRecord::TO_QUEUED_UPDATE_BEFORE_STORED)
-  {
+      TakeOverRecord::TO_QUEUED_UPDATE_BEFORE_STORED) {
     jam();
     ndbrequire(dequeued_from_start_take_over);
     takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_BEFORE_STORED;
     sendUpdateTo(signal, takeOverPtr);
-  }
-  else if (takeOverPtr.p->toSlaveStatus ==
-             TakeOverRecord::TO_QUEUED_UPDATE_BEFORE_COMMIT)
-  {
+  } else if (takeOverPtr.p->toSlaveStatus ==
+             TakeOverRecord::TO_QUEUED_UPDATE_BEFORE_COMMIT) {
     jam();
     ndbrequire(dequeued_from_commit_take_over);
     takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_BEFORE_COMMIT;
     sendUpdateTo(signal, takeOverPtr);
-  }
-  else if (takeOverPtr.p->toSlaveStatus ==
-             TakeOverRecord::TO_QUEUED_SL_UPDATE_FRAG_STATE)
-  {
+  } else if (takeOverPtr.p->toSlaveStatus ==
+             TakeOverRecord::TO_QUEUED_SL_UPDATE_FRAG_STATE) {
     jam();
     ndbrequire(dequeued_from_commit_take_over);
     takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_SL_UPDATE_FRAG_STATE;
-    sendUpdateFragStateReq(signal,
-                           takeOverPtr.p->startGci,
-                           UpdateFragStateReq::START_LOGGING,
-                           takeOverPtr);
+    sendUpdateFragStateReq(signal, takeOverPtr.p->startGci,
+                           UpdateFragStateReq::START_LOGGING, takeOverPtr);
     return;
-  }
-  else
-  {
+  } else {
     ndbabort();
   }
   return;
 }
 
-void
-Dbdih::init_takeover_thread(TakeOverRecordPtr takeOverPtr,
-                            TakeOverRecordPtr mainTakeOverPtr,
-                            Uint32 number_of_copy_threads,
-                            Uint32 thread_id)
-{
+void Dbdih::init_takeover_thread(TakeOverRecordPtr takeOverPtr,
+                                 TakeOverRecordPtr mainTakeOverPtr,
+                                 Uint32 number_of_copy_threads,
+                                 Uint32 thread_id) {
   c_activeTakeOverList.addFirst(takeOverPtr);
   takeOverPtr.p->m_copy_thread_id = thread_id;
   takeOverPtr.p->m_number_of_copy_threads = number_of_copy_threads;
@@ -8532,20 +7820,16 @@ Dbdih::init_takeover_thread(TakeOverRecordPtr takeOverPtr,
   takeOverPtr.p->toCurrentReplica = RNIL64;
 }
 
-void
-Dbdih::send_continueb_start_next_copy(Signal *signal,
-                                      TakeOverRecordPtr takeOverPtr)
-{
+void Dbdih::send_continueb_start_next_copy(Signal *signal,
+                                           TakeOverRecordPtr takeOverPtr) {
   signal->theData[0] = DihContinueB::ZTO_START_COPY_FRAG;
   signal->theData[1] = takeOverPtr.i;
   sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
 }
 
-void
-Dbdih::execSTART_TOCONF(Signal* signal)
-{
+void Dbdih::execSTART_TOCONF(Signal *signal) {
   jamEntry();
-  StartToConf * conf = (StartToConf*)signal->getDataPtr();
+  StartToConf *conf = (StartToConf *)signal->getDataPtr();
 
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, conf->senderData));
@@ -8571,8 +7855,7 @@ Dbdih::execSTART_TOCONF(Signal* signal)
    */
 
   c_mainTakeOverPtr = takeOverPtr;
-  c_mainTakeOverPtr.p->m_number_of_copy_threads =
-    c_max_takeover_copy_threads;
+  c_mainTakeOverPtr.p->m_number_of_copy_threads = c_max_takeover_copy_threads;
   c_mainTakeOverPtr.p->m_copy_threads_completed = 0;
   c_activeThreadTakeOverPtr.i = RNIL;
   check_take_over_completed_correctly();
@@ -8592,8 +7875,7 @@ Dbdih::execSTART_TOCONF(Signal* signal)
     }
   }
 
-  for (Uint32 i = 0; i < c_max_takeover_copy_threads; i++)
-  {
+  for (Uint32 i = 0; i < c_max_takeover_copy_threads; i++) {
     /**
      * We will break the rule of not starting more than 4 signals from one
      * signal here. The reason is that we know that eventually we will start
@@ -8604,20 +7886,16 @@ Dbdih::execSTART_TOCONF(Signal* signal)
      */
     jam();
     ndbrequire(c_takeOverPool.seize(takeOverPtr));
-    init_takeover_thread(takeOverPtr,
-                         c_mainTakeOverPtr,
-                         c_max_takeover_copy_threads,
-                         i);
+    init_takeover_thread(takeOverPtr, c_mainTakeOverPtr,
+                         c_max_takeover_copy_threads, i);
     send_continueb_start_next_copy(signal, takeOverPtr);
   }
 }
 
-bool
-Dbdih::check_takeover_thread(TakeOverRecordPtr takeOverPtr,
-                             FragmentstorePtr fragPtr,
-                             Uint32 tableId,
-                             Uint32 fragmentReplicaInstanceKey)
-{
+bool Dbdih::check_takeover_thread(TakeOverRecordPtr takeOverPtr,
+                                  FragmentstorePtr fragPtr,
+                                  Uint32 tableId,
+                             Uint32 fragmentReplicaInstanceKey) {
   ndbassert(fragmentReplicaInstanceKey != 0);
   fragmentReplicaInstanceKey--;
   /**
@@ -8640,26 +7918,21 @@ Dbdih::check_takeover_thread(TakeOverRecordPtr takeOverPtr,
   else
   {
     Uint32 lqhWorkers = getNodeInfo(takeOverPtr.p->toStartingNode).m_lqh_workers;
-    lqhWorkers = MIN(lqhWorkers,
-                     getNodeInfo(nodes[0]).m_lqh_workers);
+    lqhWorkers = MIN(lqhWorkers,   getNodeInfo(nodes[0]).m_lqh_workers);
     lqhWorkers = MAX(lqhWorkers, 1);
     instanceId = fragmentReplicaInstanceKey % lqhWorkers;
   }
   if ((instanceId % takeOverPtr.p->m_number_of_copy_threads) ==
-      takeOverPtr.p->m_copy_thread_id)
-  {
+      takeOverPtr.p->m_copy_thread_id) {
     jam();
     return true;
-  }
-  else
-  {
+  } else {
     jam();
     return false;
   }
 }
 
-void Dbdih::startNextCopyFragment(Signal* signal, Uint32 takeOverPtrI)
-{
+void Dbdih::startNextCopyFragment(Signal *signal, Uint32 takeOverPtrI) {
   TabRecordPtr tabPtr;
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, takeOverPtrI));
@@ -8668,7 +7941,7 @@ void Dbdih::startNextCopyFragment(Signal* signal, Uint32 takeOverPtrI)
   loopCount = 0;
   if (ERROR_INSERTED(7159)) {
     loopCount = 100;
-  }//if
+  }  // if
   while (loopCount++ < 100) {
     tabPtr.i = takeOverPtr.p->toCurrentTabref;
     if (tabPtr.i >= ctabFileSize) {
@@ -8676,14 +7949,14 @@ void Dbdih::startNextCopyFragment(Signal* signal, Uint32 takeOverPtrI)
       CRASH_INSERTION(7136);
       toCopyCompletedLab(signal, takeOverPtr);
       return;
-    }//if
+    }  // if
     ptrAss(tabPtr, tabRecord);
-    if (tabPtr.p->tabStatus != TabRecord::TS_ACTIVE){
+    if (tabPtr.p->tabStatus != TabRecord::TS_ACTIVE) {
       jam();
       takeOverPtr.p->toCurrentFragid = 0;
       takeOverPtr.p->toCurrentTabref++;
       continue;
-    }//if
+    }  // if
     if (tabPtr.p->m_calc_primary_replicas)
     {
       jam();
@@ -8717,9 +7990,7 @@ void Dbdih::startNextCopyFragment(Signal* signal, Uint32 takeOverPtrI)
     Uint32 instanceKey = dihGetInstanceKey(fragPtr);
     if (!check_takeover_thread(takeOverPtr,
                                fragPtr,
-                               tabPtr.i,
-                               instanceKey))
-    {
+                               tabPtr.i, instanceKey)) {
       /**
        * We are scanning for fragment replicas to take over, but this replica
        * was not ours to take over, it will be handled by another take over
@@ -8737,34 +8008,33 @@ void Dbdih::startNextCopyFragment(Signal* signal, Uint32 takeOverPtrI)
       ndbrequire(c_replicaRecordPool.getPtr(loopReplicaPtr));
       if (loopReplicaPtr.p->procNode == takeOverPtr.p->toFailedNode) {
         jam();
-	/* ----------------------------------------------------------------- */
-	/* WE HAVE FOUND A REPLICA THAT BELONGED THE FAILED NODE THAT NEEDS  */
-	/* TAKE OVER. WE TAKE OVER THIS REPLICA TO THE NEW NODE.             */
-	/* ----------------------------------------------------------------- */
+        /* ----------------------------------------------------------------- */
+        /* WE HAVE FOUND A REPLICA THAT BELONGED THE FAILED NODE THAT NEEDS  */
+        /* TAKE OVER. WE TAKE OVER THIS REPLICA TO THE NEW NODE.             */
+        /* ----------------------------------------------------------------- */
         takeOverPtr.p->toCurrentReplica = loopReplicaPtr.i;
         toCopyFragLab(signal, takeOverPtr.i);
         return;
       } else if (loopReplicaPtr.p->procNode == takeOverPtr.p->toStartingNode) {
         jam();
-	/* ----------------------------------------------------------------- */
-	/* WE HAVE OBVIOUSLY STARTED TAKING OVER THIS WITHOUT COMPLETING IT. */
-	/* WE NEED TO COMPLETE THE TAKE OVER OF THIS REPLICA.                */
-	/* ----------------------------------------------------------------- */
+        /* ----------------------------------------------------------------- */
+        /* WE HAVE OBVIOUSLY STARTED TAKING OVER THIS WITHOUT COMPLETING IT. */
+        /* WE NEED TO COMPLETE THE TAKE OVER OF THIS REPLICA.                */
+        /* ----------------------------------------------------------------- */
         takeOverPtr.p->toCurrentReplica = loopReplicaPtr.i;
         toCopyFragLab(signal, takeOverPtr.i);
         return;
       } else {
         jam();
         loopReplicaPtr.i = loopReplicaPtr.p->nextPool;
-      }//if
-    }//while
+      }  // if
+    }    // while
     takeOverPtr.p->toCurrentFragid++;
-  }//while
+  }  // while
   send_continueb_start_next_copy(signal, takeOverPtr);
-}//Dbdih::startNextCopyFragment()
+}  // Dbdih::startNextCopyFragment()
 
-void Dbdih::toCopyFragLab(Signal* signal, Uint32 takeOverPtrI) 
-{
+void Dbdih::toCopyFragLab(Signal *signal, Uint32 takeOverPtrI) {
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, takeOverPtrI));
 
@@ -8772,53 +8042,49 @@ void Dbdih::toCopyFragLab(Signal* signal, Uint32 takeOverPtrI)
    * Inform starting node that TakeOver is about to start
    */
   g_eventLogger->debug("PREPARE_COPY_FRAGREQ: tab: %u, frag: %u, thread: %u",
-    takeOverPtr.p->toCurrentTabref,
-    takeOverPtr.p->toCurrentFragid,
-    takeOverPtr.i);
+                       takeOverPtr.p->toCurrentTabref,
+                       takeOverPtr.p->toCurrentFragid, takeOverPtr.i);
   TabRecordPtr tabPtr;
   tabPtr.i = takeOverPtr.p->toCurrentTabref;
   ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
-  
+
   FragmentstorePtr fragPtr;
   getFragstore(tabPtr.p, takeOverPtr.p->toCurrentFragid, fragPtr);
   Uint32 nodes[MAX_REPLICAS];
   extractNodeInfo(jamBuffer(), fragPtr.p, nodes);
   takeOverPtr.p->toCopyNode = nodes[0];
-  
-  PrepareCopyFragReq* req= (PrepareCopyFragReq*)signal->getDataPtrSend();
+
+  PrepareCopyFragReq *req = (PrepareCopyFragReq *)signal->getDataPtrSend();
   req->senderRef = reference();
   req->senderData = takeOverPtrI;
   req->tableId = takeOverPtr.p->toCurrentTabref;
   req->fragId = takeOverPtr.p->toCurrentFragid;
   req->copyNodeId = takeOverPtr.p->toCopyNode;
-  req->startingNodeId = takeOverPtr.p->toStartingNode; // Dst
+  req->startingNodeId = takeOverPtr.p->toStartingNode;  // Dst
 
   Uint32 instanceKey = dihGetInstanceKey(req->tableId, req->fragId);
-  Uint32 instanceNo = getInstanceNo(takeOverPtr.p->toStartingNode,
-                                    instanceKey);
+  Uint32 instanceNo = getInstanceNo(takeOverPtr.p->toStartingNode, instanceKey);
   Uint32 ref = numberToRef(DBLQH, instanceNo, takeOverPtr.p->toStartingNode);
-  
-  sendSignal(ref, GSN_PREPARE_COPY_FRAG_REQ, signal, 
+
+  sendSignal(ref, GSN_PREPARE_COPY_FRAG_REQ, signal,
              PrepareCopyFragReq::SignalLength, JBB);
-  
+
   takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_PREPARE_COPY;
 }
 
-void
-Dbdih::execPREPARE_COPY_FRAG_REF(Signal* signal)
-{
+void Dbdih::execPREPARE_COPY_FRAG_REF(Signal *signal) {
   jamEntry();
-  PrepareCopyFragRef ref = *(PrepareCopyFragRef*)signal->getDataPtr();
+  PrepareCopyFragRef ref = *(PrepareCopyFragRef *)signal->getDataPtr();
 
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, ref.senderData));
 
   ndbrequire(takeOverPtr.p->toSlaveStatus == TakeOverRecord::TO_PREPARE_COPY);
-  
+
   /**
    * Treat this as copy frag ref
    */
-  CopyFragRef * cfref = (CopyFragRef*)signal->getDataPtrSend();
+  CopyFragRef *cfref = (CopyFragRef *)signal->getDataPtrSend();
   cfref->userPtr = ref.senderData;
   cfref->startingNodeId = ref.startingNodeId;
   cfref->errorCode = ref.errorCode;
@@ -8829,11 +8095,9 @@ Dbdih::execPREPARE_COPY_FRAG_REF(Signal* signal)
   execCOPY_FRAGREF(signal);
 }
 
-void
-Dbdih::execPREPARE_COPY_FRAG_CONF(Signal* signal)
-{
+void Dbdih::execPREPARE_COPY_FRAG_CONF(Signal *signal) {
   jamEntry();
-  PrepareCopyFragConf conf = *(PrepareCopyFragConf*)signal->getDataPtr();
+  PrepareCopyFragConf conf = *(PrepareCopyFragConf *)signal->getDataPtr();
 
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, conf.senderData));
@@ -8846,8 +8110,7 @@ Dbdih::execPREPARE_COPY_FRAG_CONF(Signal* signal)
   getFragstore(tabPtr.p, takeOverPtr.p->toCurrentFragid, fragPtr);
   findReplica(replicaPtr, fragPtr.p, getOwnNodeId(), true);
   if (signal->length() == PrepareCopyFragConf::SignalLength &&
-      replicaPtr.p->m_restorable_gci == 0)
-  {
+      replicaPtr.p->m_restorable_gci == 0) {
     /**
      * DIH had no knowledge about any LCPs, but LQH found a
      * recoverable LCP so let's use that one instead of no one
@@ -8861,8 +8124,7 @@ Dbdih::execPREPARE_COPY_FRAG_CONF(Signal* signal)
 
   c_activeTakeOverList.remove(takeOverPtr);
 
-  if (c_activeThreadTakeOverPtr.i != RNIL)
-  {
+  if (c_activeThreadTakeOverPtr.i != RNIL) {
     /**
      * There is already an active take over thread that is performing an
      * update of its fragment replica state through the master. We will
@@ -8873,7 +8135,7 @@ Dbdih::execPREPARE_COPY_FRAG_CONF(Signal* signal)
     g_eventLogger->debug("QUEUED_UPDATE_BEFORE_STORED, inst: %u",
                          takeOverPtr.i);
     takeOverPtr.p->toSlaveStatus =
-      TakeOverRecord::TO_QUEUED_UPDATE_BEFORE_STORED;
+        TakeOverRecord::TO_QUEUED_UPDATE_BEFORE_STORED;
     c_queued_for_start_takeover_list.addLast(takeOverPtr);
     return;
   }
@@ -8891,57 +8153,52 @@ Dbdih::execPREPARE_COPY_FRAG_CONF(Signal* signal)
   sendUpdateTo(signal, takeOverPtr);
 }
 
-void
-Dbdih::sendUpdateTo(Signal* signal, TakeOverRecordPtr takeOverPtr)
-{
+void Dbdih::sendUpdateTo(Signal *signal, TakeOverRecordPtr takeOverPtr) {
   /**
    * We must refer to the main takeover thread towards the master node,
    * but we take the data from the thread which is currently active.
    */
   g_eventLogger->debug("UPDATE_TOREQ: tab:%u, frag:%u, thread:%u, state:%u",
-    takeOverPtr.p->toCurrentTabref,
-    takeOverPtr.p->toCurrentFragid,
-    takeOverPtr.i,
-    takeOverPtr.p->toSlaveStatus);
-  UpdateToReq* req = (UpdateToReq*)signal->getDataPtrSend();
+                       takeOverPtr.p->toCurrentTabref,
+                       takeOverPtr.p->toCurrentFragid, takeOverPtr.i,
+                       takeOverPtr.p->toSlaveStatus);
+  UpdateToReq *req = (UpdateToReq *)signal->getDataPtrSend();
   req->senderData = c_mainTakeOverPtr.i;
   req->senderRef = reference();
   req->startingNodeId = takeOverPtr.p->toStartingNode;
   req->copyNodeId = takeOverPtr.p->toCopyNode;
   req->tableId = takeOverPtr.p->toCurrentTabref;
   req->fragmentNo = takeOverPtr.p->toCurrentFragid;
-  switch(takeOverPtr.p->toSlaveStatus){
-  case TakeOverRecord::TO_UPDATE_BEFORE_STORED:
-    jam();
-    req->requestType = UpdateToReq::BEFORE_STORED;
-    break;
-  case TakeOverRecord::TO_UPDATE_AFTER_STORED:
-    req->requestType = UpdateToReq::AFTER_STORED;
-    break;
-  case TakeOverRecord::TO_UPDATE_BEFORE_COMMIT:
-    jam();
-    req->requestType = UpdateToReq::BEFORE_COMMIT_STORED;
-    break;
-  case TakeOverRecord::TO_UPDATE_AFTER_COMMIT:
-    jam();
-    req->requestType = UpdateToReq::AFTER_COMMIT_STORED;
-    break;
-  default:
-    jamLine(takeOverPtr.p->toSlaveStatus);
-    ndbabort();
+  switch (takeOverPtr.p->toSlaveStatus) {
+    case TakeOverRecord::TO_UPDATE_BEFORE_STORED:
+      jam();
+      req->requestType = UpdateToReq::BEFORE_STORED;
+      break;
+    case TakeOverRecord::TO_UPDATE_AFTER_STORED:
+      req->requestType = UpdateToReq::AFTER_STORED;
+      break;
+    case TakeOverRecord::TO_UPDATE_BEFORE_COMMIT:
+      jam();
+      req->requestType = UpdateToReq::BEFORE_COMMIT_STORED;
+      break;
+    case TakeOverRecord::TO_UPDATE_AFTER_COMMIT:
+      jam();
+      req->requestType = UpdateToReq::AFTER_COMMIT_STORED;
+      break;
+    default:
+      jamLine(takeOverPtr.p->toSlaveStatus);
+      ndbabort();
   }
-  sendSignal(cmasterdihref, GSN_UPDATE_TOREQ, 
-             signal, UpdateToReq::SignalLength, JBB);
+  sendSignal(cmasterdihref, GSN_UPDATE_TOREQ, signal, UpdateToReq::SignalLength,
+             JBB);
 }
 
-void
-Dbdih::execUPDATE_TOREF(Signal* signal)
-{
+void Dbdih::execUPDATE_TOREF(Signal *signal) {
   jamEntry();
-  UpdateToRef* ref = (UpdateToRef*)signal->getDataPtr();
+  UpdateToRef *ref = (UpdateToRef *)signal->getDataPtr();
   Uint32 errCode = ref->errorCode;
   Uint32 extra = ref->extra;
-  (void)errCode; // TODO check for "valid" error
+  (void)errCode;  // TODO check for "valid" error
 
   TakeOverRecordPtr takeOverPtr;
 
@@ -8950,25 +8207,20 @@ Dbdih::execUPDATE_TOREF(Signal* signal)
 
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, c_activeThreadTakeOverPtr.i));
 
-  g_eventLogger->info("UPDATE_TOREF: thread: %u, state:%u"
-                      ", errCode: %u, extra: %u",
-                      takeOverPtr.i,
-                      takeOverPtr.p->toSlaveStatus,
-                      errCode,
-                      extra);
+  g_eventLogger->info(
+      "UPDATE_TOREF: thread: %u, state:%u"
+      ", errCode: %u, extra: %u",
+      takeOverPtr.i, takeOverPtr.p->toSlaveStatus, errCode, extra);
   signal->theData[0] = DihContinueB::ZSEND_UPDATE_TO;
   signal->theData[1] = takeOverPtr.i;
-  
-  sendSignalWithDelay(reference(), GSN_CONTINUEB,
-                      signal, 5000, 2);
+
+  sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 2);
 }
 
-void
-Dbdih::execUPDATE_TOCONF(Signal* signal)
-{
+void Dbdih::execUPDATE_TOCONF(Signal *signal) {
   jamEntry();
 
-  UpdateToConf* conf = (UpdateToConf*)signal->getDataPtr();
+  UpdateToConf *conf = (UpdateToConf *)signal->getDataPtr();
 
   TakeOverRecordPtr takeOverPtr;
 
@@ -8981,59 +8233,54 @@ Dbdih::execUPDATE_TOCONF(Signal* signal)
   ndbrequire(c_activeThreadTakeOverPtr.i != RNIL);
 
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, c_activeThreadTakeOverPtr.i));
- 
-  g_eventLogger->debug("UPDATE_TOCONF: thread: %u, state:%u",
-                       takeOverPtr.i,
+
+  g_eventLogger->debug("UPDATE_TOCONF: thread: %u, state:%u", takeOverPtr.i,
                        takeOverPtr.p->toSlaveStatus);
-  switch(takeOverPtr.p->toSlaveStatus){
-  case TakeOverRecord::TO_UPDATE_BEFORE_STORED:
-    jam();
-    
-    CRASH_INSERTION(7154);
-    
-    takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_FRAG_STATE_STORED;
-    sendUpdateFragStateReq(signal,
-                           ZINIT_CREATE_GCI,
-                           UpdateFragStateReq::STORED,
-                           takeOverPtr);
-    return;
-  case TakeOverRecord::TO_UPDATE_AFTER_STORED:
-    jam();
+  switch (takeOverPtr.p->toSlaveStatus) {
+    case TakeOverRecord::TO_UPDATE_BEFORE_STORED:
+      jam();
 
-    CRASH_INSERTION(7195);
+      CRASH_INSERTION(7154);
 
-    takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_COPY_FRAG;
-    toStartCopyFrag(signal, takeOverPtr);
-    return;
-  case TakeOverRecord::TO_UPDATE_BEFORE_COMMIT:
-    jam();
+      takeOverPtr.p->toSlaveStatus =
+          TakeOverRecord::TO_UPDATE_FRAG_STATE_STORED;
+      sendUpdateFragStateReq(signal, ZINIT_CREATE_GCI,
+                             UpdateFragStateReq::STORED, takeOverPtr);
+      return;
+    case TakeOverRecord::TO_UPDATE_AFTER_STORED:
+      jam();
 
-    CRASH_INSERTION(7196);
+      CRASH_INSERTION(7195);
 
-    takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_FRAG_STATE_COMMIT;
-    sendUpdateFragStateReq(signal,
-                           takeOverPtr.p->startGci, 
-                           UpdateFragStateReq::COMMIT_STORED,
-                           takeOverPtr);
-    return;
-  case TakeOverRecord::TO_UPDATE_AFTER_COMMIT:
-    jam();
+      takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_COPY_FRAG;
+      toStartCopyFrag(signal, takeOverPtr);
+      return;
+    case TakeOverRecord::TO_UPDATE_BEFORE_COMMIT:
+      jam();
 
-    CRASH_INSERTION(7197);
+      CRASH_INSERTION(7196);
 
-    start_next_takeover_thread(signal);
-    c_activeTakeOverList.addFirst(takeOverPtr);
-    takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_SELECTING_NEXT;
-    startNextCopyFragment(signal, takeOverPtr.i);
-    return;
-  default:
-    ndbabort();
+      takeOverPtr.p->toSlaveStatus =
+          TakeOverRecord::TO_UPDATE_FRAG_STATE_COMMIT;
+      sendUpdateFragStateReq(signal, takeOverPtr.p->startGci,
+                             UpdateFragStateReq::COMMIT_STORED, takeOverPtr);
+      return;
+    case TakeOverRecord::TO_UPDATE_AFTER_COMMIT:
+      jam();
+
+      CRASH_INSERTION(7197);
+
+      start_next_takeover_thread(signal);
+      c_activeTakeOverList.addFirst(takeOverPtr);
+      takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_SELECTING_NEXT;
+      startNextCopyFragment(signal, takeOverPtr.i);
+      return;
+    default:
+      ndbabort();
   }
 }
 
-void
-Dbdih::toStartCopyFrag(Signal* signal, TakeOverRecordPtr takeOverPtr)
-{
+void Dbdih::toStartCopyFrag(Signal *signal, TakeOverRecordPtr takeOverPtr) {
   TabRecordPtr tabPtr;
   tabPtr.i = takeOverPtr.p->toCurrentTabref;
   ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
@@ -9045,16 +8292,15 @@ Dbdih::toStartCopyFrag(Signal* signal, TakeOverRecordPtr takeOverPtr)
 
   ReplicaRecordPtr replicaPtr;
   findReplica(replicaPtr, fragPtr.p, getOwnNodeId(), true);
-  
+
   Uint32 gci = replicaPtr.p->m_restorable_gci;
-  replicaPtr.p->m_restorable_gci = 0; // used in union...
-  
+  replicaPtr.p->m_restorable_gci = 0;  // used in union...
+
   Uint32 instanceKey = dihGetInstanceKey(tabPtr.i, fragId);
-  Uint32 instanceNo = getInstanceNo(takeOverPtr.p->toCopyNode,
-                                    instanceKey);
-  BlockReference ref = numberToRef(DBLQH, instanceNo,
-                                   takeOverPtr.p->toCopyNode);
-  CopyFragReq * const copyFragReq = (CopyFragReq *)&signal->theData[0];
+  Uint32 instanceNo = getInstanceNo(takeOverPtr.p->toCopyNode, instanceKey);
+  BlockReference ref =
+      numberToRef(DBLQH, instanceNo, takeOverPtr.p->toCopyNode);
+  CopyFragReq *const copyFragReq = (CopyFragReq *)&signal->theData[0];
   copyFragReq->userPtr = takeOverPtr.i;
   copyFragReq->userRef = reference();
   copyFragReq->tableId = tabPtr.i;
@@ -9063,33 +8309,28 @@ Dbdih::toStartCopyFrag(Signal* signal, TakeOverRecordPtr takeOverPtr)
   copyFragReq->schemaVersion = tabPtr.p->schemaVersion;
   copyFragReq->distributionKey = fragPtr.p->distributionKey;
   copyFragReq->gci = gci;
-  Uint32 len = copyFragReq->nodeCount = 
-    extractNodeInfo(jamBuffer(), fragPtr.p, 
-                    copyFragReq->nodeList);
+  Uint32 len = copyFragReq->nodeCount =
+      extractNodeInfo(jamBuffer(), fragPtr.p, copyFragReq->nodeList);
   copyFragReq->nodeList[len] = takeOverPtr.p->maxPage;
-  copyFragReq->nodeList[len+1] = CopyFragReq::CFR_TRANSACTIONAL;
-  sendSignal(ref, GSN_COPY_FRAGREQ, signal,
-             CopyFragReq::SignalLength + len, JBB);
+  copyFragReq->nodeList[len + 1] = CopyFragReq::CFR_TRANSACTIONAL;
+  sendSignal(ref, GSN_COPY_FRAGREQ, signal, CopyFragReq::SignalLength + len,
+             JBB);
   g_eventLogger->debug("COPY_FRAGREQ: thread: %u, tab: %u, frag: %u",
-    takeOverPtr.i,
-    takeOverPtr.p->toCurrentTabref,
-    takeOverPtr.p->toCurrentFragid);
+                       takeOverPtr.i, takeOverPtr.p->toCurrentTabref,
+                       takeOverPtr.p->toCurrentFragid);
   start_next_takeover_thread(signal);
   c_active_copy_threads_list.addFirst(takeOverPtr);
-}//Dbdih::toStartCopy()
+}  // Dbdih::toStartCopy()
 
-void Dbdih::sendUpdateFragStateReq(Signal* signal,
-                                   Uint32 startGci,
+void Dbdih::sendUpdateFragStateReq(Signal *signal, Uint32 startGci,
                                    Uint32 replicaType,
-                                   TakeOverRecordPtr takeOverPtr)
-{
+                                   TakeOverRecordPtr takeOverPtr) {
   sendLoopMacro(UPDATE_FRAG_STATEREQ, nullRoutine, RNIL);
-  
+
   g_eventLogger->debug("Update frag state for inst:%u,tab:%u,frag:%u",
-                       takeOverPtr.i,
-                       takeOverPtr.p->toCurrentTabref,
+                       takeOverPtr.i, takeOverPtr.p->toCurrentTabref,
                        takeOverPtr.p->toCurrentFragid);
-  UpdateFragStateReq * const req = (UpdateFragStateReq *)&signal->theData[0];
+  UpdateFragStateReq *const req = (UpdateFragStateReq *)&signal->theData[0];
   req->senderData = takeOverPtr.i;
   req->senderRef = reference();
   req->tableId = takeOverPtr.p->toCurrentTabref;
@@ -9124,59 +8365,56 @@ void Dbdih::sendUpdateFragStateReq(Signal* signal,
     sendSignal(ref, GSN_UPDATE_FRAG_STATEREQ, signal, len, JBB);
     nodePtr.i = nodePtr.p->nextNode;
   } while (nodePtr.i != RNIL);
-}//Dbdih::sendUpdateFragStateReq()
+}  // Dbdih::sendUpdateFragStateReq()
 
-void Dbdih::execUPDATE_FRAG_STATECONF(Signal* signal) 
-{
+void Dbdih::execUPDATE_FRAG_STATECONF(Signal *signal) {
   jamEntry();
   CRASH_INSERTION(7148);
-  UpdateFragStateConf * conf = (UpdateFragStateConf *)&signal->theData[0];
-  
+  UpdateFragStateConf *conf = (UpdateFragStateConf *)&signal->theData[0];
+
   TakeOverRecordPtr takeOverPtr;
 
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, conf->senderData));
 
   g_eventLogger->debug("Updated frag state for inst:%u,tab:%u,frag:%u,state:%u",
-                       takeOverPtr.i,
-                       takeOverPtr.p->toCurrentTabref,
+                       takeOverPtr.i, takeOverPtr.p->toCurrentTabref,
                        takeOverPtr.p->toCurrentFragid,
                        takeOverPtr.p->toSlaveStatus);
   receiveLoopMacro(UPDATE_FRAG_STATEREQ, conf->sendingNodeId);
-  
-  switch(takeOverPtr.p->toSlaveStatus){
-  case TakeOverRecord::TO_UPDATE_FRAG_STATE_STORED:
-    jam();
-    CRASH_INSERTION(7198);
-    takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_AFTER_STORED;
-    break;
-  case TakeOverRecord::TO_UPDATE_FRAG_STATE_COMMIT:
-    jam();
-    CRASH_INSERTION(7199);
-    takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_AFTER_COMMIT;
-    break;
-  case TakeOverRecord::TO_SL_UPDATE_FRAG_STATE:
-    jam();
-    //CRASH_INSERTION(
-    start_next_takeover_thread(signal);
-    c_active_copy_threads_list.addFirst(takeOverPtr);
-    g_eventLogger->debug("UPDATE_FRAG_STATE completed: thread: %u",
-      takeOverPtr.i);
-    takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_START_LOGGING;
-    takeOverPtr.p->toCurrentFragid++;
-    signal->theData[0] = DihContinueB::ZTO_START_LOGGING;
-    signal->theData[1] = takeOverPtr.i;
-    sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-    return;
-  default:
-    jamLine(takeOverPtr.p->toSlaveStatus);
-    ndbabort();
+
+  switch (takeOverPtr.p->toSlaveStatus) {
+    case TakeOverRecord::TO_UPDATE_FRAG_STATE_STORED:
+      jam();
+      CRASH_INSERTION(7198);
+      takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_AFTER_STORED;
+      break;
+    case TakeOverRecord::TO_UPDATE_FRAG_STATE_COMMIT:
+      jam();
+      CRASH_INSERTION(7199);
+      takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_AFTER_COMMIT;
+      break;
+    case TakeOverRecord::TO_SL_UPDATE_FRAG_STATE:
+      jam();
+      // CRASH_INSERTION(
+      start_next_takeover_thread(signal);
+      c_active_copy_threads_list.addFirst(takeOverPtr);
+      g_eventLogger->debug("UPDATE_FRAG_STATE completed: thread: %u",
+                           takeOverPtr.i);
+      takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_START_LOGGING;
+      takeOverPtr.p->toCurrentFragid++;
+      signal->theData[0] = DihContinueB::ZTO_START_LOGGING;
+      signal->theData[1] = takeOverPtr.i;
+      sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
+      return;
+    default:
+      jamLine(takeOverPtr.p->toSlaveStatus);
+      ndbabort();
   }
   sendUpdateTo(signal, takeOverPtr);
-}//Dbdih::execUPDATE_FRAG_STATECONF()
+}  // Dbdih::execUPDATE_FRAG_STATECONF()
 
-void Dbdih::execCOPY_FRAGREF(Signal* signal) 
-{
-  const CopyFragRef * const ref = (CopyFragRef *)&signal->theData[0];
+void Dbdih::execCOPY_FRAGREF(Signal *signal) {
+  const CopyFragRef *const ref = (CopyFragRef *)&signal->theData[0];
   jamEntry();
   Uint32 takeOverPtrI = ref->userPtr;
   Uint32 startingNodeId = ref->startingNodeId;
@@ -9195,19 +8433,17 @@ void Dbdih::execCOPY_FRAGREF(Signal* signal)
   // as a serious failure and crash the starting node.
   //--------------------------------------------------------------------------
   BlockReference cntrRef = calcNdbCntrBlockRef(startingNodeId);
-  SystemError * const sysErr = (SystemError*)&signal->theData[0];
+  SystemError *const sysErr = (SystemError *)&signal->theData[0];
   sysErr->errorCode = SystemError::CopyFragRefError;
   sysErr->errorRef = reference();
   sysErr->data[0] = errorCode;
   sysErr->data[1] = 0;
-  sendSignal(cntrRef, GSN_SYSTEM_ERROR, signal, 
-	     SystemError::SignalLength, JBB);
+  sendSignal(cntrRef, GSN_SYSTEM_ERROR, signal, SystemError::SignalLength, JBB);
   return;
-}//Dbdih::execCOPY_FRAGREF()
+}  // Dbdih::execCOPY_FRAGREF()
 
-void Dbdih::execCOPY_FRAGCONF(Signal* signal) 
-{
-  const CopyFragConf * const conf = (CopyFragConf *)&signal->theData[0];
+void Dbdih::execCOPY_FRAGCONF(Signal *signal) {
+  const CopyFragConf *const conf = (CopyFragConf *)&signal->theData[0];
   jamEntry();
   CRASH_INSERTION(7142);
 
@@ -9223,10 +8459,9 @@ void Dbdih::execCOPY_FRAGCONF(Signal* signal)
   ndbrequire(conf->sendingNodeId == takeOverPtr.p->toCopyNode);
   ndbrequire(takeOverPtr.p->toSlaveStatus == TakeOverRecord::TO_COPY_FRAG);
 
-  g_eventLogger->debug("COPY_FRAGCONF: thread: %u, tab(%u,%u)",
-    takeOverPtr.i,
-    takeOverPtr.p->toCurrentTabref,
-    takeOverPtr.p->toCurrentFragid);
+  g_eventLogger->debug("COPY_FRAGCONF: thread: %u, tab(%u,%u)", takeOverPtr.i,
+                       takeOverPtr.p->toCurrentTabref,
+                       takeOverPtr.p->toCurrentFragid);
 
   TabRecordPtr tabPtr;
   tabPtr.i = takeOverPtr.p->toCurrentTabref;
@@ -9235,11 +8470,10 @@ void Dbdih::execCOPY_FRAGCONF(Signal* signal)
   FragmentstorePtr fragPtr;
   getFragstore(tabPtr.p, takeOverPtr.p->toCurrentFragid, fragPtr);
   Uint32 instanceKey = dihGetInstanceKey(fragPtr);
-  Uint32 instanceNo = getInstanceNo(takeOverPtr.p->toStartingNode,
-                                    instanceKey);
-  BlockReference lqhRef = numberToRef(DBLQH, instanceNo,
-                                      takeOverPtr.p->toStartingNode);
-  CopyActiveReq * const req = (CopyActiveReq *)&signal->theData[0];
+  Uint32 instanceNo = getInstanceNo(takeOverPtr.p->toStartingNode, instanceKey);
+  BlockReference lqhRef =
+      numberToRef(DBLQH, instanceNo, takeOverPtr.p->toStartingNode);
+  CopyActiveReq *const req = (CopyActiveReq *)&signal->theData[0];
   req->userPtr = takeOverPtr.i;
   req->userRef = reference();
   req->tableId = takeOverPtr.p->toCurrentTabref;
@@ -9256,14 +8490,13 @@ void Dbdih::execCOPY_FRAGCONF(Signal* signal)
      */
     req->flags |= CopyActiveReq::CAR_NO_WAIT | CopyActiveReq::CAR_NO_LOGGING;
   }
-  
-  sendSignal(lqhRef, GSN_COPY_ACTIVEREQ, signal,
-             CopyActiveReq::SignalLength, JBB);
-  g_eventLogger->debug("COPY_ACTIVEREQ: thread: %u, tab(%u,%u)",
-    takeOverPtr.i,
-    takeOverPtr.p->toCurrentTabref,
-    takeOverPtr.p->toCurrentFragid);
-  
+
+  sendSignal(lqhRef, GSN_COPY_ACTIVEREQ, signal, CopyActiveReq::SignalLength,
+             JBB);
+  g_eventLogger->debug("COPY_ACTIVEREQ: thread: %u, tab(%u,%u)", takeOverPtr.i,
+                       takeOverPtr.p->toCurrentTabref,
+                       takeOverPtr.p->toCurrentFragid);
+
   takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_COPY_ACTIVE;
 
   signal->theData[0] = NDB_LE_NR_CopyFragDone;
@@ -9277,13 +8510,11 @@ void Dbdih::execCOPY_FRAGCONF(Signal* signal)
   sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 8, JBB);
   g_eventLogger->debug("DIH:tab(%u,%u), COPY_FRAGCONF: %u rows inserted",
                        takeOverPtr.p->toCurrentTabref,
-                       takeOverPtr.p->toCurrentFragid,
-                       rows_lo);
-}//Dbdih::execCOPY_FRAGCONF()
+                       takeOverPtr.p->toCurrentFragid, rows_lo);
+}  // Dbdih::execCOPY_FRAGCONF()
 
-void Dbdih::execCOPY_ACTIVECONF(Signal* signal) 
-{
-  const CopyActiveConf * const conf = (CopyActiveConf *)&signal->theData[0];
+void Dbdih::execCOPY_ACTIVECONF(Signal *signal) {
+  const CopyActiveConf *const conf = (CopyActiveConf *)&signal->theData[0];
   jamEntry();
   CRASH_INSERTION(7143);
 
@@ -9295,18 +8526,15 @@ void Dbdih::execCOPY_ACTIVECONF(Signal* signal)
   ndbrequire(checkNodeAlive(conf->startingNodeId));
 
   g_eventLogger->debug("COPY_ACTIVECONF: thread: %u, tab: %u, frag: %u",
-    takeOverPtr.i,
-    takeOverPtr.p->toCurrentTabref,
-    takeOverPtr.p->toCurrentFragid);
+                       takeOverPtr.i, takeOverPtr.p->toCurrentTabref,
+                       takeOverPtr.p->toCurrentFragid);
 
   takeOverPtr.p->startGci = conf->startGci;
 
   c_active_copy_threads_list.remove(takeOverPtr);
 
-  if (takeOverPtr.p->toSlaveStatus == TakeOverRecord::TO_COPY_ACTIVE)
-  {
-    if (c_activeThreadTakeOverPtr.i != RNIL)
-    {
+  if (takeOverPtr.p->toSlaveStatus == TakeOverRecord::TO_COPY_ACTIVE) {
+    if (c_activeThreadTakeOverPtr.i != RNIL) {
       /**
        * There is already an active take over thread that is performing an
        * update of its fragment replica state through the master. We will
@@ -9314,60 +8542,50 @@ void Dbdih::execCOPY_ACTIVECONF(Signal* signal)
        * started as soon as possible.
        */
       g_eventLogger->debug("QUEUED_UPDATE_BEFORE_COMMIT, inst: %u",
-                          takeOverPtr.i);
+                           takeOverPtr.i);
       jam();
       takeOverPtr.p->toSlaveStatus =
-        TakeOverRecord::TO_QUEUED_UPDATE_BEFORE_COMMIT;
+          TakeOverRecord::TO_QUEUED_UPDATE_BEFORE_COMMIT;
       c_queued_for_commit_takeover_list.addLast(takeOverPtr);
       return;
     }
     g_eventLogger->debug("Copy frag active: tab:%u,frag:%u,inst:%u",
-      takeOverPtr.p->toCurrentTabref,
-      takeOverPtr.p->toCurrentFragid,
-      takeOverPtr.i);
+                         takeOverPtr.p->toCurrentTabref,
+                         takeOverPtr.p->toCurrentFragid, takeOverPtr.i);
     jam();
     c_activeThreadTakeOverPtr = takeOverPtr; /* Mark master busy */
     takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_UPDATE_BEFORE_COMMIT;
     sendUpdateTo(signal, takeOverPtr);
-  }
-  else
-  {
+  } else {
     jam();
-    ndbrequire(takeOverPtr.p->toSlaveStatus==
+    ndbrequire(takeOverPtr.p->toSlaveStatus ==
                TakeOverRecord::TO_SL_COPY_ACTIVE);
 
-    if (c_activeThreadTakeOverPtr.i != RNIL)
-    {
+    if (c_activeThreadTakeOverPtr.i != RNIL) {
       jam();
       g_eventLogger->debug("QUEUED_SL_UPDATE_FRAG_STATE, inst: %u",
                            takeOverPtr.i);
       DEB_COPY_ACTIVE(("QUEUED_SL_UPDATE_FRAG_STATE, inst: %u", takeOverPtr.i));
       takeOverPtr.p->toSlaveStatus =
-        TakeOverRecord::TO_QUEUED_SL_UPDATE_FRAG_STATE;
+          TakeOverRecord::TO_QUEUED_SL_UPDATE_FRAG_STATE;
       c_queued_for_commit_takeover_list.addLast(takeOverPtr);
       return;
     }
     c_activeThreadTakeOverPtr = takeOverPtr; /* Mark master busy */
     takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_SL_UPDATE_FRAG_STATE;
     g_eventLogger->debug("Update frag state:inst:%u,tab:%u,frag:%u,state:%u",
-                         takeOverPtr.i,
-                         takeOverPtr.p->toCurrentTabref,
+                         takeOverPtr.i, takeOverPtr.p->toCurrentTabref,
                          takeOverPtr.p->toCurrentFragid,
                          takeOverPtr.p->toSlaveStatus);
     DEB_COPY_ACTIVE(("COPY_ACTIVECONF: takeOverPtr.i: %u, tab(%u,%u)",
-                     takeOverPtr.i,
-                     takeOverPtr.p->toCurrentTabref,
+                     takeOverPtr.i, takeOverPtr.p->toCurrentTabref,
                      takeOverPtr.p->toCurrentFragid));
-    sendUpdateFragStateReq(signal,
-                           takeOverPtr.p->startGci,
-                           UpdateFragStateReq::START_LOGGING,
-                           takeOverPtr);
+    sendUpdateFragStateReq(signal, takeOverPtr.p->startGci,
+                           UpdateFragStateReq::START_LOGGING, takeOverPtr);
   }
-}//Dbdih::execCOPY_ACTIVECONF()
+}  // Dbdih::execCOPY_ACTIVECONF()
 
-void
-Dbdih::check_take_over_completed_correctly()
-{
+void Dbdih::check_take_over_completed_correctly() {
   ndbrequire(c_completed_copy_threads_list.isEmpty());
   ndbrequire(c_activeTakeOverList.isEmpty());
   ndbrequire(c_queued_for_start_takeover_list.isEmpty());
@@ -9383,19 +8601,14 @@ Dbdih::check_take_over_completed_correctly()
    * one for start copy part.
    */
   ndbrequire((c_takeOverPool.getUsed() == 1) ||
-             (cmasterdihref == reference() &&
-              c_takeOverPool.getUsed() == 2));
+             (cmasterdihref == reference() && c_takeOverPool.getUsed() == 2));
 }
 
-void
-Dbdih::release_take_over_threads(void)
-{
+void Dbdih::release_take_over_threads(void) {
   TakeOverRecordPtr takeOverPtr;
-  do
-  {
+  do {
     jam();
-    if (!c_completed_copy_threads_list.removeFirst(takeOverPtr))
-    {
+    if (!c_completed_copy_threads_list.removeFirst(takeOverPtr)) {
       jam();
       break;
     }
@@ -9404,31 +8617,26 @@ Dbdih::release_take_over_threads(void)
   check_take_over_completed_correctly();
 }
 
-bool
-Dbdih::thread_takeover_copy_completed(Signal *signal,
-                                        TakeOverRecordPtr takeOverPtr)
-{
+bool Dbdih::thread_takeover_copy_completed(Signal *signal,
+                                           TakeOverRecordPtr takeOverPtr) {
   c_activeTakeOverList.remove(takeOverPtr);
   c_completed_copy_threads_list.addFirst(takeOverPtr);
   c_mainTakeOverPtr.p->m_copy_threads_completed++;
   if (c_mainTakeOverPtr.p->m_copy_threads_completed ==
-      c_mainTakeOverPtr.p->m_number_of_copy_threads)
-  {
+      c_mainTakeOverPtr.p->m_number_of_copy_threads) {
     /* No more to do, just wait for more threads to complete */
     return true;
   }
   return false;
 }
 
-void Dbdih::toCopyCompletedLab(Signal * signal, TakeOverRecordPtr takeOverPtr)
-{
+void Dbdih::toCopyCompletedLab(Signal *signal, TakeOverRecordPtr takeOverPtr) {
   /**
    * One take over thread has completed its work. We will have to wait for
    * all of the threads to complete here before we can proceed.
    */
   g_eventLogger->debug("Thread %u copy completed", takeOverPtr.i);
-  if (!thread_takeover_copy_completed(signal, takeOverPtr))
-  {
+  if (!thread_takeover_copy_completed(signal, takeOverPtr)) {
     jam();
     return;
   }
@@ -9455,20 +8663,16 @@ void Dbdih::toCopyCompletedLab(Signal * signal, TakeOverRecordPtr takeOverPtr)
     start_thread_takeover_logging(signal);
     return;
   }
-}//Dbdih::toCopyCompletedLab()
+}  // Dbdih::toCopyCompletedLab()
 
-void
-Dbdih::send_continueb_nr_start_logging(Signal *signal,
-                                       TakeOverRecordPtr takeOverPtr)
-{
+void Dbdih::send_continueb_nr_start_logging(Signal *signal,
+                                            TakeOverRecordPtr takeOverPtr) {
   signal->theData[0] = DihContinueB::ZTO_START_LOGGING;
   signal->theData[1] = takeOverPtr.i;
   sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
 }
 
-void
-Dbdih::start_thread_takeover_logging(Signal *signal)
-{
+void Dbdih::start_thread_takeover_logging(Signal *signal) {
   /**
    * Ensure no active thread, all thread takeover records are
    * placed into the c_completed_copy_threads_list and that
@@ -9483,11 +8687,9 @@ Dbdih::start_thread_takeover_logging(Signal *signal)
   ndbrequire(c_mainTakeOverPtr.i != RNIL);
   ndbrequire(!c_completed_copy_threads_list.isEmpty());
   TakeOverRecordPtr takeOverPtr;
-  do
-  {
+  do {
     jam();
-    if (!c_completed_copy_threads_list.removeFirst(takeOverPtr))
-    {
+    if (!c_completed_copy_threads_list.removeFirst(takeOverPtr)) {
       jam();
       break;
     }
@@ -9500,44 +8702,37 @@ Dbdih::start_thread_takeover_logging(Signal *signal)
   } while (1);
 }
 
-bool
-Dbdih::thread_takeover_completed(Signal *signal,
-                                   TakeOverRecordPtr takeOverPtr)
-{
+bool Dbdih::thread_takeover_completed(Signal *signal,
+                                      TakeOverRecordPtr takeOverPtr) {
   c_active_copy_threads_list.remove(takeOverPtr);
   releaseTakeOver(takeOverPtr, false);
   c_mainTakeOverPtr.p->m_copy_threads_completed++;
   if (c_mainTakeOverPtr.p->m_copy_threads_completed ==
-      c_mainTakeOverPtr.p->m_number_of_copy_threads)
-  {
+      c_mainTakeOverPtr.p->m_number_of_copy_threads) {
     return true;
   }
   return false;
 }
 
-void
-Dbdih::execEND_TOREF(Signal* signal)
-{
+void Dbdih::execEND_TOREF(Signal *signal) {
   jamEntry();
-  EndToRef* ref = (EndToRef*)signal->getDataPtr();
-  
+  EndToRef *ref = (EndToRef *)signal->getDataPtr();
+
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, ref->senderData));
 
   ndbabort();
 }
 
-void
-Dbdih::execEND_TOCONF(Signal* signal)
-{
+void Dbdih::execEND_TOCONF(Signal *signal) {
   jamEntry();
-  EndToConf* conf = (EndToConf*)signal->getDataPtr();
-  
+  EndToConf *conf = (EndToConf *)signal->getDataPtr();
+
   CRASH_INSERTION(7144);
-  
+
   TakeOverRecordPtr takeOverPtr;
   ndbrequire(c_takeOverPool.getPtr(takeOverPtr, conf->senderData));
-  
+
   Uint32 senderData = takeOverPtr.p->m_senderData;
   Uint32 senderRef = takeOverPtr.p->m_senderRef;
   Uint32 nodeId = takeOverPtr.p->toStartingNode;
@@ -9545,19 +8740,17 @@ Dbdih::execEND_TOCONF(Signal* signal)
   releaseTakeOver(takeOverPtr, false);
   c_mainTakeOverPtr.i = RNIL;
   c_mainTakeOverPtr.p = NULL;
- 
-  StartCopyConf* ret = (StartCopyConf*)signal->getDataPtrSend();
+
+  StartCopyConf *ret = (StartCopyConf *)signal->getDataPtrSend();
   ret->startingNodeId = nodeId;
   ret->senderData = senderData;
   ret->senderRef = reference();
-  sendSignal(senderRef, GSN_START_COPYCONF, signal, 
-             StartCopyConf::SignalLength, JBB);
+  sendSignal(senderRef, GSN_START_COPYCONF, signal, StartCopyConf::SignalLength,
+             JBB);
 }
 
-void Dbdih::releaseTakeOver(TakeOverRecordPtr takeOverPtr,
-                            bool from_master,
-                            bool skip_check)
-{
+void Dbdih::releaseTakeOver(TakeOverRecordPtr takeOverPtr, bool from_master,
+                            bool skip_check) {
   Uint32 startingNode = takeOverPtr.p->toStartingNode;
   takeOverPtr.p->m_copy_threads_completed = 0;
   takeOverPtr.p->m_number_of_copy_threads = (Uint32)-1;
@@ -9573,8 +8766,7 @@ void Dbdih::releaseTakeOver(TakeOverRecordPtr takeOverPtr,
   takeOverPtr.p->toSlaveStatus = TakeOverRecord::TO_SLAVE_IDLE;
   takeOverPtr.p->toMasterStatus = TakeOverRecord::TO_MASTER_IDLE;
 
-  if (from_master)
-  {
+  if (from_master) {
     jam();
     /**
      * We need to ensure that we don't leave any activeTakeOver
@@ -9593,31 +8785,24 @@ void Dbdih::releaseTakeOver(TakeOverRecordPtr takeOverPtr,
      * has to be taken into account when making the code handle
      * multiple copy nodes per node group.
      */
-    if (!skip_check)
-    {
+    if (!skip_check) {
       jam();
       NodeRecordPtr nodePtr;
       NodeGroupRecordPtr NGPtr;
       nodePtr.i = startingNode;
       ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
       NGPtr.i = nodePtr.p->nodeGroup;
-      if (NGPtr.i != ZNIL)
-      {
+      if (NGPtr.i != ZNIL) {
         ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
 
-        if (NGPtr.p->activeTakeOver == 0)
-        {
+        if (NGPtr.p->activeTakeOver == 0) {
           jam();
           ndbrequire(NGPtr.p->activeTakeOverCount == 0);
-        }
-        else if (NGPtr.p->activeTakeOver == startingNode)
-        {
+        } else if (NGPtr.p->activeTakeOver == startingNode) {
           jam();
           NGPtr.p->activeTakeOver = 0;
           NGPtr.p->activeTakeOverCount = 0;
-        }
-        else
-        {
+        } else {
           jam();
           /**
            * We arrive here for instance when a takeover is completed
@@ -9631,10 +8816,9 @@ void Dbdih::releaseTakeOver(TakeOverRecordPtr takeOverPtr,
       }
     }
     c_masterActiveTakeOverList.remove(takeOverPtr);
-
   }
   c_takeOverPool.release(takeOverPtr);
-}//Dbdih::releaseTakeOver()
+}  // Dbdih::releaseTakeOver()
 
 /*****************************************************************************/
 /* ------------------------------------------------------------------------- */
@@ -9645,28 +8829,26 @@ void Dbdih::releaseTakeOver(TakeOverRecordPtr takeOverPtr,
 /*       INFORMATION.                                                        */
 /* ------------------------------------------------------------------------- */
 /*****************************************************************************/
-void Dbdih::readGciFileLab(Signal* signal) 
-{
+void Dbdih::readGciFileLab(Signal *signal) {
   FileRecordPtr filePtr;
   filePtr.i = crestartInfoFile[0];
   ptrCheckGuard(filePtr, cfileFileSize, fileRecord);
   filePtr.p->reqStatus = FileRecord::OPENING_GCP;
 
   openFileRo(signal, filePtr);
-}//Dbdih::readGciFileLab()
+}  // Dbdih::readGciFileLab()
 
-void Dbdih::openingGcpLab(Signal* signal, FileRecordPtr filePtr) 
-{
+void Dbdih::openingGcpLab(Signal *signal, FileRecordPtr filePtr) {
   /* ----------------------------------------------------------------------- */
   /*     WE HAVE SUCCESSFULLY OPENED A FILE CONTAINING INFORMATION ABOUT     */
   /*     THE GLOBAL CHECKPOINTS THAT ARE POSSIBLE TO RESTART.                */
   /* ----------------------------------------------------------------------- */
   readRestorableGci(signal, filePtr);
   filePtr.p->reqStatus = FileRecord::READING_GCP;
-}//Dbdih::openingGcpLab()
+}  // Dbdih::openingGcpLab()
 
-void Dbdih::readingGcpLab(Signal* signal, FileRecordPtr filePtr, Uint32 bytes_read)
-{
+void Dbdih::readingGcpLab(Signal *signal, FileRecordPtr filePtr,
+                          Uint32 bytes_read) {
   /* ----------------------------------------------------------------------- */
   /*     WE HAVE NOW SUCCESSFULLY MANAGED TO READ IN THE GLOBAL CHECKPOINT   */
   /*     INFORMATION FROM FILE. LATER WE WILL ADD SOME FUNCTIONALITY THAT    */
@@ -9681,17 +8863,12 @@ void Dbdih::readingGcpLab(Signal* signal, FileRecordPtr filePtr, Uint32 bytes_re
   // Assume all file is read in once.
   Uint32 cdata_size_in_words = bytes_read / 4;
   ndbrequire(cdata_size_in_words > Sysfile::MAGIC_SIZE_v2);
-  if (std::memcmp(&cdata[0],
-                  Sysfile::MAGIC_v2,
-                  Sysfile::MAGIC_SIZE_v2) == 0)
-  {
+  if (std::memcmp(&cdata[0], Sysfile::MAGIC_v2, Sysfile::MAGIC_SIZE_v2) == 0) {
     jam();
     int ret = SYSFILE->unpack_sysfile_format_v2(cdata, &cdata_size_in_words);
     jamLine((Uint16)ret);
     ndbrequire(ret == 0);
-  }
-  else
-  {
+  } else {
     jam();
     ndbrequire(Sysfile::SYSFILE_SIZE32_v1 <= cdata_size_in_words);
     int ret = SYSFILE->unpack_sysfile_format_v1(cdata, &cdata_size_in_words);
@@ -9718,25 +8895,21 @@ void Dbdih::readingGcpLab(Signal* signal, FileRecordPtr filePtr, Uint32 bytes_re
                       globalData.m_restart_seq);
   closeFile(signal, filePtr);
   filePtr.p->reqStatus = FileRecord::CLOSING_GCP;
-}//Dbdih::readingGcpLab()
+}  // Dbdih::readingGcpLab()
 
-void Dbdih::closingGcpLab(Signal* signal, FileRecordPtr filePtr) 
-{
-  if (!SYSFILE->getInitialStartOngoing())
-  {
+void Dbdih::closingGcpLab(Signal *signal, FileRecordPtr filePtr) {
+  if (!SYSFILE->getInitialStartOngoing()) {
     jam();
-    selectMasterCandidateAndSend(signal); 
+    selectMasterCandidateAndSend(signal);
     return;
   } else {
     jam();
     sendDihRestartRef(signal);
     return;
-  }//if
-}//Dbdih::closingGcpLab()
+  }  // if
+}  // Dbdih::closingGcpLab()
 
-void
-Dbdih::sendDihRestartRef(Signal* signal)
-{
+void Dbdih::sendDihRestartRef(Signal *signal) {
   jam();
 
   /**
@@ -9745,27 +8918,23 @@ Dbdih::sendDihRestartRef(Signal* signal)
    */
   NdbNodeBitmask no_nodegroup_mask;
 
-  ndb_mgm_configuration_iterator * iter =
-    m_ctx.m_config.getClusterConfigIterator();
-  for(ndb_mgm_first(iter); ndb_mgm_valid(iter); ndb_mgm_next(iter))
-  {
+  ndb_mgm_configuration_iterator *iter =
+      m_ctx.m_config.getClusterConfigIterator();
+  for (ndb_mgm_first(iter); ndb_mgm_valid(iter); ndb_mgm_next(iter)) {
     jam();
     Uint32 nodeId;
     Uint32 nodeType;
 
-    ndbrequire(!ndb_mgm_get_int_parameter(iter,CFG_NODE_ID, &nodeId));
-    ndbrequire(!ndb_mgm_get_int_parameter(iter,CFG_TYPE_OF_SECTION,
-                                          &nodeType));
+    ndbrequire(!ndb_mgm_get_int_parameter(iter, CFG_NODE_ID, &nodeId));
+    ndbrequire(
+        !ndb_mgm_get_int_parameter(iter, CFG_TYPE_OF_SECTION, &nodeType));
 
-    if (nodeType == NodeInfo::DB)
-    {
+    if (nodeType == NodeInfo::DB) {
       jam();
       Uint32 ng;
-      if (ndb_mgm_get_int_parameter(iter, CFG_DB_NODEGROUP, &ng) == 0)
-      {
+      if (ndb_mgm_get_int_parameter(iter, CFG_DB_NODEGROUP, &ng) == 0) {
         jam();
-        if (ng == NDB_NO_NODEGROUP)
-        {
+        if (ng == NDB_NO_NODEGROUP) {
           no_nodegroup_mask.set(nodeId);
         }
       }
@@ -9775,21 +8944,15 @@ Dbdih::sendDihRestartRef(Signal* signal)
     LinearSectionPtr lsptr[3];
     lsptr[0].p = no_nodegroup_mask.rep.data;
     lsptr[0].sz = no_nodegroup_mask.getPackedLengthInWords();
-    sendSignal(cntrlblockref,
-               GSN_DIH_RESTARTREF,
-               signal,
-               DihRestartRef::SignalLength,
-               JBB,
-               lsptr,
-               1);
+    sendSignal(cntrlblockref, GSN_DIH_RESTARTREF, signal,
+               DihRestartRef::SignalLength, JBB, lsptr, 1);
   }
 }
 
 /* ------------------------------------------------------------------------- */
 /*       SELECT THE MASTER CANDIDATE TO BE USED IN SYSTEM RESTARTS.          */
 /* ------------------------------------------------------------------------- */
-void Dbdih::selectMasterCandidateAndSend(Signal* signal)
-{
+void Dbdih::selectMasterCandidateAndSend(Signal *signal) {
   setNodeGroups();
 
   NodeRecordPtr nodePtr;
@@ -9798,27 +8961,23 @@ void Dbdih::selectMasterCandidateAndSend(Signal* signal)
   NdbNodeBitmask no_nodegroup_mask;
   for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) {
     jam();
-    if (SYSFILE->getNodeStatus(nodePtr.i) == Sysfile::NS_NotDefined)
-    {
+    if (SYSFILE->getNodeStatus(nodePtr.i) == Sysfile::NS_NotDefined) {
       jam();
       continue;
     }
     const Uint32 ng = SYSFILE->getNodeGroup(nodePtr.i);
-    if(ng != NO_NODE_GROUP_ID)
-    {
+    if (ng != NO_NODE_GROUP_ID) {
       jam();
       jamLine(Uint16(ng));
       ndbrequire(ng < MAX_NDB_NODE_GROUPS);
       node_groups[ng]++;
-    }
-    else
-    {
+    } else {
       jam();
       no_nodegroup_mask.set(nodePtr.i);
     }
   }
 
-  DihRestartConf * conf = CAST_PTR(DihRestartConf, signal->getDataPtrSend());
+  DihRestartConf *conf = CAST_PTR(DihRestartConf, signal->getDataPtrSend());
   conf->unused = getOwnNodeId();
   conf->latest_gci = SYSFILE->lastCompletedGCI[getOwnNodeId()];
   conf->latest_lcp_id = SYSFILE->latestLCP_ID;
@@ -9828,35 +8987,28 @@ void Dbdih::selectMasterCandidateAndSend(Signal* signal)
     lsptr[0].sz = no_nodegroup_mask.getPackedLengthInWords();
     no_nodegroup_mask.copyto(NdbNodeBitmask::Size, conf->no_nodegroup_mask);
     ndbrequire(getOwnNodeId() == refToNode(cntrlblockref));
-    sendSignal(cntrlblockref,
-               GSN_DIH_RESTARTCONF,
-               signal,
-               DihRestartConf::SignalLength,
-               JBB,
-               lsptr,
-               1);
+    sendSignal(cntrlblockref, GSN_DIH_RESTARTCONF, signal,
+               DihRestartConf::SignalLength, JBB, lsptr, 1);
   }
-  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
-  {
+  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) {
     jam();
     Uint32 count = node_groups[nodePtr.i];
-    if(count != 0 && count != cnoReplicas){
+    if (count != 0 && count != cnoReplicas) {
       char buf[255];
-      BaseString::snprintf(buf, sizeof(buf), 
-			   "Illegal configuration change."
-			   " Initial start needs to be performed "
-			   " when changing no of replicas (%d != %d)", 
-			   node_groups[nodePtr.i], cnoReplicas);
+      BaseString::snprintf(buf, sizeof(buf),
+                           "Illegal configuration change."
+                           " Initial start needs to be performed "
+                           " when changing no of replicas (%d != %d)",
+                           node_groups[nodePtr.i], cnoReplicas);
       progError(__LINE__, NDBD_EXIT_INVALID_CONFIG, buf);
     }
   }
-}//Dbdih::selectMasterCandidate()
+}  // Dbdih::selectMasterCandidate()
 
 /* ------------------------------------------------------------------------- */
 /*       ERROR HANDLING DURING READING RESTORABLE GCI FROM FILE.             */
 /* ------------------------------------------------------------------------- */
-void Dbdih::openingGcpErrorLab(Signal* signal, FileRecordPtr filePtr) 
-{
+void Dbdih::openingGcpErrorLab(Signal *signal, FileRecordPtr filePtr) {
   filePtr.p->fileStatus = FileRecord::CRASHED;
   filePtr.p->reqStatus = FileRecord::IDLE;
   if (crestartInfoFile[0] == filePtr.i) {
@@ -9878,21 +9030,19 @@ void Dbdih::openingGcpErrorLab(Signal* signal, FileRecordPtr filePtr)
     /*---------------------------------------------------------------------- */
     sendDihRestartRef(signal);
     return;
-  }//if
-}//Dbdih::openingGcpErrorLab()
+  }  // if
+}  // Dbdih::openingGcpErrorLab()
 
-void Dbdih::readingGcpErrorLab(Signal* signal, FileRecordPtr filePtr) 
-{
+void Dbdih::readingGcpErrorLab(Signal *signal, FileRecordPtr filePtr) {
   filePtr.p->fileStatus = FileRecord::CRASHED;
   /* ----------------------------------------------------------------------- */
   /*     WE FAILED IN READING THE FILE AS WELL. WE WILL CLOSE THIS FILE.     */
   /* ----------------------------------------------------------------------- */
   closeFile(signal, filePtr);
   filePtr.p->reqStatus = FileRecord::CLOSING_GCP_CRASH;
-}//Dbdih::readingGcpErrorLab()
+}  // Dbdih::readingGcpErrorLab()
 
-void Dbdih::closingGcpCrashLab(Signal* signal, FileRecordPtr filePtr) 
-{
+void Dbdih::closingGcpCrashLab(Signal *signal, FileRecordPtr filePtr) {
   if (crestartInfoFile[0] == filePtr.i) {
     jam();
     /* --------------------------------------------------------------------- */
@@ -9903,13 +9053,13 @@ void Dbdih::closingGcpCrashLab(Signal* signal, FileRecordPtr filePtr)
     openFileRw(signal, filePtr);
     filePtr.p->reqStatus = FileRecord::OPENING_GCP;
     return;
-  }//if
+  }  // if
   /* ----------------------------------------------------------------------- */
   /*     WE DISCOVERED A FAILURE WITH THE SECOND FILE AS WELL. THIS IS A     */
   /*     SERIOUS PROBLEM. REPORT FAILURE TO NDBCNTR.                         */
   /* ----------------------------------------------------------------------- */
   sendDihRestartRef(signal);
-}//Dbdih::closingGcpCrashLab()
+}  // Dbdih::closingGcpCrashLab()
 
 /*****************************************************************************/
 /* ------------------------------------------------------------------------- */
@@ -9917,20 +9067,18 @@ void Dbdih::closingGcpCrashLab(Signal* signal, FileRecordPtr filePtr)
 /*       THE GLOBAL CHECKPOINTS THAT ARE RESTORABLE.                         */
 /* ------------------------------------------------------------------------- */
 /*****************************************************************************/
-void Dbdih::initGciFilesLab(Signal* signal) 
-{
+void Dbdih::initGciFilesLab(Signal *signal) {
   FileRecordPtr filePtr;
   filePtr.i = crestartInfoFile[0];
   ptrCheckGuard(filePtr, cfileFileSize, fileRecord);
   createFileRw(signal, filePtr);
   filePtr.p->reqStatus = FileRecord::CREATING_GCP;
-}//Dbdih::initGciFilesLab()
+}  // Dbdih::initGciFilesLab()
 
 /* ------------------------------------------------------------------------- */
 /*       GLOBAL CHECKPOINT FILE HAVE BEEN SUCCESSFULLY CREATED.              */
 /* ------------------------------------------------------------------------- */
-void Dbdih::creatingGcpLab(Signal* signal, FileRecordPtr filePtr) 
-{
+void Dbdih::creatingGcpLab(Signal *signal, FileRecordPtr filePtr) {
   if (filePtr.i == crestartInfoFile[0]) {
     jam();
     /* --------------------------------------------------------------------- */
@@ -9950,14 +9098,13 @@ void Dbdih::creatingGcpLab(Signal* signal, FileRecordPtr filePtr)
     ptrCheckGuard(filePtr, cfileFileSize, fileRecord);
     writeRestorableGci(signal, filePtr);
     filePtr.p->reqStatus = FileRecord::WRITE_INIT_GCP;
-  }//if
-}//Dbdih::creatingGcpLab()
+  }  // if
+}  // Dbdih::creatingGcpLab()
 
 /* ------------------------------------------------------------------------- */
 /*       WE HAVE SUCCESSFULLY WRITTEN A GCI FILE.                            */
 /* ------------------------------------------------------------------------- */
-void Dbdih::writeInitGcpLab(Signal* signal, FileRecordPtr filePtr) 
-{
+void Dbdih::writeInitGcpLab(Signal *signal, FileRecordPtr filePtr) {
   filePtr.p->reqStatus = FileRecord::IDLE;
   if (filePtr.i == crestartInfoFile[0]) {
     jam();
@@ -9985,14 +9132,14 @@ void Dbdih::writeInitGcpLab(Signal* signal, FileRecordPtr filePtr)
       jam();
       ndbsttorry10Lab(signal, __LINE__);
       return;
-    }//if
-  }//if
-}//Dbdih::writeInitGcpLab()
+    }  // if
+  }    // if
+}  // Dbdih::writeInitGcpLab()
 
-void Dbdih::log_setNoSend()
-{
-  g_eventLogger->info("Disable send assistance for main thread in large"
-                      " clusters");
+void Dbdih::log_setNoSend() {
+  g_eventLogger->info(
+      "Disable send assistance for main thread in large"
+      " clusters");
 }
 
 /*****************************************************************************/
@@ -10001,16 +9148,14 @@ void Dbdih::log_setNoSend()
 /*---------------------------------------------------------------------------*/
 /*                    LOGIC FOR NODE FAILURE                                 */
 /*---------------------------------------------------------------------------*/
-void Dbdih::execNODE_FAILREP(Signal* signal)
-{
+void Dbdih::execNODE_FAILREP(Signal *signal) {
   Uint32 i;
   Uint32 failedNodes[MAX_NDB_NODES];
   jamEntry();
-  NodeFailRep * const nodeFail = (NodeFailRep *)&signal->theData[0];
+  NodeFailRep *const nodeFail = (NodeFailRep *)&signal->theData[0];
   NdbNodeBitmask allFailed;
 
-  if (signal->getNoOfSections() >= 1)
-  {
+  if (signal->getNoOfSections() >= 1) {
     jam();
     ndbrequire(getNodeInfo(refToNode(signal->getSendersBlockRef())).m_version);
     SegmentedSectionPtr ptr;
@@ -10019,9 +9164,7 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
     ndbrequire(ptr.sz <= NdbNodeBitmask::Size);
     copy(allFailed.rep.data, ptr);
     releaseSections(handle);
-  }
-  else
-  {
+  } else {
     allFailed.assign(NdbNodeBitmask48::Size, nodeFail->theNodes);
   }
 
@@ -10042,59 +9185,52 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
   // The first step is to convert from a bit mask to an array of failed nodes.
   /*-------------------------------------------------------------------------*/
   Uint32 index = 0;
-  for (i = 1; i <= m_max_node_id; i++)
-  {
-    if (allFailed.get(i))
-    {
+  for (i = 1; i <= m_max_node_id; i++) {
+    if (allFailed.get(i)) {
       jamLine(i);
       failedNodes[index] = i;
       index++;
-    }//if
-  }//for
+    }  // if
+  }    // for
   ndbrequire(noOfFailedNodes == index);
   ndbrequire(noOfFailedNodes - 1 < MAX_NDB_NODES);
 
-  sendSignal(DBTC_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(DBTC_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength, JBB,
+             lsptr, 1);
 
-  sendSignal(DBLQH_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(DBLQH_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+             JBB, lsptr, 1);
 
-  sendSignal(DBDICT_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(DBDICT_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+             JBB, lsptr, 1);
 
-  sendSignal(BACKUP_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(BACKUP_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+             JBB, lsptr, 1);
 
-  sendSignal(SUMA_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(SUMA_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength, JBB,
+             lsptr, 1);
 
-  sendSignal(DBUTIL_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(DBUTIL_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+             JBB, lsptr, 1);
 
-  sendSignal(DBTUP_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(DBTUP_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+             JBB, lsptr, 1);
 
-  sendSignal(TSMAN_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(TSMAN_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+             JBB, lsptr, 1);
 
-  sendSignal(LGMAN_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(LGMAN_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+             JBB, lsptr, 1);
 
-  sendSignal(DBSPJ_REF, GSN_NODE_FAILREP, signal,
-             NodeFailRep::SignalLength, JBB, lsptr, 1);
+  sendSignal(DBSPJ_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+             JBB, lsptr, 1);
 
-  if ((globalData.ndbMtQueryWorkers +
-       globalData.ndbMtRecoverThreads) > 0)
-  {
-    sendSignal(DBQLQH_REF, GSN_NODE_FAILREP, signal,
-               NodeFailRep::SignalLength, JBB, lsptr, 1);
-  }
-  else
-  {
+  if ((globalData.ndbMtQueryWorkers + globalData.ndbMtRecoverThreads) > 0) {
+    sendSignal(DBQLQH_REF, GSN_NODE_FAILREP, signal, NodeFailRep::SignalLength,
+               JBB, lsptr, 1);
+  } else {
     /* No query threads, report complete already here */
-    for (i = 0; i < noOfFailedNodes; i++)
-    {
+    for (i = 0; i < noOfFailedNodes; i++) {
       jam();
       NodeRecordPtr TNodePtr;
       TNodePtr.i = failedNodes[i];
@@ -10109,15 +9245,12 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
     }
   }
 
-
-  if (ERROR_INSERTED(7179) || ERROR_INSERTED(7217))
-  {
+  if (ERROR_INSERTED(7179) || ERROR_INSERTED(7217)) {
     CLEAR_ERROR_INSERT_VALUE;
     CLEAR_ERROR_INSERT_EXTRA;
   }
 
-  if (ERROR_INSERTED(7184))
-  {
+  if (ERROR_INSERTED(7184)) {
     SET_ERROR_INSERT_VALUE(7000);
   }
 
@@ -10127,7 +9260,7 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
   // The second step is to update the node status of the failed nodes, remove
   // them from the alive node list and put them into the dead node list. Also
   // update the number of nodes on-line.
-  // We also set certain state variables ensuring that the node no longer is 
+  // We also set certain state variables ensuring that the node no longer is
   // used in transactions and also mark that we received this signal.
   /*-------------------------------------------------------------------------*/
   for (i = 0; i < noOfFailedNodes; i++) {
@@ -10147,21 +9280,20 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
                        TNodePtr.i, __LINE__));
       removeAlive(TNodePtr);
       insertDeadNode(TNodePtr);
-    }//if
-  }//for
+    }  // if
+  }    // for
 
   /*
    * Reset default fragments per node which may depend the LDM count of all
    * alive nodes.
    */
-  if (m_use_classic_fragmentation)
-  {
+  if (m_use_classic_fragmentation) {
     c_fragments_per_node_ = 0;
   }
 
   /*-------------------------------------------------------------------------*/
   // Verify that we can continue to operate the cluster. If we cannot we will
-  // not return from checkEscalation. 
+  // not return from checkEscalation.
   /*-------------------------------------------------------------------------*/
   checkEscalation();
 
@@ -10187,8 +9319,7 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
   }//if
 #endif
 
-  if (is_lcp_paused())
-  {
+  if (is_lcp_paused()) {
     /**
      * Stop any LCP pausing, a node has crashed, this implies that also the
      * node that caused us to pause the LCP has crashed.
@@ -10206,15 +9337,13 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
   cmasterdihref = calcDihBlockRef(newMasterId);
   cmasterNodeId = newMasterId;
 
-  if (cmasterNodeId == getOwnNodeId() &&
-      con_lineNodes >= 16)
-  {
+  if (cmasterNodeId == getOwnNodeId() && con_lineNodes >= 16) {
     log_setNoSend();
     setNoSend(1);
   }
   const bool masterTakeOver = (oldMasterId != newMasterId);
   bool check_more_start_lcp = false;
-  for(i = 0; i < noOfFailedNodes; i++) {
+  for (i = 0; i < noOfFailedNodes; i++) {
     NodeRecordPtr failedNodePtr;
     failedNodePtr.i = failedNodes[i];
     ptrCheckGuard(failedNodePtr, MAX_NDB_NODES, nodeRecord);
@@ -10228,8 +9357,7 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
 
       {
         Ptr<TakeOverRecord> takeOverPtr;
-        if (findTakeOver(takeOverPtr, failedNodePtr.i))
-        {
+        if (findTakeOver(takeOverPtr, failedNodePtr.i)) {
           handleTakeOver(signal, takeOverPtr);
         }
       }
@@ -10242,7 +9370,7 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
       /*-----------------------------------------------------------*/
       checkStopPermProxy(signal, failedNodes[i]);
       checkWaitGCPProxy(signal, failedNodes[i]);
-    }//if
+    }  // if
     /*--------------------------------------------------*/
     // Functions that need to be called for all nodes.
     /*--------------------------------------------------*/
@@ -10255,16 +9383,14 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
      *   It modifies failedNodePtr.p->nodeStatus
      */
     failedNodeSynchHandling(signal, failedNodePtr);
-  }//for
-  if(masterTakeOver){
+  }  // for
+  if (masterTakeOver) {
     jam();
     NodeRecordPtr nodePtr;
     g_eventLogger->info("Master takeover started from %u", oldMasterId);
-    for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
-    {
+    for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) {
       ptrAss(nodePtr, nodeRecord);
-      if (nodePtr.p->nodeStatus == NodeRecord::ALIVE)
-      {
+      if (nodePtr.p->nodeStatus == NodeRecord::ALIVE) {
         jamLine(nodePtr.i);
         ndbrequire(nodePtr.p->noOfStartedChkpt == 0);
         ndbrequire(nodePtr.p->noOfQueuedChkpt == 0);
@@ -10273,22 +9399,24 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
     startLcpMasterTakeOver(signal, oldMasterId);
     startGcpMasterTakeOver(signal, oldMasterId);
 
-    if(getNodeState().getNodeRestartInProgress()){
+    if (getNodeState().getNodeRestartInProgress()) {
       jam();
       progError(__LINE__, NDBD_EXIT_MASTER_FAILURE_DURING_NR);
     }
   }
-  
+
   if (isMaster()) {
     jam();
     setNodeRestartInfoBits(signal);
-  }//if
+  }  // if
 
   // Request max lag recalculation to reflect new cluster scale
   // after a node failure
   m_gcp_monitor.m_gcp_save.m_need_max_lag_recalc = true;
   m_gcp_monitor.m_micro_gcp.m_need_max_lag_recalc = true;
-  if (! isMaster()) { setGCPStopTimeouts(signal); }
+  if (!isMaster()) {
+    setGCPStopTimeouts(signal);
+  }
 
   /**
    * Need to check if a node failed that was part of LCP. In this
@@ -10299,77 +9427,70 @@ void Dbdih::execNODE_FAILREP(Signal* signal)
    * case we restart the LCP in DIH entirely, so no need to worry
    * here.
    */
-  if (check_more_start_lcp &&
-      c_lcpMasterTakeOverState.state == LMTOS_IDLE)
-  {
+  if (check_more_start_lcp && c_lcpMasterTakeOverState.state == LMTOS_IDLE) {
     jam();
     ndbrequire(isMaster());
     startNextChkpt(signal);
   }
-}//Dbdih::execNODE_FAILREP()
+}  // Dbdih::execNODE_FAILREP()
 
-void Dbdih::checkCopyTab(Signal* signal, NodeRecordPtr failedNodePtr)
-{
+void Dbdih::checkCopyTab(Signal *signal, NodeRecordPtr failedNodePtr) {
   jam();
 
-  if(c_nodeStartMaster.startNode != failedNodePtr.i){
+  if (c_nodeStartMaster.startNode != failedNodePtr.i) {
     jam();
     return;
   }
 
-  switch(c_nodeStartMaster.m_outstandingGsn){
-  case GSN_COPY_TABREQ:
-    jam();
-    releaseTabPages(failedNodePtr.p->activeTabptr);
-    if (c_COPY_TABREQ_Counter.isWaitingFor(failedNodePtr.i))
-    {
+  switch (c_nodeStartMaster.m_outstandingGsn) {
+    case GSN_COPY_TABREQ:
       jam();
-      c_COPY_TABREQ_Counter.clearWaitingFor(failedNodePtr.i);
-    }
-    c_nodeStartMaster.wait = ZFALSE;
-    break;
-  case GSN_START_INFOREQ:
-  case GSN_START_PERMCONF:
-  case GSN_DICTSTARTREQ:
-  case GSN_COPY_GCIREQ:
-    jam();
-    break;
-  default:
-    g_eventLogger->error("outstanding gsn: %s(%d)",
-                         getSignalName(c_nodeStartMaster.m_outstandingGsn),
-                         c_nodeStartMaster.m_outstandingGsn);
-    ndbabort();
+      releaseTabPages(failedNodePtr.p->activeTabptr);
+      if (c_COPY_TABREQ_Counter.isWaitingFor(failedNodePtr.i)) {
+        jam();
+        c_COPY_TABREQ_Counter.clearWaitingFor(failedNodePtr.i);
+      }
+      c_nodeStartMaster.wait = ZFALSE;
+      break;
+    case GSN_START_INFOREQ:
+    case GSN_START_PERMCONF:
+    case GSN_DICTSTARTREQ:
+    case GSN_COPY_GCIREQ:
+      jam();
+      break;
+    default:
+      g_eventLogger->error("outstanding gsn: %s(%d)",
+                           getSignalName(c_nodeStartMaster.m_outstandingGsn),
+                           c_nodeStartMaster.m_outstandingGsn);
+      ndbabort();
   }
-  
-  if (!c_nodeStartMaster.m_fragmentInfoMutex.isNull())
-  {
+
+  if (!c_nodeStartMaster.m_fragmentInfoMutex.isNull()) {
     jam();
     Mutex mutex(signal, c_mutexMgr, c_nodeStartMaster.m_fragmentInfoMutex);
     mutex.unlock();
   }
 
   nodeResetStart(signal);
-}//Dbdih::checkCopyTab()
+}  // Dbdih::checkCopyTab()
 
-void Dbdih::checkStopMe(Signal* signal, NodeRecordPtr failedNodePtr)
-{
+void Dbdih::checkStopMe(Signal *signal, NodeRecordPtr failedNodePtr) {
   jam();
-  if (c_STOP_ME_REQ_Counter.isWaitingFor(failedNodePtr.i)){
+  if (c_STOP_ME_REQ_Counter.isWaitingFor(failedNodePtr.i)) {
     jam();
     ndbrequire(c_stopMe.clientRef != 0);
-    StopMeConf * const stopMeConf = (StopMeConf *)&signal->theData[0];
+    StopMeConf *const stopMeConf = (StopMeConf *)&signal->theData[0];
     stopMeConf->senderRef = calcDihBlockRef(failedNodePtr.i);
     stopMeConf->senderData = c_stopMe.clientData;
-    sendSignal(reference(), GSN_STOP_ME_CONF, signal, 
-	       StopMeConf::SignalLength, JBB);
-  }//if
-}//Dbdih::checkStopMe()
+    sendSignal(reference(), GSN_STOP_ME_CONF, signal, StopMeConf::SignalLength,
+               JBB);
+  }  // if
+}  // Dbdih::checkStopMe()
 
-void Dbdih::checkStopPermMaster(Signal* signal, NodeRecordPtr failedNodePtr)
-{
-  DihSwitchReplicaRef* const ref = (DihSwitchReplicaRef*)&signal->theData[0];
+void Dbdih::checkStopPermMaster(Signal *signal, NodeRecordPtr failedNodePtr) {
+  DihSwitchReplicaRef *const ref = (DihSwitchReplicaRef *)&signal->theData[0];
   jam();
-  if (c_DIH_SWITCH_REPLICA_REQ_Counter.isWaitingFor(failedNodePtr.i)){
+  if (c_DIH_SWITCH_REPLICA_REQ_Counter.isWaitingFor(failedNodePtr.i)) {
     jam();
     ndbrequire(c_stopPermMaster.clientRef != 0);
     ref->senderNode = failedNodePtr.i;
@@ -10377,112 +9498,106 @@ void Dbdih::checkStopPermMaster(Signal* signal, NodeRecordPtr failedNodePtr)
     sendSignal(reference(), GSN_DIH_SWITCH_REPLICA_REF, signal,
                DihSwitchReplicaRef::SignalLength, JBB);
     return;
-  }//if
-}//Dbdih::checkStopPermMaster()
+  }  // if
+}  // Dbdih::checkStopPermMaster()
 
-void Dbdih::checkStopPermProxy(Signal* signal, NodeId failedNodeId)
-{
+void Dbdih::checkStopPermProxy(Signal *signal, NodeId failedNodeId) {
   jam();
-  if(c_stopPermProxy.clientRef != 0 && 
-     refToNode(c_stopPermProxy.masterRef) == failedNodeId){
-    
+  if (c_stopPermProxy.clientRef != 0 &&
+      refToNode(c_stopPermProxy.masterRef) == failedNodeId) {
     /**
      * The master has failed report to proxy-client
      */
     jam();
-    StopPermRef* const ref = (StopPermRef*)&signal->theData[0];
-    
+    StopPermRef *const ref = (StopPermRef *)&signal->theData[0];
+
     ref->senderData = c_stopPermProxy.clientData;
-    ref->errorCode  = StopPermRef::NF_CausedAbortOfStopProcedure;
+    ref->errorCode = StopPermRef::NF_CausedAbortOfStopProcedure;
     sendSignal(c_stopPermProxy.clientRef, GSN_STOP_PERM_REF, signal, 2, JBB);
     c_stopPermProxy.clientRef = 0;
-  }//if
-}//Dbdih::checkStopPermProxy()
+  }  // if
+}  // Dbdih::checkStopPermProxy()
 
-void 
-Dbdih::handleTakeOver(Signal* signal, TakeOverRecordPtr takeOverPtr)
-{
+void Dbdih::handleTakeOver(Signal *signal, TakeOverRecordPtr takeOverPtr) {
   jam();
-  switch(takeOverPtr.p->toMasterStatus){
-  case TakeOverRecord::TO_MASTER_IDLE:
-    jam();
-    releaseTakeOver(takeOverPtr, true);
-    return;
-  case TakeOverRecord::TO_MUTEX_BEFORE_STORED:
-    jam();
-    /**
-     * Waiting for lock...
-     *   do nothing...will be detected when lock is acquired
-     */
-    return;
-  case TakeOverRecord::TO_MUTEX_BEFORE_LOCKED:
-    jam();
-    /**
-     * Has lock...and NGPtr reservation...
-     */
-    abortTakeOver(signal, takeOverPtr);
-    return;
-  case TakeOverRecord::TO_AFTER_STORED:{
-    jam();
-    /**
-     * No lock...but NGPtr reservation...remove NGPtr reservation
-     */
-    NodeRecordPtr nodePtr;
-    NodeGroupRecordPtr NGPtr;
-    nodePtr.i = takeOverPtr.p->toCopyNode;
-    ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-    NGPtr.i = nodePtr.p->nodeGroup;
-    ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
-    
-    ndbassert(NGPtr.p->activeTakeOver == takeOverPtr.p->toStartingNode);
-    if (NGPtr.p->activeTakeOver == takeOverPtr.p->toStartingNode)
-    {
+  switch (takeOverPtr.p->toMasterStatus) {
+    case TakeOverRecord::TO_MASTER_IDLE:
       jam();
-      NGPtr.p->activeTakeOver = 0;
-      NGPtr.p->activeTakeOverCount = 0;
+      releaseTakeOver(takeOverPtr, true);
+      return;
+    case TakeOverRecord::TO_MUTEX_BEFORE_STORED:
+      jam();
+      /**
+       * Waiting for lock...
+       *   do nothing...will be detected when lock is acquired
+       */
+      return;
+    case TakeOverRecord::TO_MUTEX_BEFORE_LOCKED:
+      jam();
+      /**
+       * Has lock...and NGPtr reservation...
+       */
+      abortTakeOver(signal, takeOverPtr);
+      return;
+    case TakeOverRecord::TO_AFTER_STORED: {
+      jam();
+      /**
+       * No lock...but NGPtr reservation...remove NGPtr reservation
+       */
+      NodeRecordPtr nodePtr;
+      NodeGroupRecordPtr NGPtr;
+      nodePtr.i = takeOverPtr.p->toCopyNode;
+      ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
+      NGPtr.i = nodePtr.p->nodeGroup;
+      ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
+
+      ndbassert(NGPtr.p->activeTakeOver == takeOverPtr.p->toStartingNode);
+      if (NGPtr.p->activeTakeOver == takeOverPtr.p->toStartingNode) {
+        jam();
+        NGPtr.p->activeTakeOver = 0;
+        NGPtr.p->activeTakeOverCount = 0;
+      }
+      releaseTakeOver(takeOverPtr, true);
+      return;
     }
-    releaseTakeOver(takeOverPtr, true);
-    return;
-  }
-  case TakeOverRecord::TO_MUTEX_BEFORE_COMMIT:
-    jam();
-    /**
-     * Waiting for lock...
-     *   do nothing...will be detected when lock is acquired
-     */
-    return;
-  case TakeOverRecord::TO_MUTEX_BEFORE_SWITCH_REPLICA:
-    jam();
-    /**
-     * Waiting for lock...
-     *   do nothing...will be detected when lock is acquired
-     */
-    return;
-  case TakeOverRecord::TO_MUTEX_AFTER_SWITCH_REPLICA:
-    jam();
-    abortTakeOver(signal, takeOverPtr);
-    return;
-  case TakeOverRecord::TO_WAIT_LCP:{
-    jam();
-    /**
-     * Waiting for LCP
-     */
-    NodeRecordPtr nodePtr;
-    nodePtr.i = takeOverPtr.p->toStartingNode;
-    ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);    
-    nodePtr.p->copyCompleted = 0;
-    releaseTakeOver(takeOverPtr, true);
-    return;
-  }
-  default:
-    jamLine(takeOverPtr.p->toMasterStatus);
-    ndbabort();
+    case TakeOverRecord::TO_MUTEX_BEFORE_COMMIT:
+      jam();
+      /**
+       * Waiting for lock...
+       *   do nothing...will be detected when lock is acquired
+       */
+      return;
+    case TakeOverRecord::TO_MUTEX_BEFORE_SWITCH_REPLICA:
+      jam();
+      /**
+       * Waiting for lock...
+       *   do nothing...will be detected when lock is acquired
+       */
+      return;
+    case TakeOverRecord::TO_MUTEX_AFTER_SWITCH_REPLICA:
+      jam();
+      abortTakeOver(signal, takeOverPtr);
+      return;
+    case TakeOverRecord::TO_WAIT_LCP: {
+      jam();
+      /**
+       * Waiting for LCP
+       */
+      NodeRecordPtr nodePtr;
+      nodePtr.i = takeOverPtr.p->toStartingNode;
+      ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
+      nodePtr.p->copyCompleted = 0;
+      releaseTakeOver(takeOverPtr, true);
+      return;
+    }
+    default:
+      jamLine(takeOverPtr.p->toMasterStatus);
+      ndbabort();
   }
 }
 
-void Dbdih::failedNodeSynchHandling(Signal* signal, 
-				    NodeRecordPtr failedNodePtr)
-{
+void Dbdih::failedNodeSynchHandling(Signal *signal,
+                                    NodeRecordPtr failedNodePtr) {
   jam();
   /*----------------------------------------------------*/
   /*       INITIALISE THE VARIABLES THAT KEEP TRACK OF  */
@@ -10492,28 +9607,23 @@ void Dbdih::failedNodeSynchHandling(Signal* signal,
   failedNodePtr.p->dbtcFailCompleted = ZFALSE;
   failedNodePtr.p->dbdihFailCompleted = ZFALSE;
   failedNodePtr.p->dblqhFailCompleted = ZFALSE;
-  if ((globalData.ndbMtQueryWorkers +
-       globalData.ndbMtRecoverThreads) > 0)
-  {
+  if ((globalData.ndbMtQueryWorkers + globalData.ndbMtRecoverThreads) > 0) {
     jam();
     failedNodePtr.p->dbqlqhFailCompleted = ZFALSE;
-  }
-  else
-  {
+  } else {
     jam();
     failedNodePtr.p->dbqlqhFailCompleted = ZTRUE;
   }
-  
+
   failedNodePtr.p->m_NF_COMPLETE_REP.clearWaitingFor();
 
   NodeRecordPtr nodePtr;
-  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
-  {
+  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) {
     ptrAss(nodePtr, nodeRecord);
     if (nodePtr.p->nodeStatus == NodeRecord::ALIVE) {
       jam();
       /**
-       * We'r waiting for nodePtr.i to complete 
+       * We'r waiting for nodePtr.i to complete
        * handling of failedNodePtr.i's death
        */
 
@@ -10521,25 +9631,25 @@ void Dbdih::failedNodeSynchHandling(Signal* signal,
     } else {
       jam();
       if ((nodePtr.p->nodeStatus == NodeRecord::DYING) &&
-          (nodePtr.p->m_NF_COMPLETE_REP.isWaitingFor(failedNodePtr.i))){
+          (nodePtr.p->m_NF_COMPLETE_REP.isWaitingFor(failedNodePtr.i))) {
         jam();
-	/*----------------------------------------------------*/
-	/*       THE NODE FAILED BEFORE REPORTING THE FAILURE */
-	/*       HANDLING COMPLETED ON THIS FAILED NODE.      */
-	/*       REPORT THAT NODE FAILURE HANDLING WAS        */
-	/*       COMPLETED ON THE NEW FAILED NODE FOR THIS    */
-	/*       PARTICULAR OLD FAILED NODE.                  */
-	/*----------------------------------------------------*/
-        NFCompleteRep * const nf = (NFCompleteRep *)&signal->theData[0];
+        /*----------------------------------------------------*/
+        /*       THE NODE FAILED BEFORE REPORTING THE FAILURE */
+        /*       HANDLING COMPLETED ON THIS FAILED NODE.      */
+        /*       REPORT THAT NODE FAILURE HANDLING WAS        */
+        /*       COMPLETED ON THE NEW FAILED NODE FOR THIS    */
+        /*       PARTICULAR OLD FAILED NODE.                  */
+        /*----------------------------------------------------*/
+        NFCompleteRep *const nf = (NFCompleteRep *)&signal->theData[0];
         nf->blockNo = 0;
-        nf->nodeId  = failedNodePtr.i;
+        nf->nodeId = failedNodePtr.i;
         nf->failedNodeId = nodePtr.i;
-	nf->from    = __LINE__;
-        sendSignal(reference(), GSN_NF_COMPLETEREP, signal, 
+        nf->from = __LINE__;
+        sendSignal(reference(), GSN_NF_COMPLETEREP, signal,
                    NFCompleteRep::SignalLength, JBB);
-      }//if
-    }//if
-  }//for
+      }  // if
+    }    // if
+  }      // for
   if (failedNodePtr.p->nodeStatus == NodeRecord::DIED_NOW) {
     jam();
     failedNodePtr.p->nodeStatus = NodeRecord::DYING;
@@ -10556,45 +9666,38 @@ void Dbdih::failedNodeSynchHandling(Signal* signal,
     DEB_NODE_STATUS(("Node[%u].nodeStatus = DEAD, line: %u",
                      failedNodePtr.i, __LINE__));
     /**-----------------------------------------------------------------------
-     * WE HAVE COMPLETED HANDLING THE NODE FAILURE IN DIH. WE CAN REPORT THIS 
+     * WE HAVE COMPLETED HANDLING THE NODE FAILURE IN DIH. WE CAN REPORT THIS
      * TO DIH THAT WAIT FOR THE OTHER BLOCKS TO BE CONCLUDED AS WELL.
      *-----------------------------------------------------------------------*/
-    NFCompleteRep * const nf = (NFCompleteRep *)&signal->theData[0];
-    nf->blockNo      = DBDIH;
-    nf->nodeId       = cownNodeId;
+    NFCompleteRep *const nf = (NFCompleteRep *)&signal->theData[0];
+    nf->blockNo = DBDIH;
+    nf->nodeId = cownNodeId;
     nf->failedNodeId = failedNodePtr.i;
-    nf->from         = __LINE__;
-    sendSignal(reference(), GSN_NF_COMPLETEREP, signal, 
+    nf->from = __LINE__;
+    sendSignal(reference(), GSN_NF_COMPLETEREP, signal,
                NFCompleteRep::SignalLength, JBB);
-  }//if
-}//Dbdih::failedNodeSynchHandling()
+  }  // if
+}  // Dbdih::failedNodeSynchHandling()
 
-bool
-Dbdih::findTakeOver(Ptr<TakeOverRecord> & ptr, Uint32 failedNodeId)
-{
-  for (c_masterActiveTakeOverList.first(ptr); !ptr.isNull(); 
-       c_masterActiveTakeOverList.next(ptr))
-  {
+bool Dbdih::findTakeOver(Ptr<TakeOverRecord> &ptr, Uint32 failedNodeId) {
+  for (c_masterActiveTakeOverList.first(ptr); !ptr.isNull();
+       c_masterActiveTakeOverList.next(ptr)) {
     jam();
-    if (ptr.p->toStartingNode == failedNodeId)
-    {
+    if (ptr.p->toStartingNode == failedNodeId) {
       jam();
       return true;
     }
   }
   ptr.setNull();
   return false;
-}//Dbdih::findTakeOver()
+}  // Dbdih::findTakeOver()
 
-void Dbdih::failedNodeLcpHandling(Signal* signal,
-                                  NodeRecordPtr failedNodePtr,
-                                  bool & check_more_start_lcp)
-{
+void Dbdih::failedNodeLcpHandling(Signal *signal, NodeRecordPtr failedNodePtr,
+                                  bool &check_more_start_lcp) {
   jam();
   const Uint32 nodeId = failedNodePtr.i;
 
-  if (isMaster() && c_lcpState.m_participatingLQH.get(failedNodePtr.i))
-  {
+  if (isMaster() && c_lcpState.m_participatingLQH.get(failedNodePtr.i)) {
     /*----------------------------------------------------*/
     /*  THE NODE WAS INVOLVED IN A LOCAL CHECKPOINT. WE   */
     /* MUST UPDATE THE ACTIVE STATUS TO INDICATE THAT     */
@@ -10606,32 +9709,32 @@ void Dbdih::failedNodeLcpHandling(Signal* signal,
      *   to other nodes
      */
     switch (failedNodePtr.p->activeStatus) {
-    case Sysfile::NS_Active:
-      jam();
-      failedNodePtr.p->activeStatus = Sysfile::NS_ActiveMissed_1;
-      break;
-    case Sysfile::NS_ActiveMissed_1:
-      jam();
-      failedNodePtr.p->activeStatus = Sysfile::NS_ActiveMissed_1;
-      break;
-    case Sysfile::NS_ActiveMissed_2:
-      jam();
-      failedNodePtr.p->activeStatus = Sysfile::NS_NotActive_NotTakenOver;
-      break;
-    case Sysfile::NS_TakeOver:
-      jam();
-      failedNodePtr.p->activeStatus = Sysfile::NS_NotActive_NotTakenOver;
-      break;
-    case Sysfile::NS_Configured:
-      jam();
-      break;
-    default:
-      g_eventLogger->error("activeStatus = %u "
-                           "at failure after NODE_FAILREP of node = %u",
-                           (Uint32) failedNodePtr.p->activeStatus,
-                           failedNodePtr.i);
-      ndbabort();
-    }//switch
+      case Sysfile::NS_Active:
+        jam();
+        failedNodePtr.p->activeStatus = Sysfile::NS_ActiveMissed_1;
+        break;
+      case Sysfile::NS_ActiveMissed_1:
+        jam();
+        failedNodePtr.p->activeStatus = Sysfile::NS_ActiveMissed_1;
+        break;
+      case Sysfile::NS_ActiveMissed_2:
+        jam();
+        failedNodePtr.p->activeStatus = Sysfile::NS_NotActive_NotTakenOver;
+        break;
+      case Sysfile::NS_TakeOver:
+        jam();
+        failedNodePtr.p->activeStatus = Sysfile::NS_NotActive_NotTakenOver;
+        break;
+      case Sysfile::NS_Configured:
+        jam();
+        break;
+      default:
+        g_eventLogger->error(
+            "activeStatus = %u "
+            "at failure after NODE_FAILREP of node = %u",
+            (Uint32)failedNodePtr.p->activeStatus, failedNodePtr.i);
+        ndbabort();
+    }  // switch
     jam();
     /**
      * It could be that the ongoing LCP is only waiting for our node, so
@@ -10642,15 +9745,14 @@ void Dbdih::failedNodeLcpHandling(Signal* signal,
     failedNodePtr.p->noOfQueuedChkpt = 0;
     failedNodePtr.p->noOfStartedChkpt = 0;
     check_more_start_lcp = true;
-  }//if
+  }  // if
 
   c_lcpState.m_participatingDIH.clear(failedNodePtr.i);
   c_lcpState.m_participatingLQH.clear(failedNodePtr.i);
 
   bool wf = c_MASTER_LCPREQ_Counter.isWaitingFor(failedNodePtr.i);
 
-  if(c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.isWaitingFor(failedNodePtr.i))
-  {
+  if (c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.isWaitingFor(failedNodePtr.i)) {
     jam();
     /**
      * Mark the signal as a special signal to distinguish it from a signal
@@ -10659,38 +9761,37 @@ void Dbdih::failedNodeLcpHandling(Signal* signal,
      * that this is a special node failure handling signal which should
      * be allowed to pass through although the node is dead.
      */
-    LcpCompleteRep * rep = (LcpCompleteRep*)signal->getDataPtrSend();
+    LcpCompleteRep *rep = (LcpCompleteRep *)signal->getDataPtrSend();
     rep->nodeId = failedNodePtr.i;
     rep->lcpId = SYSFILE->latestLCP_ID;
     rep->blockNo = DBDIH;
     rep->fromTQ = 0;
-    sendSignal(reference(), GSN_LCP_COMPLETE_REP, signal, 
+    sendSignal(reference(), GSN_LCP_COMPLETE_REP, signal,
                LcpCompleteRep::SignalLengthTQ, JBB);
   }
-   
+
   bool lcp_complete_rep = false;
-  if (!wf)
-  {
+  if (!wf) {
     jam();
- 
+
     /**
      * Check if we're waiting for the failed node's LQH to complete
      *
      * Note that this is ran "before" LCP master take over
      */
-    if(c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(nodeId)){
+    if (c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(nodeId)) {
       jam();
-      
+
       lcp_complete_rep = true;
-      LcpCompleteRep * rep = (LcpCompleteRep*)signal->getDataPtrSend();
-      rep->nodeId  = nodeId;
-      rep->lcpId   = SYSFILE->latestLCP_ID;
+      LcpCompleteRep *rep = (LcpCompleteRep *)signal->getDataPtrSend();
+      rep->nodeId = nodeId;
+      rep->lcpId = SYSFILE->latestLCP_ID;
       rep->blockNo = DBLQH;
       rep->fromTQ = 0;
-      sendSignal(reference(), GSN_LCP_COMPLETE_REP, signal, 
+      sendSignal(reference(), GSN_LCP_COMPLETE_REP, signal,
                  LcpCompleteRep::SignalLengthTQ, JBB);
-      
-      if(c_lcpState.m_LAST_LCP_FRAG_ORD.isWaitingFor(nodeId)){
+
+      if (c_lcpState.m_LAST_LCP_FRAG_ORD.isWaitingFor(nodeId)) {
         jam();
         /**
          * Make sure we're ready to accept it
@@ -10699,7 +9800,7 @@ void Dbdih::failedNodeLcpHandling(Signal* signal,
       }
     }
   }
-  
+
   if (c_TCGETOPSIZEREQ_Counter.isWaitingFor(failedNodePtr.i)) {
     jam();
     signal->theData[0] = failedNodePtr.i;
@@ -10707,49 +9808,48 @@ void Dbdih::failedNodeLcpHandling(Signal* signal,
                      failedNodePtr.i));
     signal->theData[1] = 0;
     sendSignal(reference(), GSN_TCGETOPSIZECONF, signal, 2, JBB);
-  }//if
-  
+  }  // if
+
   if (c_TC_CLOPSIZEREQ_Counter.isWaitingFor(failedNodePtr.i)) {
     jam();
     signal->theData[0] = failedNodePtr.i;
     sendSignal(reference(), GSN_TC_CLOPSIZECONF, signal, 1, JBB);
-  }//if
+  }  // if
 
   if (c_START_LCP_REQ_Counter.isWaitingFor(failedNodePtr.i)) {
     jam();
-    StartLcpConf * conf = (StartLcpConf*)signal->getDataPtrSend();
+    StartLcpConf *conf = (StartLcpConf *)signal->getDataPtrSend();
     conf->senderRef = numberToRef(DBLQH, failedNodePtr.i);
     conf->lcpId = SYSFILE->latestLCP_ID;
-    sendSignal(reference(), GSN_START_LCP_CONF, signal, 
-	       StartLcpConf::SignalLength, JBB);
-  }//if
-  
+    sendSignal(reference(), GSN_START_LCP_CONF, signal,
+               StartLcpConf::SignalLength, JBB);
+  }  // if
+
   if (c_MASTER_LCPREQ_Counter.isWaitingFor(failedNodePtr.i)) {
     jam();
-    MasterLCPRef * const ref = (MasterLCPRef *)&signal->theData[0];
+    MasterLCPRef *const ref = (MasterLCPRef *)&signal->theData[0];
     ref->senderNodeId = failedNodePtr.i;
     ref->failedNodeId = cmasterTakeOverNode;
-    sendSignal(reference(), GSN_MASTER_LCPREF, signal, 
-	       MasterLCPRef::SignalLength, JBB);
-  }//if
-  
-}//Dbdih::failedNodeLcpHandling()
+    sendSignal(reference(), GSN_MASTER_LCPREF, signal,
+               MasterLCPRef::SignalLength, JBB);
+  }  // if
 
-void Dbdih::checkGcpOutstanding(Signal* signal, Uint32 failedNodeId){
-  if (c_GCP_PREPARE_Counter.isWaitingFor(failedNodeId)){
+}  // Dbdih::failedNodeLcpHandling()
+
+void Dbdih::checkGcpOutstanding(Signal *signal, Uint32 failedNodeId) {
+  if (c_GCP_PREPARE_Counter.isWaitingFor(failedNodeId)) {
     jam();
-    GCPPrepareConf* conf = (GCPPrepareConf*)signal->getDataPtrSend();
+    GCPPrepareConf *conf = (GCPPrepareConf *)signal->getDataPtrSend();
     conf->nodeId = failedNodeId;
     conf->gci_hi = Uint32(m_micro_gcp.m_master.m_new_gci >> 32);
     conf->gci_lo = Uint32(m_micro_gcp.m_master.m_new_gci);
-    sendSignal(reference(), GSN_GCP_PREPARECONF, signal, 
+    sendSignal(reference(), GSN_GCP_PREPARECONF, signal,
                GCPPrepareConf::SignalLength, JBB);
-  }//if
+  }  // if
 
-  if (c_GCP_COMMIT_Counter.isWaitingFor(failedNodeId)) 
-  {
+  if (c_GCP_COMMIT_Counter.isWaitingFor(failedNodeId)) {
     jam();
-    /* Record minimum failure number, will cause re-send of 
+    /* Record minimum failure number, will cause re-send of
      * GCP_NOMORETRANS if local GCP_NODEFINISH arrives before
      * TC has handled the failure.
      */
@@ -10763,12 +9863,11 @@ void Dbdih::checkGcpOutstanding(Signal* signal, Uint32 failedNodeId){
      *   take-over
      */
     c_GCP_COMMIT_Counter.clearWaitingFor(failedNodeId);
-    
+
     /* Check to see whether we have already received GCP_NODEFINISH
      * from the local (Master) TC instance
-     */ 
-    if (!c_GCP_COMMIT_Counter.isWaitingFor(getOwnNodeId()))
-    {
+     */
+    if (!c_GCP_COMMIT_Counter.isWaitingFor(getOwnNodeId())) {
       jam();
       /* Already received GCP_NODEFINISH for this GCI, must
        * resend GCP_NOMORETRANS request now.
@@ -10779,7 +9878,7 @@ void Dbdih::checkGcpOutstanding(Signal* signal, Uint32 failedNodeId){
       /* Reset DIH GCP state */
       m_micro_gcp.m_state = MicroGcp::M_GCP_COMMIT;
 
-      GCPNoMoreTrans* req = (GCPNoMoreTrans*)signal->getDataPtrSend();
+      GCPNoMoreTrans *req = (GCPNoMoreTrans *)signal->getDataPtrSend();
       req->senderRef = reference();
       req->senderData = m_micro_gcp.m_master_ref;
       req->gci_hi = Uint32(m_micro_gcp.m_old_gci >> 32);
@@ -10791,61 +9890,55 @@ void Dbdih::checkGcpOutstanding(Signal* signal, Uint32 failedNodeId){
 
   if (c_GCP_SAVEREQ_Counter.isWaitingFor(failedNodeId)) {
     jam();
-    GCPSaveRef * const saveRef = (GCPSaveRef*)&signal->theData[0];
+    GCPSaveRef *const saveRef = (GCPSaveRef *)&signal->theData[0];
     saveRef->dihPtr = failedNodeId;
     saveRef->nodeId = failedNodeId;
-    saveRef->gci    = m_gcp_save.m_master.m_new_gci;
+    saveRef->gci = m_gcp_save.m_master.m_new_gci;
     saveRef->errorCode = GCPSaveRef::FakedSignalDueToNodeFailure;
-    sendSignal(reference(), GSN_GCP_SAVEREF, signal, 
-	       GCPSaveRef::SignalLength, JBB);
-  }//if
+    sendSignal(reference(), GSN_GCP_SAVEREF, signal, GCPSaveRef::SignalLength,
+               JBB);
+  }  // if
 
   if (c_COPY_GCIREQ_Counter.isWaitingFor(failedNodeId)) {
     jam();
     signal->theData[0] = failedNodeId;
     sendSignal(reference(), GSN_COPY_GCICONF, signal, 1, JBB);
-  }//if
-  
-  if (c_MASTER_GCPREQ_Counter.isWaitingFor(failedNodeId)){
+  }  // if
+
+  if (c_MASTER_GCPREQ_Counter.isWaitingFor(failedNodeId)) {
     jam();
-    MasterGCPRef * const ref = (MasterGCPRef *)&signal->theData[0];
+    MasterGCPRef *const ref = (MasterGCPRef *)&signal->theData[0];
     ref->senderNodeId = failedNodeId;
     ref->failedNodeId = cmasterTakeOverNode;
-    sendSignal(reference(), GSN_MASTER_GCPREF, signal, 
-	       MasterGCPRef::SignalLength, JBB);
-  }//if
+    sendSignal(reference(), GSN_MASTER_GCPREF, signal,
+               MasterGCPRef::SignalLength, JBB);
+  }  // if
 
-  if (c_SUB_GCP_COMPLETE_REP_Counter.isWaitingFor(failedNodeId))
-  {
+  if (c_SUB_GCP_COMPLETE_REP_Counter.isWaitingFor(failedNodeId)) {
     jam();
-    SubGcpCompleteAck* ack = CAST_PTR(SubGcpCompleteAck,
-                                      signal->getDataPtrSend());
+    SubGcpCompleteAck *ack =
+        CAST_PTR(SubGcpCompleteAck, signal->getDataPtrSend());
     ack->rep.senderRef = numberToRef(DBDIH, failedNodeId);
     sendSignal(reference(), GSN_SUB_GCP_COMPLETE_ACK, signal,
-	       SubGcpCompleteAck::SignalLength, JBB);
+               SubGcpCompleteAck::SignalLength, JBB);
   }
 }
 
-void
-Dbdih::startLcpMasterTakeOver(Signal* signal, Uint32 nodeId)
-{
+void Dbdih::startLcpMasterTakeOver(Signal *signal, Uint32 nodeId) {
   jam();
 
-  if (ERROR_INSERTED(7230))
-  {
+  if (ERROR_INSERTED(7230)) {
     return;
   }
 
   Uint32 oldNode = c_lcpMasterTakeOverState.failedNodeId;
-  
+
   NodeRecordPtr nodePtr;
   nodePtr.i = oldNode;
-  if (oldNode > 0 && oldNode < MAX_NDB_NODES)
-  {
+  if (oldNode > 0 && oldNode < MAX_NDB_NODES) {
     jam();
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-    if (nodePtr.p->m_nodefailSteps.get(NF_LCP_TAKE_OVER))
-    {
+    if (nodePtr.p->m_nodefailSteps.get(NF_LCP_TAKE_OVER)) {
       jam();
       checkLocalNodefailComplete(signal, oldNode, NF_LCP_TAKE_OVER);
     }
@@ -10886,7 +9979,7 @@ Dbdih::startLcpMasterTakeOver(Signal* signal, Uint32 nodeId)
   }
 }
 
-void Dbdih::startGcpMasterTakeOver(Signal* signal, Uint32 oldMasterId){
+void Dbdih::startGcpMasterTakeOver(Signal *signal, Uint32 oldMasterId) {
   jam();
   /*--------------------------------------------------*/
   /*                                                  */
@@ -10897,13 +9990,13 @@ void Dbdih::startGcpMasterTakeOver(Signal* signal, Uint32 oldMasterId){
   /*       THE GLOBAL CHECKPOINT PROTOCOL AND THE     */
   /*       LOCAL CHECKPOINT PROTOCOL.                 */
   /*--------------------------------------------------*/
-  if(!isMaster()){
+  if (!isMaster()) {
     jam();
     return;
   }
   cmasterState = MASTER_TAKE_OVER_GCP;
   cmasterTakeOverNode = oldMasterId;
-  MasterGCPReq * const req = (MasterGCPReq *)&signal->theData[0];  
+  MasterGCPReq *const req = (MasterGCPReq *)&signal->theData[0];
   req->masterRef = reference();
   req->failedNodeId = oldMasterId;
   sendLoopMacro(MASTER_GCPREQ, sendMASTER_GCPREQ, RNIL);
@@ -10920,73 +10013,63 @@ void Dbdih::startGcpMasterTakeOver(Signal* signal, Uint32 oldMasterId){
   setLocalNodefailHandling(signal, oldMasterId, NF_GCP_TAKE_OVER);
 }
 
-void Dbdih::startRemoveFailedNode(Signal* signal, NodeRecordPtr failedNodePtr)
-{
+void Dbdih::startRemoveFailedNode(Signal *signal, NodeRecordPtr failedNodePtr) {
   Uint32 nodeId = failedNodePtr.i;
-  if(failedNodePtr.p->nodeStatus != NodeRecord::DIED_NOW){
+  if (failedNodePtr.p->nodeStatus != NodeRecord::DIED_NOW) {
     jam();
     /**
      * Is node isn't alive. It can't be part of LCP
      */
     ndbrequire(!c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(nodeId));
-    
+
     /**
      * And there is no point in removing any replicas
      *   It's dead...
      */
     return;
   }
-  
+
   /**
    * If node has node complete LCP
    *   we need to remove it as undo might not be complete
    *   bug#31257
    */
   failedNodePtr.p->m_remove_node_from_table_lcp_id = RNIL;
-  if (c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(failedNodePtr.i))
-  {
+  if (c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(failedNodePtr.i)) {
     jam();
     failedNodePtr.p->m_remove_node_from_table_lcp_id = SYSFILE->latestLCP_ID;
   }
-  
+
   jam();
 
-  if (!ERROR_INSERTED(7194) && !ERROR_INSERTED(7221))
-  {
+  if (!ERROR_INSERTED(7194) && !ERROR_INSERTED(7221)) {
     signal->theData[0] = DihContinueB::ZREMOVE_NODE_FROM_TABLE;
     signal->theData[1] = failedNodePtr.i;
-    signal->theData[2] = 0; // Tab id
+    signal->theData[2] = 0;  // Tab id
     if (!ERROR_INSERTED(7233))
       sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
     else
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 300, 3);
-  }
-  else
-  {
-    if (ERROR_INSERTED(7194))
-    {
+  } else {
+    if (ERROR_INSERTED(7194)) {
       g_eventLogger->info("7194 Not starting ZREMOVE_NODE_FROM_TABLE");
-    }
-    else if (ERROR_INSERTED(7221))
-    {
+    } else if (ERROR_INSERTED(7221)) {
       g_eventLogger->info("7221 Not starting ZREMOVE_NODE_FROM_TABLE");
     }
   }
 
   setLocalNodefailHandling(signal, failedNodePtr.i, NF_REMOVE_NODE_FROM_TABLE);
-}//Dbdih::startRemoveFailedNode()
+}  // Dbdih::startRemoveFailedNode()
 
-bool Dbdih::handle_master_take_over_copy_gci(Signal *signal, NodeId new_master_node_id)
-{
-  if (c_copyGCISlave.m_expectedNextWord != 0)
-  {
+bool Dbdih::handle_master_take_over_copy_gci(Signal *signal,
+                                             NodeId new_master_node_id) {
+  if (c_copyGCISlave.m_expectedNextWord != 0) {
     jam();
     c_copyGCISlave.m_expectedNextWord = 0;
     c_copyGCISlave.m_copyReason = CopyGCIReq::IDLE;
   }
 
-  if (c_copyGCISlave.m_copyReason != CopyGCIReq::IDLE)
-  {
+  if (c_copyGCISlave.m_copyReason != CopyGCIReq::IDLE) {
     /**
      * Before we allow the new master to start up the new GCP protocols
      * we need to ensure that the activity started by the previous
@@ -10995,8 +10078,8 @@ bool Dbdih::handle_master_take_over_copy_gci(Signal *signal, NodeId new_master_n
      * certain that the master takeover is ready to start up the new
      * COPY_GCIREQ protocols.
      */
-    sendSignalWithDelay(reference(), GSN_MASTER_GCPREQ,
-                        signal, 10, MasterGCPReq::SignalLength);
+    sendSignalWithDelay(reference(), GSN_MASTER_GCPREQ, signal, 10,
+                        MasterGCPReq::SignalLength);
     return true;
   }
   c_handled_master_take_over_copy_gci = new_master_node_id;
@@ -11008,11 +10091,10 @@ bool Dbdih::handle_master_take_over_copy_gci(Signal *signal, NodeId new_master_n
 /*       QUERYING THIS NODE ABOUT THE STATE OF THE  */
 /*       GLOBAL CHECKPOINT PROTOCOL                 */
 /*--------------------------------------------------*/
-void Dbdih::execMASTER_GCPREQ(Signal* signal) 
-{
+void Dbdih::execMASTER_GCPREQ(Signal *signal) {
   NodeRecordPtr failedNodePtr;
   NodeRecordPtr newMasterNodePtr;
-  MasterGCPReq * const masterGCPReq = (MasterGCPReq *)&signal->theData[0];  
+  MasterGCPReq *const masterGCPReq = (MasterGCPReq *)&signal->theData[0];
   jamEntry();
   const BlockReference newMasterBlockref = masterGCPReq->masterRef;
   const Uint32 failedNodeId = masterGCPReq->failedNodeId;
@@ -11022,8 +10104,7 @@ void Dbdih::execMASTER_GCPREQ(Signal* signal)
   newMasterNodePtr.i = refToNode(newMasterBlockref);
   ptrCheckGuard(newMasterNodePtr, MAX_NDB_NODES, nodeRecord);
 
-  if (newMasterNodePtr.p->nodeStatus != NodeRecord::ALIVE)
-  {
+  if (newMasterNodePtr.p->nodeStatus != NodeRecord::ALIVE) {
     /**
      * We delayed the MASTER_GCPREQ signal and now it arrived after
      * the new master already died. We ignore this signal.
@@ -11045,23 +10126,20 @@ void Dbdih::execMASTER_GCPREQ(Signal* signal)
     /*       HAVE REMOVED THE FAILED NODE FROM THE LIST */
     /*       OF ACTIVE NODES AND SO FORTH.              */
     /*--------------------------------------------------*/
-    sendSignalWithDelay(reference(), GSN_MASTER_GCPREQ,
-                        signal, 10, MasterGCPReq::SignalLength);
+    sendSignalWithDelay(reference(), GSN_MASTER_GCPREQ, signal, 10,
+                        MasterGCPReq::SignalLength);
     return;
   } else {
     ndbrequire(failedNodePtr.p->nodeStatus == NodeRecord::DYING);
-  }//if
+  }  // if
 
-  if (handle_master_take_over_copy_gci(signal, newMasterNodePtr.i))
-  {
+  if (handle_master_take_over_copy_gci(signal, newMasterNodePtr.i)) {
     return;
   }
 #ifdef VM_TRACE
-  g_eventLogger->info("Handle MASTER_GCPREQ from node %u",
-                      newMasterNodePtr.i);
+  g_eventLogger->info("Handle MASTER_GCPREQ from node %u", newMasterNodePtr.i);
 #endif
-  if (ERROR_INSERTED(7181))
-  {
+  if (ERROR_INSERTED(7181)) {
     g_eventLogger->info("execGCP_TCFINISHED in MASTER_GCPREQ");
     CLEAR_ERROR_INSERT_VALUE;
     signal->theData[0] = c_error_7181_ref;
@@ -11072,87 +10150,86 @@ void Dbdih::execMASTER_GCPREQ(Signal* signal)
   }
 
   MasterGCPConf::State gcpState;
-  switch(m_micro_gcp.m_state){
-  case MicroGcp::M_GCP_IDLE:
-    jam();
-    gcpState = MasterGCPConf::GCP_READY;
-    break;
-  case MicroGcp::M_GCP_PREPARE:
-    jam();
-    gcpState = MasterGCPConf::GCP_PREPARE_RECEIVED;
-    break;
-  case MicroGcp::M_GCP_COMMIT:
-    jam();
-    gcpState = MasterGCPConf::GCP_COMMIT_RECEIVED;
-    break;
-  case MicroGcp::M_GCP_COMMITTED:
-    jam();
-    gcpState = MasterGCPConf::GCP_COMMITTED;
+  switch (m_micro_gcp.m_state) {
+    case MicroGcp::M_GCP_IDLE:
+      jam();
+      gcpState = MasterGCPConf::GCP_READY;
+      break;
+    case MicroGcp::M_GCP_PREPARE:
+      jam();
+      gcpState = MasterGCPConf::GCP_PREPARE_RECEIVED;
+      break;
+    case MicroGcp::M_GCP_COMMIT:
+      jam();
+      gcpState = MasterGCPConf::GCP_COMMIT_RECEIVED;
+      break;
+    case MicroGcp::M_GCP_COMMITTED:
+      jam();
+      gcpState = MasterGCPConf::GCP_COMMITTED;
 
-    /**
-     * Change state to GCP_COMMIT_RECEIVEDn and rerun GSN_GCP_NOMORETRANS
-     */
-    gcpState = MasterGCPConf::GCP_COMMIT_RECEIVED;
-    m_micro_gcp.m_state = MicroGcp::M_GCP_COMMIT;
+      /**
+       * Change state to GCP_COMMIT_RECEIVEDn and rerun GSN_GCP_NOMORETRANS
+       */
+      gcpState = MasterGCPConf::GCP_COMMIT_RECEIVED;
+      m_micro_gcp.m_state = MicroGcp::M_GCP_COMMIT;
 
-    {
-      GCPNoMoreTrans* req2 = (GCPNoMoreTrans*)signal->getDataPtrSend();
-      req2->senderRef = reference();
-      req2->senderData = m_micro_gcp.m_master_ref;
-      req2->gci_hi = (Uint32)(m_micro_gcp.m_old_gci >> 32);
-      req2->gci_lo = (Uint32)(m_micro_gcp.m_old_gci & 0xFFFFFFFF);
-      sendSignal(clocaltcblockref, GSN_GCP_NOMORETRANS, signal,
-                 GCPNoMoreTrans::SignalLength, JBB);
-    }
-    break;
-  case MicroGcp::M_GCP_COMPLETE:
-    /**
-     * This is a master only state...
-     */
-    gcpState = MasterGCPConf::GCP_READY; //Compiler keep quiet
-    ndbabort();
-  default:
-    ndbabort();
+      {
+        GCPNoMoreTrans *req2 = (GCPNoMoreTrans *)signal->getDataPtrSend();
+        req2->senderRef = reference();
+        req2->senderData = m_micro_gcp.m_master_ref;
+        req2->gci_hi = (Uint32)(m_micro_gcp.m_old_gci >> 32);
+        req2->gci_lo = (Uint32)(m_micro_gcp.m_old_gci & 0xFFFFFFFF);
+        sendSignal(clocaltcblockref, GSN_GCP_NOMORETRANS, signal,
+                   GCPNoMoreTrans::SignalLength, JBB);
+      }
+      break;
+    case MicroGcp::M_GCP_COMPLETE:
+      /**
+       * This is a master only state...
+       */
+      gcpState = MasterGCPConf::GCP_READY;  // Compiler keep quiet
+      ndbabort();
+    default:
+      ndbabort();
   }
 
   MasterGCPConf::SaveState saveState;
-  switch(m_gcp_save.m_state){
-  case GcpSave::GCP_SAVE_IDLE:
-    jam();
-    saveState = MasterGCPConf::GCP_SAVE_IDLE;
-    break;
-  case GcpSave::GCP_SAVE_REQ:
-    jam();
-    saveState = MasterGCPConf::GCP_SAVE_REQ;
-    break;
-  case GcpSave::GCP_SAVE_CONF:
-    jam();
-    saveState = MasterGCPConf::GCP_SAVE_CONF;
-    break;
-  case GcpSave::GCP_SAVE_COPY_GCI:
-    jam();
-    saveState = MasterGCPConf::GCP_SAVE_COPY_GCI;
-    break;
-  default:
-    ndbabort();
+  switch (m_gcp_save.m_state) {
+    case GcpSave::GCP_SAVE_IDLE:
+      jam();
+      saveState = MasterGCPConf::GCP_SAVE_IDLE;
+      break;
+    case GcpSave::GCP_SAVE_REQ:
+      jam();
+      saveState = MasterGCPConf::GCP_SAVE_REQ;
+      break;
+    case GcpSave::GCP_SAVE_CONF:
+      jam();
+      saveState = MasterGCPConf::GCP_SAVE_CONF;
+      break;
+    case GcpSave::GCP_SAVE_COPY_GCI:
+      jam();
+      saveState = MasterGCPConf::GCP_SAVE_COPY_GCI;
+      break;
+    default:
+      ndbabort();
   }
 
-  MasterGCPConf * const masterGCPConf = (MasterGCPConf *)&signal->theData[0];  
-  masterGCPConf->gcpState  = gcpState;
+  MasterGCPConf *const masterGCPConf = (MasterGCPConf *)&signal->theData[0];
+  masterGCPConf->gcpState = gcpState;
   masterGCPConf->senderNodeId = cownNodeId;
   masterGCPConf->failedNodeId = failedNodeId;
   masterGCPConf->newGCP_hi = (Uint32)(m_micro_gcp.m_new_gci >> 32);
   masterGCPConf->latestLCP = SYSFILE->latestLCP_ID;
   masterGCPConf->oldestRestorableGCI = SYSFILE->oldestRestorableGCI;
-  masterGCPConf->keepGCI = SYSFILE->keepGCI;  
+  masterGCPConf->keepGCI = SYSFILE->keepGCI;
   masterGCPConf->newGCP_lo = Uint32(m_micro_gcp.m_new_gci);
   masterGCPConf->saveState = saveState;
   masterGCPConf->saveGCI = m_gcp_save.m_gci;
   Uint32 packed_length =
-  NdbNodeBitmask::getPackedLengthInWords(SYSFILE->lcpActive);
+      NdbNodeBitmask::getPackedLengthInWords(SYSFILE->lcpActive);
 
-  if (ERROR_INSERTED(7225))
-  {
+  if (ERROR_INSERTED(7225)) {
     CLEAR_ERROR_INSERT_VALUE;
     ndbrequire(refToNode(newMasterBlockref) == getOwnNodeId());
     LinearSectionPtr lsptr[3];
@@ -11161,14 +10238,11 @@ void Dbdih::execMASTER_GCPREQ(Signal* signal)
     SectionHandle handle(this);
     import(handle.m_ptr[0], lsptr[0].p, lsptr[0].sz);
 
-    sendSignalWithDelay(newMasterBlockref, GSN_MASTER_GCPCONF, signal,
-                        500, MasterGCPConf::SignalLength, &handle);
-  }
-  else
-  {
+    sendSignalWithDelay(newMasterBlockref, GSN_MASTER_GCPCONF, signal, 500,
+                        MasterGCPConf::SignalLength, &handle);
+  } else {
     Uint32 node_version = getNodeInfo(refToNode(newMasterBlockref)).m_version;
-    if (ndbd_send_node_bitmask_in_section(node_version))
-    {
+    if (ndbd_send_node_bitmask_in_section(node_version)) {
       Uint32 lcpActiveCopy[NdbNodeBitmask::Size];
       NdbNodeBitmask::assign(lcpActiveCopy, SYSFILE->lcpActive);
       LinearSectionPtr lsptr[3];
@@ -11176,23 +10250,18 @@ void Dbdih::execMASTER_GCPREQ(Signal* signal)
       lsptr[0].sz = packed_length;
       sendSignal(newMasterBlockref, GSN_MASTER_GCPCONF, signal,
                  MasterGCPConf::SignalLength, JBB, lsptr, 1);
-    }
-    else if (packed_length <= NdbNodeBitmask48::Size)
-    {
-      for(Uint32 i = 0; i < NdbNodeBitmask48::Size; i++)
+    } else if (packed_length <= NdbNodeBitmask48::Size) {
+      for (Uint32 i = 0; i < NdbNodeBitmask48::Size; i++)
         masterGCPConf->lcpActive_v1[i] = SYSFILE->lcpActive[i];
 
       sendSignal(newMasterBlockref, GSN_MASTER_GCPCONF, signal,
                  MasterGCPConf::SignalLength, JBB);
-    }
-    else
-    {
+    } else {
       ndbabort();
     }
   }
 
-  if (ERROR_INSERTED(7182))
-  {
+  if (ERROR_INSERTED(7182)) {
     g_eventLogger->info("execGCP_TCFINISHED in MASTER_GCPREQ");
     CLEAR_ERROR_INSERT_VALUE;
     signal->theData[0] = c_error_7181_ref;
@@ -11201,49 +10270,41 @@ void Dbdih::execMASTER_GCPREQ(Signal* signal)
     signal->theData[3] = cfailurenr;
     execGCP_TCFINISHED(signal);
   }
-}//Dbdih::execMASTER_GCPREQ()
+}  // Dbdih::execMASTER_GCPREQ()
 
-void Dbdih::execMASTER_GCPCONF(Signal* signal) 
-{
+void Dbdih::execMASTER_GCPCONF(Signal *signal) {
   NodeRecordPtr senderNodePtr;
-  MasterGCPConf * const masterGCPConf = (MasterGCPConf *)&signal->theData[0];
+  MasterGCPConf *const masterGCPConf = (MasterGCPConf *)&signal->theData[0];
   jamEntry();
 
   Uint32 senderRef = signal->getSendersBlockRef();
   Uint32 senderVersion = getNodeInfo(refToNode(senderRef)).m_version;
-  Uint32* temp_lcpActive = &signal->theData[MasterGCPConf::SignalLength];
+  Uint32 *temp_lcpActive = &signal->theData[MasterGCPConf::SignalLength];
 
-  if (signal->getNoOfSections() >= 1)
-  {
+  if (signal->getNoOfSections() >= 1) {
     ndbrequire(ndbd_send_node_bitmask_in_section(senderVersion));
     SectionHandle handle(this, signal);
     SegmentedSectionPtr ptr;
     ndbrequire(handle.getSection(ptr, 0));
 
     ndbrequire(ptr.sz <= NdbNodeBitmask::Size);
-    memset(temp_lcpActive,
-           0,
-           NdbNodeBitmask::Size * sizeof(Uint32));
+    memset(temp_lcpActive, 0, NdbNodeBitmask::Size * sizeof(Uint32));
     copy(temp_lcpActive, ptr);
     releaseSections(handle);
-  }
-  else
-  {
-    memset(temp_lcpActive + NdbNodeBitmask48::Size,
-           0,
-           _NDB_NBM_DIFF_BYTES);
+  } else {
+    memset(temp_lcpActive + NdbNodeBitmask48::Size, 0, _NDB_NBM_DIFF_BYTES);
   }
 
   senderNodePtr.i = masterGCPConf->senderNodeId;
   ptrCheckGuard(senderNodePtr, MAX_NDB_NODES, nodeRecord);
- 
+
 #ifdef VM_TRACE
   g_eventLogger->info("MASTER_GCPCONF from node %u", senderNodePtr.i);
 #endif
 
   MasterGCPConf::State gcpState = (MasterGCPConf::State)masterGCPConf->gcpState;
   MasterGCPConf::SaveState saveState =
-    (MasterGCPConf::SaveState)masterGCPConf->saveState;
+      (MasterGCPConf::SaveState)masterGCPConf->saveState;
   const Uint32 failedNodeId = masterGCPConf->failedNodeId;
   const Uint32 newGcp_hi = masterGCPConf->newGCP_hi;
   const Uint32 newGcp_lo = masterGCPConf->newGCP_lo;
@@ -11265,109 +10326,97 @@ void Dbdih::execMASTER_GCPCONF(Signal* signal)
     DEB_LCP(("Master takeover: Set SYSFILE->keepGCI = %u", SYSFILE->keepGCI));
 
     SYSFILE->oldestRestorableGCI = oldestRestorableGci;
-    if (signal->getNoOfSections() >= 1)
-    {
+    if (signal->getNoOfSections() >= 1) {
       for (Uint32 i = 0; i < NdbNodeBitmask::Size; i++)
         SYSFILE->lcpActive[i] = temp_lcpActive[i];
-    }
-    else
-    {
+    } else {
       memset(SYSFILE->lcpActive, 0, sizeof(SYSFILE->lcpActive));
       for (Uint32 i = 0; i < NdbNodeBitmask48::Size; i++)
         SYSFILE->lcpActive[i] = masterGCPConf->lcpActive_v1[i];
     }
-  }//if
+  }  // if
 
   bool ok = false;
   switch (gcpState) {
-  case MasterGCPConf::GCP_READY:
-    jam();
-    ok = true;
-    // Either not started or complete...
-    break;
-  case MasterGCPConf::GCP_PREPARE_RECEIVED:
-    jam();
-    ok = true;
-    if (m_micro_gcp.m_master.m_state == MicroGcp::M_GCP_IDLE)
-    {
+    case MasterGCPConf::GCP_READY:
       jam();
-      m_micro_gcp.m_master.m_state = MicroGcp::M_GCP_PREPARE;
+      ok = true;
+      // Either not started or complete...
+      break;
+    case MasterGCPConf::GCP_PREPARE_RECEIVED:
+      jam();
+      ok = true;
+      if (m_micro_gcp.m_master.m_state == MicroGcp::M_GCP_IDLE) {
+        jam();
+        m_micro_gcp.m_master.m_state = MicroGcp::M_GCP_PREPARE;
+        m_micro_gcp.m_master.m_new_gci = newGCI;
+      } else {
+        jam();
+        ndbrequire(m_micro_gcp.m_master.m_new_gci == newGCI);
+      }
+      break;
+    case MasterGCPConf::GCP_COMMIT_RECEIVED:
+      jam();
+      [[fallthrough]];
+    case MasterGCPConf::GCP_COMMITTED:
+      jam();
+      ok = true;
+      if (m_micro_gcp.m_master.m_state != MicroGcp::M_GCP_IDLE) {
+        ndbrequire(m_micro_gcp.m_master.m_new_gci == newGCI);
+      }
       m_micro_gcp.m_master.m_new_gci = newGCI;
-    }
-    else
-    {
-      jam();
-      ndbrequire(m_micro_gcp.m_master.m_new_gci == newGCI);
-    }
-    break;
-  case MasterGCPConf::GCP_COMMIT_RECEIVED:
-    jam();
-    [[fallthrough]];
-  case MasterGCPConf::GCP_COMMITTED:
-    jam();
-    ok = true;
-    if (m_micro_gcp.m_master.m_state != MicroGcp::M_GCP_IDLE)
-    {
-      ndbrequire(m_micro_gcp.m_master.m_new_gci == newGCI);
-    }
-    m_micro_gcp.m_master.m_new_gci = newGCI;
-    m_micro_gcp.m_master.m_state = MicroGcp::M_GCP_COMMIT;
-    break;
+      m_micro_gcp.m_master.m_state = MicroGcp::M_GCP_COMMIT;
+      break;
 #ifndef VM_TRACE
-  default:
-    jamLine(gcpState);
-    ndbabort();
+    default:
+      jamLine(gcpState);
+      ndbabort();
 #endif
   }
-  ndbassert(ok); // Unhandled case...
+  ndbassert(ok);  // Unhandled case...
 
   ok = false;
   /**
    * GCI should differ with atmost one
    */
-  ndbrequire(saveGCI == m_gcp_save.m_gci ||
-             saveGCI == m_gcp_save.m_gci + 1 ||
+  ndbrequire(saveGCI == m_gcp_save.m_gci || saveGCI == m_gcp_save.m_gci + 1 ||
              saveGCI + 1 == m_gcp_save.m_gci);
-  if (saveGCI > m_gcp_save.m_master.m_new_gci)
-  {
+  if (saveGCI > m_gcp_save.m_master.m_new_gci) {
     jam();
     m_gcp_save.m_master.m_new_gci = saveGCI;
   }
-  switch(saveState){
-  case MasterGCPConf::GCP_SAVE_IDLE:
-    jam();
-    break;
-  case MasterGCPConf::GCP_SAVE_REQ:
-    jam();
-    if (m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE)
-    {
+  switch (saveState) {
+    case MasterGCPConf::GCP_SAVE_IDLE:
       jam();
-      m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_REQ;
-    }
-    break;
-  case MasterGCPConf::GCP_SAVE_CONF:
-    jam();
-    if (m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE)
-    {
+      break;
+    case MasterGCPConf::GCP_SAVE_REQ:
       jam();
-      m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_REQ;
-    }
-    break;
-  case MasterGCPConf::GCP_SAVE_COPY_GCI:
-    jam();
-    if (m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE)
-    {
+      if (m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE) {
+        jam();
+        m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_REQ;
+      }
+      break;
+    case MasterGCPConf::GCP_SAVE_CONF:
       jam();
-      m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_COPY_GCI;
-    }
-    break;
+      if (m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE) {
+        jam();
+        m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_REQ;
+      }
+      break;
+    case MasterGCPConf::GCP_SAVE_COPY_GCI:
+      jam();
+      if (m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE) {
+        jam();
+        m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_COPY_GCI;
+      }
+      break;
 #ifndef VM_TRACE
-  default:
-    jamLine(saveState);
-    ndbabort();
+    default:
+      jamLine(saveState);
+      ndbabort();
 #endif
   }
-  //ndbassert(ok); // Unhandled case
+  // ndbassert(ok); // Unhandled case
 
   receiveLoopMacro(MASTER_GCPREQ, senderNodePtr.i);
   /*-------------------------------------------------------------------------*/
@@ -11377,11 +10426,10 @@ void Dbdih::execMASTER_GCPCONF(Signal* signal)
   MASTER_GCPhandling(signal, failedNodeId);
 
   return;
-}//Dbdih::execMASTER_GCPCONF()
+}  // Dbdih::execMASTER_GCPCONF()
 
-void Dbdih::execMASTER_GCPREF(Signal* signal) 
-{
-  const MasterGCPRef * const ref = (MasterGCPRef *)&signal->theData[0];
+void Dbdih::execMASTER_GCPREF(Signal *signal) {
+  const MasterGCPRef *const ref = (MasterGCPRef *)&signal->theData[0];
   jamEntry();
   receiveLoopMacro(MASTER_GCPREQ, ref->senderNodeId);
   /*-------------------------------------------------------------------------*/
@@ -11389,110 +10437,101 @@ void Dbdih::execMASTER_GCPREF(Signal* signal)
   // protocol as master.
   /*-------------------------------------------------------------------------*/
   MASTER_GCPhandling(signal, ref->failedNodeId);
-}//Dbdih::execMASTER_GCPREF()
+}  // Dbdih::execMASTER_GCPREF()
 
-void Dbdih::MASTER_GCPhandling(Signal* signal, Uint32 failedNodeId) 
-{
+void Dbdih::MASTER_GCPhandling(Signal *signal, Uint32 failedNodeId) {
   cmasterState = MASTER_ACTIVE;
 
   NdbTick_Invalidate(&m_micro_gcp.m_master.m_start_time);
   NdbTick_Invalidate(&m_gcp_save.m_master.m_start_time);
 
   bool ok = false;
-  switch(m_micro_gcp.m_master.m_state){
-  case MicroGcp::M_GCP_IDLE:
-    jam();
-    ok = true;
-    signal->theData[0] = DihContinueB::ZSTART_GCP;
-    sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
-    break;
-  case MicroGcp::M_GCP_PREPARE:
-  {
-    jam();
-    ok = true;
+  switch (m_micro_gcp.m_master.m_state) {
+    case MicroGcp::M_GCP_IDLE:
+      jam();
+      ok = true;
+      signal->theData[0] = DihContinueB::ZSTART_GCP;
+      sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
+      break;
+    case MicroGcp::M_GCP_PREPARE: {
+      jam();
+      ok = true;
 
-    /**
-     * Restart GCP_PREPARE
-     */
-    sendLoopMacro(GCP_PREPARE, sendGCP_PREPARE, RNIL);
-    break;
-  }
-  case MicroGcp::M_GCP_COMMIT:
-  {
-    jam();
-    ok = true;
+      /**
+       * Restart GCP_PREPARE
+       */
+      sendLoopMacro(GCP_PREPARE, sendGCP_PREPARE, RNIL);
+      break;
+    }
+    case MicroGcp::M_GCP_COMMIT: {
+      jam();
+      ok = true;
 
-    /**
-     * Restart GCP_COMMIT
-     */
-    sendLoopMacro(GCP_COMMIT, sendGCP_COMMIT, RNIL);
-    break;
-  }
-  case MicroGcp::M_GCP_COMMITTED:
-    jam();
-    ndbabort();
-  case MicroGcp::M_GCP_COMPLETE:
-    jam();
-    ndbabort();
+      /**
+       * Restart GCP_COMMIT
+       */
+      sendLoopMacro(GCP_COMMIT, sendGCP_COMMIT, RNIL);
+      break;
+    }
+    case MicroGcp::M_GCP_COMMITTED:
+      jam();
+      ndbabort();
+    case MicroGcp::M_GCP_COMPLETE:
+      jam();
+      ndbabort();
 #ifndef VM_TRACE
-  default:
-    jamLine(m_micro_gcp.m_master.m_state);
-    ndbabort();
+    default:
+      jamLine(m_micro_gcp.m_master.m_state);
+      ndbabort();
 #endif
   }
   ndbassert(ok);
 
-  if (m_micro_gcp.m_enabled == false)
-  {
+  if (m_micro_gcp.m_enabled == false) {
     jam();
     m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_IDLE;
-  }
-  else
-  {
+  } else {
     ok = false;
-    switch(m_gcp_save.m_master.m_state){
-    case GcpSave::GCP_SAVE_IDLE:
-      jam();
-      ok = true;
-      break;
-    case GcpSave::GCP_SAVE_REQ:
-    {
-      jam();
-      ok = true;
-      
-      /**
-       * Restart GCP_SAVE_REQ
-       */
-      sendLoopMacro(GCP_SAVEREQ, sendGCP_SAVEREQ, RNIL);
-      break;
-    }
-    case GcpSave::GCP_SAVE_CONF:
-      jam();
-      [[fallthrough]];
-    case GcpSave::GCP_SAVE_COPY_GCI:
-      jam();
-      ok = true;
-      copyGciLab(signal, CopyGCIReq::GLOBAL_CHECKPOINT);
-      m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_COPY_GCI;
-      break;
+    switch (m_gcp_save.m_master.m_state) {
+      case GcpSave::GCP_SAVE_IDLE:
+        jam();
+        ok = true;
+        break;
+      case GcpSave::GCP_SAVE_REQ: {
+        jam();
+        ok = true;
+
+        /**
+         * Restart GCP_SAVE_REQ
+         */
+        sendLoopMacro(GCP_SAVEREQ, sendGCP_SAVEREQ, RNIL);
+        break;
+      }
+      case GcpSave::GCP_SAVE_CONF:
+        jam();
+        [[fallthrough]];
+      case GcpSave::GCP_SAVE_COPY_GCI:
+        jam();
+        ok = true;
+        copyGciLab(signal, CopyGCIReq::GLOBAL_CHECKPOINT);
+        m_gcp_save.m_master.m_state = GcpSave::GCP_SAVE_COPY_GCI;
+        break;
 #ifndef VM_TRACE
-    default:
-      jamLine(m_gcp_save.m_master.m_state);
-      ndbabort();
+      default:
+        jamLine(m_gcp_save.m_master.m_state);
+        ndbabort();
 #endif
     }
     ndbrequire(ok);
   }
-  
+
   signal->theData[0] = NDB_LE_GCP_TakeoverCompleted;
   signal->theData[1] = m_micro_gcp.m_master.m_state;
   signal->theData[2] = m_gcp_save.m_master.m_state;
   sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 1, JBB);
 
-  infoEvent("kk: %u/%u %u %u",
-            Uint32(m_micro_gcp.m_current_gci >> 32),
-            Uint32(m_micro_gcp.m_current_gci),
-            m_micro_gcp.m_master.m_state,
+  infoEvent("kk: %u/%u %u %u", Uint32(m_micro_gcp.m_current_gci >> 32),
+            Uint32(m_micro_gcp.m_current_gci), m_micro_gcp.m_master.m_state,
             m_gcp_save.m_master.m_state);
 
   /*--------------------------------------------------*/
@@ -11504,30 +10543,20 @@ void Dbdih::MASTER_GCPhandling(Signal* signal, Uint32 failedNodeId)
   checkLocalNodefailComplete(signal, failedNodeId, NF_GCP_TAKE_OVER);
 
   startGcpMonitor(signal);
-  
-  return;
-}//Dbdih::masterGcpConfFromFailedLab()
 
-void
-Dbdih::handle_send_continueb_invalidate_node_lcp(Signal *signal)
-{
-  if (ERROR_INSERTED(7204))
-  {
+  return;
+}  // Dbdih::masterGcpConfFromFailedLab()
+
+void Dbdih::handle_send_continueb_invalidate_node_lcp(Signal *signal) {
+  if (ERROR_INSERTED(7204)) {
     sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 2000, 3);
-  }
-  else if (ERROR_INSERTED(7245))
-  {
-    if (isMaster())
-    {
+  } else if (ERROR_INSERTED(7245)) {
+    if (isMaster()) {
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 2000, 3);
-    }
-    else
-    {
+    } else {
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 3000, 3);
     }
-  }
-  else if (ERROR_INSERTED(7246))
-  {
+  } else if (ERROR_INSERTED(7246)) {
     /**
      * This error injection supports a special test case where we
      * delay node 1 and 2 more than other nodes to ensure that we
@@ -11535,116 +10564,103 @@ Dbdih::handle_send_continueb_invalidate_node_lcp(Signal *signal)
      * reply with START_INFOREF to get the code tested for the case
      * some nodes reply with START_INFOREF and some with START_INFOCONF.
      */
-    if (isMaster())
-    {
+    if (isMaster()) {
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 2000, 3);
-    }
-    else if (cownNodeId == Uint32(1) ||
-             (refToNode(cmasterdihref) == Uint32(1) &&
-              cownNodeId == Uint32(2)))
-    {
+    } else if (cownNodeId == Uint32(1) ||
+               (refToNode(cmasterdihref) == Uint32(1) &&
+                cownNodeId == Uint32(2))) {
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 3);
-    }
-    else
-    {
+    } else {
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 8000, 3);
     }
-  }
-  else
-  {
+  } else {
     sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
   }
 }
 
-void
-Dbdih::invalidateNodeLCP(Signal* signal, Uint32 nodeId, Uint32 tableId)
-{
+void Dbdih::invalidateNodeLCP(Signal *signal, Uint32 nodeId, Uint32 tableId) {
   jamEntry();
   TabRecordPtr tabPtr;
-  tabPtr.i = tableId;  
+  tabPtr.i = tableId;
   const Uint32 RT_BREAK = 64;
   if (ERROR_INSERTED(7125)) {
     return;
-  }//if
-  for (Uint32 i = 0; i<RT_BREAK; i++) {
+  }  // if
+  for (Uint32 i = 0; i < RT_BREAK; i++) {
     jam();
-    if (tabPtr.i >= ctabFileSize){
+    if (tabPtr.i >= ctabFileSize) {
       jam();
       /**
        * Ready with entire loop
        * Return to master
        */
-      if (ERROR_INSERTED(7204) ||
-          ERROR_INSERTED(7245) ||
-          ERROR_INSERTED(7246))
-      {
+      if (ERROR_INSERTED(7204) || ERROR_INSERTED(7245) ||
+          ERROR_INSERTED(7246)) {
         CLEAR_ERROR_INSERT_VALUE;
       }
       setAllowNodeStart(nodeId, true);
       g_eventLogger->info("Completed invalidation of node %u", nodeId);
       if (getNodeStatus(nodeId) == NodeRecord::STARTING) {
         jam();
-        if (!isMaster())
-        {
+        if (!isMaster()) {
           jam();
           setNodeRecoveryStatus(nodeId, NodeRecord::NODE_GETTING_PERMIT);
         }
-        StartInfoConf * conf = (StartInfoConf*)&signal->theData[0];
+        StartInfoConf *conf = (StartInfoConf *)&signal->theData[0];
         conf->sendingNodeId = cownNodeId;
         conf->startingNodeId = nodeId;
         sendSignal(cmasterdihref, GSN_START_INFOCONF, signal,
                    StartInfoConf::SignalLength, JBB);
-      }//if
+      }  // if
       return;
-    }//if
+    }  // if
     ptrAss(tabPtr, tabRecord);
     if (tabPtr.p->tabStatus == TabRecord::TS_ACTIVE) {
       jam();
       invalidateNodeLCP(signal, nodeId, tabPtr);
       return;
-    }//if
+    }  // if
     tabPtr.i++;
-  }//for
+  }  // for
   signal->theData[0] = DihContinueB::ZINVALIDATE_NODE_LCP;
   signal->theData[1] = nodeId;
   signal->theData[2] = tabPtr.i;
   sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
-}//Dbdih::invalidateNodeLCP()
+}  // Dbdih::invalidateNodeLCP()
 
-void
-Dbdih::invalidateNodeLCP(Signal* signal, Uint32 nodeId, TabRecordPtr tabPtr)
-{  
+void Dbdih::invalidateNodeLCP(Signal *signal, Uint32 nodeId,
+                              TabRecordPtr tabPtr) {
   /**
    * Check so that no one else is using the tab descriptor
    */
   if (tabPtr.p->tabCopyStatus != TabRecord::CS_IDLE) {
-    jam();    
+    jam();
     signal->theData[0] = DihContinueB::ZINVALIDATE_NODE_LCP;
     signal->theData[1] = nodeId;
     signal->theData[2] = tabPtr.i;
     sendSignalWithDelay(reference(), GSN_CONTINUEB, signal,
                         WaitTableStateChangeMillis, 3);
     return;
-  }//if  
+  }  // if
 
   /**
    * For each fragment
    */
   bool modified = false;
   FragmentstorePtr fragPtr;
-  for(Uint32 fragNo = 0; fragNo < tabPtr.p->totalfragments; fragNo++){
+  for (Uint32 fragNo = 0; fragNo < tabPtr.p->totalfragments; fragNo++) {
     jam();
-    getFragstore(tabPtr.p, fragNo, fragPtr);    
+    getFragstore(tabPtr.p, fragNo, fragPtr);
     /**
      * For each of replica record
      */
     ReplicaRecordPtr replicaPtr;
-    for(replicaPtr.i = fragPtr.p->oldStoredReplicas;
+    for (replicaPtr.i = fragPtr.p->oldStoredReplicas;
          replicaPtr.i != RNIL64;
-        replicaPtr.i = replicaPtr.p->nextPool) {
+         replicaPtr.i = replicaPtr.p->nextPool) {
       jam();
       ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
-      if(replicaPtr.p->procNode == nodeId){
+      if (replicaPtr.p->procNode == nodeId) {
         jam();
         /**
          * Found one with correct node id
@@ -11653,32 +10669,32 @@ Dbdih::invalidateNodeLCP(Signal* signal, Uint32 nodeId, TabRecordPtr tabPtr)
          * Invalidate all LCP's
          */
         modified = true;
-        for(int i = 0; i < MAX_LCP_STORED; i++) {
-          replicaPtr.p->lcpStatus[i] = ZINVALID;       
-        }//if
+        for (int i = 0; i < MAX_LCP_STORED; i++) {
+          replicaPtr.p->lcpStatus[i] = ZINVALID;
+        }  // if
         /**
          * And reset nextLcp
          */
         replicaPtr.p->nextLcp = 0;
         replicaPtr.p->noCrashedReplicas = 0;
-      }//if
-    }//for
-  }//for
+      }  // if
+    }    // for
+  }      // for
 
   if (modified) {
     jam();
     /**
      * Save table description to disk
      */
-    tabPtr.p->tabCopyStatus  = TabRecord::CS_INVALIDATE_NODE_LCP;
+    tabPtr.p->tabCopyStatus = TabRecord::CS_INVALIDATE_NODE_LCP;
     tabPtr.p->tabUpdateState = TabRecord::US_INVALIDATE_NODE_LCP;
-    tabPtr.p->tabRemoveNode  = nodeId;
+    tabPtr.p->tabRemoveNode = nodeId;
     signal->theData[0] = DihContinueB::ZPACK_TABLE_INTO_PAGES;
     signal->theData[1] = tabPtr.i;
     sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
     return;
-  } 
-  
+  }
+
   jam();
   /**
    * Move to next table
@@ -11691,43 +10707,41 @@ Dbdih::invalidateNodeLCP(Signal* signal, Uint32 nodeId, TabRecordPtr tabPtr)
   handle_send_continueb_invalidate_node_lcp(signal);
 
   return;
-}//Dbdih::invalidateNodeLCP()
+}  // Dbdih::invalidateNodeLCP()
 
 /*------------------------------------------------*/
 /*       INPUT:  TABPTR                           */
 /*               TNODEID                          */
 /*------------------------------------------------*/
-void Dbdih::removeNodeFromTables(Signal* signal, 
-				 Uint32 nodeId, Uint32 tableId) 
-{
+void Dbdih::removeNodeFromTables(Signal *signal, Uint32 nodeId,
+                                 Uint32 tableId) {
   jamEntry();
   TabRecordPtr tabPtr;
-  tabPtr.i = tableId;  
+  tabPtr.i = tableId;
   const Uint32 RT_BREAK = 64;
-  for (Uint32 i = 0; i<RT_BREAK; i++) {
+  for (Uint32 i = 0; i < RT_BREAK; i++) {
     jam();
-    if (tabPtr.i >= ctabFileSize){
+    if (tabPtr.i >= ctabFileSize) {
       jam();
-      if (ERROR_INSERTED(7233))
-      {
+      if (ERROR_INSERTED(7233)) {
         CLEAR_ERROR_INSERT_VALUE;
       }
 
       removeNodeFromTablesComplete(signal, nodeId);
       return;
-    }//if
+    }  // if
 
     ptrAss(tabPtr, tabRecord);
     if (tabPtr.p->tabStatus == TabRecord::TS_ACTIVE ||
         (tabPtr.p->tabStatus == TabRecord::TS_CREATING &&
-         tabPtr.p->connectrec == RNIL)) // Create work done
+         tabPtr.p->connectrec == RNIL))  // Create work done
     {
       jam();
       removeNodeFromTable(signal, nodeId, tabPtr);
       return;
-    }//if
+    }  // if
     tabPtr.i++;
-  }//for
+  }  // for
   signal->theData[0] = DihContinueB::ZREMOVE_NODE_FROM_TABLE;
   signal->theData[1] = nodeId;
   signal->theData[2] = tabPtr.i;
@@ -11747,21 +10761,20 @@ void Dbdih::removeNodeFromTables(Signal* signal,
 #define DIH_TAB_WRITE_UNLOCK(tabPtrP) \
   do { assertOwnThread(); tabPtrP->m_lock.write_unlock(); } while (0)
 
-void Dbdih::removeNodeFromTable(Signal* signal, 
-				Uint32 nodeId, TabRecordPtr tabPtr){ 
-  
+void Dbdih::removeNodeFromTable(Signal *signal, Uint32 nodeId,
+                                TabRecordPtr tabPtr) {
   /**
    * Check so that no one else is using the tab descriptor
    */
   if (tabPtr.p->tabCopyStatus != TabRecord::CS_IDLE) {
-    jam();    
+    jam();
     signal->theData[0] = DihContinueB::ZREMOVE_NODE_FROM_TABLE;
     signal->theData[1] = nodeId;
     signal->theData[2] = tabPtr.i;
     sendSignalWithDelay(reference(), GSN_CONTINUEB, signal,
                         WaitTableStateChangeMillis, 3);
     return;
-  }//if  
+  }  // if
 
   NodeRecordPtr nodePtr;
   nodePtr.i = nodeId;
@@ -11771,11 +10784,11 @@ void Dbdih::removeNodeFromTable(Signal* signal,
   /**
    * For each fragment
    */
-  Uint32 noOfRemovedReplicas = 0;     // No of replicas removed
-  Uint32 noOfRemovedLcpReplicas = 0;  // No of replicas in LCP removed 
-  Uint32 noOfRemainingLcpReplicas = 0;// No of replicas in LCP remaining
+  Uint32 noOfRemovedReplicas = 0;       // No of replicas removed
+  Uint32 noOfRemovedLcpReplicas = 0;    // No of replicas in LCP removed
+  Uint32 noOfRemainingLcpReplicas = 0;  // No of replicas in LCP remaining
 
-  const bool lcpOngoingFlag = (tabPtr.p->tabLcpStatus== TabRecord::TLS_ACTIVE);
+  const bool lcpOngoingFlag = (tabPtr.p->tabLcpStatus == TabRecord::TLS_ACTIVE);
   const bool unlogged = (tabPtr.p->tabStorage != TabRecord::ST_NORMAL);
 
   /**
@@ -11794,61 +10807,55 @@ void Dbdih::removeNodeFromTable(Signal* signal,
                         tabPtr.p->totalfragments,
                         __LINE__);
   DIH_TAB_WRITE_LOCK(tabPtr.p);
-  for(Uint32 fragNo = 0; fragNo < tabPtr.p->totalfragments; fragNo++){
+  for (Uint32 fragNo = 0; fragNo < tabPtr.p->totalfragments; fragNo++) {
     jam();
-    getFragstore(tabPtr.p, fragNo, fragPtr);    
-    
+    getFragstore(tabPtr.p, fragNo, fragPtr);
+
     /**
      * For each of replica record
      */
     bool found = false;
     ReplicaRecordPtr replicaPtr;
-    for(replicaPtr.i = fragPtr.p->storedReplicas;
+    for (replicaPtr.i = fragPtr.p->storedReplicas;
         replicaPtr.i != RNIL64;
-        replicaPtr.i = replicaPtr.p->nextPool) {
+         replicaPtr.i = replicaPtr.p->nextPool) {
       jam();
 
       ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
-      if(replicaPtr.p->procNode == nodeId){
+      if (replicaPtr.p->procNode == nodeId) {
         jam();
-	found = true;
-	noOfRemovedReplicas++;
-	removeNodeFromStored(nodeId, fragPtr, replicaPtr, unlogged);
-	if(replicaPtr.p->lcpOngoingFlag)
-        {
-	  jam();
-	  /**
-	   * This replica is currently LCP:ed
-	   */
-	  ndbrequire(fragPtr.p->noLcpReplicas > 0);
-	  fragPtr.p->noLcpReplicas--;
-	  
-	  noOfRemovedLcpReplicas ++;
-	  replicaPtr.p->lcpOngoingFlag = false;
-          if (fragPtr.p->noLcpReplicas == 0)
-          {
+        found = true;
+        noOfRemovedReplicas++;
+        removeNodeFromStored(nodeId, fragPtr, replicaPtr, unlogged);
+        if (replicaPtr.p->lcpOngoingFlag) {
+          jam();
+          /**
+           * This replica is currently LCP:ed
+           */
+          ndbrequire(fragPtr.p->noLcpReplicas > 0);
+          fragPtr.p->noLcpReplicas--;
+
+          noOfRemovedLcpReplicas++;
+          replicaPtr.p->lcpOngoingFlag = false;
+          if (fragPtr.p->noLcpReplicas == 0) {
             ndbrequire(tabPtr.p->tabActiveLcpFragments > 0);
             tabPtr.p->tabActiveLcpFragments--;
           }
-	}
+        }
 
-        if (lcpId != RNIL)
-        {
+        if (lcpId != RNIL) {
           jam();
           Uint32 lcpNo = prevLcpNo(replicaPtr.p->nextLcp);
-          if (replicaPtr.p->lcpStatus[lcpNo] == ZVALID && 
-              replicaPtr.p->lcpId[lcpNo] == lcpId)
-          {
+          if (replicaPtr.p->lcpStatus[lcpNo] == ZVALID &&
+              replicaPtr.p->lcpId[lcpNo] == lcpId) {
             jam();
-            replicaPtr.p->lcpStatus[lcpNo] = ZINVALID;       
+            replicaPtr.p->lcpStatus[lcpNo] = ZINVALID;
             replicaPtr.p->lcpId[lcpNo] = 0;
             replicaPtr.p->nextLcp = lcpNo;
-            g_eventLogger->debug("REMOVING lcp: %u from table: %u frag:"
-                                 " %u node: %u",
-                                 SYSFILE->latestLCP_ID,
-                                 tabPtr.i,
-                                 fragNo,
-                                 nodeId);
+            g_eventLogger->debug(
+                "REMOVING lcp: %u from table: %u frag:"
+                " %u node: %u",
+                SYSFILE->latestLCP_ID, tabPtr.i, fragNo, nodeId);
           }
         }
       }
@@ -11864,8 +10871,7 @@ void Dbdih::removeNodeFromTable(Signal* signal,
   }
   DIH_TAB_WRITE_UNLOCK(tabPtr.p);
   
-  if (noOfRemovedReplicas == 0)
-  {
+  if (noOfRemovedReplicas == 0) {
     jam();
     /**
      * The table had no replica on the failed node
@@ -11881,49 +10887,49 @@ void Dbdih::removeNodeFromTable(Signal* signal,
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 300, 3);
     return;
   }
-  
+
   /**
    * We did remove at least one replica
    */
   bool ok = false;
-  switch(tabPtr.p->tabLcpStatus){
-  case TabRecord::TLS_COMPLETED:
-    ok = true;
-    jam();
-    /**
-     * WE WILL WRITE THE TABLE DESCRIPTION TO DISK AT THIS TIME 
-     * INDEPENDENT OF WHAT THE LOCAL CHECKPOINT NEEDED. 
-     * THIS IS TO ENSURE THAT THE FAILED NODES ARE ALSO UPDATED ON DISK 
-     * IN THE DIH DATA STRUCTURES BEFORE WE COMPLETE HANDLING OF THE 
-     * NODE FAILURE.
-     */
-    ndbrequire(noOfRemovedLcpReplicas == 0);
-    
-    tabPtr.p->tabCopyStatus = TabRecord::CS_REMOVE_NODE;
-    tabPtr.p->tabUpdateState = TabRecord::US_REMOVE_NODE;
-    tabPtr.p->tabRemoveNode = nodeId;
-    signal->theData[0] = DihContinueB::ZPACK_TABLE_INTO_PAGES;
-    signal->theData[1] = tabPtr.i;
-    sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-    return;
-    break;
-  case TabRecord::TLS_ACTIVE:
-    ok = true;
-    jam();
-    /**
-     * The table is participating in an LCP currently
-     */
-    break;
-  case TabRecord::TLS_WRITING_TO_FILE:
-    ok = true;
-    jam();
-    /**
-     * This should never happen since we in the beginning of this function
-     * checks the tabCopyStatus
-     */
-    ndbrequire(lcpOngoingFlag);
-    ndbabort();
-  }    
+  switch (tabPtr.p->tabLcpStatus) {
+    case TabRecord::TLS_COMPLETED:
+      ok = true;
+      jam();
+      /**
+       * WE WILL WRITE THE TABLE DESCRIPTION TO DISK AT THIS TIME
+       * INDEPENDENT OF WHAT THE LOCAL CHECKPOINT NEEDED.
+       * THIS IS TO ENSURE THAT THE FAILED NODES ARE ALSO UPDATED ON DISK
+       * IN THE DIH DATA STRUCTURES BEFORE WE COMPLETE HANDLING OF THE
+       * NODE FAILURE.
+       */
+      ndbrequire(noOfRemovedLcpReplicas == 0);
+
+      tabPtr.p->tabCopyStatus = TabRecord::CS_REMOVE_NODE;
+      tabPtr.p->tabUpdateState = TabRecord::US_REMOVE_NODE;
+      tabPtr.p->tabRemoveNode = nodeId;
+      signal->theData[0] = DihContinueB::ZPACK_TABLE_INTO_PAGES;
+      signal->theData[1] = tabPtr.i;
+      sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
+      return;
+      break;
+    case TabRecord::TLS_ACTIVE:
+      ok = true;
+      jam();
+      /**
+       * The table is participating in an LCP currently
+       */
+      break;
+    case TabRecord::TLS_WRITING_TO_FILE:
+      ok = true;
+      jam();
+      /**
+       * This should never happen since we in the beginning of this function
+       * checks the tabCopyStatus
+       */
+      ndbrequire(lcpOngoingFlag);
+      ndbabort();
+  }
   ndbrequire(ok);
 
   /**
@@ -11931,16 +10937,15 @@ void Dbdih::removeNodeFromTable(Signal* signal,
    *   and we removed some replicas that should have been checkpointed
    */
   ndbrequire(tabPtr.p->tabLcpStatus == TabRecord::TLS_ACTIVE);
-  
+
   tabPtr.p->tabCopyStatus = TabRecord::CS_REMOVE_NODE;
   tabPtr.p->tabUpdateState = TabRecord::US_REMOVE_NODE;
   tabPtr.p->tabRemoveNode = nodeId;
   signal->theData[0] = DihContinueB::ZPACK_TABLE_INTO_PAGES;
   signal->theData[1] = tabPtr.i;
   sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-    
-  if (noOfRemainingLcpReplicas == 0)
-  {
+
+  if (noOfRemainingLcpReplicas == 0) {
     jam();
     /**
      * Check if the removal on the failed node made the LCP complete
@@ -11950,71 +10955,64 @@ void Dbdih::removeNodeFromTable(Signal* signal,
     checkLcpAllTablesDoneInLqh(__LINE__);
   }
 }
-  
-void
-Dbdih::removeNodeFromTablesComplete(Signal* signal, Uint32 nodeId)
-{
+
+void Dbdih::removeNodeFromTablesComplete(Signal *signal, Uint32 nodeId) {
   jam();
 
   /**
    * Check if we "accidentally" completed a LCP
    */
   checkLcpCompletedLab(signal, __LINE__);
-  
+
   /**
    * Check if we (DIH) are finished with node fail handling
    */
   checkLocalNodefailComplete(signal, nodeId, NF_REMOVE_NODE_FROM_TABLE);
 }
 
-void
-Dbdih::checkLocalNodefailComplete(Signal* signal, Uint32 failedNodeId,
-				  NodefailHandlingStep step){
+void Dbdih::checkLocalNodefailComplete(Signal *signal, Uint32 failedNodeId,
+                                       NodefailHandlingStep step) {
   jam();
 
   NodeRecordPtr nodePtr;
   nodePtr.i = failedNodeId;
   ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-  
+
   ndbrequire(nodePtr.p->m_nodefailSteps.get(step));
   nodePtr.p->m_nodefailSteps.clear(step);
 
-  if(nodePtr.p->m_nodefailSteps.count() > 0){
+  if (nodePtr.p->m_nodefailSteps.count() > 0) {
     jam();
     return;
   }
 
-  if (ERROR_INSERTED(7030))
-  {
+  if (ERROR_INSERTED(7030)) {
     g_eventLogger->info("Reenable GCP_PREPARE");
     CLEAR_ERROR_INSERT_VALUE;
   }
 
-  NFCompleteRep * const nf = (NFCompleteRep *)&signal->theData[0];
+  NFCompleteRep *const nf = (NFCompleteRep *)&signal->theData[0];
   nf->blockNo = DBDIH;
   nf->nodeId = cownNodeId;
   nf->failedNodeId = failedNodeId;
   nf->from = __LINE__;
-  sendSignal(reference(), GSN_NF_COMPLETEREP, signal, 
+  sendSignal(reference(), GSN_NF_COMPLETEREP, signal,
              NFCompleteRep::SignalLength, JBB);
 }
 
-
-void
-Dbdih::setLocalNodefailHandling(Signal* signal, Uint32 failedNodeId,
-				NodefailHandlingStep step){
+void Dbdih::setLocalNodefailHandling(Signal *signal, Uint32 failedNodeId,
+                                     NodefailHandlingStep step) {
   jam();
-  
+
   NodeRecordPtr nodePtr;
   nodePtr.i = failedNodeId;
   ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-  
+
   ndbrequire(!nodePtr.p->m_nodefailSteps.get(step));
   nodePtr.p->m_nodefailSteps.set(step);
 }
 
-void Dbdih::startLcpTakeOverLab(Signal* signal, Uint32 failedNodeId)
-{
+void Dbdih::startLcpTakeOverLab(Signal *signal, Uint32 failedNodeId) {
   /*--------------------------------------------------------------------*/
   // Start LCP master take over process. Consists of the following steps.
   // 1) Ensure that all LQH's have reported all fragments they have been
@@ -12025,42 +11023,36 @@ void Dbdih::startLcpTakeOverLab(Signal* signal, Uint32 failedNodeId)
   // save of table on disk or reception of DIH_LCPCOMPLETE from other
   // node.
   /*--------------------------------------------------------------------*/
-}//Dbdih::startLcpTakeOver()
+}  // Dbdih::startLcpTakeOver()
 
-void
-Dbdih::checkEmptyLcpComplete(Signal *signal)
-{
-  
+void Dbdih::checkEmptyLcpComplete(Signal *signal) {
   ndbrequire(c_lcpMasterTakeOverState.state == LMTOS_WAIT_LCP_FRAG_REP);
-  
-  if(isMaster()){
+
+  if (isMaster()) {
     jam();
 
     signal->theData[0] = NDB_LE_LCP_TakeoverStarted;
     sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 1, JBB);
-    
+
     signal->theData[0] = 7012;
     execDUMP_STATE_ORD(signal);
 
-    if (ERROR_INSERTED(7194))
-    {
+    if (ERROR_INSERTED(7194)) {
       g_eventLogger->info("7194 starting ZREMOVE_NODE_FROM_TABLE");
       signal->theData[0] = DihContinueB::ZREMOVE_NODE_FROM_TABLE;
       signal->theData[1] = c_lcpMasterTakeOverState.failedNodeId;
-      signal->theData[2] = 0; // Tab id
+      signal->theData[2] = 0;  // Tab id
       sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
     }
-    
+
     c_lcpMasterTakeOverState.set(LMTOS_INITIAL, __LINE__);
     m_master_lcp_req_lcp_already_completed = false;
-    MasterLCPReq * const req = (MasterLCPReq *)&signal->theData[0];
+    MasterLCPReq *const req = (MasterLCPReq *)&signal->theData[0];
     req->masterRef = reference();
     req->failedNodeId = c_lcpMasterTakeOverState.failedNodeId;
     sendLoopMacro(MASTER_LCPREQ, sendMASTER_LCPREQ, RNIL);
 
-  }
-  else
-  {
+  } else {
     jam();
     sendMASTER_LCPCONF(signal, __LINE__);
   }
@@ -12071,18 +11063,16 @@ Dbdih::checkEmptyLcpComplete(Signal *signal)
 /*       QUERYING THIS NODE ABOUT THE STATE OF THE  */
 /*       LOCAL CHECKPOINT PROTOCOL.                 */
 /*--------------------------------------------------*/
-void Dbdih::execMASTER_LCPREQ(Signal* signal) 
-{
+void Dbdih::execMASTER_LCPREQ(Signal *signal) {
   NodeRecordPtr newMasterNodePtr;
-  const MasterLCPReq * const req = (MasterLCPReq *)&signal->theData[0];
+  const MasterLCPReq *const req = (MasterLCPReq *)&signal->theData[0];
   jamEntry();
   const BlockReference newMasterBlockref = req->masterRef;
 
   newMasterNodePtr.i = refToNode(newMasterBlockref);
   ptrCheckGuard(newMasterNodePtr, MAX_NDB_NODES, nodeRecord);
 
-  if (newMasterNodePtr.p->nodeStatus != NodeRecord::ALIVE)
-  {
+  if (newMasterNodePtr.p->nodeStatus != NodeRecord::ALIVE) {
     /**
      * We delayed the MASTER_LCPREQ signal and now it arrived after
      * the new master already died. We ignore this signal.
@@ -12093,54 +11083,49 @@ void Dbdih::execMASTER_LCPREQ(Signal* signal)
 
   CRASH_INSERTION(7205);
 
-  if (ERROR_INSERTED(7207))
-  {
+  if (ERROR_INSERTED(7207)) {
     jam();
     SET_ERROR_INSERT_VALUE(7208);
-    sendSignalWithDelay(reference(), GSN_MASTER_LCPREQ, signal,
-			500, signal->getLength());
+    sendSignalWithDelay(reference(), GSN_MASTER_LCPREQ, signal, 500,
+                        signal->getLength());
     return;
   }
-  
-  if (ERROR_INSERTED(7208))
-  {
+
+  if (ERROR_INSERTED(7208)) {
     jam();
     signal->theData[0] = 9999;
-    sendSignal(numberToRef(CMVMI, refToNode(newMasterBlockref)), 
-               GSN_NDB_TAMPER, signal, 1, JBB);
+    sendSignal(numberToRef(CMVMI, refToNode(newMasterBlockref)), GSN_NDB_TAMPER,
+               signal, 1, JBB);
   }
 
-  if (ERROR_INSERTED(7231))
-  {
+  if (ERROR_INSERTED(7231)) {
     CLEAR_ERROR_INSERT_VALUE;
-    sendSignalWithDelay(reference(), GSN_MASTER_LCPREQ, signal,
-			1500, signal->getLength());
+    sendSignalWithDelay(reference(), GSN_MASTER_LCPREQ, signal, 1500,
+                        signal->getLength());
     return;
   }
 
-  if (newMasterBlockref != cmasterdihref)
-  {
+  if (newMasterBlockref != cmasterdihref) {
     /**
      * We haven't processed the NODE_FAILREP signal causing the new master
      * to be selected as the new master by this node.
      */
     jam();
     g_eventLogger->info("resending GSN_MASTER_LCPREQ");
-    sendSignalWithDelay(reference(), GSN_MASTER_LCPREQ, signal,
-			50, signal->getLength());
+    sendSignalWithDelay(reference(), GSN_MASTER_LCPREQ, signal, 50,
+                        signal->getLength());
     return;
   }
 
-  if (c_handled_master_take_over_copy_gci != refToNode(newMasterNodePtr.i))
-  {
+  if (c_handled_master_take_over_copy_gci != refToNode(newMasterNodePtr.i)) {
     /**
      * We need to ensure that MASTER_GCPREQ has ensured that the COPY_GCIREQ
      * activity started by old master has been completed before we proceed
      * with handling the take over of the LCP protocol.
      */
     jam();
-    sendSignalWithDelay(reference(), GSN_MASTER_LCPREQ, signal,
-                        10, signal->getLength());
+    sendSignalWithDelay(reference(), GSN_MASTER_LCPREQ, signal, 10,
+                        signal->getLength());
     return;
   }
   c_handled_master_take_over_copy_gci = 0;
@@ -12154,27 +11139,23 @@ void Dbdih::execMASTER_LCPREQ(Signal* signal)
   c_lcpState.m_masterLcpDihRef = newMasterBlockref;
   c_lcpState.m_MASTER_LCPREQ_Received = true;
   c_lcpState.m_MASTER_LCPREQ_FailedNodeId = failedNodeId;
-  
-  if(newMasterBlockref != cmasterdihref){
+
+  if (newMasterBlockref != cmasterdihref) {
     jam();
     ndbabort();
   }
 
-  if (c_lcpState.lcpStatus == LCP_INIT_TABLES)
-  {
+  if (c_lcpState.lcpStatus == LCP_INIT_TABLES) {
     jam();
     c_lcpState.m_participatingDIH.clear();
     c_lcpState.m_participatingLQH.clear();
     c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
   }
   sendMASTER_LCPCONF(signal, __LINE__);
-}//Dbdih::execMASTER_LCPREQ()
+}  // Dbdih::execMASTER_LCPREQ()
 
-void
-Dbdih::sendMASTER_LCPCONF(Signal * signal, Uint32 from)
-{
-  if (!c_lcpState.m_MASTER_LCPREQ_Received)
-  {
+void Dbdih::sendMASTER_LCPCONF(Signal *signal, Uint32 from) {
+  if (!c_lcpState.m_MASTER_LCPREQ_Received) {
     jam();
     /**
      * Has not received MASTER_LCPREQ yet
@@ -12188,15 +11169,13 @@ Dbdih::sendMASTER_LCPCONF(Signal * signal, Uint32 from)
   bool info = false;
 #endif
 
-  if (ERROR_INSERTED(7230))
-  {
+  if (ERROR_INSERTED(7230)) {
     signal->theData[0] = 9999;
     sendSignalWithDelay(CMVMI_REF, GSN_NDB_TAMPER, signal, 100, 1);
     goto err7230;
   }
 
-  if (c_lcpState.lcpStatus == LCP_INIT_TABLES)
-  {
+  if (c_lcpState.lcpStatus == LCP_INIT_TABLES) {
     jam();
     /**
      * Still aborting old initLcpLab
@@ -12207,16 +11186,14 @@ Dbdih::sendMASTER_LCPCONF(Signal * signal, Uint32 from)
   }
 
 err7230:
-  if (info)
-    infoEvent("from: %u : sendMASTER_LCPCONF", from);
+  if (info) infoEvent("from: %u : sendMASTER_LCPCONF", from);
 
-  if (c_lcpState.lcpStatus == LCP_COPY_GCI)
-  {
+  if (c_lcpState.lcpStatus == LCP_COPY_GCI) {
     jam();
     /**
      * Restart it
      */
-    //Uint32 lcpId = SYSFILE->latestLCP_ID;
+    // Uint32 lcpId = SYSFILE->latestLCP_ID;
     SYSFILE->latestLCP_ID--;
     SYSFILE->clearLCPOngoing();
     c_lcpState.m_participatingDIH.clear();
@@ -12233,97 +11210,95 @@ err7230:
 
   MasterLCPConf::State lcpState;
   switch (c_lcpState.lcpStatus) {
-  case LCP_STATUS_IDLE:
-    jam();
-    /*------------------------------------------------*/
-    /*       LOCAL CHECKPOINT IS CURRENTLY NOT ACTIVE */
-    /*       SINCE NO COPY OF RESTART INFORMATION HAVE*/
-    /*       BEEN RECEIVED YET. ALSO THE PREVIOUS     */
-    /*       CHECKPOINT HAVE BEEN FULLY COMPLETED.    */
-    /*------------------------------------------------*/
-    lcpState = MasterLCPConf::LCP_STATUS_IDLE;
-    break;
-  case LCP_STATUS_ACTIVE:
-    jam();
-    /*--------------------------------------------------*/
-    /*       COPY OF RESTART INFORMATION HAS BEEN       */
-    /*       PERFORMED AND ALSO RESPONSE HAVE BEEN SENT.*/
-    /*--------------------------------------------------*/
-    lcpState = MasterLCPConf::LCP_STATUS_ACTIVE;
-    break;
-  case LCP_TAB_COMPLETED:
-    jam();
-    /*--------------------------------------------------------*/
-    /*       ALL LCP_REPORT'S HAVE BEEN COMPLETED FOR         */
-    /*       ALL TABLES.     SAVE OF AT LEAST ONE TABLE IS    */
-    /*       ONGOING YET.                                     */
-    /*--------------------------------------------------------*/
-    lcpState = MasterLCPConf::LCP_TAB_COMPLETED;
-    break;
-  case LCP_TAB_SAVED:
-    jam();
-    /*--------------------------------------------------------*/
-    /*       ALL LCP_REPORT'S HAVE BEEN COMPLETED FOR         */
-    /*       ALL TABLES.     ALL TABLES HAVE ALSO BEEN SAVED  */
-    /*       ALL OTHER NODES ARE NOT YET FINISHED WITH        */
-    /*       THE LOCAL CHECKPOINT.                            */
-    /*--------------------------------------------------------*/
-    lcpState = MasterLCPConf::LCP_TAB_SAVED;
-    break;
-  case LCP_TCGET:
-  case LCP_CALCULATE_KEEP_GCI:
-  case LCP_TC_CLOPSIZE:
-  case LCP_WAIT_MUTEX:
-  case LCP_START_LCP_ROUND:
-    /**
-     * These should only exists on the master
-     *   but since this is master take over
-     *   it not allowed
-     */
-    ndbabort();
-    lcpState= MasterLCPConf::LCP_STATUS_IDLE; // remove warning
-    break;
-  case LCP_COPY_GCI:
-  case LCP_INIT_TABLES:
-    /**
-     * These two states are handled by if statements above
-     */
-    ndbabort();
-    lcpState= MasterLCPConf::LCP_STATUS_IDLE; // remove warning
-    break;
-  default:
-    ndbabort();
-    lcpState= MasterLCPConf::LCP_STATUS_IDLE; // remove warning
-  }//switch
+    case LCP_STATUS_IDLE:
+      jam();
+      /*------------------------------------------------*/
+      /*       LOCAL CHECKPOINT IS CURRENTLY NOT ACTIVE */
+      /*       SINCE NO COPY OF RESTART INFORMATION HAVE*/
+      /*       BEEN RECEIVED YET. ALSO THE PREVIOUS     */
+      /*       CHECKPOINT HAVE BEEN FULLY COMPLETED.    */
+      /*------------------------------------------------*/
+      lcpState = MasterLCPConf::LCP_STATUS_IDLE;
+      break;
+    case LCP_STATUS_ACTIVE:
+      jam();
+      /*--------------------------------------------------*/
+      /*       COPY OF RESTART INFORMATION HAS BEEN       */
+      /*       PERFORMED AND ALSO RESPONSE HAVE BEEN SENT.*/
+      /*--------------------------------------------------*/
+      lcpState = MasterLCPConf::LCP_STATUS_ACTIVE;
+      break;
+    case LCP_TAB_COMPLETED:
+      jam();
+      /*--------------------------------------------------------*/
+      /*       ALL LCP_REPORT'S HAVE BEEN COMPLETED FOR         */
+      /*       ALL TABLES.     SAVE OF AT LEAST ONE TABLE IS    */
+      /*       ONGOING YET.                                     */
+      /*--------------------------------------------------------*/
+      lcpState = MasterLCPConf::LCP_TAB_COMPLETED;
+      break;
+    case LCP_TAB_SAVED:
+      jam();
+      /*--------------------------------------------------------*/
+      /*       ALL LCP_REPORT'S HAVE BEEN COMPLETED FOR         */
+      /*       ALL TABLES.     ALL TABLES HAVE ALSO BEEN SAVED  */
+      /*       ALL OTHER NODES ARE NOT YET FINISHED WITH        */
+      /*       THE LOCAL CHECKPOINT.                            */
+      /*--------------------------------------------------------*/
+      lcpState = MasterLCPConf::LCP_TAB_SAVED;
+      break;
+    case LCP_TCGET:
+    case LCP_CALCULATE_KEEP_GCI:
+    case LCP_TC_CLOPSIZE:
+    case LCP_WAIT_MUTEX:
+    case LCP_START_LCP_ROUND:
+      /**
+       * These should only exists on the master
+       *   but since this is master take over
+       *   it not allowed
+       */
+      ndbabort();
+      lcpState = MasterLCPConf::LCP_STATUS_IDLE;  // remove warning
+      break;
+    case LCP_COPY_GCI:
+    case LCP_INIT_TABLES:
+      /**
+       * These two states are handled by if statements above
+       */
+      ndbabort();
+      lcpState = MasterLCPConf::LCP_STATUS_IDLE;  // remove warning
+      break;
+    default:
+      ndbabort();
+      lcpState = MasterLCPConf::LCP_STATUS_IDLE;  // remove warning
+  }                                               // switch
 
   Uint32 failedNodeId = c_lcpState.m_MASTER_LCPREQ_FailedNodeId;
-  MasterLCPConf * const conf = (MasterLCPConf *)&signal->theData[0];
+  MasterLCPConf *const conf = (MasterLCPConf *)&signal->theData[0];
   conf->senderNodeId = cownNodeId;
   conf->lcpState = lcpState;
   conf->failedNodeId = failedNodeId;
-  sendSignal(c_lcpState.m_masterLcpDihRef, GSN_MASTER_LCPCONF,
-             signal, MasterLCPConf::SignalLength, JBB);
+  sendSignal(c_lcpState.m_masterLcpDihRef, GSN_MASTER_LCPCONF, signal,
+             MasterLCPConf::SignalLength, JBB);
 
-  // Answer to MASTER_LCPREQ sent, reset flag so 
+  // Answer to MASTER_LCPREQ sent, reset flag so
   // that it's not sent again before another request comes in
   c_lcpState.m_MASTER_LCPREQ_Received = false;
 
   CRASH_INSERTION(7232);
 
-  if (ERROR_INSERTED(7230))
-  {
+  if (ERROR_INSERTED(7230)) {
     return;
   }
 
-  if(c_lcpState.lcpStatus == LCP_TAB_SAVED){
+  if (c_lcpState.lcpStatus == LCP_TAB_SAVED) {
 #ifdef VM_TRACE
-    g_eventLogger->info("Sending extra GSN_LCP_COMPLETE_REP to new master");    
+    g_eventLogger->info("Sending extra GSN_LCP_COMPLETE_REP to new master");
 #endif
     sendLCP_COMPLETE_REP(signal);
   }
 
-  if(!isMaster())
-  {
+  if (!isMaster()) {
     c_lcpMasterTakeOverState.set(LMTOS_IDLE, __LINE__);
     checkLocalNodefailComplete(signal, failedNodeId, NF_LCP_TAKE_OVER);
   }
@@ -12331,30 +11306,29 @@ err7230:
   return;
 }
 
-NdbOut&
-operator<<(NdbOut& out, const Dbdih::LcpMasterTakeOverState state){
-  switch(state){
-  case Dbdih::LMTOS_IDLE:
-    out << "LMTOS_IDLE";
-    break;
-  case Dbdih::LMTOS_WAIT_LCP_FRAG_REP:
-    out << "LMTOS_WAIT_LCP_FRAG_REP";
-    break;
-  case Dbdih::LMTOS_INITIAL:
-    out << "LMTOS_INITIAL";
-    break;
-  case Dbdih::LMTOS_ALL_IDLE:
-    out << "LMTOS_ALL_IDLE";
-    break;
-  case Dbdih::LMTOS_ALL_ACTIVE:
-    out << "LMTOS_ALL_ACTIVE";
-    break;
-  case Dbdih::LMTOS_LCP_CONCLUDING:
-    out << "LMTOS_LCP_CONCLUDING";
-    break;
-  case Dbdih::LMTOS_COPY_ONGOING:
-    out << "LMTOS_COPY_ONGOING";
-    break;
+NdbOut &operator<<(NdbOut &out, const Dbdih::LcpMasterTakeOverState state) {
+  switch (state) {
+    case Dbdih::LMTOS_IDLE:
+      out << "LMTOS_IDLE";
+      break;
+    case Dbdih::LMTOS_WAIT_LCP_FRAG_REP:
+      out << "LMTOS_WAIT_LCP_FRAG_REP";
+      break;
+    case Dbdih::LMTOS_INITIAL:
+      out << "LMTOS_INITIAL";
+      break;
+    case Dbdih::LMTOS_ALL_IDLE:
+      out << "LMTOS_ALL_IDLE";
+      break;
+    case Dbdih::LMTOS_ALL_ACTIVE:
+      out << "LMTOS_ALL_ACTIVE";
+      break;
+    case Dbdih::LMTOS_LCP_CONCLUDING:
+      out << "LMTOS_LCP_CONCLUDING";
+      break;
+    case Dbdih::LMTOS_COPY_ONGOING:
+      out << "LMTOS_COPY_ONGOING";
+      break;
   }
   return out;
 }
@@ -12365,119 +11339,98 @@ struct MASTERLCP_StateTransitions {
   Dbdih::LcpMasterTakeOverState NewState;
 };
 
-static const
-MASTERLCP_StateTransitions g_masterLCPTakeoverStateTransitions[] = {
-  /**
-   * Current = LMTOS_INITIAL
-   */
-  { Dbdih::LMTOS_INITIAL, 
-    MasterLCPConf::LCP_STATUS_IDLE, 
-    Dbdih::LMTOS_ALL_IDLE },
-  
-  { Dbdih::LMTOS_INITIAL, 
-    MasterLCPConf::LCP_STATUS_ACTIVE,
-    Dbdih::LMTOS_ALL_ACTIVE },
+static const MASTERLCP_StateTransitions g_masterLCPTakeoverStateTransitions[] =
+    {
+        /**
+         * Current = LMTOS_INITIAL
+         */
+        {Dbdih::LMTOS_INITIAL, MasterLCPConf::LCP_STATUS_IDLE,
+         Dbdih::LMTOS_ALL_IDLE},
 
-  { Dbdih::LMTOS_INITIAL, 
-    MasterLCPConf::LCP_TAB_COMPLETED,
-    Dbdih::LMTOS_LCP_CONCLUDING },
+        {Dbdih::LMTOS_INITIAL, MasterLCPConf::LCP_STATUS_ACTIVE,
+         Dbdih::LMTOS_ALL_ACTIVE},
 
-  { Dbdih::LMTOS_INITIAL, 
-    MasterLCPConf::LCP_TAB_SAVED,
-    Dbdih::LMTOS_LCP_CONCLUDING },
+        {Dbdih::LMTOS_INITIAL, MasterLCPConf::LCP_TAB_COMPLETED,
+         Dbdih::LMTOS_LCP_CONCLUDING},
 
-  /**
-   * Current = LMTOS_ALL_IDLE
-   */
-  { Dbdih::LMTOS_ALL_IDLE,
-    MasterLCPConf::LCP_STATUS_IDLE,
-    Dbdih::LMTOS_ALL_IDLE },
+        {Dbdih::LMTOS_INITIAL, MasterLCPConf::LCP_TAB_SAVED,
+         Dbdih::LMTOS_LCP_CONCLUDING},
 
-  { Dbdih::LMTOS_ALL_IDLE,
-    MasterLCPConf::LCP_STATUS_ACTIVE,
-    Dbdih::LMTOS_COPY_ONGOING },
+        /**
+         * Current = LMTOS_ALL_IDLE
+         */
+        {Dbdih::LMTOS_ALL_IDLE, MasterLCPConf::LCP_STATUS_IDLE,
+         Dbdih::LMTOS_ALL_IDLE},
 
-  { Dbdih::LMTOS_ALL_IDLE,
-    MasterLCPConf::LCP_TAB_COMPLETED,
-    Dbdih::LMTOS_LCP_CONCLUDING },
+        {Dbdih::LMTOS_ALL_IDLE, MasterLCPConf::LCP_STATUS_ACTIVE,
+         Dbdih::LMTOS_COPY_ONGOING},
 
-  { Dbdih::LMTOS_ALL_IDLE,
-    MasterLCPConf::LCP_TAB_SAVED,
-    Dbdih::LMTOS_LCP_CONCLUDING },
+        {Dbdih::LMTOS_ALL_IDLE, MasterLCPConf::LCP_TAB_COMPLETED,
+         Dbdih::LMTOS_LCP_CONCLUDING},
 
-  /**
-   * Current = LMTOS_COPY_ONGOING
-   */
-  { Dbdih::LMTOS_COPY_ONGOING,
-    MasterLCPConf::LCP_STATUS_IDLE,
-    Dbdih::LMTOS_COPY_ONGOING },
+        {Dbdih::LMTOS_ALL_IDLE, MasterLCPConf::LCP_TAB_SAVED,
+         Dbdih::LMTOS_LCP_CONCLUDING},
 
-  { Dbdih::LMTOS_COPY_ONGOING,
-    MasterLCPConf::LCP_STATUS_ACTIVE,
-    Dbdih::LMTOS_COPY_ONGOING },
-  
-  /**
-   * Current = LMTOS_ALL_ACTIVE
-   */
-  { Dbdih::LMTOS_ALL_ACTIVE,
-    MasterLCPConf::LCP_STATUS_IDLE,
-    Dbdih::LMTOS_COPY_ONGOING },
+        /**
+         * Current = LMTOS_COPY_ONGOING
+         */
+        {Dbdih::LMTOS_COPY_ONGOING, MasterLCPConf::LCP_STATUS_IDLE,
+         Dbdih::LMTOS_COPY_ONGOING},
 
-  { Dbdih::LMTOS_ALL_ACTIVE,
-    MasterLCPConf::LCP_STATUS_ACTIVE,
-    Dbdih::LMTOS_ALL_ACTIVE },
+        {Dbdih::LMTOS_COPY_ONGOING, MasterLCPConf::LCP_STATUS_ACTIVE,
+         Dbdih::LMTOS_COPY_ONGOING},
 
-  { Dbdih::LMTOS_ALL_ACTIVE,
-    MasterLCPConf::LCP_TAB_COMPLETED,
-    Dbdih::LMTOS_LCP_CONCLUDING },    
-  
-  { Dbdih::LMTOS_ALL_ACTIVE,
-    MasterLCPConf::LCP_TAB_SAVED,
-    Dbdih::LMTOS_LCP_CONCLUDING },    
+        /**
+         * Current = LMTOS_ALL_ACTIVE
+         */
+        {Dbdih::LMTOS_ALL_ACTIVE, MasterLCPConf::LCP_STATUS_IDLE,
+         Dbdih::LMTOS_COPY_ONGOING},
 
-  /**
-   * Current = LMTOS_LCP_CONCLUDING
-   */
-  { Dbdih::LMTOS_LCP_CONCLUDING,
-    MasterLCPConf::LCP_STATUS_IDLE, 
-    Dbdih::LMTOS_LCP_CONCLUDING },
-  
-  { Dbdih::LMTOS_LCP_CONCLUDING, 
-    MasterLCPConf::LCP_STATUS_ACTIVE,
-    Dbdih::LMTOS_LCP_CONCLUDING },
+        {Dbdih::LMTOS_ALL_ACTIVE, MasterLCPConf::LCP_STATUS_ACTIVE,
+         Dbdih::LMTOS_ALL_ACTIVE},
 
-  { Dbdih::LMTOS_LCP_CONCLUDING, 
-    MasterLCPConf::LCP_TAB_COMPLETED,
-    Dbdih::LMTOS_LCP_CONCLUDING },
+        {Dbdih::LMTOS_ALL_ACTIVE, MasterLCPConf::LCP_TAB_COMPLETED,
+         Dbdih::LMTOS_LCP_CONCLUDING},
 
-  { Dbdih::LMTOS_LCP_CONCLUDING, 
-    MasterLCPConf::LCP_TAB_SAVED,
-    Dbdih::LMTOS_LCP_CONCLUDING }
-};
+        {Dbdih::LMTOS_ALL_ACTIVE, MasterLCPConf::LCP_TAB_SAVED,
+         Dbdih::LMTOS_LCP_CONCLUDING},
 
-const Uint32 g_masterLCPTakeoverStateTransitionsRows = 
-sizeof(g_masterLCPTakeoverStateTransitions) / sizeof(struct MASTERLCP_StateTransitions);
+        /**
+         * Current = LMTOS_LCP_CONCLUDING
+         */
+        {Dbdih::LMTOS_LCP_CONCLUDING, MasterLCPConf::LCP_STATUS_IDLE,
+         Dbdih::LMTOS_LCP_CONCLUDING},
 
-void Dbdih::execMASTER_LCPCONF(Signal* signal) 
-{
-  const MasterLCPConf * const conf = (MasterLCPConf *)&signal->theData[0];
+        {Dbdih::LMTOS_LCP_CONCLUDING, MasterLCPConf::LCP_STATUS_ACTIVE,
+         Dbdih::LMTOS_LCP_CONCLUDING},
+
+        {Dbdih::LMTOS_LCP_CONCLUDING, MasterLCPConf::LCP_TAB_COMPLETED,
+         Dbdih::LMTOS_LCP_CONCLUDING},
+
+        {Dbdih::LMTOS_LCP_CONCLUDING, MasterLCPConf::LCP_TAB_SAVED,
+         Dbdih::LMTOS_LCP_CONCLUDING}};
+
+const Uint32 g_masterLCPTakeoverStateTransitionsRows =
+    sizeof(g_masterLCPTakeoverStateTransitions) /
+    sizeof(struct MASTERLCP_StateTransitions);
+
+void Dbdih::execMASTER_LCPCONF(Signal *signal) {
+  const MasterLCPConf *const conf = (MasterLCPConf *)&signal->theData[0];
   jamEntry();
 
-  if (ERROR_INSERTED(7194))
-  {
+  if (ERROR_INSERTED(7194)) {
     g_eventLogger->info("delaying MASTER_LCPCONF due to error 7194");
-    sendSignalWithDelay(reference(), GSN_MASTER_LCPCONF, signal, 
-                        300, signal->getLength());
+    sendSignalWithDelay(reference(), GSN_MASTER_LCPCONF, signal, 300,
+                        signal->getLength());
     return;
   }
 
   if (ERROR_INSERTED(7230) &&
-      refToNode(signal->getSendersBlockRef()) != getOwnNodeId())
-  {
+      refToNode(signal->getSendersBlockRef()) != getOwnNodeId()) {
     infoEvent("delaying MASTER_LCPCONF due to error 7230 (from %u)",
               refToNode(signal->getSendersBlockRef()));
-    sendSignalWithDelay(reference(), GSN_MASTER_LCPCONF, signal,
-                        300, signal->getLength());
+    sendSignalWithDelay(reference(), GSN_MASTER_LCPCONF, signal, 300,
+                        signal->getLength());
     return;
   }
 
@@ -12490,7 +11443,7 @@ void Dbdih::execMASTER_LCPCONF(Signal* signal)
   nodePtr.p->lcpStateAtTakeOver = lcpState;
 
   CRASH_INSERTION(7180);
-  
+
 #ifdef VM_TRACE
   g_eventLogger->info("MASTER_LCPCONF from node %u, state: %u,"
                       " failedNode: %u",
@@ -12500,12 +11453,12 @@ void Dbdih::execMASTER_LCPCONF(Signal* signal)
 #endif
 
   bool found = false;
-  for(Uint32 i = 0; i<g_masterLCPTakeoverStateTransitionsRows; i++){
-    const struct MASTERLCP_StateTransitions * valid = 
-      &g_masterLCPTakeoverStateTransitions[i];
-    
-    if(valid->CurrentState == c_lcpMasterTakeOverState.state && 
-       valid->ParticipantState == lcpState){
+  for (Uint32 i = 0; i < g_masterLCPTakeoverStateTransitionsRows; i++) {
+    const struct MASTERLCP_StateTransitions *valid =
+        &g_masterLCPTakeoverStateTransitions[i];
+
+    if (valid->CurrentState == c_lcpMasterTakeOverState.state &&
+        valid->ParticipantState == lcpState) {
       jam();
       found = true;
       c_lcpMasterTakeOverState.set(valid->NewState, __LINE__);
@@ -12515,17 +11468,17 @@ void Dbdih::execMASTER_LCPCONF(Signal* signal)
   ndbrequire(found);
 
   bool ok = false;
-  switch(lcpState){
-  case MasterLCPConf::LCP_STATUS_IDLE:
-    ok = true;
-    m_master_lcp_req_lcp_already_completed = true;
-    break;
-  case MasterLCPConf::LCP_STATUS_ACTIVE:
-  case MasterLCPConf::LCP_TAB_COMPLETED:
-  case MasterLCPConf::LCP_TAB_SAVED:
-    ok = true;
-    c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.setWaitingFor(nodePtr.i);
-    break;
+  switch (lcpState) {
+    case MasterLCPConf::LCP_STATUS_IDLE:
+      ok = true;
+      m_master_lcp_req_lcp_already_completed = true;
+      break;
+    case MasterLCPConf::LCP_STATUS_ACTIVE:
+    case MasterLCPConf::LCP_TAB_COMPLETED:
+    case MasterLCPConf::LCP_TAB_SAVED:
+      ok = true;
+      c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.setWaitingFor(nodePtr.i);
+      break;
   }
   ndbrequire(ok);
 
@@ -12535,18 +11488,16 @@ void Dbdih::execMASTER_LCPCONF(Signal* signal)
   // protocol as master.
   /*-------------------------------------------------------------------------*/
   MASTER_LCPhandling(signal, failedNodeId);
-}//Dbdih::execMASTER_LCPCONF()
+}  // Dbdih::execMASTER_LCPCONF()
 
-void Dbdih::execMASTER_LCPREF(Signal* signal) 
-{
-  const MasterLCPRef * const ref = (MasterLCPRef *)&signal->theData[0];
+void Dbdih::execMASTER_LCPREF(Signal *signal) {
+  const MasterLCPRef *const ref = (MasterLCPRef *)&signal->theData[0];
   jamEntry();
 
   Uint32 senderNodeId = ref->senderNodeId;
   Uint32 failedNodeId = ref->failedNodeId;
-  
-  if (c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(senderNodeId))
-  {
+
+  if (c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(senderNodeId)) {
     jam();
     c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.clearWaitingFor(senderNodeId);
   }
@@ -12557,81 +11508,87 @@ void Dbdih::execMASTER_LCPREF(Signal* signal)
   // protocol as master.
   /*-------------------------------------------------------------------------*/
   MASTER_LCPhandling(signal, failedNodeId);
-}//Dbdih::execMASTER_LCPREF()
+}  // Dbdih::execMASTER_LCPREF()
 
-void Dbdih::MASTER_LCPhandling(Signal* signal, Uint32 failedNodeId)
-{
+void Dbdih::MASTER_LCPhandling(Signal *signal, Uint32 failedNodeId) {
   bool lcp_already_completed = m_master_lcp_req_lcp_already_completed;
   m_master_lcp_req_lcp_already_completed = false;
   /*-------------------------------------------------------------------------
    *
-   * WE ARE NOW READY TO CONCLUDE THE TAKE OVER AS MASTER. 
-   * WE HAVE ENOUGH INFO TO START UP ACTIVITIES IN THE PROPER PLACE. 
+   * WE ARE NOW READY TO CONCLUDE THE TAKE OVER AS MASTER.
+   * WE HAVE ENOUGH INFO TO START UP ACTIVITIES IN THE PROPER PLACE.
    * ALSO SET THE PROPER STATE VARIABLES.
    *------------------------------------------------------------------------*/
   c_lcpState.currentFragment.tableId = c_lcpMasterTakeOverState.minTableId;
   c_lcpState.currentFragment.fragmentId = c_lcpMasterTakeOverState.minFragId;
   c_lcpState.m_LAST_LCP_FRAG_ORD = c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH;
   DEB_LCP(("MASTER_LCPhandling: m_LAST_LCP_FRAG_ORD = %s",
-	   c_lcpState.m_LAST_LCP_FRAG_ORD.getText()));
+           c_lcpState.m_LAST_LCP_FRAG_ORD.getText()));
 
-  NodeRecordPtr failedNodePtr;  
+  NodeRecordPtr failedNodePtr;
   failedNodePtr.i = failedNodeId;
   ptrCheckGuard(failedNodePtr, MAX_NDB_NODES, nodeRecord);
 
   switch (c_lcpMasterTakeOverState.state) {
-  case LMTOS_ALL_IDLE:
-    jam();
-    /* --------------------------------------------------------------------- */
-    // All nodes were idle in the LCP protocol. Start checking for start of LCP
-    // protocol.
-    /* --------------------------------------------------------------------- */
-#ifdef VM_TRACE
-    g_eventLogger->info("MASTER_LCPhandling:: LMTOS_ALL_IDLE -> checkLcpStart");
-#endif
-    checkLcpStart(signal, __LINE__, 0);
-    break;
-  case LMTOS_COPY_ONGOING:
-    jam();
-    /* --------------------------------------------------------------------- */
-    // We were in the starting process of the LCP protocol. We will restart the
-    // protocol by calculating the keep gci and storing the new lcp id.
-    /* --------------------------------------------------------------------- */
-#ifdef VM_TRACE
-    g_eventLogger->info("MASTER_LCPhandling:: LMTOS_COPY_ONGOING -> storeNewLcpId");
-#endif
-    if (c_lcpState.lcpStatus == LCP_STATUS_ACTIVE) {
+    case LMTOS_ALL_IDLE:
       jam();
-      /*---------------------------------------------------------------------*/
-      /*  WE NEED TO DECREASE THE LATEST LCP ID SINCE WE HAVE ALREADY        */
-      /*  STARTED THIS */
-      /*  LOCAL CHECKPOINT.                                                  */
-      /*---------------------------------------------------------------------*/
+      /* ---------------------------------------------------------------------
+       */
+      // All nodes were idle in the LCP protocol. Start checking for start of
+      // LCP protocol.
+      /* ---------------------------------------------------------------------
+       */
 #ifdef VM_TRACE
-      Uint32 lcpId = SYSFILE->latestLCP_ID;
-      g_eventLogger->info("Decreasing latestLCP_ID from %d to %d", lcpId, lcpId - 1);
+      g_eventLogger->info(
+          "MASTER_LCPhandling:: LMTOS_ALL_IDLE -> checkLcpStart");
 #endif
-      SYSFILE->latestLCP_ID--;
-    }//if
-    start_lcp_before_mutex(signal);
-    break;
-  case LMTOS_ALL_ACTIVE:
-    {
+      checkLcpStart(signal, __LINE__, 0);
+      break;
+    case LMTOS_COPY_ONGOING:
       jam();
-      /* ------------------------------------------------------------------- 
-       * Everybody was in the active phase. We will restart sending 
-       * LCP_FRAG_ORD to the nodes from the new master. 
+      /* ---------------------------------------------------------------------
+       */
+      // We were in the starting process of the LCP protocol. We will restart
+      // the protocol by calculating the keep gci and storing the new lcp id.
+      /* ---------------------------------------------------------------------
+       */
+#ifdef VM_TRACE
+      g_eventLogger->info(
+          "MASTER_LCPhandling:: LMTOS_COPY_ONGOING -> storeNewLcpId");
+#endif
+      if (c_lcpState.lcpStatus == LCP_STATUS_ACTIVE) {
+        jam();
+        /*---------------------------------------------------------------------*/
+        /*  WE NEED TO DECREASE THE LATEST LCP ID SINCE WE HAVE ALREADY */
+        /*  STARTED THIS */
+        /*  LOCAL CHECKPOINT. */
+        /*---------------------------------------------------------------------*/
+#ifdef VM_TRACE
+        Uint32 lcpId = SYSFILE->latestLCP_ID;
+        g_eventLogger->info("Decreasing latestLCP_ID from %d to %d", lcpId,
+                            lcpId - 1);
+#endif
+        SYSFILE->latestLCP_ID--;
+      }  // if
+      start_lcp_before_mutex(signal);
+      break;
+    case LMTOS_ALL_ACTIVE: {
+      jam();
+      /* -------------------------------------------------------------------
+       * Everybody was in the active phase. We will restart sending
+       * LCP_FRAG_ORD to the nodes from the new master.
        * We also need to set dihLcpStatus to ZACTIVE
-       * in the master node since the master will wait for all nodes to 
+       * in the master node since the master will wait for all nodes to
        * complete before finalising the LCP process.
        * ------------------------------------------------------------------ */
 #ifdef VM_TRACE
-      g_eventLogger->info("MASTER_LCPhandling:: LMTOS_ALL_ACTIVE -> "
-                          "startLcpRoundLoopLab(table=%u, fragment=%u)",
-                          c_lcpMasterTakeOverState.minTableId,
-                          c_lcpMasterTakeOverState.minFragId);
+      g_eventLogger->info(
+          "MASTER_LCPhandling:: LMTOS_ALL_ACTIVE -> "
+          "startLcpRoundLoopLab(table=%u, fragment=%u)",
+          c_lcpMasterTakeOverState.minTableId,
+          c_lcpMasterTakeOverState.minFragId);
 #endif
-    
+
       c_lcpState.keepGci = SYSFILE->keepGCI;
 
       /**
@@ -12646,13 +11603,12 @@ void Dbdih::MASTER_LCPhandling(Signal* signal, Uint32 failedNodeId)
       master_lcp_fragmentMutex_locked(signal, failedNodePtr.i, 0);
       return;
     }
-  case LMTOS_LCP_CONCLUDING:
-    {
+    case LMTOS_LCP_CONCLUDING: {
       jam();
       /* ------------------------------------------------------------------- */
       // The LCP process is in the finalisation phase. We simply wait for it to
       // complete with signals arriving in. We need to check also if we should
-      // change state due to table write completion during state 
+      // change state due to table write completion during state
       // collection phase.
       /* ------------------------------------------------------------------- */
 
@@ -12670,9 +11626,8 @@ void Dbdih::MASTER_LCPhandling(Signal* signal, Uint32 failedNodeId)
        */
       ndbrequire(c_lcpState.lcpStatus != LCP_STATUS_IDLE ||
                  lcp_already_completed);
-   
-      if (c_lcpState.lcpStatus == LCP_STATUS_IDLE)
-      {
+
+      if (c_lcpState.lcpStatus == LCP_STATUS_IDLE) {
         jam();
         /**
          * From our point of view the LCP is completed since we heard the old
@@ -12690,10 +11645,8 @@ void Dbdih::MASTER_LCPhandling(Signal* signal, Uint32 failedNodeId)
         DEB_LCP_COMP(("LCP_IDLE => LCP_TAB_SAVED"));
         c_lcpState.setLcpStatus(LCP_TAB_SAVED, __LINE__);
         m_local_lcp_state.init_master_take_over_idle_to_tab_saved();
-        for (Uint32 node = 1; node < MAX_NDB_NODES; node++)
-        {
-          if (c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.isWaitingFor(node))
-          {
+        for (Uint32 node = 1; node < MAX_NDB_NODES; node++) {
+          if (c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH.isWaitingFor(node)) {
             jam();
             c_lcpState.m_participatingDIH.set(node);
           }
@@ -12706,13 +11659,13 @@ void Dbdih::MASTER_LCPhandling(Signal* signal, Uint32 failedNodeId)
       master_lcp_fragmentMutex_locked(signal, failedNodePtr.i, 0);
       return;
     }
-  default:
-    ndbabort();
-  }//switch
+    default:
+      ndbabort();
+  }  // switch
   signal->theData[0] = NDB_LE_LCP_TakeoverCompleted;
   signal->theData[1] = c_lcpMasterTakeOverState.state;
   sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 2, JBB);
-  
+
   signal->theData[0] = 7012;
   execDUMP_STATE_ORD(signal);
 
@@ -12724,173 +11677,181 @@ void Dbdih::MASTER_LCPhandling(Signal* signal, Uint32 failedNodeId)
 /* ------------------------------------------------------------------------- */
 /*       A BLOCK OR A NODE HAS COMPLETED THE HANDLING OF THE NODE FAILURE.   */
 /* ------------------------------------------------------------------------- */
-void Dbdih::execNF_COMPLETEREP(Signal* signal) 
-{
+void Dbdih::execNF_COMPLETEREP(Signal *signal) {
   NodeRecordPtr failedNodePtr;
-  NFCompleteRep * const nfCompleteRep = (NFCompleteRep *)&signal->theData[0];
+  NFCompleteRep *const nfCompleteRep = (NFCompleteRep *)&signal->theData[0];
   jamEntry();
   const Uint32 blockNo = nfCompleteRep->blockNo;
-  Uint32 nodeId       = nfCompleteRep->nodeId;
+  Uint32 nodeId = nfCompleteRep->nodeId;
   failedNodePtr.i = nfCompleteRep->failedNodeId;
 
   ptrCheckGuard(failedNodePtr, MAX_NDB_NODES, nodeRecord);
   switch (blockNo) {
-  case DBTC:
-    jam();
-    ndbrequire(failedNodePtr.p->dbtcFailCompleted == ZFALSE);
-    /* -------------------------------------------------------------------- */
-    // Report the event that DBTC completed node failure handling.
-    /* -------------------------------------------------------------------- */
-    signal->theData[0] = NDB_LE_NodeFailCompleted;
-    signal->theData[1] = DBTC;
-    signal->theData[2] = failedNodePtr.i;
-    sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
-
-    failedNodePtr.p->dbtcFailCompleted = ZTRUE;
-    break;
-  case DBDICT:
-    jam();
-    ndbrequire(failedNodePtr.p->dbdictFailCompleted == ZFALSE);
-    /* --------------------------------------------------------------------- */
-    // Report the event that DBDICT completed node failure handling.
-    /* --------------------------------------------------------------------- */
-    signal->theData[0] = NDB_LE_NodeFailCompleted;
-    signal->theData[1] = DBDICT;
-    signal->theData[2] = failedNodePtr.i;
-    sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
-
-    failedNodePtr.p->dbdictFailCompleted = ZTRUE;
-    break;
-  case DBDIH:
-    jam();
-    ndbrequire(failedNodePtr.p->dbdihFailCompleted == ZFALSE);
-    /* --------------------------------------------------------------------- */
-    // Report the event that DBDIH completed node failure handling.
-    /* --------------------------------------------------------------------- */
-    signal->theData[0] = NDB_LE_NodeFailCompleted;
-    signal->theData[1] = DBDIH;
-    signal->theData[2] = failedNodePtr.i;
-    sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
-
-    failedNodePtr.p->dbdihFailCompleted = ZTRUE;
-    break;
-  case DBQLQH:
-    jam();
-    ndbrequire(failedNodePtr.p->dbqlqhFailCompleted == ZFALSE);
-    /* --------------------------------------------------------------------- */
-    // Report the event that DBQLQH completed node failure handling.
-    /* --------------------------------------------------------------------- */
-    signal->theData[0] = NDB_LE_NodeFailCompleted;
-    signal->theData[1] = DBQLQH;
-    signal->theData[2] = failedNodePtr.i;
-    sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
-    failedNodePtr.p->dbqlqhFailCompleted = ZTRUE;
-    break;
-  case DBLQH:
-    jam();
-    ndbrequire(failedNodePtr.p->dblqhFailCompleted == ZFALSE);
-    /* --------------------------------------------------------------------- */
-    // Report the event that DBLQH completed node failure handling.
-    /* --------------------------------------------------------------------- */
-    signal->theData[0] = NDB_LE_NodeFailCompleted;
-    signal->theData[1] = DBLQH;
-    signal->theData[2] = failedNodePtr.i;
-    sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
-
-    failedNodePtr.p->dblqhFailCompleted = ZTRUE;
-    break;
-  case 0: /* Node has finished */
-    jam();
-    ndbrequire(nodeId < MAX_NDB_NODES);
-
-    if (failedNodePtr.p->recNODE_FAILREP == ZFALSE) {
+    case DBTC:
       jam();
-      /* ------------------------------------------------------------------- */
-      // We received a report about completion of node failure before we 
-      // received the message about the NODE failure ourselves. 
-      // We will send the signal to ourselves with a small delay 
-      // (10 milliseconds).
-      /* ------------------------------------------------------------------- */
-      //nf->from = __LINE__;
-      sendSignalWithDelay(reference(), GSN_NF_COMPLETEREP, signal, 10,
-			  signal->length());
-      return;
-    }//if
-    
-    if (!failedNodePtr.p->m_NF_COMPLETE_REP.isWaitingFor(nodeId)){
+      ndbrequire(failedNodePtr.p->dbtcFailCompleted == ZFALSE);
+      /* -------------------------------------------------------------------- */
+      // Report the event that DBTC completed node failure handling.
+      /* -------------------------------------------------------------------- */
+      signal->theData[0] = NDB_LE_NodeFailCompleted;
+      signal->theData[1] = DBTC;
+      signal->theData[2] = failedNodePtr.i;
+      sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
+
+      failedNodePtr.p->dbtcFailCompleted = ZTRUE;
+      break;
+    case DBDICT:
       jam();
+      ndbrequire(failedNodePtr.p->dbdictFailCompleted == ZFALSE);
+      /* ---------------------------------------------------------------------
+       */
+      // Report the event that DBDICT completed node failure handling.
+      /* ---------------------------------------------------------------------
+       */
+      signal->theData[0] = NDB_LE_NodeFailCompleted;
+      signal->theData[1] = DBDICT;
+      signal->theData[2] = failedNodePtr.i;
+      sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
+
+      failedNodePtr.p->dbdictFailCompleted = ZTRUE;
+      break;
+    case DBDIH:
+      jam();
+      ndbrequire(failedNodePtr.p->dbdihFailCompleted == ZFALSE);
+      /* ---------------------------------------------------------------------
+       */
+      // Report the event that DBDIH completed node failure handling.
+      /* ---------------------------------------------------------------------
+       */
+      signal->theData[0] = NDB_LE_NodeFailCompleted;
+      signal->theData[1] = DBDIH;
+      signal->theData[2] = failedNodePtr.i;
+      sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
+
+      failedNodePtr.p->dbdihFailCompleted = ZTRUE;
+      break;
+    case DBQLQH:
+      jam();
+      ndbrequire(failedNodePtr.p->dbqlqhFailCompleted == ZFALSE);
+      /* ---------------------------------------------------------------------
+       */
+      // Report the event that DBQLQH completed node failure handling.
+      /* ---------------------------------------------------------------------
+       */
+      signal->theData[0] = NDB_LE_NodeFailCompleted;
+      signal->theData[1] = DBQLQH;
+      signal->theData[2] = failedNodePtr.i;
+      sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
+      failedNodePtr.p->dbqlqhFailCompleted = ZTRUE;
+      break;
+    case DBLQH:
+      jam();
+      ndbrequire(failedNodePtr.p->dblqhFailCompleted == ZFALSE);
+      /* ---------------------------------------------------------------------
+       */
+      // Report the event that DBLQH completed node failure handling.
+      /* ---------------------------------------------------------------------
+       */
+      signal->theData[0] = NDB_LE_NodeFailCompleted;
+      signal->theData[1] = DBLQH;
+      signal->theData[2] = failedNodePtr.i;
+      sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
+
+      failedNodePtr.p->dblqhFailCompleted = ZTRUE;
+      break;
+    case 0: /* Node has finished */
+      jam();
+      ndbrequire(nodeId < MAX_NDB_NODES);
+
+      if (failedNodePtr.p->recNODE_FAILREP == ZFALSE) {
+        jam();
+        /* -------------------------------------------------------------------
+         */
+        // We received a report about completion of node failure before we
+        // received the message about the NODE failure ourselves.
+        // We will send the signal to ourselves with a small delay
+        // (10 milliseconds).
+        /* -------------------------------------------------------------------
+         */
+        // nf->from = __LINE__;
+        sendSignalWithDelay(reference(), GSN_NF_COMPLETEREP, signal, 10,
+                            signal->length());
+        return;
+      }  // if
+
+      if (!failedNodePtr.p->m_NF_COMPLETE_REP.isWaitingFor(nodeId)) {
+        jam();
+        return;
+      }
+
+      failedNodePtr.p->m_NF_COMPLETE_REP.clearWaitingFor(nodeId);
+      ;
+
+      /* -------------------------------------------------------------------- */
+      // Report the event that nodeId has completed node failure handling.
+      /* -------------------------------------------------------------------- */
+      signal->theData[0] = NDB_LE_NodeFailCompleted;
+      signal->theData[1] = 0;
+      signal->theData[2] = failedNodePtr.i;
+      signal->theData[3] = nodeId;
+      sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 4, JBB);
+
+      nodeFailCompletedCheckLab(signal, failedNodePtr);
       return;
-    }
-      
-    failedNodePtr.p->m_NF_COMPLETE_REP.clearWaitingFor(nodeId);;
-    
-    /* -------------------------------------------------------------------- */
-    // Report the event that nodeId has completed node failure handling.
-    /* -------------------------------------------------------------------- */
-    signal->theData[0] = NDB_LE_NodeFailCompleted;
-    signal->theData[1] = 0;
-    signal->theData[2] = failedNodePtr.i;
-    signal->theData[3] = nodeId;
-    sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 4, JBB);
-    
-    nodeFailCompletedCheckLab(signal, failedNodePtr);
-    return;
-    break;
-  default:
-    ndbabort();
-  }//switch
+      break;
+    default:
+      ndbabort();
+  }  // switch
   if (failedNodePtr.p->dbtcFailCompleted == ZFALSE) {
     jam();
     return;
-  }//if
+  }  // if
   if (failedNodePtr.p->dbdictFailCompleted == ZFALSE) {
     jam();
     return;
-  }//if
+  }  // if
   if (failedNodePtr.p->dbdihFailCompleted == ZFALSE) {
     jam();
     return;
-  }//if
+  }  // if
   if (failedNodePtr.p->dblqhFailCompleted == ZFALSE) {
     jam();
     return;
-  }//if
+  }  // if
   if (failedNodePtr.p->dbqlqhFailCompleted == ZFALSE) {
     jam();
     return;
-  }//if
+  }  // if
   /* ----------------------------------------------------------------------- */
   /*     ALL BLOCKS IN THIS NODE HAVE COMPLETED THEIR PART OF HANDLING THE   */
   /*     NODE FAILURE. WE CAN NOW REPORT THIS COMPLETION TO ALL OTHER NODES. */
   /* ----------------------------------------------------------------------- */
   NodeRecordPtr nodePtr;
-  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
-  {
+  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) {
     jam();
     ptrAss(nodePtr, nodeRecord);
     if (nodePtr.p->nodeStatus == NodeRecord::ALIVE) {
       jam();
       BlockReference ref = calcDihBlockRef(nodePtr.i);
-      NFCompleteRep * const nf = (NFCompleteRep *)&signal->theData[0];
-      nf->blockNo      = 0;
-      nf->nodeId       = cownNodeId;
+      NFCompleteRep *const nf = (NFCompleteRep *)&signal->theData[0];
+      nf->blockNo = 0;
+      nf->nodeId = cownNodeId;
       nf->failedNodeId = failedNodePtr.i;
       nf->from = __LINE__;
-      sendSignal(ref, GSN_NF_COMPLETEREP, signal, 
-                 NFCompleteRep::SignalLength, JBB);
-    }//if
-  }//for
+      sendSignal(ref, GSN_NF_COMPLETEREP, signal, NFCompleteRep::SignalLength,
+                 JBB);
+    }  // if
+  }    // for
   return;
-}//Dbdih::execNF_COMPLETEREP()
+}  // Dbdih::execNF_COMPLETEREP()
 
-void Dbdih::nodeFailCompletedCheckLab(Signal* signal, 
-				      NodeRecordPtr failedNodePtr) 
-{
+void Dbdih::nodeFailCompletedCheckLab(Signal *signal,
+                                      NodeRecordPtr failedNodePtr) {
   jam();
-  if (!failedNodePtr.p->m_NF_COMPLETE_REP.done()){
-    jam(); 
+  if (!failedNodePtr.p->m_NF_COMPLETE_REP.done()) {
+    jam();
     return;
-  }//if
+  }  // if
   /* ---------------------------------------------------------------------- */
   /*    ALL BLOCKS IN ALL NODES HAVE NOW REPORTED COMPLETION OF THE NODE    */
   /*    FAILURE HANDLING. WE ARE NOW READY TO ACCEPT THAT THIS NODE STARTS  */
@@ -12901,7 +11862,7 @@ void Dbdih::nodeFailCompletedCheckLab(Signal* signal,
   DEB_NODE_STATUS(("Node[%u].nodeStatus = DEAD, line: %u",
                    failedNodePtr.i, __LINE__));
   failedNodePtr.p->recNODE_FAILREP = ZFALSE;
-  
+
   /* ---------------------------------------------------------------------- */
   // Report the event that all nodes completed node failure handling.
   /* ---------------------------------------------------------------------- */
@@ -12918,13 +11879,13 @@ void Dbdih::nodeFailCompletedCheckLab(Signal* signal,
   sendSignal(QMGR_REF, GSN_NDB_FAILCONF, signal, 1, JBB);
   setNodeRecoveryStatus(failedNodePtr.i, NodeRecord::NODE_FAILURE_COMPLETED);
   return;
-}//Dbdih::nodeFailCompletedCheckLab()
+}  // Dbdih::nodeFailCompletedCheckLab()
 
 /*****************************************************************************/
 /* **********     SEIZING / RELEASING MODULE                     *************/
 /*****************************************************************************/
 /*
-  3.4   L O C A L  N O D E   S E I Z E  
+  3.4   L O C A L  N O D E   S E I Z E
   ************************************
   */
 /*
@@ -12939,8 +11900,7 @@ void Dbdih::nodeFailCompletedCheckLab(Signal* signal,
   ***************************************
   */
 
-static inline void inc_node_or_group(Uint32 &node, Uint32 max_node)
-{
+static inline void inc_node_or_group(Uint32 &node, Uint32 max_node) {
   Uint32 next = node + 1;
   node = (next == max_node ? 0 : next);
 }
@@ -12953,34 +11913,25 @@ static inline void dec_node_or_group(Uint32 &node, Uint32 max_node)
 /*
   Spread fragments in backwards compatible mode
 */
-static void set_default_node_groups(Signal *signal, Uint32 noFrags)
-{
-  Uint16 *node_group_array = (Uint16*)&signal->theData[25];
+static void set_default_node_groups(Signal *signal, Uint32 noFrags) {
+  Uint16 *node_group_array = (Uint16 *)&signal->theData[25];
   Uint32 i;
-  for (i = 0; i < noFrags; i++)
-    node_group_array[i] = NDB_UNDEF_NODEGROUP;
+  for (i = 0; i < noFrags; i++) node_group_array[i] = NDB_UNDEF_NODEGROUP;
 }
 
-static Uint32 find_min_index(const Uint16* array,
-                             Uint32 cnt,
-                             Uint32 start_pos,
-                             Uint32 first_pos)
-{
+static Uint32 find_min_index(const Uint16 *array, Uint32 cnt, Uint32 start_pos,
+                             Uint32 first_pos) {
   Uint32 m = start_pos;
   Uint32 min_value = array[start_pos];
 
-  for (Uint32 i = start_pos + 1; i<cnt; i++)
-  {
-    if (array[i] < min_value)
-    {
+  for (Uint32 i = start_pos + 1; i < cnt; i++) {
+    if (array[i] < min_value) {
       m = i;
       min_value = array[i];
     }
   }
-  for (Uint32 i = first_pos; i < start_pos; i++)
-  {
-    if (array[i] < min_value)
-    {
+  for (Uint32 i = first_pos; i < start_pos; i++) {
+    if (array[i] < min_value) {
       m = i;
       min_value = array[i];
     }
@@ -12988,12 +11939,9 @@ static Uint32 find_min_index(const Uint16* array,
   return m;
 }
 
-Uint32
-Dbdih::getFragmentsPerNode()
-{
+Uint32 Dbdih::getFragmentsPerNode() {
   jam();
-  if (c_fragments_per_node_ != 0)
-  {
+  if (c_fragments_per_node_ != 0) {
     return c_fragments_per_node_;
   }
   ndbrequire(m_use_classic_fragmentation);
@@ -13001,8 +11949,7 @@ Dbdih::getFragmentsPerNode()
 
   NodeRecordPtr nodePtr;
   nodePtr.i = cfirstAliveNode;
-  do
-  {
+  do {
     jam();
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
     Uint32 workers;
@@ -13011,8 +11958,7 @@ Dbdih::getFragmentsPerNode()
     nodePtr.i = nodePtr.p->nextNode;
   } while (nodePtr.i != RNIL);
 
-  if (c_fragments_per_node_ == 0)
-  {
+  if (c_fragments_per_node_ == 0) {
     jam();
     c_fragments_per_node_ = 1;
   }
@@ -13022,37 +11968,28 @@ Dbdih::getFragmentsPerNode()
   return c_fragments_per_node_;
 }
 
-void
-Dbdih::init_next_replica_node(
-  Uint16 (*next_replica_node)[MAX_NDB_NODE_GROUPS][NDBMT_MAX_WORKER_INSTANCES],
-  Uint32 noOfReplicas)
-{
-  for (Uint32 i = 0; i < MAX_NDB_NODE_GROUPS; i++)
-  {
-    for (Uint32 j = 0; j < NDBMT_MAX_WORKER_INSTANCES; j++)
-    {
+void Dbdih::init_next_replica_node(
+    Uint16 (
+        *next_replica_node)[MAX_NDB_NODE_GROUPS][NDBMT_MAX_WORKER_INSTANCES],
+    Uint32 noOfReplicas) {
+  for (Uint32 i = 0; i < MAX_NDB_NODE_GROUPS; i++) {
+    for (Uint32 j = 0; j < NDBMT_MAX_WORKER_INSTANCES; j++) {
       (*next_replica_node)[i][j] = (j % noOfReplicas);
     }
   }
 }
 
-void
-Dbdih::find_min_used_log_part()
-{
+void Dbdih::find_min_used_log_part() {
   NodeGroupRecordPtr NGPtr;
-  for (Uint32 NGPtrI = 0; NGPtrI < MAX_NDB_NODE_GROUPS; NGPtrI++)
-  {
+  for (Uint32 NGPtrI = 0; NGPtrI < MAX_NDB_NODE_GROUPS; NGPtrI++) {
     jam();
     NGPtr.i = NGPtrI;
     ptrAss(NGPtr, nodeGroupRecord);
-    if (NGPtr.p->nodegroupIndex == RNIL)
-      continue;
+    if (NGPtr.p->nodegroupIndex == RNIL) continue;
     Uint32 min_used_log_part = 0;
     Uint32 min_value = NGPtr.p->m_used_log_parts[0];
-    for (Uint32 i = 1; i < MAX_INSTANCE_KEYS; i++)
-    {
-      if (NGPtr.p->m_used_log_parts[i] < min_value)
-      {
+    for (Uint32 i = 1; i < MAX_INSTANCE_KEYS; i++) {
+      if (NGPtr.p->m_used_log_parts[i] < min_value) {
         jam();
         jamLine(Uint16(i));
         min_used_log_part = i;
@@ -13064,28 +12001,21 @@ Dbdih::find_min_used_log_part()
   }
 }
 
-bool
-Dbdih::select_ng(Uint32 fragNo,
-                 Uint32 default_node_group,
-                 NodeGroupRecordPtr & NGPtr,
-                 Uint32 & err)
-{
+bool Dbdih::select_ng(Uint32 fragNo, Uint32 default_node_group,
+                      NodeGroupRecordPtr &NGPtr, Uint32 &err) {
   NGPtr.i = tmp_node_group_id[fragNo];
   ndbrequire(default_node_group < MAX_NDB_NODE_GROUPS);
-  if (NGPtr.i == NDB_UNDEF_NODEGROUP)
-  {
+  if (NGPtr.i == NDB_UNDEF_NODEGROUP) {
     jam();
     NGPtr.i = c_node_groups[default_node_group];
   }
-  if (NGPtr.i >= MAX_NDB_NODE_GROUPS)
-  {
+  if (NGPtr.i >= MAX_NDB_NODE_GROUPS) {
     jam();
     err = CreateFragmentationRef::InvalidNodeGroup;
     return false;
   }
   ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
-  if (NGPtr.p->nodegroupIndex == RNIL)
-  {
+  if (NGPtr.p->nodegroupIndex == RNIL) {
     jam();
     err = CreateFragmentationRef::InvalidNodeGroup;
     return false;
@@ -13093,18 +12023,12 @@ Dbdih::select_ng(Uint32 fragNo,
   return true;
 }
 
-void Dbdih::inc_ng(Uint32 fragNo,
-                   Uint32 noOfFragments,
-                   Uint32 partitionCount,
-                   Uint32 & default_node_group,
-                   Uint32 numNodeGroups)
-{
+void Dbdih::inc_ng(Uint32 fragNo, Uint32 noOfFragments, Uint32 partitionCount,
+                   Uint32 &default_node_group, Uint32 numNodeGroups) {
   /**
    * Next node group for next fragment
    */
-  if (noOfFragments == partitionCount ||
-      ((fragNo + 1) % partitionCount == 0))
-  {
+  if (noOfFragments == partitionCount || ((fragNo + 1) % partitionCount == 0)) {
     /**
      * Change to new node group for
      * 1) Normal tables
@@ -13119,21 +12043,26 @@ void Dbdih::inc_ng(Uint32 fragNo,
   }
 }
 
-void
-Dbdih::add_nodes_to_fragment(Uint16 *fragments,
-                             Uint32 & node_index,
-                             Uint32 & count,
-                             Uint32 partition_count_per_node,
-                             NodeGroupRecordPtr NGPtr,
-                             Uint32 noOfReplicas,
-                             bool add_node)
-{
+void Dbdih::add_nodes_to_fragment(Uint16 *fragments, Uint32 &node_index,
+                                  Uint32 &count, NodeGroupRecordPtr NGPtr,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 partition_count_per_node,
+                             NodeGroupRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NodeGroupRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                              Uint32 noOfReplicas,
+                             bool add_node) {
   ndbrequire(node_index < noOfReplicas);
   bool even = ((NGPtr.p->m_round_robin_count & 1) == 0);
-  for (Uint32 replicaNo = 0; replicaNo < noOfReplicas; replicaNo++)
-  {
+  for (Uint32 replicaNo = 0; replicaNo < noOfReplicas; replicaNo++) {
     const Uint16 nodeId = NGPtr.p->nodesInGroup[node_index];
-    fragments[count++]= nodeId;
+    fragments[count++] = nodeId;
     if (even)
     {
       jam();
@@ -13160,41 +12089,33 @@ Dbdih::add_nodes_to_fragment(Uint16 *fragments,
   ndbrequire(node_index < noOfReplicas);
 }
 
-bool
-Dbdih::find_next_log_part(TabRecord *primTabPtrP, Uint32 & next_log_part)
-{
+bool Dbdih::find_next_log_part(TabRecord *primTabPtrP, Uint32 &next_log_part) {
   bool can_use_new_fragmentation = true;
   Uint32 log_part = 0;
   NodeRecordPtr nodePtr;
   NodeGroupRecordPtr NGPtr;
-  for (Uint32 fragNo = 0; fragNo < primTabPtrP->totalfragments; fragNo++)
-  {
+  for (Uint32 fragNo = 0; fragNo < primTabPtrP->totalfragments; fragNo++) {
     FragmentstorePtr fragPtr;
     getFragstore(primTabPtrP, fragNo, fragPtr);
-    if (fragNo != 0)
-    {
+    if (fragNo != 0) {
       Uint32 expected_log_part = log_part;
       nodePtr.i = fragPtr.p->activeNodes[0];
       ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
       NGPtr.i = nodePtr.p->nodeGroup;
       ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
-      if (NGPtr.p->nodegroupIndex == 0)
-      {
+      if (NGPtr.p->nodegroupIndex == 0) {
         jam();
         expected_log_part++;
         expected_log_part %= MAX_INSTANCE_KEYS;
       }
-      if (log_part != expected_log_part)
-      {
+      if (log_part != expected_log_part) {
         jam();
         can_use_new_fragmentation = false;
       }
     }
     log_part = fragPtr.p->m_log_part_id;
   }
-  if (can_use_new_fragmentation &&
-      !m_use_classic_fragmentation)
-  {
+  if (can_use_new_fragmentation && !m_use_classic_fragmentation) {
     jam();
     next_log_part = log_part;
   }
@@ -13342,15 +12263,80 @@ Dbdih::calc_primary_replicas(TabRecord *tabPtrP,
     }
     ndbrequire(NGPtr.p->m_temp_nodes_alive > 0);
   }
-  for (Uint32 fragId = first_fid; fragId < limit_fid; fragId++)
-  {
-    NodeGroupRecordPtr NGPtr;
+  for (Uint32 fragId = first_fid; fragId < limit_fid; fragId++) {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeGroupRecordPtr NGPtr;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+D("CREATE_FRAGMENTATION_REQ: " <<
+// RONDB-624 todo: Glue these lines together ^v
+=======
+D("CREATE_FRAGMENTATION_REQ: "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     FragmentstorePtr fragPtr;
-    getFragstore(tabPtrP, fragId, fragPtr);
-    fragPtr.p->primaryNode = 0;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<< "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   getFragstore(tabPtrP, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragId, fragPtr);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+primaryTableId <<
+// RONDB-624 todo: Glue these lines together ^v
+=======
+primaryTableId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    fragPtr.p->primaryNode = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+||||||| Common ancestor
+" partitionBalance:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<< " partitionBalance:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     nodePtr.i = fragPtr.p->activeNodes[0];
-    ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
-    NGPtr.i = nodePtr.p->nodeGroup;
+    ptrCheckGuard(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodePtr, MAX_NDB_NODES, nodeRecord);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+partitionBalance) <<
+// RONDB-624 todo: Glue these lines together ^v
+=======
+partitionBalance)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    NGPtr.i = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodePtr.p->nodeGroup;
+||||||| Common ancestor
+"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<< "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     ndbrequire(NGPtr.i != NO_NODE_GROUP_ID);
     ptrCheckGuard(NGPtr, MAX_NDB_NODES, nodeGroupRecord);
     NGPtr.p->m_temp_num_fragments++;
@@ -13439,17 +12425,84 @@ Dbdih::calc_primary_replicas(TabRecord *tabPtrP,
  * FRAGMENTATION contains of an array of Uint16 values:
  *
  * 0: #replicas
- * 1: #fragments
- * 2 + fragmentId*(1 + #replicas) + 0: log part id
- * 2 + fragmentId*(1 + #replicas) + 1: primary replica node id
+ * 1: 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+#fragments
+ * 2 + fragmentId*(1 +
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   }
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ #replicas) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  default:
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ log part id
+ * 2 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+default:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ fragmentId*(1 + #replicas) + 1: primary replica node id
  * 2 + fragmentId*(1 + #replicas) + 2: backup replica node id
  * ...
  *
  * CREATE_FRAGMENTATION_REQ supports three request types selected by setting
  * requestInfo in signal.
  *
- * requestInfo             | Description
- * ------------------------+----------------------------------------------
+ * requestInfo    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }
+      | Description
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+default:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ------------------------+----------------------------------------------
  * RI_CREATE_FRAGMENTATION | Create a new fragmentation.
  * RI_ADD_FRAGMENTS        | Adjust a fragmentation by adding fragments.
  * RI_GET_FRAGMENTATION    | Return the current fragmentation for a table.
@@ -13601,7 +12654,7 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
       switch ((DictTabInfo::FragmentType)fragType){
       case DictTabInfo::UserDefined:
       {
-        jam();
+          jam();
         use_specific_fragment_count = true;
         if (noOfFragments == 0)
         {
@@ -13610,19 +12663,40 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
         }
         break;
       }
-      case DictTabInfo::HashMapPartition:
+        case DictTabInfo::HashMapPartition:
       {
         jam();
         Ptr<Hash2FragmentMap> ptr;
         ndbrequire(g_hash_map.getPtr(ptr, map_ptr_i));
         if (noOfFragments == 0 ||
             partitionCount != ptr.p->m_fragments ||
-            noOfFragments % partitionCount != 0)
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    noOfFragments %
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ partitionCount 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0)
         {
-          jam();
+            jam();
           err = CreateFragmentationRef::InvalidFragmentationType;
           break;
-        }
+          }
         set_default_node_groups(signal, noOfFragments);
         switch (partitionBalance)
         {
@@ -13632,8 +12706,7 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
           case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM:
           case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_2:
           case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_3:
-          case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_4:
-          case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_2:
+            case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_4:     case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_2:
           case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_4:
           case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_6:
           case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_8:
@@ -13666,7 +12739,27 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
        * in the node. Thus one can have different number of LDM instances
        * when restarting a node and this is ok. The instanceKey is mapped
        * to a log part similarly, but since log parts need to stable to
-       * find the REDO log entries for a fragment, we can only change the
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+== DictTabInfo::HashMapPartition)
+=======
+==
+>>>>>>> MySQL 8.0.36
+ * find the REDO log 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+entries
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+=======
+    DictTabInfo::HashMapPartition) {
+>>>>>>> MySQL 8.0.36
+ for a fragment, we can only change the
        * number of REDO log parts in a node using an initial node restart.
        *
        * In addition we try to spread the fragments on as many LDM instances
@@ -13926,8 +13019,7 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
          * LDMs although we won't perform a perfect job.
          */
         next_replica_node = &c_next_replica_node;
-        if (!use_specific_fragment_count)
-        {
+        if (!use_specific_fragment_count)   {
           jam();
           next_log_part = (~0);
         }
@@ -13956,9 +13048,43 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
        * one reaches the last LDM, then one starts again from LDM 0.
        * A variable m_next_log_part is kept for as long as the node lives.
        * Thus we cannot really tell on beforehand where fragments will end
-       * up in this fragmentation scheme.
+       * up in 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+this fragmentation scheme.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= (m_use_classic_fragmentation) ? 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
        *
-       * We have changed the behaviour for normal tables in 7.5. Now we will
+       * We 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+have
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+(m_use_classic_fragmentation)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+changed the behaviour
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+?
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ for normal tables in 7.5. Now we will
        * always start from LDM 0, we will use LDM 0 until all node groups
        * have received one fragment in LDM 0. Then when we return to Node
        * Group 0 we will step to LDM 1. When we reach the last LDM we will
@@ -14123,8 +13249,40 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
             jamDebug();
             Uint32 node_index = replicaNo;
             inc_node_or_group(node_index, NGPtr.p->nodeCount);
-            ndbrequire(node_index < noOfReplicas);
-            Uint32 tmp_log_part_id = (m_use_classic_fragmentation) ? 
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+0))
+=======
+0)) {
+>>>>>>> MySQL 8.0.36
+        ndbrequire(node_index < 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+noOfReplicas);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  node =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+node =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ tmp_log_part_id = (m_use_classic_fragmentation) ? 
                     log_part_id : 0;
             (*next_replica_node)[NGPtr.i][tmp_log_part_id] = node_index;
             tmp_next_replica_node_set[NGPtr.i][tmp_log_part_id] = true;
@@ -14174,13 +13332,27 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
                    fragType == DictTabInfo::DistrKeyOrderedIndex);
         /**
          * All nodes that don't belong to a nodegroup to ~0
-         * tmp_fragments_per_node so that they don't get any more...
+         * tmp_fragments_per_node so that they don't get any 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+more...
          */
         for (Uint32 i = 1; i <= m_max_node_id; i++)
         {
           if (getNodeStatus(i) == NodeRecord::NOT_IN_CLUSTER ||
               getNodeGroup(i) >= cnoOfNodeGroups)
-          {
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ globalData.ndbLogParts,
+                                     logPart,
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ globalData.ndbLogParts,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ logPart, {
             jam();
             jamLineDebug(i);
             jamLineDebug(cnoOfNodeGroups);
@@ -14240,8 +13412,31 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
          */
 
         Uint32 first_new_node = find_min_index(tmp_fragments_per_node,
-                                               m_max_node_id + 1,
-                                               1, 1);
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::verify_fragmentation(Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::verify_fragmentation(Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       m_max_node_id + 1,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragments,
+                                
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fragments,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                        1, 1);
         Uint32 firstNG = getNodeGroup(first_new_node);
         Uint32 next_log_part = 0;
         bool use_old_variant = true;
@@ -14281,8 +13476,7 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
         find_min_used_log_part();
         Uint32 node = 0;
         NGPtr.i = RNIL;
-        for (Uint32 i = primTabPtr.p->totalfragments; i<noOfFragments; i++)
-        {
+        for (Uint32 i = primTabPtr.p->totalfragments; i<noOfFragments; i++)       {
           jam();
           if (!fully_replicated || (i % partitionCount == 0))
           {
@@ -14295,8 +13489,7 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
           ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
           Uint32 logPart;
           Uint32 logPartIndex;
-          if (!m_use_classic_fragmentation)
-          {
+          if (!m_use_classic_fragmentation)     {
             jam();
             logPart = NGPtr.p->m_new_next_log_part;
             NGPtr.p->m_new_next_log_part++;
@@ -14331,14 +13524,13 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
           /* Select primary replica node */
           Uint32 node_index;
           if (tmp_next_replica_node_set[NGPtr.i][logPartIndex] ||
-              partitionBalance == NDB_PARTITION_BALANCE_FOR_RP_BY_LDM)
-          {
+              partitionBalance == NDB_PARTITION_BALANCE_FOR_RP_BY_LDM)     {
             jam();
             node_index = (*next_replica_node)[NGPtr.i][logPartIndex];
           }
           else
           {
-            jam();
+              jam();
             node_index = c_next_replica_node[NGPtr.i][logPartIndex];
           }
           fragments[count++] = logPart;
@@ -14369,7 +13561,27 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
               (*next_replica_node)[NGPtr.i][logPartIndex] = node_index;
             }
             else
-            {
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execDIADDTABREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execDIADDTABREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
               jam();
               c_next_replica_node[NGPtr.i][logPartIndex] = node_index;
             }
@@ -14396,8 +13608,7 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal * signal)
     fragments[1]= noOfFragments;
 
     if (flags == CreateFragmentationReq::RI_ADD_FRAGMENTS ||
-        flags == CreateFragmentationReq::RI_CREATE_FRAGMENTATION)
-    {
+        flags == CreateFragmentationReq::RI_CREATE_FRAGMENTATION)   {
       if (!verify_fragmentation(fragments,
                                 partitionCount,
                                 partitionBalance,
@@ -14508,8 +13719,7 @@ bool Dbdih::verify_fragmentation(Uint16* fragments,
           fragments[2 + fragment_id * (1 + replica_count) + 1 + replica_id];
       fragments_per_node[node]++;
       fragments_per_ldm[node][ldm]++;
-      if (replica_id == 0)
-      {
+      if (replica_id == 0)     {
         jam();
         primary_replica_per_node[node]++;
         primary_replica_per_ldm[node][ldm]++;
@@ -14574,9 +13784,30 @@ bool Dbdih::verify_fragmentation(Uint16* fragments,
     {
       if (balance_for_ra_by_ldm_count != 0 &&
           fragments_per_ldm[node][ldm] != 0 &&
-          fragments_per_ldm[node][ldm] != balance_for_ra_by_ldm_count)
-      {
-        if (balance_for_ra_by_ldm_count == ~Uint32(0))
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    fragments_per_ldm[node][ldm] != balance_for_ra_by_ldm_count)
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TabRecordPtr tabPtr,
+          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ {
+    TabRecordPtr tabPtr, Uint32 fragId,
+ if (balance_for_ra_by_ldm_count == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+~Uint32(0))
+||||||| Common ancestor
+Uint32 fragId,
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
           balance_for_ra_by_ldm_count = fragments_per_ldm[node][ldm];
         else
           balance_for_ra_by_ldm_count = 0;
@@ -14628,7 +13859,27 @@ bool Dbdih::verify_fragmentation(Uint16* fragments,
 
 void Dbdih::insertCopyFragmentList(TabRecord *tabPtr,
                                    Fragmentstore *fragPtr,
-                                   Uint32 my_fragid)
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AddFragReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AddFragReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                          Uint32 my_fragid)
 {
   Uint32 found_fragid = RNIL;
   FragmentstorePtr locFragPtr;
@@ -14638,8 +13889,7 @@ void Dbdih::insertCopyFragmentList(TabRecord *tabPtr,
     getFragstore(tabPtr, i, locFragPtr);
     if (locFragPtr.p->partition_id == partition_id)
     {
-      if (fragPtr == locFragPtr.p)
-      {
+      if (fragPtr == locFragPtr.p)   {
         /* We're inserting the main fragment */
         fragPtr->nextCopyFragmentId = RNIL;
         D("Inserting fragId " << my_fragid << " as main fragment");
@@ -14665,8 +13915,30 @@ void Dbdih::insertCopyFragmentList(TabRecord *tabPtr,
   }
   /**
    * We update in a safe manner here ensuring that the list is
-   * always seen as a proper list by inserting a memory barrier
-   * before setting the new nextCopyFragmentId. It isn't absolutely
+   * always seen as a proper list by inserting a memory 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+barrier
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+AddFragReq::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   * before setting the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AddFragReq::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ nextCopyFragmentId. It isn't absolutely
    * necessary but is future proof given that we use a RCU
    * mechanism around this data.
    */
@@ -14726,7 +13998,7 @@ void Dbdih::execDIADDTABREQ(Signal* signal)
     jam();
     /**
      * We start the process of creating the table in all nodes from
-     * here.
+    * here.
      * Step 1)
      *   Read table definition from file system in master node (this
      *   node).
@@ -14763,7 +14035,34 @@ void Dbdih::execDIADDTABREQ(Signal* signal)
   /* AT THE TIME OF INITIATING THE FILE OF TABLE         */
   /* DESCRIPTION IS CREATED FOR APPROPRIATE SIZE. EACH   */
   /* EACH RECORD IN THIS FILE HAS THE INFORMATION ABOUT  */
-  /* ONE TABLE. THE POINTER TO THIS RECORD IS THE TABLE  */
+  /* ONE TABLE.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+i;
+}
+
+void
+Dbdih::execADD_FRAGCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+i;
+}
+
+void Dbdih::execADD_FRAGCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+THE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ POINTER TO THIS RECORD IS THE TABLE  */
   /* REFERENCE. IN THE BEGINNING ALL RECORDS ARE CREATED */
   /* BUT THEY DO NOT HAVE ANY INFORMATION ABOUT ANY TABLE*/
   /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
@@ -14813,8 +14112,33 @@ void Dbdih::execDIADDTABREQ(Signal* signal)
 
   union {
     Uint16 fragments[MAX_FRAGMENT_DATA_ENTRIES];
-    Uint32 align;
-  };
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 align;
+||||||| Common ancestor
+*/
+void
+Dbdih::addtabrefuseLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Dbdih::addtabrefuseLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ };
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, ConnectRecordPtr connectPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   (void)align; // kill warning
   SectionHandle handle(this, signal);
   SegmentedSectionPtr fragDataPtr;
@@ -14822,7 +14146,19 @@ void Dbdih::execDIADDTABREQ(Signal* signal)
   copy((Uint32*)fragments, fragDataPtr);
   releaseSections(handle);
   
-  const Uint32 noReplicas = fragments[0];
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+connectPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 noReplicas = fragments[0];
   const Uint32 noFragments = fragments[1];
 
   if ((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED) == 0)
@@ -14867,7 +14203,36 @@ void Dbdih::execDIADDTABREQ(Signal* signal)
   }
 
   Uint32 index = 2;
-  for (Uint32 fragId = 0; fragId < noFragments; fragId++)
+  for (Uint32 fragId = 0; fragId < 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+noFragments;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*************/
+/*****************************************************************************/
+void
+Dbdih::execDROP_TAB_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*************/
+/*****************************************************************************/
+void Dbdih::execDROP_TAB_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragId++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
   {
     jam();
     FragmentstorePtr fragPtr;
@@ -14903,8 +14268,7 @@ void Dbdih::execDIADDTABREQ(Signal* signal)
     }//for
     fragPtr.p->fragReplicas = activeIndex;
     ndbrequire(activeIndex > 0 && fragPtr.p->storedReplicas != RNIL64);
-    if ((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED) != 0)
-    {
+    if ((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED) != 0) {
       jam();
       insertCopyFragmentList(tabPtr.p, fragPtr.p, fragId);
     }
@@ -14917,8 +14281,19 @@ void Dbdih::execDIADDTABREQ(Signal* signal)
                         0,
                         noFragments,
                         __LINE__);
-  for (Uint32 fragId = 0; fragId < noFragments; fragId++)
-  {
+  for (Uint32 fragId = 0; fragId < noFragments; fragId++) {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+      {
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     jam();
     FragmentstorePtr fragPtr;
     getFragstore(tabPtr.p, fragId, fragPtr);
@@ -15013,7 +14388,7 @@ Dbdih::sendAddFragreq(Signal* signal,
     }
     
     replicaPtr.i = fragPtr.p->oldStoredReplicas;
-    while(replicaPtr.i != RNIL64){
+    while(replicaPtr.i != RNIL64) {
       jam();
       ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
       if(replicaPtr.p->procNode == getOwnNodeId()){
@@ -15060,17 +14435,44 @@ Dbdih::sendAddFragreq(Signal* signal,
     {
       jam();
       NodeGroupRecordPtr NGPtr;
-      fragPtr.p->m_inc_used_log_parts = true;
+      fragPtr.p->m_inc_used_log_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+parts
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+))
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+)) {
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    jam()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
       ndbrequire(fragPtr.p->m_log_part_id < MAX_INSTANCE_KEYS);
       getNodeGroupPtr(getOwnNodeId(), NGPtr);
       NGPtr.p->m_used_log_parts[fragPtr.p->m_log_part_id]++;
     }
-    if (connectPtr.p->connectState != ConnectRecord::ALTER_TABLE)
+      if (connectPtr.p->connectState != ConnectRecord::ALTER_TABLE)
     {
       jam();
       req->changeMask = 0;
       req->partitionId = fragId % tabPtr.p->partitionCount;
-    }
+      }
     else /* connectState == ALTER_TABLE */
     {
       jam();
@@ -15078,7 +14480,19 @@ Dbdih::sendAddFragreq(Signal* signal,
       req->partitionId = fragId % connectPtr.p->m_alter.m_partitionCount;
     }
 
-    sendSignal(DBDICT_REF, GSN_ADD_FRAGREQ, signal, 
+    sendSignal(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DBDICT_REF, GSN_ADD_FRAGREQ,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal, 
 	       AddFragReq::SignalLength, JBB);
     return;
   }
@@ -15089,7 +14503,27 @@ Dbdih::sendAddFragreq(Signal* signal,
     // Request handled successfully
 
     if (AlterTableReq::getReorgFragFlag(connectPtr.p->m_alter.m_changeMask))
-    {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::openTableFileForDelete(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::openTableFileForDelete(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  {
       jam();
       make_new_table_writeable(tabPtr, connectPtr, rcu_lock_held);
     }
@@ -15098,7 +14532,27 @@ Dbdih::sendAddFragreq(Signal* signal,
     {
       jam();
       Callback cb;
-      cb.m_callbackData = connectPtr.i;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::tableDeleteLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::tableDeleteLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    cb.m_callbackData = connectPtr.i;
       cb.m_callbackFunction = safe_cast(&Dbdih::alter_table_writeTable_conf);
       saveTableFile(signal, connectPtr, tabPtr, TabRecord::CS_ALTER_TABLE, cb);
       return;
@@ -15119,8 +14573,28 @@ Dbdih::sendAddFragreq(Signal* signal,
      */
 
     /**
-      * Don't expect to be adding tables due to e.g. user action
-      * during NR or SR, so we init the CopyFragmentList here
+      * Don't expect to be adding tables due to e.g. user 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+action
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ * during NR or SR, so we init the CopyFragmentList here
       */
     if (( getNodeState().getSystemRestartInProgress() ||
           getNodeState().getNodeRestartInProgress() ) &&
@@ -15142,20 +14616,59 @@ Dbdih::sendAddFragreq(Signal* signal,
     sendSignal(connectPtr.p->userblockref, GSN_DIADDTABCONF, signal,
                DiAddTabConf::SignalLength, JBB);
 
-    if (tabPtr.p->method == TabRecord::HASH_MAP)
-    {
+    if (tabPtr.p->method == TabRecord::HASH_MAP)   {
       Uint32 newValue = RNIL;
       if (DictTabInfo::isOrderedIndex(tabPtr.p->tableType))
       {
         jam();
         TabRecordPtr primTabPtr;
-        primTabPtr.i = tabPtr.p->primaryTableId;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::seizeReplicaRec(ReplicaRecordPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::seizeReplicaRec(ReplicaRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+replicaPtr)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&replicaPtr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      primTabPtr.i = tabPtr.p->primaryTableId;
         ptrCheckGuard(primTabPtr, ctabFileSize, tabRecord);
         newValue = primTabPtr.p->m_map_ptr_i;
       }
       else
       {
-        jam();
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AlterTabReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AlterTabReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    jam();
         newValue = connectPtr.p->m_create.m_map_ptr_i;
       }
 
@@ -15213,40 +14726,39 @@ Dbdih::execADD_FRAGREF(Signal* signal){
   jamEntry();
   AddFragRef * const ref = (AddFragRef*)signal->getDataPtr();
 
-  ConnectRecordPtr connectPtr;
+  ConnectRecordPtr   connectPtr;
   connectPtr.i = ref->dihPtr;
   ptrCheckGuard(connectPtr, cconnectFileSize, connectRecord);
 
   Ptr<TabRecord> tabPtr;
   tabPtr.i = connectPtr.p->table;
   ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
-  ndbrequire(tabPtr.p->connectrec == connectPtr.i);
+  ndbrequire(tabPtr.p->connectrec ==   connectPtr.i);
 
   if (connectPtr.p->connectState == ConnectRecord::ALTER_TABLE)
   {
     jam();
 
-    if (AlterTableReq::getReorgFragFlag(connectPtr.p->m_alter.m_changeMask))
-    {
-      jam();
-      make_new_table_non_writeable(tabPtr);
-    }
+      if (AlterTableReq::getReorgFragFlag(connectPtr.p->m_alter.m_changeMask)) {
+        jam();
+        make_new_table_non_writeable(tabPtr);
+      }
 
     connectPtr.p->connectState = ConnectRecord::ALTER_TABLE_ABORT;
-    drop_fragments(signal, connectPtr, connectPtr.p->m_alter.m_totalfragments);
+    drop_fragments(signal, connectPtr,   connectPtr.p->m_alter.m_totalfragments);
     return;
   }
   else
   {
     DiAddTabRef * const ref = (DiAddTabRef*)signal->getDataPtr();
-    ref->senderData = connectPtr.p->userpointer;
+    ref->senderData =   connectPtr.p->userpointer;
     ref->errorCode = ~0;
     sendSignal(connectPtr.p->userblockref, GSN_DIADDTABREF, signal, 
 	       DiAddTabRef::SignalLength, JBB);  
 
     // Release
-    tabPtr.p->connectrec = RNIL;
-    release_connect(connectPtr);
+      tabPtr.p->connectrec = RNIL;
+      release_connect(connectPtr);
   }
 }
 
@@ -15258,7 +14770,7 @@ void
 Dbdih::addtabrefuseLab(Signal* signal,
                        ConnectRecordPtr connectPtr, Uint32 errorCode)
 {
-  signal->theData[0] = connectPtr.p->userpointer;
+  signal->theData[0] =   connectPtr.p->userpointer;
   signal->theData[1] = errorCode;
   sendSignal(connectPtr.p->userblockref, GSN_DIADDTABREF, signal, 2, JBB);
 
@@ -15283,7 +14795,7 @@ Dbdih::addtabrefuseLab(Signal* signal,
 
 /*
   D E L E T E   T A B L E
-  **********************=
+    **********************=
   */
 /*****************************************************************************/
 /***********              DELETE TABLE  MODULE                   *************/
@@ -15375,8 +14887,7 @@ Dbdih::execDROP_TAB_REQ(Signal* signal)
           }
         }
         Uint32 index = 0;
-        for (Uint32 i = 0; i < nodePtr.p->noOfQueuedChkpt; i++)
-        {
+        for (Uint32 i = 0; i < nodePtr.p->noOfQueuedChkpt; i++)     {
           if (nodePtr.p->queuedChkpt[i].tableId != RNIL)
           {
             nodePtr.p->queuedChkpt[index] = nodePtr.p->queuedChkpt[i];
@@ -15397,13 +14908,59 @@ Dbdih::execDROP_TAB_REQ(Signal* signal)
         DEB_LCP(("DROP_TAB_REQ: nodePtr(%u)->noOfQueuedChkpt = %u"
                  ", nodePtr->noOfStartedChkpt = %u"
                  ", tab: %u",
-                 nodePtr.i,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+err;
+}
+
+void
+Dbdih::wait_old_scan(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+err;
+}
+
+void Dbdih::wait_old_scan(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+        nodePtr.i,
                  nodePtr.p->noOfQueuedChkpt,
                  nodePtr.p->noOfStartedChkpt,
                  tabPtr.i));
       }
-    }
-  }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+AlterTabConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AlterTabConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
   if (startNext)
   {
     /**
@@ -15425,9 +14982,7 @@ Dbdih::execDROP_TAB_REQ(Signal* signal)
     case TabRecord::TLS_WRITING_TO_FILE:
       ok = true;
       jam();
-      g_eventLogger->info("DROP_TAB_REQ: tab: %u, tabLcpStatus: %u",
-                          tabPtr.i,
-                          tabPtr.p->tabLcpStatus);
+      g_eventLogger->info("DROP_TAB_REQ: tab: %u, tabLcpStatus: %u",             tabPtr.i,             tabPtr.p->tabLcpStatus);
       break;
       return;
     case TabRecord::TLS_ACTIVE:
@@ -15437,9 +14992,29 @@ Dbdih::execDROP_TAB_REQ(Signal* signal)
       tabPtr.p->tabLcpStatus = TabRecord::TLS_COMPLETED;
 
       g_eventLogger->info("DROP_TAB_REQ: tab: %u, tabLcpStatus set to %u",
-                          tabPtr.i,
-                          tabPtr.p->tabLcpStatus);
-      /**
+    Uint32 fragId,
+                     tabPtr.i,
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Ptr<Fragmentstore>&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Ptr<Fragmentstore>
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+fragPtr)
+{
+=======
+&fragPtr) {
+>>>>>>> MySQL 8.0.36
+          tabPtr.p->tabLcpStatus);
+       /**
        * First check if all fragments are done
        */
       if (checkLcpAllTablesDoneInLqh(__LINE__))
@@ -15454,8 +15029,7 @@ Dbdih::execDROP_TAB_REQ(Signal* signal)
 	LcpStatus a = c_lcpState.lcpStatus;
 	checkLcpCompletedLab(signal, __LINE__);
 
-        if(a != c_lcpState.lcpStatus)
-        {
+        if(a != c_lcpState.lcpStatus)       {
           g_eventLogger->info("And all tables are written to already written disk");
         }
       }
@@ -15541,7 +15115,27 @@ void Dbdih::releaseTable(TabRecordPtr tabPtr)
   releaseFragments(tabPtr);
   if (tabPtr.p->tabFile[0] != RNIL) {
     jam();
-    releaseFile(tabPtr.p->tabFile[0]);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AlterTabRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AlterTabRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  releaseFile(tabPtr.p->tabFile[0]);
     releaseFile(tabPtr.p->tabFile[1]);
     tabPtr.p->tabFile[0] = tabPtr.p->tabFile[1] = RNIL;
   }//if
@@ -15554,7 +15148,30 @@ void Dbdih::releaseReplicas(Uint64 * replicaPtrI)
   ReplicaRecordPtr replicaPtr;
   replicaPtr.i = * replicaPtrI;
   jam();
-  while (replicaPtr.i != RNIL64)
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Dbdih::send_alter_tab_conf(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Dbdih::send_alter_tab_conf(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ while (replicaPtr.i != RNIL64)
   {
     jam();
     ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
@@ -15598,7 +15215,31 @@ void Dbdih::execALTER_TAB_REQ(Signal * signal)
 
   TabRecordPtr tabPtr;
   tabPtr.i = tableId;
-  ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
+  ptrCheckGuard(tabPtr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ctabFileSize,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Callback&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Callback
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabRecord
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cb
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&cb
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
   switch(requestType){
   case AlterTabReq::AlterTablePrepare:
@@ -15612,7 +15253,34 @@ void Dbdih::execALTER_TAB_REQ(Signal * signal)
       jam();
       SectionHandle handle(this, signal);
       sendSignalWithDelay(reference(), GSN_ALTER_TAB_REQ, signal, 10,
-                          signal->getLength(), &handle);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+ JBB);
+}
+
+void
+Dbdih::alter_table_writeTable_conf(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ JBB);
+}
+
+void Dbdih::alter_table_writeTable_conf(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                         signal->getLength(), &handle);
       return;
     }
     break;
@@ -15625,8 +15293,7 @@ void Dbdih::execALTER_TAB_REQ(Signal * signal)
   case AlterTabReq::AlterTableWaitScan:
     jam();
     break;
-  default:
-    jamLine(requestType);
+  default:   jamLine(requestType);
   }
 
   ConnectRecordPtr connectPtr;
@@ -15635,7 +15302,31 @@ void Dbdih::execALTER_TAB_REQ(Signal * signal)
   case AlterTabReq::AlterTablePrepare:
     jam();
 
-    D("AlterTabReq::AlterTablePrepare: tableId: " << tabPtr.i);
+    D("AlterTabReq::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+AlterTablePrepare:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+drop_fragments(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+drop_fragments(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tableId: "
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ << tabPtr.i);
     ndbrequire(cfirstconnect != RNIL);
     connectPtr.i = cfirstconnect;
     ptrCheckGuard(connectPtr, cconnectFileSize, connectRecord);
@@ -15656,7 +15347,7 @@ void Dbdih::execALTER_TAB_REQ(Signal * signal)
     jam();
     D("AlterTabReq::AlterTableRevert: tableId: " << tabPtr.i
       << " schemaVersion: 0x" << hex << tableVersion);
-    tabPtr.p->schemaVersion = tableVersion;
+      tabPtr.p->schemaVersion = tableVersion;
 
     connectPtr.i = req->connectPtr;
     ptrCheckGuard(connectPtr, cconnectFileSize, connectRecord);
@@ -15668,7 +15359,7 @@ void Dbdih::execALTER_TAB_REQ(Signal * signal)
 
     if (AlterTableReq::getReorgFragFlag(connectPtr.p->m_alter.m_changeMask))
     {
-      jam();
+        jam();
       make_new_table_non_writeable(tabPtr);
     }
 
@@ -15679,8 +15370,8 @@ void Dbdih::execALTER_TAB_REQ(Signal * signal)
       connectPtr.p->connectState = ConnectRecord::ALTER_TABLE_REVERT;
       drop_fragments(signal, connectPtr,
                      connectPtr.p->m_alter.m_totalfragments);
-      return;
-    }
+        return;
+      }
 
     send_alter_tab_conf(signal, connectPtr);
 
@@ -15701,13 +15392,102 @@ void Dbdih::execALTER_TAB_REQ(Signal * signal)
     connectPtr.p->userpointer = senderData;
     connectPtr.p->userblockref = senderRef;
     ndbrequire(connectPtr.p->connectState == ConnectRecord::ALTER_TABLE);
-    make_new_table_read_and_writeable(tabPtr, connectPtr, signal);
+    make_new_table_read_and_writeable(tabPtr, connectPtr,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+ DropFragReq::SignalLength,
+>>>>>>> MySQL 8.0.36
+ signal);
     return;
   }
   case AlterTabReq::AlterTableComplete:
-    jam();
-    D("AlterTabReq::AlterTableComplete: tableId: " << tabPtr.i);
-    connectPtr.i = req->connectPtr;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ jam(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DropFragReq::SignalLength, JBB
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Dbdih::execDROP_FRAG_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Dbdih::execDROP_FRAG_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {  D("AlterTabReq::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+AlterTableComplete:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execDROP_FRAG_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execDROP_FRAG_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tableId: " << tabPtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DropFragConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DropFragConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ connectPtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = req->connectPtr;
     ptrCheckGuard(connectPtr, cconnectFileSize, connectRecord);
     connectPtr.p->userpointer = senderData;
     connectPtr.p->userblockref = senderRef;
@@ -16414,9 +16194,51 @@ Dbdih::execDROP_FRAG_CONF(Signal* signal)
  *
  * After 16 rows the scan will return (this will happen for each 16 row
  *                                         SCAN_FRAGCONF
- *                                      <--------------------------------
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::execDIGETNODESREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execDIGETNODESREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                     <--------------------------------
  *                       SUB_SYNC_CONTINUE_REQ
- *                       <--------------
+ *            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TabRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TabRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regTabDesc
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regTabDesc
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          <--------------
  *                       wait for all outstanding transactions to complete
  *                       SUB_SYNC_CONTINUE_CONF
  *                       -------------->
@@ -16512,7 +16334,29 @@ Dbdih::execDROP_FRAG_CONF(Signal* signal)
  * have completed the scans on those.
  *
  * This trigger will thus only fire during the time when we have two hash
- * maps here in DBDIH. As soon as we set the new hash map to RNIL the
+ * maps here in DBDIH. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+As
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+=======
+} else
+>>>>>>> MySQL 8.0.36
+ soon as we set the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ hash map to RNIL the
  * reorg trigger won't fire anymore for writes going through this DIH.
  *
  * The copy phase and delete phase both sets the reorg flag in TCKEYREQ.
@@ -16565,10 +16409,64 @@ Dbdih::execDROP_FRAG_CONF(Signal* signal)
  * first new copy fragment. In this case the trigger will fire and
  * since the initial fragment is the first new fragment and the
  * iterator only goes towards higher fragment ids, thus we thus
- * ensures that we won't write the old fragment that already has the
+ * ensures that we won't write the old fragment that already has 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
  * correct data. So this write becomes a perfectly normal update on
- * fully replicated table except that it uses a triggered operation
- * on a copy fragment which is normally not done. But triggers are
+ * fully replicated table except that it uses
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(unlikely(!tabPtr.p->m_lock.read_unlock(tab_val)))
+    goto loop;
+  if (unlikely(!m_node_view_lock.read_unlock(node_val)))
+    goto loop;
+  return;
+
+crash_check_exit:
+  if (unlikely(!tabPtr.p->m_lock.read_unlock(tab_val)))
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(unlikely(!tabPtr.p->m_lock.read_unlock(tab_val)))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ a triggered operation
+ * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+on
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(unlikely(!m_node_view_lock.read_unlock(node_val)))
+=======
+(unlikely(!m_node_view_lock.read_unlock(node_val))) goto loop;
+>>>>>>> MySQL 8.0.36
+ a 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+copy
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+return;
+
+crash_check_exit:
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragment
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+if (unlikely(!tabPtr.p->m_lock.read_unlock(tab_val))) goto loop;
+  if (unlikely(!m_node_view_lock.read_unlock(node_val)))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ which is normally not done. But triggers are
  * installed on also the copy fragments, so this is ok.
  *
  * This simple optimisation requires a new flag sent in the DIH
@@ -16592,9 +16490,76 @@ Dbdih::execDROP_FRAG_CONF(Signal* signal)
  * When we have completed the copy phase and entered the delete phase then
  * we have set the m_scan_reorg_flag on the table and this means that all
  * transactions will have to set the flag ScanFragReq::REORG_NOT_MOVED to
- * ensure that they don't scan moved rows in both the new and the old
- * fragments. When all moved rows have been deleted from the old fragments
- * then we can stop reporting this flag to starting scans.
+ * ensure that they don't 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scan moved rows in both the new and the old
+ * fragments. When all moved
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FragmentstorePtr & fragPtr,
+            
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ rows have been deleted from the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+old
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+FragmentstorePtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragments
+||||||| Common ancestor
+=======
+&fragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+then
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+fragId,
+>>>>>>> MySQL 8.0.36
+ we can stop reporting this 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+flag
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragId,
+=======
+>>>>>>> MySQL 8.0.36
+ starting scans.
  *
  * A scan that is using the REORG_NOT_MOVED is safe unless we are moving
  * to yet another ALTER TABLE REORG of the same table very quickly. However
@@ -16678,8 +16643,7 @@ loop:
     fragId = hashValue;
     ndbassert((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED) != 0);
     getFragstoreCanFail(tabPtr.p, fragId, fragPtr);
-    if (unlikely(fragPtr.p == nullptr))
-    {
+    if (unlikely(fragPtr.p == nullptr)) {
       thrjam(jambuf);
       goto crash_check_exit;
     }
@@ -16710,14 +16674,136 @@ loop:
      * 
      */
     if (unlikely((!scan_indicator) &&
-                 fragId >= tabPtr.p->totalfragments &&
-                 anyNode != 3))
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+assertOwnThread();
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                             \
+    assertOwnThread();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tabPtrP->m_lock.write_lock();
+// RONDB-624 todo: Glue these lines together ^v
+=======
+             \
+    tabPtrP->m_lock.write_lock();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  \
+  }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       fragId 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+>=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+assertOwnThread();
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                               \
+    assertOwnThread();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtr.p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtrP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+               \
+    tabPtrP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+totalfragments
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_lock.write_unlock(); } while
+// RONDB-624 todo: Glue these lines together ^v
+=======
+m_lock.write_unlock();   \
+  } while
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &&
+                 anyNode 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+3))
+||||||| Common ancestor
+=======
+*signal,
+>>>>>>> MySQL 8.0.36
     {
-      thrjam(jambuf);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+thrjam(jambuf);
+||||||| Common ancestor
+*signal,
+=======
+>>>>>>> MySQL 8.0.36
       conf->zero= 1; //Indicate error;
       signal->theData[1]= ZUNDEFINED_FRAGMENT_ERROR;
-      goto error;
-    }
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+goto
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+error;
+||||||| Common ancestor
+=======
+schemaTransId,
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+Uint32 schemaTransId,
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   }
   else if (tabPtr.p->method == TabRecord::HASH_MAP)
   {
@@ -16740,11 +16826,30 @@ loop:
           goto crash_check_exit;
         }
         newFragId = ptr.p->m_map[hashValue % ptr.p->m_cnt];
-        if (newFragId == fragId)
-        {
+        if (newFragId == fragId)     {
           thrjam(jambuf);
           newFragId = RNIL;
-        }
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DihScanTabConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihScanTabConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  }
       }
     }
     else
@@ -16763,14 +16868,35 @@ loop:
       if (unlikely(!g_hash_map.getPtr(ptr, map_ptr_i)))
       {
         thrjam(jambuf);
-        goto crash_check_exit;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DihScanTabRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihScanTabRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ goto crash_check_exit;
       }
       const Uint32 partId = ptr.p->m_map[hashValue % ptr.p->m_cnt];
       if (anyNode == 2)
       {
         thrjam(jambuf);
         fragId = findFirstNewFragment(tabPtr.p, fragPtr, partId, jambuf);
-        if (fragId == RNIL)
+ Uint32 scanCookie,
+      if (fragId == RNIL)
         {
           conf->zero = 0;
           conf->fragId = fragId;
@@ -16783,8 +16909,7 @@ loop:
       else fragId = partId;
     }
   }
-  else if (tabPtr.p->method == TabRecord::LINEAR_HASH)
-  {
+  else if (tabPtr.p->method == TabRecord::LINEAR_HASH) {
     thrjam(jambuf);
     fragId = hashValue & tabPtr.p->mask;
     if (fragId < tabPtr.p->hashpointer) {
@@ -16803,7 +16928,25 @@ loop:
     ndbassert(tabPtr.p->method == TabRecord::USER_DEFINED);
 
     /* User defined partitioning, but no distribution key passed */
-    conf->zero= 1; //Indicate error;
+ ConnectRecordPtr connectPtr,
+  conf->zero= 1; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//Indicate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+error;
+||||||| Common ancestor
+connectPtr,
+=======
+>>>>>>> MySQL 8.0.36
     signal->theData[1]= ZUNDEFINED_FRAGMENT_ERROR;
     goto error;
   }
@@ -16812,8 +16955,32 @@ loop:
     /* Error inject bypass the RCU lock */
     thrjam(jambuf);
     conf->zero= 1; //Indicate error;
-    signal->theData[1]= ZUNDEFINED_FRAGMENT_ERROR;
-    return;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->theData[1]= ZUNDEFINED_FRAGMENT_ERROR;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+" <<
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req->primaryTableId)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                               << req->primaryTableId)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   }
   if (ERROR_INSERTED_CLEAR(7234))
   {
@@ -16828,21 +16995,60 @@ loop:
   {
     thrjam(jambuf);
     goto crash_check_exit;
-  }
-  if (unlikely(anyNode == 1))
-  {
+  } if (unlikely(anyNode == 1)) {
     thrjam(jambuf);
 
     /* anyNode is currently only useful for fully replicated tables */
     ndbassert((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED) != 0);
 
     /**
-     * search fragments to see if local fragment can be found
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<<
+=======
+<< " partitionCount: "
+>>>>>>> MySQL 8.0.36
+ search fragments to see if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+local
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragment
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+partitionCount:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+can
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ be found
      *
      */
     fragId = findLocalFragment(tabPtr.p, fragPtr, jambuf);
-    if (unlikely(fragPtr.p == nullptr))
-      goto crash_check_exit;
+    if (unlikely(fragPtr.p == nullptr))     goto crash_check_exit;
   }
   nodeCount = extractNodeInfo(jambuf,
                               fragPtr.p,
@@ -16911,8 +17117,7 @@ error:
 }//Dbdih::execDIGETNODESREQ()
 
 void
-Dbdih::make_node_usable(NodeRecord *nodePtr)
-{
+Dbdih::make_node_usable(NodeRecord *nodePtr) {
   /**
    * Called when a node is ready to be used in transactions.
    * This means that the node needs to participate in writes,
@@ -16981,8 +17186,7 @@ Dbdih::findFirstNewFragment(const  TabRecord * tabPtrP,
       break;
     }
     fragId = fragPtr.p->nextCopyFragmentId;
-    if (fragId == RNIL)
-      return fragId;
+    if (fragId == RNIL)     return fragId;
   } while (1);
   return fragPtr.p->fragId;
 }
@@ -17006,15 +17210,13 @@ Dbdih::findLocalFragment(const  TabRecord * tabPtrP,
   do
   {
     thrjam(jambuf);
-    if (check_if_local_fragment(jambuf, fragPtr.p))
-    {
+    if (check_if_local_fragment(jambuf, fragPtr.p))   {
       thrjam(jambuf);
       return fragId;
     }
     /* Step to next copy fragment. */
     fragId = fragPtr.p->nextCopyFragmentId;
-    if (fragId == RNIL || fragId > tabPtrP->totalfragments)
-    {
+    if (fragId == RNIL || fragId > tabPtrP->totalfragments) {
       thrjam(jambuf);
       break;
     }
@@ -17058,8 +17260,7 @@ Uint32 Dbdih::extractNodeInfo(EmulatedJamBuffer *jambuf,
 {
   Uint32 nodeCount = 0;
   nodes[0] = nodes[1] = nodes[2] = nodes[3] = 0;
-  for (Uint32 i = 0; i < fragPtr->fragReplicas; i++)
-  {
+  for (Uint32 i = 0; i < fragPtr->fragReplicas; i++) {
     thrjam(jambuf);
     NodeRecordPtr nodePtr;
     if (unlikely(i >= MAX_REPLICAS))
@@ -17105,7 +17306,10 @@ Uint32 Dbdih::extractNodeInfo(EmulatedJamBuffer *jambuf,
                             fragPtr->fragId,
                             nodePtr.i,
                             nodePtr.p->nodeRecoveryStatus);
-      }
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
 #endif
     }//if
   }//for
@@ -17115,12 +17319,71 @@ Uint32 Dbdih::extractNodeInfo(EmulatedJamBuffer *jambuf,
 
 void
 Dbdih::start_scan_on_table(TabRecordPtr tabPtr,
-                           Signal *signal,
-                           Uint32 schemaTransId,
-                           EmulatedJamBuffer *jambuf)
-{
+||||||| Common ancestor
+FragmentstorePtr fragPtr,
+              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     FragmentstorePtr fragPtr,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ReplicaRecordPtr replicaPtr,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    Signal *signal,
+                    ReplicaRecordPtr replicaPtr,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+schemaTransId,
+||||||| Common ancestor
+replicaType,
+=======
+>>>>>>> MySQL 8.0.36
+                           EmulatedJamBuffer 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*jambuf
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      Uint32 destNodeId
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    Uint32 replicaType, Uint32 destNodeId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) {
   /**
-   * This method is called from start of scans in TC threads. We need to
+   * This method is called from start of scans in TC threads.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+p->fragId <<
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+p->fragId
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ We need 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+||||||| Common ancestor
+"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<< "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
    * protect against calls from multiple threads. The state and the
    * m_scan_count is protected by the mutex.
    *
@@ -17128,7 +17391,18 @@ Dbdih::start_scan_on_table(TabRecordPtr tabPtr,
    * we ensure that the mutex is also held anytime we update the
    * m_map_ptr_i, totalfragments, noOfBackups, m_scan_reorg_flag
    * and partitionCount.
-   */
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+WILL
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WILL
+       *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
   NdbMutex_Lock(&tabPtr.p->theMutex);
 
   if (tabPtr.p->tabStatus != TabRecord::TS_ACTIVE)
@@ -17144,6 +17418,7 @@ Dbdih::start_scan_on_table(TabRecordPtr tabPtr,
   tabPtr.p->m_scan_count[0]++;
   {
     DihScanTabConf* conf = (DihScanTabConf*)signal->getDataPtrSend();
+
     conf->tableId = tabPtr.i;
     conf->senderData = 0; /* 0 indicates success */
     /**
@@ -17183,8 +17458,7 @@ error:
   return;
 }
 
-void
-Dbdih::complete_scan_on_table(TabRecordPtr tabPtr,
+void Dbdih::complete_scan_on_table(TabRecordPtr tabPtr,
                               Uint32 scanCookie,
                               EmulatedJamBuffer *jambuf)
 {
@@ -17219,8 +17493,7 @@ Dbdih::complete_scan_on_table(TabRecordPtr tabPtr,
 bool
 Dbdih::prepare_add_table(TabRecordPtr tabPtr,
                          ConnectRecordPtr connectPtr,
-                         Signal *signal)
-{
+                         Signal *signal) {
   DiAddTabReq * const req = (DiAddTabReq*)signal->getDataPtr();
   D("prepare_add_table tableId = " << tabPtr.i << " primaryTableId: " <<
     req->primaryTableId << " schemaVersion: 0x" << hex << req->schemaVersion);
@@ -17249,7 +17522,27 @@ Dbdih::prepare_add_table(TabRecordPtr tabPtr,
     jam();
     TabRecordPtr primTabPtr;
     primTabPtr.i = req->primaryTableId;
-    ptrCheckGuard(primTabPtr, ctabFileSize, tabRecord);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Fragmentstore*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragmentstore
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TfragStore
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*TfragStore
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ptrCheckGuard(primTabPtr, ctabFileSize, tabRecord);
     tabPtr.p->m_flags |= (primTabPtr.p->m_flags&TabRecord::TF_FULLY_REPLICATED);
     tabPtr.p->partitionCount = primTabPtr.p->partitionCount;
     D("Non-primary, m_flags: " << tabPtr.p->m_flags <<
@@ -17269,7 +17562,31 @@ Dbdih::prepare_add_table(TabRecordPtr tabPtr,
      * add fragments and continue with creation of the tables.
      *
      * tabLcpActiveFragments is setup as part of reading table and
-     * fragment information from disk. So we should not reset it to 0 here.
+     * fragment 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+information
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Fragmentstore*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragmentstore
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+from
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TfragStore
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*TfragStore
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ disk. So we should not reset it to 0 here.
      */
     jam();
     tabPtr.p->tabStatus = TabRecord::TS_CREATING;
@@ -17320,8 +17637,37 @@ Dbdih::start_add_fragments_in_new_table(TabRecordPtr tabPtr,
                                         ConnectRecordPtr connectPtr,
                                         const Uint16 buf[],
                                         const Uint32 bufLen,
-                                        Signal *signal)
-{
+                                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//for 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  // 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+}//Dbdih::initialiseFragstore()
+
+inline
+bool
+Dbdih::isEmpty(const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+for
+}  // Dbdih::initialiseFragstore()
+
+inline bool Dbdih::isEmpty(const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  Signal *signal) {
   /**
    * We need to protect these changes to the node and fragment view of
    * the table since DBTC can see the table through these changes
@@ -17364,7 +17710,26 @@ Dbdih::start_add_fragments_in_new_table(TabRecordPtr tabPtr,
                  connectPtr,
                  tabPtr,
                  connectPtr.p->m_alter.m_org_totalfragments,
-                 true);
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execDIVERIFYREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execDIVERIFYREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+         true);
 
   DIH_TAB_WRITE_UNLOCK(tabPtr.p);
   return;
@@ -17395,15 +17760,88 @@ Dbdih::make_new_table_writeable(TabRecordPtr tabPtr,
    * At this point the new table fragments must be updated at proper times.
    * For tables without full replication this simply means setting the
    * value of the new_map_ptr_i referring to the new hash map. This hash
-   * map will be used to point to new fragments for some rows.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::execDIH_SCAN_TAB_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execDIH_SCAN_TAB_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+map will be used to point to new fragments for some rows.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    *
    * For fully replicated tables we must insert the new fragments into
    * list of copy fragments. These will still not be seen by readers
    * since we never return a fragment id larger than the totalfragments
    * variable.
    */
-  if ((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED) != 0 &&
-       tabPtr.p->totalfragments <
+  if ((tabPtr.p->m_flags & TabRecord::TF_FULLY_REPLICATED)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+
+void
+Dbdih::execDIH_SCAN_TAB_COMPLETE_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+
+void Dbdih::execDIH_SCAN_TAB_COMPLETE_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!= 0 &&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DihScanTabCompleteRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihScanTabCompleteRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rep
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    tabPtr.p->totalfragments <
        connectPtr.p->m_alter.m_totalfragments)
   {
     for (Uint32 i = tabPtr.p->totalfragments;
@@ -17417,8 +17855,28 @@ Dbdih::make_new_table_writeable(TabRecordPtr tabPtr,
     }
   }
   mb();
-  tabPtr.p->m_new_map_ptr_i = connectPtr.p->m_alter.m_new_map_ptr_i;
-  if (!rcu_lock_held)
+  tabPtr.p->m_new_map_ptr_i = connectPtr.p->m_alter.m_new_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+map_ptr_i;
+||||||| Common ancestor
+gcp(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+gcp(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if (!rcu_lock_held)
   {
     DIH_TAB_WRITE_UNLOCK(tabPtr.p);
     jam();
@@ -17428,7 +17886,31 @@ Dbdih::make_new_table_writeable(TabRecordPtr tabPtr,
 /**
  * make_new_table_read_and_writeable
  * ---------------------------------
- * Here we need to protect both using the table mutex and the RCU
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NodeVersionInfo&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NodeVersionInfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Here
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+info
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ we need to protect both using the table mutex and the RCU
  * mechanism. We want DIH_SCAN_TAB_REQ to see a correct combination
  * of those variables as protected by the mutex and we want
  * DIGETNODESREQ to see a protected and consistent view of its variables.
@@ -17453,10 +17935,32 @@ Dbdih::make_new_table_read_and_writeable(TabRecordPtr tabPtr,
   NdbMutex_Lock(&tabPtr.p->theMutex);
   DIH_TAB_WRITE_LOCK(tabPtr.p);
   tabPtr.p->totalfragments = connectPtr.p->m_alter.m_totalfragments;
-  tabPtr.p->partitionCount = connectPtr.p->m_alter.m_partitionCount;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const UpgradeProtocolOrd*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const UpgradeProtocolOrd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtr.p->partitionCount
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ord
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = connectPtr.p->m_alter.m_partitionCount;
   if (AlterTableReq::getReorgFragFlag(connectPtr.p->m_alter.m_changeMask))
   {
-    jam();
+      jam();
     Uint32 save = tabPtr.p->m_map_ptr_i;
     tabPtr.p->m_map_ptr_i = tabPtr.p->m_new_map_ptr_i;
     tabPtr.p->m_new_map_ptr_i = save;
@@ -17476,7 +17980,33 @@ Dbdih::make_new_table_read_and_writeable(TabRecordPtr tabPtr,
                         fragPtr.p->distributionKey,
                         signal->header.theSendersSignalId,
                         signal->header.theSignalId,
-                        fragPtr.p->activeNodes[0],
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+return;
+}
+
+void
+Dbdih::startGcpLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return;
+}
+
+void Dbdih::startGcpLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+                     fragPtr.p->activeNodes[0],
                         fragPtr.p->activeNodes[1],
                         fragPtr.p->activeNodes[2],
                         fragPtr.p->changeNumber));
@@ -17539,10 +18069,54 @@ Dbdih::make_old_table_non_writeable(TabRecordPtr tabPtr,
     tabPtr.p->m_scan_count[0] = 0;
     D("tableId: " << tabPtr.i << " m_scan_count[] = "
       << tabPtr.p->m_scan_count[0] << "," << tabPtr.p->m_scan_count[1]
-      << " m_scan_reorg_flag = 0");
-    wait_flag = true;
+      << " m_scan_reorg_flag 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 0");
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+wait
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  m_micro_gcp.m_master.m_time_between
+// RONDB-624 todo: Glue these lines together ^v
+=======
+           ? m_micro_gcp.m_master.m_time_between
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_flag 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ true;
   }
-  DIH_TAB_WRITE_UNLOCK(tabPtr.p);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DIH
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  m
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                      : m
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_TAB_WRITE_UNLOCK(tabPtr.p);
   NdbMutex_Unlock(&tabPtr.p->theMutex);
 
   ndbrequire(tabPtr.p->connectrec == connectPtr.i);
@@ -17589,7 +18163,27 @@ Dbdih::make_table_use_new_replica(Signal *signal,
     fragPtr.p->changeNumber++;
     DEB_ACTIVE_NODES(("insertBackup: tab(%u,%u),"
                       " distKey: %u, senderSignalId: %u, signalId: %u"
-                      ", activeNodes[] = [%u,%u,%u] changeNumber: %u",
+                      ",
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+activeNodes[]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+&c_GCP_PREPARE_Counter,
+>>>>>>> MySQL 8.0.36
+ = [%u,%u,%u] changeNumber: %u",
                       fragPtr.p->tableId,
                       fragPtr.p->fragId,
                       fragPtr.p->distributionKey,
@@ -17624,7 +18218,7 @@ Dbdih::make_table_use_new_replica(Signal *signal,
     break;
   default:
     ndbabort();
-  }//switch
+  }  //switch
   DIH_TAB_WRITE_UNLOCK(tabPtr.p);
 }
 
@@ -17633,11 +18227,49 @@ Dbdih::make_table_use_new_replica(Signal *signal,
  * the primary replicas are balanced over all nodes.
  */
 void
-Dbdih::make_table_use_new_node_order(Signal *signal,
-                                     TabRecordPtr tabPtr,
-                                     FragmentstorePtr fragPtr,
-                                     Uint32 numReplicas,
-                                     Uint32 *newNodeOrder)
+Dbdih::make_table_use_new_node_order(Signal *signal,                     TabRecordPtr tabPtr,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::gcpcommitreqLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::gcpcommitreqLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+         FragmentstorePtr fragPtr,
+       signal, &c_GCP_COMMIT_Counter,
+                             Uint32 numReplicas,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execGCP_NODEFINISH(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execGCP_NODEFINISH(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+               Uint32 *newNodeOrder)
+||||||| Common ancestor
+signal)
+=======
+*signal) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 {
   (void)signal;
   D("make_table_use_new_node_order: tableId = " << tabPtr.i <<
@@ -17651,14 +18283,35 @@ Dbdih::make_table_use_new_node_order(Signal *signal,
     fragPtr.p->activeNodes[i] = newNodeOrder[i];
   }//for
   fragPtr.p->changeNumber++;
-  DEB_ACTIVE_NODES(("make_table_use_new_node_order: tab(%u,%u),"
+  DEB_ACTIVE_NODES(
+      ("make_table_use_new_node_order: tab(%u,%u),"
                     " distKey: %u, senderSignalId: %u, signalId: %u"
                     ", activeNodes[] = [%u,%u,%u] changeNumber: %u",
                     fragPtr.p->tableId,
                     fragPtr.p->fragId,
                     fragPtr.p->distributionKey,
                     signal->header.theSendersSignalId,
-                    signal->header.theSignalId,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+GCPNoMoreTrans*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GCPNoMoreTrans
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  signal->header.theSignalId,
                     fragPtr.p->activeNodes[0],
                     fragPtr.p->activeNodes[1],
                     fragPtr.p->activeNodes[2],
@@ -17732,8 +18385,7 @@ Dbdih::getFragstoreCanFail(const TabRecord * tab,      //In parameter
     if (fragPtr.i != RNIL64)
     {
       ndbrequire(c_fragmentRecordPool.getPtr(fragPtr));
-      if (fragPtr.p != nullptr)
-      {
+      if (fragPtr.p != nullptr)     {
         return;
       }
     }
@@ -17744,11 +18396,50 @@ Dbdih::getFragstoreCanFail(const TabRecord * tab,      //In parameter
 
 /**
  * End of TRANSACTION MODULE
- * -------------------------
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-------------------------
+||||||| Common ancestor
+=======
+&c_GCP_SAVEREQ_Counter,
+>>>>>>> MySQL 8.0.36
  */
 
 /**
- * When this is called DBTC isn't made aware of the table just yet, so no
+ * When this is called DBTC isn't made aware of the table just 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+yet,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+so
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&c_GCP_SAVEREQ_Counter,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ no
  * need to protect anything here from DBTC's view.
  */
 bool Dbdih::allocFragments(Uint32 noOfFragments, TabRecordPtr tabPtr)
@@ -17757,7 +18448,45 @@ bool Dbdih::allocFragments(Uint32 noOfFragments, TabRecordPtr tabPtr)
   Uint64 *startFid = (Uint64*)lc_ndbd_pool_malloc(
                        noOfFragments * sizeof(Uint64),
                        RG_SCHEMA_MEMORY,
-                       getThreadId(),
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+RNIL);
+}
+
+void
+Dbdih::execSUB_GCP_COMPLETE_ACK(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RNIL);
+}
+
+void Dbdih::execSUB_GCP_COMPLETE_ACK(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+getThreadId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CAST_CONSTPTR
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    *CAST_CONSTPTR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(),
                        false);
   if (startFid == nullptr)
   {
@@ -17766,11 +18495,9 @@ bool Dbdih::allocFragments(Uint32 noOfFragments, TabRecordPtr tabPtr)
   for (Uint32 i = 0; i < noOfFragments; i++)
   {
     jam();
-    if (!c_fragmentRecordPool.seize(fragPtr))
-    {
+    if (!c_fragmentRecordPool.seize(fragPtr))   {
       /* Failure to allocate memory, need to make routine atomic */
-      for (Uint32 j = 0; j < i; j++)
-      {
+      for (Uint32 j = 0; j < i; j++)     {
         fragPtr.i = tabPtr.p->startFid[j];
         ndbrequire(c_fragmentRecordPool.getPtr(fragPtr));
         c_fragmentRecordPool.release(fragPtr);
@@ -17799,8 +18526,7 @@ void Dbdih::releaseFragments(TabRecordPtr tabPtr)
   FragmentstorePtr fragPtr;
   tabPtr.p->startFidSize = 0;
   mb();
-  for (Uint32 i = 0; i < tabPtr.p->totalfragments; i++)
-  {
+  for (Uint32 i = 0; i < tabPtr.p->totalfragments; i++) {
     jam();
     fragPtr.i = tabPtr.p->startFid[i];
     ndbrequire(c_fragmentRecordPool.getPtr(fragPtr));
@@ -17834,14 +18560,65 @@ Dbdih::isEmpty(const DIVERIFY_queue & q)
 
 inline
 void
-Dbdih::enqueue(DIVERIFY_queue & q)
+Dbdih::enqueue(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DIVERIFY_queue
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ q)
 {
 #ifndef NDEBUG
   /**
    * - assert only
    * - we must read first *before* "publishing last
-   *   or else DIH-thread could already have consumed entry
-   *   when we call assert
+   *   or else 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DIH-thread
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+GSN_GCP_SAVECONF,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+could
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal,
+>>>>>>> MySQL 8.0.36
+ already have consumed entry
+   *   when we call 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+assert
+||||||| Common ancestor
+GSN_GCP_SAVECONF,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
    */
   Uint32 first = q.cfirstVerifyQueue;
 #endif
@@ -17857,7 +18634,31 @@ Dbdih::enqueue(DIVERIFY_queue & q)
 
 inline
 void
-Dbdih::dequeue(DIVERIFY_queue & q)
+Dbdih::dequeue(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DIVERIFY_queue
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ q)
 {
   Uint32 first = q.cfirstVerifyQueue;
 
@@ -17869,7 +18670,14 @@ Dbdih::dequeue(DIVERIFY_queue & q)
 
 /*
   3.9   V E R I F I C A T I O N
-  ****************************=
+ GSN_GCP_SAVEREF, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+****************************=
+||||||| Common ancestor
+=======
+signal,
+>>>>>>> MySQL 8.0.36
   */
 /****************************************************************************/
 /* **********     VERIFICATION SUB-MODULE                       *************/
@@ -17884,7 +18692,31 @@ void Dbdih::execDIVERIFYREQ(Signal* signal)
   thrjamEntry(jambuf);
   Uint32 qno = signal->theData[1];
   ndbassert(qno < NDB_ARRAY_SIZE(c_diverify_queue));
-  DIVERIFY_queue & q = c_diverify_queue[qno];
+  DIVERIFY_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+queue
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SAVEhandling(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SAVEhandling(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ q = c_diverify_queue[qno];
 loop:
   Uint32 val = m_micro_gcp.m_lock.read_lock();
   Uint32 blocked = getBlockCommit() == true ? 1 : 0;
@@ -17926,10 +18758,10 @@ void Dbdih::execDIH_SCAN_TAB_REQ(Signal* signal)
   ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
 
   start_scan_on_table(tabPtr, signal, req->schemaTransId, jambuf);
-}//Dbdih::execDIH_SCAN_TAB_REQ()
+}  // Dbdih::execDIH_SCAN_TAB_REQ()
 
 void
-Dbdih::execDIH_SCAN_TAB_COMPLETE_REP(Signal* signal)
+Dbdih::execDIH_SCAN_TAB_COMPLETE_REP(Signal *signal)
 {
   DihScanTabCompleteRep* rep = (DihScanTabCompleteRep*)signal->getDataPtr();
   EmulatedJamBuffer * jambuf = (EmulatedJamBuffer*)rep->jamBufferPtr;
@@ -17941,7 +18773,31 @@ Dbdih::execDIH_SCAN_TAB_COMPLETE_REP(Signal* signal)
   D("complete_scan_on_table: " << tabPtr.i << " reorg_flag: "
     << tabPtr.p->m_scan_reorg_flag << " map_ptr_i: "
     << tabPtr.p->m_map_ptr_i << " scanCookie: " << rep->scanCookie
-    << " m_scan_count[] = " << tabPtr.p->m_scan_count[0] << ","
+    << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GCPPrepare*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GCPPrepare
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_scan_count[]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = " << tabPtr.p->m_scan_count[0] << ","
     << tabPtr.p->m_scan_count[1]
     << " schemaVersion: 0x" << hex << tabPtr.p->schemaVersion
     << " schemaVersionCookie: 0x" << hex << rep->schemaVersionCookie);
@@ -17991,16 +18847,85 @@ Dbdih::check_enable_micro_gcp(Signal* signal, bool broadcast)
   ndbassert(NodeVersionInfo::DataLength == 6);
   Uint32 min = ~(Uint32)0;
   const NodeVersionInfo& info = getNodeVersionInfo();
-  for (Uint32 i = 0; i<3; i++)
+  for (Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+req->gci_hi,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+req->gci_lo,
+>>>>>>> MySQL 8.0.36
+ 0; i<3; i++)
   {
     Uint32 tmp = info.m_type[i].m_min_version;
-    if (tmp)
-    {
-      min = (min < tmp) ? min : tmp; 
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req->gci_lo,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ (tmp)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+GCPPrepareConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      min = (min < tmp) ? min 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+: tmp
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GCPPrepareConf::SignalLength, JBA)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBA)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+; 
     }
   }
 
-  {
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbdih::execGCP_COMMIT(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbdih::execGCP_COMMIT(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
     jam();
     m_micro_gcp.m_enabled = true;
 
@@ -18019,11 +18944,45 @@ Dbdih::check_enable_micro_gcp(Signal* signal, bool broadcast)
       do {
         jam();
         ptrCheckGuard(specNodePtr, MAX_NDB_NODES, nodeRecord);
-        sendSignal(calcDihBlockRef(specNodePtr.i), GSN_UPGRADE_PROTOCOL_ORD,
-                   signal, UpgradeProtocolOrd::SignalLength, JBA);
+        sendSignal(calcDihBlockRef(specNodePtr.i), GSN_UPGRADE_PROTOCOL_ORD, GSN_NDB_TAMPER, signal,
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GSN_NDB_TAMPER,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  UpgradeProtocolOrd::SignalLength, JBA);
         specNodePtr.i = specNodePtr.p->nextNode;
-      } while (specNodePtr.i != RNIL);
-      EXECUTE_DIRECT(QMGR,GSN_UPGRADE_PROTOCOL_ORD,signal,signal->getLength());
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendSignal(numberToRef(CMVMI, c_error_insert_extra),
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(numberToRef(CMVMI, c_error_insert_extra), GSN_DUMP_STATE_ORD,
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  } while (specNodePtr.i != RNIL);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+EXECUTE_DIRECT(QMGR,GSN_UPGRADE_PROTOCOL_ORD,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GSN_DUMP_STATE_ORD, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal,signal->getLength());
     }
   }
   return m_micro_gcp.m_enabled;
@@ -18058,16 +19017,48 @@ static Uint32 next_warn_save_gci = MAX_SAFE_GCI_VALUE;
 // Issue a warning, around 3 months ahead of GCI reaching MAX_SAFE_GCI_VALUE
 void Dbdih::checkGCI(Uint32 save_gci) {
   if (save_gci >= next_warn_save_gci) {
-    jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+GCPNodeFinished*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GCPNodeFinished
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
 
     // Number of days to reach MaxInt32 with projected GCPS_PER_DAY
     Uint32 days_left = 0;
     if (save_gci < MAX_SAFE_GCI_VALUE)
       days_left = (MAX_SAFE_GCI_VALUE - save_gci) / GCPS_PER_DAY;
 
-    warningEvent("GCI (%u) is approaching the maximum value (%u).",
+    warningEvent("GCI (%u) is approaching the maximum value (%u).", conf->gci_hi,
 		 save_gci, MAX_SAFE_GCI_VALUE);
-    warningEvent("GCI projected to reach max in %u days.", days_left);
+    warningEvent("GCI projected to reach max in %u 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+days.",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    conf->gci_hi,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ days_left);
     warningEvent("Reset system GCI using Backup and Restore with "
 		 "Cluster Initial Restart.");
 
@@ -18097,11 +19088,34 @@ Dbdih::startGcpLab(Signal* signal)
     return;
   }
 
-  for (Uint32 i = 0; i < c_diverify_queue_cnt; i++)
-  {
+  for (Uint32 i = 0; i < c_diverify_queue_cnt; i++) {
     if (c_diverify_queue[i].m_empty_done == 0)
     {
-      // Previous global checkpoint is not yet completed.
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GCPNoMoreTrans*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GCPNoMoreTrans
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Previous
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ global checkpoint is not yet completed.
       jam();
       signal->theData[0] = DihContinueB::ZSTART_GCP;
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 10, 1);
@@ -18109,8 +19123,48 @@ Dbdih::startGcpLab(Signal* signal)
     }
   }
 
-  emptyWaitGCPMasterQueue(signal,
-                          m_micro_gcp.m_current_gci,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execGCP_TCFINISHED(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execGCP_TCFINISHED(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+emptyWaitGCPMasterQueue(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+GCPTCFinished*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GCPTCFinished
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                   m_micro_gcp.m_current_gci,
                           c_waitEpochMasterList);
   
   if (c_nodeStartMaster.blockGcp != 0 &&
@@ -18119,8 +19173,31 @@ Dbdih::startGcpLab(Signal* signal)
     jam();
 
     /* ------------------------------------------------------------------ */
-    /*  A NEW NODE WANTS IN AND WE MUST ALLOW IT TO COME IN NOW SINCE THE */
-    /*       GCP IS COMPLETED.                                            */
+    /* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+refToNode(cmasterdihref)),
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+refToNode(cmasterdihref)), GSN_NDB_TAMPER,
+>>>>>>> MySQL 8.0.36
+ A NEW NODE WANTS IN AND 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+WE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GSN_NDB_TAMPER,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ MUST ALLOW IT TO COME IN NOW SINCE THE */
+    /*       GCP IS COMPLETED.                   GSN_NDB_TAMPER, signal,
+                        */
     /* ------------------------------------------------------------------ */
 
     if (ERROR_INSERTED(7217))
@@ -18130,20 +19207,108 @@ Dbdih::startGcpLab(Signal* signal)
       signal->theData[0] = 9999;
       sendSignal(numberToRef(CMVMI, refToNode(c_nodeStartMaster.startNode)),
                  GSN_NDB_TAMPER, signal, 1, JBB);
-      NdbTick_Invalidate(&m_micro_gcp.m_master.m_start_time); // Force start
-      // fall through
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}//Dbdih::execGCP_TCFINISHED()
+
+void
+Dbdih::execGCP_TCFINISHED_sync_conf(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  // Dbdih::execGCP_TCFINISHED()
+
+void Dbdih::execGCP_TCFINISHED_sync_conf(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     NdbTick_Invalidate(&m_micro_gcp.m_master.m_start_time); // Force start
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+GCPNodeFinished*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GCPNodeFinished
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conf2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ fall through
     }
     else
     {
       jam();
       ndbrequire(c_nodeStartMaster.blockGcp == 1); // Ordered...
-      c_nodeStartMaster.blockGcp = 2; // effective
-      gcpBlockedLab(signal);
+ conf2->gci_hi,
+     c_nodeStartMaster.blockGcp = 2; // effective
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+gcpBlockedLab
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ conf2->gci_hi, conf2->gci_lo, refToNode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  conf2->gci_lo, refToNode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(signal);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+  sendSignal(retRef, GSN_GCP_NODEFINISH, signal,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+  sendSignal(retRef, GSN_GCP_NODEFINISH, signal, GCPNodeFinished::SignalLength,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
       return;
     }
   }
 
-  if (cgcpOrderBlocked)
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void
+Dbdih::execSUB_GCP_COMPLETE_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbdih::execSUB_GCP_COMPLETE_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ if (cgcpOrderBlocked)
   {
     jam();
     signal->theData[0] = DihContinueB::ZSTART_GCP;
@@ -18157,8 +19322,7 @@ Dbdih::startGcpLab(Signal* signal)
    * An invalid micro-GCP 'start_time' is used to force
    * a micro GCP to be started immediately.
    */
-  if (NdbTick_IsValid(m_micro_gcp.m_master.m_start_time))
-  {
+  if (NdbTick_IsValid(m_micro_gcp.m_master.m_start_time)) {
     const Uint32 delayMicro = m_micro_gcp.m_enabled ? 
       m_micro_gcp.m_master.m_time_between_gcp : 
       m_gcp_save.m_master.m_time_between_gcp;
@@ -18202,8 +19366,7 @@ Dbdih::startGcpLab(Signal* signal)
 
   if ((m_micro_gcp.m_enabled == false) ||
       (need_gcp_save &&
-       m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE))
-  {
+       m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE)) {
     jam();
     /**
      * Time for save...switch gci_hi
@@ -18215,29 +19378,124 @@ Dbdih::startGcpLab(Signal* signal)
     {
       jam();
       const Uint64 currVal = m_micro_gcp.m_master.m_new_gci >> 32;
-      Uint64 newVal = 0;
-      // Boost to just below the first warning gci
-      newVal = std::max(currVal, Uint64(next_warn_save_gci - 4));
+ signal->length(),
+     Uint64 newVal = 0;
+      // 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Boost to just below the first warning gci
+      newVal = std::max(currVal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal->length(),
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ Uint64(next_warn_save_gci - 4));
       m_micro_gcp.m_master.m_new_gci = newVal << 32;
       g_eventLogger->info("DIH Err-Ins: Incrementing GCI from %llu to %llu. ",
-                          currVal,
-                          newVal);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SubGcpCompleteAck*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SubGcpCompleteAck
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ack
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ack
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                      currVal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= CAST_PTR(SubGcpCompleteAck,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                    newVal);
       CLEAR_ERROR_INSERT_VALUE;
     }
 
-    signal->theData[0] = NDB_LE_GlobalCheckpointStarted; //Event type
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CAST_PTR(SubGcpCompleteAck,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal->theData[0] = NDB_LE_GlobalCheckpointStarted; //Event type
     signal->theData[1] = Uint32(currGCI >> 32);
     signal->theData[2] = Uint32(currGCI);
-    sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 3, JBB);
+    sendSignal(CMVMI_REF, GSN_EVENT_REP,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ signal,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal, 3, JBB);
   }
   
-  ndbassert(m_micro_gcp.m_enabled || Uint32(m_micro_gcp.m_new_gci) == 0);
+  ndbassert(m_micro_gcp.m_enabled || 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32(m_micro_gcp.m_new_gci)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ == 0);
   
   
   /***************************************************************************/
   // Report the event that a global checkpoint has started.
   /***************************************************************************/
-  
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbdih::execDIHNDBTAMPER(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbdih::execDIHNDBTAMPER(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
   CRASH_INSERTION(7000);
   m_micro_gcp.m_master.m_state = MicroGcp::M_GCP_PREPARE;
   signal->setTrace(TestOrd::TraceGlobalCheckpoint);
@@ -18277,7 +19535,7 @@ Dbdih::startGcpLab(Signal* signal)
     rg.m_nodes.clear(getOwnNodeId());
     Uint32 victim = rg.m_nodes.find(0);
     
-    signal->theData[0] = 9999;
+      signal->theData[0] = 9999;
     sendSignal(numberToRef(CMVMI, victim),
 	       GSN_NDB_TAMPER, signal, 1, JBA);
 
@@ -18291,7 +19549,7 @@ Dbdih::startGcpLab(Signal* signal)
     NodeRecordPtr nodePtr;
     nodePtr.i = cfirstAliveNode;
     do {
-      jam();
+        jam();
       ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
       c_GCP_PREPARE_Counter.setWaitingFor(nodePtr.i);
       if (nodePtr.i != c_error_insert_extra)
@@ -18301,7 +19559,7 @@ Dbdih::startGcpLab(Signal* signal)
       nodePtr.i = nodePtr.p->nextNode;
     } while (nodePtr.i != RNIL);
 
-    signal->theData[0] = 9999;
+      signal->theData[0] = 9999;
     sendSignalWithDelay(CMVMI_REF, GSN_NDB_TAMPER, signal, 200, 1);
     return;
   }
@@ -18313,8 +19571,8 @@ Dbdih::startGcpLab(Signal* signal)
 void Dbdih::execGCP_PREPARECONF(Signal* signal)
 {
   jamEntry();
-  Uint32 senderNodeId = signal->theData[0];
-  Uint32 gci_hi = signal->theData[1];
+  Uint32 senderNodeId =   signal->theData[0];
+  Uint32 gci_hi =   signal->theData[1];
   Uint32 gci_lo = signal->theData[2];
 
   DEB_NODE_STOP(("Recv GCP_PREPARECONF(%u,%u) from %u",
@@ -18325,9 +19583,9 @@ void Dbdih::execGCP_PREPARECONF(Signal* signal)
   Uint64 gci = gci_lo | (Uint64(gci_hi) << 32);
   ndbrequire(gci == m_micro_gcp.m_master.m_new_gci);
   receiveLoopMacro(GCP_PREPARE, senderNodeId);
-  //-------------------------------------------------------------
+    //-------------------------------------------------------------
   // We have now received all replies. We are ready to continue
-  // with committing the global checkpoint.
+    // with committing the global checkpoint.
   //-------------------------------------------------------------
   gcpcommitreqLab(signal);
 }//Dbdih::execGCP_PREPARECONF()
@@ -18342,7 +19600,7 @@ void Dbdih::gcpcommitreqLab(Signal* signal)
   if (ERROR_INSERTED(7187))
   {
     sendToRandomNodes("GCP_COMMIT",
-                      signal, &c_GCP_COMMIT_Counter, &Dbdih::sendGCP_COMMIT);
+                        signal, &c_GCP_COMMIT_Counter, &Dbdih::sendGCP_COMMIT);
     signal->theData[0] = 9999;
     sendSignalWithDelay(CMVMI_REF, GSN_NDB_TAMPER, signal, 1000, 1);
     return;
@@ -18368,10 +19626,10 @@ void Dbdih::execGCP_NODEFINISH(Signal* signal)
   /* Check that there has not been a node failure since TC
    * reported this GCP complete...
    */
-  if ((senderNodeId == getOwnNodeId()) &&
+    if ((senderNodeId == getOwnNodeId()) &&
       (tcFailNo < cMinTcFailNo))
   {
-    jam();
+      jam();
     ndbrequire(c_GCP_COMMIT_Counter.isWaitingFor(getOwnNodeId()));
     
     /* We are master, and the local TC will takeover the transactions
@@ -18413,13 +19671,12 @@ void Dbdih::execGCP_NODEFINISH(Signal* signal)
     if (ERROR_INSERTED(7190))
     {
       sendToRandomNodes("GCP_COMPLETE_REP", signal,
-                        &c_SUB_GCP_COMPLETE_REP_Counter,
-                        &Dbdih::sendSUB_GCP_COMPLETE_REP);
+                        &c_SUB_GCP_COMPLETE_REP_Counter, signal, &c_COPY_GCIREQ_Counter,
+                      &Dbdih::sendSUB_GCP_COMPLETE_REP);
       signal->theData[0] = 9999;
       sendSignalWithDelay(CMVMI_REF, GSN_NDB_TAMPER, signal, 1000, 1);
     }
-    else if (ERROR_INSERTED(7226))
-    {
+    else if (ERROR_INSERTED(7226))   {
       g_eventLogger->info("Not sending SUB_GCP_COMPLETE_REP to %u",
                           c_error_insert_extra);
       c_SUB_GCP_COMPLETE_REP_Counter.clearWaitingFor();
@@ -18429,8 +19686,7 @@ void Dbdih::execGCP_NODEFINISH(Signal* signal)
         jam();
         ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
         c_SUB_GCP_COMPLETE_REP_Counter.setWaitingFor(nodePtr.i);
-        if (nodePtr.i != c_error_insert_extra)
-        {
+        if (nodePtr.i != c_error_insert_extra)   {
           sendSignal(calcDihBlockRef(nodePtr.i), GSN_SUB_GCP_COMPLETE_REP,
                      signal, SubGcpCompleteRep::SignalLength, JBA);
         }
@@ -18470,7 +19726,7 @@ void Dbdih::execGCP_NODEFINISH(Signal* signal)
   
   if (curr_hi == old_hi)
   {
-    jam();
+      jam();
     return;
   }
 
@@ -18482,14 +19738,36 @@ void Dbdih::execGCP_NODEFINISH(Signal* signal)
   m_gcp_save.m_master.m_new_gci = saveGCI;
 
 #ifdef ERROR_INSERT
-  if (ERROR_INSERTED(7188))
+  if (ERROR_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+INSERTED(7188))
   {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DICTSTARTREQ,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DICTSTARTREQ, signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     sendToRandomNodes("GCP_SAVE",
-                      signal, &c_GCP_SAVEREQ_Counter, &Dbdih::sendGCP_SAVEREQ);
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          signal, &c_GCP_SAVEREQ_Counter, &Dbdih::sendGCP_SAVEREQ);
     signal->theData[0] = 9999;
     sendSignalWithDelay(CMVMI_REF, GSN_NDB_TAMPER, signal, 1000, 1);
     return;
-  }
+    }
   else if (ERROR_INSERTED(7216))
   {
     infoEvent("GCP_SAVE all/%u", c_error_insert_extra);
@@ -18500,9 +19778,9 @@ void Dbdih::execGCP_NODEFINISH(Signal* signal)
     removeAlive(nodePtr);
     sendLoopMacro(GCP_SAVEREQ, sendGCP_SAVEREQ, RNIL);
     insertAlive(nodePtr);
-    signal->theData[0] = 9999;
+      signal->theData[0] = 9999;
     sendSignalWithDelay(CMVMI_REF, GSN_NDB_TAMPER, signal, 1000, 1);
-    c_GCP_SAVEREQ_Counter.setWaitingFor(c_error_insert_extra);
+      c_GCP_SAVEREQ_Counter.setWaitingFor(c_error_insert_extra);
     return;
   }
 #endif
@@ -18514,7 +19792,7 @@ void
 Dbdih::execSUB_GCP_COMPLETE_ACK(Signal* signal)
 {
   jamEntry();
-  SubGcpCompleteAck ack = * CAST_CONSTPTR(SubGcpCompleteAck,
+  SubGcpCompleteAck ack =   * CAST_CONSTPTR(SubGcpCompleteAck,
                                           signal->getDataPtr());
   Uint32 senderNodeId = refToNode(ack.rep.senderRef);
 
@@ -18523,7 +19801,7 @@ Dbdih::execSUB_GCP_COMPLETE_ACK(Signal* signal)
 
   m_micro_gcp.m_master.m_state = MicroGcp::M_GCP_IDLE;
 
-  if (!ERROR_INSERTED(7190))
+    if (!ERROR_INSERTED(7190))
   {
     signal->theData[0] = DihContinueB::ZSTART_GCP;
     sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 10, 1);
@@ -18542,7 +19820,7 @@ Dbdih::execGCP_SAVEREQ(Signal* signal)
     g_eventLogger->info("Delayed GCP_SAVEREQ 5s");
     sendSignalWithDelay(reference(), GSN_GCP_SAVEREQ,
                         signal, 5000,
-                        signal->getLength());
+                          signal->getLength());
     return;
   }
 
@@ -18593,10 +19871,22 @@ void Dbdih::execGCP_SAVECONF(Signal* signal)
 
   if (refToBlock(signal->getSendersBlockRef()) == DBLQH)
   {
-    jam();
+  BlockReference ref,
+ jam();
 
-    ndbrequire(m_gcp_save.m_state == GcpSave::GCP_SAVE_REQ);
-    m_gcp_save.m_state = GcpSave::GCP_SAVE_CONF;
+    ndbrequire(m_gcp_save.m_state 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== GcpSave::GCP_SAVE_REQ);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+BlockReference ref,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   m_gcp_save.m_state = GcpSave::GCP_SAVE_CONF;
 
     sendSignal(m_gcp_save.m_master_ref,
                GSN_GCP_SAVECONF, signal, signal->getLength(), JBA);
@@ -18735,14 +20025,38 @@ void Dbdih::execGCP_PREPARE(Signal* signal)
   ndbrequire(m_micro_gcp.m_state == MicroGcp::M_GCP_IDLE);
 
   m_micro_gcp.m_lock.write_lock();
-  cgckptflag = true;
+  cgckptflag 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::invalidateLcpInfoAfterSr(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::invalidateLcpInfoAfterSr(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   m_micro_gcp.m_state = MicroGcp::M_GCP_PREPARE;
   m_micro_gcp.m_new_gci = gci;
   m_micro_gcp.m_master_ref = retRef;
   m_micro_gcp.m_lock.write_unlock();
 
-  if (ERROR_INSERTED(7031))
-  {
+  if (ERROR_INSERTED(7031)) {
     g_eventLogger->info("Crashing delayed in GCP_PREPARE 3s");
     signal->theData[0] = 9999;
     sendSignalWithDelay(CMVMI_REF, GSN_NDB_TAMPER, signal, 3000, 1);
@@ -18819,7 +20133,29 @@ void Dbdih::execGCP_COMMIT(Signal* signal)
   }
 #endif
 
-  Uint32 masterRef = calcDihBlockRef(masterNodeId);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::openingCopyGciSkipInitLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::openingCopyGciSkipInitLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ masterRef = calcDihBlockRef(masterNodeId);
   ndbrequire(masterNodeId == cmasterNodeId);
   if (isMaster())
   {
@@ -18828,7 +20164,27 @@ void Dbdih::execGCP_COMMIT(Signal* signal)
 
   if (m_micro_gcp.m_state == MicroGcp::M_GCP_COMMIT)
   {
-    jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::writingCopyGciLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::writingCopyGciLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
     /**
      * This must be master take over
      *   Commit is already ongoing...
@@ -18884,7 +20240,7 @@ void Dbdih::execGCP_COMMIT(Signal* signal)
   req2->senderData = calcDihBlockRef(masterNodeId);
   req2->gci_hi = (Uint32)(m_micro_gcp.m_old_gci >> 32);
   req2->gci_lo = (Uint32)(m_micro_gcp.m_old_gci & 0xFFFFFFFF);
-  sendSignal(clocaltcblockref, GSN_GCP_NOMORETRANS, signal, 
+  sendSignal(clocaltcblockref, GSN_GCP_NOMORETRANS, signal,
              GCPNoMoreTrans::SignalLength, JBB);
   return;
 }//Dbdih::execGCP_COMMIT()
@@ -18914,31 +20270,172 @@ void Dbdih::execGCP_TCFINISHED(Signal* signal)
 #ifdef ERROR_INSERT
   if (ERROR_INSERTED(7214))
   {
-    g_eventLogger->info("err 7214 killing %d", c_error_insert_extra);
-    Uint32 save = signal->theData[0];
+    g_eventLogger->info("err 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+7214
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GlobalData&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GlobalData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+killing
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&g
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ %d", c_error_insert_extra);
+    Uint32 save =
+          signal->theData[0];
     signal->theData[0] = 9999;
     sendSignal(numberToRef(CMVMI, c_error_insert_extra),
-               GSN_NDB_TAMPER, signal, 1, JBB);
-    signal->theData[0] = save;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= NdbTick_Elapsed(
+=======
+=
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GSN
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g.gcp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbTick_Elapsed(g.gcp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_NDB_TAMPER, signal, 1, JBB);
+    signal->theData[0] =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ save;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ NdbTick_Elapsed(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
     CLEAR_ERROR_INSERT_VALUE;
   }
 #endif
 
-#ifdef GCP_TIMER_HACK
+#ifdef 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GCP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   g.gcp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   NdbTick_Elapsed(g.gcp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_TIMER_HACK
   globalData.gcp_timer_commit[1] = NdbTick_getCurrentTicks();
 #endif
 
   ndbrequire(m_micro_gcp.m_state == MicroGcp::M_GCP_COMMIT);
 
   /**
-   * Make sure that each LQH gets scheduled, so that they don't get out of sync
-   * wrt to SUB_GCP_COMPLETE_REP
+   * Make sure that each LQH gets scheduled, so that they don't get out 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of sync
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0 ?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   * wrt to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SUB
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    (ms
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                  ? (ms
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_GCP_COMPLETE_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+REP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+limit) :
+// RONDB-624 todo: Glue these lines together ^v
+=======
+limit)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    */
   Callback cb;
-  cb.m_callbackData = tcFailNo;  /* Pass fail-no triggering TC_FINISHED to callback */
-  cb.m_callbackFunction = safe_cast(&Dbdih::execGCP_TCFINISHED_sync_conf);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cb.m
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  (ms
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                : (ms
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_callbackData = tcFailNo;  /* Pass fail-no triggering TC_FINISHED to callback */
+  cb.m_callbackFunction = safe_cast(&Dbdih::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+execGCP_TCFINISHED_sync_conf);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+%u",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+%u", coldgcp,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   Uint32 path[] = { DBLQH, SUMA, 0 };
-  synchronize_path(signal, path, cb);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+synchronize
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ coldgcp, ms_total, ms
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       ms_total, ms
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_path(signal, path, cb);
 }//Dbdih::execGCP_TCFINISHED()
 
 void
@@ -18963,8 +20460,7 @@ Dbdih::execGCP_TCFINISHED_sync_conf(Signal* signal, Uint32 cb, Uint32 err)
 }
 
 void
-Dbdih::execSUB_GCP_COMPLETE_REP(Signal* signal)
-{
+Dbdih::execSUB_GCP_COMPLETE_REP(Signal* signal) {
   jamEntry();
 
   CRASH_INSERTION(7228);
@@ -18972,7 +20468,19 @@ Dbdih::execSUB_GCP_COMPLETE_REP(Signal* signal)
   if (ERROR_INSERTED(7244))
   {
     g_eventLogger->info("Delayed SUB_GCP_COMPLETE_REP 5s");
-    sendSignalWithDelay(reference(), GSN_SUB_GCP_COMPLETE_REP, signal, 5000,
+    sendSignalWithDelay(reference(), GSN_SUB_GCP_COMPLETE_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+REP,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal, 5000,
                         signal->getLength());
     return;
   }
@@ -19171,8 +20679,7 @@ void Dbdih::copyGciLab(Signal* signal, CopyGCIReq::CopyReason reason)
   c_copyGCIMaster.m_copyReason = reason;
 
 #ifdef ERROR_INSERT
-  if (reason == CopyGCIReq::GLOBAL_CHECKPOINT && ERROR_INSERTED(7189))
-  {
+  if (reason == CopyGCIReq::GLOBAL_CHECKPOINT && ERROR_INSERTED(7189)) {
     sendToRandomNodes("COPY_GCI",
                       signal, &c_COPY_GCIREQ_Counter, &Dbdih::sendCOPY_GCIREQ);
     signal->theData[0] = 9999;
@@ -19184,8 +20691,7 @@ void Dbdih::copyGciLab(Signal* signal, CopyGCIReq::CopyReason reason)
   if (reason == CopyGCIReq::RESTART_NR)
   {
     jam();
-    if (c_nodeStartMaster.startNode != RNIL)
-    {
+    if (c_nodeStartMaster.startNode != RNIL)   {
       jam();
       c_COPY_GCIREQ_Counter.clearWaitingFor();
       c_COPY_GCIREQ_Counter.setWaitingFor(c_nodeStartMaster.startNode);
@@ -19276,8 +20782,29 @@ void Dbdih::execCOPY_GCICONF(Signal* signal)
      * a LCP isn't ongoing, so to avoid test cases timing out we crash
      * after 15 attempts even when proper test conditions are not met.
      */
-    if (ERROR_INSERTED(7222) &&
-        ((!SYSFILE->getLCPOngoing() &&
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+true;
+	}
+=======
+true;
+>>>>>>> MySQL 8.0.36
+ (ERROR_INSERTED(7222) &&
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  ((!SYSFILE->getLCPOngoing() &&
         c_newest_restorable_gci >= c_lcpState.lcpStopGcp) ||
         s_7222_count++ >= 15))
     {
@@ -19286,8 +20813,7 @@ void Dbdih::execCOPY_GCICONF(Signal* signal)
       NodeReceiverGroup rg(CMVMI, c_COPY_TABREQ_Counter);
 
       rg.m_nodes.clear(getOwnNodeId());
-      if (!rg.m_nodes.isclear())
-      {
+      if (!rg.m_nodes.isclear()) {
         signal->theData[0] = 9999;
         sendSignal(rg, GSN_NDB_TAMPER, signal, 1, JBA);
       }
@@ -19301,8 +20827,7 @@ void Dbdih::execCOPY_GCICONF(Signal* signal)
     }
 #endif
 
-    if (m_micro_gcp.m_enabled == false)
-    {
+    if (m_micro_gcp.m_enabled == false) {
       jam();
       /**
        * Running old protocol
@@ -19354,12 +20879,40 @@ void Dbdih::execCOPY_GCICONF(Signal* signal)
     signal->theData[1] = c_copyGCIMaster.m_copyReason;
     sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
   }
-}//Dbdih::execCOPY_GCICONF()
+}  // Dbdih::execCOPY_GCICONF()
 
 void
 Dbdih::check_node_in_restart(Signal *signal,
                              BlockReference ref,
-                             Uint32 nodeId)
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+------------------------------------------------------------------------- */
+void Dbdih::openingCopyGciErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+------------------------------------------------------------------------- */
+void Dbdih::openingCopyGciErrorLab(Signal *signal, FileRecordPtr filePtr) {
+  createFileRw(signal, filePtr);
+  /* -------------------------------------------------------------------------
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FileRecordPtr filePtr) 
+{
+  createFileRw(signal, filePtr);
+  /* -------------------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+       Uint32 nodeId)
 {
   NodeRecordPtr nodePtr;
   if (m_max_node_id == 0)
@@ -19384,7 +20937,31 @@ Dbdih::check_node_in_restart(Signal *signal,
       /**
        * Nodes that aren't part of a node group won't be part of LCPs,
        * Nodes not defined in Cluster we can ignore
-       * Nodes not restarted yet while we were started have no impact
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::dictStartConfLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::dictStartConfLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Nodes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ not restarted yet while we were started have no impact
        * on LCP speed, if they restart while we restart doesn't matter
        * since in this case we will run at a speed for starting nodes.
        * Nodes recently failed and even those that completed will speed
@@ -19393,7 +20970,27 @@ Dbdih::check_node_in_restart(Signal *signal,
        * Nodes that have allocated a node id haven't really started yet.
        * Nodes that have completed their restart also need no speed up.
        */
-      continue;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::openingTableLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::openingTableLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    continue;
     }
     /**
      * All other states indicate that the node is in some or the other
@@ -19446,7 +21043,7 @@ void Dbdih::execCHECK_NODE_RESTARTREQ(Signal *signal)
   return;
 }
 
-void Dbdih::invalidateLcpInfoAfterSr(Signal* signal)
+void Dbdih::invalidateLcpInfoAfterSr(Signal *signal)
 {
   NodeRecordPtr nodePtr;
   SYSFILE->latestLCP_ID--;
@@ -19469,7 +21066,27 @@ void Dbdih::invalidateLcpInfoAfterSr(Signal* signal)
       case Sysfile::NS_ActiveMissed_1:
         jam();
         nodePtr.p->activeStatus = Sysfile::NS_Active;
-        break;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::readingTableLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::readingTableLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      break;
       case Sysfile::NS_ActiveMissed_2:
         jam();
         nodePtr.p->activeStatus = Sysfile::NS_ActiveMissed_1;
@@ -19500,9 +21117,9 @@ void Dbdih::openingCopyGciSkipInitLab(Signal* signal, FileRecordPtr filePtr)
   writeRestorableGci(signal, filePtr);
   filePtr.p->reqStatus = FileRecord::WRITING_COPY_GCI;
   return;
-}//Dbdih::openingCopyGciSkipInitLab()
+}  // Dbdih::openingCopyGciSkipInitLab()
 
-void Dbdih::writingCopyGciLab(Signal* signal, FileRecordPtr filePtr) 
+void Dbdih::writingCopyGciLab(Signal *signal, FileRecordPtr filePtr) 
 {
   /* ----------------------------------------------------------------------- */
   /*     WE HAVE NOW WRITTEN THIS FILE. WRITE ALSO NEXT FILE IF THIS IS NOT  */
@@ -19516,14 +21133,34 @@ void Dbdih::writingCopyGciLab(Signal* signal, FileRecordPtr filePtr)
     filePtr.i = crestartInfoFile[1];
     ptrCheckGuard(filePtr, cfileFileSize, fileRecord);
     if (filePtr.p->fileStatus == FileRecord::OPEN) {
-      jam();
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::closingTableSrLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::closingTableSrLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
       openingCopyGciSkipInitLab(signal, filePtr);
       return;
     }//if
     openFileRw(signal, filePtr);
     filePtr.p->reqStatus = FileRecord::OPENING_COPY_GCI;
     return;
-  }//if
+  }  //if
   /* ----------------------------------------------------------------------- */
   /*     WE HAVE COMPLETED WRITING BOTH FILES SUCCESSFULLY. NOW REPORT OUR   */
   /*     SUCCESS TO THE MASTER DIH. BUT FIRST WE NEED TO RESET A NUMBER OF   */
@@ -19546,8 +21183,7 @@ void Dbdih::writingCopyGciLab(Signal* signal, FileRecordPtr filePtr)
     
     jamEntry();
 
-    if (m_micro_gcp.m_enabled == false)
-    {
+    if (m_micro_gcp.m_enabled == false) {
       jam();
       sendSignal(DBLQH_REF, GSN_SUB_GCP_COMPLETE_REP, signal, 
                  SubGcpCompleteRep::SignalLength, JBB);
@@ -19567,7 +21203,33 @@ void Dbdih::writingCopyGciLab(Signal* signal, FileRecordPtr filePtr)
       const Uint32 ms_commit = NdbTick_Elapsed(
 	  g.gcp_timer_commit[0], g.gcp_timer_commit[1]).milliSec();
       const Uint32 ms_save = NdbTick_Elapsed(
-          g.gcp_timer_save[0], g.gcp_timer_save[1]).milliSec();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+JBB);
+}
+
+void
+Dbdih::getTabInfo(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB);
+}
+
+void Dbdih::getTabInfo(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+     g.gcp_timer_save[0], g.gcp_timer_save[1]).milliSec();
       const Uint32 ms_copygci = NdbTick_Elapsed(
           g.gcp_timer_copygci[0], g.gcp_timer_copygci[1]).milliSec();
 
@@ -19606,8 +21268,7 @@ void Dbdih::writingCopyGciLab(Signal* signal, FileRecordPtr filePtr)
   return;
 }//Dbdih::writingCopyGciLab()
 
-void Dbdih::execSTART_NODE_LCP_CONF(Signal *signal)
-{
+void Dbdih::execSTART_NODE_LCP_CONF(Signal *signal) {
   jamEntry();
   ndbrequire(c_start_node_lcp_req_outstanding);
   c_start_node_lcp_req_outstanding = false;
@@ -19636,8 +21297,7 @@ void Dbdih::execSTART_LCP_REQ(Signal* signal)
     ndbrequire(handle.getSection(ptr1, 0));
     ndbrequire(ptr1.sz <= NdbNodeBitmask::Size);
     copy(req->participatingLQH.rep.data, ptr1);
-    if (noOfSections == 2)
-    {
+    if (noOfSections == 2)   {
       jam();
       SegmentedSectionPtr ptr2;
       ndbrequire(handle.getSection(ptr2, 1));
@@ -19649,11 +21309,31 @@ void Dbdih::execSTART_LCP_REQ(Signal* signal)
     releaseSections(handle);
   }
   else
-  {
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void
+Dbdih::getTabInfo_send(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbdih::getTabInfo_send(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
     jam();
     ownNodeIdSet = req->participatingLQH_v1.get(cownNodeId);
     req->participatingLQH = req->participatingLQH_v1;
     req->participatingDIH = req->participatingDIH_v1;
+||||||| Common ancestor
+signal,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   }
 
   if ((req->pauseStart == StartLcpReq::NormalLcpStart) &&
@@ -19688,12 +21368,81 @@ void Dbdih::handleStartLcpReq(Signal *signal, StartLcpReq *req)
       c_lcpState.m_participatingLQH = req->participatingLQH;
       c_lcpState.m_masterLcpDihRef = cmasterdihref;
       DEB_LCP_COMP(("(1)Set to LCP_STATUS_ACTIVE"));
-      c_lcpState.setLcpStatus(LCP_STATUS_ACTIVE, __LINE__);
+      c_lcpState.setLcpStatus(LCP_STATUS_ACTIVE, __LINE__
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CONF, signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CONF,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       /**
-       * We need to update the SYSFILE since it can take some time before we
+       * We need to update the SYSFILE since it can 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+take
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DihGetTabInfoConf::SignalLength, JBB,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal, DihGetTabInfoConf::SignalLength, JBB,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+some time before we
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&handle, cb);
+}
+
+void
+Dbdih::getTabInfo_sendComplete(Signal * signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&handle,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
        * have this number updated after a COPY_GCIREQ in connection to a
-       * GCP.
-       */
+      cb);
+}
+
+void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Dbdih::getTabInfo_sendComplete(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GCP.
+||||||| Common ancestor
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 senderData,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+senderData,
+=======
+>>>>>>> MySQL 8.0.36
       SYSFILE->latestLCP_ID = req->lcpId;
 
       {
@@ -19714,8 +21463,7 @@ void Dbdih::handleStartLcpReq(Signal *signal, StartLcpReq *req)
                  StartLcpConf::SignalLength, JBB);
       return;
     }
-    if (req->pauseStart == StartLcpReq::PauseLcpStartSecond)
-    {
+    if (req->pauseStart == StartLcpReq::PauseLcpStartSecond)   {
       /**
        * We get the set of already completed LQHs from the master node.
        * No need to know anything about completed DIHs since only the
@@ -19750,10 +21498,33 @@ void Dbdih::handleStartLcpReq(Signal *signal, StartLcpReq *req)
                  StartLcpConf::SignalLength, JBB);
       return;
     }
-    ndbrequire(req->pauseStart == StartLcpReq::NormalLcpStart);
+    ndbrequire(req->pauseStart == StartLcpReq::NormalLcpStart)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
   }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   /**
-   * Init m_local_lcp_state
+   * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Init m_local_lcp_state
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam();
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    */
   m_local_lcp_state.init(req);
 
@@ -19767,8 +21538,28 @@ void Dbdih::handleStartLcpReq(Signal *signal, StartLcpReq *req)
   CRASH_INSERTION2(7021, isMaster());
   CRASH_INSERTION2(7022, !isMaster());
 
-  for (Uint32 nodeId = 1; nodeId <= m_max_node_id; nodeId++)
-  {
+  for (Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*/
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 1; nodeId <= m_max_node_id; nodeId++)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+*/
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
     /**
      * We could have a race here, a node could die while the START_LCP_REQ
      * is in flight. We need remove the node from the set of nodes
@@ -19781,13 +21572,58 @@ void Dbdih::handleStartLcpReq(Signal *signal, StartLcpReq *req)
      */
     NodeRecordPtr nodePtr;
     if (req->participatingDIH.get(nodeId) ||
-        req->participatingLQH.get(nodeId))
-    {
+        req->participatingLQH.get(nodeId)) {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
       nodePtr.i = nodeId;
       ptrAss(nodePtr, nodeRecord);
       if (nodePtr.p->nodeStatus != NodeRecord::ALIVE)
-      {
-        jam();
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+else
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  } else {
+           
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     jam();
         jamLine(nodeId);
         req->participatingDIH.clear(nodeId);
         req->participatingLQH.clear(nodeId);
@@ -19910,8 +21746,30 @@ void Dbdih::initLcpLab(Signal* signal, Uint32 senderRef, Uint32 tableId)
   TabRecordPtr tabPtr;
   tabPtr.i = tableId;
 
-  if (c_lcpState.m_masterLcpDihRef != senderRef ||
-      c_lcpState.m_masterLcpDihRef != cmasterdihref)
+  if (c_lcpState.m_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+masterLcpDihRef !=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NODES)
+=======
+NODES) g_eventLogger->info(
+>>>>>>> MySQL 8.0.36
+ senderRef ||
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_lcpState.m_masterLcpDihRef
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g_eventLogger->info("[3/3]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    "[3/3]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ != cmasterdihref)
   {
     /**
      * This is LCP master takeover...abort
@@ -19926,9 +21784,31 @@ void Dbdih::initLcpLab(Signal* signal, Uint32 senderRef, Uint32 tableId)
 
     ptrAss(tabPtr, tabRecord);
 
-    if (tabPtr.p->tabStatus != TabRecord::TS_ACTIVE)
+    if (tabPtr.p->tabStatus != TabRecord::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TS_ACTIVE)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+snprintf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+snprintf(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     {
-      jam();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(buf,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  buf,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
       tabPtr.p->tabLcpStatus = TabRecord::TLS_COMPLETED;
       continue;
     }
@@ -20041,8 +21921,7 @@ void Dbdih::initLcpLab(Signal* signal, Uint32 senderRef, Uint32 tableId)
 /* ------------------------------------------------------------------------- */
 /*       ERROR HANDLING FOR COPY RESTORABLE GCI FILE.                        */
 /* ------------------------------------------------------------------------- */
-void Dbdih::openingCopyGciErrorLab(Signal* signal, FileRecordPtr filePtr) 
-{
+void Dbdih::openingCopyGciErrorLab(Signal *signal, FileRecordPtr filePtr) {
   createFileRw(signal, filePtr);
   /* ------------------------------------------------------------------------- */
   /*       ERROR IN OPENING FILE. WE WILL TRY BY CREATING FILE INSTEAD.        */
@@ -20066,11 +21945,10 @@ void Dbdih::dictStartConfLab(Signal* signal)
   signal->theData[2] = 0;  /* AND FRAGMENT 0        */
   sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
   return;
-}//Dbdih::dictStartConfLab()
+}  // Dbdih::dictStartConfLab()
 
 
-void Dbdih::openingTableLab(Signal* signal, FileRecordPtr filePtr) 
-{
+void Dbdih::openingTableLab(Signal *signal, FileRecordPtr filePtr) {
   /* ---------------------------------------------------------------------- */
   /*    SUCCESSFULLY OPENED A FILE. READ THE FIRST PAGE OF THIS FILE.       */
   /* ---------------------------------------------------------------------- */
@@ -20989,13 +22867,12 @@ void Dbdih::packTableIntoPagesLab(Signal* signal, Uint32 tableId)
   signal->theData[4] = wf.wordIndex;
   signal->theData[5] = totalfragments;
   sendSignal(reference(), GSN_CONTINUEB, signal, 6, JBB);
-}//Dbdih::packTableIntoPagesLab()
+}  // Dbdih::packTableIntoPagesLab()
 
 /*****************************************************************************/
 // execCONTINUEB(ZPACK_FRAG_INTO_PAGES)
 /*****************************************************************************/
-void Dbdih::packFragIntoPagesLab(Signal* signal, RWFragment* wf) 
-{
+void Dbdih::packFragIntoPagesLab(Signal *signal, RWFragment* wf) {
   ndbrequire(wf->pageIndex < NDB_ARRAY_SIZE(wf->rwfTabPtr.p->pageRef));
   wf->rwfPageptr.i = wf->rwfTabPtr.p->pageRef[wf->pageIndex];
   ptrCheckGuard(wf->rwfPageptr, cpageFileSize, pageRecord);
@@ -21021,8 +22898,54 @@ void Dbdih::packFragIntoPagesLab(Signal* signal, RWFragment* wf)
     switch (wf->rwfTabPtr.p->tabCopyStatus) {
     case TabRecord::CS_SR_PHASE2_READ_TABLE:
       /* -------------------------------------------------------------------*/
-      // We are performing a system restart and we are now ready to copy the
-      // table from this node (the master) to all other nodes.
+      // We are performing a system restart and we are 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+now ready
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+master. The
+=======
+master.
+>>>>>>> MySQL 8.0.36
+ to copy the
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+reason
+// RONDB-624 todo: Glue these lines together ^v
+=======
+The reason
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    // table from this node (the master) to
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ all
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ another
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ other 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+node
+// RONDB-624 todo: Glue these lines together ^v
+=======
+another node
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.
       /* -------------------------------------------------------------------*/
       jam();
       wf->rwfTabPtr.p->tabCopyStatus = TabRecord::CS_IDLE;
@@ -21049,14 +22972,35 @@ void Dbdih::packFragIntoPagesLab(Signal* signal, RWFragment* wf)
       signal->theData[0] = DihContinueB::ZTABLE_UPDATE;
       signal->theData[1] = wf->rwfTabPtr.i;
       sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-      return;
+ CopyTabConf::SignalLength,
+     return;
       break;
-    case TabRecord::CS_ADD_TABLE_MASTER:
+    case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TabRecord::CS_ADD_TABLE_MASTER:
+||||||| Common ancestor
+CopyTabConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
       jam();
       wf->rwfTabPtr.p->tabCopyStatus = TabRecord::CS_IDLE;
       signal->theData[0] = DihContinueB::ZADD_TABLE_MASTER_PAGES;
       signal->theData[1] = wf->rwfTabPtr.i;
-      sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
+      sendSignal(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+reference(), GSN_CONTINUEB,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal, 2, JBB);
       return;
       break;
     case TabRecord::CS_ADD_TABLE_SLAVE:
@@ -21092,10 +23036,52 @@ void Dbdih::packFragIntoPagesLab(Signal* signal, RWFragment* wf)
     sendSignal(reference(), GSN_CONTINUEB, signal, 6, JBB);
   }//if
   return;
-}//Dbdih::packFragIntoPagesLab()
+}  // Dbdih::packFragIntoPagesLab()
 
 /*****************************************************************************/
-/* **********     START FRAGMENT MODULE                          *************/
+/* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+**********
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::readPagesIntoFragLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::readPagesIntoFragLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+RWFragment*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RWFragment
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rf)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rf)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  START FRAGMENT MODULE                          *************/
 /*****************************************************************************/
 void
 Dbdih::dump_replica_info()
@@ -21156,7 +23142,29 @@ Dbdih::dump_replica_info(const Fragmentstore* fragPtrP)
   {
     ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
     g_eventLogger->info(
-        "  node: %d initialGci: %d nextLcp: %d noCrashedReplicas: %d",
+        "  node: %d initialGci:
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+packTableIntoPagesLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+packTableIntoPagesLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%d
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ nextLcp: %d noCrashedReplicas: %d",
         replicaPtr.p->procNode, replicaPtr.p->initialGci,
         replicaPtr.p->nextLcp,
         replicaPtr.p->noCrashedReplicas);
@@ -21169,8 +23177,7 @@ Dbdih::dump_replica_info(const Fragmentstore* fragPtrP)
           replicaPtr.p->maxGciStarted[i]);
     }
     
-    for (i = 0; i < 8; i++)
-    {
+    for (i = 0; i < 8; i++) {
       g_eventLogger->info(
           "    crashed replica: %d replicaLastGci: %d createGci: %d", i,
           replicaPtr.p->replicaLastGci[i], replicaPtr.p->createGci[i]);
@@ -21196,7 +23203,47 @@ void Dbdih::startFragment(Signal* signal, Uint32 tableId, Uint32 fragId)
       jam();
       signal->theData[0] = DihContinueB::ZCOMPLETE_RESTART;
       sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
-      return;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::packFragIntoPagesLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::packFragIntoPagesLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+RWFragment*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RWFragment
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+wf)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*wf)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ return;
     }//if
     
     tabPtr.i = tableId;
@@ -21223,7 +23270,7 @@ void Dbdih::startFragment(Signal* signal, Uint32 tableId, Uint32 fragId)
 
   FragmentstorePtr fragPtr;
   getFragstore(tabPtr.p, fragId, fragPtr);
-  /* ----------------------------------------------------------------------- */
+    /* ----------------------------------------------------------------------- */
   /*     WE NEED TO RESET THE REPLICA DATA STRUCTURES. THIS MEANS THAT WE    */
   /*     MUST REMOVE REPLICAS THAT WAS NOT STARTED AT THE GCI TO RESTORE. WE */
   /*     NEED TO PUT ALL STORED REPLICAS ON THE LIST OF OLD STORED REPLICAS  */
@@ -21281,7 +23328,7 @@ void Dbdih::startFragment(Signal* signal, Uint32 tableId, Uint32 fragId)
   sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
   
   return;
-}//Dbdih::startFragmentLab()
+}  // Dbdih::startFragmentLab()
 
 
 /*****************************************************************************/
@@ -21296,7 +23343,26 @@ void Dbdih::completeRestartLab(Signal* signal)
 //       SYSTEM RESTART:
 /*         A NODE HAS COMPLETED RESTORING ALL DATABASE FRAGMENTS.            */
 //       NODE RESTART:
-//         THE STARTING NODE HAS PREPARED ITS LOG FILES TO ENABLE EXECUTION
+//       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Fragmentstore*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragmentstore
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+fragPtrP)
+{
+=======
+*fragPtrP) {
+>>>>>>> MySQL 8.0.36
+ THE STARTING NODE HAS PREPARED ITS LOG FILES TO ENABLE EXECUTION
 //         OF TRANSACTIONS.
 // Precondition:
 //   This signal is received by the master node for the system restart.
@@ -21511,7 +23577,7 @@ void Dbdih::tableCopyNodeLab(Signal* signal, TabRecordPtr tabPtr)
     releaseTabPages(tabPtr.i);
     c_nodeStartMaster.wait = ZFALSE;
     return;
-  }//if
+  }  //if
   NodeRecordPtr copyNodePtr;
   PageRecordPtr pagePtr;
   copyNodePtr.i = c_nodeStartMaster.startNode;
@@ -21525,10 +23591,20 @@ void Dbdih::tableCopyNodeLab(Signal* signal, TabRecordPtr tabPtr)
   signal->theData[1] = tabPtr.i;
   signal->theData[2] = copyNodePtr.i;
   signal->theData[3] = 0;
-  signal->theData[4] = 0;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::completeRestartLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::completeRestartLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal->theData[4] = 0;
   signal->theData[5] = pagePtr.p->word[34];
   sendSignal(reference(), GSN_CONTINUEB, signal, 6, JBB);
-}//Dbdih::tableCopyNodeLab()
+}  //Dbdih::tableCopyNodeLab()
 
 /* ------------------------------------------------------------------------- */
 // execCONTINUEB(ZCOPY_TABLE)
@@ -21536,8 +23612,7 @@ void Dbdih::tableCopyNodeLab(Signal* signal, TabRecordPtr tabPtr)
 // other nodes. It is used in the system restart to copy from master to all
 // starting nodes.
 /* ------------------------------------------------------------------------- */
-void Dbdih::copyTableLab(Signal* signal, Uint32 tableId) 
-{
+void Dbdih::copyTableLab(Signal *signal, Uint32 tableId) {
   TabRecordPtr tabPtr;
   tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
@@ -21596,11 +23671,33 @@ void Dbdih::breakCopyTableLab(Signal* signal, TabRecordPtr tabPtr, Uint32 nodeId
       signal->theData[0] = DihContinueB::ZTABLE_UPDATE;
       signal->theData[1] = tabPtr.i;
       sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-      nodePtr.i = nodePtr.p->nextNode;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+StartCopyReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+StartCopyReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ nodePtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = nodePtr.p->nextNode;
     } else {
       PageRecordPtr pagePtr;
       /* -------------------------------------------------------------------- */
-      // RATHER THAN SENDING ALL COPY_TABREQ IN PARALLEL WE WILL SERIALISE THIS
+       // RATHER THAN SENDING ALL COPY_TABREQ IN PARALLEL WE WILL SERIALISE THIS
       // ACTIVITY AND WILL THUS CALL breakCopyTableLab AGAIN WHEN COMPLETED THE
       // SENDING OF COPY_TABREQ'S.
       /* -------------------------------------------------------------------- */
@@ -21623,7 +23720,7 @@ void Dbdih::breakCopyTableLab(Signal* signal, TabRecordPtr tabPtr, Uint32 nodeId
   /*    REPLIES.                                                             */
   /* ----------------------------------------------------------------------- */
   return;
-}//Dbdih::breakCopyTableLab()
+}  // Dbdih::breakCopyTableLab()
 
 /* ------------------------------------------------------------------------- */
 // execCONTINUEB(ZCOPY_TABLE_NODE)
@@ -21668,10 +23765,10 @@ void Dbdih::copyTableNode(Signal* signal,
       switch (ctn->ctnTabPtr.p->tabCopyStatus) {
       case TabRecord::CS_SR_PHASE3_COPY_TABLE:
 	/* ------------------------------------------------------------------ */
-	// We have copied the table description to this node. 
+        // We have copied the table description to this node. 
 	// We will now proceed
 	// with sending the table description to the next node in the node list.
-	/* ------------------------------------------------------------------ */
+        /* ------------------------------------------------------------------ */
         jam();
         ctn->ctnTabPtr.p->tabCopyStatus = TabRecord::CS_IDLE;
         breakCopyTableLab(signal, ctn->ctnTabPtr, nodePtr.p->nextNode);
@@ -21706,12 +23803,24 @@ void Dbdih::copyTableNode(Signal* signal,
   signal->theData[4] = ctn->wordIndex;
   signal->theData[5] = ctn->noOfWords;
   sendSignal(reference(), GSN_CONTINUEB, signal, 6, JBB);
-}//Dbdih::copyTableNode()
+}  // Dbdih::copyTableNode()
 
 void Dbdih::sendCopyTable(Signal* signal, CopyTableNode* ctn,
                           BlockReference ref, Uint32 reqinfo) 
 {
-  CopyTabReq *req = (CopyTabReq*) signal->getDataPtrSend();
+  CopyTabReq *req = (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CopyTabReq*)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal->getDataPtrSend();
   req->senderRef = reference();
   req->reqinfo = reqinfo;
   req->tableId = ctn->ctnTabPtr.i;
@@ -21727,8 +23836,28 @@ void Dbdih::sendCopyTable(Signal* signal, CopyTableNode* ctn,
     if (ctn->ctnTabPtr.p->tabLcpStatus == TabRecord::TLS_ACTIVE)
     {
       jam();
-      req->tabLcpStatus = CopyTabReq::LcpActive;
-    }
+      req->tabLcpStatus = CopyTabReq::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LcpActive;
+||||||| Common ancestor
+srPhase2ReadTableLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+srPhase2ReadTableLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   }
     else
     {
       jam();
@@ -21753,10 +23882,91 @@ void Dbdih::execCOPY_TABCONF(Signal* signal)
   Uint32 tableId = conf->tableId;
   if (getNodeState().startLevel >= NodeState::SL_STARTED){
     /* --------------------------------------------------------------------- */
-    // We are in the process of performing a node restart. Continue by copying
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/*       COPY PAGES READ TO ALL NODES.          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/*       COPY PAGES READ TO ALL NODES.                                       */
+/* ------------------------------------------------------------------------- */
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Dbdih::breakCopyTableLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+are
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+TabRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tabPtr,
+>>>>>>> MySQL 8.0.36
+ the process of performing a node restart. Continue by copying
     // the next table to the starting node.
-    /* --------------------------------------------------------------------- */
-    jam();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+--------------------------------------------------------------------- */
+||||||| Common ancestor
+------------------------------------------------------------------------- */
+void Dbdih::breakCopyTableLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal, TabRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jam();
     ndbrequire(nodeId == c_nodeStartMaster.startNode);
     c_COPY_TABREQ_Counter.clearWaitingFor(nodeId);
 
@@ -21797,7 +24007,7 @@ void Dbdih::execCOPY_TABCONF(Signal* signal)
     D("6: totalfragments = " << tabPtr.p->totalfragments);
     sendAddFragreq(signal, connectPtr, tabPtr, 0, false);
     return;
-  }//if
+  }  // if
 }//Dbdih::execCOPY_TABCONF()
 
 /*
@@ -21818,8 +24028,56 @@ void Dbdih::checkTcCounterLab(Signal* signal)
   if (c_lcpState.lcpStatus != LCP_STATUS_IDLE) {
     g_eventLogger->error("lcpStatus = %u"
                          "lcpStatusUpdatedPlace = %d",
-                         (Uint32) c_lcpState.lcpStatus,
-                         c_lcpState.lcpStatusUpdatedPlace);
+                         (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_lcpState.lcpStatus
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ 
+			  CopyTableNode*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ CopyTableNode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ctn,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ctn,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                      c_lcpState.lcpStatusUpdatedPlace);
     ndbabort();
     return;
   }//if
@@ -21889,7 +24147,18 @@ void Dbdih::execCHECK_LCP_IDLE_ORD(Signal *signal)
 }
 
 /* ------------------------------------------------------------------------- */
-/*TCGETOPSIZECONF          HOW MUCH OPERATION SIZE HAVE BEEN EXECUTED BY TC  */
+/*TCGETOPSIZECONF          HOW MUCH OPERATION SIZE HAVE BEEN EXECUTED BY TC 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+node
+// RONDB-624 todo: Glue these lines together ^v
+=======
+node
+          //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
 /* ------------------------------------------------------------------------- */
 void Dbdih::execTCGETOPSIZECONF(Signal* signal) 
 {
@@ -21916,7 +24185,31 @@ void Dbdih::execTCGETOPSIZECONF(Signal* signal)
   if (c_lcpState.immediateLcpStart == false)
   {
     Uint64 cnt = Uint64(c_lcpState.ctcCounter);
-    Uint64 limit = Uint64(1) << c_lcpState.clcpDelay;
+    Uint64 limit = Uint64(1) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<<
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CopyTableNode*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CopyTableNode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_lcpState.clcpDelay;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ctn,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ctn,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     bool dostart = cnt >= limit; 
     if (dostart == false)
     {
@@ -21932,8 +24225,7 @@ void Dbdih::execTCGETOPSIZECONF(Signal* signal)
      * need a LCP to complete or to need a point in time where there
      * are no LCPs ongoing.
      */
-    if (check_stall_lcp_start())
-    {
+    if (check_stall_lcp_start()) {
       c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
       checkLcpStart(signal, __LINE__, 3000);
       return;
@@ -21997,7 +24289,7 @@ void Dbdih::execTC_CLOPSIZECONF(Signal* signal)
     signal->theData[1] = 0;
     sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 2, JBB);
     return;
-  }//if
+  }  // if
   start_lcp_before_mutex(signal);
 }
 
@@ -22018,19 +24310,78 @@ void Dbdih::start_lcp_before_mutex(Signal *signal)
 void
 Dbdih::lcpFragmentMutex_locked(Signal* signal, 
                                Uint32 senderData, 
-                               Uint32 retVal)
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::checkTcCounterLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::checkTcCounterLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                           Uint32 retVal)
 {
   jamEntry();
 
   if (retVal == UtilLockRef::LockAlreadyHeld)
   {
-    jam();
+    jam(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
     Mutex mutex(signal, c_mutexMgr, c_fragmentInfoMutex_lcp);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"lcpStatus = %u"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
     mutex.release();
 
-    if (senderData == 0)
-    {
-      jam();
+    if (senderData 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+"lcpStatus
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0)
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   {
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+%u"
+>>>>>>> MySQL 8.0.36
+  jam();
       infoEvent("Local checkpoint blocked waiting for node-restart");
     }
     // 2* is as parameter is in seconds, and we sendSignalWithDelay 500ms
@@ -22083,11 +24434,49 @@ void Dbdih::calculateKeepGciLab(Signal* signal, Uint32 tableId, Uint32 fragId)
     if (tabPtr.i >= ctabFileSize) {
       if (cnoOfActiveTables > 0) {
         jam();
-        signal->theData[0] = DihContinueB::ZSTORE_NEW_LCP_ID;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}//if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+if
+>>>>>>> MySQL 8.0.36
+ signal->theData[0] = DihContinueB::ZSTORE_NEW_LCP_ID;
         sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
         return;
       } else {
-        jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::checkLcpStart(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::checkLcpStart(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      jam();
 	/* ------------------------------------------------------------------ */
 	/* THERE ARE NO TABLES TO CHECKPOINT. WE STOP THE CHECKPOINT ALREADY  */
 	/* HERE TO AVOID STRANGE PROBLEMS LATER.                              */
@@ -22116,7 +24505,31 @@ void Dbdih::calculateKeepGciLab(Signal* signal, Uint32 tableId, Uint32 fragId)
       jam();
       TloopCount = 0;
     }//if
-  } while (TloopCount != 0);
+  } while (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TloopCount
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!= 0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   cnoOfActiveTables++;
   FragmentstorePtr fragPtr;
   getFragstore(tabPtr.p, fragId, fragPtr);
@@ -22149,7 +24562,41 @@ void Dbdih::storeNewLcpIdLab(Signal* signal)
   sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 4, JBB);
 
   /***************************************************************************/
-  // Report the event that a local checkpoint has started.
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+// Report
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  if (check_stall_lcp_start())
+    {
+      c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
+      checkLcpStart(signal, __LINE__, 3000);
+      return;
+    }
+  }
+  
+  if (unlikely(c_lcpState.lcpManualStallStart))
+  {
+    jam();
+    g_eventLogger->warning("LCP start triggered, but manually stalled (Immediate %u, Change %llu / %llu)",
+                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  if (check_stall_lcp_start()) {
+      c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
+      checkLcpStart(signal, __LINE__, 3000);
+      return;
+    }
+  }
+
+  if (unlikely(c_lcpState.lcpManualStallStart)) {
+    jam();
+    g_eventLogger->warning(
+        "LCP start triggered, but manually stalled (Immediate %u, Change %llu "
+        "/ %llu)",
+>>>>>>> MySQL 8.0.36
+ the event that a local checkpoint has started.
   /***************************************************************************/
   
   signal->setTrace(TestOrd::TraceLocalCheckpoint);
@@ -22233,7 +24680,7 @@ Dbdih::startLcpMutex_locked(Signal* signal, Uint32 senderData, Uint32 retVal){
 }
 
 void
-Dbdih::sendSTART_LCP_REQ(Signal* signal, Uint32 nodeId, Uint32 extra)
+Dbdih::sendSTART_LCP_REQ(Signal *signal, Uint32 nodeId, Uint32 extra)
 {
   BlockReference ref = calcDihBlockRef(nodeId);
   Uint32 packed_length1 = c_lcpState.m_participatingLQH.getPackedLengthInWords();
@@ -22268,9 +24715,57 @@ Dbdih::sendSTART_LCP_REQ(Signal* signal, Uint32 nodeId, Uint32 extra)
       jam();
       StartLcpReq* req = (StartLcpReq*)signal->getDataPtrSend();
       req->participatingLQH_v1 = c_lcpState.m_participatingLQH;
-      req->participatingDIH_v1 = c_lcpState.m_participatingDIH;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+false));
+}
+
+void
+Dbdih::lcpFragmentMutex_locked(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+false));
+}
+
+void Dbdih::lcpFragmentMutex_locked(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ req->participatingDIH_v1 = c_lcpState.m_participatingDIH;
       sendSignalWithDelay(ref, GSN_START_LCP_REQ, signal, 500,
-                        StartLcpReq::SignalLength);
+                 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ senderData,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ StartLcpReq::SignalLength);
+||||||| Common ancestor
+senderData, 
+=======
+>>>>>>> MySQL 8.0.36
     }
     else
     {
@@ -22278,8 +24773,7 @@ Dbdih::sendSTART_LCP_REQ(Signal* signal, Uint32 nodeId, Uint32 extra)
     }
     return;
   }
-  else if (ERROR_INSERTED(7021) && ((rand() % 10) > 4))
-  {
+  else if (ERROR_INSERTED(7021) && ((rand() % 10) > 4)) {
     infoEvent("Don't send START_LCP_REQ to %u", nodeId);
     return;
   }
@@ -22313,8 +24807,7 @@ Dbdih::sendSTART_LCP_REQ(Signal* signal, Uint32 nodeId, Uint32 extra)
 }
 
 void
-Dbdih::execSTART_LCP_CONF(Signal* signal)
-{
+Dbdih::execSTART_LCP_CONF(Signal* signal) {
   StartLcpConf * conf = (StartLcpConf*)signal->getDataPtr();
   
   Uint32 nodeId = refToNode(conf->senderRef);
@@ -22343,7 +24836,31 @@ Dbdih::execSTART_LCP_CONF(Signal* signal)
       jam();
       ndbrequire(c_pause_lcp_master_state == PAUSE_COMPLETE_LCP_INCLUSION);
       /**
-       * We have completed copying the meta data and now we have also
+       * We have 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+completed
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::calculateKeepGciLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::calculateKeepGciLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+copying
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ the meta data and now we have also
        * completed the inclusion of the new node into the LCP protocol.
        * We are now ready to continue to the next stage of the node
        * restart handling for the starting node.
@@ -22408,7 +24925,31 @@ Dbdih::master_lcp_fragmentMutex_locked(Signal* signal,
                                        Uint32 failedNodePtrI, Uint32 retVal)
 {
   jamEntry();
-  ndbrequire(retVal == 0);
+  ndbrequire(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+retVal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0);
 
   signal->theData[0] = NDB_LE_LCP_TakeoverCompleted;
   signal->theData[1] = c_lcpMasterTakeOverState.state;
@@ -22490,7 +25031,28 @@ void Dbdih::startNextChkpt(Signal* signal)
 
   Uint32 examined = 0;
   Uint32 started = 0;
-  Uint32 queued = 0;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}//Dbdih::storeNewLcpIdLab()
+
+void Dbdih::startLcpRoundLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  // Dbdih::storeNewLcpIdLab()
+
+void Dbdih::startLcpRoundLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ Uint32 queued = 0;
   
   while (curr.tableId < ctabFileSize) {
     TabRecordPtr tabPtr;
@@ -22521,17 +25083,95 @@ void Dbdih::startNextChkpt(Signal* signal)
       ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
       
       if (c_lcpState.m_participatingLQH.get(nodePtr.i))
-      {
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+;
+}
+
+void
+Dbdih::startLcpMutex_locked(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+;
+}
+
+void Dbdih::startLcpMutex_locked(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     {
 	if (replicaPtr.p->lcpOngoingFlag &&
-	    replicaPtr.p->lcpIdStarted < lcpId) 
+	    replicaPtr.p->lcpIdStarted < 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+lcpId)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+StartLcpReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+StartLcpReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
 	{
-	  jam();
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
 	  //-------------------------------------------------------------------
 	  // We have found a replica on a node that performs local checkpoint
 	  // that is alive and that have not yet been started.
 	  //-------------------------------------------------------------------
 	  
-          if (nodePtr.p->noOfStartedChkpt <
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+RNIL);
+}
+
+void
+Dbdih::sendSTART_LCP_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RNIL);
+}
+
+void Dbdih::sendSTART_LCP_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  if (nodePtr.p->noOfStartedChkpt <
               getMaxStartedFragCheckpointsForNode(nodePtr.i))
 	  {
 	    jam();
@@ -22567,7 +25207,29 @@ void Dbdih::startNextChkpt(Signal* signal)
 	     */
 	    replicaPtr.p->lcpIdStarted = lcpId;
 	    
-	    Uint32 i = nodePtr.p->noOfQueuedChkpt;
+	   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+StartLcpReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+StartLcpReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = nodePtr.p->noOfQueuedChkpt;
 	    nodePtr.p->queuedChkpt[i].tableId = tabPtr.i;
 	    nodePtr.p->queuedChkpt[i].fragId = curr.fragmentId;
 	    nodePtr.p->queuedChkpt[i].replicaPtr = replicaPtr.i;
@@ -22582,7 +25244,27 @@ void Dbdih::startNextChkpt(Signal* signal)
 	    {
               /**
                * Stop increasing value on first replica that 
-               * we could not enqueue, so we don't miss it 
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+StartLcpReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+StartLcpReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      * we could not enqueue, so we don't miss it 
                * next time
                */
               c_lcpState.currentFragment = curr;
@@ -22593,7 +25275,33 @@ void Dbdih::startNextChkpt(Signal* signal)
 	    if (handledNodes.count() == lcpNodes)
 	    {
               /**
-               * All participating nodes have either
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Dbdih::execSTART_LCP_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Dbdih::execSTART_LCP_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+      * All participating nodes have either
                * - Full queues
                * - All available replica checkpoints queued
                *   (m_allReplicasQueuedLQH)
@@ -22623,8 +25331,35 @@ void Dbdih::startNextChkpt(Signal* signal)
         (!save && examined > 128))
     {
       /**
-       * This method can take a very long time (around 30ms in a 72-node
-       * cluster with 4 LDMs and around a few hundred tables. In this
+       * This method can take a very long time (around 30ms in a 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+72-node
+||||||| Common ancestor
+mutex.unlock(c);
+}
+
+void
+Dbdih::startLcpMutex_unlocked(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+mutex.unlock(c);
+}
+
+void Dbdih::startLcpMutex_unlocked(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      * cluster with 4 LDMs and around a few hundred tables. In this
        * case filling the start and queue can be around 8000 things to
        * start and queue up which is a significant effort. This can lead
        * to problems with heartbeats and other real-time mechanisms, so
@@ -22665,8 +25400,35 @@ void Dbdih::startNextChkpt(Signal* signal)
    * enqueue as many replica LCPs as possible,
    * without filling all queues.
    * This means that some node(s) have no more
-   * replica LCPs to be enqueued.
-   * These are the node(s) which are *not* in
+   * replica LCPs to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+be enqueued.
+||||||| Common ancestor
+0);
+}
+
+void
+Dbdih::master_lcp_fragmentMutex_locked(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0);
+}
+
+void Dbdih::master_lcp_fragmentMutex_locked(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, 
+=======
+*signal,
+>>>>>>> MySQL 8.0.36
+ * These are the node(s) which are *not* in
    * the handled bitmap on this round.
    * We keep track of these to allow the search
    * to exit early on future invocations.
@@ -22677,7 +25439,7 @@ void Dbdih::startNextChkpt(Signal* signal)
   
   /* Add newly finished nodes to the global state */
   c_lcpState.m_allReplicasQueuedLQH.bitOR(handledNodes);
-  
+
   sendLastLCP_FRAG_ORD(signal);
 }//Dbdih::startNextChkpt()
 
@@ -22688,19 +25450,61 @@ void Dbdih::sendLastLCP_FRAG_ORD(Signal* signal)
   lcpFragOrd->fragmentId = 0;
   lcpFragOrd->lcpId = SYSFILE->latestLCP_ID;
   lcpFragOrd->lcpNo = 0;
-  lcpFragOrd->keepGci = c_lcpState.keepGci;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::startLcpRoundLoopLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::startLcpRoundLoopLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+lcpFragOrd->keepGci
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = c_lcpState.keepGci;
   lcpFragOrd->lastFragmentFlag = true;
 
   NodeRecordPtr nodePtr;
-  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
-  {
+  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++) {
     jam();
     ptrAss(nodePtr, nodeRecord);
     
     if(nodePtr.p->noOfQueuedChkpt == 0 &&
        nodePtr.p->noOfStartedChkpt == 0 &&
        c_lcpState.m_LAST_LCP_FRAG_ORD.isWaitingFor(nodePtr.i)){
-      jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::startNextChkpt(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::startNextChkpt(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  jam();
 
       CRASH_INSERTION(7028);
       
@@ -22726,8 +25530,33 @@ void Dbdih::sendLastLCP_FRAG_ORD(Signal* signal)
         DEB_LCP(("Still waiting for sending last LCP_FRAG_ORD to node %u,"
                  " queued: %u, started: %u, waiting_for: %u",
                  nodePtr.i,
-                 nodePtr.p->noOfQueuedChkpt,
-                 nodePtr.p->noOfStartedChkpt,
+                 nodePtr.p->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+noOfQueuedChkpt,
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+nextPool){
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+nextPool)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           nodePtr.p->noOfStartedChkpt,
                  c_lcpState.m_LAST_LCP_FRAG_ORD.isWaitingFor(nodePtr.i)));
       }
 #endif
@@ -22735,8 +25564,19 @@ void Dbdih::sendLastLCP_FRAG_ORD(Signal* signal)
   }
   if(ERROR_INSERTED(7075))
   {
-    if(c_lcpState.m_LAST_LCP_FRAG_ORD.done())
-    {
+    if(c_lcpState.m_LAST_LCP_FRAG_ORD.done()) {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+  {
+	if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
       CRASH_INSERTION(7075);
     }
   }
@@ -22802,8 +25642,30 @@ void Dbdih::execLCP_FRAG_REP(Signal* signal)
   /**
    * We can receive LCP_FRAG_REP in 2 different situations:
    * 1) signal->length() == SignalLength
-   * A normal report of completion of a LCP on a specific fragment. This
-   * cannot arrive when the node is down, the sending must be in
+   * A normal report of completion of a LCP 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+on a specific
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+started++;
+	  }
+// RONDB-624 todo: Glue these lines together ^v
+=======
+started++;
+>>>>>>> MySQL 8.0.36
+ fragment. This
+   * cannot arrive when the node 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ down, the sending must be in
    * the m_participatingLQH set, in addition the node must be alive
    * in the DIH sense which means that it has passed the state where it
    * is included in all the LCP protocols and GCP protocols.
@@ -22813,9 +25675,28 @@ void Dbdih::execLCP_FRAG_REP(Signal* signal)
    * in 1) is received. In this case the node could die before we
    * arrive here. We check this by simply checking if the node is still
    * alive. If this happens we can simply drop the signal.
-   */
-  if (!checkNodeAlive(nodeId))
-  {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
+||||||| Common ancestor
+}
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ (!checkNodeAlive(nodeId))
+     } else {
     jam();
     ndbrequire(signal->length() == LcpFragRep::SignalLengthTQ &&
                lcpReport->fromTQ == Uint32(1));
@@ -22958,7 +25839,26 @@ void Dbdih::execLCP_FRAG_REP(Signal* signal)
       }
       else
       {
-        /* Run immediately */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::sendLastLCP_FRAG_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::sendLastLCP_FRAG_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+      /* Run immediately */
         jam();
         tabPtr.p->tabUpdateState = TabRecord::US_LOCAL_CHECKPOINT;
         signal->theData[0] = DihContinueB::ZPACK_TABLE_INTO_PAGES;
@@ -22997,11 +25897,41 @@ void Dbdih::execLCP_FRAG_REP(Signal* signal)
     ok = true;
     jam();
     break;
-  case LMTOS_WAIT_LCP_FRAG_REP:
+  case LMTOS_WAIT_LCP_FRAG_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+REP:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ORD.isWaitingFor(nodePtr.i))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ORD.isWaitingFor(nodePtr.i)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     jam();
-    checkEmptyLcpComplete(signal);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+  DEB_LCP(
+>>>>>>> MySQL 8.0.36
+ checkEmptyLcpComplete(signal);
     return;
-  case LMTOS_INITIAL:
+  case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LMTOS_INITIAL:
+||||||| Common ancestor
+DEB_LCP(("Still
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    ("Still
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   case LMTOS_ALL_IDLE:
   case LMTOS_ALL_ACTIVE:
   case LMTOS_LCP_CONCLUDING:
@@ -23040,7 +25970,27 @@ void Dbdih::execLCP_FRAG_REP(Signal* signal)
       for (Uint32 i = 0; i < outstanding; i++)
       {
         if(nodePtr.p->startedChkpt[i].tableId != tableId ||
-           nodePtr.p->startedChkpt[i].fragId != fragId)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execLCP_FRAG_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execLCP_FRAG_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         nodePtr.p->startedChkpt[i].fragId != fragId)
         {
           jam();
           continue;
@@ -23051,8 +26001,7 @@ void Dbdih::execLCP_FRAG_REP(Signal* signal)
                 (outstanding - (i + 1)) * sizeof(nodePtr.p->startedChkpt[0]));
         found = true;
       }
-      if (found)
-      {
+      if (found)     {
         jam();
         nodePtr.p->noOfStartedChkpt--;
         checkStartMoreLcp(signal, nodeId, true);
@@ -23060,8 +26009,7 @@ void Dbdih::execLCP_FRAG_REP(Signal* signal)
       }
     }
     const Uint32 outstanding_queued = nodePtr.p->noOfQueuedChkpt;
-    if (outstanding_queued > 0)
-    {
+    if (outstanding_queued > 0) {
       jam();
       bool found = false;
       for (Uint32 i = 0; i < outstanding_queued; i++)
@@ -23127,8 +26075,7 @@ Dbdih::checkLcpAllTablesDoneInLqh(Uint32 line)
     //jam(); Removed as it flushed all other jam traces.
     ptrAss(tabPtr, tabRecord);
     if ((tabPtr.p->tabStatus == TabRecord::TS_ACTIVE) &&
-        (tabPtr.p->tabLcpStatus == TabRecord::TLS_ACTIVE))
-    {
+        (tabPtr.p->tabLcpStatus == TabRecord::TLS_ACTIVE))   {
       jam();
       /**
        * Nope, not finished with all tables
@@ -23143,8 +26090,7 @@ Dbdih::checkLcpAllTablesDoneInLqh(Uint32 line)
   DEB_LCP_COMP(("Set to LCP_TAB_COMPLETED, line: %u", line));
   c_lcpState.setLcpStatus(LCP_TAB_COMPLETED, line);
 
-  if (ERROR_INSERTED(7194))
-  {
+  if (ERROR_INSERTED(7194)) {
     g_eventLogger->info("CLEARING 7194");
     CLEAR_ERROR_INSERT_VALUE;
   }
@@ -23269,14 +26215,37 @@ Dbdih::reportLcpCompletion(const LcpFragRep* lcpReport)
 
   if (unlikely(replicaPtr.p->lcpOngoingFlag == false))
   {
-    g_eventLogger->info("lcpNo: %u, lcpId: %u, maxGciStarted: %u, "
-                        "maxGciCompleted: %u, tableId: %u, fragId: %u, "
+    g_eventLogger->info(
+          "lcpNo: %u, lcpId: %u, maxGciStarted: %u, "
+                 tableId,
+       "maxGciCompleted: %u, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tableId: %u,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tableId,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ fragId: %u, "
                         "nodeId: %u, replica->lcpStatus: %u"
                         "replicaPtr->lcpId: %u, replicaPtr->nextLcp: %u",
                         lcpNo,
                         lcpId,
                         maxGciStarted,
-                        maxGciCompleted,
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+%u",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+%u",
+        //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         maxGciCompleted,
                         tableId,
                         fragId,
                         nodeId,
@@ -23290,7 +26259,31 @@ Dbdih::reportLcpCompletion(const LcpFragRep* lcpReport)
     if (handle_invalid_lcp_no(lcpReport, replicaPtr))
     {
       g_eventLogger->error("lcpNo = %d replicaPtr.p->nextLcp = %d",
-                           lcpNo, replicaPtr.p->nextLcp);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GSN_NDB_TAMPER,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal, 1,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+lcpNo,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+1,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ replicaPtr.p->nextLcp);
       ndbabort();
     }
   }
@@ -23320,7 +26313,7 @@ Dbdih::reportLcpCompletion(const LcpFragRep* lcpReport)
   if (tabPtr.p->tabActiveLcpFragments > 0)
   {
     jam();
-    return false;
+      return false;
   }
   return true;
 }//Dbdih::reportLcpCompletion()
@@ -23449,11 +26442,37 @@ void Dbdih::checkLcpCompletedLab(Signal* signal, Uint32 line)
   }
 
   CRASH_INSERTION2(7027, isMaster());
-  CRASH_INSERTION2(7018, !isMaster());
+  CRASH_INSERTION2(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+7018,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&nodePtr.p->queuedChkpt[i],
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ !isMaster());
 
   if(c_lcpState.lcpStatus == LCP_TAB_COMPLETED)
-  {
-    /**
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&nodePtr.p->queuedChkpt[i],
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ /**
      * We're done
      */
     DEB_LCP_COMP(("c_lcpState.setLcpStatus = LCP_TAB_SAVED, line: %u", line));
@@ -23543,8 +26562,7 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
     ndbrequire(c_last_id_lcp_complete_rep != rep->lcpId ||
                c_last_id_lcp_complete_rep == RNIL);
     c_last_id_lcp_complete_rep = rep->lcpId;
-    if (is_lcp_paused() || c_dequeue_lcp_rep_ongoing)
-    {
+    if (is_lcp_paused() || c_dequeue_lcp_rep_ongoing) {
       jam();
       /**
        * Also the LCP_COMPLETE_REP are queued when we pause the LCP reporting.
@@ -23565,7 +26583,25 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
   Uint32 nodeId = rep->nodeId;
   Uint32 blockNo = rep->blockNo;
 
-  /**
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbdih::findReplica(ReplicaRecordPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbdih::findReplica(ReplicaRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+replicaPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&replicaPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ /**
    * We can arrive here in the following cases:
    * 1) blockNo == DBLQH and signal->length() == SignalLength
    *
@@ -23579,7 +26615,33 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
    * might send LCP_COMPLETE_REP after receiving MASTER_LCPREQ and finalising
    * its part of the master takeover protocol. This signal might arrive
    * before we have completed the master takeover protocol. In this case
-   * the signal must be delayed until the master takeover handling is
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LcpFragRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+LcpFragRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+rep, 
+			   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rep,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal must be delayed until the master takeover handling is
    * completed. One reason for this is that we haven't finalised setting
    * up the master bitmaps yet.
    *
@@ -23593,7 +26655,30 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
    * pass through although the node is already declared dead and
    * no longer part of the m_participatingLQH set. It is a vital part
    * of the node failure handling. It should also not be blocked by
-   * an early starting master takeover. It should however be dropped
+   * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+an
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LcpFragRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+LcpFragRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+early
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lcpReport)
+{
+=======
+*lcpReport) {
+>>>>>>> MySQL 8.0.36
+ starting master takeover. It should however be dropped
    * if it isn't part of the set waited for (can happen if 3) arrives
    * after NODE_FAILREP but before this signal).
    *
@@ -23639,8 +26724,21 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
    *    rep->fromTQ == 0
    *
    * This is sent from node failure processing when the node has died.
-   * The same logic as in 6) applies, the signal can be dropped if the
-   * node isn't part of the c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH set.
+ lcpNo,
+  * The same logic as in 6) applies, the signal can be dropped if the
+   * node isn't part of the c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lcpNo, replicaPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ replicaPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.
    * Otherwise it should be allowed to pass through.
    *
    * This signal cannot be delayed by the master takeover.
@@ -23649,12 +26747,100 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
    *    rep->fromTQ == 1
    *
    * This is a signal sent as delayed after receiving 4) above in a master
-   * takeover situation, if it arrives when the node is no
+   * takeover situation, if it 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+arrives
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0)
+=======
+0) {
+    jam();
+>>>>>>> MySQL 8.0.36
+ when 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the node is no
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  return false;
+  }
+  ndbrequire(tabPtr.p->tabActiveLcpFragments > 0);
+  tabPtr.p->tabActiveLcpFragments--;
+  if (tabPtr.p->tabActiveLcpFragments > 0) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    * longer part of the c_lcpState.m_LCP_COMPLETE_REP_Counter_DIH set,
-   * then we know that the signal is a duplicate and has already been
-   * processed and we can safely ignore it.
-   *
-   * This signal can be delayed by a master takeover if it is not
+   * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+then we know that the signal is a duplicate and has already been
+   * processed and we can
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ndbrequire(tabPtr.p->tabActiveLcpFragments > 0);
+  tabPtr.p->tabActiveLcpFragments--;
+  if (tabPtr.p->tabActiveLcpFragments > 0)
+  {
+    jam();
+    return
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+safely ignore it.
+||||||| Common ancestor
+false;
+  }
+=======
+true;
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+return true;
+}//Dbdih::reportLcpCompletion()
+=======
+// Dbdih::reportLcpCompletion()
+>>>>>>> MySQL 8.0.36
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::checkStartMoreLcp(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::checkStartMoreLcp(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+This 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal can be delayed by a master takeover if it is not
    * to be dropped.
    *
    * 7) blockNo == 0 and signal->length() == SignalLength
@@ -23700,20 +26886,96 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
     /**
      * During master takeover, some participant nodes could have been
      * in IDLE state since they have already completed the lcpId under
-     * the old master before it failed. However, they may receive
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+true;
+}//Dbdih::checkStartMoreLcp()
+
+void
+Dbdih::sendLCP_FRAG_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+true;
+}  // Dbdih::checkStartMoreLcp()
+
+void Dbdih::sendLCP_FRAG_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the old
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, 
+			NodeRecord::FragmentCheckpointInfo
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                             NodeRecord::FragmentCheckpointInfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+master before it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+info){ 
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+info)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+failed.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+=======
+{
+>>>>>>> MySQL 8.0.36
+ However, they may receive
      * LCP_COMPLETE_REP again for the same lcpId from the new master.
      */
     if (c_lcpState.lcpStatus == LCP_STATUS_IDLE &&
-        c_lcpState.already_completed_lcp(lcpId, nodeId))
-    {
+        c_lcpState.already_completed_lcp(lcpId, nodeId))   {
       return;
     }
 
     /**
      * Always allowed free pass through for signals from master that LCP is
-     * completed.
-     * These signals should not be blocked by master takeover since the
-     * master is the last node to complete master takeover and the master
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+completed.
+     * These signals should not be blocked by master takeover since
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+              replicaPtr.p->nextLcp, 0,
+=======
+replicaPtr.p->nextLcp,
+>>>>>>> MySQL 8.0.36
+ the
+     * master is the last node to complete 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+master
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+info.tableId);
+=======
+0, info.tableId);
+>>>>>>> MySQL 8.0.36
+ takeover and the master
      * is sending this signal.
      */
   }
@@ -23727,7 +26989,31 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
       jam();
       /**
        * Don't allow LCP_COMPLETE_REP to arrive during
-       * LCP master take over. We haven't yet formed the set of
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::checkLcpCompletedLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::checkLcpCompletedLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LCP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ master take over. We haven't yet formed the set of
        * expected signals and we don't want the master state to go to
        * completed while we are forming the state.
        *
@@ -23746,13 +27032,34 @@ void Dbdih::execLCP_COMPLETE_REP(Signal* signal)
     /**
      * We are not in a master takeover situation, so we should have the
      * signal expected by the sets, however this could have been handled
-     * by the signal sent from NODE_FAILREP already. So we need to verify
+     * by the signal sent from NODE_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FAILREP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+already.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ So we need to verify
      * we really are in those sets. Not being in those states when a master
      * takeover isn't ongoing should only happen for delayed signals.
      */
     if (blockNo == DBLQH &&
-        !c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(nodeId))
-    {
+        !c_lcpState.m_LCP_COMPLETE_REP_Counter_LQH.isWaitingFor(nodeId))   {
       /* Can happen in case 3) above */
       jam();
       ndbrequire(signal->length() == LcpCompleteRep::SignalLengthTQ &&
@@ -24106,7 +27413,30 @@ void Dbdih::tableCloseLab(Signal* signal, FileRecordPtr filePtr)
           sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
           return;
         }
-      }
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::allNodesLcpCompletedLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::allNodesLcpCompletedLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       /* No queued table write found - error */
       g_eventLogger->warning("DIH : Error in queued table writes : inUse %u"
                              " queued %u total %u",
@@ -24256,8 +27586,21 @@ void Dbdih::checkGcpStopLab(Signal* signal)
     if (lag0 > 0 && (lag0 % report_period_ms) < elapsed_ms)
     {
       if (m_gcp_monitor.m_gcp_save.m_max_lag_ms)
-      {
-        warningEvent("GCP Monitor: GCP_SAVE lag %u sec"
+ LcpCompleteRep::SignalLength,
+     {
+        warningEvent("GCP 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Monitor:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LcpCompleteRep::SignalLength, JBB);
+
+=======
+ JBB);
+
+>>>>>>> MySQL 8.0.36
+ GCP_SAVE lag %u sec"
                      " (max lag: %us), %s",
                      lag0/1000, m_gcp_monitor.m_gcp_save.m_max_lag_ms/1000,
                      c_GCP_SAVEREQ_Counter.getText());
@@ -24333,7 +27676,27 @@ void Dbdih::checkGcpStopLab(Signal* signal)
     m_gcp_monitor.m_micro_gcp.m_gci = m_micro_gcp.m_current_gci;
 
     /**
-     * Recalculate micro_gcp.m_max_lag.
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::tableUpdateLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::tableUpdateLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   * Recalculate micro_gcp.m_max_lag.
      * Since the maxima for gcp_save and micro_gcp are calculated
      * separately at protocol basis, the normal constraint that
      * GCP_SAVE max is > GCP_COMMIT max, may not hold in cases where
@@ -24348,21 +27711,119 @@ void Dbdih::checkGcpStopLab(Signal* signal)
   
   signal->theData[0] = DihContinueB::ZCHECK_GCP_STOP;
   sendSignalWithDelay(reference(), GSN_CONTINUEB, signal,
-                      GCPCheckPeriodMillis, 1);
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+               GCPCheckPeriodMillis, 1)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FileRecord::TABLE_CREATE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FileRecord::TABLE_CREATE;
   return;
-}//Dbdih::checkGcpStopLab()
+}  // Dbdih::tableUpdateLab()
+
+void Dbdih::tableCreateLab(Signal *signal, FileRecordPtr filePtr) {
+  TabRecordPtr tabPtr;
+  tabPtr.i = filePtr.p->tabRef;
+  ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
+  writeTabfile(signal, tabPtr.p, filePtr);
+  filePtr.p->reqStatus = FileRecord::TABLE_WRITE;
+  return;
+}  // Dbdih::tableCreateLab()
+
+void Dbdih::tableWriteLab(Signal *signal, FileRecordPtr filePtr) {
+  closeFile(signal, filePtr);
+  filePtr.p->reqStatus = FileRecord::TABLE_CLOSE
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+  return;
+}
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//Dbdih::checkGcpStopLab()
 
 void
 Dbdih::dumpGcpStop()
 {
-  g_eventLogger->info("c_nodeStartMaster.blockGcp: %u %u",
+||||||| Common ancestor
+//Dbdih::tableUpdateLab()
+
+void Dbdih::tableCreateLab(Signal* signal, FileRecordPtr filePtr) 
+{
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ g_eventLogger->info("c_nodeStartMaster.blockGcp: %u %u",
                       c_nodeStartMaster.blockGcp, c_nodeStartMaster.startNode);
   g_eventLogger->info(
       "m_gcp_save.m_elapsed: %u(ms) m_gcp_save.m_max_lag: %u(ms)",
       m_gcp_monitor.m_gcp_save.m_elapsed_ms,
       m_gcp_monitor.m_gcp_save.m_max_lag_ms);
   g_eventLogger->info(
-      "m_micro_gcp.m_elapsed: %u(ms) m_micro_gcp.m_max_lag: %u(ms)",
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ TabRecordPtr tabPtr;
+  tabPtr.i = filePtr.p->tabRef;
+  ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
+  writeTabfile(signal, tabPtr.p, filePtr);
+  filePtr.p->reqStatus = FileRecord::TABLE_WRITE;
+  return;
+}//Dbdih::tableCreateLab()
+
+void Dbdih::tableWriteLab(Signal* signal, FileRecordPtr filePtr) 
+{
+  closeFile(signal, filePtr);
+  filePtr.p->reqStatus =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    "m_micro_gcp.m_elapsed
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FileRecord::TABLE_CLOSE;
+  return;
+}//Dbdih:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+: %u(ms) m_micro_gcp.m_max_lag:
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tableCloseLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tableCloseLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u(ms)"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
       m_gcp_monitor.m_micro_gcp.m_elapsed_ms,
       m_gcp_monitor.m_micro_gcp.m_max_lag_ms);
 
@@ -24393,13 +27854,27 @@ Dbdih::dumpGcpStop()
                       c_INCL_NODEREQ_Counter.getText());
   g_eventLogger->info("c_MASTER_GCPREQ_Counter = %s",
                       c_MASTER_GCPREQ_Counter.getText());
-  g_eventLogger->info("c_MASTER_LCPREQ_Counter = %s",
+  g_eventLogger->info("
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_MASTER_LCPREQ_Counter
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DIH : Starting queued table def flush op on
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DIH : Starting queued table def flush op on
+            //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = %s",
                       c_MASTER_LCPREQ_Counter.getText());
   g_eventLogger->info("c_START_INFOREQ_Counter = %s",
                       c_START_INFOREQ_Counter.getText());
   g_eventLogger->info("c_START_RECREQ_Counter = %s",
                       c_START_RECREQ_Counter.getText());
-  g_eventLogger->info("c_STOP_ME_REQ_Counter = %s",
+    g_eventLogger->info(
+            "c_STOP_ME_REQ_Counter = %s",
                       c_STOP_ME_REQ_Counter.getText());
   g_eventLogger->info("c_TC_CLOPSIZEREQ_Counter = %s",
                       c_TC_CLOPSIZEREQ_Counter.getText());
@@ -24424,14 +27899,78 @@ Dbdih::dumpGcpStop()
  *  ourself.
  *
  * The action to take is generally :
- *   1.  Send 'Please log debug info + shutdown' signals to
- *       stalled nodes
+ *   1.  Send 'Please log debug info + shutdown' signals 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+||||||| Common ancestor
+sendSignal(reference(),
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
+      }  // if
+      signal->theData[0] = DihContinueB::ZREMOVE_NODE_FROM_TABLE;
+      signal->theData[1] = tabPtr.p->tabRemoveNode;
+      signal->theData[2] = tabPtr.i + 1;
+      if (!ERROR_INSERTED(7233))
+        sendSignal(reference(),
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+1,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+3,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+stalled nodes
  *   2,  Send ISOLATE_ORD with delay of X millis to *all*
  *       nodes (including self)
  *
- * Part 1 should result in a clean shutdown with debug
+ * Part 1 should result in a clean shutdown
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if
+    signal->theData[0] = DihContinueB::ZREMOVE_NODE_FROM_TABLE;
+    signal->theData[1] = tabPtr.p->tabRemoveNode;
+    signal->theData[2] = tabPtr.i + 1;
+    if (!ERROR_INSERTED(7233))
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ with 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+debug
  * information and a clear cause
- * Part 2 ensures that if part 1 fails (as it might if the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+ * Part 2 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ensures that if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ part 1 fails (as it might if the
  * nodes are 'ill'), the live nodes quickly exclude the
  * ill node and get on with their lives.
  *
@@ -24454,7 +27993,7 @@ void Dbdih::crashSystemAtGcpStop(Signal* signal, bool local)
 
   if (c_nodeStartMaster.blockGcp == 2)
   {
-    jam();
+      jam();
     /**
      * Starting node...is delaying GCP to long...
      *   kill it
@@ -24465,7 +28004,7 @@ void Dbdih::crashSystemAtGcpStop(Signal* signal, bool local)
     sysErr->data[0] = m_gcp_save.m_master.m_state;
     sysErr->data[1] = cgcpOrderBlocked;
     sysErr->data[2] = m_micro_gcp.m_master.m_state;
-    sendSignal(calcNdbCntrBlockRef(c_nodeStartMaster.startNode), 
+      sendSignal(calcNdbCntrBlockRef(c_nodeStartMaster.startNode), 
                GSN_SYSTEM_ERROR, signal, SystemError::SignalLength, JBA);
 
     {
@@ -24475,7 +28014,27 @@ void Dbdih::crashSystemAtGcpStop(Signal* signal, bool local)
       
       isolateNodes(signal,
                    NodeIsolationTimeoutMillis,
-                   victims);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::checkGcpStopLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::checkGcpStopLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                 victims);
     }
     return;
   }
@@ -24523,20 +28082,95 @@ void Dbdih::crashSystemAtGcpStop(Signal* signal, bool local)
     }
     case GcpSave::GCP_SAVE_COPY_GCI:
     {
-      /**
+       /**
        * We're waiting for a COPY_GCICONF
-       */
-      jam();
-      warningEvent("Detected GCP stop(%d)...sending kill to %s", 
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(m_gcp_monitor.m_gcp_save.m_max_lag_ms)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(m_gcp_monitor.m_gcp_save.m_max_lag_ms) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  warningEvent(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+warningEvent(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  warningEvent(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+"Detected GCP stop(%d)...sending kill to %s", 
                 m_gcp_save.m_master.m_state, c_COPY_GCIREQ_Counter.getText());
       g_eventLogger->info("Detected GCP stop(%d)...sending kill to %s",
                           m_gcp_save.m_master.m_state,
                           c_COPY_GCIREQ_Counter.getText());
 
-      {
-        NodeReceiverGroup rg(DBDIH, c_COPY_GCIREQ_Counter);
-        signal->theData[0] = 7022;
-        sendSignal(rg, GSN_DUMP_STATE_ORD, signal, 1, JBA);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  NodeReceiverGroup rg(DBDIH, c_COPY_GCIREQ_Counter);
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+  warningEvent(
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  signal->theData[0] = 7022;
+||||||| Common ancestor
+{
+=======
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sendSignal(rg,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+warningEvent("GCP Monitor:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"GCP Monitor:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ GSN_DUMP_STATE_ORD, signal, 1, JBA);
       }
       
       {
@@ -24560,16 +28194,35 @@ void Dbdih::crashSystemAtGcpStop(Signal* signal, bool local)
     }
     case GcpSave::GCP_SAVE_CONF:
       /**
-       * This *should* not happen (not a master state)
-       */
+       * This *should* not happen (not a master state)      */
       local = true;
       break;
     }
   }
 
-  if (micro_elapsed >= m_gcp_monitor.m_micro_gcp.m_max_lag_ms)
+  if (micro_elapsed >=          ? m_gcp_monitor.m_micro_gcp.m_max_lag_ms
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ :
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
   {
-    switch(m_micro_gcp.m_master.m_state)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+switch(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+                     : 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+m_micro_gcp.m_master.m_state)
     {
     case MicroGcp::M_GCP_IDLE:
     {
@@ -24582,8 +28235,42 @@ void Dbdih::crashSystemAtGcpStop(Signal* signal, bool local)
         NdbNodeBitmask victims;
         victims.set(cownNodeId);
         
-        isolateNodes(signal,
-                     NodeIsolationTimeoutMillis,
+        isolateNodes(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_gcp_monitor.m_micro_gcp.m_max_lag_ms)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+m_gcp_monitor.m_micro_gcp.m_max_lag_ms) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  warningEvent(
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+warningEvent("GCP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    "GCP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        NodeIsolationTimeoutMillis,
                      victims);
       }
       local = true;
@@ -24592,10 +28279,51 @@ void Dbdih::crashSystemAtGcpStop(Signal* signal, bool local)
     case MicroGcp::M_GCP_PREPARE:
     {
     /**
-     * We're waiting for a GCP PREPARE CONF
-     */
-      jam();
-      warningEvent("Detected GCP stop(%d)...sending kill to %s", 
+     * We're waiting for a GCP PREPARE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CONF
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+ else
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  warningEvent(
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+||||||| Common ancestor
+{
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+warningEvent(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  warningEvent(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+"Detected GCP stop(%d)...sending kill to %s", 
                 m_micro_gcp.m_state, c_GCP_PREPARE_Counter.getText());
       g_eventLogger->info("Detected GCP stop(%d)...sending kill to %s",
                           m_micro_gcp.m_state, c_GCP_PREPARE_Counter.getText());
@@ -24614,8 +28342,30 @@ void Dbdih::crashSystemAtGcpStop(Signal* signal, bool local)
         sysErr->data[0] = m_gcp_save.m_master.m_state;
         sysErr->data[1] = cgcpOrderBlocked;
         sysErr->data[2] = m_micro_gcp.m_master.m_state;
-        sendSignal(rg, GSN_SYSTEM_ERROR, signal, 
-                   SystemError::SignalLength, JBA);
+        sendSignal(rg, GSN_SYSTEM_ERROR, signal,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ GCPCheckPeriodMillis,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SystemError::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GCPCheckPeriodMillis,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ JBA);
       }
 
       isolateNodes(signal,
@@ -24732,7 +28482,27 @@ dolocal:
       ERROR_INSERTED(7244) ||
       ERROR_INSERTED(7237) ||
       ERROR_INSERTED(7241) ||
-      ERROR_INSERTED(7242) ||
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::crashSystemAtGcpStop(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::crashSystemAtGcpStop(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    ERROR_INSERTED(7242) ||
       ERROR_INSERTED(7243))
   {
     jam();
@@ -24747,7 +28517,7 @@ dolocal:
   }
 
   jam();
-  SystemError * const sysErr = (SystemError*)&signal->theData[0];
+  SystemError *const sysErr = (SystemError *)&signal->theData[0];
   sysErr->errorCode = SystemError::GCPStopDetected;
   sysErr->errorRef = reference();
   sysErr->data[0] = m_gcp_save.m_master.m_state;
@@ -24762,12 +28532,50 @@ dolocal:
 /*                                                                       */
 /*       MODULE: ALLOCPAGE                                               */
 /*       DESCRIPTION: THE SUBROUTINE IS CALLED WITH POINTER TO PAGE      */
-/*                    RECORD. A PAGE  RECORD IS TAKEN FROM               */
-/*                    THE FREE PAGE  LIST                                */
+/*             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+  isolateNodes(signal, NodeIsolationTimeoutMillis,
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+isolateNodes(signal,
+=======
+               c_GCP_SAVEREQ_Counter.getNodeBitmask());
+
+        warningEvent("Detected GCP stop(%d)...sending kill to %s",
+>>>>>>> MySQL 8.0.36
+ RECORD. A PAGE  RECORD IS TAKEN FROM           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NodeIsolationTimeoutMillis,
+=======
+  m_gcp_save.m_master.m_state,
+>>>>>>> MySQL 8.0.36
+    */
+/*               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     THE FREE PAGE  LIST                                */
 /*************************************************************************/
 void Dbdih::allocpage(PageRecordPtr& pagePtr) 
 {
   ndbrequire(cfirstfreepage != RNIL);
+||||||| Common ancestor
+c_GCP_SAVEREQ_Counter.getNodeBitmask());
+
+      warningEvent("Detected GCP stop(%d)...sending kill to %s",
+                   m_gcp_save.m_master.m_state,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
   pagePtr.i = cfirstfreepage;
   ptrCheckGuard(pagePtr, cpageFileSize, pageRecord);
   cfirstfreepage = pagePtr.p->nextfreepage;
@@ -24776,14 +28584,27 @@ void Dbdih::allocpage(PageRecordPtr& pagePtr)
 
 /*************************************************************************/
 /*                                                                       */
-/*       MODULE: ALLOC_STORED_REPLICA                                    */
+/*       MODULE: ALLOC_STORED_REPLICA                                      */
 /*       DESCRIPTION: THE SUBROUTINE IS CALLED TO GET A REPLICA RECORD,  */
 /*                    TO INITIALISE IT AND TO LINK IT INTO THE FRAGMENT  */
 /*                    STORE RECORD. USED FOR STORED REPLICAS.            */
 /*************************************************************************/
 void Dbdih::allocStoredReplica(FragmentstorePtr fragPtr,
                                ReplicaRecordPtr& newReplicaPtr,
-                               Uint32 nodeId,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }
+
+       Uint32 nodeId,
                                Uint32 fragId,
                                Uint32 tableId)
 {
@@ -24792,10 +28613,32 @@ void Dbdih::allocStoredReplica(FragmentstorePtr fragPtr,
   ReplicaRecordPtr arrPrevReplicaPtr;
 
   seizeReplicaRec(newReplicaPtr);
-  for (i = 0; i < MAX_LCP_STORED; i++) {
+  for (i = 0; i < MAX_LCP_STORED; i++) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+SystemError::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     newReplicaPtr.p->maxGciCompleted[i] = 0;
     newReplicaPtr.p->maxGciStarted[i] = 0;
-    newReplicaPtr.p->lcpId[i] = 0;
+    newReplicaPtr.p->lcpId[i] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ SystemError::SignalLength, JBA)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   JBA)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
     newReplicaPtr.p->lcpStatus[i] = ZINVALID;
   }//for
   newReplicaPtr.p->fragId = fragId;
@@ -24843,11 +28686,32 @@ void Dbdih::checkEscalation()
   NodeRecordPtr nodePtr;
   Uint32 i;
   for (i = 0; i < cnoOfNodeGroups; i++) {
-    TnodeGroup[i] = ZFALSE;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TnodeGroup[i]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+case MicroGcp::M_GCP_PREPARE:
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  case MicroGcp::M_GCP_PREPARE: {
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZFALSE;
+||||||| Common ancestor
+{
+=======
+>>>>>>> MySQL 8.0.36
   }//for
   for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
   {
-    jam();
+      jam();
     ptrAss(nodePtr, nodeRecord);
     if (nodePtr.p->nodeStatus == NodeRecord::ALIVE &&
 	nodePtr.p->activeStatus == Sysfile::NS_Active){
@@ -24867,32 +28731,130 @@ void Dbdih::checkEscalation()
 
 /*************************************************************************/
 /*                                                                       */
-/*       MODULE: CHECK_KEEP_GCI                                          */
+/*       MODULE: CHECK_KEEP_GCI          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+SystemError::SignalLength,
+>>>>>>> MySQL 8.0.36
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SystemError::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+             */
 /*       DESCRIPTION: CHECK FOR MINIMUM GCI RESTORABLE WITH NEW LOCAL    */
 /*                    CHECKPOINT.                                        */
 /*************************************************************************/
-void Dbdih::checkKeepGci(TabRecordPtr tabPtr, Uint32 fragId, Fragmentstore*, 
-                         Uint64 replicaStartIndex) 
+void Dbdih::checkKeepGci(TabRecordPtr tabPtr, Uint32 fragId,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Fragmentstore*,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+=======
+m_micro_gcp.m_state, c_GCP_COMMIT_Counter.getText());
+>>>>>>> MySQL 8.0.36
+ 
+       g_eventLogger->info("Detected GCP stop(%d)...sending kill to %s",
+                            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_micro_gcp.m_state, c_GCP_COMMIT_Counter.getText());
+=======
+m_micro_gcp.m_state,
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   Uint64 replicaStartIndex) 
 {
   ReplicaRecordPtr ckgReplicaPtr;
-  ckgReplicaPtr.i = replicaStartIndex;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g_eventLogger->info("Detected GCP stop(%d)...sending kill to %s",
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ ckgReplicaPtr.i = replicaStartIndex;
   while (ckgReplicaPtr.i != RNIL64) {
     jam();
     ndbrequire(c_replicaRecordPool.getPtr(ckgReplicaPtr));
-    if (c_lcpState.m_participatingLQH.get(ckgReplicaPtr.p->procNode))
+    if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(c_lcpState.m_participatingLQH
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_micro_gcp.m_state, c_GCP_COMMIT_Counter
+// RONDB-624 todo: Glue these lines together ^v
+=======
+c_GCP_COMMIT_Counter
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.get(ckgReplicaPtr.p->procNode))
     {
       Uint32 keepGci;
       Uint32 oldestRestorableGci;
       findMinGci(ckgReplicaPtr, keepGci, oldestRestorableGci);
       if (keepGci < c_lcpState.keepGci) {
         jam();
-        /* ----------------------------------------------------------------- */
-        /* WE MUST KEEP LOG RECORDS SO THAT WE CAN USE ALL LOCAL CHECKPOINTS */
+        /* ----------------------------------------------------------------- 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }
+
+    /* WE MUST KEEP LOG RECORDS SO THAT WE CAN USE ALL LOCAL CHECKPOINTS */
         /* THAT ARE AVAILABLE. THUS WE NEED TO CALCULATE THE MINIMUM OVER ALL*/
-        /* FRAGMENTS.                                                        */
+        /* FRAGMENTS.                                                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+SystemError::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         /* ----------------------------------------------------------------- */
-        c_lcpState.keepGci = keepGci;
-      }//if
+        c_lcpState.keepGci 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SystemError::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ keepGci;
+        }//if
       if (oldestRestorableGci > c_lcpState.oldestRestorableGci) {
         jam();
         c_lcpState.oldestRestorableGci = oldestRestorableGci;
@@ -24920,18 +28882,82 @@ void Dbdih::closeFileDelete(Signal* signal, FileRecordPtr filePtr)
   req->userReference = reference();
   req->userPointer = filePtr.i;
   req->fileFlag = 0;
-  FsCloseReq::setRemoveFileFlag(req->fileFlag, true);
-  sendSignal(NDBFS_REF, GSN_FSCLOSEREQ, signal, FsCloseReq::SignalLength, JBA);
-}//Dbdih::closeFileDelete()
+  FsCloseReq::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setRemoveFileFlag(req->fileFlag,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ {
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    jam();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  sendSignal(NDBFS_REF, GSN_FSCLOSEREQ, signal, FsCloseReq::SignalLength, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+JBA
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+jam(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  infoEvent("Detected GCP stop(%d)...sending kill to %s",
+                  m_micro_gcp.m_state,
+                  c_SUB_GCP_COMPLETE_REP_Counter.getText(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+));
+<<<<<<< RonDB // RONDB-624 todo
+}//Dbdih::closeFileDelete
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      infoEvent("Detected GCP stop
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        g_eventLogger->info("Detected GCP stop
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+()
 
 void Dbdih::createFileRw(Signal* signal, FileRecordPtr filePtr) 
 {
-  FsOpenReq* req = (FsOpenReq*)signal->getDataPtrSend();
+  FsOpenReq* req = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(FsOpenReq*)signal->getDataPtrSend();
   req->userReference = reference();
   req->userPointer = filePtr.i;
   req->fileNumber[0] = filePtr.p->fileName[0];
   req->fileNumber[1] = filePtr.p->fileName[1];
-  req->fileNumber[2] = filePtr.p->fileName[2];
+  req->fileNumber[2]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      m_micro_gcp.m_state, c_SUB_GCP_COMPLETE_REP_Counter.getText());
+      g_eventLogger->info("Detected GCP stop(%d)...sending kill to %s",
+              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = filePtr.p->fileName[2];
   req->fileNumber[3] = filePtr.p->fileName[3];
   req->fileFlags = FsOpenReq::OM_READWRITE | FsOpenReq::OM_CREATE |
                    FsOpenReq::OM_TRUNCATE;
@@ -24939,7 +28965,7 @@ void Dbdih::createFileRw(Signal* signal, FileRecordPtr filePtr)
   req->file_size_hi = UINT32_MAX;
   req->file_size_lo = UINT32_MAX;
   req->auto_sync_size = 0;
-  sendSignal(NDBFS_REF, GSN_FSOPENREQ, signal, FsOpenReq::SignalLength, JBA);
+    sendSignal(NDBFS_REF, GSN_FSOPENREQ, signal, FsOpenReq::SignalLength, JBA);
 }//Dbdih::createFileRw()
 
 void
@@ -24962,18 +28988,36 @@ Dbdih::emptyverificbuffer(Signal* signal, Uint32 q, bool aContinueB)
     signal->theData[1] = (Uint32)(m_micro_gcp.m_current_gci >> 32);
     signal->theData[2] = (Uint32)(m_micro_gcp.m_current_gci & 0xFFFFFFFF);
     signal->theData[3] = 0;
-    sendSignal(c_diverify_queue[q].m_ref, GSN_DIVERIFYCONF, signal, 4, JBB);
+      sendSignal(c_diverify_queue[q].m_ref, GSN_DIVERIFYCONF, signal,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+ SystemError::SignalLength,
+>>>>>>> MySQL 8.0.36
+ 4, JBB);
   }
   else if (aContinueB == true)
   {
     jam();
-    /**
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SystemError::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ /**
      * Make sure that we don't miss any pending transactions
      *   (transactions that are added to list by other thread
      *    while we execute this code)
      */
     Uint32 blocks[] = { DBTC, 0 };
-    Callback c = { safe_cast(&Dbdih::emptyverificbuffer_check), q };
+    Callback c = { safe_cast(&Dbdih::emptyverificbuffer_check), q   };
     /* Wait until all DIVERIFYCONF sent (from DBDIH) to any DBTC worker have
      * been received.
      * This function is also called from Dbdih::execUNBLOCK_COMMIT_ORD() which
@@ -25040,7 +29084,27 @@ bool Dbdih::findLogNodes(CreateReplicaRecord* createReplica,
   /*       ITSELF. THIS IS THE DESIRED BEHAVIOUR. IF THIS IS NOT POSSIBLE  */
   /*       THEN WE SEARCH FOR THE BEST POSSIBLE NODES AMONG THE NODES THAT */
   /*       ARE PART OF THIS SYSTEM RESTART.                                */
-  /*       THIS CAN ONLY BE HANDLED BY THE LAST CRASHED REPLICA.           */
+  /* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::allocpage(PageRecordPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::allocpage(PageRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pagePtr)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pagePtr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     THIS CAN ONLY BE HANDLED BY THE LAST CRASHED REPLICA.           */
   /*       The condition is that the replica was created before or at the  */
   /*       time of the starting gci, in addition it must have been alive   */
   /*       at the time of the stopping gci. This is checked by two         */
@@ -25056,19 +29120,57 @@ bool Dbdih::findLogNodes(CreateReplicaRecord* createReplica,
   
   if ((startGci >= flnReplicaPtr.p->createGci[noCrashed]) &&
       (stopGci <= flnReplicaPtr.p->replicaLastGci[noCrashed]) &&
-      (stopGci <= SYSFILE->lastCompletedGCI[flnReplicaPtr.p->procNode]))
+      (stopGci 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ReplicaRecordPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ReplicaRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SYSFILE->lastCompletedGCI[flnReplicaPtr.p->procNode]))
   {
     jam();
     /* --------------------------------------------------------------------- */
-    /*       WE FOUND ALL THE LOG RECORDS NEEDED IN THE DATA NODE. WE WILL   */
-    /*       USE THOSE.                                                      */
+    /*       WE FOUND ALL THE LOG RECORDS NEEDED IN
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+newReplicaPtr,
+                              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&newReplicaPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ THE DATA NODE. WE WILL   */
+    /*       USE THOSE.            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                              
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 fragId,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ fragId,           */
     /* --------------------------------------------------------------------- */
     createReplica->noLogNodes = 1;
     createReplica->logStartGci[0] = startGci;
     createReplica->logStopGci[0] = stopGci;
     createReplica->logNodeId[0] = flnReplicaPtr.p->procNode;
     return true;
-  }//if
+  }  //if
   /* If we reach this code we're in trouble nowadays */
   g_eventLogger->info("startGci: %u, stopGci: %u, noCrashed: %u"
                       "newestRestorableGci: %u, createGci: %u,"
@@ -25114,7 +29216,7 @@ bool Dbdih::findLogNodes(CreateReplicaRecord* createReplica,
   /*       BECAUSE OF LACKING NODES OR BECAUSE OF A REALLY SERIOUS PROBLEM.*/
   /* --------------------------------------------------------------------- */
   return false;
-}//Dbdih::findLogNodes()
+}  // Dbdih::findLogNodes()
 
 /*************************************************************************/
 /*       FIND THE BEST POSSIBLE LOG NODE TO EXECUTE THE LOG AS SPECIFIED */
@@ -25152,12 +29254,34 @@ Dbdih::findBestLogNode(CreateReplicaRecord* createReplica,
         jam();
         fblStopGci = fliStopGci;
         fblFoundReplicaPtr = fblReplicaPtr;
-      }//if
+      }  // if
     }//if
     fblReplicaPtr.i = fblReplicaPtr.p->nextPool;
-  }//while
+  }  // while
   fblReplicaPtr.i = fragPtr.p->oldStoredReplicas;
-  while (fblReplicaPtr.i != RNIL64) {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::closeFile(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::closeFile(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+while
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (fblReplicaPtr.i != RNIL64) {
     jam();
     ndbrequire(c_replicaRecordPool.getPtr(fblReplicaPtr));
     if (m_sr_nodes.get(fblReplicaPtr.p->procNode))
@@ -25165,15 +29289,77 @@ Dbdih::findBestLogNode(CreateReplicaRecord* createReplica,
       jam();
       Uint32 fliStopGci = findLogInterval(fblReplicaPtr, startGci);
       if (fliStopGci > fblStopGci)
-      {
-        jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::closeFileDelete(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::closeFileDelete(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FsCloseReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FsCloseReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     jam();
         fblStopGci = fliStopGci;
         fblFoundReplicaPtr = fblReplicaPtr;
       }//if
     }//if
     fblReplicaPtr.i = fblReplicaPtr.p->nextPool;
-  }//while
-  if (fblStopGci != 0) {
+  }  //while
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::createFileRw(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::createFileRw(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (fblStopGci != 0) {
     jam();
     ndbrequire(logNode < MAX_LOG_EXEC);
     createReplica->logNodeId[logNode] = fblFoundReplicaPtr.p->procNode;
@@ -25188,7 +29374,7 @@ Dbdih::findBestLogNode(CreateReplicaRecord* createReplica,
   }//if
 
   return fblStopGci != 0;
-}//Dbdih::findBestLogNode()
+}  // Dbdih::findBestLogNode()
 
 Uint32 Dbdih::findLogInterval(ReplicaRecordPtr replicaPtr, 
 			      Uint32 startGci)
@@ -25220,8 +29406,7 @@ void Dbdih::findMinGci(ReplicaRecordPtr fmgReplicaPtr,
 
   Uint32 maxLcpId = 0;              // LcpId of latest valid LCP
   Uint32 maxLcpNo = MAX_LCP_STORED; // Index of latest valid LCP
-  for (Uint32 i = 0; i < MAX_LCP_STORED; i++)
-  {
+  for (Uint32 i = 0; i < MAX_LCP_STORED; i++) {
     jam();
     if (fmgReplicaPtr.p->lcpStatus[i] == ZVALID)
     {
@@ -25238,7 +29423,31 @@ void Dbdih::findMinGci(ReplicaRecordPtr fmgReplicaPtr,
       else if (fmgReplicaPtr.p->lcpId[i] > maxLcpId)
       {
         jam();
-        maxLcpId = fmgReplicaPtr.p->lcpId[i];
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+maxLcpId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::findLogNodes(CreateReplicaRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::findLogNodes(CreateReplicaRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= fmgReplicaPtr.p->lcpId[i];
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+createReplica,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*createReplica,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         maxLcpNo = i;
       }
     }
@@ -25408,8 +29617,109 @@ Dbdih::compute_max_failure_time()
   node failures are not falsely interpreted as GCP stops.
 */
 void Dbdih::setGCPStopTimeouts(Signal *signal,
-                               bool set_gcp_save_max_lag,
-                               bool set_micro_gcp_max_lag)
+                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+/*************************************************************************/
+bool
+Dbdih::findBestLogNode(CreateReplicaRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+/*************************************************************************/
+bool Dbdih::findBestLogNode(CreateReplicaRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+createReplica,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*createReplica,
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FragmentstorePtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set_gcp_save_max_lag,
+||||||| Common ancestor
+fragPtr,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+             FragmentstorePtr fragPtr, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+stopGci,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+logNode,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+stopGci, Uint32 logNode,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set_micro_gcp_max_lag
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fblStopGci
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&fblStopGci
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
 {
   
   const ndb_mgm_configuration_iterator* cfgIter = 
@@ -25440,8 +29750,7 @@ void Dbdih::setGCPStopTimeouts(Signal *signal,
   if (micro_GCP_timeout != 0)
   {
     jam();
-    if (ERROR_INSERTED(7145))
-    {
+    if (ERROR_INSERTED(7145)) {
       /*
         We drop these lower limits in certain tests, to verify that the 
         calculated value for max_failure_time is sufficient.
@@ -25516,7 +29825,30 @@ void Dbdih::setGCPStopTimeouts(Signal *signal,
         jam();
         infoEvent("GCP Monitor: GCP_COMMIT: unlimited lags allowed");
       }
-      g_eventLogger->info("GCP Monitor: GCP_COMMIT: unlimited lags allowed");
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+g_eventLogger->info("GCP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Monitor:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+oldestRestorableGci)
+{
+=======
+&oldestRestorableGci) {
+>>>>>>> MySQL 8.0.36
+ GCP_COMMIT: unlimited lags allowed");
     }
   }
 
@@ -25526,8 +29858,7 @@ void Dbdih::setGCPStopTimeouts(Signal *signal,
     if (m_gcp_monitor.m_gcp_save.m_max_lag_ms > 0)
     {
       jam();
-      if (isMaster())
-      {
+      if (isMaster())     {
         jam();
         // Log to mgmd.
         infoEvent("GCP Monitor: Computed max GCP_SAVE lag to %u seconds",
@@ -25541,8 +29872,7 @@ void Dbdih::setGCPStopTimeouts(Signal *signal,
     else
     {
       jam();
-      if (isMaster())
-      {
+      if (isMaster()) {
         jam();
         infoEvent("GCP Monitor: GCP_SAVE: unlimited lags allowed");
       }
@@ -25603,7 +29933,22 @@ void Dbdih::initCommonData()
   cstartPhase = 0;
   cstarttype = (Uint32)-1;
   csystemnodes = 0;
-  c_newest_restorable_gci = 0;
+  c_newest_restorable_gci 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
   cwaitLcpSr = false;
   c_nodeStartMaster.blockGcp = 0;
 
@@ -25611,7 +29956,41 @@ void Dbdih::initCommonData()
   c_nodeStartMaster.wait = ZFALSE;
 
   SYSFILE->initSysFile();
-  SYSFILE->latestLCP_ID = 1; /* Ensure that first LCP id is 1 */
+  SYSFILE->latestLCP_ID = 1; /* Ensure that first LCP id
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+startGci,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&startGci,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lcpNo)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&lcpNo)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
 
   const ndb_mgm_configuration_iterator * p = 
     m_ctx.m_config.getOwnConfigIterator();
@@ -25628,8 +30007,7 @@ void Dbdih::initCommonData()
   ndb_mgm_get_int_parameter(p,
                             CFG_DB_PARALLEL_COPY_THREADS,
                             &c_max_takeover_copy_threads);
-  if (c_max_takeover_copy_threads == 0)
-  {
+  if (c_max_takeover_copy_threads == 0) {
     jam();
     c_max_takeover_copy_threads = ZTAKE_OVER_THREADS;
   }
@@ -25684,7 +30062,7 @@ void Dbdih::initCommonData()
     m_gcp_monitor.m_micro_gcp.m_max_lag_ms = 0;
     m_gcp_monitor.m_gcp_save.m_max_lag_ms = 0;
   }
-}//Dbdih::initCommonData()
+}  // Dbdih::initCommonData()
 
 void Dbdih::initFragstore(FragmentstorePtr fragPtr,
                           Uint32 fragId,
@@ -25724,8 +30102,30 @@ void Dbdih::initFragstore(FragmentstorePtr fragPtr,
 void Dbdih::initRestartInfo(Signal* signal) 
 {
   Uint32 i;
-  for (i = 0; i < MAX_NDB_NODES; i++) {
-    SYSFILE->lastCompletedGCI[i] = 0;
+  for (i = 0; i < MAX_NDB_NODES; i++) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
++
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SYSFILE->lastCompletedGCI[i]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
++
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 0;
   }//for
   NodeRecordPtr nodePtr;
   nodePtr.i = cfirstAliveNode;
@@ -25743,7 +30143,49 @@ void Dbdih::initRestartInfo(Signal* signal)
   {
     char envBuf[256];
     const char* v = NdbEnv_GetEnv("NDB_START_GCI",
-                                  envBuf,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+set_micro_gcp_max_lag)
+{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+set_micro_gcp_max_lag)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+{
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ndb_mgm_configuration_iterator*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndb_mgm_configuration_iterator
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cfgIter
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cfgIter
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      envBuf,
                                   256);
     if (v && *v != 0)
     {
@@ -25779,10 +30221,32 @@ void Dbdih::initRestartInfo(Signal* signal)
                       globalData.m_restart_seq);
 
   if (m_micro_gcp.m_enabled == false && 
-      m_micro_gcp.m_master.m_time_between_gcp)
-  {
+        m_micro_gcp.m_master.m_time_between_gcp)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+micro_GCP_timeout
+// RONDB-624 todo: Glue these lines together ^v
+=======
+micro_GCP_timeout +
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     /**
-     * Micro GCP is disabled...but configured...
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
++
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ * Micro GCP is disabled...but configured...
      */
     jam();
     m_micro_gcp.m_enabled = true;
@@ -25829,12 +30293,55 @@ void Dbdih::initRestorableGciFiles()
   filePtr.p->reqStatus = FileRecord::IDLE;
   filePtr.p->fileStatus = FileRecord::CLOSED;
   crestartInfoFile[1] = filePtr.i;
-  filePtr.p->fileName[0] = (Uint32)-1;  /* T DIRECTORY NOT USED  */
+  filePtr.p->fileName[0] = (Uint32)-1;  /* T DIRECTORY NOT USED 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
   filePtr.p->fileName[1] = (Uint32)-1;  /* F DIRECTORY NOT USED  */
   filePtr.p->fileName[2] = (Uint32)-1;  /* S PART IGNORED        */
   tirgTmp = 1;  /* FILE NAME VERSION 1   */
-  tirgTmp = (tirgTmp << 8) + 6; /* .SYSFILE              */
-  tirgTmp = (tirgTmp << 8) + 2; /* D1 DIRECTORY          */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+%u seconds",
+                  m_gcp_monitor.m_gcp_save.m_max_lag_ms / 1000);
+      }
+      // Log locallly.
+      g_eventLogger->info("GCP Monitor: Computed max GCP_SAVE lag to %u"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+%u seconds",
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  tirgTmp = (tirgTmp << 8) + 6; /* .SYSFILE        m_gcp_monitor.m_gcp_save.m_max_lag_ms / 1000);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  " seconds", 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  }
+      // Log locallly.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  tirgTmp = (tirgTmp << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+8)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+g_eventLogger->info(
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ + 2; /* D1 DIRECTORY   "GCP Monitor: Computed max GCP_SAVE lag to %u"
+          " seconds",
+     */
   tirgTmp = (tirgTmp << 8) + 0; /* P0 FILE NAME          */
   filePtr.p->fileName[3] = tirgTmp;
   /* --------------------------------------------------------------------- */
@@ -25842,8 +30349,7 @@ void Dbdih::initRestorableGciFiles()
   /* --------------------------------------------------------------------- */
 }//Dbdih::initRestorableGciFiles()
 
-void Dbdih::initTable(TabRecordPtr tabPtr)
-{
+void Dbdih::initTable(TabRecordPtr tabPtr) {
   new (tabPtr.p) TabRecord();
   NdbMutex_Init(&tabPtr.p->theMutex);
   tabPtr.p->changeNumber = 0;
@@ -25917,7 +30423,7 @@ void Dbdih::initTableFile(TabRecordPtr tabPtr)
   filePtr.p->fileName[2] = tabPtr.i;    /* Stid FILE NAME        */
   titfTmp = 1;  /* FILE NAME VERSION 1   */
   titfTmp = (titfTmp << 8) + 3; /* .FRAGLIST             */
-  titfTmp = (titfTmp << 8) + 2; /* D2 DIRECTORY          */
+  titfTmp = (titfTmp << 8) + 2; /* D2 DIRECTORY           */
   titfTmp = (titfTmp << 8) + 255;       /* P PART IGNORED        */
   filePtr.p->fileName[3] = titfTmp;
   /* --------------------------------------------------------------------- */
@@ -25992,7 +30498,27 @@ void Dbdih::initialiseRecordsLab(Signal* signal,
       jam();
       /******* NODE GROUP RECORD ******/
       /******* NODE RECORD       ******/
-      NodeGroupRecordPtr loopNGPtr;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::initRestartInfo(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::initRestartInfo(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    NodeGroupRecordPtr loopNGPtr;
       for (loopNGPtr.i = 0; loopNGPtr.i < MAX_NDB_NODE_GROUPS; loopNGPtr.i++) {
 	ptrAss(loopNGPtr, nodeGroupRecord);
         loopNGPtr.p->nodesInGroup[0] = RNIL;
@@ -26059,7 +30585,7 @@ void Dbdih::initialiseRecordsLab(Signal* signal,
     }
   default:
     ndbabort();
-  }//switch
+  }  //switch
   jam();
   /* ---------------------------------------------------------------------- */
   /* SEND REAL-TIME BREAK DURING INIT OF VARIABLES DURING SYSTEM RESTART.   */
@@ -26136,13 +30662,43 @@ void Dbdih::insertDeadNode(NodeRecordPtr newNodePtr)
         jam();
         nodePtr.i = nodePtr.p->nextNode;
       }//if
-    } while (1);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  } while (1);
   }//if
   newNodePtr.p->nextNode = RNIL;
 }//Dbdih::insertDeadNode()
 
 void Dbdih::linkOldStoredReplica(FragmentstorePtr fragPtr,
-                                 ReplicaRecordPtr replicatePtr) 
+                           
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/*       THE NAME BECOMES /D2/DBDIH/P0.SYSFILE                          */
+  /* ---------------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/*       THE NAME BECOMES /D2/DBDIH/P0.SYSFILE                          */
+  /* --------------------------------------------------------------------- */
+}  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+}//Dbdih::initRestorableGciFiles()
+
+void
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::initRestorableGciFiles()
+
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     ReplicaRecordPtr replicatePtr) 
 {
   ReplicaRecordPtr losReplicaPtr;
 
@@ -26175,7 +30731,7 @@ void Dbdih::linkStoredReplica(FragmentstorePtr fragPtr,
     jam();
     fragPtr.p->storedReplicas = replicatePtr.i;
     return;
-  }//if
+  }  //if
   ndbrequire(c_replicaRecordPool.getPtr(lsrReplicaPtr));
   while (lsrReplicaPtr.p->nextPool != RNIL64) {
     jam();
@@ -26183,7 +30739,7 @@ void Dbdih::linkStoredReplica(FragmentstorePtr fragPtr,
     ndbrequire(c_replicaRecordPool.getPtr(lsrReplicaPtr));
   }//if
   lsrReplicaPtr.p->nextPool = replicatePtr.i;
-}//Dbdih::linkStoredReplica()
+}  // Dbdih::linkStoredReplica()
 
 /*************************************************************************/
 /*        MAKE NODE GROUPS BASED ON THE LIST OF NODES RECEIVED FROM CNTR */
@@ -26283,9 +30839,45 @@ void Dbdih::makeNodeGroups(Uint32 nodeArray[])
       if (NGPtr.p->nodeCount == cnoReplicas)
       {
         jam();
-        for (; NGPtr.i < MAX_NDB_NODE_GROUPS; NGPtr.i++)
-        {
-          jam();
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+for
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+3;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+3;        /* .FRAGLIST             */
+  titfTmp = (titfTmp << 8) + 2;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(; NGPtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/* .FRAGLIST  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ < MAX_NDB_NODE_GROUPS; NGPtr.i++)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    {
+         
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    */
+  titfTmp = (titfTmp << 8) + 2; /*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ jam();
           ptrAss(NGPtr, nodeGroupRecord);
           if (NGPtr.p->nodeCount < cnoReplicas)
             break;
@@ -26299,10 +30891,34 @@ void Dbdih::makeNodeGroups(Uint32 nodeArray[])
   {
     jam();
     NGPtr.i = c_node_groups[i];
-    ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
+    ptrCheckGuard(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NGPtr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MAX_NDB_NODE_GROUPS
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, nodeGroupRecord);
     if (NGPtr.p->nodeCount == 0)
     {
-      jam();
+        jam();
       ndbabort(); //TODO test to see if it ever happens
     }
     else if (NGPtr.p->nodeCount != cnoReplicas)
@@ -26311,11 +30927,10 @@ void Dbdih::makeNodeGroups(Uint32 nodeArray[])
     }
     else
     {
-      if (NGPtr.i > maxNG)
-      {
+        if (NGPtr.i > maxNG) {
         maxNG = NGPtr.i;
+        }
       }
-    }
   }
 
   ndbrequire(csystemnodes < MAX_NDB_NODES);
@@ -26355,7 +30970,7 @@ void Dbdih::makeNodeGroups(Uint32 nodeArray[])
       mngNodeptr.p->activeStatus = Sysfile::NS_Configured;
     }
     SYSFILE->setNodeStatus(nodeId, mngNodeptr.p->activeStatus);
-  }
+    }
 
   for (Uint32 i = 0; i<cnoOfNodeGroups; i++)
   {
@@ -26435,17 +31050,51 @@ void Dbdih::execCHECKNODEGROUPSREQ(Signal* signal)
     ndbrequire(signal->length() >=
                CheckNodeGroups::SignalLengthArbitCheckLong);
     sd->requestType = sd->requestType & (~CheckNodeGroups::UseBeforeFailMask);
-    use_before_fail_mask = true;
+    use_before_fail_mask = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  ndbrequire(c_replicaRecordPool.seizeId(initReplicaPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  ndbrequire(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   }
   bool ok = false;
   switch(sd->requestType & ~CheckNodeGroups::Direct){
-  case CheckNodeGroups::ArbitCheck:
+ c_replicaRecordPool.seizeId(initReplicaPtr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+initReplicaPtr.i));
+>>>>>>> MySQL 8.0.36
+ CheckNodeGroups::ArbitCheck:
   {
-    ok = true;
+    ok 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= true;
     jamNoBlock();
     unsigned missall = 0;
     unsigned haveall = 0;
-    for (Uint32 i = 0; i < cnoOfNodeGroups; i++)
+    for (Uint32 i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                          initReplicaPtr.i));
+	initReplicaPtr.p->lcpIdStarted
+// RONDB-624 todo: Glue these lines together ^v
+=======
+initReplicaPtr.p->lcpIdStarted
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 0; i < cnoOfNodeGroups; i++)
     {
       jamNoBlock();
       NodeGroupRecordPtr ngPtr;
@@ -26475,7 +31124,7 @@ void Dbdih::execCHECKNODEGROUPSREQ(Signal* signal)
       {
 	jamNoBlock();
 	missall++;
-      }//if
+      }  //if
       if (use_before_fail_mask)
       {
         if (all_up_in_nodegroup)
@@ -26631,8 +31280,7 @@ Dbdih::makePrnList(ReadNodesConf * readNodes, Uint32 nodeArray[])
     nodePtr.i = nodeArray[i];
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
     initNodeRecord(nodePtr);
-    if (readNodes->inactiveNodes.get(nodePtr.i) == false)
-    {
+    if (readNodes->inactiveNodes.get(nodePtr.i) == false) {
       jam();
       nodePtr.p->nodeStatus = NodeRecord::ALIVE;
       DEB_NODE_STATUS(("Node[%u].nodeStatus = ALIVE, line: %u",
@@ -26677,8 +31325,7 @@ void Dbdih::newCrashedReplica(ReplicaRecordPtr ncrReplicaPtr)
               NDBD_EXIT_MAX_CRASHED_REPLICAS);
 
   if (noCrashedReplicas > 0 &&
-      ncrReplicaPtr.p->replicaLastGci[noCrashedReplicas - 1] == lastGCI)
-  {
+      ncrReplicaPtr.p->replicaLastGci[noCrashedReplicas - 1] == lastGCI) {
     jam();
     /**
      * Don't add another redo-interval, that already exist
@@ -26689,9 +31336,33 @@ void Dbdih::newCrashedReplica(ReplicaRecordPtr ncrReplicaPtr)
     ncrReplicaPtr.p->replicaLastGci[ncrReplicaPtr.p->noCrashedReplicas] =
       ZINIT_REPLICA_LAST_GCI;
   }
-  else if (ncrReplicaPtr.p->createGci[noCrashedReplicas] <= lastGCI)
+  else if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(ncrReplicaPtr.p->createGci[noCrashedReplicas]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+BaseString::snprintf
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BaseString::snprintf(
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ <= lastGCI)
   {
-    jam();
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(buf,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  buf,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ jam();
     ncrReplicaPtr.p->replicaLastGci[ncrReplicaPtr.p->noCrashedReplicas] =
       lastGCI;
     ncrReplicaPtr.p->noCrashedReplicas = ncrReplicaPtr.p->noCrashedReplicas + 1;
@@ -26711,8 +31382,51 @@ void Dbdih::newCrashedReplica(ReplicaRecordPtr ncrReplicaPtr)
      *   GCP_SAVEREF (which makes SYSFILE->lastCompletedGCI[nodeId] be left
      *   untouched)
      *
-     * I.e crash during node-restart
-     */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::execCHECKNODEGROUPSREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execCHECKNODEGROUPSREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+I.e
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ crash during node-restart
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CheckNodeGroups*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CheckNodeGroups
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sd
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*sd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  */
     ncrReplicaPtr.p->createGci[noCrashedReplicas] = ZINIT_CREATE_GCI;
   }
   
@@ -26769,11 +31483,57 @@ void Dbdih::openFileRo(Signal* signal, FileRecordPtr filePtr)
   req->userPointer = filePtr.i;
   req->fileNumber[0] = filePtr.p->fileName[0];
   req->fileNumber[1] = filePtr.p->fileName[1];
-  req->fileNumber[2] = filePtr.p->fileName[2];
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ j++)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ j++) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  req->fileNumber[2] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+filePtr.p->fileName[2]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  {
+	jamNoBlock()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      jamNoBlock()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   req->fileNumber[3] = filePtr.p->fileName[3];
-  req->fileFlags = FsOpenReq::OM_READONLY;
+  req->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fileFlags = FsOpenReq::OM_READONLY;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+mask.get(nodeId))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+mask.get(nodeId)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   req->page_size = 0;
-  req->file_size_hi = UINT32_MAX;
+  req->file_size_hi = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+UINT32_MAX;
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   req->file_size_lo = UINT32_MAX;
   req->auto_sync_size = 0;
   sendSignal(NDBFS_REF, GSN_FSOPENREQ, signal, FsOpenReq::SignalLength, JBA);
@@ -26789,9 +31549,34 @@ void Dbdih::packCrashedReplicas(ReplicaRecordPtr replicaPtr)
   ndbrequire(replicaPtr.p->noCrashedReplicas <= MAX_CRASHED_REPLICAS);
   for (Uint32 i = 0; i < replicaPtr.p->noCrashedReplicas; i++) {
     jam();
-    replicaPtr.p->createGci[i] = replicaPtr.p->createGci[i + 1];
-    replicaPtr.p->replicaLastGci[i] = replicaPtr.p->replicaLastGci[i + 1];
-  }//for
+    replicaPtr.p->createGci[i] = replicaPtr.p->createGci[i + 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1];
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    replicaPtr.p->replicaLastGci[i] = replicaPtr.p->replicaLastGci[i 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	jamNoBlock();
+	missall+
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    jamNoBlock();
+          missall+
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
++ 1];
+  }  //for
   replicaPtr.p->noCrashedReplicas--;
   replicaPtr.p->createGci[replicaPtr.p->noCrashedReplicas + 1] =
     ZINIT_CREATE_GCI;
@@ -26800,15 +31585,66 @@ void Dbdih::packCrashedReplicas(ReplicaRecordPtr replicaPtr)
 }//Dbdih::packCrashedReplicas()
 
 void
-Dbdih::mergeCrashedReplicas(ReplicaRecordPtr replicaPtr)
+Dbdih::mergeCrashedReplicas(ReplicaRecordPtr replicaPtr) {
+<<<<<<< RonDB // RONDB-624 todo
 {
+||||||| Common ancestor
+        {
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   /**
    * merge adjacent redo-intervals
-   */
-  jam();
-  jamLine(Uint16(replicaPtr.p->noCrashedReplicas));
-  for (Uint32 i = replicaPtr.p->noCrashedReplicas; i > 0; i--)
-  {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ jam();
+ } 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jamLine(Uint16(replicaPtr.p->noCrashedReplicas));
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  }
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ // if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  for (Uint32 i = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+replicaPtr.p->noCrashedReplicas; i >
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 0; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i--)
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ else {
     if (replicaPtr.p->createGci[i] == 1 + replicaPtr.p->replicaLastGci[i-1])
     {
       jam();
@@ -26816,16 +31652,25 @@ Dbdih::mergeCrashedReplicas(ReplicaRecordPtr replicaPtr)
       replicaPtr.p->createGci[i] = ZINIT_CREATE_GCI;
       replicaPtr.p->replicaLastGci[i] = ZINIT_REPLICA_LAST_GCI;
       replicaPtr.p->noCrashedReplicas--;
-    }
-    else
+      } else
     {
       jam();
       break;
-    }
-  }
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
 }
 
 void Dbdih::prepareReplicas(FragmentstorePtr fragPtr)
+||||||| Common ancestor
+  else
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ } else 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 {
   ReplicaRecordPtr prReplicaPtr;
   Uint64 prevReplica = RNIL64;
@@ -26843,12 +31688,44 @@ void Dbdih::prepareReplicas(FragmentstorePtr fragPtr)
     prReplicaPtr.i = prReplicaPtr.p->nextPool;
   }//while
   /* --------------------------------------------------------------------- */
-  /*       LIST OF STORED REPLICAS WILL BE EMPTY NOW.                      */
+  /*       LIST OF STORED REPLICAS WILL BE EMPTY NOW.               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DEB_MULTI_TRP(("Node %u is in same node group",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  DEB_MULTI_TRP(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   /* --------------------------------------------------------------------- */
   if (prevReplica != RNIL64) {
     prReplicaPtr.i = prevReplica;
-    ndbrequire(c_replicaRecordPool.getPtr(prReplicaPtr));
-    prReplicaPtr.p->nextPool = fragPtr.p->oldStoredReplicas;
+ ("Node %u is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(c_replicaRecordPool.getPtr(prReplicaPtr));
+||||||| Common ancestor
+=======
+in
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ same node 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ prReplicaPtr.p->nextPool =
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+group",
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ fragPtr.p->oldStoredReplicas;
     fragPtr.p->oldStoredReplicas = fragPtr.p->storedReplicas;
     fragPtr.p->storedReplicas = RNIL64;
     fragPtr.p->noOldStoredReplicas += fragPtr.p->noStoredReplicas;
@@ -26883,7 +31760,10 @@ Uint32 Dbdih::readPageWord(RWFragment* rf)
     jam();
     ndbrequire(rf->wordIndex == 2048);
     rf->pageIndex++;
-    ndbrequire(rf->pageIndex < NDB_ARRAY_SIZE(rf->rwfTabPtr.p->pageRef));
+    ndbrequire(rf->pageIndex < 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NDB_ARRAY_SIZE(rf->rwfTabPtr.p->pageRef));
     rf->rwfPageptr.i = rf->rwfTabPtr.p->pageRef[rf->pageIndex];
     ptrCheckGuard(rf->rwfPageptr, cpageFileSize, pageRecord);
     rf->wordIndex = 32;
@@ -26893,7 +31773,25 @@ Uint32 Dbdih::readPageWord(RWFragment* rf)
   return dataWord;
 }//Dbdih::readPageWord()
 
-void Dbdih::readReplica(RWFragment* rf, ReplicaRecordPtr readReplicaPtr) 
+void Dbdih::readReplica(RWFragment*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cnoReplicas,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ rf, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ReplicaRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+cnoReplicas,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ readReplicaPtr) 
 {
   Uint32 i;
   readReplicaPtr.p->procNode = readPageWord(rf);
@@ -26930,7 +31828,25 @@ void Dbdih::readReplica(RWFragment* rf, ReplicaRecordPtr readReplicaPtr)
 
 /**
  * This method is useful when we read the table distribution information from
- * the master node. In this case with the new PAUSE LCP protocol we need to
+ * the master 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal,
+>>>>>>> MySQL 8.0.36
+ In this case with the new PAUSE LCP protocol we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+need to
+||||||| Common ancestor
+signal,
+	   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
  * perform the functionality of the initLcpLab while copying the table to
  * ensure that we're a full DIH participant in the LCP when the copying of
  * the meta data has been completed.
@@ -26938,8 +31854,19 @@ void Dbdih::readReplica(RWFragment* rf, ReplicaRecordPtr readReplicaPtr)
  * For all other cases the tabLcpStatus is TLS_COMPLETED and thus the method
  * will be ignored.
  */
-void Dbdih::updateLcpInfo(TabRecord *regTabPtr,
-                          Fragmentstore *regFragPtr,
+void Dbdih::updateLcpInfo(TabRecord *regTabPtr, Uint32 numOfNodeGroups,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32 numOfNodeGroups,
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  Fragmentstore *regFragPtr,
                           ReplicaRecord *regReplicaPtr)
 {
   if (regTabPtr->tabLcpStatus == TabRecord::TLS_ACTIVE)
@@ -27085,7 +32012,7 @@ void Dbdih::releaseTabPages(Uint32 tableId)
     releasePage(tabPtr.p->pageRef[i]);
   }//for
   tabPtr.p->noPages = 0;
-}//Dbdih::releaseTabPages()
+}  // Dbdih::releaseTabPages()
 
 /*************************************************************************/
 /*       REMOVE NODE FROM SET OF ALIVE NODES.                            */
@@ -27112,7 +32039,7 @@ void Dbdih::removeAlive(NodeRecordPtr removeNodePtr)
       nodePtr.i = nodePtr.p->nextNode;
     }//if
   } while (1);
-}//Dbdih::removeAlive()
+}  // Dbdih::removeAlive()
 
 /*************************************************************************/
 /*       REMOVE NODE FROM SET OF DEAD NODES.                             */
@@ -27163,7 +32090,7 @@ void Dbdih::removeNodeFromStored(Uint32 nodeId,
   removeStoredReplica(fragPtr, replicatePtr);
   linkOldStoredReplica(fragPtr, replicatePtr);
   ndbrequire(fragPtr.p->storedReplicas != RNIL64);
-}//Dbdih::removeNodeFromStored()
+}  // Dbdih::removeNodeFromStored()
 
 /*************************************************************************/
 /*       REMOVE ANY OLD CRASHED REPLICAS THAT ARE NOT RESTORABLE ANY MORE*/
@@ -27234,8 +32161,8 @@ void Dbdih::removeOldStoredReplica(FragmentstorePtr fragPtr,
       rosTmpReplicaPtr.i = rosTmpReplicaPtr.p->nextPool;
     }//if
     rosPrevReplicaPtr.p->nextPool = replicatePtr.p->nextPool;
-  }//if
-}//Dbdih::removeOldStoredReplica()
+  }  // if
+}  // Dbdih::removeOldStoredReplica()
 
 void Dbdih::removeStoredReplica(FragmentstorePtr fragPtr,
                                 ReplicaRecordPtr replicatePtr)
@@ -27317,9 +32244,34 @@ Dbdih::setup_create_replica(FragmentstorePtr fragPtr,
    * 1) Cluster crashes
    * 2) Node 2 performs system restart on its own.
    * 3) Node 2 runs for a few GCIs and then crashes.
-   * 4) Node 1 and Node 2 performs system restart.
+   * 4) Node 1 and Node 2 performs 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+system
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::readReplicas(RWFragment*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::readReplicas(RWFragment
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+restart.
    *
    * If we come here as part of 4) and we grab a local checkpoint that is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+rf,
+                         TabRecord *regTabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rf, TabRecord *regTabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    * newer than our last completed GCI, then we could restore data which
    * was overwritten by the restart performed by the Node 2 on its own
    * and its running afterwards.
@@ -27337,7 +32289,30 @@ Dbdih::setup_create_replica(FragmentstorePtr fragPtr,
    * to use a more recent local checkpoint in this case.
    *
    * The fact is however that when we come here we have no way of
-   * finding out which of those two scenarios that have happened.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::readRestorableGci(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::readRestorableGci(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+finding
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, FileRecordPtr filePtr) 
+{
+=======
+*signal, FileRecordPtr filePtr) {
+>>>>>>> MySQL 8.0.36
+ out which of those two scenarios that have happened.
    * So the only safe manner of proceeding here is to not use local
    * checkpoints that are too new.
    *
@@ -27358,7 +32333,51 @@ Dbdih::setup_create_replica(FragmentstorePtr fragPtr,
     /* WE COULD NOT FIND ANY LOCAL CHECKPOINT. THE FRAGMENT THUS DO NOT*/
     /* CONTAIN ANY VALID LOCAL CHECKPOINT. IT DOES HOWEVER CONTAIN A   */
     /* VALID FRAGMENT LOG. THUS BY FIRST CREATING THE FRAGMENT AND THEN*/
-    /* EXECUTING THE FRAGMENT LOG WE CAN CREATE THE FRAGMENT AS        */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::readTabfile(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::readTabfile(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ /*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TabRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TabRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+EXECUTING THE FRAGMENT LOG WE CAN CREATE THE FRAGMENT AS
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tab,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tab,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        */
     /* DESIRED. THIS SHOULD ONLY OCCUR AFTER CREATING A FRAGMENT.      */
     /*                                                                 */
     /* TO INDICATE THAT NO LOCAL CHECKPOINT IS TO BE USED WE SET THE   */
@@ -27389,8 +32408,7 @@ Dbdih::setup_create_replica(FragmentstorePtr fragPtr,
   return findLogNodes(createReplicaPtrP, fragPtr, startGci, stopGci);
 }			    
 
-void Dbdih::searchStoredReplicas(FragmentstorePtr fragPtr) 
-{
+void Dbdih::searchStoredReplicas(FragmentstorePtr fragPtr) {
   Uint64 nextReplicaPtrI;
   ReplicaRecordPtr replicaPtr;
 
@@ -27416,8 +32434,18 @@ void Dbdih::searchStoredReplicas(FragmentstorePtr fragPtr)
 	/* ----------------------------------------------------------------- */
 	CreateReplicaRecordPtr createReplicaPtr;
 	createReplicaPtr.i = cnoOfCreateReplicas;
-	ptrCheckGuard(createReplicaPtr, 4, createReplicaRecord);
+	ptrCheckGuard(createReplicaPtr, 4,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ createReplicaRecord);
 	cnoOfCreateReplicas++;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ FragmentstorePtr fragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 	
 	/**
 	 * Should have been checked in resetReplicaSr
@@ -27429,14 +32457,49 @@ void Dbdih::searchStoredReplicas(FragmentstorePtr fragPtr)
       }
       default:
         jam();
-        /**
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FragmentstorePtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ReplicaRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+replicatePtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
          * The list of stored replicas was set up in resetReplicaSr, nothing
-         * should have changed since then.
-         */
+         * should have changed 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+since then.
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ReplicaRecordPtr replicatePtr,
+				 bool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        */
         ndbabort();
         /*empty*/;
         break;
-      }//switch
+      }  //switch
     }
     replicaPtr.i = nextReplicaPtrI;
   }//while
@@ -27464,8 +32527,7 @@ void Dbdih::seizeFile(FileRecordPtr& filePtr)
 /*       MODULE: FIND THE START GCI AND LOCAL CHECKPOINT TO USE.         */
 /*************************************************************************/
 void Dbdih::sendStartFragreq(Signal* signal, 
-			     TabRecordPtr tabPtr, Uint32 fragId) 
-{
+			     TabRecordPtr tabPtr, Uint32 fragId) {
   CreateReplicaRecordPtr replicaPtr;
   for (replicaPtr.i = 0; replicaPtr.i < cnoOfCreateReplicas; replicaPtr.i++) {
     jam();
@@ -27506,14 +32568,14 @@ void Dbdih::sendStartFragreq(Signal* signal,
       startFragReq->lqhLogNode[i] = replicaPtr.p->logNodeId[i];
       startFragReq->startGci[i] = replicaPtr.p->logStartGci[i];
       startFragReq->lastGci[i] = replicaPtr.p->logStopGci[i];
-    }//for    
+    }  //for    
 
     startFragReq->nodeRestorableGci =
       SYSFILE->lastCompletedGCI[replicaPtr.p->dataNodeId];
     sendSignal(ref, GSN_START_FRAGREQ, signal, 
 	       StartFragReq::SignalLength, JBB);
-  }//for
-}//Dbdih::sendStartFragreq()
+  }  //for
+}  // Dbdih::sendStartFragreq()
 
 /*************************************************************************/
 /*       SET LCP ACTIVE STATUS BEFORE STARTING A LOCAL CHECKPOINT.       */
@@ -27564,8 +32626,20 @@ void Dbdih::setLcpActiveStatusStart(Signal* signal)
         nodePtr.p->activeStatus = Sysfile::NS_ActiveMissed_1;
       }
     }
-    else if (nodePtr.p->activeStatus == Sysfile::NS_Configured)
-    {
+    else if (nodePtr.p->activeStatus 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== Sysfile::NS_Configured)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+> lastCompletedGCI)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        lastCompletedGCI) {
       jam();
       continue;
     }
@@ -27575,7 +32649,7 @@ void Dbdih::setLcpActiveStatusStart(Signal* signal)
       nodePtr.p->activeStatus = Sysfile::NS_ActiveMissed_1;
     }
   }
-}//Dbdih::setLcpActiveStatusStart()
+}  // Dbdih::setLcpActiveStatusStart()
 
 /*************************************************************************/
 /*       SET LCP ACTIVE STATUS AT THE END OF A LOCAL CHECKPOINT.        */
@@ -27584,7 +32658,31 @@ void Dbdih::setLcpActiveStatusEnd(Signal* signal)
 {
   NodeRecordPtr nodePtr;
 
-  for (nodePtr.i = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CreateReplicaRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateReplicaRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+for (nodePtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+createReplicaPtrP,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*createReplicaPtrP,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 1; nodePtr.i <= m_max_node_id; nodePtr.i++)
   {
     jam();
     ptrAss(nodePtr, nodeRecord);
@@ -27739,20 +32837,128 @@ void Dbdih::setNodeGroups()
       break;
     case Sysfile::NS_NotDefined:
     case Sysfile::NS_Configured:
-      jam();
-      sngNodeptr.p->nodeGroup = ZNIL;
-      DEB_NODE_STATUS(("node[%u].nodeGroup = ZNIL, line: %u",
-                       sngNodeptr.i, __LINE__));
-      set_node_group_id(sngNodeptr.i, ZNIL);
-      break;
-    default:
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+----------------------------------------------------------------- */
+	/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+-----------------------------------------------------------------
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+||||||| Common ancestor
+THE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CREATE REPLICA
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sngNodeptr.p->nodeGroup
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+USED
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FOR
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZNIL;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SENDING*/
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ DEB_NODE_STATUS(("node[%u].nodeGroup =
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+START_FRAGREQ.
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ ZNIL, line: %u",
+   /*   INITIALISE THE CREATE REPLICA STRUCTURE THAT IS USED FOR
+         sngNodeptr.i, __LINE__));
+ * SENDING*/
+    set_node_group_id(sngNodeptr.i, ZNIL);
+     /*  break;
+ TO LQH START_FRAGREQ. default:
       ndbabort();
       return;
-    }//switch
-  }//for
-  /*
-   * If setNodeGroups was called when completing drop nodegroup and the dropped
-   * nodegroup was the one referred to by c_nextNodeGroup and that was the last
+  */
+        }//switch
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}//for
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+/*
+   * If setNodeGroups was called when completing drop nodegroup 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+and
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*/
+>>>>>>> MySQL 8.0.36
+ the dropped
+   * nodegroup was the one 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+referred to by c_nextNodeGroup and that was
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      */
+	/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ the last
    * nodegroup we wrap to use the first nodegroup as the next.
    * If the dropped nodegroup was in the middle we assume that the new
    * nodegroup at that position is the nodegroup that would been next after
@@ -27796,12 +33002,36 @@ void Dbdih::setNodeGroups()
     if (nodeId != getOwnNodeId())
     {
       jam();
-      ndbrequire(nodeId != 0 && nodeId < MAX_NODES);
+      ndbrequire(nodeId != 0 && nodeId 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::seizeFile(FileRecordPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::seizeFile(FileRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MAX_NODES
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+filePtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&filePtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
       setNeighbourNode(nodeId);
     }
   }
   endChangeNeighbourNode();
-}//Dbdih::setNodeGroups()
+}  // Dbdih::setNodeGroups()
 
 /*************************************************************************/
 /* SET THE RESTART INFO BITS BASED ON THE NODES ACTIVE STATUS.           */
@@ -27835,10 +33065,52 @@ void Dbdih::setNodeRestartInfoBits(Signal * signal)
       tsnrNodeActiveStatus = Sysfile::NS_ActiveMissed_1;
       break;
     case Sysfile::NS_ActiveMissed_2:
-      jam();
-      tsnrNodeActiveStatus = Sysfile::NS_ActiveMissed_2;
-      break;
-    case Sysfile::NS_TakeOver:
+      jam(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    tsnrNodeActiveStatus = Sysfile::NS_ActiveMissed_2;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+TabRecordPtr tabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+break;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   case Sysfile::NS_TakeOver:
       jam();
       tsnrNodeActiveStatus = Sysfile::NS_TakeOver;
       break;
@@ -27894,7 +33166,35 @@ void Dbdih::setNodeRestartInfoBits(Signal * signal)
       ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
       all.set(nodePtr.i);
       nodePtr.i = nodePtr.p->nextNode;
-    } while (nodePtr.i != RNIL);
+    }
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ while
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+//for 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ (nodePtr.i 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL);
+||||||| Common ancestor
+=======
+for
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
 
     NodeReceiverGroup rg(DBDIH, all);
@@ -27902,13 +33202,12 @@ void Dbdih::setNodeRestartInfoBits(Signal * signal)
     sendSignal(rg, GSN_NDB_TAMPER, signal,  1, JBA);
   }
 #endif
-}//Dbdih::setNodeRestartInfoBits()
+}  // Dbdih::setNodeRestartInfoBits()
 
 /*************************************************************************/
 /*       START THE GLOBAL CHECKPOINT PROTOCOL IN MASTER AT START-UP      */
 /*************************************************************************/
-void Dbdih::startGcp(Signal* signal) 
-{
+void Dbdih::startGcp(Signal *signal) {
   signal->theData[0] = DihContinueB::ZSTART_GCP;
   sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
 
@@ -27962,8 +33261,7 @@ void Dbdih::updateNodeInfo(Signal *signal, FragmentstorePtr fragPtr)
     ndbrequire(c_replicaRecordPool.getPtr(replicatePtr));
     ndbrequire(index < MAX_REPLICAS);
     Uint32 nodeId = replicatePtr.p->procNode;
-    if (nodeId == primaryNode)
-      found = true;
+    if (nodeId == primaryNode)   found = true;
     fragPtr.p->activeNodes[index] = nodeId;
     index++;
     replicatePtr.i = replicatePtr.p->nextPool;
@@ -27979,7 +33277,30 @@ void Dbdih::updateNodeInfo(Signal *signal, FragmentstorePtr fragPtr)
   {
     jam();
     /**
-     * We have previously calculated the primary nodes to use for
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::setLcpActiveStatusEnd(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::setLcpActiveStatusEnd(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+have
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ previously calculated the primary nodes to use for
      * the fragment to use, use this here.
      */
     prefPrim = primaryNode;
@@ -28018,7 +33339,7 @@ void Dbdih::writeFragment(RWFragment* wf, FragmentstorePtr fragPtr)
   writePageWord(wf, fragPtr.p->noOldStoredReplicas);
   writePageWord(wf, fragPtr.p->distributionKey);
   writePageWord(wf, fragPtr.p->m_log_part_id);
-}//Dbdih::writeFragment()
+}  // Dbdih::writeFragment()
 
 void Dbdih::writePageWord(RWFragment* wf, Uint32 dataWord)
 {
@@ -28085,7 +33406,7 @@ void Dbdih::writeReplicas(RWFragment* wf,
 
 void Dbdih::writeRestorableGci(Signal* signal, FileRecordPtr filePtr)
 {
-  jam();
+    jam();
   Uint32 cdata_size_in_words = DIH_CDATA_SIZE;
   int ret = SYSFILE->pack_sysfile_format_v2(cdata, &cdata_size_in_words);
   jamLine((Uint16)ret);
@@ -28109,8 +33430,7 @@ void Dbdih::writeRestorableGci(Signal* signal, FileRecordPtr filePtr)
   req->data.memoryAddress.memoryOffset = 0;
   req->data.memoryAddress.fileOffset = 0;
   req->data.memoryAddress.size = Sysfile::SYSFILE_FILE_SIZE;
-  if (ERROR_INSERTED(7224) && filePtr.i == crestartInfoFile[1])
-  {
+  if (ERROR_INSERTED(7224) && filePtr.i == crestartInfoFile[1]) {
     jam();
     SET_ERROR_INSERT_VALUE(7225);
     sendSignalWithDelay(NDBFS_REF,
@@ -28132,7 +33452,7 @@ void Dbdih::writeRestorableGci(Signal* signal, FileRecordPtr filePtr)
              JBA);
 }//Dbdih::writeRestorableGci()
 
-void Dbdih::writeTabfile(Signal* signal, TabRecord* tab, FileRecordPtr filePtr) 
+void Dbdih::writeTabfile(Signal*signal, TabRecord* tab, FileRecordPtr filePtr) 
 {
   FsReadWriteReq *req = (FsReadWriteReq*)signal->getDataPtrSend();
   req->filePointer = filePtr.p->fileRef;
@@ -28148,8 +33468,7 @@ void Dbdih::writeTabfile(Signal* signal, TabRecord* tab, FileRecordPtr filePtr)
   Uint32 section[1 + NDB_ARRAY_SIZE(tab->pageRef)];
   // .listOfMemPages.fileOffset
   section[0] = 0;
-  for (Uint32 i = 0; i < tab->noPages; i++)
-  {
+  for (Uint32 i = 0; i < tab->noPages; i++) {
     // .listOfMemPages.varIndex[i]
     section[1 + i] = tab->pageRef[i];
   }
@@ -28199,7 +33518,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
         infoEvent("Node = %d has status = %d",
 		  localNodePtr.i, localNodePtr.p->nodeStatus);
       }//if
-    }//for
+    }  //for
   }//if
   
   if (arg == DumpStateOrd::DihPrintFragmentation)
@@ -28209,8 +33528,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     if (signal->getLength() == 1)
     {
       infoEvent("Printing nodegroups --");
-      for (Uint32 i = 0; i<cnoOfNodeGroups; i++)
-      {
+      for (Uint32 i = 0; i<cnoOfNodeGroups; i++)     {
         jam();
         NodeGroupRecordPtr NGPtr;
         NGPtr.i = c_node_groups[i];
@@ -28220,11 +33538,51 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
                   NGPtr.i, NGPtr.p->nodegroupIndex, NGPtr.p->m_ref_count,
                   NGPtr.p->nodeCount,
                   NGPtr.p->nodesInGroup[0], NGPtr.p->nodesInGroup[1], 
-                  NGPtr.p->nodesInGroup[2], NGPtr.p->nodesInGroup[3]);
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::startGcp(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::startGcp(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    NGPtr.p->nodesInGroup[2], NGPtr.p->nodesInGroup[3]);
       }
       infoEvent("Printing fragmentation of all tables --");
     }
-    else if (signal->getLength() == 3)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+Dbdih::startGcpMonitor(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::startGcpMonitor(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  else if (signal->getLength() == 3)
     {
       jam();
       tableid = dumpState->args[1];
@@ -28290,7 +33648,27 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
       return;
     }
 
-    TabRecordPtr tabPtr;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::writeFragment(RWFragment*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::writeFragment(RWFragment
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+wf,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*wf,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  TabRecordPtr tabPtr;
     tabPtr.i = tableid;
     ptrCheckGuard(tabPtr, ctabFileSize, tabRecord);
 
@@ -28305,10 +33683,52 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     Uint32 nodeOrder[MAX_REPLICAS];
     const Uint32 noOfReplicas = extractNodeInfo(jamBuffer(),
                                                 fragPtr.p,
-                                                nodeOrder);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::writePageWord(RWFragment*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::writePageWord(RWFragment
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+wf,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*wf,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                           nodeOrder);
     char buf[100];
     BaseString::snprintf(buf, sizeof(buf), 
-                         " Table %d Fragment %d(%u) LP: %u - ",
+                         " Table %d Fragment %d(%u) LP:
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+writeReplicas(RWFragment*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+writeReplicas(RWFragment
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u - "
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+wf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*wf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                          tabPtr.i, fragid, dihGetInstanceKey(fragPtr),
                          fragPtr.p->m_log_part_id);
 
@@ -28327,8 +33747,28 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     infoEvent("cmasterState = %d", cmasterState);
     infoEvent("cmasterTakeOverNode = %d, ctcCounter = %d",
               cmasterTakeOverNode, c_lcpState.ctcCounter);
-  }//if  
-  if (signal->theData[0] == 7001) {
+  }  //if  
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::writeRestorableGci(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::writeRestorableGci(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if (
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal->theData[0] == 7001) {
     infoEvent("c_lcpState.keepGci = %d",
               c_lcpState.keepGci);
     infoEvent("c_lcpState.lcpStatus = %d, clcpStopGcp = %d",
@@ -28336,7 +33776,29 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
 	      c_lcpState.lcpStopGcp);
     infoEvent("cimmediateLcpStart = %d",
               c_lcpState.immediateLcpStart);
-  }//if  
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}//if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FsReadWriteReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FsReadWriteReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
   if (signal->theData[0] == 7002) {
     infoEvent("cnoOfActiveTables = %d",
               cnoOfActiveTables);
@@ -28364,8 +33826,18 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
               crestartGci);
   }//if  
   if (signal->theData[0] == 7006) {
-    infoEvent("clcpDelay = %d",
-              c_lcpState.clcpDelay);
+    infoEvent("clcpDelay = %d", GSN_NDB_TAMPER,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       c_lcpState.clcpDelay);
+||||||| Common ancestor
+GSN_NDB_TAMPER,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     infoEvent("cmasterNodeId = %d", cmasterNodeId);
     infoEvent("c_nodeStartMaster.startNode = %d, c_nodeStartMaster.wait = %d",
               c_nodeStartMaster.startNode, c_nodeStartMaster.wait);
@@ -28376,8 +33848,51 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
               c_nodeStartMaster.startInfoErrorCode);
     infoEvent("c_nodeStartMaster.blockGcp = %d",
               c_nodeStartMaster.blockGcp);
-  }//if  
-  if (signal->theData[0] == 7008) {
+  }  //if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::writeTabfile(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::writeTabfile(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TabRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TabRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tab,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tab,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (signal->theData[0] == 7008) {
     infoEvent("cfirstDeadNode = %d, cstartPhase = %d, cnoReplicas = %d",
               cfirstDeadNode, cstartPhase, cnoReplicas);
     infoEvent("cwaitLcpSr = %d",cwaitLcpSr);
@@ -28391,8 +33906,58 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
   if (signal->theData[0] == 7010) {
     infoEvent("c_lcpState.lcpStatusUpdatedPlace = %d, cLcpStart = %d",
               c_lcpState.lcpStatusUpdatedPlace, c_lcpState.lcpStart);
-    infoEvent("c_blockCommit = %d, c_blockCommitNo = %d",
-              c_blockCommit, c_blockCommitNo);
+    infoEvent("c_blockCommit = %d, c_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+blockCommitNo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SIG(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SIG(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ %d",
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+warnings
+}//Dbdih::execDEBUG_SIG()
+
+void
+Dbdih::execDUMP_STATE_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+warnings
+}  // Dbdih::execDEBUG_SIG()
+
+void Dbdih::execDUMP_STATE_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+        c_blockCommit, c_blockCommitNo);
   }//if  
   if (signal->theData[0] == 7011){
     infoEvent("c_COPY_GCIREQ_Counter = %s", 
@@ -28402,7 +33967,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     infoEvent("c_UPDATE_FRAG_STATEREQ_Counter = %s", 
 	      c_UPDATE_FRAG_STATEREQ_Counter.getText());
     infoEvent("c_DIH_SWITCH_REPLICA_REQ_Counter = %s", 
-	      c_DIH_SWITCH_REPLICA_REQ_Counter.getText());
+              c_DIH_SWITCH_REPLICA_REQ_Counter.getText());
     infoEvent("c_GCP_COMMIT_Counter = %s", c_GCP_COMMIT_Counter.getText());
     infoEvent("c_GCP_PREPARE_Counter = %s", c_GCP_PREPARE_Counter.getText());
     infoEvent("c_GCP_SAVEREQ_Counter = %s", c_GCP_SAVEREQ_Counter.getText());
@@ -28450,22 +34015,83 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
       if(nodePtr.p->nodeStatus == NodeRecord::ALIVE){
         Uint32 i;
 	for(i = 0; i<nodePtr.p->noOfStartedChkpt; i++){
-	  infoEvent("Node %d: started: table=%d fragment=%d replica=%llu",
+	  infoEvent("Node %d: started: table=%d fragment=%d replica=%llu", NGPtr.i,
 		    nodePtr.i, 
-		    nodePtr.p->startedChkpt[i].tableId,
+		    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodePtr.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         NGPtr.i, NGPtr.
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         NGPtr.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+p->startedChkpt[i].tableId,
 		    nodePtr.p->startedChkpt[i].fragId,
 		    nodePtr.p->startedChkpt[i].replicaPtr);
 	}
 	
-	for(i = 0; i<nodePtr.p->noOfQueuedChkpt; i++){
+	for(i = 0; i<nodePtr.p->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+noOfQueuedChkpt;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+nodeCount,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+nodeCount, NGPtr.p->nodesInGroup[0],
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ i++){
 	  infoEvent("Node %d: queued: table=%d fragment=%d replica=%llu",
 		    nodePtr.i, 
-		    nodePtr.p->queuedChkpt[i].tableId,
-		    nodePtr.p->queuedChkpt[i].fragId,
-		    nodePtr.p->queuedChkpt[i].replicaPtr);
+		    nodePtr.p->queuedChkpt[
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+1
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+].
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tableId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+p->nodesInGroup[1]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+p->nodesInGroup[2]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+		    nodePtr.p->queuedChkpt[
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i].fragId,
+		    nodePtr.p->queuedChkpt[i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+2], NGPtr.p->nodesInGroup[3
+// RONDB-624 todo: Glue these lines together ^v
+=======
+3
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+].replicaPtr);
 	}
-      }
-      else
+      }   else
       {
 #ifdef DEBUG_LCP
         infoEvent("Node(%u)->nodeStatus = %u",
@@ -28518,8 +34144,23 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     warningEvent("gsn: %d block: %s, length: %d theData: %s", 
 		 gsn, getBlockName(block, "UNKNOWN"), length, buf);
 
-    g_eventLogger->warning("-- SENDING CUSTOM SIGNAL --");
-    g_eventLogger->warning("gsn: %d block: %s, length: %d theData: %s", 
+    g_eventLogger->warning("-- SENDING CUSTOM 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SIGNAL --");
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= extractNodeInfo(jamBuffer(),
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    g_eventLogger->warning("gsn: %d block: %s, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+length: %d theData: %s", 
                            gsn, getBlockName(block, "UNKNOWN"), length, buf);
   }
   
@@ -28528,17 +34169,50 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     infoEvent("lcpStatus = %d (update place = %d) ",
 	      c_lcpState.lcpStatus, c_lcpState.lcpStatusUpdatedPlace);
     infoEvent
-      ("lcpStart = %d lcpStopGcp = %d keepGci = %d oldestRestorable = %d",
-       c_lcpState.lcpStart, c_lcpState.lcpStopGcp, 
-       c_lcpState.keepGci, c_lcpState.oldestRestorableGci);
+      ("lcpStart = %d lcpStopGcp = %d
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                        fragPtr.p,
+                                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+extractNodeInfo(jamBuffer(), fragPtr.p,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ keepGci = %d oldestRestorable = %d",
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+BaseString::snprintf(buf, sizeof(buf), 
+=======
+BaseString::snprintf(
+>>>>>>> MySQL 8.0.36
+ c_lcpState.lcpStart, c_lcpState.lcpStopGcp, 
+     buf, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ c_lcpState.keepGci, c_lcpState.oldestRestorableGci);
     
     infoEvent
-      ("immediateLcpStart = %d masterLcpNodeId = %d",
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sizeof(buf),
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ("immediateLcpStart = %d masterLcpNodeId = %d",
        c_lcpState.immediateLcpStart,
        refToNode(c_lcpState.m_masterLcpDihRef));
 
     for (Uint32 i = 0; i<10; i++)
-    {
+ tabPtr.i,
+   {
       infoEvent("%u : status: %u place: %u", i, 
                 c_lcpState.m_saveState[i].m_status,
                 c_lcpState.m_saveState[i].m_place);
@@ -28556,7 +34230,19 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
   if(arg == DumpStateOrd::DihDumpLCPMasterTakeOver){
     infoEvent("-- Node %d LCP MASTER TAKE OVER STATE --", getOwnNodeId());
     infoEvent
-      ("c_lcpMasterTakeOverState.state = %d updatePlace = %d failedNodeId = %d",
+      ("c_lcpMasterTakeOverState.state = %d updatePlace = %d
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+",
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+", cmasterTakeOverNode,
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ failedNodeId = %d",
        c_lcpMasterTakeOverState.state,
        c_lcpMasterTakeOverState.updatePlace,
        c_lcpMasterTakeOverState.failedNodeId);
@@ -28569,8 +34255,28 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
   }
 
   if (signal->theData[0] == 7015)
-  {
-    if (signal->getLength() == 1)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+if
+>>>>>>> MySQL 8.0.36
+  if (signal->getLength() == 1)
     {
       signal->theData[1] = 0;
     }
@@ -28584,11 +34290,32 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
       signal->theData[1] = tableId + 1;
       sendSignal(reference(), GSN_DUMP_STATE_ORD, signal, 2, JBB);
     }
-  }
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+//if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
   if(arg == DumpStateOrd::EnableUndoDelayDataWrite){
     g_eventLogger->info("Dbdih:: delay write of datapages for table = %d", 
-                        dumpState->args[1]);
+ cfirstAliveNode,
+                       dumpState->args[1]);
     // Send this dump to ACC and TUP
     sendSignal(DBACC_REF, GSN_DUMP_STATE_ORD, signal, 2, JBB);
     sendSignal(DBTUP_REF, GSN_DUMP_STATE_ORD, signal, 2, JBB);
@@ -28607,7 +34334,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     for (Uint32 i = 1; i <= m_max_node_id; i++)
       setAllowNodeStart(i, true);
     return;
-  }//if
+  }  //if
   if (signal->theData[0] == DumpStateOrd::DihMinTimeBetweenLCP) {
     // Set time between LCP to min value
     if (signal->getLength() == 2)
@@ -28617,7 +34344,25 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
 	m_ctx.m_config.getOwnConfigIterator();
       ndbrequire(p != 0);
       ndb_mgm_get_int_parameter(p, CFG_DB_LCP_INTERVAL, &tmp);
-      g_eventLogger->info("Reset time between LCP to %u", tmp);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}//if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+if
+>>>>>>> MySQL 8.0.36
+   g_eventLogger->info("Reset time between LCP to %u", tmp);
       c_lcpState.clcpDelay = tmp;
     }
     else
@@ -28625,15 +34370,49 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
       g_eventLogger->info("Set time between LCP to min value");
       c_lcpState.clcpDelay = 0; // TimeBetweenLocalCheckpoints.min
     }
-    return;
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+//if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  return;
   }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   if (signal->theData[0] == DumpStateOrd::DihMaxTimeBetweenLCP) {
     // Set time between LCP to max value
     g_eventLogger->info("Set time between LCP to max value");
     c_lcpState.clcpDelay = 31; // TimeBetweenLocalCheckpoints.max
     return;
   }
-  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+//if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if
   if(arg == 7098){
     if(signal->length() == 3){
       jam();
@@ -28648,8 +34427,30 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
   }
 
   if (arg == DumpStateOrd::DihStartLcpImmediately)
-  {
-    jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ jam();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     if (cmasterNodeId == getOwnNodeId())
     {
       jam();
@@ -28659,9 +34460,28 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
 
     add_lcp_counter(&c_lcpState.ctimer, (1 << 31));
     /**
-     * If sent from local LQH, forward to master
+ c_blockCommit,
+    * If sent from local LQH, forward to master
      */
-    if (refToMain(signal->getSendersBlockRef()) == DBLQH)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+if
+>>>>>>> MySQL 8.0.36
+  if (refToMain(signal->getSendersBlockRef()) == DBLQH)
     {
       jam();
       sendSignal(cmasterdihref, GSN_DUMP_STATE_ORD, signal, 1, JBB);
@@ -28702,14 +34522,15 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     infoEvent
       ("Table %d: TabCopyStatus: %d TabUpdateStatus: %d TabLcpStatus: %d",
        tabPtr.i, 
-       tabPtr.p->tabCopyStatus, 
+       tabPtr.p->tabCopyStatus,
        tabPtr.p->tabUpdateState,
        tabPtr.p->tabLcpStatus);
     
     FragmentstorePtr fragPtr;
     for (Uint32 fid = 0; fid < tabPtr.p->totalfragments; fid++) {
       jam();
-      getFragstore(tabPtr.p, fid, fragPtr);
+      getFragstore(tabPtr.p,
+              fid, fragPtr);
       
       char buf[100], buf2[100];
       BaseString::snprintf(buf, sizeof(buf), " Fragment %d: noLcpReplicas==%d ", 
@@ -28754,20 +34575,86 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
   if (arg == 7023)
   {
     /**
-     * Dump all active TakeOver
-     */
+     * Dump 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+all active
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+nodePtr.i,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ TakeOver
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+nodePtr.p->startedChkpt[i].tableId,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+           nodePtr.i, nodePtr.p->startedChkpt[i].tableId,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     Ptr<TakeOverRecord> ptr;
     ptr.i = signal->theData[1];
     if (signal->getLength() == 1)
     {
       infoEvent("Starting dump all active take-over");
-      c_masterActiveTakeOverList.first(ptr);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+nodePtr.i, 
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+            
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_masterActiveTakeOverList
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+nodePtr.p->queuedChkpt[i]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+nodePtr.i, nodePtr.p->queuedChkpt[i]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.first(ptr);
     }
 
     if (ptr.i == RNIL)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+;
+	}
+=======
+;
+>>>>>>> MySQL 8.0.36
     {
-      infoEvent("Dump all active take-over done");
-      return;
+     }
+ infoEvent("Dump all active take-over 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+done");
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  } else return;
     }
 
     c_masterActiveTakeOverList.getPtr(ptr);
@@ -28779,7 +34666,8 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
               ptr.p->m_senderData);
     infoEvent("slaveState: %u masterState: %u",
               ptr.p->toSlaveStatus, ptr.p->toMasterStatus);
-    infoEvent("restorableGci: %u startGci: %u tab: %u frag: %u src: %u max: %u",
+    infoEvent(
+        "restorableGci: %u startGci: %u tab: %u frag: %u src: %u max: %u",
               ptr.p->restorableGci, ptr.p->startGci, 
               ptr.p->toCurrentTabref, ptr.p->toCurrentFragid,
               ptr.p->toCopyNode, ptr.p->maxPage);
@@ -28802,18 +34690,67 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     g_eventLogger->info("MAX_NDB_PARTITIONS %u", MAX_NDB_PARTITIONS);
     g_eventLogger->info("PACK_REPLICAS_WORDS %u", PACK_REPLICAS_WORDS);
     g_eventLogger->info("PACK_FRAGMENT_WORDS %u", PACK_FRAGMENT_WORDS);
-    g_eventLogger->info("PACK_TABLE_WORDS %u", PACK_TABLE_WORDS);
-    g_eventLogger->info("PACK_TABLE_PAGE_WORDS %u", PACK_TABLE_PAGE_WORDS);
+    g_eventLogger->info("PACK_TABLE_WORDS %u", 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+PACK_TABLE_WORDS);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+gsn,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+g_eventLogger->info
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                       gsn, getBlockName
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                       getBlockName
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+("PACK_TABLE_PAGE_WORDS %u", PACK_TABLE_PAGE_WORDS);
     g_eventLogger->info("PACK_TABLE_PAGES %u", PACK_TABLE_PAGES);
     g_eventLogger->info("ZPAGEREC %u", ZPAGEREC);
     g_eventLogger->info("Total bytes : %lu",
-                        (unsigned long)ZPAGEREC * sizeof(PageRecord));
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+infoEvent
+=======
+infoEvent(
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(unsigned
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+("lcpStart
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  "lcpStart
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ long)ZPAGEREC * sizeof(PageRecord));
     g_eventLogger->info("LCP Tab def write ops inUse %u queued %u",
-                        c_lcpTabDefWritesControl.inUse,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+c_lcpState.keepGci,
+>>>>>>> MySQL 8.0.36
+                c_lcpTabDefWritesControl.inUse,
                         c_lcpTabDefWritesControl.queuedRequests);
 
-    if (getNodeState().startLevel < NodeState::SL_STARTING)
-      return ;
+    if (getNodeState().startLevel < NodeState::SL_STARTING)   return ;
 
     Uint32 freeCount = 0;
     PageRecordPtr tmp;
@@ -28833,7 +34770,34 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
   if (arg == DumpStateOrd::SchemaResourceSnapshot)
   {
     g_eventLogger->info("SchemaResourceSnapshot: allocated_frags: %u"
-                        ", used replicas: %u",
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+infoEvent
+=======
+infoEvent(
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+("c_lcpMasterTakeOverState.state =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  "c_lcpMasterTakeOverState.state =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+%d",
+=======
+"
+        "%d",
+>>>>>>> MySQL 8.0.36
+       ", used replicas: %u",
                         callocated_frags,
                         cnoUsedReplicaRec);
     RSS_OP_SNAPSHOT_SAVE(callocated_frags);
@@ -28842,8 +34806,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     {
       Uint32 cnghash = 0;
       NodeGroupRecordPtr NGPtr;
-      for (Uint32 i = 0; i<cnoOfNodeGroups; i++)
-      {
+      for (Uint32 i = 0; i<cnoOfNodeGroups; i++)   {
         NGPtr.i = c_node_groups[i];
         ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
         cnghash = (cnghash * 33) + NGPtr.p->m_ref_count;
@@ -28866,8 +34829,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     {
       Uint32 cnghash = 0;
       NodeGroupRecordPtr NGPtr;
-      for (Uint32 i = 0; i<cnoOfNodeGroups; i++)
-      {
+      for (Uint32 i = 0; i<cnoOfNodeGroups; i++) {
         NGPtr.i = c_node_groups[i];
         ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
         cnghash = (cnghash * 33) + NGPtr.p->m_ref_count;
@@ -28908,8 +34870,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
       ndbabort();
     }
   }
-  if (arg == DumpStateOrd::DihDisplayPauseState)
-  {
+  if (arg == DumpStateOrd::DihDisplayPauseState) {
     infoEvent("Pause LCP ref: %x, is_lcp_paused %u,"
               " c_dequeue_lcp_rep_ongoing %u",
               cmasterdihref,
@@ -28931,7 +34892,25 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     infoEvent("c_PAUSE_LCP_REQ_Counter: %s",
               c_PAUSE_LCP_REQ_Counter.getText());
     infoEvent("c_FLUSH_LCP_REP_REQ_Counter: %s",
-              c_FLUSH_LCP_REP_REQ_Counter.getText());
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+infoEvent
+=======
+infoEvent(
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_FLUSH_LCP_REP_REQ_Counter.getText());
+||||||| Common ancestor
+("Table %d: TabCopyStatus:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  "Table %d: TabCopyStatus:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     if (isMaster())
     {
       char buf[100];
@@ -28958,9 +34937,44 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     SET_ERROR_INSERT_VALUE2(7216, signal->theData[1]);
     return;
   }
-  DECLARE_DUMP0(DBDIH, 6099, "Start microgcp")
-  {
-    if (isMaster())
+  DECLARE_DUMP0(DBDIH, 6099, "Start microgcp"
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+, buf,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+  buf, num, 
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(isMaster())
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+replicaPtr.p->procNode, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                 num, replicaPtr.p->procNode,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     {
       jam();
       // Invalidating timestamp will force an immediate microGCP
@@ -28982,8 +34996,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
   if (arg == DumpStateOrd::DihSetGcpStopVals)
   {
     jam();
-    if (signal->getLength() != 3)
-    {
+    if (signal->getLength() != 3) {
       jam();
       g_eventLogger->info("Resetting GCP_COMMIT and GCP_SAVE max lag millis");
 #ifdef ERROR_INSERT
@@ -28996,8 +35009,7 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     if (signal->theData[1] == 0)
     {
       g_eventLogger->info("Changing GCP_COMMIT max_lag_millis from %u to %u",
-                          m_gcp_monitor.m_micro_gcp.m_max_lag_ms,
-                          signal->theData[2]);
+                          m_gcp_monitor.m_micro_gcp.m_max_lag_ms,             signal->theData[2]);
       m_gcp_monitor.m_micro_gcp.m_max_lag_ms = signal->theData[2];
 
 #ifdef ERROR_INSERT
@@ -29006,21 +35018,57 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
     }
     else
     {
-      g_eventLogger->info("Changing GCP_SAVE max_lag_millis from %u to %u",
-                          m_gcp_monitor.m_gcp_save.m_max_lag_ms,
-                          signal->theData[2]);
+      g_eventLogger->info("Changing GCP_SAVE max_lag_millis from %u to %u", ptr.p->toSlaveStatus,
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr.p->toSlaveStatus, ptr.p->toMasterStatus);
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ ptr.p->toMasterStatus);
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+            m_gcp_monitor.m_gcp_save.m_max_lag_ms,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr.p->restorableGci, ptr.p->startGci, 
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ptr.p->restorableGci, ptr.p->startGci, ptr.p->toCurrentTabref,
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ signal->theData[2]);
       m_gcp_monitor.m_gcp_save.m_max_lag_ms = signal->theData[2];
 
 #ifdef ERROR_INSERT
-      m_gcp_monitor.m_gcp_save.test_set_max_lag = true;
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr.p->toCurrentTabref, ptr.p->toCurrentFragid,
+             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ptr.p->toCurrentFragid,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  m_gcp_monitor.m_gcp_save.test_set_max_lag = true;
 #endif
     }
     sendINFO_GCP_STOP_TIMER(signal);
     return;
   }
 
-  if (arg == DumpStateOrd::DihStallLcpStart)
-  {
+  if (arg == DumpStateOrd::DihStallLcpStart) {
     jam();
 
     if (signal->getLength() != 2)
@@ -29057,11 +35105,21 @@ Dbdih::execDUMP_STATE_ORD(Signal* signal)
                         m_gcp_monitor.m_savedMaxCommitLag);
     return;
   }
-  if (arg == DumpStateOrd::DihCheckGcpCommitLag)
-  {
+  if (arg == DumpStateOrd::DihCheckGcpCommitLag) {
     jam();
-    g_eventLogger->info("Checking Gcp commit lag (%u) == saved lag (%u)",
-                        m_gcp_monitor.m_micro_gcp.m_max_lag_ms,
+    g_eventLogger->info(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"Checking Gcp commit lag (%u) ==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"SchemaResourceSnapshot: remainingfrags: %u"
+=======
+
+>>>>>>> MySQL 8.0.36
+ saved lag (%u)",
+     "SchemaResourceSnapshot: remainingfrags: %u"
+           m_gcp_monitor.m_micro_gcp.m_max_lag_ms,
                         m_gcp_monitor.m_savedMaxCommitLag);
     ndbrequire(m_gcp_monitor.m_micro_gcp.m_max_lag_ms ==
                m_gcp_monitor.m_savedMaxCommitLag);
@@ -29095,10 +35153,41 @@ Dbdih::execPREP_DROP_TAB_REQ(Signal* signal){
       jam();
       err = PrepDropTabRef::NoSuchTable;
       break;
-    case TabRecord::TS_DROPPING:
-      ok = true;
-      jam();
-      err = PrepDropTabRef::PrepDropInProgress;
+    case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TabRecord::TS_DROPPING:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g_eventLogger->info("SchemaResourceCheckLeak: remainingfrags: %u"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+g_eventLogger->info(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      ok = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
+||||||| Common ancestor
+=======
+"SchemaResourceCheckLeak:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ remainingfrags: 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+%u"
+>>>>>>> MySQL 8.0.36
+    err = PrepDropTabRef::PrepDropInProgress;
       break;
     case TabRecord::TS_CREATING:
       jam();
@@ -29156,8 +35245,7 @@ Dbdih::waitDropTabWritingToFile(Signal* signal, TabRecordPtr tabPtr){
     return;
   }
 
-  if (tabPtr.p->tabUpdateState != TabRecord::US_IDLE)
-  {
+  if (tabPtr.p->tabUpdateState != TabRecord::US_IDLE) {
     jam();
     signal->theData[0] = DihContinueB::WAIT_DROP_TAB_WRITING_TO_FILE;
     signal->theData[1] = tabPtr.i;
@@ -29386,9 +35474,9 @@ void Dbdih::execDIH_SWITCH_REPLICA_REQ(Signal* signal)
   conf->senderNode = cownNodeId;
   sendSignal(senderRef, GSN_DIH_SWITCH_REPLICA_CONF, signal,
              DihSwitchReplicaConf::SignalLength, JBB);
-}//Dbdih::execDIH_SWITCH_REPLICA_REQ()
+}  // Dbdih::execDIH_SWITCH_REPLICA_REQ()
 
-void Dbdih::execDIH_SWITCH_REPLICA_CONF(Signal* signal)
+void Dbdih::execDIH_SWITCH_REPLICA_CONF(Signal *signal)
 {
   jamEntry();
   /**
@@ -29412,7 +35500,7 @@ void Dbdih::execDIH_SWITCH_REPLICA_REF(Signal* signal)
 
 void Dbdih::switchReplicaReply(Signal* signal, 
 			       NodeId nodeId){
-  jam();
+    jam();
   receiveLoopMacro(DIH_SWITCH_REPLICA_REQ, nodeId);
   //------------------------------------------------------
   // We have received all responses from the nodes. Thus
@@ -29420,7 +35508,7 @@ void Dbdih::switchReplicaReply(Signal* signal,
   // with the next fragment.
   //------------------------------------------------------
   if(c_stopPermMaster.returnValue != 0){
-    jam();
+      jam();
     c_switchReplicas.tableId = ctabFileSize + 1;
   }//if
   c_switchReplicas.fragNo++;
@@ -29438,7 +35526,31 @@ Dbdih::switchReplica(Signal* signal,
 		     Uint32 tableId, 
 		     Uint32 fragNo){
   jam();
-  DihSwitchReplicaReq* const req = (DihSwitchReplicaReq*)&signal->theData[0];
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DihSwitchReplicaReq*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  PrepDropTabRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  PrepDropTabRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const req
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = (DihSwitchReplicaReq*)&signal->theData[0];
 
   const Uint32 RT_BREAK = 64;
   
@@ -29450,13 +35562,89 @@ Dbdih::switchReplica(Signal* signal,
       StopPermRef*  const ref  = (StopPermRef*)&signal->theData[0];
       /**
        * Finished with all tables
-       */
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+PrepDropTabConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PrepDropTabConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  */
       if(c_stopPermMaster.returnValue == 0) {
 	jam();
 	conf->senderData = c_stopPermMaster.clientData;
-	sendSignal(c_stopPermMaster.clientRef, GSN_STOP_PERM_CONF, 
-		   signal, 1, JBB);
-      } else {
+	sendSignal(c_stopPermMaster.clientRef, GSN_STOP_PERM_CONF,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ signal,
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+		    1, JBB);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Dbdih::waitDropTabWritingToFile(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Dbdih::waitDropTabWritingToFile(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtr){
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tabPtr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+{
+>>>>>>> MySQL 8.0.36
+ } else {
         jam();
         ref->senderData = c_stopPermMaster.clientData;
         ref->errorCode  = c_stopPermMaster.returnValue;
@@ -29481,18 +35669,62 @@ Dbdih::switchReplica(Signal* signal,
     
     if (tabPtr.p->tabStatus != TabRecord::TS_ACTIVE) {
       jam();
-      tableId++;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Dbdih::checkDropTabComplete(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Dbdih::checkDropTabComplete(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     tableId++;
       fragNo = 0;
       continue;
     }//if
-    if (fragNo >= tabPtr.p->totalfragments) {
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+void
+Dbdih::execNDB_TAMPER(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+void Dbdih::execNDB_TAMPER(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  if (fragNo >= tabPtr.p->totalfragments) {
       jam();
       tableId++;
       fragNo = 0;
       continue;
-    }//if    
-    if (fragNo == 0)
-    {
+    }  // if    
+    if (fragNo == 0)   {
       jam();
       /**
        * Calculate the new primary after switch replica is
@@ -29502,13 +35734,138 @@ Dbdih::switchReplica(Signal* signal,
        * after a controlled stop of a node.
        */
       calc_primary_replicas(tabPtr.p,
-                            0,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+BlockCommitOrd*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BlockCommitOrd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execUNBLOCK_COMMIT_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execUNBLOCK_COMMIT_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+UnblockCommitOrd*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UnblockCommitOrd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      0,
                             tabPtr.p->totalfragments,
                             __LINE__);
     }
-    FragmentstorePtr fragPtr;
-    getFragstore(tabPtr.p, fragNo, fragPtr);
-    
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void Dbdih::execSTOP_PERM_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Dbdih::execSTOP_PERM_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal){
+
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ FragmentstorePtr fragPtr;
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  
+  StopPermReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+  StopPermReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ getFragstore(tabPtr.p, fragNo, fragPtr);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+StopPermRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+StopPermRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
     Uint32 oldOrder[MAX_REPLICAS];
     const Uint32 noOfReplicas = extractNodeInfo(jamBuffer(),
                                                 fragPtr.p,
@@ -29556,19 +35913,123 @@ Dbdih::switchReplica(Signal* signal,
       primaryNode = fragPtr.p->primaryNode;
       bool found = false;
       for (Uint32 i = 0; i < noOfReplicas; i++)
-      {
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+void
+Dbdih::switch_primary_stop_node(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+void Dbdih::switch_primary_stop_node(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     {
         if (oldOrder[i] == fragPtr.p->primaryNode)
         {
-          found = true;
+          found 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::execSTOP_PERM_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execSTOP_PERM_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
           break;
         }
       }
-      ndbrequire(found == true);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execSTOP_PERM_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execSTOP_PERM_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+    ndbrequire(found == true);
       ndbrequire(fragPtr.p->primaryNode != nodeId);
     }
     fragPtr.p->primaryNode = 0;
-    req->tableId = tableId;
-    req->fragNo = fragNo;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execDIH_SWITCH_REPLICA_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execDIH_SWITCH_REPLICA_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  req->tableId = tableId;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DihSwitchReplicaReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihSwitchReplicaReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ req->fragNo = fragNo;
     req->noOfReplicas = noOfReplicas;
     req->newNodeOrder[0] = primaryNode;
     Uint32 index = 0;
@@ -29582,7 +36043,7 @@ Dbdih::switchReplica(Signal* signal,
       }
       index++;
       req->newNodeOrder[index] = oldOrder[i];
-    }//for
+    }  //for
     ndbrequire(index == (noOfReplicas - 1));
     req->senderRef = reference();
     
@@ -29622,13 +36083,25 @@ void Dbdih::execSTOP_ME_REQ(Signal* signal)
   }
   if (nodeId != getOwnNodeId()) {
     jam();
-    StopMeConf * const stopMeConf = (StopMeConf *)&signal->theData[0];
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+StopMeConf *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DihSwitchReplicaRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihSwitchReplicaRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *const stopMeConf = (StopMeConf *)&signal->theData[0];
     stopMeConf->senderData = senderData;
     stopMeConf->senderRef  = reference();
     sendSignal(senderRef, GSN_STOP_ME_CONF, signal, 
 	       StopMeConf::SignalLength, JBB);
     return;
-  }//if
+  }  // if
   
   /**
    * Local signal
@@ -29647,26 +36120,71 @@ void Dbdih::execSTOP_ME_REQ(Signal* signal)
   /**
    * Send conf to self
    */
-  StopMeConf * const stopMeConf = (StopMeConf *)&signal->theData[0];
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+StopMeConf *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DihSwitchReplicaConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihSwitchReplicaConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *const stopMeConf =
+      (StopMeConf *)&signal->theData[0];
   stopMeConf->senderData = senderData;
   stopMeConf->senderRef  = reference();
   sendSignal(reference(), GSN_STOP_ME_CONF, signal, 
 	     StopMeConf::SignalLength, JBB);
-}//Dbdih::execSTOP_ME_REQ()
+}  // Dbdih::execSTOP_ME_REQ()
 
-void Dbdih::execSTOP_ME_REF(Signal* signal)
-{
+void Dbdih::execSTOP_ME_REF(Signal *signal) {
   ndbabort();
 }
 
-void Dbdih::execSTOP_ME_CONF(Signal* signal)
-{
+void Dbdih::execSTOP_ME_CONF(Signal *signal) {
   jamEntry();
-  StopMeConf * const stopMeConf = (StopMeConf *)&signal->theData[0];
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+StopMeConf *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DihSwitchReplicaRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihSwitchReplicaRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *const stopMeConf = (StopMeConf *)&signal->theData[0];
   
   const Uint32 senderRef  = stopMeConf->senderRef;
   const Uint32 senderData = stopMeConf->senderData;
-  const Uint32 nodeId     = refToNode(senderRef);
+  const Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::switchReplicaReply(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::switchReplicaReply(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    = refToNode(senderRef);
 
   ndbrequire(c_stopMe.clientRef != 0);
   ndbrequire(c_stopMe.clientData == senderData);
@@ -29682,12 +36200,72 @@ void Dbdih::execSTOP_ME_CONF(Signal* signal)
   sendSignal(c_stopMe.clientRef, GSN_STOP_ME_CONF, signal,
 	     StopMeConf::SignalLength, JBB);
   c_stopMe.clientRef = 0;
-}//Dbdih::execSTOP_ME_CONF()
+}  // Dbdih::execSTOP_ME_CONF()
 
-void
-Dbdih::sendREDO_STATE_REP_to_all(Signal *signal,
-                                 Uint32 block,
-                                 bool send_to_all)
+void Dbdih::sendREDO_STATE_REP_to_all(Signal *signal,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ Uint32 nodeId, Uint32 tableId,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32 nodeId,
+		 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DihSwitchReplicaReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihSwitchReplicaReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              Uint32 block,
+                              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+StopPermConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+StopPermConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  bool send_to_all)
 {
   NodeRecordPtr nodePtr;
   nodePtr.i = cfirstAliveNode;
@@ -29738,19 +36316,61 @@ void Dbdih::execREDO_STATE_REP(Signal* signal)
   RedoStateRep* rep = (RedoStateRep*)&signal->theData[0];
   if (rep->receiverInfo == RedoStateRep::ToLocalDih)
   {
-    /**
-     * Our local REDO alert state have changed. We should send
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+||||||| Common ancestor
+}//if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  // 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+if
+>>>>>>> MySQL 8.0.36
+  * Our local REDO alert state have changed. We should send
      * this information to all alive DIH nodes.
      */
-    jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  jam();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= extractNodeInfo(jamBuffer(),
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     rep->receiverInfo = RedoStateRep::ToAllDih;
-    sendREDO_STATE_REP_to_all(signal, DBDIH, true);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  sendREDO_STATE_REP_to_all(signal, DBDIH, true);
   }
   else
   {
     /**
      * We received a new REDO alert state from a node. We record
-     * this information. Only if we are the master will we
+     * this information
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                        fragPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+extractNodeInfo(jamBuffer(), fragPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+. Only if we are the master will we
      * send this information onward to all the NDBCNTR of the live
      * nodes. In addition only send this onwards when the global
      * state have changed.
@@ -29758,7 +36378,39 @@ void Dbdih::execREDO_STATE_REP(Signal* signal)
     jam();
     RedoStateRep::RedoAlertState new_global_redo_alert_state;
     ndbrequire(rep->receiverInfo == RedoStateRep::ToAllDih);
-    BlockReference sender = signal->senderBlockRef();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+BlockReference
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ sender 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->senderBlockRef();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     Uint32 node_id_sender = refToNode(sender);
     m_node_redo_alert_state[node_id_sender] =
       (RedoStateRep::RedoAlertState)rep->redoState;
@@ -29777,10 +36429,21 @@ void Dbdih::execREDO_STATE_REP(Signal* signal)
   }
 }
 
-void Dbdih::execWAIT_GCP_REQ(Signal* signal)
-{
+void Dbdih::execWAIT_GCP_REQ(Signal *signal) {
   jamEntry();
-  WaitGCPReq* const req = (WaitGCPReq*)&signal->theData[0];
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+WaitGCPReq*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+StopMeReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+StopMeReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *const req = (WaitGCPReq*)&signal->theData[0];
   WaitGCPRef* const ref = (WaitGCPRef*)&signal->theData[0];
   WaitGCPConf* const conf = (WaitGCPConf*)&signal->theData[0];
   const Uint32 senderData = req->senderData;
@@ -29815,9 +36478,31 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
     conf->gci_lo = 0;
     conf->blockStatus = cgcpOrderBlocked;
     sendSignal(senderRef, GSN_WAIT_GCP_CONF, signal,
-	       WaitGCPConf::SignalLength, JBB);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ StopMeConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+WaitGCPConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+StopMeConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ JBB);
     return;
-  }//if
+  }  // if
 
   if (requestType == WaitGCPReq::BlockStartGcp)
   {
@@ -29839,10 +36524,61 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
     conf->gci_hi = Uint32(m_micro_gcp.m_current_gci >> 32);
     conf->gci_lo = Uint32(m_micro_gcp.m_current_gci);
     conf->blockStatus = cgcpOrderBlocked;
-    sendSignal(senderRef, GSN_WAIT_GCP_CONF, signal, 
-	       WaitGCPConf::SignalLength, JBB);
-    cgcpOrderBlocked = 0;
-    return;
+    sendSignal(senderRef, GSN_WAIT_GCP_CONF, signal, StopMeConf::SignalLength,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  WaitGCPConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+StopMeConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ JBB);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execSTOP_ME_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execSTOP_ME_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ { cgcpOrderBlocked = 0;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbdih::execSTOP_ME_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execSTOP_ME_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  return;
   }
 
   ndbassert(requestType == WaitGCPReq::Complete ||
@@ -29856,7 +36592,17 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
    * event
    *
    * Complete           : Wait for the next GCI completion,
-   *                      and return its identity
+   *    Uint32 block,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 block,
+=======
+>>>>>>> MySQL 8.0.36
+           and return its identity
    * CompleteForceStart : Same as complete, but force a GCI to
    *                      start ASAP
    * CompleteIfRunning  : Wait for any running GCI to complete
@@ -29868,8 +36614,55 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
    *                      GCI completion, and return its
    *                      identity
    *
-   * Notes
-   *   For GCIs, the 'next' GCI is generally next GCI to *start* 
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::execREDO_STATE_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execREDO_STATE_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Notes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+RedoStateRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RedoStateRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+rep
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   For GCIs, the 'next' GCI is generally next GCI to *start* 
    *   after the WAIT_GCP_REQ is received.
    *   This is generally used to ensure that changes prior to 
    *   WAIT_GCP_REQ are included in the GCI, which requires
@@ -29893,8 +36686,7 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
      * Master
      */
 
-    if (!isActiveMaster())
-    {
+    if (!isActiveMaster()) {
       ndbassert(cmasterState == MASTER_TAKE_OVER_GCP);
       errorCode = WaitGCPRef::NF_MasterTakeOverInProgress;
       goto error;
@@ -29905,15 +36697,75 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
      *   - GCP_SAVE and GCP_PREPARE/COMMIT can run
      *     concurrently
      *   - GCP_SAVE can be running concurrently for
-     *     quite an 'old' epoch
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbdih::execWAIT_GCP_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbdih::execWAIT_GCP_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+WaitGCPReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WaitGCPReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const req =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const req =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+WaitGCPRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WaitGCPRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+quite
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ an 'old' epoch
      *   - Care must be taken in each use case to 
      *     understand the significance of the 
      *     current state ('now')  when WAIT_GCP_REQ 
      *     reaches the Master
      */
     if((requestType == WaitGCPReq::CompleteIfRunning) &&
-       (m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE))
-    {
+       (m_gcp_save.m_master.m_state == GcpSave::GCP_SAVE_IDLE))   {
       jam();
       /* No GCP_SAVE running, return last durable GCI */
       conf->senderData = senderData;
@@ -29921,9 +36773,19 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
       conf->gci_lo = Uint32(m_micro_gcp.m_old_gci);
       conf->blockStatus = cgcpOrderBlocked;
       sendSignal(senderRef, GSN_WAIT_GCP_CONF, signal, 
-		 WaitGCPConf::SignalLength, JBB);
-      return;
-    }//if
+		 WaitGCPConf::SignalLength,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  return;
+||||||| Common ancestor
+return;
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  }//if
 
     WaitGCPMasterPtr ptr;
     WaitGCPList * list = &c_waitGCPMasterList;
@@ -29931,35 +36793,206 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
     {
       jam();
       list = &c_waitEpochMasterList;
-    }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if
 
-    if (list->seizeFirst(ptr) == false)
+  if(requestType == WaitGCPReq::RestartGCI)
+  {
+    jam();
+    conf->senderData = senderData;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+
+||||||| Common ancestor
+conf->gci_hi = Uint32(crestartGci);
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if (list->seizeFirst(ptr) == false)
     {
       jam();
-      errorCode = WaitGCPRef::NoWaitGCPRecords;
+      errorCode = WaitGCPRef::NoWaitGCPRecords
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conf->gci_lo = 0;
+    conf->blockStatus = cgcpOrderBlocked;
+    sendSignal(senderRef, GSN_WAIT_GCP_CONF, signal,
+	       WaitGCPConf::SignalLength, JBB)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
       goto error;
-      return;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+WaitGCPReq::BlockStartGcp)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WaitGCPReq::RestartGCI)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ return;
     }
 
     ptr.p->clientRef = senderRef;
-    ptr.p->clientData = senderData;
+    ptr.p->clientData = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+senderData
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32(m_micro_gcp.m_current_gci >> 32)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32(crestartGci)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
 
-    switch (requestType)
+    switch 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(requestType)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32(m_micro_gcp.m_current_gci);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     {
     case WaitGCPReq::WaitEpoch:
-    {
-      /* Wait for the next epoch completion (GCP_PREPARE/COMMIT) */
-      ptr.p->waitGCI = 0;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+WaitGCPConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      /* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Wait
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+WaitGCPConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+for the next epoch completion (GCP_PREPARE/COMMIT) */
+||||||| Common ancestor
+JBB);
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  ptr.p->waitGCI
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cgcpOrderBlocked
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+1
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ JBB)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
       break;
-    }
-    case WaitGCPReq::CompleteIfRunning:
-    {
+    }  // if
+    case WaitGCPReq::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CompleteIfRunning:
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+UnblockStartGcp)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BlockStartGcp)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   {
       ndbrequire(m_gcp_save.m_master.m_state != GcpSave::GCP_SAVE_IDLE);
       /* Wait for GCI currently being saved to complete */
       ptr.p->waitGCI = m_gcp_save.m_gci;
       break;
-    }
-    case WaitGCPReq::Complete:
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendSignal(senderRef, GSN_WAIT_GCP_CONF, signal, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(senderRef, GSN_WAIT_GCP_CONF, signal, WaitGCPConf::SignalLength,
+               JBB);
+    cgcpOrderBlocked = 1;
+    return;
+  }
+
+  if (requestType == WaitGCPReq::UnblockStartGcp) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  jam();
+   case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+WaitGCPReq
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+WaitGCPConf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+conf->senderData = senderData;
+    conf->gci_hi = Uint32(m_micro_gcp.m_current_gci >> 32);
+    conf->gci_lo = Uint32(m_micro_gcp.m_current_gci);
+    conf->blockStatus = cgcpOrderBlocked;
+    sendSignal(senderRef, GSN_WAIT_GCP_CONF, signal, WaitGCPConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+::Complete:
     case WaitGCPReq::CompleteForceStart:
     {
       /**
@@ -30034,8 +37067,7 @@ void Dbdih::execWAIT_GCP_REQ(Signal* signal)
      */
     jam();
     WaitGCPProxyPtr ptr;
-    if (c_waitGCPProxyList.seizeFirst(ptr) == false)
-    {
+    if (c_waitGCPProxyList.seizeFirst(ptr) == false) {
       jam();
       errorCode = WaitGCPRef::NoWaitGCPRecords;
       goto error;
@@ -30090,7 +37122,7 @@ void Dbdih::execWAIT_GCP_REF(Signal* signal)
 	     WaitGCPRef::SignalLength, JBB);
 
   c_waitGCPProxyList.release(ptr);
-}//Dbdih::execWAIT_GCP_REF()
+}  //Dbdih::execWAIT_GCP_REF()
 
 void Dbdih::execWAIT_GCP_CONF(Signal* signal)
 {
@@ -30126,7 +37158,7 @@ void Dbdih::checkWaitGCPProxy(Signal* signal, NodeId failedNodeId)
   while(ptr.i != RNIL) {
     jam();    
     const Uint32 i = ptr.i;
-    const Uint32 clientData = ptr.p->clientData;
+    const Uint32 clientData =   ptr.p->clientData;
     const BlockReference clientRef = ptr.p->clientRef;
     const BlockReference masterRef = ptr.p->masterRef;
     
@@ -30152,9 +37184,40 @@ void Dbdih::checkWaitGCPMaster(Signal* signal, NodeId failedNodeId)
     const Uint32 i = ptr.i;
     const NodeId nodeId = refToNode(ptr.p->clientRef);
     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+  DEB_NODE_STOP(("waitGCI = %u",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    DEB_NODE_STOP(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     c_waitGCPMasterList.next(ptr);
-    if (nodeId == failedNodeId) {
-      jam();
+    if (nodeId == failedNodeId) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+("waitGCI
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    jam(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+       Uint32(m_micro_gcp.m_current_gci >> 32))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+%u", Uint32(m_micro_gcp.m_current_gci >> 32))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+
       c_waitGCPMasterList.release(i);
     }//if
   }//while
@@ -30167,9 +37230,9 @@ void Dbdih::checkWaitGCPMaster(Signal* signal, NodeId failedNodeId)
  * getNodeBitmap
  *
  * Function to set a bitmap/mask with a bit set for each
- * node currently in the given list [and with a version
+   * node currently in the given list [and with a version
  * passing the supplied version function test].
- *
+   *
  * e.g. cfirstAliveNode / cfirstDeadNode
  *
  */
@@ -30217,6 +37280,7 @@ void Dbdih::checkShutdownSync()
   if (likely(c_shutdownReqNodes.isclear()))
   {
     /* Nothing happening */
+
     return;
   }
 
@@ -30235,8 +37299,7 @@ void Dbdih::checkShutdownSync()
      * committed transactions are durable.
      */
     Uint32 safeGCI = Uint32(m_micro_gcp.m_current_gci >> 32);
-    if (m_micro_gcp.m_master.m_state == MicroGcp::M_GCP_COMMIT)
-    {
+    if (m_micro_gcp.m_master.m_state == MicroGcp::M_GCP_COMMIT) {
       safeGCI = Uint32(m_micro_gcp.m_master.m_new_gci >> 32);
     }
 
@@ -30267,10 +37330,46 @@ void Dbdih::checkShutdownSync()
 
 void Dbdih::emptyWaitGCPMasterQueue(Signal* signal,
                                     Uint64 gci,
-                                    WaitGCPList & list)
-{
+                      WaitGCPRef::SignalLength,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+WaitGCPList
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::execWAIT_GCP_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::execWAIT_GCP_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+& list
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) {
   jam();
-  WaitGCPConf* const conf = (WaitGCPConf*)&signal->theData[0];
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+WaitGCPConf*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+WaitGCPRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WaitGCPRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *const conf = (WaitGCPConf*)&signal->theData[0];
   conf->gci_hi = Uint32(gci >> 32);
   conf->gci_lo = Uint32(gci);
 
@@ -30285,10 +37384,58 @@ void Dbdih::emptyWaitGCPMasterQueue(Signal* signal,
 
     list.next(ptr);
     
-    if (waitGCI != 0)
+    if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+waitGCI
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!= 0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
     {
       jam();
-      /* Waiting for a specific GCI */
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+WaitGCPConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WaitGCPConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Waiting
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ for a specific GCI */
       const Uint64 completedGci = (gci >> 32);
       ndbrequire(completedGci <= waitGCI)
       
@@ -30307,12 +37454,59 @@ void Dbdih::emptyWaitGCPMasterQueue(Signal* signal,
     
     list.release(i);
   }//while
-}//Dbdih::emptyWaitGCPMasterQueue()
+}  // Dbdih::emptyWaitGCPMasterQueue()
 
-void Dbdih::setNodeStatus(Uint32 nodeId, NodeRecord::NodeStatus newStatus)
-{
+void Dbdih::setNodeStatus(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, NodeRecord::NodeStatus newStatus) {
   NodeRecordPtr nodePtr;
-  nodePtr.i = nodeId;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodePtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+WaitGCPRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WaitGCPRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ nodeId;
   ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
   nodePtr.p->nodeStatus = newStatus;
 }//Dbdih::setNodeStatus()
@@ -30356,9 +37550,10 @@ bool Dbdih::getAllowNodeStart(Uint32 nodeId)
 {
   NodeRecordPtr nodePtr;
   nodePtr.i = nodeId;
-  ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
+  ptrCheckGuard(nodePtr, MAX_NDB_NODES,
+                 nodeRecord);
   return nodePtr.p->allowNodeStart;
-}//Dbdih::getAllowNodeStart()
+}  // Dbdih::getAllowNodeStart()
 
 Uint32
 Dbdih::getNodeGroup(Uint32 nodeId) const
@@ -30386,8 +37581,8 @@ bool Dbdih::checkNodeAlive(Uint32 nodeId)
     return false;
   } else {
     return true;
-  }//if
-}//Dbdih::checkNodeAlive()
+  }  // if
+}    //Dbdih::checkNodeAlive()
 
 bool Dbdih::isMaster()
 {
@@ -30397,7 +37592,7 @@ bool Dbdih::isMaster()
 bool Dbdih::isActiveMaster()
 {
   return ((reference() == cmasterdihref) && (cmasterState == MASTER_ACTIVE));
-}//Dbdih::isActiveMaster()
+}  // Dbdih::isActiveMaster()
 
 void Dbdih::initNodeRecord(NodeRecordPtr nodePtr)
 {
@@ -30411,7 +37606,22 @@ void Dbdih::initNodeRecord(NodeRecordPtr nodePtr)
   nodePtr.p->dbdictFailCompleted = ZTRUE;
   nodePtr.p->dbdihFailCompleted = ZTRUE;
   nodePtr.p->dblqhFailCompleted = ZTRUE;
-  nodePtr.p->dbqlqhFailCompleted = ZTRUE;
+  nodePtr.p->dbqlqhFailCompleted 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::getNodeBitmap(NdbNodeBitmask&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::getNodeBitmap(NdbNodeBitmask
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZTRUE;
   nodePtr.p->noOfStartedChkpt = 0;
   nodePtr.p->noOfQueuedChkpt = 0;
   nodePtr.p->lcpStateAtTakeOver = (MasterLCPConf::State)255;
@@ -30419,6 +37629,16 @@ void Dbdih::initNodeRecord(NodeRecordPtr nodePtr)
   nodePtr.p->activeTabptr = RNIL;
   nodePtr.p->nodeStatus = NodeRecord::NOT_IN_CLUSTER;
   nodePtr.p->useInTransactions = false;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+map,
+                          Uint32 listHead,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&map, Uint32 listHead,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   nodePtr.p->copyCompleted = 0;
   nodePtr.p->allowNodeStart = true;
 }
@@ -30478,8 +37698,7 @@ Dbdih::recvDictLockConf(Signal* signal)
 }
 
 void
-Dbdih::sendDictUnlockOrd(Signal* signal, Uint32 lockSlavePtrI)
-{
+Dbdih::sendDictUnlockOrd(Signal* signal, Uint32 lockSlavePtrI) {
   DictUnlockOrd* ord = (DictUnlockOrd*)&signal->theData[0];
 
   DictLockSlavePtr lockPtr;
@@ -30512,7 +37731,31 @@ Dbdih::sendToRandomNodes(const char * msg,
                          Uint32 extra,
                          Uint32 block,
                          Uint32 gsn,
-                         Uint32 len,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbdih::emptyWaitGCPMasterQueue(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbdih::emptyWaitGCPMasterQueue(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+len
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                          JobBufferLevel level)
 {
 
@@ -30528,7 +37771,27 @@ Dbdih::sendToRandomNodes(const char * msg,
     if (nodePtr.i != getOwnNodeId())
     {
       nodes.push_back(nodePtr.i);
-    }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+WaitGCPConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+WaitGCPConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
     nodePtr.i = nodePtr.p->nextNode;
   } while (nodePtr.i != RNIL);
 
@@ -30561,6 +37824,7 @@ do_send:
   do {
     jam();
     ptrCheckGuard(nodePtr, MAX_NDB_NODES, nodeRecord);
+
     if (counter)
       counter->setWaitingFor(nodePtr.i);
     if (!masked.get(nodePtr.i))
@@ -30572,7 +37836,20 @@ do_send:
       else
       {
         Uint32 ref = numberToRef(block, nodePtr.i);
-        sendSignal(ref, gsn, signal, len, level);
+ WaitGCPConf::SignalLength,
+       sendSignal(ref, gsn, signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+len,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    WaitGCPConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ level);
       }
       BaseString::snprintf(buf+bufpos, sizeof(buf)-bufpos, "%u ", nodePtr.i);
     }
@@ -30591,8 +37868,8 @@ do_send:
 // MT LQH
 
 Uint32
-Dbdih::dihGetInstanceKey(Uint32 tabId, Uint32 fragId)
-{
+Dbdih::dihGetInstanceKey(Uint32 tabId,
+                                Uint32 fragId) {
   TabRecordPtr tTabPtr;
   tTabPtr.i = tabId;
   ptrCheckGuard(tTabPtr, ctabFileSize, tabRecord);
@@ -30607,8 +37884,7 @@ loop:
 }
 
 Uint32
-Dbdih::dihGetInstanceKeyCanFail(Uint32 tabId, Uint32 fragId)
-{
+Dbdih::dihGetInstanceKeyCanFail(Uint32 tabId, Uint32 fragId) {
   TabRecordPtr tTabPtr;
   tTabPtr.i = tabId;
   Uint32 instanceKey;
@@ -30643,8 +37919,7 @@ Dbdih::dihGetInstanceKeyCanFail(Uint32 tabId, Uint32 fragId)
  *
  */
 void
-Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
-{
+Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal) {
   jamEntry();
   CreateNodegroupImplReq reqCopy = *(CreateNodegroupImplReq*)signal->getDataPtr();
   CreateNodegroupImplReq *req = &reqCopy;
@@ -30661,7 +37936,34 @@ Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
   case CreateNodegroupImplReq::RT_COMMIT:
   {
     Uint32 cnt = 0;
-    for (Uint32 i = 0; i<NDB_ARRAY_SIZE(req->nodes) && req->nodes[i] ; i++)
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+slave
+
+void
+Dbdih::sendDictLockReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+slave
+
+void Dbdih::sendDictLockReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+for
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (Uint32 i = 0; i<NDB_ARRAY_SIZE(req->nodes) && req->nodes[i] ; i++)
     {
       cnt++;
       if(req->nodes[i] >= MAX_NDB_NODES)
@@ -30672,9 +37974,73 @@ Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
       if (getNodeActiveStatus(req->nodes[i]) != Sysfile::NS_Configured)
       {
         jam();
-        jamData(i);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Dbdih::execDICT_LOCK_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Dbdih::execDICT_LOCK_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+       jamData(i);
         jamData(req->nodes[i]);
-        jamData(getNodeActiveStatus(req->nodes[i]));
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Dbdih::recvDictLockConf(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Dbdih::recvDictLockConf(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DictLockConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DictLockConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jamData(getNodeActiveStatus(req->nodes[i]));
         err = CreateNodegroupRef::NodeAlreadyInNodegroup;
         goto error;
       }
@@ -30687,10 +38053,49 @@ Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
         }
       }
     }
+<<<<<<< RonDB // RONDB-624 todo
 
-    if (cnt != cnoReplicas)
+||||||| Common ancestor
+void
+Dbdih::sendDictUnlockOrd(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbdih::sendDictUnlockOrd(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   if (cnt != cnoReplicas)
     {
-      jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DictUnlockOrd*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DictUnlockOrd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ord
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jam();
       err = CreateNodegroupRef::InvalidNoOfNodesInNodegroup;
       goto error;
     }
@@ -30700,7 +38105,8 @@ Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
     tmp.set();
     for (Uint32 i = 0; i<cnoOfNodeGroups; i++)
     {
-      ndbrequire(c_node_groups[i] < MAX_NDB_NODE_GROUPS);
+      ndbrequire(c_node_groups[i] <
+               MAX_NDB_NODE_GROUPS);
       tmp.clear(c_node_groups[i]);
     }
 
@@ -30714,29 +38120,90 @@ Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
     {
       jam();
       err = CreateNodegroupRef::InvalidNodegroupId;
-      goto error;
+      goto 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+error;
     }
 
     if (tmp.get(ng) == false)
     {
-      jam();
-      err = CreateNodegroupRef::NodegroupInUse;
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SignalCounter* counter,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   jam();
+  SignalCounter *counter,   err = CreateNodegroupRef::NodegroupInUse;
       goto error;
     }
 
-    if (rt == CreateNodegroupImplReq::RT_PARSE || rt == CreateNodegroupImplReq::RT_PREPARE)
+    if (rt == CreateNodegroupImplReq::RT_PARSE || rt 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== CreateNodegroupImplReq::RT_PREPARE)
     {
       /**
-       * Check that at least one of the nodes are alive
+       * Check
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 extra,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ that at least one 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+extra,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ nodes are alive
        */
       bool alive = false;
       for (Uint32 i = 0; i<cnoReplicas; i++)
       {
         jam();
-        Uint32 nodeId = req->nodes[i];
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  Uint32 nodeId = req->nodes[i];
         if (getNodeStatus(nodeId) == NodeRecord::ALIVE)
-        {
-          jam();
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 len,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ len,         jam();
           alive = true;
           break;
         }
@@ -30767,8 +38234,7 @@ Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
 
     ndbrequire(rt == CreateNodegroupImplReq::RT_COMMIT);
     bool our_node_in_new_nodegroup = false;
-    for (Uint32 i = 0; i<cnoReplicas; i++)
-    {
+    for (Uint32 i = 0; i<cnoReplicas; i++) {
       Uint32 nodeId = req->nodes[i];
       SYSFILE->setNodeGroup(nodeId, req->nodegroupId);
       if (getNodeStatus(nodeId) == NodeRecord::ALIVE)
@@ -30802,15 +38268,39 @@ Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
       signal->theData[0] = reference();
       sendSignal(QMGR_REF, GSN_SET_UP_MULTI_TRP_REQ, signal, 1, JBB);
     }
-    else
-    {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+void
+Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ else
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+=======
+*signal) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
       jam();
       g_eventLogger->info("Our node not part of new node group");
     }
     break;
   }
-  case CreateNodegroupImplReq::RT_COMPLETE:
-    jam();
+    case CreateNodegroupImplReq::RT_COMPLETE:
+      jam();
     gci = m_micro_gcp.m_current_gci;
     break;
   }
@@ -30827,7 +38317,7 @@ Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
   return;
 
 error:
-  if (rt == CreateNodegroupImplReq::RT_PARSE)
+    if (rt == CreateNodegroupImplReq::RT_PARSE)
   {
     jam();
     signal->theData[0] = err;
@@ -30863,7 +38353,7 @@ Dbdih::execDROP_NODEGROUP_IMPL_REQ(Signal* signal)
   NodeGroupRecordPtr NGPtr;
 
   Uint32 err = 0;
-  Uint32 rt = req->requestType;
+    Uint32 rt = req->requestType;
   Uint64 gci = 0;
   switch(rt){
   case DropNodegroupImplReq::RT_ABORT:
@@ -30873,27 +38363,24 @@ Dbdih::execDROP_NODEGROUP_IMPL_REQ(Signal* signal)
   case DropNodegroupImplReq::RT_PREPARE:
     jam();
     NGPtr.i = req->nodegroupId;
-    if (NGPtr.i >= MAX_NDB_NODE_GROUPS)
-    {
-      jam();
+      if (NGPtr.i >= MAX_NDB_NODE_GROUPS) {
+        jam();
       err = DropNodegroupRef::NoSuchNodegroup;
       goto error;
     }
     ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
 
-    if (NGPtr.p->nodegroupIndex == RNIL)
-    {
-      jam();
-      err = DropNodegroupRef::NoSuchNodegroup;
-      goto error;
-    }
+    if (NGPtr.p->nodegroupIndex == RNIL) {
+        jam();
+        err = DropNodegroupRef::NoSuchNodegroup;
+        goto error;
+      }
 
-    if (NGPtr.p->m_ref_count)
-    {
-      jam();
-      err = DropNodegroupRef::NodegroupInUse;
-      goto error;
-    }
+      if (NGPtr.p->m_ref_count) {
+        jam();
+        err = DropNodegroupRef::NodegroupInUse;
+        goto error;
+      }
     break;
   case DropNodegroupImplReq::RT_COMMIT:
   {
@@ -30905,18 +38392,72 @@ Dbdih::execDROP_NODEGROUP_IMPL_REQ(Signal* signal)
   {
     NGPtr.i = req->nodegroupId;
     ptrCheckGuard(NGPtr, MAX_NDB_NODE_GROUPS, nodeGroupRecord);
-    for (Uint32 i = 0; i<NGPtr.p->nodeCount; i++)
+    for (Uint32 i = 0; i <NGPtr.p->nodeCount; i++)
     {
       jam();
       Uint32 nodeId = NGPtr.p->nodesInGroup[i];
-      SYSFILE->setNodeGroup(nodeId, NO_NODE_GROUP_ID);
-      SYSFILE->setNodeStatus(nodeId, Sysfile::NS_Configured);
+      SYSFILE->setNodeGroup(nodeId, NO_NODE_GROUP_ID)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+            jam();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      SYSFILE->setNodeStatus(nodeId, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Sysfile::NS_Configured);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ {
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     alive = true;
+            break;
+          }
+        }
+
+        jam();
+        if (alive == false) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     }
     setNodeActiveStatus();
-    setNodeGroups();
-    break;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setNodeGroups()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      alive = true
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      err = CreateNodegroupRef::NoNodeAlive
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+break
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      break
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      goto error
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   }
   }
+<<<<<<< RonDB // RONDB-624 todo
 
   {
     DropNodegroupImplConf* conf = (DropNodegroupImplConf*)signal->getDataPtrSend();
@@ -30924,8 +38465,36 @@ Dbdih::execDROP_NODEGROUP_IMPL_REQ(Signal* signal)
     conf->senderData = req->senderData;
     conf->gci_hi = Uint32(gci >> 32);
     conf->gci_lo = Uint32(gci);
-    sendSignal(req->senderRef, GSN_DROP_NODEGROUP_IMPL_CONF, signal,
-               DropNodegroupImplConf::SignalLength, JBB);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      
+      jam();
+      if (alive == false)
+      {
+        jam();
+        err = CreateNodegroupRef::NoNodeAlive;
+        goto error;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+    sendSignal(req->senderRef, GSN_DROP_NODEGROUP_IMPL_CONF, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal,
+            
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+    }
+    
+    if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   DropNodegroupImplConf::SignalLength, JBB);
   }
   return;
 
@@ -30953,15 +38522,59 @@ Dbdih::getMinVersion() const
     {
       jam();
       ver = v;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+    specNodePtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
     }
-    specNodePtr.i = specNodePtr.p->nextNode;
-  } while (specNodePtr.i != RNIL);
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = specNodePtr.p->nextNode;
+  } while (specNodePtr.i != 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL);
 
-  return ver;
+  return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ ver;
 }
 
 Uint8
-Dbdih::getMaxStartedFragCheckpointsForNode(Uint32 nodeId) const
+Dbdih::getMaxStartedFragCheckpointsForNode(Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodeId)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const
+||||||| Common ancestor
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+else 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 {
   return MAX_STARTED_FRAG_CHECKPOINTS_PER_NODE;
 }
@@ -30996,18 +38609,59 @@ Dbdih::create_nodegroup_mapping(Uint16 *nodegroup_mapping)
         jamLine(ng);
         num_data_nodes_with_nodegroup++;
         if (ng == NDB_NO_NODEGROUP)
-        {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CreateNodegroupImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateNodegroupImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   {
           jam();
           num_data_nodes_no_nodegroup++;
         }
         else
         {
           jam();
-          if (ng >= MAX_NDB_NODES)
-          {
+          if (ng >= MAX_NDB_NODES)         {
              g_eventLogger->error("NodeId %u cannot have nodegroup: %u larger than 144"
                                   " and not be equal to 65536 (== no nodegroup)",
-                                  nodeId, ng);
+                            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+void
+Dbdih::execDROP_NODEGROUP_IMPL_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Dbdih::execDROP_NODEGROUP_IMPL_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+     nodeId, ng);
              progError(__LINE__,
                        NDBD_EXIT_INVALID_CONFIG,
                        "Nodegroup error");
@@ -31016,34 +38670,58 @@ Dbdih::create_nodegroup_mapping(Uint16 *nodegroup_mapping)
           num_data_nodes_in_group[ng]++;
         }
       }
-    }
+      }
   }
   if (num_data_nodes_with_nodegroup == 0)
   {
     jam();
     return;
   }
-  if (num_data_nodes_no_nodegroup == num_data_nodes_with_nodegroup)
+    if (num_data_nodes_no_nodegroup == num_data_nodes_with_nodegroup)
   {
     jam();
     /* All nodes with nodegroup set is equal to 65536 == NDB_NO_NODEGROUP */
     return;
   }
-  if (num_data_nodes_with_nodegroup != num_data_nodes)
+    if (num_data_nodes_with_nodegroup != num_data_nodes)
   {
     progError(__LINE__,
               NDBD_EXIT_INVALID_CONFIG,
               "Either no node must set Nodegroup to a value different than"
               " 65536, or all nodes must set Nodegroup");
   }
-  for (Uint32 i = 0; i < MAX_NDB_NODES; i++)
+    for (Uint32 i = 0; i < MAX_NDB_NODES; i++)
   {
     if (num_data_nodes_in_group[i] != cnoReplicas &&
         num_data_nodes_in_group[i] != 0)
     {
       progError(__LINE__,
                 NDBD_EXIT_INVALID_CONFIG,
-                "Each node group must contain the same number of"
+                "Each node group must 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+contain
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DropNodegroupImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DropNodegroupImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ same number of"
                 " nodes, and the number of nodes per node group"
                 " must be equal to NoOfReplicas");
     }
@@ -31076,31 +38754,23 @@ Dbdih::create_nodegroup_mapping(Uint16 *nodegroup_mapping)
  * those nodes perform the delay, to reduce the chance
  * of lag on this node causing problems
  */
-void
-Dbdih::isolateNodes(Signal* signal,
-                    Uint32 delayMillis,
-                    const NdbNodeBitmask& victims)
-{
+void Dbdih::isolateNodes(Signal *signal, Uint32 delayMillis,
+                         const NdbNodeBitmask &victims) {
   jam();
-  
-  IsolateOrd* ord = (IsolateOrd*) signal->theData;
-  
-  ord->senderRef          = reference();
-  ord->isolateStep        = IsolateOrd::IS_REQ;
-  ord->delayMillis        = delayMillis;
+
+  IsolateOrd *ord = (IsolateOrd *)signal->theData;
+
+  ord->senderRef = reference();
+  ord->isolateStep = IsolateOrd::IS_REQ;
+  ord->delayMillis = delayMillis;
 
   victims.copyto(NdbNodeBitmask::Size, ord->nodesToIsolate);
   LinearSectionPtr lsptr[3];
   lsptr[0].p = ord->nodesToIsolate;
   lsptr[0].sz = NdbNodeBitmask::Size;
   /* QMGR handles this */
-  sendSignal(QMGR_REF,
-             GSN_ISOLATE_ORD,
-             signal,
-             IsolateOrd::SignalLength,
-             JBA,
-             lsptr,
-             1);
+  sendSignal(QMGR_REF, GSN_ISOLATE_ORD, signal, IsolateOrd::SignalLength, JBA,
+             lsptr, 1);
 }
 void Dbdih::set_node_group_id(NodeId nodeId, NodeId nodeGroupId)
 {

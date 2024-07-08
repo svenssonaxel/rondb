@@ -26,32 +26,30 @@
 #ifndef QMGR_H
 #define QMGR_H
 
-
+#include <NdbGetRUsage.h>
+#include <NdbTick.h>
+#include <NodeBitmask.hpp>
+#include <ProcessInfo.hpp>
+#include <SignalCounter.hpp>
+#include <SimulatedBlock.hpp>
 #include <cstring>
 #include <pc.hpp>
-#include <NdbTick.h>
-#include <NdbGetRUsage.h>
-#include <SimulatedBlock.hpp>
-#include <NodeBitmask.hpp>
-#include <SignalCounter.hpp>
-#include <ProcessInfo.hpp>
 
-#include <signaldata/EventReport.hpp>
+#include <signaldata/AllocNodeId.hpp>
+#include <signaldata/ApiRegSignalData.hpp>
 #include <signaldata/ArbitSignalData.hpp>
 #include <signaldata/CmRegSignalData.hpp>
-#include <signaldata/ApiRegSignalData.hpp>
+#include <signaldata/EventReport.hpp>
 #include <signaldata/FailRep.hpp>
-#include <signaldata/AllocNodeId.hpp>
 
+#include <ndb_limits.h>
 #include <RequestTracker.hpp>
 #include <signaldata/StopReq.hpp>
-#include <ndb_limits.h>
 #include "../ndbcntr/Ndbcntr.hpp"
 
 #include "timer.hpp"
 
 #define JAM_FILE_ID 362
-
 
 #ifdef QMGR_C
 
@@ -101,25 +99,22 @@
 #define QMGR_MAX_FAIL_STATE_BLOCKS 5
 
 class Qmgr : public SimulatedBlock {
-public:
+ public:
   // State values
-  enum QmgrState {
-    Q_NOT_ACTIVE = 0,
-    Q_ACTIVE = 1
-  };
-  
+  enum QmgrState { Q_NOT_ACTIVE = 0, Q_ACTIVE = 1 };
+
   enum FailState {
     NORMAL = 0,
-    WAITING_FOR_CLOSECOMCONF_ACTIVE = 1,     /* Node had phase ZAPI_ACTIVE */
-    WAITING_FOR_CLOSECOMCONF_NOTACTIVE = 2,  /* Node had phase != ZAPI_ACTIVE */
+    WAITING_FOR_CLOSECOMCONF_ACTIVE = 1,    /* Node had phase ZAPI_ACTIVE */
+    WAITING_FOR_CLOSECOMCONF_NOTACTIVE = 2, /* Node had phase != ZAPI_ACTIVE */
     WAITING_FOR_API_FAILCONF = 3,
     WAITING_FOR_NDB_FAILCONF = 6
   };
 
   enum Phase {
-    ZINIT = 1, 		        /* All nodes start in phase INIT         */
-    ZSTARTING = 2, 		/* Node is connecting to cluster         */
-    ZRUNNING = 3, 		/* Node is running in the cluster        */
+    ZINIT = 1,                  /* All nodes start in phase INIT         */
+    ZSTARTING = 2,              /* Node is connecting to cluster         */
+    ZRUNNING = 3,               /* Node is running in the cluster        */
     ZPREPARE_FAIL = 4,          /* PREPARATION FOR FAILURE               */
     ZFAIL_CLOSING = 5,          /* API/NDB IS DISCONNECTING              */
     ZAPI_ACTIVE = 6,            /* API IS RUNNING IN NODE                */
@@ -129,16 +124,16 @@ public:
 
   struct StartRecord {
     StartRecord() {}
-    void reset(){ 
-      m_startKey++; 
-      m_startNode = 0; 
-      m_gsn = RNIL; 
+    void reset() {
+      m_startKey++;
+      m_startNode = 0;
+      m_gsn = RNIL;
       m_nodes.clearWaitingFor();
     }
     Uint32 m_startKey;
     Uint32 m_startNode;
     Uint64 m_startTimeout;
-    
+
     Uint32 m_gsn;
     SignalCounter m_nodes;
     Uint32 m_latest_gci;
@@ -155,10 +150,10 @@ public:
     Uint16 m_regReqReqRecv;
     Uint32 m_node_gci[MAX_NDB_NODES];
   } c_start;
-  
-  NdbNodeBitmask c_definedNodes; // DB nodes in config
-  NdbNodeBitmask c_clusterNodes; // DB nodes in cluster
-  NodeBitmask c_connectedNodes;  // All kinds of connected nodes
+
+  NdbNodeBitmask c_definedNodes;  // DB nodes in config
+  NdbNodeBitmask c_clusterNodes;  // DB nodes in cluster
+  NodeBitmask c_connectedNodes;   // All kinds of connected nodes
 
   /**
    * Nodes which we're checking for partitioned cluster
@@ -169,20 +164,18 @@ public:
 
   Uint32 c_maxDynamicId;
 
-  struct ConnectCheckRec
-  {
-    bool m_enabled;                     // Config set && all node version OK
-    bool m_active;                      // Connectivity check underway?
-    Timer m_timer;                      // Check timer object
-    Uint32 m_currentRound;              // Last round started
-    Uint32 m_tick;                      // Periods elapsed in current check
-    NdbNodeBitmask m_nodesPinged;       // Nodes sent a NodePingReq in round
-    NdbNodeBitmask m_nodesWaiting;      // Nodes which have not sent a response
-    NdbNodeBitmask m_nodesFailedDuring; // Nodes which failed during check
-    NdbNodeBitmask m_nodesSuspect;      // Nodes with suspect connectivity
+  struct ConnectCheckRec {
+    bool m_enabled;                      // Config set && all node version OK
+    bool m_active;                       // Connectivity check underway?
+    Timer m_timer;                       // Check timer object
+    Uint32 m_currentRound;               // Last round started
+    Uint32 m_tick;                       // Periods elapsed in current check
+    NdbNodeBitmask m_nodesPinged;        // Nodes sent a NodePingReq in round
+    NdbNodeBitmask m_nodesWaiting;       // Nodes which have not sent a response
+    NdbNodeBitmask m_nodesFailedDuring;  // Nodes which failed during check
+    NdbNodeBitmask m_nodesSuspect;       // Nodes with suspect connectivity
 
-    ConnectCheckRec()
-    {
+    ConnectCheckRec() {
       m_enabled = false;
       m_active = false;
       m_currentRound = 0;
@@ -200,8 +193,7 @@ public:
     bool reportNodeFailure(Uint32 nodeId);
 
     bool getEnabled() const {
-      if (m_enabled)
-      {
+      if (m_enabled) {
         assert(m_timer.getDelay() > 0);
       }
       return m_enabled;
@@ -292,7 +284,31 @@ public:
      * This variable is set when we start up the switch by either
      * sending SWITCH_MULTI_TRP_REQ or receiving this signal. It is
      * received by the node with the lower node id of the two nodes
-     * connecting.
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+match(ArbitSignalData*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+match(ArbitSignalData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+connecting.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sd) {
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*sd) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
      *
      * In response to this signal we will either get
      * SWITCH_MULTI_TRP_REF or SWITCH_MULTI_TRP_REQ followed by
@@ -308,39 +324,915 @@ public:
     bool m_is_ready_to_switch_trp;
 
     /**
-     * This variable is set to true when we start connecting the multi
-     * transporters.
-     * Set to false when we start switching to new multi transporters that
-     * have been connected.
-     */
-    bool m_is_preparing_switch_trp;
+     * This variable is set to true 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execDEBUG_SIG(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execDEBUG_SIG(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+we
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ start connecting 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCONTINUEB(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCONTINUEB(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+multi
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-    /**
-     * Set after completing all parts of the switch over, reset after node
-     * failure.
-     */
-    bool m_is_using_multi_trp;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCM_HEARTBEAT(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_HEARTBEAT(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transporters.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-    /**
-     * This variable is set when we send GET_NUM_MULTI_REQ to the other
-     * node asking for the number of multi sockets to use for this node
-     * communication. Set in the node starting up the setup of multi
-     * sockets.
-     *
-     * Reset when the entire multi socket setup is completed for the node.
-     */
-    bool m_set_up_multi_trp_started;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCM_ADD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_ADD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Set
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ to false 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCM_ACKADD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_ACKADD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+we
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ start switching to new multi 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transporters
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCM_REGCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_REGCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-    /**
-     * We have sent an activate request (either of ACTIVATE_REQ,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execCM_REGREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_REGREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ * have 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+been
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCM_NODEINFOREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_NODEINFOREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+connected.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execCM_NODEINFOCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_NODEINFOCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execCM_NODEINFOREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_NODEINFOREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool m_is_preparing_switch_trp
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execPREP_FAILREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execPREP_FAILREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execPREP_FAILCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execPREP_FAILCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Set
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ after completing 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+all
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execPREP_FAILREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execPREP_FAILREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+parts
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ of the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+switch
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCOMMIT_FAILREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCOMMIT_FAILREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+over, reset after node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCOMMIT_FAILCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCOMMIT_FAILCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+failure.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execFAIL_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execFAIL_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execPRES_TOREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execPRES_TOREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool m_is_using_multi_trp
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execPRES_TOCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execPRES_TOCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execDISCONNECT_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execDISCONNECT_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+This
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ variable is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execSYSTEM_ERROR(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execSYSTEM_ERROR(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ we send GET_NUM_MULTI_REQ
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+
+=======
+*signal);
+
+>>>>>>> MySQL 8.0.36
+ the other
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execDUMP_STATE_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execDUMP_STATE_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ asking for 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCONNECT_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCONNECT_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+number
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ of multi 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sockets
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execNDB_FAILCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execNDB_FAILCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ use for this node
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execREAD_CONFIG_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execREAD_CONFIG_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+communication.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ Set in 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execSTTOR(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execSTTOR(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node starting
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ up the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setup
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCM_INFOCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCM_INFOCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of multi
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execCLOSE_COMCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execCLOSE_COMCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sockets.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execAPI_REGREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execAPI_REGREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execAPI_FAILCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execAPI_FAILCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Reset
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ when the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+entire
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execREAD_NODESREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execREAD_NODESREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+multi
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ socket setup 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execAPI_FAILREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execAPI_FAILREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+completed for the node.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execREAD_NODESREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execREAD_NODESREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execREAD_NODESCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execREAD_NODESCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool m_set_up_multi_trp_started
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execDIH_RESTARTREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execDIH_RESTARTREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execDIH_RESTARTCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execDIH_RESTARTCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+
+=======
+*signal);
+
+>>>>>>> MySQL 8.0.36
+ have sent an activate request (either of ACTIVATE_REQ,
      * DEACTIVATE_REQ or SET_HOSTNAME_REQ) and are still waiting
      * for the response to this request.
      */
     bool m_activate_ongoing;
 
     /**
-     * The number of multi sockets used to communicate with this node.
-     * Negotiated in the setup phase in the GET_NUM_MULTI_TRP messages.
+     * The number of multi sockets 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+used
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execAPI_VERSION_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execAPI_VERSION_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ communicate with 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+this
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execAPI_BROADCAST_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execAPI_BROADCAST_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execTRP_KEEP_ALIVE(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execTRP_KEEP_ALIVE(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Negotiated
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+
+=======
+*signal);
+
+>>>>>>> MySQL 8.0.36
+ in the setup phase in the GET_NUM_MULTI_TRP messages.
      */
     Uint16 m_used_num_multi_trps;
 
@@ -351,24 +1243,420 @@ public:
     Uint32 m_num_activated_trps;
 
     /**
-     * Remember the senders reference of ACTIVATE_TRP_REQ to use in
-     * sending ACTIVATE_TRP_CONF.
-     */
-    BlockReference m_multi_trp_blockref;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execARBIT_CFG(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execARBIT_CFG(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ * Remember 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execARBIT_PREPREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execARBIT_PREPREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+senders
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ reference of ACTIVATE_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TRP_REQ
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+PREPCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PREPCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ use in
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execARBIT_PREPREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execARBIT_PREPREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execARBIT_STARTCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execARBIT_STARTCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sending ACTIVATE_TRP_CONF.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-    /**
-     * Loop counter to check that we have connected at least within 30
-     * minutes to the node, if not something must be wrong and we
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execARBIT_STARTREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execARBIT_STARTREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execARBIT_CHOOSECONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execARBIT_CHOOSECONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+BlockReference m_multi_trp_blockref
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execARBIT_CHOOSEREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execARBIT_CHOOSEREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execARBIT_STOPREP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execARBIT_STOPREP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Loop
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+
+=======
+*signal);
+
+>>>>>>> MySQL 8.0.36
+ counter to check that we have connected at least 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+within
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+execNODE_PINGREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execNODE_PINGREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+30
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execNODE_PINGCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execNODE_PINGCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+
+=======
+*signal);
+
+>>>>>>> MySQL 8.0.36
+ * minutes to the node, if not something must be wrong and we
      * fail the node.
      */
     Uint32 m_check_multi_trp_connect_loop_count;
 
     /**
-     * Count the number of GET_NUM_MULTI_TRP_REFs, if we receive more than
-     * 60 we will stop sending GET_NUM_MULTI_TRP_REQ and rely on that other
-     * node will send GET_NUM_MULTI_TRP_REQ when it is ready.
-     *
-     * We will resend each 500ms, thus we will resend for 30 seconds.
+     * Count the number of GET_NUM_MULTI_TRP_REFs, if we receive 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+more
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+handleStateChange(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+handleStateChange(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+than
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     * 60 we will stop sending GET_NUM_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MULTI_TRP_REQ
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+reply(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+reply(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+and
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ rely on that other
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+check_startup(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+check_startup(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+
+=======
+*signal);
+
+>>>>>>> MySQL 8.0.36
+ will send GET_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NUM_MULTI_TRP_REQ
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+failed(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+failed(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ it is ready.
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+node_failed(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+node_failed(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  *
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+checkStartInterface(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+checkStartInterface(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ * We will resend 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+each
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+failReport(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+failReport(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+500ms
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, thus we will resend for 30 seconds.
      * Reset when we receive GET_NUM_MULTI_TRP_CONF and when we receive
      * the 61th response with refuse.
      */
@@ -383,21 +1671,332 @@ public:
     NDB_TICKS m_alloc_timeout;
     Uint16 m_failconf_blocks[QMGR_MAX_FAIL_STATE_BLOCKS];
 
-    NodeRec() { std::memset(m_failconf_blocks, 0, sizeof(m_failconf_blocks)); }
-  }; /* p2c: size = 52 bytes */
+    NodeRec(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{ std::memset(m_failconf_blocks
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, 0, sizeof(m_failconf_blocks)); }
+  }; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+translateDynamicIdToNodeId(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+translateDynamicIdToNodeId(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+p2c:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ size = 52 bytes */
   
   typedef Ptr<NodeRec> NodeRecPtr;
   
-  enum ArbitState {
-    ARBIT_NULL = 0,
-    ARBIT_INIT = 1,             // create new ticket
-    ARBIT_FIND = 2,		// find candidate arbitrator node
-    ARBIT_PREP1 = 3,		// PREP db nodes with null ticket
-    ARBIT_PREP2 = 4,		// PREP db nodes with current ticket
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendPrepFailReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendPrepFailReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+enum
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ArbitState {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendApiFailReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendApiFailReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ARBIT_NULL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 0,
+    ARBIT_INIT = 1,     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+startphase1(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+startphase1(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+electionWon(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+electionWon(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cmInfoconf010Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+cmInfoconf010Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+create new ticket
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void apiHbHandlingLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void apiHbHandlingLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ARBIT_FIND 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+timerHandlingLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+timerHandlingLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+2,		//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ find candidate 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+arbitrator
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+hbReceivedLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+hbReceivedLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendCmRegrefLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendCmRegrefLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ARBIT_PREP1
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 3,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+		//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ 
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ CmRegRef::ErrorCode,
+>>>>>>> MySQL 8.0.36
+ PREP db nodes with null 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ticket
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ CmRegRef::ErrorCode, Uint32 remote_node_version);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                 Uint32 remote_node_version);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+systemErrorBecauseOtherNodeFailed(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+systemErrorBecauseOtherNodeFailed(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ARBIT_PREP2
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 4,		// PREP db nodes with 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+current
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+systemErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+systemErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ticket
     ARBIT_START = 5,		// START arbitrator API thread
     ARBIT_RUN = 6,		// running with arbitrator
     ARBIT_CHOOSE = 7,		// ask arbitrator after network partition
-    ARBIT_CRASH = 8		// crash ourselves
+    ARBIT_CRASH
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 8		// crash ourselves
   };
 
   struct ArbitRec {
@@ -405,43 +2004,800 @@ public:
 
     enum Method {
       DISABLED = ARBIT_METHOD_DISABLED, // Arbitration disabled
-      METHOD_DEFAULT = ARBIT_METHOD_DEFAULT, // Default arbitration
-      // Delay commit to give "external" time to arbitrate
-      METHOD_EXTERNAL = ARBIT_METHOD_WAITEXTERNAL
-    } method;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+METHOD_DEFAULT
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+message
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*message
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = ARBIT_METHOD_DEFAULT, // 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Default
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+prepFailReqLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+prepFailReqLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+arbitration
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+prepFailRefLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+prepFailRefLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ Delay commit 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+commitFailReqLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+commitFailReqLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+give
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ "external" time 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+commitFailConfLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+commitFailConfLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+arbitrate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+failReportLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+failReportLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  METHOD_EXTERNAL = ARBIT_METHOD_WAITEXTERNAL
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FailRep::FailCause
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+method;
+
+||||||| Common ancestor
+aFailCause,
+=======
+>>>>>>> MySQL 8.0.36
     ArbitState state;		// state
     bool newstate;		// flag to initialize new state
-    unsigned thread;		// identifies a continueB "thread"
-    NodeId node;		// current arbitrator candidate
-    ArbitTicket ticket;		// ticket
-    NodeBitmask apiMask[1+2];	// arbitrators 0=all 1,2=per rank
-    NdbNodeBitmask newMask;	// new nodes to process in RUN state
-    Uint8 sendCount;		// control send/recv of signals
-    Uint8 recvCount;
-    NdbNodeBitmask recvMask;	// left to recv
-    Uint32 code;		// code field from signal
-    Uint32 failureNr;           // cfailureNr at arbitration start
-    Uint32 timeout;             // timeout for CHOOSE state
-    NDB_TICKS timestamp;	// timestamp for checking timeouts
+   FailRep::FailCause 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+unsigned
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+aFailCause,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ thread;		// identifies a 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+continueB
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendCommitFailReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendCommitFailReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"thread"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-    inline bool match(ArbitSignalData* sd) {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+presToConfLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+presToConfLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeId node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;		// current arbitrator 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+candidate
+||||||| Common ancestor
+sendSttorryLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSttorryLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   ArbitTicket ticket;		// ticket
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sttor020Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sttor020Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeBitmask apiMask[1+2]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;	// arbitrators 0=all 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1,2=per
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+closeComConfLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+closeComConfLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+rank
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+apiRegReqLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+apiRegReqLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NdbNodeBitmask newMask
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;	// new nodes to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+process
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regreqTimeLimitLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regreqTimeLimitLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in RUN state
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regreqTimeMasterLimitLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regreqTimeMasterLimitLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint8 sendCount
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;		// control send/recv 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cmRegreq010Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+cmRegreq010Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signals
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cmRegconf010Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+cmRegconf010Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint8 recvCount
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sttor010Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sttor010Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NdbNodeBitmask recvMask
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;	// left to recv
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendHeartbeat(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendHeartbeat(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 code
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;		// code field 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+from
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+checkHeartbeat(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+checkHeartbeat(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal
+    Uint32 failureNr;           // cfailureNr at arbitration start
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+send_trp_keep_alive(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+send_trp_keep_alive(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 timeout
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+handleArbitStart(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+handleArbitStart(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+timeout for CHOOSE state
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    NDB_TICKS timestamp;	// timestamp for 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+checking
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+handleArbitNdbAdd(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+handleArbitNdbAdd(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+timeouts
+
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    inline bool match(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ArbitSignalData*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sd
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) {
       return
 	node == sd->node &&
 	ticket.match(sd->ticket);
-    }
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+startArbitThread(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+startArbitThread(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-    inline void setTimestamp() {
-      timestamp = NdbTick_getCurrentTicks();
-    }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void runArbitThread(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void runArbitThread(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ inline void setTimestamp() {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+stateArbitFind(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+stateArbitFind(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+  timestamp 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+stateArbitPrep(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+stateArbitPrep(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NdbTick_getCurrentTicks(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+stateArbitStart(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+stateArbitStart(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-    inline Uint64 getTimediff() {
-      const NDB_TICKS now = NdbTick_getCurrentTicks();
-      return NdbTick_Elapsed(timestamp, now).milliSec();
-    }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void stateArbitRun(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void stateArbitRun(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+ inline Uint64 getTimediff() {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+stateArbitCrash(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+stateArbitCrash(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+*signal);
+>>>>>>> MySQL 8.0.36
+  const NDB_TICKS now = NdbTick_getCurrentTicks();
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+computeArbitNdbMask(NodeBitmaskPOD&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+computeArbitNdbMask(NodeBitmaskPOD
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+aMask);
+=======
+&aMask);
+>>>>>>> MySQL 8.0.36
+  return NdbTick_Elapsed(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+timestamp,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NdbNodeBitmaskPOD&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbNodeBitmaskPOD
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+now).milliSec(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+aMask
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&aMask
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+computeBeforeFailNdbMask(NdbNodeBitmaskPOD&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+computeBeforeFailNdbMask(NdbNodeBitmaskPOD
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+aMask);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&aMask);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   };
   
-  /* State values for handling ENABLE_COMREQ / ENABLE_COMCONF. */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ /*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+reportArbitEvent(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+reportArbitEvent(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+State
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ values for handling ENABLE_COMREQ / ENABLE_COMCONF. */
   enum EnableComState {
     ENABLE_COM_CM_ADD_COMMIT = 0,
     ENABLE_COM_CM_COMMIT_NEW = 1,
@@ -463,12 +2819,12 @@ private:
   BLOCK_DEFINES(Qmgr);
 
   // Transit signals
-  void execDEBUG_SIG(Signal* signal);
+  void execDEBUG_SIG(Signal *signal);
   void execCONTINUEB(Signal* signal);
-  void execCM_HEARTBEAT(Signal* signal);
-  void execCM_ADD(Signal* signal);
+  void execCM_HEARTBEAT(Signal *signal);
+  void execCM_ADD(Signal *signal);
   void execCM_ACKADD(Signal* signal);
-  void execCM_REGREQ(Signal* signal);
+  void execCM_REGREQ(Signal *signal);
   void execCM_REGCONF(Signal* signal);
   void execCM_REGREF(Signal* signal);
   void execCM_NODEINFOREQ(Signal* signal);
@@ -489,21 +2845,45 @@ private:
   // Received signals
   void execDUMP_STATE_ORD(Signal* signal);
   void execCONNECT_REP(Signal* signal);
-  void execNDB_FAILCONF(Signal* signal);
+  void execNDB_FAILCONF(Signal *signal);
   void execNF_COMPLETEREP(Signal*);
-  void execREAD_CONFIG_REQ(Signal* signal);
-  void execSTTOR(Signal* signal);
-  void execCM_INFOCONF(Signal* signal);
+  void execREAD_CONFIG_REQ(Signal *signal);
+  void execSTTOR(Signal*signal);
+  void execCM_INFOCONF(Signal *signal);
   void execCLOSE_COMCONF(Signal* signal);
   void execAPI_REGREQ(Signal* signal);
-  void execAPI_FAILCONF(Signal* signal);
+  void execAPI_FAILCONF(Signal *signal);
   void execREAD_NODESREQ(Signal* signal);
   void execAPI_FAILREQ(Signal* signal);
 
   void execREAD_NODESREF(Signal* signal);
-  void execREAD_NODESCONF(Signal* signal);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+execREAD_NODESCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NdbNodeBitmask&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbNodeBitmask
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+nodes
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&nodes
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
-  void execDIH_RESTARTREF(Signal* signal);
+  void execDIH_RESTARTREF(Signal *signal);
   void execDIH_RESTARTCONF(Signal* signal);
 
   void execSET_UP_MULTI_TRP_REQ(Signal*);
@@ -777,7 +3157,7 @@ private:
   Uint16 cpresident; 		 /* Node no. of president        */
 
   /* Counters --------------------------------------*/
-  Uint16 cnoOfNodes; 		 /* Static node counter          */
+  Uint16 cnoOfNodes; /* Static node counter          */
   /* Status flags ----------------------------------*/
 
   Uint32 c_restartPartialTimeout;
@@ -851,12 +3231,56 @@ private:
   void create_multi_transporter(NodeId);
   void connect_multi_transporter(Signal*, NodeId);
   void check_connect_multi_transporter(Signal*, NodeId);
-  void send_get_num_multi_trp_req(Signal*, NodeId);
+  void send_get_num_multi_trp_req(Signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   void send_switch_multi_transporter(Signal*, NodeId, bool);
   void switch_multi_transporter(Signal*, NodeId);
   void check_switch_completed(Signal*, NodeId);
   void check_no_multi_trp(Signal*, NodeId);
-  void check_more_trp_switch_nodes(Signal*, bool);
+  void check_more_trp_switch_nodes(Signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   void handle_activate_trp_req(Signal*, Uint32);
   bool check_all_multi_trp_nodes_connected();
   bool select_node_id_for_switch(NodeId&, bool);
@@ -902,22 +3326,22 @@ private:
    * we should not perform any action to set up multi transporters.
    */
   BlockReference m_ref_set_up_multi_trp_req;
-  Ndbcntr* c_ndbcntr;
+  Ndbcntr *c_ndbcntr;
 
   Uint32 get_hb_count(Uint32 nodeId) const {
     return globalData.get_hb_count(nodeId);
   }
 
-  Uint32& set_hb_count(Uint32 nodeId) {
+  Uint32 &set_hb_count(Uint32 nodeId) {
     return globalData.set_hb_count(nodeId);
   }
 
-  void execISOLATE_ORD(Signal* signal);
+  void execISOLATE_ORD(Signal *signal);
 
-  void sendReadLocalSysfile(Signal*);
-  void execREAD_LOCAL_SYSFILE_CONF(Signal*);
+  void sendReadLocalSysfile(Signal *);
+  void execREAD_LOCAL_SYSFILE_CONF(Signal *);
   bool is_multi_socket_setup_active(Uint32 node_id, bool locked);
-  void complete_multi_trp_setup(Signal*, bool);
+  void complete_multi_trp_setup(Signal *, bool);
   void dec_get_num_multi_trps_sent(NodeId);
   void inc_get_num_multi_trps_sent(NodeId);
   void handle_graceful_shutdown(Signal*);

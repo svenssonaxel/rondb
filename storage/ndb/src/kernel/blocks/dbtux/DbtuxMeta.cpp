@@ -59,12 +59,10 @@
 #define DEB_HASH(arglist) do { } while (0)
 #endif
 
-void
-Dbtux::execCREATE_TAB_REQ(Signal* signal)
-{
+void Dbtux::execCREATE_TAB_REQ(Signal *signal) {
   jamEntry();
-  const CreateTabReq copy = *(CreateTabReq*)signal->getDataPtr();
-  const CreateTabReq* req = &copy;
+  const CreateTabReq copy = *(CreateTabReq *)signal->getDataPtr();
+  const CreateTabReq *req = &copy;
 
   IndexPtr indexPtr;
   indexPtr.i = RNIL;
@@ -80,11 +78,10 @@ Dbtux::execCREATE_TAB_REQ(Signal* signal)
       break;
     }
     ndbrequire(c_indexPool.getPtr(indexPtr, req->tableId));
-    if (indexPtr.p->m_state != Index::NotDefined)
-    {
+    if (indexPtr.p->m_state != Index::NotDefined) {
       jam();
       errorCode = TuxFragRef::InvalidRequest;
-      indexPtr.i = RNIL;        // leave alone
+      indexPtr.i = RNIL;  // leave alone
       break;
     }
 
@@ -99,8 +96,8 @@ Dbtux::execCREATE_TAB_REQ(Signal* signal)
     fragOpPtr.p->m_numAttrsRecvd = 0;
 #ifdef VM_TRACE
     if (debugFlags & DebugMeta) {
-      tuxDebugOut << "Seize frag op " << fragOpPtr.i << " "
-                  << *fragOpPtr.p << endl;
+      tuxDebugOut << "Seize frag op " << fragOpPtr.i << " " << *fragOpPtr.p
+                  << endl;
     }
 #endif
     // check if index has place for more fragments
@@ -122,47 +119,44 @@ Dbtux::execCREATE_TAB_REQ(Signal* signal)
               indexPtr.p->m_tableId,
               indexPtr.p->m_use_new_hash_function));
     // allocate attribute descriptors
-    if (! allocDescEnt(indexPtr)) {
+    if (!allocDescEnt(indexPtr)) {
       jam();
       errorCode = TuxFragRef::NoFreeAttributes;
       break;
     }
 
     // success
-    CreateTabConf* conf = (CreateTabConf*)signal->getDataPtrSend();
+    CreateTabConf *conf = (CreateTabConf *)signal->getDataPtrSend();
     conf->senderRef = reference();
     conf->senderData = req->senderData;
     conf->tuxConnectPtr = fragOpPtr.i;
-    sendSignal(req->senderRef, GSN_CREATE_TAB_CONF,
-               signal, CreateTabConf::SignalLength, JBB);
+    sendSignal(req->senderRef, GSN_CREATE_TAB_CONF, signal,
+               CreateTabConf::SignalLength, JBB);
     return;
   } while (0);
   // error
 
-  CreateTabRef* const ref = (CreateTabRef*)signal->getDataPtrSend();
+  CreateTabRef *const ref = (CreateTabRef *)signal->getDataPtrSend();
   ref->senderData = req->senderData;
   ref->errorCode = errorCode;
-  sendSignal(req->senderRef, GSN_CREATE_TAB_REF,
-             signal, CreateTabRef::SignalLength, JBB);
+  sendSignal(req->senderRef, GSN_CREATE_TAB_REF, signal,
+             CreateTabRef::SignalLength, JBB);
 
   if (indexPtr.i != RNIL) {
     jam();
     // let DICT drop the unfinished index
   }
 
-  if (fragOpPtr.i != RNIL)
-  {
+  if (fragOpPtr.i != RNIL) {
     jam();
     c_fragOpPool.release(fragOpPtr);
   }
 }
 
-void
-Dbtux::execTUX_ADD_ATTRREQ(Signal* signal)
-{
+void Dbtux::execTUX_ADD_ATTRREQ(Signal *signal) {
   jamEntry();
-  const TuxAddAttrReq reqCopy = *(const TuxAddAttrReq*)signal->getDataPtr();
-  const TuxAddAttrReq* const req = &reqCopy;
+  const TuxAddAttrReq reqCopy = *(const TuxAddAttrReq *)signal->getDataPtr();
+  const TuxAddAttrReq *const req = &reqCopy;
   // get the records
   FragOpPtr fragOpPtr;
   IndexPtr indexPtr;
@@ -172,10 +166,8 @@ Dbtux::execTUX_ADD_ATTRREQ(Signal* signal)
   do {
     // expected attribute id
     const unsigned attrId = fragOpPtr.p->m_numAttrsRecvd++;
-    ndbrequire(
-        indexPtr.p->m_state == Index::Defining &&
-        attrId < indexPtr.p->m_numAttrs &&
-        attrId == req->attrId);
+    ndbrequire(indexPtr.p->m_state == Index::Defining &&
+               attrId < indexPtr.p->m_numAttrs && attrId == req->attrId);
     const Uint32 ad = req->attrDescriptor;
     const Uint32 typeId = AttributeDescriptor::getType(ad);
     const Uint32 sizeInBytes = AttributeDescriptor::getSizeInBytes(ad);
@@ -183,9 +175,9 @@ Dbtux::execTUX_ADD_ATTRREQ(Signal* signal)
     const Uint32 csNumber = req->extTypeInfo >> 16;
     const Uint32 primaryAttrId = req->primaryAttrId;
 
-    DescHead& descHead = getDescHead(*indexPtr.p);
+    DescHead &descHead = getDescHead(*indexPtr.p);
     // add type to spec
-    KeySpec& keySpec = indexPtr.p->m_keySpec;
+    KeySpec &keySpec = indexPtr.p->m_keySpec;
     KeyType keyType(typeId, sizeInBytes, nullable, csNumber);
     if (keySpec.add(keyType) == -1) {
       jam();
@@ -193,8 +185,8 @@ Dbtux::execTUX_ADD_ATTRREQ(Signal* signal)
       break;
     }
     // add primary attr to read keys array
-    AttributeHeader* keyAttrs = getKeyAttrs(descHead);
-    AttributeHeader& keyAttr = keyAttrs[attrId];
+    AttributeHeader *keyAttrs = getKeyAttrs(descHead);
+    AttributeHeader &keyAttr = keyAttrs[attrId];
     new (&keyAttr) AttributeHeader(primaryAttrId, sizeInBytes);
 #ifdef VM_TRACE
     if (debugFlags & DebugMeta) {
@@ -208,45 +200,43 @@ Dbtux::execTUX_ADD_ATTRREQ(Signal* signal)
       ndbrequire(cs != 0);
       if ((err = NdbSqlUtil::check_column_for_ordered_index(typeId, cs))) {
         jam();
-        errorCode = (TuxAddAttrRef::ErrorCode) err;
+        errorCode = (TuxAddAttrRef::ErrorCode)err;
         break;
       }
     }
-    const bool lastAttr = (indexPtr.p->m_numAttrs == fragOpPtr.p->m_numAttrsRecvd);
+    const bool lastAttr =
+        (indexPtr.p->m_numAttrs == fragOpPtr.p->m_numAttrsRecvd);
     if ((ERROR_INSERTED(12003) && attrId == 0) ||
-        (ERROR_INSERTED(12004) && lastAttr))
-    {
+        (ERROR_INSERTED(12004) && lastAttr)) {
       errorCode = (TuxAddAttrRef::ErrorCode)1;
       CLEAR_ERROR_INSERT_VALUE;
       break;
     }
     if (lastAttr) {
       // compute min prefix
-      const KeySpec& keySpec = indexPtr.p->m_keySpec;
+      const KeySpec &keySpec = indexPtr.p->m_keySpec;
       unsigned attrs = 0;
       unsigned bytes = 0;
       unsigned maxAttrs = indexPtr.p->m_numAttrs;
 #ifdef VM_TRACE
 #ifdef NDB_USE_GET_ENV
       {
-        const char* p = NdbEnv_GetEnv("MAX_TTREE_PREF_ATTRS", (char*)0, 0);
+        const char *p = NdbEnv_GetEnv("MAX_TTREE_PREF_ATTRS", (char *)0, 0);
         if (p != 0 && p[0] != 0 && maxAttrs > (unsigned)atoi(p))
           maxAttrs = atoi(p);
       }
 #endif
 #endif
-      while (attrs < maxAttrs)
-      {
+      while (attrs < maxAttrs) {
         /**
          * Prefix is now saved as a normal Attrinfo data stream.
          * This means that each column uses 4 bytes Attrinfo header
          * the data is aligned on a word boundary.
          */
-        const KeyType& keyType = keySpec.get_type(attrs);
+        const KeyType &keyType = keySpec.get_type(attrs);
         const unsigned word_size = (keyType.get_byte_size() + 3) / 4;
         const unsigned newbytes = bytes + ((word_size + 1) * 4);
-        if (newbytes > (MAX_TTREE_PREF_SIZE << 2))
-          break;
+        if (newbytes > (MAX_TTREE_PREF_SIZE << 2)) break;
         attrs++;
         bytes = newbytes;
       }
@@ -262,31 +252,29 @@ Dbtux::execTUX_ADD_ATTRREQ(Signal* signal)
       c_fragOpPool.release(fragOpPtr);
     }
     // success
-    TuxAddAttrConf* conf = (TuxAddAttrConf*)signal->getDataPtrSend();
+    TuxAddAttrConf *conf = (TuxAddAttrConf *)signal->getDataPtrSend();
     conf->userPtr = fragOpPtr.p->m_userPtr;
     conf->lastAttr = lastAttr;
-    sendSignal(fragOpPtr.p->m_userRef, GSN_TUX_ADD_ATTRCONF,
-        signal, TuxAddAttrConf::SignalLength, JBB);
+    sendSignal(fragOpPtr.p->m_userRef, GSN_TUX_ADD_ATTRCONF, signal,
+               TuxAddAttrConf::SignalLength, JBB);
     return;
   } while (0);
   // error
-  TuxAddAttrRef* ref = (TuxAddAttrRef*)signal->getDataPtrSend();
+  TuxAddAttrRef *ref = (TuxAddAttrRef *)signal->getDataPtrSend();
   ref->userPtr = fragOpPtr.p->m_userPtr;
   ref->errorCode = errorCode;
-  sendSignal(fragOpPtr.p->m_userRef, GSN_TUX_ADD_ATTRREF,
-      signal, TuxAddAttrRef::SignalLength, JBB);
+  sendSignal(fragOpPtr.p->m_userRef, GSN_TUX_ADD_ATTRREF, signal,
+             TuxAddAttrRef::SignalLength, JBB);
 #ifdef VM_TRACE
-    if (debugFlags & DebugMeta) {
-      tuxDebugOut << "Release on attr error frag op " << fragOpPtr.i << " "
-                  << *fragOpPtr.p << endl;
-    }
+  if (debugFlags & DebugMeta) {
+    tuxDebugOut << "Release on attr error frag op " << fragOpPtr.i << " "
+                << *fragOpPtr.p << endl;
+  }
 #endif
   // let DICT drop the unfinished index
 }
 
-void
-Dbtux::execTUXFRAGREQ(Signal* signal)
-{
+void Dbtux::execTUXFRAGREQ(Signal *signal) {
   jamEntry();
 
   if (signal->theData[0] == (Uint32)-1) {
@@ -295,8 +283,8 @@ Dbtux::execTUXFRAGREQ(Signal* signal)
     return;
   }
 
-  const TuxFragReq reqCopy = *(const TuxFragReq*)signal->getDataPtr();
-  const TuxFragReq* const req = &reqCopy;
+  const TuxFragReq reqCopy = *(const TuxFragReq *)signal->getDataPtr();
+  const TuxFragReq *const req = &reqCopy;
   IndexPtr indexPtr;
   indexPtr.i = RNIL;
   TuxFragRef::ErrorCode errorCode = TuxFragRef::NoError;
@@ -311,13 +299,12 @@ Dbtux::execTUXFRAGREQ(Signal* signal)
     if (false && indexPtr.p->m_state != Index::Defining) {
       jam();
       errorCode = TuxFragRef::InvalidRequest;
-      indexPtr.i = RNIL;        // leave alone
+      indexPtr.i = RNIL;  // leave alone
       break;
     }
 
     // seize new fragment record
-    if (ERROR_INSERTED(12008))
-    {
+    if (ERROR_INSERTED(12008)) {
       CLEAR_ERROR_INSERT_VALUE;
       errorCode = TuxFragRef::InvalidRequest;
       break;
@@ -346,7 +333,27 @@ Dbtux::execTUXFRAGREQ(Signal* signal)
               req->fragId,
               indexPtr.p->m_use_new_hash_function));
     c_lqh->getIndexTupFragPtrI(req->tableId,
-                               req->fragId,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TreeHead&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TreeHead
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tree
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&tree
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         req->fragId,
                                fragPtr.p->m_tupIndexFragPtrI,
                                fragPtr.p->m_tupTableFragPtrI);
     // add the fragment to the index
@@ -377,16 +384,66 @@ Dbtux::execTUXFRAGREQ(Signal* signal)
     if (ERROR_INSERTED(12001))
     {
       jam();
-      errorCode = (TuxFragRef::ErrorCode)1;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TuxFragConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TuxFragConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ errorCode = (TuxFragRef::ErrorCode)1;
       CLEAR_ERROR_INSERT_VALUE;
       break;
     }
 #endif
     // initialize tree header
     TreeHead& tree = fragPtr.p->m_tree;
-    new (&tree) TreeHead();
-    // make these configurable later
-    tree.m_nodeSize = MAX_TTREE_NODE_SIZE;
+    new (&tree) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TreeHead();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GSN_TUXFRAGCONF,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GSN_TUXFRAGCONF, signal, TuxFragConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    // make these configurable 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+later
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TuxFragConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   tree.m_nodeSize = MAX_TTREE_NODE_SIZE;
     tree.m_prefSize = (indexPtr.p->m_prefBytes + 3) / 4;
     const unsigned maxSlack = MAX_TTREE_NODE_SLACK;
     // size of header and min prefix
@@ -467,14 +524,36 @@ Dbtux::abortAddFragOp(Signal* signal)
 }
 
 /*
- * Set index online.  Currently at system restart this arrives before
+ * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Set index online.  Currently at system restart this arrives before
  * build and is therefore not correct.
  */
 void
-Dbtux::execALTER_INDX_IMPL_REQ(Signal* signal)
+Dbtux::execALTER_INDX_IMPL_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TuxFragRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TuxFragRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal)
 {
   jamEntry();
-  const AlterIndxImplReq reqCopy = *(const AlterIndxImplReq*)signal->getDataPtr();
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+const AlterIndxImplReq reqCopy = *(const AlterIndxImplReq*)signal->getDataPtr();
   const AlterIndxImplReq* const req = &reqCopy;
 
   IndexPtr indexPtr;
@@ -504,9 +583,51 @@ Dbtux::execALTER_INDX_IMPL_REQ(Signal* signal)
       jam();
       indexPtr.p->m_state = Index::Building;
       break;
-    default:
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+void
+Dbtux::execALTER_INDX_IMPL_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Dbtux::execALTER_INDX_IMPL_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  default:
       jam();
-      [[fallthrough]];
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const AlterIndxImplReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const AlterIndxImplReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   [[fallthrough]];
     case AlterIndxImplReq::AlterIndexOnline:
       jam();
       indexPtr.p->m_state = Index::Online;
@@ -532,7 +653,7 @@ Dbtux::execALTER_INDX_IMPL_REQ(Signal* signal)
 
 /*
  * Drop index.
- *
+   *
  * Uses same DROP_TAB_REQ signal as normal tables.
  */
 
@@ -540,7 +661,7 @@ void
 Dbtux::execDROP_TAB_REQ(Signal* signal)
 {
   jamEntry();
-  const DropTabReq reqCopy = *(const DropTabReq*)signal->getDataPtr();
+  const DropTabReq reqCopy =   *(const DropTabReq*)signal->getDataPtr();
   const DropTabReq* const req = &reqCopy;
   IndexPtr indexPtr;
 
@@ -548,7 +669,7 @@ Dbtux::execDROP_TAB_REQ(Signal* signal)
   Uint32 senderRef = req->senderRef;
   Uint32 senderData = req->senderData;
   if (tableId >= c_indexPool.getSize()) {
-    jam();
+      jam();
     // reply to sender
     DropTabConf* const conf = (DropTabConf*)signal->getDataPtrSend();
     conf->senderRef = reference();
@@ -560,7 +681,31 @@ Dbtux::execDROP_TAB_REQ(Signal* signal)
   }
   
   ndbrequire(c_indexPool.getPtr(indexPtr, req->tableId));
-  // drop works regardless of index state
+  // drop 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+works
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AlterIndxImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AlterIndxImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regardless
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ of index state
 #ifdef VM_TRACE
   if (debugFlags & DebugMeta) {
     tuxDebugOut << "Drop index " << indexPtr.i << " " << *indexPtr.p << endl;
@@ -573,17 +718,111 @@ Dbtux::execDROP_TAB_REQ(Signal* signal)
 void
 Dbtux::dropIndex(Signal* signal,
                  IndexPtr indexPtr,
-                 Uint32 senderRef,
-                 Uint32 senderData)
-{
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendSignal(req->senderRef, GSN_ALTER_INDX_IMPL_CONF,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(req->senderRef, GSN_ALTER_INDX_IMPL_CONF, signal,
+>>>>>>> MySQL 8.0.36
+             Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+senderRef,
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+
+void
+Dbtux::execDROP_TAB_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+
+void Dbtux::execDROP_TAB_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+senderData
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) {
   jam();
   /*
-   * Index state should be Defining or Dropping but in 7.0 it can also
+   * Index state should 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+be
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DropTabReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DropTabReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Defining
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ or Dropping but in 7.0 it can also
    * be NotDefined (due to double call).  The Index record is always
    * consistent regardless of state so there is no state assert here.
    */
   // drop fragments
-  for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
+  for (Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DropTabConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DropTabConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0; i < MAX_FRAG_PER_LQH; i++)
   {
     jam();
     FragPtr fragPtr;
@@ -613,12 +852,12 @@ Dbtux::dropIndex(Signal* signal,
   if (senderRef != 0) {
     jam();
     // reply to sender
-    DropTabConf* const conf = (DropTabConf*)signal->getDataPtrSend();
+    DropTabConf *const conf = (DropTabConf *)signal->getDataPtrSend();
     conf->senderRef = reference();
     conf->senderData = senderData;
     conf->tableId = indexPtr.i;
-    sendSignal(senderRef, GSN_DROP_TAB_CONF,
-        signal, DropTabConf::SignalLength, JBB);
+    sendSignal(senderRef, GSN_DROP_TAB_CONF, signal, DropTabConf::SignalLength,
+               JBB);
   }
   new (indexPtr.p) Index();
 }
@@ -627,9 +866,7 @@ Dbtux::dropIndex(Signal* signal,
  * Subroutines.
  */
 
-bool
-Dbtux::allocDescEnt(IndexPtr indexPtr)
-{
+bool Dbtux::allocDescEnt(IndexPtr indexPtr) {
   jam();
   ndbrequire(!m_is_query_block);
   const Uint32 size = getDescSize(*indexPtr.p);
@@ -649,7 +886,7 @@ Dbtux::allocDescEnt(IndexPtr indexPtr)
   if (pagePtr.i == RNIL64)
   {
     jam();
-    if (! c_descPagePool.seize(pagePtr))
+    if (!c_descPagePool.seize(pagePtr))
     {
       jam();
       return false;
@@ -668,37 +905,34 @@ Dbtux::allocDescEnt(IndexPtr indexPtr)
   indexPtr.p->m_descPage = pagePtr.i;
   indexPtr.p->m_descOff = DescPageSize - pagePtr.p->m_numFree;
   pagePtr.p->m_numFree -= size;
-  DescHead& descHead = *(DescHead*)&pagePtr.p->m_data[indexPtr.p->m_descOff];
+  DescHead &descHead = *(DescHead *)&pagePtr.p->m_data[indexPtr.p->m_descOff];
   descHead.m_indexId = indexPtr.i;
   descHead.m_numAttrs = indexPtr.p->m_numAttrs;
   descHead.m_magic = DescHead::Magic;
-  KeySpec& keySpec = indexPtr.p->m_keySpec;
-  KeyType* keyTypes = getKeyTypes(descHead);
+  KeySpec &keySpec = indexPtr.p->m_keySpec;
+  KeyType *keyTypes = getKeyTypes(descHead);
   keySpec.set_buf(keyTypes, indexPtr.p->m_numAttrs);
   return true;
 }
 
-void
-Dbtux::freeDescEnt(IndexPtr indexPtr)
-{
+void Dbtux::freeDescEnt(IndexPtr indexPtr) {
   ndbrequire(!m_is_query_block);
   DescPage64Ptr pagePtr;
   ndbrequire(c_descPagePool.getPtr(pagePtr, indexPtr.p->m_descPage));
-  Uint32* const data = pagePtr.p->m_data;
+  Uint32 *const data = pagePtr.p->m_data;
   const Uint32 size = getDescSize(*indexPtr.p);
   Uint32 off = indexPtr.p->m_descOff;
   // move the gap to the free area at the top
   while (off + size < DescPageSize - pagePtr.p->m_numFree) {
     jam();
     // next entry to move over the gap
-    DescHead& descHead2 = *(DescHead*)&data[off + size];
+    DescHead &descHead2 = *(DescHead *)&data[off + size];
     Uint32 indexId2 = descHead2.m_indexId;
-    Index& index2 = *c_indexPool.getPtr(indexId2);
+    Index &index2 = *c_indexPool.getPtr(indexId2);
     Uint32 size2 = getDescSize(index2);
-    ndbrequire(
-        index2.m_descPage == pagePtr.i &&
-        index2.m_descOff == off + size &&
-        index2.m_numAttrs == descHead2.m_numAttrs);
+    ndbrequire(index2.m_descPage == pagePtr.i &&
+               index2.m_descOff == off + size &&
+               index2.m_numAttrs == descHead2.m_numAttrs);
     // move the entry (overlapping copy if size < size2)
     Uint32 i;
     for (i = 0; i < size2; i++) {
@@ -710,11 +944,11 @@ Dbtux::freeDescEnt(IndexPtr indexPtr)
     index2.m_descOff -= size;
     {
       // move KeySpec pointer
-      DescHead& descHead2 = getDescHead(index2);
-      KeyType* keyType2 = getKeyTypes(descHead2);
+      DescHead &descHead2 = getDescHead(index2);
+      KeyType *keyType2 = getKeyTypes(descHead2);
       index2.m_keySpec.set_buf(keyType2);
       ndbrequire(index2.m_keySpec.validate() == 0);
-     }
+    }
   }
   ndbrequire(off + size == DescPageSize - pagePtr.p->m_numFree);
   pagePtr.p->m_numFree += size;
@@ -726,10 +960,8 @@ Dbtux::freeDescEnt(IndexPtr indexPtr)
   }
 }
 
-void
-Dbtux::execDROP_FRAG_REQ(Signal* signal)
-{
-  DropFragReq copy = *(DropFragReq*)signal->getDataPtr();
+void Dbtux::execDROP_FRAG_REQ(Signal *signal) {
+  DropFragReq copy = *(DropFragReq *)signal->getDataPtr();
   DropFragReq *req = &copy;
 
   IndexPtr indexPtr;
@@ -755,12 +987,11 @@ Dbtux::execDROP_FRAG_REQ(Signal* signal)
     }
   }
 
-
   // reply to sender
-  DropFragConf* const conf = (DropFragConf*)signal->getDataPtrSend();
+  DropFragConf *const conf = (DropFragConf *)signal->getDataPtrSend();
   conf->senderRef = reference();
   conf->senderData = req->senderData;
   conf->tableId = req->tableId;
-  sendSignal(req->senderRef, GSN_DROP_FRAG_CONF,
-             signal, DropFragConf::SignalLength, JBB);
+  sendSignal(req->senderRef, GSN_DROP_FRAG_CONF, signal,
+             DropFragConf::SignalLength, JBB);
 }

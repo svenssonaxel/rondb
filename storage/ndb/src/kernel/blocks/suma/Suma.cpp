@@ -23,8 +23,8 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#include "util/require.h"
 #include "Suma.hpp"
+#include "util/require.h"
 
 #include <ndb_version.h>
 
@@ -35,33 +35,33 @@
 #include <signaldata/NodeFailRep.hpp>
 #include <signaldata/ReadNodesConf.hpp>
 
-#include <signaldata/ListTables.hpp>
-#include <signaldata/GetTabInfo.hpp>
-#include <signaldata/DictTabInfo.hpp>
-#include <signaldata/SumaImpl.hpp>
-#include <signaldata/ScanFrag.hpp>
-#include <signaldata/TransIdAI.hpp>
-#include <signaldata/CreateTrigImpl.hpp>
-#include <signaldata/DropTrigImpl.hpp>
-#include <signaldata/FireTrigOrd.hpp>
-#include <signaldata/TrigAttrInfo.hpp>
+#include <signaldata/AlterTab.hpp>
+#include <signaldata/AlterTable.hpp>
 #include <signaldata/CheckNodeGroups.hpp>
 #include <signaldata/CreateTab.hpp>
-#include <signaldata/DropTab.hpp>
-#include <signaldata/AlterTable.hpp>
-#include <signaldata/AlterTab.hpp>
-#include <signaldata/DihScanTab.hpp>
+#include <signaldata/CreateTrigImpl.hpp>
 #include <signaldata/DiGetNodes.hpp>
-#include <signaldata/SystemError.hpp>
+#include <signaldata/DictTabInfo.hpp>
+#include <signaldata/DihScanTab.hpp>
+#include <signaldata/DropTab.hpp>
+#include <signaldata/DropTrigImpl.hpp>
+#include <signaldata/FireTrigOrd.hpp>
 #include <signaldata/GCP.hpp>
+#include <signaldata/GetTabInfo.hpp>
+#include <signaldata/ListTables.hpp>
+#include <signaldata/ScanFrag.hpp>
 #include <signaldata/StopMe.hpp>
+#include <signaldata/SumaImpl.hpp>
+#include <signaldata/SystemError.hpp>
+#include <signaldata/TransIdAI.hpp>
+#include <signaldata/TrigAttrInfo.hpp>
 
-#include <signaldata/DictLock.hpp>
 #include <ndbapi/NdbDictionary.hpp>
+#include <signaldata/DictLock.hpp>
 
 #include <DebuggerNames.hpp>
-#include "../dbtup/Dbtup.hpp"
 #include "../dbdih/Dbdih.hpp"
+#include "../dbtup/Dbtup.hpp"
 
 #include <signaldata/CreateNodegroup.hpp>
 #include <signaldata/CreateNodegroupImpl.hpp>
@@ -70,14 +70,13 @@
 #include <signaldata/DropNodegroupImpl.hpp>
 
 #include <signaldata/DbinfoScan.hpp>
-#include <signaldata/TransIdAI.hpp>
 #include <signaldata/DumpStateOrd.hpp>
+#include <signaldata/TransIdAI.hpp>
 
 #include <ndb_version.h>
 #include <EventLogger.hpp>
 
 #define JAM_FILE_ID 467
-
 
 //#define HANDOVER_DEBUG
 //#define NODEFAIL_DEBUG
@@ -112,7 +111,7 @@
   }
 #else
 #define DBUG_ENTER(a)
-#define DBUG_PRINT(a,b)
+#define DBUG_PRINT(a, b)
 #define DBUG_RETURN(a) return a
 #define DBUG_VOID_RETURN return
 #endif
@@ -176,24 +175,21 @@ static bool g_reporting_in_progress = false;
 
 #define PRINT_ONLY 0
 
-void 
-Suma::execREAD_CONFIG_REQ(Signal* signal)
-{
+void Suma::execREAD_CONFIG_REQ(Signal *signal) {
   jamEntry();
 
-  const ReadConfigReq * req = (ReadConfigReq*)signal->getDataPtr();
+  const ReadConfigReq *req = (ReadConfigReq *)signal->getDataPtr();
 
   Uint32 ref = req->senderRef;
   Uint32 senderData = req->senderData;
 
-  const ndb_mgm_configuration_iterator * p = 
-    m_ctx.m_config.getOwnConfigIterator();
+  const ndb_mgm_configuration_iterator *p =
+      m_ctx.m_config.getOwnConfigIterator();
   ndbrequire(p != 0);
 
   // SumaParticipant
   Uint32 maxBufferedEpochs;
-  ndb_mgm_get_int_parameter(p, CFG_DB_MAX_BUFFERED_EPOCHS,
-                            &maxBufferedEpochs);
+  ndb_mgm_get_int_parameter(p, CFG_DB_MAX_BUFFERED_EPOCHS, &maxBufferedEpochs);
 
   DEB_AUTOMATIC_MEMORY(("Allocating c_tablePool"));
   Pool_context pc;
@@ -205,8 +201,7 @@ Suma::execREAD_CONFIG_REQ(Signal* signal)
     1,
     UINT32_MAX);
 
-  while (c_tablePool.startup())
-  { 
+  while (c_tablePool.startup()) { 
     refresh_watch_dog();
   }
 
@@ -282,35 +277,62 @@ Suma::execREAD_CONFIG_REQ(Signal* signal)
   // That should be ok.
   //
   Uint32 gcpInterval, microGcpInterval = 0;
-  ndb_mgm_get_int_parameter(p, CFG_DB_GCP_INTERVAL,
-                            &gcpInterval);
-  ndb_mgm_get_int_parameter(p, CFG_DB_MICRO_GCP_INTERVAL,
-                            &microGcpInterval);
+  ndb_mgm_get_int_parameter(p, CFG_DB_GCP_INTERVAL, &gcpInterval);
+  ndb_mgm_get_int_parameter(p, CFG_DB_MICRO_GCP_INTERVAL, &microGcpInterval);
 
-  if (microGcpInterval)
-  {
+  if (microGcpInterval) {
     gcpInterval = microGcpInterval;
   }
 
   const Uint32 disconnectBufferSeconds = 5;
   const Uint32 disconnectBufferEpochs =
-    ((disconnectBufferSeconds * 1000) + gcpInterval - 1) /
-    gcpInterval;
+      ((disconnectBufferSeconds * 1000) + gcpInterval - 1) / gcpInterval;
 
-  const Uint32 poolSize= disconnectBufferEpochs + c_maxBufferedEpochs;
+  const Uint32 poolSize = disconnectBufferEpochs + c_maxBufferedEpochs;
 
   DEB_AUTOMATIC_MEMORY(("Allocating c_gcp_pool, size: %u", poolSize));
   c_gcp_pool.setSize(poolSize);
 
   /**
    * We can increase the number of page chunks if the user
-   * has setup a very large ReplicationMemory.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+1)
+=======
+1) /
+>>>>>>> MySQL 8.0.36
+ has setup a very large ReplicationMemory.
    */
-  Uint64 ReplicationMemory = globalData.theReplicationMemory;
+  Uint64 ReplicationMemory 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= globalData.theReplicationMemory
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/ Page_chunk::CHUNK_PAGE_SIZE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Page_chunk::CHUNK_PAGE_SIZE
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   ReplicationMemory /= (Uint64(32768) * Uint64(32));
   Uint32 rep_mb = Uint32(ReplicationMemory);
-  /**
-   * We always allocate page chunk records to handle at least 16 GB of
+ /
+ /**
+   * We always allocate page chunk records to handle at least 16 GB 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+||||||| Common ancestor
+/
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
    * page buffers. This only represents 16384 records of 20 bytes each.
    * This represents an upper limit on what normally can be used for
    * the page pool in SUMA. Setting the maximum buffered epoch bytes
@@ -320,7 +342,29 @@ Suma::execREAD_CONFIG_REQ(Signal* signal)
    *
    * We allocate trigger page chunks to be able to handle 4 GByte of
    * buffers in sending from DBTUP to SUMA. This should be more than
-   * enough.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Bucket*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Bucket
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+enough.
+||||||| Common ancestor
+bucket=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*bucket =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
    *
    * We allocate 4 * 1 MByte of Trigger pages in 1 chunk in all 4
    * LDM Trigger page records. This will mostly be sufficient and
@@ -339,17 +383,83 @@ Suma::execREAD_CONFIG_REQ(Signal* signal)
   c_page_chunk_pool.setSize(numPageChunks);
   c_trigger_page_record_pool.setSize(NUM_LDM_TRIGGER_PAGE_RECORDS);
   c_trigger_page_chunk_pool.setSize(4096);
-  for (Uint32 i = 0; i < NUM_LDM_TRIGGER_PAGE_RECORDS; i++)
+  for (Uint32 i = 0; i < NUM_LDM_TRIGGER_PAGE_RECORDS; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i++)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ReadConfigConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   {
-    Ptr<LdmTriggerPageRecord> triggerPagePtr;
-    ndbrequire(c_trigger_page_record_pool.seize(triggerPagePtr));
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ReadConfigConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Ptr<LdmTriggerPageRecord> triggerPagePtr;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Suma::execSTTOR(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Suma::execSTTOR(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   ndbrequire(c_trigger_page_record_pool.seize(triggerPagePtr));
     triggerPagePtr.p->m_trigger_page_free_chunks.init();
     triggerPagePtr.p->m_trigger_page_full_chunks.init();
     NdbMutex_Init(&triggerPagePtr.p->theMutex);
   }
-  NdbMutex_Init(&theTriggerPageChunkMutex);
-  for (Uint32 i = 0; i < NUM_LDM_TRIGGER_PAGE_RECORDS; i++)
-  {
+  NdbMutex_Init(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&theTriggerPageChunkMutex);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"startphase = %u, typeOfStart = %u",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"startphase = %u, typeOfStart = %u", m_startphase,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  for (Uint32 i 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_startphase,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0; i < NUM_LDM_TRIGGER_PAGE_RECORDS; i++) {
     Ptr<LdmTriggerPageRecord> triggerPagePtr;
     Ptr<Trigger_page_chunk> triggerChunkPtr;
     ndbrequire(c_trigger_page_record_pool.getPtr(triggerPagePtr, i));
@@ -366,8 +476,51 @@ Suma::execREAD_CONFIG_REQ(Signal* signal)
     SyncRecord_sllist tmp(c_syncPool);
     Ptr<SyncRecord> ptr;
     while (tmp.seizeFirst(ptr))
-      new (ptr.p) SyncRecord(* this, c_dataBufferPool);
-    while (tmp.releaseFirst());
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+for(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+for
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  new (ptr.p) SyncRecord(* this, c_dataBufferPool)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+while
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  {
+	if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (tmp.releaseFirst());
   }
 
   // Suma
@@ -375,9 +528,27 @@ Suma::execREAD_CONFIG_REQ(Signal* signal)
 
   c_nodeGroup = c_noNodesInGroup = 0;
   for (Uint32 i = 0; i < MAX_REPLICAS; i++)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+;
+	}
+=======
+;
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   {
     c_nodesInGroup[i] = 0;
-  }
+    }
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    }
+>>>>>>> MySQL 8.0.36
 
   m_first_free_page= RNIL;
   
@@ -385,9 +556,69 @@ Suma::execREAD_CONFIG_REQ(Signal* signal)
   memset(c_buckets, 0, sizeof(c_buckets));
   for(Uint32 i = 0; i<NO_OF_BUCKETS; i++)
   {
-    Bucket* bucket= c_buckets+i;
-    bucket->m_buffer_tail = RNIL;
-    bucket->m_max_acked_gci = 0;
+    Bucket* bucket= c_buckets
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++i;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+.find(bucket)) != Bucket_mask::NotFound)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+.find(bucket)) !=
+             Bucket_mask::NotFound) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+  {
+	tmp.set(get_responsible_node(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    tmp.set(get_responsible_node(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+bucket->m_buffer_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tail
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+mask));
+	bucket++;
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+mask));
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  bucket++;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    bucket->m_max_acked_gci = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+
     bucket->m_buffer_head.m_page_id = RNIL;
     bucket->m_buffer_head.m_page_pos = Buffer_page::DATA_WORDS;
   }
@@ -410,7 +641,17 @@ Suma::execREAD_CONFIG_REQ(Signal* signal)
   ReadConfigConf * conf = (ReadConfigConf*)signal->getDataPtrSend();
   conf->senderRef = reference();
   conf->senderData = senderData;
-  sendSignal(ref, GSN_READ_CONFIG_CONF, signal, 
+  sendSignal(ref, GSN_READ_CONFIG_CONF, signal,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ 1000,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 	     ReadConfigConf::SignalLength, JBB);
 }
 
@@ -419,7 +660,17 @@ Suma::init_page_chunks()
 {
   /**
    * Ensure that 4 MByte of Replication Event Buffers are always
-   * allocated to ensure that we at least have some level of memory
+   * allocated to ensure 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that we
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+1000, signal->getLength());
+=======
+signal->getLength());
+>>>>>>> MySQL 8.0.36
+ at least have some level of memory
    * even with extreme memory environments.
    */
   Uint32 page_id[128];
@@ -471,7 +722,19 @@ Suma::execSTTOR(Signal* signal) {
     if (ERROR_INSERTED(13029)) /* Hold startphase 5 */
     {
       sendSignalWithDelay(SUMA_REF, GSN_STTOR, signal,
-                          30, signal->getLength());
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+connect",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+              "connect",
+             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       30, signal->getLength());
       DBUG_VOID_RETURN;
     }
     
@@ -481,18 +744,110 @@ Suma::execSTTOR(Signal* signal) {
   }
   
   if (m_startphase == 7)
-  {
-    if (m_typeOfStart != NodeState::ST_NODE_RESTART &&
-	m_typeOfStart != NodeState::ST_INITIAL_NODE_RESTART)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+DBUG_VOID_RETURN;
+}
+
+void
+Suma::send_dict_lock_req(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DBUG_VOID_RETURN;
+}
+
+void Suma::send_dict_lock_req(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   if (m_typeOfStart != 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeState::ST_NODE_RESTART
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DictLockReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DictLockReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&&
+	m_typeOfStart
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ != NodeState::ST_INITIAL_NODE_RESTART)
     {
       for( Uint32 i = 0; i < c_no_of_buckets; i++)
-      {
+   GSN_DICT_LOCK_REQ, signal,
+  {
 	if (get_responsible_node(i) == getOwnNodeId())
 	{
 	  // I'm running this bucket
-	  DBUG_PRINT("info",("bucket %u set to true", i));
+	  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DBUG_PRINT("info",("bucket
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GSN_DICT_LOCK_REQ,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ set to true", i));
 	  m_active_buckets.set(i);
-          g_eventLogger->info("Activating bucket %u in SUMA", i);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DictLockConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DictLockConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       g_eventLogger->info("Activating bucket %u in SUMA", i);
 	}
       }
     }
@@ -506,16 +861,172 @@ Suma::execSTTOR(Signal* signal) {
 	tmp.set(get_responsible_node(bucket, c_nodes_in_nodegroup_mask));
 	bucket++;
       }
-      
-      ndbassert(tmp.get(getOwnNodeId()));
-      m_gcp_complete_rep_count = m_active_buckets.count();
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+the subscriptions
+// RONDB-624 todo: Glue these lines together ^v
+=======
+the
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+* when the
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  * subscriptions when the
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ndbassert(tmp.get(getOwnNodeId()));
+      m_gcp_complete_rep_count 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CONTINUEB
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_active_buckets.count();
+||||||| Common ancestor
+signals.
+=======
+>>>>>>> MySQL 8.0.36
     }
-    else
-      m_gcp_complete_rep_count = 0; // I contribute 1 gcp complete rep
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+The
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CONTINUEB signals. The
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  else
+      m_gcp_complete_rep_count 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+happen
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+at
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+any
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+I
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+time.
+=======
+>>>>>>> MySQL 8.0.36
+ contribute 1 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+gcp
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+complete
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+happen
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+rep
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+at any time.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     
-    if (m_typeOfStart == NodeState::ST_INITIAL_START &&
-        c_masterNodeId == getOwnNodeId())
-    {
+    if (m_typeOfStart 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+parallel
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeState::ST_INITIAL_START &&
+||||||| Common ancestor
+with the
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+reporting
+// RONDB-624 todo: Glue these lines together ^v
+=======
+parallel with the reporting
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  c_masterNodeId == getOwnNodeId())
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+in
+// RONDB-624 todo: Glue these lines together ^v
+=======
+in
+       *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
       jam();
       createSequence(signal);
       DBUG_VOID_RETURN;
@@ -524,19 +1035,109 @@ Suma::execSTTOR(Signal* signal) {
     if (ERROR_INSERTED(13030))
     {
       g_eventLogger->info("Dont start handover");
-      DBUG_VOID_RETURN;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DictLockRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DictLockRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   DBUG_VOID_RETURN;
     }
   }//if
   
   if (m_startphase == 101)
   {
     if (ERROR_INSERTED(13053))
-    {
-      jam();
-      g_eventLogger->info("SUMA : ERROR 13053 : Stalling phase 101");
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+2);
+}
+
+void
+Suma::send_dict_unlock_ord(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+2);
+}
+
+void Suma::send_dict_unlock_ord(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DictUnlockOrd*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DictUnlockOrd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ord
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   g_eventLogger->info("SUMA : ERROR 13053 : Stalling phase 101");
       sendSignalWithDelay(SUMA_REF, GSN_STTOR, signal,
-                          1000, signal->getLength());
-      return;
+           GSN_DICT_UNLOCK_ORD, signal,
+              1000, signal->getLength());
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Suma::send_start_me_req(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Suma::send_start_me_req(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+     return;
     }
 
     if (m_typeOfStart == NodeState::ST_NODE_RESTART ||
@@ -552,8 +1153,60 @@ Suma::execSTTOR(Signal* signal) {
       {
         jam();
         /**
-         * Handover is waiting for some Api connections,
-         * We don't want to wait indefinitely
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+JBB);
+}
+
+void
+Suma::execSUMA_START_ME_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB);
+}
+
+void Suma::execSUMA_START_ME_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Handover is waiting for some Api connections,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SumaStartMeRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SumaStartMeRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     * We don't want to wait indefinitely
          */
         NdbTick_Invalidate(&c_startup.m_wait_handover_message_expire);
         if (c_startup.m_wait_handover_timeout_ms == 0)
@@ -564,13 +1217,58 @@ Suma::execSTTOR(Signal* signal) {
           NdbTick_Invalidate(&c_startup.m_wait_handover_expire);
         }
         else
-        {
+ SystemError::SignalLength,
+       {
           jam();
           /* Bounded wait */
           NDB_TICKS now = NdbTick_getCurrentTicks();
-          g_eventLogger->info("Suma: handover waiting up to %ums for all subscribers to connect", c_startup.m_wait_handover_timeout_ms);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Suma::execSUMA_START_ME_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Suma::execSUMA_START_ME_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+         g_eventLogger->info("Suma: handover waiting up to %ums for all subscribers to connect", c_startup.m_wait_handover_timeout_ms);
           c_startup.m_wait_handover_expire = NdbTick_AddMilliseconds(now, c_startup.m_wait_handover_timeout_ms);
-        }
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Suma::createSequence(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Suma::createSequence(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+       }
         check_wait_handover_timeout(signal);
       }
       DBUG_VOID_RETURN;
@@ -584,20 +1282,39 @@ void
 Suma::send_dict_lock_req(Signal* signal, Uint32 state)
 {
   jam();
-  DictLockReq* req = (DictLockReq*)signal->getDataPtrSend();
+  DictLockReq*req = (DictLockReq*)signal->getDataPtrSend();
   req->lockType = state;
   req->userPtr = state;
   req->userRef = reference();
   sendSignal(calcDictBlockRef(c_masterNodeId),
-               GSN_DICT_LOCK_REQ, signal, DictLockReq::SignalLength, JBB);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          GSN_DICT_LOCK_REQ, signal, DictLockReq::SignalLength, JBB);
 }
 
-void
-Suma::execDICT_LOCK_CONF(Signal* signal)
+void Suma::execDICT_LOCK_CONF(Signal *signal)
 {
   jamEntry();
 
-  DictLockConf* conf = (DictLockConf*)signal->getDataPtr();
+  DictLockConf*conf = (DictLockConf*)signal->getDataPtr();
   Uint32 state = conf->userPtr;
 
   switch(state){
@@ -631,9 +1348,7 @@ Suma::execDICT_LOCK_CONF(Signal* signal)
   }
 }
 
-void
-Suma::execDICT_LOCK_REF(Signal* signal)
-{
+void Suma::execDICT_LOCK_REF(Signal *signal) {
   jamEntry();
 
   DictLockRef* ref = (DictLockRef*)signal->getDataPtr();
@@ -667,8 +1382,7 @@ Suma::send_start_me_req(Signal* signal)
     
     if(nodeId == getOwnNodeId())
       continue;
-    if(nodeId == NdbNodeBitmask::NotFound)
-    {
+    if(nodeId == NdbNodeBitmask::NotFound)   {
       nodeId = 0;
       continue;
     }
@@ -682,9 +1396,7 @@ Suma::send_start_me_req(Signal* signal)
 	     GSN_SUMA_START_ME_REQ, signal, 1, JBB);
 }
 
-void
-Suma::execSUMA_START_ME_REF(Signal* signal)
-{
+void Suma::execSUMA_START_ME_REF(Signal *signal) {
   const SumaStartMeRef* ref= (SumaStartMeRef*)signal->getDataPtr();
 
   Uint32 error = ref->errorCode;
@@ -720,8 +1432,7 @@ Suma::execSUMA_START_ME_CONF(Signal* signal)
 }
 
 void
-Suma::createSequence(Signal* signal)
-{
+Suma::createSequence(Signal* signal) {
   jam();
   DBUG_ENTER("Suma::createSequence");
 
@@ -732,8 +1443,7 @@ Suma::createSequence(Signal* signal)
   req->requestType = UtilSequenceReq::Create;
   sendSignal(DBUTIL_REF, GSN_UTIL_SEQUENCE_REQ, 
 	     signal, UtilSequenceReq::SignalLength, JBB);
-  // execUTIL_SEQUENCE_CONF will call createSequenceReply()
-  DBUG_VOID_RETURN;
+  // execUTIL_SEQUENCE_CONF will call createSequenceReply() DBUG_VOID_RETURN;
 }
 
 void
@@ -745,8 +1455,7 @@ Suma::createSequenceReply(Signal* signal,
 
   if (ref != NULL)
   {
-    switch ((UtilSequenceRef::ErrorCode)ref->errorCode)
-    {
+    switch ((UtilSequenceRef::ErrorCode)ref->errorCode)   {
       case UtilSequenceRef::NoSuchSequence:
         ndbabort();
       case UtilSequenceRef::TCError:
@@ -921,8 +1630,34 @@ Suma::fix_nodegroup()
       tot = 1;
       break;
     case 2:
-      tot = 4; // 2^2
-      break;
+      tot = 4; // 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+2^2
+||||||| Common ancestor
+DBUG_VOID_RETURN;
+}
+
+void
+Suma::execAPI_START_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DBUG_VOID_RETURN;
+}
+
+void Suma::execAPI_START_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+     break;
     case 3:
       tot = 27; // 3^3
       break;
@@ -935,8 +1670,7 @@ Suma::fix_nodegroup()
     {
       Bucket* ptr= c_buckets + cnt;
       /* Initialise all entries first */
-      for (Uint32 k = 0; k < MAX_REPLICAS; k++)
-      {
+      for (Uint32 k = 0; k < MAX_REPLICAS; k++)   {
         ptr->m_nodes[k] = 0;
       }
       if (valid_seq(i, replicas, ptr->m_nodes))
@@ -996,10 +1730,22 @@ Suma::execCHECKNODEGROUPSCONF(Signal *signal)
   c_nodes_in_nodegroup_mask.assign(sd->mask);
   c_noNodesInGroup = c_nodes_in_nodegroup_mask.count();
 
-  fix_nodegroup();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ fix_nodegroup();
 
 #ifndef NDEBUG
-  for (Uint32 i = 0; i < c_noNodesInGroup; i++) {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+< MAX_NODES)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  for (Uint32 i = 0; i < c_noNodesInGroup; i++)        MAX_NODES) {
     DBUG_PRINT("exit",("Suma: NodeGroup %u, me %u, "
 		       "member[%u] %u",
 		       c_nodeGroup, getOwnNodeId(), 
@@ -1119,21 +1865,43 @@ Suma::check_wait_handover_timeout(Signal* signal)
             LogLevel ll;
             ll.setLogLevel(LogLevel::llError, 15);
             g_eventLogger->log(NDB_LE_SubscriptionStatus,
-                               signal->theData,
-                               signal->getLength(),
-                               getOwnNodeId(),
-                               &ll);
+                            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+shutting
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+              "shutting
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   signal->theData,
+              BaseString::getPrettyTextShort(subscribers_not_connected)
+                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->getLength
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   BaseString::getPrettyTextShort(subscribers_not_connected).c_str
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ .c_str
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(),
+                               getOwnNodeId(),            &ll);
 
             /**
              * Force API_FAILREQ
              */
             if (ERROR_INSERTED(13048))
             {
-              g_eventLogger->info("Skipping forced disconnect of %u",
+              g_eventLogger->info(
+            "Skipping forced disconnect of %u",
                                   nodeId);
-            }
-            else
-            {
+            }         else         {
               signal->theData[0] = nodeId;
               sendSignal(QMGR_REF, GSN_API_FAILREQ, signal, 1, JBB);
             }
@@ -1145,7 +1913,8 @@ Suma::check_wait_handover_timeout(Signal* signal)
           c_startup.m_forced_disconnect_attempted = true;
 
           NDB_TICKS now = NdbTick_getCurrentTicks();
-          c_startup.m_wait_handover_expire = NdbTick_AddMilliseconds(now, c_startup.m_wait_handover_timeout_ms);
+          c_startup.m_wait_handover_expire =
+          NdbTick_AddMilliseconds(now, c_startup.m_wait_handover_timeout_ms);
         }
         else
         {
@@ -1154,17 +1923,27 @@ Suma::check_wait_handover_timeout(Signal* signal)
            * to get all subscribers connected.  Shutdown
            */
           g_eventLogger->critical("Failed to establish direct connection to all subscribers, shutting down.  (%s)",
-                                  BaseString::getPrettyTextShort(subscribers_not_connected).c_str());
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+10s
+// RONDB-624 todo: Glue these lines together ^v
+=======
+10s
+                                    //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                    BaseString::getPrettyTextShort(subscribers_not_connected).c_str());
           CRASH_INSERTION(13048);
           progError(__LINE__,
                     NDBD_EXIT_GENERIC,
                     "Failed to establish direct connection to all subscribers");
         }
-      }
-      else
-      {
+      }   else   {
         /* Why are we waiting if there are no disconnected subscribers? */
-        g_eventLogger->critical("Subscriber nodes : %s", BaseString::getPrettyTextShort(c_subscriber_nodes).c_str());
+        g_eventLogger->critical(
+          "Subscriber nodes : %s", BaseString::getPrettyTextShort(c_subscriber_nodes).c_str());
         g_eventLogger->critical("Connected nodes  : %s", BaseString::getPrettyTextShort(c_connected_nodes).c_str());
         ndbabort();
       }
@@ -1177,9 +1956,7 @@ Suma::check_wait_handover_timeout(Signal* signal)
   }
 }
 
-void
-Suma::check_wait_handover_message(NDB_TICKS now)
-{
+void Suma::check_wait_handover_message(NDB_TICKS now) {
   jam();
 
   NodeBitmask subscribers_not_connected;
@@ -1189,7 +1966,27 @@ Suma::check_wait_handover_message(NDB_TICKS now)
   if (!NdbTick_IsValid(c_startup.m_wait_handover_message_expire) ||   // First time
       NdbTick_Compare(c_startup.m_wait_handover_message_expire, now) < 0)  // Time is up
   {
-    jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SumaHandoverReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SumaHandoverReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ jam();
     if (NdbTick_IsValid(c_startup.m_wait_handover_expire))
     {
       /* Bounded wait */
@@ -1201,21 +1998,88 @@ Suma::check_wait_handover_message(NDB_TICKS now)
                           BaseString::getPrettyTextShort(subscribers_not_connected).c_str());
       if (milliseconds_left > 0)
       { // Plan next message on next even 10s multiple before wait handover expire
-        c_startup.m_wait_handover_message_expire = NdbTick_AddMilliseconds(now, (milliseconds_left - 1) % 10000 + 1);
+        c_startup.m_wait_handover_message_expire = NdbTick_AddMilliseconds(now, (milliseconds_left - 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+=======
+SumaHandoverReq::SignalLength,
+>>>>>>> MySQL 8.0.36
+ % 10000 + 1);
       }
-      else
-      {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   else
+||||||| Common ancestor
+SumaHandoverReq::SignalLength, JBB);
+}
+
+void
+Suma::sendSTTORRY(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB);
+}
+
+void Suma::sendSTTORRY(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
         c_startup.m_wait_handover_message_expire = now;
       }
     }
     else
     {
       /* Unbounded wait, show progress */
-      g_eventLogger->info("Start phase 101 waiting for absent subscribers to connect : %s",
+      g_eventLogger->info("Start 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+phase
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+jamEntry();
+}
+
+void
+Suma::execCONTINUEB(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+jamEntry(); }
+
+void Suma::execCONTINUEB(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+101
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ waiting for absent subscribers to connect : %s",
                           BaseString::getPrettyTextShort(subscribers_not_connected).c_str());
       c_startup.m_wait_handover_message_expire = NdbTick_AddMilliseconds(now, 10000);
     }
-  }
+    }
 }
 
 void
@@ -1225,7 +2089,7 @@ Suma::send_handover_req(Signal* signal, Uint32 type)
   c_startup.m_handover_nodes.assign(c_alive_nodes);
   c_startup.m_handover_nodes.bitAND(c_nodes_in_nodegroup_mask);
   c_startup.m_handover_nodes.clear(getOwnNodeId());
-  Uint32 gci= Uint32(m_last_complete_gci >> 32) + 3;
+  Uint32 gci=   Uint32(m_last_complete_gci >> 32) + 3;
   
   SumaHandoverReq* req= (SumaHandoverReq*)signal->getDataPtrSend();
   char buf[NdbNodeBitmask::TextLength + 1];
@@ -1269,25 +2133,51 @@ Suma::execCONTINUEB(Signal* signal){
   switch(type){
   case SumaContinueB::SHRINK_TRANSIENT_POOLS:
   {
-    jam();
+      jam();
     Uint32 pool_index = signal->theData[1];
     ndbassert(signal->getLength() == 2);
     shrinkTransientPools(pool_index);
-    return;
+      return;
   }
 #if (defined(VM_TRACE) || \
      defined(ERROR_INSERT)) && \
-    defined(DO_TRANSIENT_POOL_STAT)
+    defined(DO_TRANSIENT_POOL_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+STAT)
 
   case SumaContinueB::SUMA_TRANSIENT_POOL_STAT:
   {
     for (Uint32 pool_index = 0;
          pool_index < c_transient_pool_count;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+REQ(signal,
+                         signal->theData[1],
+// RONDB-624 todo: Glue these lines together ^v
+=======
+REQ(signal, signal->theData[1], signal->theData[2],
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
          pool_index++)
     {
-      g_eventLogger->info(
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+g_eventLogger->info(
         "SUMA %u: Transient slot pool %u %p: Entry size %u:"
-       " Free %u: Used %u: Used high %u: Size %u: For shrink %u",
+      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      signal->theData[2],
+                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ " Free %u: Used %u: Used high %u: Size %u: For shrink %u",
        instance(),
        pool_index,
        c_transient_pools[pool_index],
@@ -1298,20 +2188,18 @@ Suma::execCONTINUEB(Signal* signal){
        c_transient_pools[pool_index]->getSize(),
        c_transient_pools_shrinking.get(pool_index));
     }
-    sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 1);
+    sendSignalWithDelay(reference(), GSN_CONTINUEB,   signal, 5000, 1);
     break;
-  }
+    }
 #endif
-  case SumaContinueB::RELEASE_GCI:
-  {
+    case SumaContinueB::RELEASE_GCI: {
     Uint32 gci_hi = signal->theData[2];
     Uint32 gci_lo = signal->theData[3];
     Uint64 gci = gci_lo | (Uint64(gci_hi) << 32);
     release_gci(signal, signal->theData[1], gci);
-    return;
-  }
-  case SumaContinueB::RESEND_BUCKET:
-  {
+      return;
+    }
+    case SumaContinueB::RESEND_BUCKET: {
     Uint32 min_gci_hi = signal->theData[2];
     Uint32 min_gci_lo = signal->theData[5];
     Uint32 last_gci_hi = signal->theData[4];
@@ -1319,12 +2207,12 @@ Suma::execCONTINUEB(Signal* signal){
     Uint64 min_gci = min_gci_lo | (Uint64(min_gci_hi) << 32);
     Uint64 last_gci = last_gci_lo | (Uint64(last_gci_hi) << 32);
     resend_bucket(signal, 
-		  signal->theData[1], 
+		    signal->theData[1], 
 		  min_gci,
 		  signal->theData[3],
 		  last_gci);
-    return;
-  }
+      return;
+    }
   case SumaContinueB::OUT_OF_BUFFER_RELEASE:
     out_of_buffer_release(signal, signal->theData[1]);
     return;
@@ -2249,7 +3137,27 @@ Suma::execDUMP_STATE_ORD(Signal* signal){
         jam();
         infoEvent("-- Ending dump of subscribers --");
         return;
-      }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Suma::execAPI_FAILREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Suma::execAPI_FAILREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    }
 
       Ptr<Subscription> subPtr = iter.curr;
       Ptr<Table> tabPtr;
@@ -2275,9 +3183,41 @@ Suma::execDUMP_STATE_ORD(Signal* signal){
         for (list.first(ptr); !ptr.isNull(); list.next(ptr), i++)
         {
           jam();
-          infoEvent("  Subscriber [ %x %u %u ]",
+          infoEvent(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ Subscriber [ %x %u %u ]"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                     ptr.p->m_senderRef,
-                    ptr.p->m_senderData,
+              Uint32 failedNodeId,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr.p->m_senderData,
+||||||| Common ancestor
+failedNodeId,
+=======
+>>>>>>> MySQL 8.0.36
                     subPtr.i);
         }
       }
@@ -2290,16 +3230,54 @@ Suma::execDUMP_STATE_ORD(Signal* signal){
         for (list.first(ptr); !ptr.isNull(); list.next(ptr), i++)
         {
           jam();
-          infoEvent("  create [ %x %u ]",
-                    ptr.p->m_senderRef,
+          infoEvent("  create [ %x %u ]",    ptr.p->m_senderRef,
                     ptr.p->m_senderData);
         }
       }
+<<<<<<< RonDB // RONDB-624 todo
 
-      {
+||||||| Common ancestor
+void
+Suma::api_fail_gci_list(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Suma::api_fail_gci_list(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     {
         Ptr<SubOpRecord> ptr;
         Local_SubOpRecord_fifo list(c_subOpPool,
-                                    subPtr.p->m_start_req);
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SubGcpCompleteAck*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SubGcpCompleteAck
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ack
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ack
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          subPtr.p->m_start_req);
 
         for (list.first(ptr); !ptr.isNull(); list.next(ptr), i++)
         {
@@ -2315,12 +3293,38 @@ Suma::execDUMP_STATE_ORD(Signal* signal){
         Local_SubOpRecord_fifo list(c_subOpPool,
                                     subPtr.p->m_stop_req);
 
-        for (list.first(ptr); !ptr.isNull(); list.next(ptr), i++)
-        {
+        for (list.first(ptr); !ptr.isNull(); list.next(ptr), i++)       {
           jam();
           infoEvent("  stop [ %u %x %u ]",
                     ptr.p->m_opType,
-                    ptr.p->m_senderRef,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+return;
+}
+
+void
+Suma::api_fail_subscriber_list(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return;
+}
+
+void Suma::api_fail_subscriber_list(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                 ptr.p->m_senderRef,
                     ptr.p->m_senderData);
         }
       }
@@ -2333,8 +3337,7 @@ Suma::execDUMP_STATE_ORD(Signal* signal){
     return;
   }
 
-  if (tCase == 8013)
-  {
+  if (tCase == 8013) {
     jam();
     Ptr<Gcp_record> gcp;
     infoEvent("-- Starting dump of pending subscribers --");
@@ -2347,14 +3350,12 @@ Suma::execDUMP_STATE_ORD(Signal* signal){
       NodeBitmask subs = gcp.p->m_subscribers;
       for(Uint32 nodeId = 0; nodeId < MAX_NODES; nodeId++)
       {
-	if (subs.get(nodeId))
-        {
+	if (subs.get(nodeId))       {
 	  jam();
 	  infoEvent("Waiting for subscribing node %u", nodeId);
 	}
       }
-    }
-    infoEvent("-- End dump of pending subscribers --");
+    }   infoEvent("-- End dump of pending subscribers --");
   }
 
   if (tCase == DumpStateOrd::DihTcSumaNodeFailCompleted &&
@@ -2362,8 +3363,7 @@ Suma::execDUMP_STATE_ORD(Signal* signal){
   {
     jam();
     Uint32 nodeId = signal->theData[1];
-    if (nodeId < MAX_NODES)
-    {
+    if (nodeId < MAX_NODES) {
       warningEvent(" Suma %u %u line: %u", tCase, nodeId,
                    c_failedApiNodesState[nodeId]);
       warningEvent("   c_connected_nodes.get(): %u",
@@ -2378,8 +3378,7 @@ Suma::execDUMP_STATE_ORD(Signal* signal){
     else
     {
       warningEvent(" SUMA: dump-%u to unknown node: %u", tCase, nodeId);
-    }
-  }
+    } }
 }
 
 void Suma::execDBINFO_SCANREQ(Signal *signal)
@@ -2387,7 +3386,30 @@ void Suma::execDBINFO_SCANREQ(Signal *signal)
   DbinfoScanReq req= *(DbinfoScanReq*)signal->theData;
   const Ndbinfo::ScanCursor* cursor =
     CAST_CONSTPTR(Ndbinfo::ScanCursor, DbinfoScan::getCursorPtr(&req));
-  Ndbinfo::Ratelimit rl;
+  Ndbinfo::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ratelimit
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+api_fail_subscription(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+api_fail_subscription(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+rl;
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
   jamEntry();
 
@@ -2455,7 +3477,26 @@ void Suma::execDBINFO_SCANREQ(Signal *signal)
         c_gcp_pool.getUsedHi(),
         { CFG_DB_API_HEARTBEAT_INTERVAL,
           CFG_DB_GCP_INTERVAL,0,0 },
-        0},
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+void
+Suma::execNODE_FAILREP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+void Suma::execNODE_FAILREP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+       0},
       { NULL, 0,0,0,0, { 0,0,0,0 },
         0}
     };
@@ -2484,8 +3525,7 @@ void Suma::execDBINFO_SCANREQ(Signal *signal)
       row.write_uint32(GET_TID(pools[pool].record_type));
       ndbinfo_send_row(signal, req, row, rl);
       pool++;
-      if (rl.need_break(req))
-      {
+      if (rl.need_break(req))     {
         jam();
         ndbinfo_send_scan_break(signal, req, rl, pool);
         return;
@@ -2519,8 +3559,29 @@ Suma::execCREATE_SUBID_REQ(Signal* signal)
   SubscriberPtr subbPtr;
   if (!c_subscriberPool.seize(subbPtr))
   {
-    jam();
-    sendSubIdRef(signal, req->senderRef, req->senderData, 1412);
+    jam()
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    sendSubIdRef(signal, req->senderRef, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req->senderData, 1412);
+||||||| Common ancestor
+{
+	Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     DBUG_VOID_RETURN;
   }
   DBUG_PRINT("info",("c_subscriberPool  size: %d free: %d",
@@ -2570,8 +3631,33 @@ Suma::execUTIL_SEQUENCE_CONF(Signal* signal)
   sendSignal(subbPtr.p->m_senderRef, GSN_CREATE_SUBID_CONF, signal,
 	     CreateSubscriptionIdConf::SignalLength, JBB);
 
-  c_subscriberPool.release(subbPtr);
-  checkPoolShrinkNeed(SUMA_SUBSCRIBER_RECORD_TRANSIENT_POOL_INDEX,
+  c_subscriberPool.release(subbPtr)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+checkPoolShrinkNeed
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    {
+	start_resend
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      start_resend
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(SUMA_SUBSCRIBER_RECORD_TRANSIENT_POOL_INDEX,
                       c_subscriberPool);
   DBUG_PRINT("info",("c_subscriberPool  size: %d free: %d",
 		     c_subscriberPool.getSize(),
@@ -2584,7 +3670,8 @@ Suma::execUTIL_SEQUENCE_REF(Signal* signal)
 {
   jamEntry();
   DBUG_ENTER("Suma::execUTIL_SEQUENCE_REF");
-  ndbassert(signal->getNoOfSections() == 0);
+  ndbassert(signal->getNoOfSections() ==
+                0);
   UtilSequenceRef * ref = (UtilSequenceRef*)signal->getDataPtr();
   Uint32 err= ref->errorCode;
 
@@ -2642,8 +3729,7 @@ Suma::sendSubIdRef(Signal* signal,
  * Creation of subscriptions
  */
 void
-Suma::execSUB_CREATE_REQ(Signal* signal)
-{
+Suma::execSUB_CREATE_REQ(Signal* signal) {
   jamEntry();                            
   DBUG_ENTER("Suma::execSUB_CREATE_REQ");
   ndbassert(signal->getNoOfSections() == 0);
@@ -2695,7 +3781,32 @@ Suma::execSUB_CREATE_REQ(Signal* signal)
      * We haven't started syncing yet
      */
     sendSubCreateRef(signal, senderRef, senderData,
-                     SubCreateRef::NotStarted);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+"<unknown>";
+}
+
+void
+Suma::execDUMP_STATE_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"<unknown>";
+}
+
+void Suma::execDUMP_STATE_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+                SubCreateRef::NotStarted);
     return;
   }
 
@@ -2736,8 +3847,41 @@ Suma::execSUB_CREATE_REQ(Signal* signal)
     subPtr.p->m_triggers[0]      = ILLEGAL_TRIGGER_ID;
     subPtr.p->m_triggers[1]      = ILLEGAL_TRIGGER_ID;
     subPtr.p->m_triggers[2]      = ILLEGAL_TRIGGER_ID;
-    subPtr.p->m_errorCode        = 0;
-    subPtr.p->m_options          = reportSubscribe | reportAll | noReportDDL;
+    subPtr.p->m_errorCode     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Bucket*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Bucket
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  = 0;
+    subPtr.p->m_options          = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+reportSubscribe
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+%llu
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+          "%llu
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ | reportAll | noReportDDL;
     subPtr.p->m_schemaTransId    = schemaTransId;
   }
 
@@ -2747,11 +3891,9 @@ Suma::execSUB_CREATE_REQ(Signal* signal)
       subOpList.seizeLast(subOpPtr) == false)
   {
     jam();
-    if (found == false)
-    {
+    if (found == false)   {
       jam();
-      if (ERROR_INSERTED(13044))
-      {
+      if (ERROR_INSERTED(13044))     {
         CLEAR_ERROR_INSERT_VALUE;
       }
       c_subscriptionPool.release(subPtr); // not yet in hash
@@ -2766,8 +3908,7 @@ Suma::execSUB_CREATE_REQ(Signal* signal)
   subOpPtr.p->m_senderRef = senderRef;
   subOpPtr.p->m_senderData = senderData;
 
-  if (subDropped)
-  {
+  if (subDropped) {
     jam();
     subPtr.p->m_options |= Subscription::MARKED_DROPPED;
   }
@@ -2788,11 +3929,9 @@ Suma::execSUB_CREATE_REQ(Signal* signal)
   else
   {
     jam();
-    if (ERROR_INSERTED(13045) || c_tablePool.seize(tabPtr) == false)
-    {
+    if (ERROR_INSERTED(13045) || c_tablePool.seize(tabPtr) == false) {
       jam();
-      if (ERROR_INSERTED(13045))
-      {
+      if (ERROR_INSERTED(13045)) {
         CLEAR_ERROR_INSERT_VALUE;
       }
 
@@ -2838,8 +3977,7 @@ Suma::execSUB_CREATE_REQ(Signal* signal)
     conf->senderData = senderData;
     sendSignal(senderRef, GSN_SUB_CREATE_CONF, signal,
                SubCreateConf::SignalLength, JBB);
-    checkPoolShrinkNeed(SUMA_SUB_OP_RECORD_TRANSIENT_POOL_INDEX,
-                        c_subOpPool);
+    checkPoolShrinkNeed(SUMA_SUB_OP_RECORD_TRANSIENT_POOL_INDEX,   c_subOpPool);
     return;
   }
   case Table::UNDEFINED:{
@@ -3029,8 +4167,7 @@ Suma::sendDIH_SCAN_TAB_REQ(Signal *signal,
   req->tableId = tableId;
   req->schemaTransId = schemaTransId;
   req->jamBufferPtr = jamBuffer();
-  EXECUTE_DIRECT_MT(DBDIH, GSN_DIH_SCAN_TAB_REQ, signal,
-                    DihScanTabReq::SignalLength, 0);
+  EXECUTE_DIRECT_MT(DBDIH, GSN_DIH_SCAN_TAB_REQ, signal, DihScanTabReq::SignalLength, 0);
   DihScanTabConf * conf = (DihScanTabConf*)signal->getDataPtr();
   Uint32 retCode = conf->senderData;
   conf->senderData = synPtrI;
@@ -3094,8 +4231,7 @@ Suma::execDIH_SCAN_TAB_REF(Signal* signal)
       sendSignalWithDelay(reference(),
                           GSN_CONTINUEB,
                           signal,
-                          DihScanTabReq::RetryInterval,
-                          4);
+                          DihScanTabReq::RetryInterval,       4);
       DBUG_VOID_RETURN;
     }
     ndbabort();
@@ -3139,7 +4275,34 @@ Suma::execDIH_SCAN_TAB_CONF(Signal* signal)
 
 void
 Suma::sendDIGETNODESREQ(Signal *signal,
-                        Uint32 synPtrI,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+nodeId++)
+=======
+nodeId++) {
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(subs.get(nodeId))
+=======
+(subs.get(nodeId)) {
+>>>>>>> MySQL 8.0.36
+     Uint32 synPtrI,
                         Uint32 tableId,
                         Uint32 fragNo)
 {
@@ -3167,8 +4330,21 @@ Suma::sendDIGETNODESREQ(Signal *signal,
     Uint32 instanceKey = conf->instanceKey;
     ndbrequire(instanceKey > 0);
     Uint32 nodeId = conf->nodes[0];
-    Uint32 nodeCount = (conf->reqinfo & 0xFF) + 1;
-    ndbrequire(errCode == 0);
+ nodeId,
+   Uint32 nodeCount = (conf->reqinfo & 0xFF) + 1;
+    ndbrequire(errCode == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  nodeId, c_subscriber_per_node[nodeId]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   c_subscriber_per_node[nodeId]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
     {
       LocalSyncRecordBuffer fragBuf(c_dataBufferPool, ptr.p->m_fragments);
@@ -3176,53 +4352,290 @@ Suma::sendDIGETNODESREQ(Signal *signal,
       /**
        * Add primary node for fragment to list
        */
-      FragmentDescriptor fd;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Ndbinfo::ScanCursor*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Ndbinfo::ScanCursor
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cursor
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cursor
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  FragmentDescriptor fd;
       fd.m_fragDesc.m_nodeId = nodeId;
       fd.m_fragDesc.m_fragmentNo = fragNo;
-      fd.m_fragDesc.m_lqhInstanceKey = instanceKey;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fd.m_fragDesc.m_lqhInstanceKey
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=
+=======
+= {
+>>>>>>> MySQL 8.0.36
+ = instanceKey;
       if (ptr.p->m_frag_id == ZNIL)
       {
         signal->theData[2] = fd.m_dummy[0];
         signal->theData[3] = fd.m_dummy[1];
         fragBuf.append(&signal->theData[2], 2);
-      }
-      else if (ptr.p->m_frag_id == fragNo)
-      {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+      else if (ptr.p->m
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CFG_DB_SUBSCRIBERS,
+          CFG
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  {CFG_DB_SUBSCRIBERS, CFG
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_frag_id == fragNo)
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CFG_DB_NO_TABLES,0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CFG_DB_NO_TABLES,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+},
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0},
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         /*
-         * Given fragment must have a replica on this node.
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+"Table",
+=======
+   {"Table",
+>>>>>>> MySQL 8.0.36
+  * Given fragment must have a replica on this node.
          */
         const Uint32 ownNodeId = getOwnNodeId();
-        Uint32 i = 0;
-        for (i = 0; i < nodeCount; i++)
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CFG_DB_NO_TABLES,0,0,0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  {CFG_DB_NO_TABLES, 0, 0,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= 0;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+},
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0},
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        for (i = 0; i < 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodeCount;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i++)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"Subscription",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   {"Subscription",
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
           if (conf->nodes[i] == ownNodeId)
             break;
         if (i == nodeCount)
         {
-          sendSubSyncRef(signal, 1428);
+          sendSubSyncRef(signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1428);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+},
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0},
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
           return;
-        }
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"Sync",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   {"Sync",
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         fd.m_fragDesc.m_nodeId = ownNodeId;
         signal->theData[2] = fd.m_dummy[0];
         signal->theData[3] = fd.m_dummy[1];
         fragBuf.append(&signal->theData[2], 2);
       }
-    }
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+0,0,0,0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  {0, 0, 0,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0}
     if (loopCount >= DiGetNodesReq::MAX_DIGETNODESREQS ||
-        ERROR_INSERTED(13050))
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+"Data
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   {"Data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ERROR_INSERTED(13050))
     {
       jam();
       if (ERROR_INSERTED(13050))
       {
         CLEAR_ERROR_INSERT_VALUE;
       }
-      signal->theData[0] = SumaContinueB::WAIT_GET_FRAGMENT;
-      signal->theData[1] = ptr.i;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   signal->theData[0] = SumaContinueB::WAIT
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CFG_DB
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  {CFG_DB
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_GET_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FRAGMENT;
+||||||| Common ancestor
+ATTRIBUTES,0,0,0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ATTRIBUTES, 0, 0,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     signal->theData[1] = ptr.i;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+},
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0},
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       signal->theData[2] = tableId;
-      signal->theData[3] = fragNo + 1;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->theData[3]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= fragNo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"SubOp",
+=======
+   {"SubOp",
+>>>>>>> MySQL 8.0.36
+ + 1;
       sendSignal(reference(), GSN_CONTINUEB, signal,
                  4, JBB);
       return;
-    }
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CFG_DB_SUB_OPERATIONS,0,0,0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  {CFG_DB_SUB_OPERATIONS, 0, 0,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0}
     if  (ERROR_INSERTED(13049) &&
          ((fragNo + 1) == ptr.p->m_frag_cnt))
     {
@@ -3231,11 +4644,34 @@ Suma::sendDIGETNODESREQ(Signal *signal,
       signal->theData[0] = SumaContinueB::WAIT_GET_FRAGMENT;
       signal->theData[1] = ptr.i;
       signal->theData[2] = tableId;
-      signal->theData[3] = fragNo + 1;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->theData[3]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"GCP",
+=======
+   {"GCP",
+>>>>>>> MySQL 8.0.36
+ fragNo + 1;
       sendSignal(reference(), GSN_CONTINUEB, signal,
                  4, JBB);
     }
-  }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
   jam();
   ptr.p->startScan(signal);
   return;
@@ -3243,6 +4679,14 @@ Suma::sendDIGETNODESREQ(Signal *signal,
 
 /**********************************************************
  * Dict interface
+||||||| Common ancestor
+CFG_DB_API_HEARTBEAT_INTERVAL,
+         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  {CFG_DB_API_HEARTBEAT_INTERVAL,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
  */
 
 /*************************************************************************
@@ -3268,7 +4712,7 @@ Suma::execGET_TABINFOREF(Signal* signal){
     // wrong state
     break;
   case GetTabInfoRef::InvalidTableId:
-    // no such table
+   // no such table
     break;
   case GetTabInfoRef::Busy:
     do_resend_request = 1;
@@ -3303,7 +4747,7 @@ Suma::execGET_TABINFOREF(Signal* signal){
 }
 
 void
-Suma::get_tabinfo_ref_release(Signal* signal, Ptr<Table> tabPtr)
+Suma::get_tabinfo_ref_release(Signal *signal, Ptr<Table> tabPtr)
 {
   Local_Subscription_list subList(c_subscriptionPool,
                                   tabPtr.p->m_subscriptions);
@@ -3335,13 +4779,32 @@ Suma::get_tabinfo_ref_release(Signal* signal, Ptr<Table> tabPtr)
   }
   c_tables.release(tabPtr);
   checkPoolShrinkNeed(SUMA_TABLE_RECORD_TRANSIENT_POOL_INDEX,
-                      c_tablePool);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                 c_tablePool);
   checkPoolShrinkNeed(SUMA_SUBSCRIPTION_RECORD_TRANSIENT_POOL_INDEX,
                       c_subscriptionPool);
 }
 
-void
-Suma::execGET_TABINFO_CONF(Signal* signal){
+void Suma::execGET_TABINFO_CONF(Signal *signal){
   jamEntry();
 
   CRASH_INSERTION(13006);
@@ -3381,7 +4844,35 @@ Suma::execGET_TABINFO_CONF(Signal* signal){
     Ptr<SubOpRecord> ptr;
     Local_SubOpRecord_fifo list(c_subOpPool, subPtr.p->m_create_req);
     for (list.first(ptr); !ptr.isNull();)
-    {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DBUG_VOID_RETURN;
+}
+
+void
+Suma::execUTIL_SEQUENCE_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DBUG_VOID_RETURN;
+}
+
+void Suma::execUTIL_SEQUENCE_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+=======
+*signal) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
       jam();
       SubCreateConf * const conf = (SubCreateConf*)signal->getDataPtrSend();
       conf->senderRef  = reference();
@@ -3400,9 +4891,32 @@ Suma::execGET_TABINFO_CONF(Signal* signal){
 }
 
 bool
-Suma::Table::parseTable(SegmentedSectionPtr ptr,
-			Suma &suma)
-{
+Suma::Table::parseTable(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SegmentedSectionPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+			Suma &suma) {
   DBUG_ENTER("Suma::Table::parseTable");
   
   SimplePropertiesSectionReader it(ptr, suma.getSectionSegmentPool());
@@ -3410,7 +4924,17 @@ Suma::Table::parseTable(SegmentedSectionPtr ptr,
   SimpleProperties::UnpackStatus s;
   DictTabInfo::Table tableDesc; tableDesc.init();
   s = SimpleProperties::unpack(it, &tableDesc, 
-			       DictTabInfo::TableMapping, 
+			       DictTabInfo::TableMapping,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 			       DictTabInfo::TableMappingSize);
 
   jamBlock(&suma);
@@ -3421,7 +4945,7 @@ Suma::Table::parseTable(SegmentedSectionPtr ptr,
    */
   m_noOfAttributes = tableDesc.NoOfAttributes;
   m_schemaVersion = tableDesc.TableVersion;
-  
+
   DBUG_RETURN(true);
 }
 
@@ -3446,14 +4970,39 @@ Suma::SyncRecord::startScan(Signal* signal)
 }
 
 bool
-Suma::SyncRecord::getNextFragment(TablePtr * tab, 
+Suma::SyncRecord::getNextFragment(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TablePtr *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tab, 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
                                   FragmentDescriptor * fd)
 {
   jam();
   SubscriptionPtr subPtr;
   suma.c_subscriptions.getPtr(subPtr, m_subscriptionPtrI);
   SyncRecordBuffer::DataBufferIterator fragIt;
-  
+
   TablePtr tabPtr;
   tabPtr.i = subPtr.p->m_table_ptrI;
   ndbrequire(suma.c_tablePool.getValidPtr(tabPtr));
@@ -3468,9 +5017,31 @@ Suma::SyncRecord::getNextFragment(TablePtr * tab,
     tmp.m_dummy[0] = * fragIt.data;
     fragBuf.next(fragIt);
     tmp.m_dummy[1] = * fragIt.data;
-    if(tmp.m_fragDesc.m_nodeId == suma.getOwnNodeId())
-    {
-      * fd = tmp;
+    if(tmp.m_fragDesc.m_nodeId == suma.getOwnNodeId()
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ ?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+Subscription::REPORT_SUBSCRIBE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                 ? Subscription::REPORT_SUBSCRIBE
+                                    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      * fd =
+      tmp;
       * tab = tabPtr;
       return true;
     }
@@ -3584,8 +5155,7 @@ Suma::SyncRecord::nextScan(Signal* signal)
   ptr[0].p = attrInfo;
   ptr[0].sz = pos;
   noOfSections = 1;
-  if (m_requestInfo & SubSyncReq::RangeScan)
-  {
+  if (m_requestInfo & SubSyncReq::RangeScan) {
     jam();
     Uint32 oldpos = pos; // after attrInfo
     LocalSyncRecordBuffer boundBuf(suma.c_dataBufferPool, m_boundInfo);
@@ -3636,7 +5206,7 @@ Suma::execSCAN_FRAGCONF(Signal* signal){
   Ptr<SyncRecord> syncPtr;
   ndbrequire(c_syncPool.getPtr(syncPtr, senderData));
   
-  if(completed != 2){ // 2==ZSCAN_FRAG_CLOSED
+  if(completed != 2){  // 2==ZSCAN_FRAG_CLOSED
     jam();
     
 #if PRINT_ONLY
@@ -3701,14 +5271,38 @@ Suma::execSUB_SYNC_CONTINUE_CONF(Signal* signal){
   }
   BlockReference lqhRef = numberToRef(DBLQH, instanceNo, getOwnNodeId());
 
-  ScanFragNextReq * req = (ScanFragNextReq *)signal->getDataPtrSend();
+  ScanFragNextReq 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   GetTabInfoRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     GetTabInfoRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = (ScanFragNextReq *)signal->getDataPtrSend();
   req->senderData = syncPtrI;
   req->requestInfo = 0;
   req->transId1 = 0;
   req->transId2 = (SUMA << 20) + (getOwnNodeId() << 8);
   req->batch_size_rows = batchSize;
   req->batch_size_bytes = batchSize * MAX_NORMAL_ROW_SIZE;
-  sendSignal(lqhRef, GSN_SCAN_NEXTREQ, signal, 
+    sendSignal(lqhRef, GSN_SCAN_NEXTREQ, signal, 
 	     ScanFragNextReq::SignalLength, JBB);
 }
 
@@ -3735,7 +5329,7 @@ Suma::SyncRecord::completeScan(Signal* signal, int error)
 #else
   if (error == 0)
   {
-    SubSyncConf * const conf = (SubSyncConf*)signal->getDataPtrSend();
+    SubSyncConf   * const conf = (SubSyncConf*)signal->getDataPtrSend();
     conf->senderRef = suma.reference();
     conf->senderData = m_senderData;
     suma.sendSignal(m_senderRef, GSN_SUB_SYNC_CONF, signal,
@@ -3759,22 +5353,43 @@ Suma::SyncRecord::completeScan(Signal* signal, int error)
     tmp.i = ptrI;
     tmp.p = this;
     list.release(tmp);
-  }
+    }
   
   DBUG_VOID_RETURN;
 }
 
-void
-Suma::execSCAN_HBREP(Signal* signal){
+void Suma::execSCAN_HBREP(Signal *signal){
   jamEntry();
 #if 0
   ndbout << "execSCAN_HBREP" << endl << hex;
   for(int i = 0; i<signal->length(); i++){
     ndbout << signal->theData[i] << " ";
     if(((i + 1) % 8) == 0)
-      ndbout << endl << hex;
+      ndbout << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+endl
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+=======
+signal, SubCreateRef::SignalLength,
+>>>>>>> MySQL 8.0.36
+ << hex;
   }
-  ndbout << endl;
+  ndbout 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<<
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SubCreateRef::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ endl;
 #endif
 }
 
@@ -3787,7 +5402,7 @@ Suma::execSCAN_HBREP(Signal* signal){
  */
 
 void
-Suma::execSUB_START_REQ(Signal* signal){
+Suma::execSUB_START_REQ(Signal *signal){
   jamEntry();
   ndbassert(signal->getNoOfSections() == 0);
   DBUG_ENTER("Suma::execSUB_START_REQ");
@@ -3801,7 +5416,7 @@ Suma::execSUB_START_REQ(Signal* signal){
   SubscriptionData::Part part = (SubscriptionData::Part)req->part;
   (void)part; // TODO validate part
 
-  Subscription key; 
+  Subscription key;
   key.m_subscriptionId        = req->subscriptionId;
   key.m_subscriptionKey       = req->subscriptionKey;
 
@@ -3809,8 +5424,7 @@ Suma::execSUB_START_REQ(Signal* signal){
 
   CRASH_INSERTION2(13042, getNodeState().startLevel == NodeState::SL_STARTING);
   
-  if (c_startup.m_restart_server_node_id == RNIL)
-  {
+  if (c_startup.m_restart_server_node_id == RNIL) {
     jam();
 
     /**
@@ -3830,8 +5444,7 @@ Suma::execSUB_START_REQ(Signal* signal){
     return;
   }
 
-  if (ERROR_INSERTED(13046))
-  {
+  if (ERROR_INSERTED(13046)) {
     jam();
     CLEAR_ERROR_INSERT_VALUE;
     sendSubStartRef(signal,
@@ -3863,17 +5476,80 @@ Suma::execSUB_START_REQ(Signal* signal){
     }
     else
     {
-      /**
-       * Allow SUB_START_REQ from peer node
-       */
-    }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+syncPtr.p->m_tableId <<
+=======
+syncPtr.p->m_tableId
+>>>>>>> MySQL 8.0.36
+   /**
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                          << "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ * Allow SUB_START_REQ
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req->fragId <<
+=======
+req->fragId
+>>>>>>> MySQL 8.0.36
+ from peer node
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                          << "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req->fragCount <<
+// RONDB-624 todo: Glue these lines together ^v
+=======
+req->fragCount
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+" reqinfo:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                          << " reqinfo:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   }
 
   if (subPtr.p->m_trigger_state == Subscription::T_ERROR)
   {
     jam();
     sendSubStartRef(signal,
-                    senderRef, senderData, subPtr.p->m_errorCode);
+                    senderRef, senderData,
+                                    subPtr.p->m_errorCode);
     return;
   }
 
@@ -3917,14 +5593,46 @@ Suma::execSUB_START_REQ(Signal* signal){
     sendSubStartRef(signal,
                     senderRef, senderData, SubStartRef::OutOfSubOpRecords);
     checkPoolShrinkNeed(SUMA_SUBSCRIBER_RECORD_TRANSIENT_POOL_INDEX,
-                        c_subscriberPool);
+    Uint32 tableId,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 tableId,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+           c_subscriberPool);
     return;
   }
 
   if (! check_sub_start(subscriberRef))
   {
     jam();
-    c_subscriberPool.release(subbPtr);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DihScanTabReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihScanTabReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  c_subscriberPool.release(subbPtr);
     c_subOpPool.release(subOpPtr);
     sendSubStartRef(signal,
                     senderRef, senderData, SubStartRef::NodeDied);
@@ -3967,11 +5675,54 @@ Suma::execSUB_START_REQ(Signal* signal){
      * Triggers are already being created...wait for completion
      */
     return;
-  case Subscription::T_DROPPING:
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Suma::sendSubSyncRef(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Suma::sendSubSyncRef(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ case Subscription::T_DROPPING:
     jam();
     /**
      * Trigger(s) are being dropped...wait for completion
-     *   (and recreate them when done)
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal,
+>>>>>>> MySQL 8.0.36
+  (and recreate them 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ done)
      */
     break;
   case Subscription::T_DEFINED:{
@@ -3979,8 +5730,8 @@ Suma::execSUB_START_REQ(Signal* signal){
     report_sub_start_conf(signal, subPtr);
     return;
   }
-  case Subscription::T_ERROR:
-    jam();
+    case Subscription::T_ERROR:
+      jam();
     ndbabort(); // Checked above
   }
 }
@@ -4025,7 +5776,31 @@ Suma::create_triggers(Signal* signal, SubscriptionPtr subPtr)
     req->requestType = 0;
     
     Uint32 ti = 0;
-    TriggerInfo::setTriggerType(ti, TriggerType::SUBSCRIPTION_BEFORE);
+    TriggerInfo::setTriggerType(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ti,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TriggerType::SUBSCRIPTION_BEFORE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
     TriggerInfo::setTriggerActionTime(ti, TriggerActionTime::TA_DETACHED);
     TriggerInfo::setTriggerEvent(ti, (TriggerEvent::Value)j);
     TriggerInfo::setMonitorReplicas(ti, true);
@@ -4057,8 +5832,36 @@ Suma::execCREATE_TRIG_IMPL_CONF(Signal* signal)
 
   CreateTrigImplConf * conf = (CreateTrigImplConf*)signal->getDataPtr();
   const Uint32 triggerId = conf->triggerId;
-  Uint32 type = (triggerId >> 16) & 0x3;
-  Uint32 tableId = conf->tableId;
+  Uint32 type = (triggerId >> 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+16)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tableId,
+>>>>>>> MySQL 8.0.36
+ 0x3;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tableId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tableId,
+=======
+>>>>>>> MySQL 8.0.36
+ = conf->tableId;
 
   TablePtr tabPtr;
   SubscriptionPtr subPtr;
@@ -4076,8 +5879,7 @@ Suma::execCREATE_TRIG_IMPL_CONF(Signal* signal)
   ndbrequire(subPtr.p->m_outstanding_trigger);
   subPtr.p->m_outstanding_trigger--;
 
-  if (subPtr.p->m_outstanding_trigger)
-  {
+  if (subPtr.p->m_outstanding_trigger) {
     jam();
     /**
      * Wait for more
@@ -4195,7 +5997,52 @@ Suma::report_sub_start_conf(Signal* signal, Ptr<Subscription> subPtr)
          * implies that the subscriptions are just being copied from another
          * data node and the subscribers are not actually connected yet.
          */
-        if (c_startup.m_restart_server_node_id == 0)
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+void
+Suma::execGET_TABINFOREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Suma::execGET_TABINFOREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GetTabInfoRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GetTabInfoRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(c_startup.m_restart_server_node_id
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ == 0)
         {
           bool report = subPtr.p->m_options & Subscription::REPORT_SUBSCRIBE;
           send_sub_start_stop_event(signal, ptr,NdbDictionary::Event::_TE_ACTIVE,
@@ -4211,13 +6058,44 @@ Suma::report_sub_start_conf(Signal* signal, Ptr<Subscription> subPtr)
       {
         jam();
         
-        sendSubStartRef(signal,
-                        senderRef, senderData, SubStartRef::NodeDied);
+        sendSubStartRef(signal, 30,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+senderRef,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+30,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ senderData, SubStartRef::NodeDied);
 
         c_subscriberPool.release(ptr);
       }
       
-      Ptr<SubOpRecord> tmp = subOpPtr;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void
+Suma::get_tabinfo_ref_release(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Suma::get_tabinfo_ref_release(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Ptr<SubOpRecord> tmp = subOpPtr;
       subOpList.next(subOpPtr);
       subOpList.release(tmp);
     }
@@ -4248,8 +6126,29 @@ Suma::report_sub_start_ref(Signal* signal,
     Uint32 senderData = subOpPtr.p->m_senderData;
     ptr.i = subOpPtr.p->m_subscriberRef;
     ndbrequire(c_subscriberPool.getValidPtr(ptr));
+<<<<<<< RonDB // RONDB-624 todo
 
-    SubStartRef* ref = (SubStartRef*)signal->getDataPtrSend();
+||||||| Common ancestor
+}
+
+void
+Suma::execGET_TABINFO_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Suma::execGET_TABINFO_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+   SubStartRef* ref = (SubStartRef*)signal->getDataPtrSend();
     ref->senderRef  = reference();
     ref->senderData = senderData;
     ref->errorCode  = errCode;
@@ -4274,16 +6173,37 @@ Suma::report_subscription_set(Signal *signal,
                               Uint32 subscriptionIdx,
                               Uint32 subscriberIdx,
                               Uint32 otherSubscriberIdx,
-                              const Uint32 batchSize)
-{
+                              const Uint32 batchSize) {
   jam();
   SubscriptionPtr subPtr;
   SubscriberPtr subscriberPtr, otherSubscriberPtr;
   Uint32 totalSignalsSent = 0;
   const Uint64 gci = get_current_gci(signal);
 
-  subPtr.i = subscriptionIdx;
-  subscriberPtr.i = subscriberIdx;
+  subPtr.i = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+subscriptionIdx;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SimpleProperties::unpack(it, &tableDesc, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SimpleProperties::unpack(it, &tableDesc, DictTabInfo::TableMapping,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  subscriberPtr.i 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DictTabInfo::TableMapping,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ subscriberIdx;
   otherSubscriberPtr.i = otherSubscriberIdx;
 
   if (subPtr.i == RNIL)
@@ -4297,7 +6217,31 @@ Suma::report_subscription_set(Signal *signal,
     c_subscriptions.getPtr(subPtr);
   }
 
-  while (subPtr.i != RNIL)
+  while (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+subPtr.i !=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
   {
     jam();
     const bool report = subPtr.p->m_options & Subscription::REPORT_SUBSCRIBE;
@@ -4316,8 +6260,7 @@ Suma::report_subscription_set(Signal *signal,
       subList.getPtr(subscriberPtr);
     }
 
-    while (subscriberPtr.i != RNIL)
-    {
+    while (subscriberPtr.i != RNIL)   {
       jam();
 
       const Uint32 subscriberNodeId = refToNode(subscriberPtr.p->m_senderRef);
@@ -4326,7 +6269,31 @@ Suma::report_subscription_set(Signal *signal,
       ConstLocal_Subscriber_list otherSubList(c_subscriberPool,
                                               subPtr.p->m_subscribers);
 
-      if (otherSubscriberPtr.i == RNIL)
+      if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+otherSubscriberPtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== RNIL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
       {
         jam();
         otherSubList.first(otherSubscriberPtr);
@@ -4377,21 +6344,42 @@ Suma::report_subscription_set(Signal *signal,
              totalSignalsSent >= 2))
         {
           jam();
-          /* Take a break */
+           /* Take a break */
 
-          if (ERROR_INSERTED_CLEAR(13058))
-          {
+          if (ERROR_INSERTED_CLEAR(13058))       {
             jam();
 
             /* Kill a randomish subscriber */
             signal->theData[0] = 900;
             signal->theData[1] = c_subscriber_nodes.find_last();
-            sendSignal(CMVMI_REF, GSN_DUMP_STATE_ORD, signal, 2, JBB);
+            sendSignal(CMVMI_REF, GSN_DUMP_STATE_ORD, signal, 2,
+                  JBB);
             SET_ERROR_INSERT_VALUE(13059);
           }
 
           signal->theData[0] = SumaContinueB::REPORT_SUBSCRIPTION_SET;
-          signal->theData[1] = subPtr.i;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Suma::execSCAN_FRAGCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Suma::execSCAN_FRAGCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+         signal->theData[1] = subPtr.i;
           signal->theData[2] = subscriberPtr.i;
           signal->theData[3] = otherSubscriberPtr.i;
           signal->theData[4] = batchSize;
@@ -4408,7 +6396,32 @@ Suma::report_subscription_set(Signal *signal,
           }
 
           return;
-        }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DBUG_VOID_RETURN;
+}
+
+void
+Suma::execSUB_SYNC_CONTINUE_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DBUG_VOID_RETURN;
+}
+
+void Suma::execSUB_SYNC_CONTINUE_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+   }
 
         if (!report)
         {
@@ -4426,8 +6439,79 @@ Suma::report_subscription_set(Signal *signal,
 
           // default SubTableData member values for the events
           data->gci_hi      = Uint32(gci >> 32);
-          data->gci_lo      = Uint32(gci);
-          data->tableId     = 0;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ScanFragNextReq::SignalLength,
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+data->gci_lo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanFragNextReq::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+JBB);
+}
+
+void
+Suma::SyncRecord::completeScan(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB);
+}
+
+void Suma::SyncRecord::completeScan(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    = Uint32(gci);
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+data->tableId   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DihScanTabCompleteRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihScanTabCompleteRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rep
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 0;
           data->changeMask  = 0;
           data->totalLen    = 0;
           data->requestInfo = 0;
@@ -4452,8 +6536,29 @@ Suma::report_subscription_set(Signal *signal,
     }
     c_subscriptions.next(subPtr);  /* Next subscription */
   }
+<<<<<<< RonDB // RONDB-624 todo
 
-  /* Reporting done */
+  /*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void
+Suma::execSUB_START_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Suma::execSUB_START_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Reporting
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal){
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ done */
   jam();
   g_reporting_in_progress = false;
 
@@ -4485,8 +6590,7 @@ Suma::drop_triggers(Signal* signal, SubscriptionPtr subPtr)
   Ptr<Table> tabPtr;
   tabPtr.i = subPtr.p->m_table_ptrI;
   ndbrequire(c_tablePool.getValidPtr(tabPtr));
-  if (tabPtr.p->m_state == Table::DROPPED)
-  {
+  if (tabPtr.p->m_state == Table::DROPPED) {
     jam();
     subPtr.p->m_triggers[0] = ILLEGAL_TRIGGER_ID;
     subPtr.p->m_triggers[1] = ILLEGAL_TRIGGER_ID;
@@ -4498,14 +6602,26 @@ Suma::drop_triggers(Signal* signal, SubscriptionPtr subPtr)
     {
       jam();
       Uint32 triggerId = subPtr.p->m_triggers[j];
-      if (triggerId != ILLEGAL_TRIGGER_ID)
+ senderRef, senderData,
+    if (triggerId != ILLEGAL_TRIGGER_ID)
       {
         subPtr.p->m_outstanding_trigger++;
         
         DropTrigImplReq * const req =
           (DropTrigImplReq*)signal->getDataPtrSend();
-        req->senderRef = SUMA_REF; // Sending to myself
-        req->senderData = subPtr.i;
+ senderRef, senderData,
+      req->senderRef = SUMA_REF; // Sending to myself
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req->senderData
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+senderData,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ = subPtr.i;
         req->requestType = 0;
         
         // TUP needs some triggerInfo to find right list
@@ -4528,8 +6644,7 @@ Suma::drop_triggers(Signal* signal, SubscriptionPtr subPtr)
         req->receiverRef = SUMA_REF;
 
         c_outstanding_drop_trig_req++;
-        if (ERROR_INSERTED(13051))
-        {
+          if (ERROR_INSERTED(13051))   {
           /* Delay the DROP_TRIG_IMPL_REQ */
           sendSignalWithDelay(DBTUP_REF, GSN_DROP_TRIG_IMPL_REQ,
                               signal, 99, DropTrigImplReq::SignalLength);
@@ -4543,26 +6658,60 @@ Suma::drop_triggers(Signal* signal, SubscriptionPtr subPtr)
     }
   }
   
-  if (subPtr.p->m_outstanding_trigger == 0)
-  {
+  if (subPtr.p->m_outstanding_trigger == 0) {
     jam();
     drop_triggers_complete(signal, subPtr);
-  }
+ senderRef, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
 }
 
 void
-Suma::execDROP_TRIG_IMPL_REF(Signal* signal)
+Suma::execDROP_TRIG_IMPL_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+senderData,
+>>>>>>> MySQL 8.0.36
+ signal)
 {
   jamEntry();
   if (g_reporting_in_progress)
   {
     jam();
-    /* Stall processing until reporting done */
+    /* Stall 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+processing
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+senderRef,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+until
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+senderData,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ reporting done */
     sendSignalWithDelay(reference(),
-                        GSN_DROP_TRIG_IMPL_REF,
+                       senderRef, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GSN_DROP_TRIG_IMPL_REF,
+||||||| Common ancestor
+=======
+senderData,
+>>>>>>> MySQL 8.0.36
                         signal,
-                        20,
-                        signal->getLength());
+                        20,     signal->getLength());
     return;
   }
   DropTrigImplRef * const ref = (DropTrigImplRef*)signal->getDataPtr();
@@ -4589,10 +6738,10 @@ Suma::execDROP_TRIG_IMPL_REF(Signal* signal)
 
   if (subPtr.p->m_outstanding_trigger)
   {
-    jam();
-    /**
-     * Wait for more
-     */
+      jam();
+      /**
+       * Wait for more
+       */
     return;
   }
 
@@ -4605,13 +6754,40 @@ Suma::execDROP_TRIG_IMPL_CONF(Signal* signal)
   jamEntry();
   if (g_reporting_in_progress)
   {
-    jam();
-    /* Stall processing until reporting done */
+      jam();
+      /* Stall processing until reporting done   */
     sendSignalWithDelay(reference(),
                         GSN_DROP_TRIG_IMPL_CONF,
                         signal,
                         20,
-                        signal->getLength());
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Suma::sendSubStartRef(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Suma::sendSubStartRef(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  signal->getLength());
     return;
   }
   DropTrigImplConf * const conf = (DropTrigImplConf*)signal->getDataPtr();
@@ -4660,9 +6836,21 @@ Suma::drop_triggers_complete(Signal* signal, Ptr<Subscription> subPtr)
     ndbabort();
   case Subscription::T_DROPPING:
     jam();
-    /**
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TriggerInfo::setReportAllMonitoredAttributes(ti, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TriggerInfo::setReportAllMonitoredAttributes(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
      */
-    subPtr.p->m_trigger_state = Subscription::T_UNDEFINED;
+     ti, subPtr.p->m_trigger_state = Subscription::T_UNDEFINED;
     if (!subPtr.p->m_start_req.isEmpty())
     {
       jam();
@@ -4677,7 +6865,15 @@ Suma::drop_triggers_complete(Signal* signal, Ptr<Subscription> subPtr)
     subPtr.p->m_errorCode = 0;
     report_sub_start_ref(signal, subPtr, err);
     break;
-  }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
   check_release_subscription(signal, subPtr);
 }
@@ -4686,11 +6882,23 @@ Suma::drop_triggers_complete(Signal* signal, Ptr<Subscription> subPtr)
  * Suma participant interface
  *
  * Stopping and removing of subscriber
- *
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
  */
 
 void
-Suma::execSUB_STOP_REQ(Signal* signal){
+Suma
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, CreateTrigImplReq
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateTrigImplReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+::execSUB_STOP_REQ(Signal* signal){
   jamEntry();
   ndbassert(signal->getNoOfSections() == 0);
   DBUG_ENTER("Suma::execSUB_STOP_REQ");
@@ -4721,8 +6929,7 @@ Suma::execSUB_STOP_REQ(Signal* signal){
   }
 
   bool found = c_subscriptions.find(subPtr, key);
-  if (!found)
-  {
+  if (!found) {
     jam();
     sendSubStopRef(signal,
                    senderRef, senderData, SubStopRef::NoSuchSubscription);
@@ -4746,7 +6953,31 @@ Suma::execSUB_STOP_REQ(Signal* signal){
   Ptr<SubOpRecord> subOpPtr;
   Local_SubOpRecord_fifo list(c_subOpPool, subPtr.p->m_stop_req);
   bool empty = list.isEmpty();
-  if (list.seizeLast(subOpPtr) == false)
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+list.seizeLast(subOpPtr)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== false
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
   {
     jam();
     sendSubStopRef(signal,
@@ -4781,9 +7012,7 @@ Suma::execSUB_STOP_REQ(Signal* signal){
   }
 }
 
-void
-Suma::sub_stop_req(Signal* signal)
-{
+void Suma::sub_stop_req(Signal *signal) {
   jam();
   if (c_outstanding_drop_trig_req >= NDB_MAX_SUMA_DROP_TRIG_REQ_SUBSTOP)
   {
@@ -4809,7 +7038,27 @@ Suma::sub_stop_req(Signal* signal)
     if (signal->theData[2] == RNIL)
     {
       jam();
-      list.first(ptr);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SubStartConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SubStartConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   list.first(ptr);
     }
     else
     {
@@ -4864,9 +7113,33 @@ found:
 
 void
 Suma::check_remove_queue(Signal* signal,
-                         Ptr<Subscription> subPtr,
-                         Ptr<SubOpRecord> subOpPtr,
-                         bool ishead,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ptr<Subscription> subPtr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+send_sub_start_stop_event(signal, ptr,NdbDictionary::Event::_TE_ACTIVE,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+send_sub_start_stop_event(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+              signal, ptr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+         Ptr<SubOpRecord> subOpPtr,
+         
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbDictionary::Event::_TE_ACTIVE,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                bool ishead,
                          bool dorelease)
 {
   Local_SubOpRecord_fifo list(c_subOpPool, subPtr.p->m_stop_req);
@@ -4926,11 +7199,53 @@ Suma::check_remove_queue(Signal* signal,
     sendSignal(SUMA_REF, GSN_CONTINUEB, signal, 3, JBB);
     return;
   case SubOpRecord::R_API_FAIL_REQ:
-    jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SubStartRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SubStartRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
     signal->theData[0] = SumaContinueB::API_FAIL_SUBSCRIPTION;
     signal->theData[1] = subOpPtr.i;
     signal->theData[2] = RNIL;
-    sendSignal(SUMA_REF, GSN_CONTINUEB, signal, 3, JBB);
+    sendSignal(SUMA_REF, GSN_CONTINUEB, signal,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ SubStartConf::SignalLength,
+             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+3,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SubStartConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ JBB);
     return;
   case SubOpRecord::R_START_ME_REQ:
     jam();
@@ -4939,13 +7254,40 @@ Suma::check_remove_queue(Signal* signal,
   }
 }
 
-void
-Suma::report_sub_stop_conf(Signal* signal,
-                           Ptr<SubOpRecord> subOpPtr,
-                           Ptr<Subscriber> ptr,
-                           bool report,
-                           Local_Subscriber_list& list)
-{
+void Suma::report_sub_stop_conf(Signal* signal, Uint32 subscriptionIdx,
+           Ptr<SubOpRecord> 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+subOpPtr,
+||||||| Common ancestor
+  Uint32 subscriptionIdx,
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                    Uint32 subscriberIdx,
+      Ptr<Subscriber> 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr,
+||||||| Common ancestor
+  Uint32 subscriberIdx,
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                         Uint32 otherSubscriberIdx,
+ bool 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+report,
+||||||| Common ancestor
+  Uint32 otherSubscriberIdx,
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                           Local_Subscriber_list& list) {
   jam();
   CRASH_INSERTION(13020);
   
@@ -4954,8 +7296,7 @@ Suma::report_sub_stop_conf(Signal* signal,
   bool abortStart = subOpPtr.p->m_opType == SubOpRecord::R_SUB_ABORT_START_REQ;
   
   // let subscriber know that subscriber is stopped
-  if (!abortStart)
-  {
+  if (!abortStart) {
     jam();
     send_sub_start_stop_event(signal, ptr, NdbDictionary::Event::_TE_STOP,
                               report, list);
@@ -5030,7 +7371,7 @@ Suma::send_sub_start_stop_event(Signal *signal,
   SubTableData::setOperation(data->requestInfo, event);
   SubTableData::setNdbdNodeId(data->requestInfo, getOwnNodeId());
   SubTableData::setReqNodeId(data->requestInfo, nodeId);
-  data->changeMask     = 0;
+  data->changeMask  = 0;
   data->totalLen       = 0;
   data->senderData     = ptr.p->m_senderData;
   sendSignal(ptr.p->m_senderRef, GSN_SUB_TABLE_DATA, signal,
@@ -5191,11 +7532,24 @@ Suma::execTRANSID_AI(Signal* signal)
   syncPtr.p->m_dataSection = dataSection;
  
 
-  if ((syncPtr.p->m_requestInfo & SubSyncReq::LM_Exclusive) == 0)
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(syncPtr.p->m_requestInfo & SubSyncReq::LM_Exclusive) == 0)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+data->requestInfo,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
   {
     /* Send it now */
     jam();
-    sendScanSubTableData(signal, syncPtr, 0);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   sendScanSubTableData(signal, syncPtr, 0);
   }
 
   /* Wait for KEYINFO20 */
@@ -5206,7 +7560,16 @@ void
 Suma::execKEYINFO20(Signal* signal)
 {
   jamEntry();
-  KeyInfo20* data = (KeyInfo20*)signal->getDataPtr();
+  KeyInfo20* data =
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+data->requestInfo,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (KeyInfo20*)signal->getDataPtr();
 
   const Uint32 opPtrI = data->clientOpPtr;
   const Uint32 takeOver = data->scanInfo_Node;
@@ -5271,7 +7634,7 @@ Suma::sendScanSubTableData(Signal* signal,
   sdata->requestInfo = 0;
   SubTableData::setOperation(sdata->requestInfo, 
 			     NdbDictionary::Event::_TE_SCAN); // Scan
-  sdata->gci_hi = 0; // Undefined
+  sdata->gci_hi = 0;  // Undefined
   sdata->gci_lo = 0;
   sdata->takeOver = takeOver;
 #if PRINT_ONLY
@@ -5280,14 +7643,49 @@ Suma::sendScanSubTableData(Signal* signal,
                       getSectionSz(syncPtr.p->m_dataSection));
 #else
   sendSignal(ref,
-	     GSN_SUB_TABLE_DATA,
+	 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+j
+// RONDB-624 todo: Glue these lines together ^v
+=======
+j
+        //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    GSN_SUB_TABLE_DATA,
 	     signal, 
-	     SubTableData::SignalLength, JBB,
+	     SubTableData::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SignalLength, JBB,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+setReportAllMonitoredAttributes(ti, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+setReportAllMonitoredAttributes(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 	     &sh);
 #endif
   
-  /* Clear section references */
-  syncPtr.p->m_sourceInstance = RNIL;
+  /* Clear section 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+references */
+  syncPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      subPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ti, subPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.p->m_sourceInstance = RNIL;
   syncPtr.p->m_headersSection = RNIL;
   syncPtr.p->m_dataSection = RNIL;  
 }
@@ -5323,19 +7721,59 @@ Suma::execTRIG_ATTRINFO(Signal* signal)
   } else {
     jam();
 
-    if (setTriggerBufferLock(trigId))
+ signal, 99,
+  if (setTriggerBufferLock(trigId))
     {
       /* Lock was not taken, we have it now */
-      f_trigBufferSize = 0;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+f_trigBufferSize
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+99,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 0;
       b_trigBufferSize = 0;
     }
     else
     {
-      /* Lock was taken, must be by us */
+      /* Lock was taken, must 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+be
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal,
+>>>>>>> MySQL 8.0.36
+ by us */
       ndbrequire( checkTriggerBufferLock(trigId) );
     }
 
-    ndbrequire(f_trigBufferSize + dataLen <= SUMA_BUF_SZ);
+    ndbrequire(f_trigBufferSize 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ dataLen <= SUMA_BUF_SZ);
     memcpy(f_buffer + f_trigBufferSize, trg->getData(), 4 * dataLen);
     f_trigBufferSize += dataLen;
   }
@@ -5349,7 +7787,31 @@ static int theCounts[64] = {0};
 #endif
 
 Uint32 
-Suma::get_responsible_node(Uint32 bucket) const
+Suma::get_responsible_node(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bucket
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) const
 {
   // id will contain id to responsible suma or 
   // RNIL if we don't have nodegroup info yet
@@ -5431,7 +7893,38 @@ Suma::reformat(Signal* signal,
   for (Uint32 i = 0; i < 2; i++)
   {
     jam();
-    const Uint32 secnum = (i == 0 ? 0 : 2);
+    const Uint32 secnum = (i 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+subPtr);
+}
+
+void
+Suma::drop_triggers_complete(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+subPtr);
+}
+
+void Suma::drop_triggers_complete(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ? 0 : 2);
     const Uint32* p = lsptr[secnum].p;
     Uint32 sz = lsptr[secnum].sz;
     while (sz > 0)
@@ -5463,8 +7956,7 @@ Suma::reformat(Signal* signal,
  * Pass entire pages with SUMA-trigger-data from
  *   TUP to SUMA to avoid extensive LongSignalMessage buffer contention
  */
-void
-Suma::execFIRE_TRIG_ORD_L(Signal* signal)
+void Suma::execFIRE_TRIG_ORD_L(Signal *signal)
 {
   jamEntry();
 
@@ -5476,8 +7968,7 @@ Suma::execFIRE_TRIG_ORD_L(Signal* signal)
   const Uint32 page_count =
       (len + GLOBAL_PAGE_SIZE_WORDS - 1) / GLOBAL_PAGE_SIZE_WORDS;
 
-  if (pageId == RNIL && len == 0)
-  {
+  if (pageId == RNIL && len == 0) {
     jam();
     /**
      * Out of memory
@@ -5493,9 +7984,51 @@ Suma::execFIRE_TRIG_ORD_L(Signal* signal)
     Uint32 * save = ptr;
     Uint32 msglen  = * ptr++;
     Uint32 siglen  = * ptr++;
-    Uint32 sec0len = * ptr++;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendSubStopRef(signal,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSubStopRef(signal, senderRef,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sec0len
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+senderData,
+>>>>>>> MySQL 8.0.36
+ = * ptr++;
     Uint32 sec1len = * ptr++;
-    Uint32 sec2len = * ptr++;
+    Uint32 sec2len 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+senderRef,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+senderData,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ ptr++;
 
     /**
      * Copy value directly into local buffers
@@ -5517,9 +8050,43 @@ Suma::execFIRE_TRIG_ORD_L(Signal* signal)
     lsptr[1].p = b_buffer;
     ptr += sec1len;
 
-    memcpy(f_buffer + sec0len, ptr, 4*sec2len);
+    memcpy(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+f_buffer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal, senderRef, senderData,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ + sec0len, ptr, 4*sec2len);
     lsptr[2].sz = sec2len;
-    lsptr[2].p = f_buffer + sec0len;
+    lsptr[2].p = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+f_buffer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+senderRef,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+senderData,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ sec0len;
     ptr += sec2len;
 
     f_trigBufferSize = sec0len + sec2len;
@@ -5542,8 +8109,7 @@ Suma::execFIRE_TRIG_ORD_L(Signal* signal)
   release_trigger_page(ldm_instance, pageId++, chunkId, page_count);
 }
 
-void
-Suma::sendBatchedSUB_TABLE_DATA(Signal* signal,
+void Suma::sendBatchedSUB_TABLE_DATA(Signal *signal,
                                 const Subscriber_list::Head subscribers,
                                 LinearSectionPtr lsptr[],
                                 Uint32 nptr)
@@ -5557,16 +8123,13 @@ Suma::sendBatchedSUB_TABLE_DATA(Signal* signal,
     jam();
     data->senderData = subbPtr.p->m_senderData;
     const Uint32 version = getNodeInfo(refToNode(subbPtr.p->m_senderRef)).m_version;
-    if (ndbd_frag_sub_table_data(version))
-    {
+    if (ndbd_frag_sub_table_data(version)) {
       jam();
       sendBatchedFragmentedSignal(subbPtr.p->m_senderRef,
                                   GSN_SUB_TABLE_DATA,
                                   signal,
                                   SubTableData::SignalLengthWithTransId,
-                                  JBB,
-                                  lsptr,
-                                  nptr);
+                                  JBB,                lsptr,                nptr);
     }
     else
     {
@@ -5574,7 +8137,20 @@ Suma::sendBatchedSUB_TABLE_DATA(Signal* signal,
       sendSignal(subbPtr.p->m_senderRef,
                  GSN_SUB_TABLE_DATA,
                  signal,
-                 SubTableData::SignalLengthWithTransId,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+return;
+
+found:
+=======
+return;
+
+found
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ :  SubTableData::SignalLengthWithTransId,
                  JBB,
                  lsptr,
                  nptr);
@@ -5582,8 +8158,7 @@ Suma::sendBatchedSUB_TABLE_DATA(Signal* signal,
   }
 }
 
-void
-Suma::execFIRE_TRIG_ORD(Signal* signal)
+void Suma::execFIRE_TRIG_ORD(Signal *signal)
 {
   jamEntry();
   DBUG_ENTER("Suma::execFIRE_TRIG_ORD");
@@ -5606,8 +8181,36 @@ Suma::execFIRE_TRIG_ORD(Signal* signal)
     ndbassert(isNdbMtLqh());
     SectionHandle handle(this, signal);
 
-    ndbrequire( setTriggerBufferLock(trigId) );
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setTriggerBufferLock(trigId)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ishead,
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
 
+||||||| Common ancestor
+   bool ishead,
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     SegmentedSectionPtr ptr;
     ndbrequire(handle.getSection(ptr, 0)); // Keys
     const Uint32 sz = ptr.sz;
@@ -5656,7 +8259,7 @@ Suma::execFIRE_TRIG_ORD(Signal* signal)
 
   /* Reset bufferlock
    * We will use the buffers until the end of
-   * signal processing, but not after
+   *   signal processing, but not after
    */
   ndbrequire( clearBufferLock() );
 }
@@ -5678,7 +8281,7 @@ Suma::doFIRE_TRIG_ORD(Signal* signal, LinearSectionPtr lsptr[3])
   const Uint32 transId1  = trg->m_transId1;
   const Uint32 transId2  = trg->m_transId2;
 
-  Ptr<Subscription> subPtr;
+       Ptr<Subscription> subPtr;
   subPtr.i = trigId & 0xFFFF;
   ndbrequire(c_subscriptionPool.getValidPtr(subPtr));
 
@@ -5687,8 +8290,32 @@ Suma::doFIRE_TRIG_ORD(Signal* signal, LinearSectionPtr lsptr[3])
   Uint32 tableId = subPtr.p->m_tableId;
   Ptr<Table> tabPtr;
   tabPtr.i = subPtr.p->m_table_ptrI;
-  ndbrequire(c_tablePool.getValidPtr(tabPtr));
-  Uint32 schemaVersion = tabPtr.p->m_schemaVersion;
+ bool 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(c_tablePool.getValidPtr(tabPtr));
+||||||| Common ancestor
+=======
+report,
+>>>>>>> MySQL 8.0.36
+  Uint32 schemaVersion 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtr.p->m_schemaVersion;
+||||||| Common ancestor
+report,
+=======
+>>>>>>> MySQL 8.0.36
   
   Uint32 bucket= hashValue % c_no_of_buckets;
   m_max_seen_gci = (gci > m_max_seen_gci ? gci : m_max_seen_gci);
@@ -5713,8 +8340,26 @@ Suma::doFIRE_TRIG_ORD(Signal* signal, LinearSectionPtr lsptr[3])
     LinearSectionPtr ptr[3];
     const Uint32 nptr= reformat(signal, ptr, lsptr);
     Uint32 ptrLen= 0;
-    for(Uint32 i =0; i < nptr; i++)
-      ptrLen+= ptr[i].sz;    
+    for(Uint32 i =0; i < nptr; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i++)
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ data,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptrLen+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+data,
+=======
+>>>>>>> MySQL 8.0.36
+ ptr[i].sz;    
     /**
      * Signal to subscriber(s)
      */
@@ -5730,13 +8375,67 @@ Suma::doFIRE_TRIG_ORD(Signal* signal, LinearSectionPtr lsptr[3])
     data->transId1       = transId1;
     data->transId2       = transId2;
     
-    sendBatchedSUB_TABLE_DATA(signal, subPtr.p->m_subscribers, ptr, nptr);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ sendBatchedSUB_TABLE_DATA(signal, subPtr.p->m_subscribers, ptr, nptr);
   }
   else 
   {
     jam();
     /**
-     * We are not the active handler of this bucket, some other node is
+     * We
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bool report,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ are not the active 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+handler
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+report,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+this
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Local_Subscriber_list&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Local_Subscriber_list
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bucket,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+list)
+{
+=======
+&list) {
+>>>>>>> MySQL 8.0.36
+ some other node is
      * responsible for sending this to the subscribing NDB API.
      *
      * We need to buffer the signal to enable that we can take over when
@@ -5754,8 +8453,7 @@ Suma::doFIRE_TRIG_ORD(Signal* signal, LinearSectionPtr lsptr[3])
     static_assert(1 + Buffer_page::GCI_SZ32 + buffer_header_sz + SUMA_BUF_SZ
                     <= Buffer_page::DATA_WORDS);
     if (likely((dst1 = get_buffer_ptr(signal, bucket, gci, sz1, 1)) &&
-               (dst2 = get_buffer_ptr(signal, bucket, gci, sz2, 2))))
-    {
+               (dst2 = get_buffer_ptr(signal, bucket, gci, sz2, 2))))   {
       jam();
       dst1[0] = subPtr.i;
       dst1[1] = schemaVersion;
@@ -5775,7 +8473,29 @@ Suma::doFIRE_TRIG_ORD(Signal* signal, LinearSectionPtr lsptr[3])
     else
     {
       DEB_FREE_PAGE(("Skipped releasing pages in FIRE_TRIG_ORD"
-                     " due to out of buffer release ongoing"));
+                     " due to out 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+}
+
+void
+Suma::Table::createAttributeMask(AttributeMask&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Suma::Table::createAttributeMask(AttributeMask
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+buffer release ongoing"));
     }
   }
   
@@ -5784,7 +8504,17 @@ Suma::doFIRE_TRIG_ORD(Signal* signal, LinearSectionPtr lsptr[3])
 
 /**
   The SUB_GCP_COMPLETE_REP signal is used to signal to receiver that an epoch
-  is completed and that receiver have received all data for the epoch.
+  is completed and that receiver have received all
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+mask,
+                                
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&mask,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ data for the epoch.
 
   SUMA get SUB_GCP_COMPLETE_REP from DBDIH via DBLQH so that
   SUB_GCP_COMPLETE_REP for an certain epoch will arrive after any data for that
@@ -5799,7 +8529,39 @@ Suma::doFIRE_TRIG_ORD(Signal* signal, LinearSectionPtr lsptr[3])
   out SUB_GCP_COMPLETE_REP to all subscribers.  But only after it have sent all
   data to the subscribers.
 
-  Typically SUMA relays the data it got from DBLQH and DBDICT immediately when
+  Typically SUMA relays the data it got from DBLQH and DBDICT 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+immediately
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+triggerId));
+}
+
+void
+Suma::execTRANSID_AI(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+triggerId));
+}
+
+void Suma::execTRANSID_AI(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   it arrives to SUMA.  But in some cases fragmented signals may be used to send
   data to subscribers.  These fragmented signals should not be considered sent
   until the last fragment of signal is sent.
@@ -5870,13 +8632,35 @@ Suma::checkMaxBufferedEpochs(Signal *signal)
   }
 }
 
-void
-Suma::execSUB_GCP_COMPLETE_REP(Signal* signal)
-{
+void Suma::execSUB_GCP_COMPLETE_REP(Signal *signal) {
   jamEntry();
-  ndbassert(signal->getNoOfSections() == 0);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbassert(signal->getNoOfSections() == 0);
 
-  SubGcpCompleteRep * rep = (SubGcpCompleteRep*)signal->getDataPtrSend();
+  SubGcpCompleteRep *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+KeyInfo20*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyInfo20
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+rep
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+data
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = (SubGcpCompleteRep*)signal->getDataPtrSend();
   Uint32 gci_hi = rep->gci_hi;
   Uint32 gci_lo = rep->gci_lo;
   Uint64 gci = gci_lo | (Uint64(gci_hi) << 32);
@@ -5898,13 +8682,41 @@ Suma::execSUB_GCP_COMPLETE_REP(Signal* signal)
   while (i != m_max_gcp_rep_counter_index)
   {
     jam();
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Suma::sendScanSubTableData(Signal* signal,
+=======
+}
+
+void Suma::sendScanSubTableData(Signal *signal, Ptr<SyncRecord> syncPtr,
+>>>>>>> MySQL 8.0.36
     if (gci < m_gcp_rep_counter[i].m_gci)
     {
       jam();
       break;
-    }
-    else if (gci == m_gcp_rep_counter[i].m_gci)
-    {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+Ptr<SyncRecord>
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+syncPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   else if (gci == m_gcp_rep_counter[i].m_gci)   {
       jam();
       found = true;
       break;
@@ -5975,9 +8787,7 @@ Suma::execSUB_GCP_COMPLETE_REP(Signal* signal)
   sendSUB_GCP_COMPLETE_REP(signal);
 }
 
-void
-Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
-{
+void Suma::sendSUB_GCP_COMPLETE_REP(Signal *signal) {
   if (m_snd_gcp_rep_counter_index == m_min_gcp_rep_counter_index)
   {
     // No complete epoch yet.
@@ -6028,12 +8838,33 @@ Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
   else if (gci_hi == Uint32(m_gcp_monitor >> 32))
   {
     jam();
-    ndbrequire(gci_lo == Uint32(m_gcp_monitor) + 1);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Bucket*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Bucket
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(gci_lo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ == Uint32(m_gcp_monitor) + 1);
   }
   else
   {
-    if (ERROR_INSERTED(13057))
-    {
+    if (ERROR_INSERTED(13057)) {
       jam();
       ndbrequire(gci_hi > Uint32(m_gcp_monitor >> 32));
     } else {
@@ -6054,10 +8885,31 @@ Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
     jam();
     bool starting_unlock = false;
     Uint32 i = m_switchover_buckets.find(0);
-    for(; i != Bucket_mask::NotFound; i = m_switchover_buckets.find(i + 1))
+    for(; i != Bucket
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+_mask::NotFound;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = m_switchover_buckets.find(i + 1))
     {
-      if(gci > c_buckets[i].m_switchover_gci)
-      {
+      if(gci > c_buckets[i].m_switchover_gci)     {
 	Uint32 state = c_buckets[i].m_state;
 	m_switchover_buckets.clear(i);
         g_eventLogger->info(
@@ -6089,7 +8941,31 @@ Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
 	  ndbrequire(pos.m_max_gci < gci);
 
           CHECK_PAGE(pos.m_page_id);
-	  Buffer_page* page= c_page_pool.getPtr(pos.m_page_id);
+	  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Buffer_page*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  const Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  const Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+p 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*p 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= c_page_pool.getPtr(pos.m_page_id);
           g_eventLogger->info("takeover %d", pos.m_page_id);
           page->m_max_gci_hi = (Uint32)(pos.m_max_gci >> 32);
           page->m_max_gci_lo = (Uint32)(pos.m_max_gci & 0xFFFFFFFF);
@@ -6143,17 +9019,54 @@ Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
           if (state & Bucket::BUCKET_DROPPED_SELF)
           {
             if (m_active_buckets.get(i))
-            {
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+;
+}
+
+void
+Suma::sendBatchedSUB_TABLE_DATA(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+;
+}
+
+void Suma::sendBatchedSUB_TABLE_DATA(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+=======
+*signal,
+>>>>>>> MySQL 8.0.36
+           {
               m_active_buckets.clear(i);
               // Remember this bucket, it should be listed
               // in SUB_GCP_COMPLETE_REP signal
-              dropped_buckets.set(i);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          dropped_buckets.set(i);
             }
-            drop = true;
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LinearSectionPtr lsptr[],
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     LinearSectionPtr lsptr[],  drop = true;
           }
         } else if (state & Bucket::BUCKET_SHUTDOWN) {
           jam();
-          Uint32 nodeId = c_buckets[i].m_switchover_node;
+          Uint32 nodeId =
+        c_buckets[i].m_switchover_node;
           ndbrequire(nodeId == getOwnNodeId());
           m_active_buckets.clear(i);
           m_gcp_complete_rep_count--;
@@ -6193,9 +9106,55 @@ Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
         if (c_shutdown.m_wait_handover)
         {
           jam();
-          ndbassert(getNodeState().startLevel == NodeState::SL_STOPPING_3);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Suma::execFIRE_TRIG_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Suma::execFIRE_TRIG_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+   ndbassert(getNodeState().startLevel == NodeState::SL_STOPPING_3);
           StopMeConf * conf = CAST_PTR(StopMeConf, signal->getDataPtrSend());
-          conf->senderData = c_shutdown.m_senderData;
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FireTrigOrd*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FireTrigOrd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ conf->senderData = c_shutdown.m_senderData;
           conf->senderRef = reference();
           sendSignal(c_shutdown.m_senderRef, GSN_STOP_ME_CONF, signal,
                      StopMeConf::SignalLength, JBB);
@@ -6233,11 +9192,52 @@ Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
             starting_unlock = false;
             break;
           }
-        }
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+void
+Suma::doFIRE_TRIG_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+void Suma::doFIRE_TRIG_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       }
 
         if (starting_unlock)
         {
-          jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FireTrigOrd*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FireTrigOrd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       jam();
           send_dict_unlock_ord(signal, DictLockReq::SumaHandOver);
         }
       }
@@ -6308,9 +9308,54 @@ Suma::sendSUB_GCP_COMPLETE_REP(Signal* signal)
   {
     jam();
     g_eventLogger->error("Suma gcp complete rep count (%u) does "
-                         "not match number of buckets that should "
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst1
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst1
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"not match
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+number
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dst2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ of buckets that should "
                          "be reported complete (%u).",
-                         m_gcp_complete_rep_count,
+       <=
+                  m_gcp_complete_rep_count,
                          stream_count);
     ndbassert(false);
   }
@@ -6420,9 +9465,7 @@ Suma::mark_epoch_inflight(Uint64 gci)
   return i;
 }
 
-void
-Suma::unmark_epoch_inflight(Signal* signal, Uint32 inflight_index)
-{
+void Suma::unmark_epoch_inflight(Signal* signal, Uint32 inflight_index) {
   ndbrequire(m_gcp_inflight[inflight_index].m_cnt > 0);
   m_gcp_inflight[inflight_index].m_cnt--;
 
@@ -6432,16 +9475,14 @@ Suma::unmark_epoch_inflight(Signal* signal, Uint32 inflight_index)
     return;
   }
 
-  if (inflight_index != m_oldest_gcp_inflight_index)
-  {
+  if (inflight_index != m_oldest_gcp_inflight_index) {
     jam();
     return;
   }
 
   const Uint32 sz = NDB_ARRAY_SIZE(m_gcp_inflight);
   while (m_oldest_gcp_inflight_index != m_newest_gcp_inflight_index &&
-         m_gcp_inflight[m_oldest_gcp_inflight_index].m_cnt == 0)
-  {
+         m_gcp_inflight[m_oldest_gcp_inflight_index].m_cnt == 0) {
     jam();
     m_gcp_inflight[m_oldest_gcp_inflight_index].m_gci = 0;
     m_oldest_gcp_inflight_index = (m_oldest_gcp_inflight_index + 1) % sz;
@@ -6471,13 +9512,13 @@ Suma::execDROP_TAB_CONF(Signal *signal)
   TablePtr tabPtr;
   Table check;
   check.m_tableId = tableId;
-  if (!c_tables.find(tabPtr, check))
-  {
+  if (!c_tables.find(tabPtr, check)) {
     jam();
     return;
   }
 
-  DBUG_PRINT("info",("drop table id: %d[i=%u]", tableId, tabPtr.i));
+  DBUG_PRINT("info",("drop table id: %d[i=%u]", tableId,
+              tabPtr.i));
   const Table::State old_state = tabPtr.p->m_state;
   tabPtr.p->m_state = Table::DROPPED;
   c_tables.remove(tabPtr);
@@ -6500,10 +9541,35 @@ Suma::execDROP_TAB_CONF(Signal *signal)
 
     Ptr<Subscription> subPtr;
     Local_Subscription_list subList(c_subscriptionPool,
-                                    tabPtr.p->m_subscriptions);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
 
-    for (subList.first(subPtr); !subPtr.isNull(); subList.next(subPtr))
-    {
+void
+Suma::execSUB_GCP_COMPLETE_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Suma::execSUB_GCP_COMPLETE_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+                           tabPtr.p->m_subscriptions);
+
+    for (subList.first(subPtr); !subPtr.isNull(); subList.next(subPtr)) {
       jam();
       if(subPtr.p->m_subscriptionType != SubCreateReq::TableEvent)
       {
@@ -6513,8 +9579,7 @@ Suma::execDROP_TAB_CONF(Signal *signal)
         //the subscription. Otherwise, send data to subscriber.
       }
 
-      if (subPtr.p->m_options & Subscription::NO_REPORT_DDL)
-      {
+      if (subPtr.p->m_options & Subscription::NO_REPORT_DDL)   {
         jam();
         continue;
       }
@@ -6531,8 +9596,7 @@ Suma::execDROP_TAB_CONF(Signal *signal)
     }
   }
 
-  if (old_state == Table::DEFINING)
-  {
+  if (old_state == Table::DEFINING) {
     jam();
     return;
   }
@@ -6558,10 +9622,37 @@ Suma::execDROP_TAB_CONF(Signal *signal)
                                       tabPtr.p->m_subscriptions);
       subList.first(subPtr);
     }
-    while (!subPtr.isNull())
-    {
+    while (!subPtr.isNull())   {
       Ptr<Subscription> tmp = subPtr;
-      {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendSUB_GCP_COMPLETE_REP(signal);
+}
+
+void
+Suma::sendSUB_GCP_COMPLETE_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSUB_GCP_COMPLETE_REP(signal);
+}
+
+void Suma::sendSUB_GCP_COMPLETE_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+=======
+*signal) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
         Local_Subscription_list subList(c_subscriptionPool,
                                         tabPtr.p->m_subscriptions);
         subList.next(subPtr);
@@ -6612,8 +9703,7 @@ Suma::execALTER_TAB_REQ(Signal *signal)
     return;
   }
 
-  if (senderRef == 0)
-  {
+  if (senderRef == 0) {
     jam();
     releaseSections(handle);
     return;
@@ -6637,8 +9727,29 @@ Suma::execALTER_TAB_REQ(Signal *signal)
 
   const Uint64 gci = get_current_gci(signal);
   SubTableData * data = (SubTableData*)signal->getDataPtrSend();
-  data->gci_hi         = Uint32(gci >> 32);
-  data->gci_lo         = Uint32(gci);
+  data->gci_hi         = Uint32(gci >> 32)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  data->gci_lo       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  = Uint32(gci);
   data->tableId        = tableId;
   data->requestInfo    = 0;
   SubTableData::setOperation(data->requestInfo, 
@@ -6659,9 +9770,57 @@ Suma::execALTER_TAB_REQ(Signal *signal)
       continue;
       //continue in for-loop if the table is not part of
       //the subscription. Otherwise, send data to subscriber.
-    }
   
-    if (subPtr.p->m_options & Subscription::NO_REPORT_DDL)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Bucket*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Bucket
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bucket=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*bucket =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
+  
+    if (subPtr.p->m_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+options
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+max_gci < gci);
+
+	  Buffer_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+max_gci < gci);
+
+          Buffer_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*page =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Subscription::NO_REPORT_DDL)
     {
       jam();
       continue;
@@ -7008,10 +10167,32 @@ Suma::SyncRecord::release(){
  * - included node will issue START_ME when it's ready to start
  * the subscribers
  *
- */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
 
 void
-Suma::execSUMA_START_ME_REQ(Signal* signal) {
+Suma::execSUMA_START_ME_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SubGcpCompleteRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SubGcpCompleteRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal) {
+||||||| Common ancestor
+rep
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   jamEntry();
 
   Uint32 retref = signal->getSendersBlockRef();
@@ -7036,18 +10217,67 @@ Suma::execSUMA_START_ME_REQ(Signal* signal) {
   }
 
   Ptr<SubOpRecord> subOpPtr;
-  if (c_subOpPool.seize(subOpPtr) == false)
+  if  (c_subOpPool.seize(subOpPtr) == false)
   {
     jam();
-    SumaStartMeRef* ref= (SumaStartMeRef*)signal->getDataPtrSend();
-    ref->errorCode = SumaStartMeRef::Busy;
-    sendSignal(retref, GSN_SUMA_START_ME_REF, signal,
-               SumaStartMeRef::SignalLength, JBB);
+    SumaStartMeRef* ref= (SumaStartMeRef*)signal->getDataPtrSend()
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    ref->errorCode = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SumaStartMeRef::Busy;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  rep->sub_data_streams[stream_count / 2] = sub_data_stream;
+      } else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    sendSignal(retref, GSN_SUMA_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+START_ME_REF, signal,
+              
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+count/2] = sub_data_stream;
+      }
+      else
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+count
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SumaStartMeRef::SignalLength, JBB);
     return;
   }
 
   subOpPtr.p->m_opType = SubOpRecord::R_START_ME_REQ;
 
+||||||| Common ancestor
+ {
+        rep->sub_data_streams[stream_count/2]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/ 2]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   c_restart.m_abort = 0;
   c_restart.m_waiting_on_self = 0;
   c_restart.m_ref = retref;
@@ -7145,8 +10375,7 @@ Suma::sendSubCreateReq(Signal* signal, Ptr<Subscription> subPtr)
     req->subscriptionType |= SubCreateReq::ReportAll;
   }
 
-  if (subPtr.p->m_options & Subscription::REPORT_SUBSCRIBE)
-  {
+  if (subPtr.p->m_options & Subscription::REPORT_SUBSCRIBE) {
     req->subscriptionType |= SubCreateReq::ReportSubscribe;
   }
 
@@ -7161,11 +10390,59 @@ Suma::sendSubCreateReq(Signal* signal, Ptr<Subscription> subPtr)
     g_eventLogger->info("copying dropped sub: %u", subPtr.i);
   }
 
-  Ptr<Table> tabPtr;
-  tabPtr.i = subPtr.p->m_table_ptrI;
-  ndbrequire(c_tablePool.getValidPtr(tabPtr));
-  if (tabPtr.p->m_state != Table::DROPPED)
-  {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ptr<Table>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_gcp_rep_counter[m_snd_gcp_rep_counter_index].m_gci =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+m_gcp_rep_counter[m_snd_gcp_rep_counter_index].m_gci = 0;
+  m_gcp_rep_counter[m_snd_gcp_rep_counter_index].m_cnt = 0;
+  m_gcp_rep_counter[m_snd_gcp_rep_counter_index].m_flags =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ tabPtr;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtr.i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_gcp_rep_counter[m_snd_gcp_rep_counter_index].m_cnt
+// RONDB-624 todo: Glue these lines together ^v
+=======
+m_snd_gcp_rep_counter_index
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ subPtr.p->m_table_ptrI;
+||||||| Common ancestor
+ 0;
+  m_gcp_rep_counter[m_snd_gcp_rep_counter_index].m_flags = 0;
+=======
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_snd_gcp_rep_counter_index = 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(c_tablePool.getValidPtr(tabPtr));
+  if (tabPtr.p->m_state != Table::DROPPED) {
     jam();
     c_restart.m_waiting_on_self = 0;
 
@@ -7209,13 +10486,11 @@ Suma::execSUB_CREATE_REF(Signal* signal)
 }
 
 void 
-Suma::execSUB_CREATE_CONF(Signal* signal)
-{
+Suma::execSUB_CREATE_CONF(Signal *signal) {
   jamEntry();
 
   /**
-   * We have lock...start all subscriber(s)
-   */
+   * We have lock...start all subscriber(s)  */
   Ptr<Subscription> subPtr;
   subPtr.i = c_restart.m_subPtrI;
   ndbrequire(c_subscriptionPool.getValidPtr(subPtr));
@@ -7408,8 +10683,7 @@ Suma::execSUMA_HANDOVER_REQ(Signal* signal)
       }
     }
   }
-  else if (requestType == SumaHandoverReq::RT_STOP_NODE)
-  {
+  else if (requestType == SumaHandoverReq::RT_STOP_NODE) {
     jam();
 
     for( Uint32 i = 0; i < c_no_of_buckets; i++)
@@ -7417,8 +10691,30 @@ Suma::execSUMA_HANDOVER_REQ(Signal* signal)
       NdbNodeBitmask nodegroup = c_nodes_in_nodegroup_mask;
       nodegroup.clear(nodeId);
       if(get_responsible_node(i) == nodeId &&
-         get_responsible_node(i, nodegroup) == getOwnNodeId())
-      {
+         get_responsible_node(i, nodegroup) == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+getOwnNodeId())
+||||||| Common ancestor
+ tabInfoPtr.sz);
+=======
+ tabInfoPtr.sz);
+  SimplePropertiesSectionReader reader(handle.m_ptr[0],
+                             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SimplePropertiesSectionReader reader(handle.m_ptr[0],
+				
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    {
         // I'm will be running this bucket when nodeId shutdown
         jam();
         tmp.set(i);
@@ -7479,9 +10775,56 @@ void
 Suma::execSUMA_HANDOVER_CONF(Signal* signal) {
   jamEntry();
   DBUG_ENTER("Suma::execSUMA_HANDOVER_CONF");
+<<<<<<< RonDB // RONDB-624 todo
 
-  const SumaHandoverConf * conf = CAST_CONSTPTR(SumaHandoverConf,
-                                                signal->getDataPtr());
+||||||| Common ancestor
+          inflight_index
+=======
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  const SumaHandoverConf * conf 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+};
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    inflight_index};
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ CAST_CONSTPTR(SumaHandoverConf,
+                                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Suma::execSUB_GCP_COMPLETE_ACK(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Suma::execSUB_GCP_COMPLETE_ACK(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+    signal->getDataPtr());
 
   CRASH_INSERTION(13043);
 
@@ -7499,15 +10842,35 @@ Suma::execSUMA_HANDOVER_CONF(Signal* signal) {
     jam();
     for (Uint32 i = 0; i < c_no_of_buckets; i++)
     {
-      if (tmp.get(i))
-      {
+      if (tmp.get(i))     {
         if (DBG_3R)
           g_eventLogger->info("%u : %u %u", i, get_responsible_node(i),
                               getOwnNodeId());
         ndbrequire(get_responsible_node(i) == getOwnNodeId());
         // We should run this bucket, but _nodeId_ is
-        c_buckets[i].m_switchover_gci = (Uint64(gci) << 32) - 1;
-        c_buckets[i].m_state |= Bucket::BUCKET_STARTING;
+        c_buckets[i].m_switchover_gci = (Uint64(gci) << 32)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ - 1;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	release_gci(signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  release_gci(signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  c_buckets[i].m_state |= Bucket::BUCKET_STARTING;
       }
     }
 
@@ -7522,13 +10885,23 @@ Suma::execSUMA_HANDOVER_CONF(Signal* signal) {
     c_startup.m_handover_nodes.clear(nodeId);
     DBUG_VOID_RETURN;
   }
-  else if (requestType == SumaHandoverReq::RT_STOP_NODE)
+  else if (requestType == SumaHandoverReq::RT_STOP_NODE) {
   {
-    jam();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+jam();
     for (Uint32 i = 0; i < c_no_of_buckets; i++)
     {
-      if (tmp.get(i))
-      {
+      if (tmp.get(i))     {
         ndbrequire(get_responsible_node(i) == getOwnNodeId());
         // We should run this bucket, but _nodeId_ is
         c_buckets[i].m_switchover_node = getOwnNodeId();
@@ -7537,8 +10910,27 @@ Suma::execSUMA_HANDOVER_CONF(Signal* signal) {
       }
     }
   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+=======
+senderRef,
+>>>>>>> MySQL 8.0.36
     char buf[255];
-    tmp.getText(buf);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ tmp.getText
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+senderRef, signal->getSendersBlockRef
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal->getSendersBlockRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(buf);
     infoEvent("Suma: handover to node %u gci: %u buckets: %s (%u)",
               nodeId, gci, buf, c_no_of_buckets);
     g_eventLogger->info("Suma: handover to node %u gci: %u buckets: %s (%u)",
@@ -7549,8 +10941,24 @@ Suma::execSUMA_HANDOVER_CONF(Signal* signal) {
   }
 }
 
-void
-Suma::execSTOP_ME_REQ(Signal* signal)
+void Suma::execSTOP_ME_REQ(Signal 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+  jamEntry();
+  DBUG_ENTER("Suma::execSUB_REMOVE_REQ"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+  jamEntry();
+  DBUG_ENTER("Suma::execSUB_REMOVE_REQ"
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
 {
   jam();
   StopMeReq req = * CAST_CONSTPTR(StopMeReq, signal->getDataPtr());
@@ -7592,11 +11000,11 @@ Suma::get_buffer_ptr(Signal* signal,
   Page_pos pos= bucket->m_buffer_head;
 
   Buffer_page* page = 0;
-  Uint32 *ptr = 0;
+  Uint32   *ptr = 0;
   
   if (likely(pos.m_page_id != RNIL))
   {
-    jam();
+      jam();
     CHECK_PAGE(pos.m_page_id);
     page= c_page_pool.getPtr(pos.m_page_id);
     ptr= page->m_data + pos.m_page_pos;
@@ -7615,12 +11023,39 @@ Suma::get_buffer_ptr(Signal* signal,
     bucket->m_buffer_head = pos;
     *ptr = Buffer_page::SAME_GCI_FLAG |
            (part << Buffer_page::PART_NUM_SHIFT) |
-           sz;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+return;
+}
+
+void
+Suma::check_release_subscription(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return;
+}
+
+void Suma::check_release_subscription(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                                     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        sz;
     ptr++;
     return ptr;
   }
-  else if(pos.m_page_pos + Buffer_page::GCI_SZ32 <= Buffer_page::DATA_WORDS)
-  {
+  else if(pos.m_page_pos + Buffer_page::GCI_SZ32 <= Buffer_page::DATA_WORDS) {
 loop:
     jam();
     pos.m_max_gci = max;
@@ -7634,17 +11069,16 @@ loop:
   }
   else
   {
-    jam();
-    /**
-     * new page
-     * 1) save header on last page
+      jam();
+      /**
+       * new page
+       * 1) save header on last page
      * 2) seize new page
      */
     static_assert(1 + 6 + SUMA_BUF_SZ + Buffer_page::GCI_SZ32 <=
                   Buffer_page::DATA_WORDS);
     Uint32 next;
-    if(unlikely((next= seize_page()) == RNIL))
-    {
+    if(unlikely((next= seize_page()) == RNIL))   {
       jam();
       /**
        * Out of buffer
@@ -7681,8 +11115,7 @@ loop:
   }
 }
 
-void
-Suma::out_of_buffer(Signal* signal)
+void Suma::out_of_buffer(Signal *signal)
 {
   Ptr<Gcp_record> gcp;
   if(m_out_of_buffer_gci)
@@ -7706,13 +11139,36 @@ Suma::out_of_buffer(Signal* signal)
     }
   }
   m_missing_data = false;
-  m_out_of_buffer_release_ongoing = true;
-  DEB_FREE_PAGE(("Out of buffer release started"));
+  m_out_of_buffer_release_ongoing 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal,
+>>>>>>> MySQL 8.0.36
+ true;
+  DEB_FREE_PAGE(("Out of 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+buffer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ release started"));
   out_of_buffer_release(signal, 0);
 }
 
-void
-Suma::out_of_buffer_release(Signal* signal, Uint32 buck)
+void Suma::out_of_buffer_release(Signal* signal, Uint32 buck)
 {
   ndbrequire(buck < NO_OF_BUCKETS);
   Bucket* bucket = c_buckets + buck;
@@ -7742,12 +11198,53 @@ Suma::out_of_buffer_release(Signal* signal, Uint32 buck)
     sendSignal(SUMA_REF, GSN_CONTINUEB, signal, 2, JBB);
     return;
   }
+<<<<<<< RonDB // RONDB-624 todo
 
-  /**
+||||||| Common ancestor
+void
+Suma::execSUMA_START_ME_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Suma::execSUMA_START_ME_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ /**
    * Finished will all release
    *   prepare for inclusion
-   */
-  m_out_of_buffer_gci = m_max_seen_gci > m_last_complete_gci 
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+  m_out_of_buffer_gci
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ SumaStartMeRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ SumaStartMeRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= m_max_seen_gci > m_last_complete_gci 
     ? m_max_seen_gci : m_last_complete_gci;
   m_out_of_buffer_release_ongoing = false;
   m_missing_data = false;
@@ -7759,13 +11256,57 @@ Suma::out_of_buffer_release(Signal* signal, Uint32 buck)
  * -----------------------------------------
  * SUMA maintains replication events organised per GCI. These replication
  * events are stored in a number of page chunks. Each such page chunk
- * contains 1 MByte of global memory pages.
+ * contains 1 MByte of global 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+memory
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SumaStartMeRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SumaStartMeRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pages.
+||||||| Common ancestor
+ref=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
  *
  * The amount of memory that we can maximum allocate for this purpose is
  * limited to 16384 page chunks which is sufficient to handle 16 GByte
  * of Event Buffers. One can increase this even more by setting
  * ReplicationMemory even higher although it's unlikely it will be required
- * in any realistic setup.
+ * in any 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+realistic
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SumaStartMeRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SumaStartMeRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setup.
+||||||| Common ancestor
+ref=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
  *
  * ReplicationMemory can grow using SharedGlobalMemory up to when the
  * memory is used up to 90% of the SharedGlobalMemory. One can still
@@ -7789,8 +11330,27 @@ Suma::seize_page()
     CLEAR_ERROR_INSERT_VALUE;
     g_eventLogger->info("Simulating out of event buffer");
     m_out_of_buffer_gci = m_max_seen_gci;
+<<<<<<< RonDB // RONDB-624 todo
   }
-  if(unlikely(m_out_of_buffer_gci))
+||||||| Common ancestor
+void
+Suma::copySubscription(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Suma::copySubscription(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if(unlikely(m_out_of_buffer_gci))
   {
     jam();
     return RNIL;
@@ -7798,8 +11358,7 @@ Suma::seize_page()
 loop:
   Ptr<Page_chunk> ptr;
   Uint32 ref= m_first_free_page;
-  if(likely(ref != RNIL))
-  {
+  if(likely(ref != RNIL)) {
     jam();
     Buffer_page* page = nullptr;
     CHECK_PAGE(ref);
@@ -7816,12 +11375,58 @@ loop:
     {
       jam();
       CHECK_PAGE(m_first_free_page);
-      Buffer_page* new_first_page = c_page_pool.getPtr(m_first_free_page);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  Buffer_page*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SumaStartMeConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SumaStartMeConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new_first_page
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = c_page_pool.getPtr(m_first_free_page);
       new_first_page->m_prev_page = RNIL;
     }
     ndbrequire(ptr.p->m_in_free_chunk_list == false);
     ptr.p->m_free--;
-    DEB_FREE_PAGE(("Seize page from ptr.i: %u, now free: %u, page_id: %u"
+    DEB_FREE_PAGE(("Seize page from ptr.i: %u, now free:
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendSubCreateReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSubCreateReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, page_id: %u"
                    " total free: %u",
                    ptr.i,
                    ptr.p->m_free,
@@ -7831,19 +11436,16 @@ loop:
   }
 
   bool allocated_new_pages = true;
-  if (!c_free_page_chunks.first(ptr))
-  {
+  if (!c_free_page_chunks.first(ptr)) {
     jam();
-    if (!c_page_chunk_pool.seize(ptr))
-    {
+    if (!c_page_chunk_pool.seize(ptr))   {
       jam();
       return RNIL;
     }
 
     Uint32 count = Page_chunk::PAGES_PER_CHUNK;
     m_ctx.m_mm.alloc_pages(RT_SUMA_EVENT_BUFFER, &ref, &count, 1);
-    if (count == 0)
-    {
+    if (count == 0)   {
       jam();
       c_page_chunk_pool.release(ptr);
       return RNIL;
@@ -7871,16 +11473,79 @@ loop:
     m_total_pages_allocated += ptr.p->m_free;
     m_total_pages_free += ptr.p->m_free;
     DEB_FREE_PAGE(("ptr.i = %u, total alloc: %u, total free: %u",
-                   ptr.i,
-                   m_total_pages_allocated,
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+Suma::execSUB_CREATE_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Suma::execSUB_CREATE_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+        ptr.i,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SumaStartMeRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SumaStartMeRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           m_total_pages_allocated,
                    m_total_pages_free));
   }
   goto loop;
 }
 
 void
-Suma::insert_chunk_pages(Ptr<Page_chunk> ptr)
-{
+Suma::insert_chunk_pages(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ptr<Page_chunk>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) {
   Uint32 ref = ptr.p->m_page_id;
   Uint32 count = ptr.p->m_free;
   Buffer_page* page = nullptr;
@@ -7904,8 +11569,7 @@ Suma::insert_chunk_pages(Ptr<Page_chunk> ptr)
     {
       page->m_next_page = ++ref;
     }
-    else
-    {
+    else   {
       page->m_next_page = prev_first_free;
     }
   }
@@ -7919,8 +11583,7 @@ Suma::insert_chunk_pages(Ptr<Page_chunk> ptr)
   }
 }
 
-void
-Suma::release_chunk_pages(Ptr<Page_chunk> ptr)
+void Suma::release_chunk_pages(Ptr<Page_chunk> ptr)
 {
   /* Release all pages from free list */
   for (Uint32 i = 0; i < ptr.p->m_free; i++)
@@ -7940,7 +11603,20 @@ Suma::release_chunk_pages(Ptr<Page_chunk> ptr)
       /* We are the first page in the list */
       m_first_free_page = page->m_next_page;
     }
-    if (page->m_next_page != RNIL)
+ signal,
+   if (page->m_next_page != 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        signal, SubStartReq::SignalLength, JBB
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         SubStartReq::SignalLength, JBB
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
     {
       Buffer_page *next_page;
       CHECK_PAGE(page->m_next_page);
@@ -7955,8 +11631,7 @@ Suma::release_chunk_pages(Ptr<Page_chunk> ptr)
 }
 
 void
-Suma::release_chunk()
-{
+Suma::release_chunk() {
   Ptr<Page_chunk> ptr;
   if (!c_free_page_chunks.first(ptr))
   {
@@ -7968,21 +11643,88 @@ Suma::release_chunk()
   ndbrequire(m_total_pages_allocated >= ptr.p->m_free);
   m_total_pages_allocated -= ptr.p->m_free;
 
-  DEB_FREE_PAGE(("release chunk, ptr.i: %u, free: %u, total alloc: %u",
+  DEB_FREE_PAGE(("release chunk, ptr.i: %u, free:
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execSUB_START_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execSUB_START_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ total alloc: %u",
                  ptr.i,
-                 ptr.p->m_free,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SumaStartMeRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SumaStartMeRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+            ptr.p->m_free,
                  m_total_pages_allocated));
 
   m_ctx.m_mm.release_pages(RG_REPLICATION_MEMORY,
                            ptr.p->m_page_id,
-                           ptr.p->m_free);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+true);
+}
+
+void
+Suma::abort_start_me(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+true);
+}
+
+void Suma::abort_start_me(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                      ptr.p->m_free);
   c_free_page_chunks.remove(ptr);
   c_page_chunk_pool.release(ptr);
 }
 
 void
-Suma::free_page(Uint32 page_id, Buffer_page* page, Uint32 line)
-{
+Suma::free_page(Uint32 page_id, Buffer_page* page, Uint32 line) {
   Ptr<Page_chunk> ptr;
   ndbrequire(page->m_page_state == SUMA_SEQUENCE);
 
@@ -7991,12 +11733,77 @@ Suma::free_page(Uint32 page_id, Buffer_page* page, Uint32 line)
   ndbrequire(c_page_chunk_pool.getPtr(ptr, chunk));
   
   ptr.p->m_free++;
-  DEB_FREE_PAGE(("Free page in ptr.i = %u, page_id: %u, now free = %u, size: %u"
-                 " total alloc: %u, total free: %u, from line %u",
+  DEB_FREE_PAGE(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+("Free
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ in ptr.i = %u, page_id: %u, now free = %u, size: %u"
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= CAST_CONSTPTR(SumaHandoverReq,
+=======
+=
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      " total alloc: %u, total free: %u, from line %u",
                  ptr.i,
-                 page_id,
-                 ptr.p->m_free,
-                 ptr.p->m_size,
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CAST_CONSTPTR(SumaHandoverReq,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          page_id,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+=======
+signal, 5000,
+>>>>>>> MySQL 8.0.36
+           ptr.p->m_free,
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  ptr.p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+5000, signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->m_size,
                  m_total_pages_allocated,
                  m_total_pages_free + 1,
                  line));
@@ -8007,13 +11814,32 @@ Suma::free_page(Uint32 page_id, Buffer_page* page, Uint32 line)
   jamData(line);
   ndbrequire(ptr.p->m_free <= ptr.p->m_size);
 
-  if (m_first_free_page != RNIL)
-  {
+  if (m_first_free_page != RNIL) {
     jam();
     Buffer_page *first_page;
     CHECK_PAGE(m_first_free_page);
     first_page = c_page_pool.getPtr(m_first_free_page);
-    first_page->m_prev_page = page_id;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+for(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+for
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ first_page->m_prev_page = page_id;
   }
 
   m_first_free_page = page_id;
@@ -8049,7 +11875,31 @@ Suma::free_page(Uint32 page_id, Buffer_page* page, Uint32 line)
  * global memory pages. We manage 4 different sets of page chunks to
  * ensure that we split the mutex contention from different LDM threads.
  *
- * The page chunk records are global in SUMA and thus this record must
+ * The page 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+chunk
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+for(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+for
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+records
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ are global in SUMA and thus this record must
  * use a special mutex when the records are seized and released. As soon
  * as a page chunk record has been seized it is managed by a
  * LdmTriggerPageRecord. This record has its own mutex protecting it.
@@ -8081,7 +11931,27 @@ Suma::alloc_trigger_page_chunk(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
   Uint32 count = Trigger_page_chunk::PAGES_PER_CHUNK;
   Uint32 page_id;
   m_ctx.m_mm.alloc_pages(RT_SUMA_TRIGGER_BUFFER,
-                         &page_id,
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendSignal(numberToRef(CMVMI, refToNode(nf_node)),
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(numberToRef(CMVMI, refToNode(nf_node)), GSN_NDB_TAMPER,
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&page_id,
+||||||| Common ancestor
+GSN_NDB_TAMPER,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
                          &count,
                          Trigger_page_chunk::MIN_PAGES_PER_CHUNK);
   if (count == 0)
@@ -8094,11 +11964,35 @@ Suma::alloc_trigger_page_chunk(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
     NdbMutex_Unlock(&theTriggerPageChunkMutex);
     return false;
   }
-  DEB_REP_MEM(("(%u)Allocated %u pages starting at page id %u using chunk %u",
-               ldmTriggerPagePtr.i,
+  DEB_REP_MEM(("(%u)Allocated %u pages starting at page id %u using 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+chunk %u",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= CAST_CONSTPTR(SumaHandoverConf,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+         ldmTriggerPagePtr.i,
                count,
                page_id,
-               triggerChunkPtr.i));
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CAST_CONSTPTR(SumaHandoverConf,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+             triggerChunkPtr.i));
   triggerChunkPtr.p->m_page_id = page_id;
   triggerChunkPtr.p->m_count = count;
   for (Uint32 i = 0; i < count; i++)
@@ -8139,7 +12033,8 @@ Suma::move_chunk_to_full(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
 
 void
 Suma::move_chunk_to_free(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
-                         Ptr<Trigger_page_chunk> triggerChunkPtr)
+         nodeId,
+                Ptr<Trigger_page_chunk> triggerChunkPtr)
 {
   DEB_REP_MEM(("(%u) Move chunk %u from full to free",
                ldmTriggerPagePtr.i,
@@ -8149,8 +12044,7 @@ Suma::move_chunk_to_free(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
       c_trigger_page_chunk_pool,
       ldmTriggerPagePtr.p->m_trigger_page_full_chunks);
     loc_full.remove(triggerChunkPtr);
-  }
-  {
+  } {
     Local_Trigger_page_chunk_fifo loc_free(
       c_trigger_page_chunk_pool,
       ldmTriggerPagePtr.p->m_trigger_page_free_chunks);
@@ -8172,15 +12066,39 @@ Suma::get_first_trigger_page_chunk(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
 
 Uint32
 Suma::find_trigger_pages(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
-                         Ptr<Trigger_page_chunk> triggerChunkPtr,
-                         Uint32 page_count,
+                         Ptr<Trigger_page_chunk> triggerChunkPtr, nodeId, gci,
+                       Uint32 page_count,
                          EmulatedJamBuffer *jambuf)
 {
   Uint32 chunk_page_id = triggerChunkPtr.p->m_page_id;
   Uint32 first_free_page =
     triggerChunkPtr.p->m_page_id_allocated_bitmask.find_first();
   ndbrequire(first_free_page != BitmaskImpl::NotFound);
-  if (page_count > 1)
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page_count
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+> 1
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
   {
     Uint32 found = 1;
     thrjam(jambuf);
@@ -8203,13 +12121,68 @@ Suma::find_trigger_pages(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
         found = 0;
         first_free_page = i + 1;
       }
-    }
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+#endif
+
+Uint32*
+Suma::get_buffer_ptr(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+#endif
+
+Uint32 *Suma::get_buffer_ptr(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   }
     if (found == page_count)
     {
       for (Uint32 i = 0; i < page_count; i++)
-      {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Bucket*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Bucket
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bucket
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*bucket
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    {
         triggerChunkPtr.p->m_page_id_allocated_bitmask.set(
-          first_free_page + i, false);
+          first_free_page 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ i, false);
       }
     }
     else
@@ -8269,11 +12242,47 @@ Suma::alloc_trigger_page(Uint32 ldm_instance,
         *page_id = RNIL;
         return;
       }
-    }
-    found_page_id = find_trigger_pages(ldmTriggerPagePtr,
+    } found_page_id = find_trigger_pages(ldmTriggerPagePtr,
                                        triggerChunkPtr,
-                                       page_count,
-                                       jambuf);
+                                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Suma::out_of_buffer(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Suma::out_of_buffer(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+     page_count,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+increasing
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+      "increasing
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           jambuf);
   } while (found_page_id == RNIL);
   NdbMutex_Unlock(&ldmTriggerPagePtr.p->theMutex);
   *page_id = found_page_id;
@@ -8284,9 +12293,72 @@ Suma::alloc_trigger_page(Uint32 ldm_instance,
                triggerChunkPtr.i));
 }
 
-void
-Suma::release_trigger_page_chunk(Ptr<LdmTriggerPageRecord> ldmTriggerPagePtr,
-                                 Ptr<Trigger_page_chunk> triggerChunkPtr)
+void Suma::release_trigger_page_chunk(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ptr<LdmTriggerPageRecord>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ldmTriggerPagePtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Bucket*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Bucket
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bucket
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*bucket
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Buffer_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Buffer_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+page=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*page =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     Ptr<Trigger_page_chunk> triggerChunkPtr)
 {
   Uint32 page_id = triggerChunkPtr.p->m_page_id;
   Uint32 count = triggerChunkPtr.p->m_count;
@@ -8320,7 +12392,8 @@ Suma::release_trigger_page(Uint32 ldm_instance,
   NdbMutex_Lock(&ldmTriggerPagePtr.p->theMutex);
   ndbrequire(c_trigger_page_chunk_pool.getPtr(triggerChunkPtr,
                                               chunk_id));
-  DEB_REP_MEM(("(%u) Release page_id %u in chunk %u",
+  DEB_REP_MEM((
+      "(%u) Release page_id %u in chunk %u",
                ldmTriggerPagePtr.i,
                page_id,
                triggerChunkPtr.i));
@@ -8328,8 +12401,7 @@ Suma::release_trigger_page(Uint32 ldm_instance,
   ndbrequire(page_id >= chunk_page_id &&
              page_id <= (chunk_page_id + Trigger_page_chunk::PAGES_PER_CHUNK));
   Uint32 page_id_bit = page_id - chunk_page_id;
-  for (Uint32 i = 0; i < page_count; i++)
-  {
+  for (Uint32 i = 0; i < page_count; i++) {
     ndbrequire((page_id_bit + i) < Trigger_page_chunk::PAGES_PER_CHUNK);
     ndbrequire(!triggerChunkPtr.p->m_page_id_allocated_bitmask.get(
       page_id_bit + i));
@@ -8340,7 +12412,31 @@ Suma::release_trigger_page(Uint32 ldm_instance,
   jamData(triggerChunkPtr.i);
   jamData(page_id_bit);
   jamData(page_count);
-  if (triggerChunkPtr.p->is_free == false)
+  if (triggerChunkPtr.p->is_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== false
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
   {
     jam();
     move_chunk_to_free(ldmTriggerPagePtr, triggerChunkPtr);
@@ -8363,43 +12459,35 @@ Suma::release_trigger_page(Uint32 ldm_instance,
   NdbMutex_Unlock(&ldmTriggerPagePtr.p->theMutex);
 }
 
-void
-Suma::release_gci(Signal* signal, Uint32 buck, Uint64 gci)
-{
+void Suma::release_gci(Signal *signal, Uint32 buck, Uint64 gci) {
   ndbrequire(buck < NO_OF_BUCKETS);
-  Bucket* bucket = c_buckets + buck;
-  Uint32 tail= bucket->m_buffer_tail;
-  Page_pos head= bucket->m_buffer_head;
+  Bucket *bucket = c_buckets + buck;
+  Uint32 tail = bucket->m_buffer_tail;
+  Page_pos head = bucket->m_buffer_head;
   Uint64 max_acked = bucket->m_max_acked_gci;
 
   const Uint32 mask = Bucket::BUCKET_TAKEOVER | Bucket::BUCKET_RESEND;
-  if(unlikely(bucket->m_state & mask))
-  {
+  if (unlikely(bucket->m_state & mask)) {
     jam();
     g_eventLogger->info("release_gci(%d, %u/%u) 0x%x-> node failure -> abort",
                         buck, Uint32(gci >> 32), Uint32(gci), bucket->m_state);
     return;
   }
-  
+
   bucket->m_max_acked_gci = (max_acked > gci ? max_acked : gci);
-  if(unlikely(tail == RNIL))
-  {
+  if (unlikely(tail == RNIL)) {
     return;
   }
-  
-  if(tail == head.m_page_id)
-  {
-    if(gci >= head.m_max_gci)
-    {
+
+  if (tail == head.m_page_id) {
+    if (gci >= head.m_max_gci) {
       jam();
-      if (ERROR_INSERTED(13034))
-      {
+      if (ERROR_INSERTED(13034)) {
         jam();
         SET_ERROR_INSERT_VALUE(13035);
         return;
       }
-      if (ERROR_INSERTED(13035))
-      {
+      if (ERROR_INSERTED(13035)) {
         CLEAR_ERROR_INSERT_VALUE;
         NodeReceiverGroup rg(CMVMI, c_nodes_in_nodegroup_mask);
         rg.m_nodes.clear(getOwnNodeId());
@@ -8413,22 +12501,19 @@ Suma::release_gci(Signal* signal, Uint32 buck, Uint64 gci)
       bucket->m_buffer_head = head;
     }
     return;
-  }
-  else
-  {
+  } else {
     jam();
     CHECK_PAGE(tail);
-    Buffer_page* page= c_page_pool.getPtr(tail);
+    Buffer_page *page = c_page_pool.getPtr(tail);
     Uint64 max_gci = page->m_max_gci_lo | (Uint64(page->m_max_gci_hi) << 32);
     Uint32 next_page = page->m_next_page;
 
     ndbassert(max_gci != 0);
-    
-    if(gci >= max_gci)
-    {
+
+    if (gci >= max_gci) {
       jam();
       free_page(tail, page, __LINE__);
-      
+
       bucket->m_buffer_tail = next_page;
       signal->theData[0] = SumaContinueB::RELEASE_GCI;
       signal->theData[1] = buck;
@@ -8436,9 +12521,7 @@ Suma::release_gci(Signal* signal, Uint32 buck, Uint64 gci)
       signal->theData[3] = (Uint32)(gci & 0xFFFFFFFF);
       sendSignal(SUMA_REF, GSN_CONTINUEB, signal, 4, JBB);
       return;
-    }
-    else
-    {
+    } else {
       // g_eventLogger->info("do nothing...");
     }
   }
@@ -8446,44 +12529,40 @@ Suma::release_gci(Signal* signal, Uint32 buck, Uint64 gci)
 
 static Uint32 g_cnt = 0;
 
-void
-Suma::start_resend(Signal* signal, Uint32 buck)
-{
+void Suma::start_resend(Signal *signal, Uint32 buck) {
   g_eventLogger->info("start_resend(%d,", buck);
 
   /**
    * Resend from m_max_acked_gci + 1 until m_max_seen_gci
    */
   ndbrequire(buck < NO_OF_BUCKETS);
-  Bucket* bucket = c_buckets + buck;
+  Bucket *bucket = c_buckets + buck;
   jam();
-  Page_pos pos= bucket->m_buffer_head;
+  Page_pos pos = bucket->m_buffer_head;
 
   // Start resending from the epoch that is not yet ack'd
-  const Uint64 min= bucket->m_max_acked_gci + 1;
+  const Uint64 min = bucket->m_max_acked_gci + 1;
 
   // Out of buffer release is ongoing. So don't start resending in order
   // to avoid sending epochs where part of them are already released.
   // Inform about the first in-doubt epoch that resending will start from.
-  if(m_out_of_buffer_gci)
-  {
+  if (m_out_of_buffer_gci) {
     jam();
     signal->theData[0] = NDB_LE_SubscriptionStatus;
-    signal->theData[1] = 2; // INCONSISTENT;
-    signal->theData[2] = 0; // Not used
-    signal->theData[3] = (Uint32) min;
-    signal->theData[4] = (Uint32) (min >> 32);
+    signal->theData[1] = 2;  // INCONSISTENT;
+    signal->theData[2] = 0;  // Not used
+    signal->theData[3] = (Uint32)min;
+    signal->theData[4] = (Uint32)(min >> 32);
     sendSignal(CMVMI_REF, GSN_EVENT_REP, signal, 5, JBB);
     m_missing_data = true;
     return;
   }
 
   jam();
-  if(pos.m_page_id == RNIL)
-  {
+  if (pos.m_page_id == RNIL) {
     jam();
     m_active_buckets.set(buck);
-    m_gcp_complete_rep_count ++;
+    m_gcp_complete_rep_count++;
     g_eventLogger->info(
         "             "
         "empty bucket(RNIL) -> active max_acked: %u/%u max_gci: %u/%u",
@@ -8514,7 +12593,7 @@ Suma::start_resend(Signal* signal, Uint32 buck)
   bucket->m_switchover_gci = max;
 
   m_switchover_buckets.set(buck);
-  
+
   signal->theData[0] = SumaContinueB::RESEND_BUCKET;
   signal->theData[1] = buck;
   signal->theData[2] = (Uint32)(min >> 32);
@@ -8531,44 +12610,38 @@ Suma::start_resend(Signal* signal, Uint32 buck)
   ndbrequire(max >= min);
 }
 
-void
-Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
-		    Uint32 pos, Uint64 last_gci)
-{
+void Suma::resend_bucket(Signal *signal, Uint32 buck, Uint64 min_gci,
+                         Uint32 pos, Uint64 last_gci) {
   ndbrequire(buck < NO_OF_BUCKETS);
-  Bucket* bucket = c_buckets + buck;
-  Uint32 tail= bucket->m_buffer_tail;
+  Bucket *bucket = c_buckets + buck;
+  Uint32 tail = bucket->m_buffer_tail;
 
   CHECK_PAGE(tail);
-  Buffer_page* page= c_page_pool.getPtr(tail);
+  Buffer_page *page = c_page_pool.getPtr(tail);
   Uint64 max_gci = page->m_max_gci_lo | (Uint64(page->m_max_gci_hi) << 32);
   Uint32 next_page = page->m_next_page;
   Uint32 *ptr = page->m_data + pos;
   Uint32 *end = page->m_data + page->m_words_used;
   bool delay = false;
-  Uint32 next_pos = 0; // Part read of next page
+  Uint32 next_pos = 0;  // Part read of next page
 
   ndbrequire(tail != RNIL);
 
-  if(tail == bucket->m_buffer_head.m_page_id)
-  {
-    max_gci= bucket->m_buffer_head.m_max_gci;
-    end= page->m_data + bucket->m_buffer_head.m_page_pos;
-    next_page= RNIL;
+  if (tail == bucket->m_buffer_head.m_page_id) {
+    max_gci = bucket->m_buffer_head.m_max_gci;
+    end = page->m_data + bucket->m_buffer_head.m_page_pos;
+    next_page = RNIL;
 
-    if(ptr == end)
-    {
+    if (ptr == end) {
       delay = true;
       goto next;
     }
-  }
-  else if(pos == 0 && min_gci > max_gci)
-  {
+  } else if (pos == 0 && min_gci > max_gci) {
     free_page(tail, page, __LINE__);
     tail = bucket->m_buffer_tail = next_page;
     goto next;
   }
-  
+
 #if 0
   for(Uint32 i = 0; i<page->m_words_used; i++)
   {
@@ -8586,8 +12659,7 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
     Uint32 *src = nullptr;
     Uint32 sz = 0;
     Uint32 part = 0;
-    while (ptr < end)
-    {
+    while (ptr < end) {
       jam();
       src = ptr;
       Uint32 tmp = *src;
@@ -8597,11 +12669,10 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
       ptr += sz;
 
       ndbrequire(sz > 0);
-      sz--; // remove *len* part of sz
+      sz--;  // remove *len* part of sz
 
       part = (tmp >> Buffer_page::PART_NUM_SHIFT) & Buffer_page::PART_NUM_MASK;
-      if ((tmp & Buffer_page::SAME_GCI_FLAG) == 0)
-      {
+      if ((tmp & Buffer_page::SAME_GCI_FLAG) == 0) {
         jam();
         ndbrequire(sz >= Buffer_page::GCI_SZ32);
         sz -= Buffer_page::GCI_SZ32;
@@ -8610,15 +12681,12 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
         Uint32 last_gci_lo = *src;
         src++;
         last_gci = last_gci_lo | (Uint64(last_gci_hi) << 32);
-      }
-      else
-      {
+      } else {
         jam();
         ndbrequire(ptr - sz > page->m_data);
       }
 
-      if (last_gci >= min_gci)
-      {
+      if (last_gci >= min_gci) {
         jam();
         // Found data with good gci
         break;
@@ -8627,57 +12695,49 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
       src = nullptr;
     }
 
-    if (unlikely(src == nullptr))
-    {
+    if (unlikely(src == nullptr)) {
       jam();
       // no valid data found on tail page
       ndbrequire(ptr == end);
-    }
-    else if(sz == 0)
-    {
+    } else if (sz == 0) {
       jam();
       ndbrequire(part == 0);
 
-      SubGcpCompleteRep * rep = (SubGcpCompleteRep*)signal->getDataPtrSend();
+      SubGcpCompleteRep *rep = (SubGcpCompleteRep *)signal->getDataPtrSend();
       Uint32 siglen = SubGcpCompleteRep::SignalLength;
 
       rep->gci_hi = (Uint32)(last_gci >> 32);
       rep->gci_lo = (Uint32)(last_gci & 0xFFFFFFFF);
-      rep->flags = (m_missing_data)
-                   ? SubGcpCompleteRep::MISSING_DATA
-                   : 0;
-      rep->senderRef  = reference();
+      rep->flags = (m_missing_data) ? SubGcpCompleteRep::MISSING_DATA : 0;
+      rep->senderRef = reference();
       rep->gcp_complete_rep_count = 1;
 
       // Append the sub data stream id for the bucket
       rep->sub_data_streams[0] = get_sub_data_stream(buck);
       rep->flags |= SubGcpCompleteRep::SUB_DATA_STREAMS_IN_SIGNAL;
-      siglen ++;
+      siglen++;
 
-      if (ERROR_INSERTED(13036))
-      {
+      if (ERROR_INSERTED(13036)) {
         jam();
         CLEAR_ERROR_INSERT_VALUE;
         g_eventLogger->info("Simulating out of event buffer at node failure");
         rep->flags |= SubGcpCompleteRep::MISSING_DATA;
       }
-  
+
       char buf[NodeBitmask::TextLength + 1];
       c_subscriber_nodes.getText(buf);
-      if (g_cnt)
-      {      
+      if (g_cnt) {
         jam();
         g_eventLogger->info("resending GCI: %u/%u rows: %d -> %s",
                             Uint32(last_gci >> 32), Uint32(last_gci), g_cnt,
                             buf);
       }
       g_cnt = 0;
-      
+
       NodeReceiverGroup rg(API_CLUSTERMGR, c_subscriber_nodes);
       sendSignal(rg, GSN_SUB_GCP_COMPLETE_REP, signal, siglen, JBB);
     }
-    else
-    {
+    else {
       jam();
       ndbrequire(part == 1);
 
@@ -8694,21 +12754,18 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
       src += buffer_header_sz;
 
       ndbassert(sz - buffer_header_sz >= sz_1);
-      Uint32* src2;
+      Uint32 *src2;
       Uint32 sz2;
       {
-        Uint32* ptr2;
-        if (ptr != end)
-        {
+        Uint32 *ptr2;
+        if (ptr != end) {
           jam();
           ptr2 = ptr;
-        }
-        else
-        {
+        } else {
           jam();
           // Second half of data on next page.
           CHECK_PAGE(next_page);
-          Buffer_page* page= c_page_pool.getPtr(next_page);
+          Buffer_page *page = c_page_pool.getPtr(next_page);
           ndbrequire(page->m_words_used > 0);
           ptr2 = page->m_data;
         }
@@ -8718,25 +12775,22 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
         sz2 = tmp2 & Buffer_page::SIZE_MASK;
         ndbrequire(sz2 > 0);
         sz2--;
-        if (ptr2 != ptr)
-        {
+        if (ptr2 != ptr) {
           jam();
           // First block on a page always must have gci.
           ndbrequire((tmp2 & Buffer_page::SAME_GCI_FLAG) == 0);
           next_pos = sz2 + 1;
-        }
-        else
-        {
+        } else {
           jam();
           ptr = src2 + sz2;
         }
 
-        part = (tmp2 >> Buffer_page::PART_NUM_SHIFT) &
+        part =
+            (tmp2 >> Buffer_page::PART_NUM_SHIFT) &
                 Buffer_page::PART_NUM_MASK;
         ndbrequire(part == 2);
 
-        if ((tmp2 & Buffer_page::SAME_GCI_FLAG) == 0)
-        {
+        if ((tmp2 & Buffer_page::SAME_GCI_FLAG) == 0) {
           jam();
           ndbrequire(sz2 >= Buffer_page::GCI_SZ32);
           sz2 -= Buffer_page::GCI_SZ32;
@@ -8792,20 +12846,67 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
         ndbrequire(c_tablePool.getValidPtr(tabPtr));
         Uint32 table = subPtr.p->m_tableId;
         if (table_version_major(tabPtr.p->m_schemaVersion) ==
-            table_version_major(schemaVersion))
-        {
+            table_version_major(schemaVersion))   {
           jam();
-	  SubTableData * data = (SubTableData*)signal->getDataPtrSend();//trg;
-	  data->gci_hi         = (Uint32)(last_gci >> 32);
-	  data->gci_lo         = (Uint32)(last_gci & 0xFFFFFFFF);
-	  data->tableId        = table;
-	  data->requestInfo    = 0;
+	  SubTableData *data = (SubTableData *)signal->getDataPtrSend();  // trg;
+<<<<<<< RonDB // RONDB-624 todo
+	  data->gci_hi
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	data->gci_hi
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        data->gci_hi = (Uint32)(last_gci >> 32);
+<<<<<<< RonDB // RONDB-624 todo
+	  data->gci_lo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	data->gci_lo
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        data->gci_lo = (Uint32)(last_gci & 0xFFFFFFFF);
+<<<<<<< RonDB // RONDB-624 todo
+	  data->tableId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	data->tableId
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        data->tableId = table;
+	  data->requestInfo = 0;
 	  SubTableData::setOperation(data->requestInfo, event);
-	  data->flags          = 0;
-	  data->anyValue       = any_value;
-	  data->totalLen       = ptrLen;
-          data->transId1       = transId1;
-          data->transId2       = transId2;
+<<<<<<< RonDB // RONDB-624 todo
+	  data->flags 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	data->flags 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        data->flags = 0;
+<<<<<<< RonDB // RONDB-624 todo
+	  data->anyValue
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	data->anyValue
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        data->anyValue = any_value;
+<<<<<<< RonDB // RONDB-624 todo
+	  data->totalLen
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	data->totalLen
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        data->totalLen = ptrLen;
+          data->transId1 = transId1;
+          data->transId2 = transId2;
 
           sendBatchedSUB_TABLE_DATA(signal,
                                     subPtr.p->m_subscribers,
@@ -8816,8 +12917,7 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
     }
   }
 
-  if (next_pos > 0 || (ptr == end && tail != bucket->m_buffer_head.m_page_id))
-  {
+  if (next_pos > 0 || (ptr == end && tail != bucket->m_buffer_head.m_page_id)) {
     jam();
     /**
      * release...
@@ -8826,28 +12926,24 @@ Suma::resend_bucket(Signal* signal, Uint32 buck, Uint64 min_gci,
     free_page(tail, page, __LINE__);
     tail = bucket->m_buffer_tail = next_page;
     pos = next_pos;
-    if (pos == 0)
-    {
+    if (pos == 0) {
       jam();
       last_gci = 0;
     }
-  }
-  else
-  {
+  } else {
     jam();
     pos = Uint32(ptr - page->m_data);
   }
-  
+
 next:
-  if(tail == RNIL)
-  {
+  if (tail == RNIL) {
     jam();
     bucket->m_state &= ~(Uint32)Bucket::BUCKET_RESEND;
-    ndbassert(! (bucket->m_state & Bucket::BUCKET_TAKEOVER));
+    ndbassert(!(bucket->m_state & Bucket::BUCKET_TAKEOVER));
     g_eventLogger->info("resend done...");
     return;
   }
-  
+
   signal->theData[0] = SumaContinueB::RESEND_BUCKET;
   signal->theData[1] = buck;
   signal->theData[2] = (Uint32)(min_gci >> 32);
@@ -8855,105 +12951,88 @@ next:
   signal->theData[4] = (Uint32)(last_gci >> 32);
   signal->theData[5] = (Uint32)(min_gci & 0xFFFFFFFF);
   signal->theData[6] = (Uint32)(last_gci & 0xFFFFFFFF);
-  if(!delay)
-  {
+  if (!delay) {
     jam();
     sendSignal(SUMA_REF, GSN_CONTINUEB, signal, 7, JBB);
-  }
-  else
-  {
+  } else {
     jam();
     sendSignalWithDelay(SUMA_REF, GSN_CONTINUEB, signal, 10, 7);
   }
 }
 
-void
-Suma::execGCP_PREPARE(Signal *signal)
-{
+void Suma::execGCP_PREPARE(Signal *signal) {
   jamEntry();
   const GCPPrepare *prep = (const GCPPrepare *)signal->getDataPtr();
   m_current_gci = prep->gci_lo | (Uint64(prep->gci_hi) << 32);
 }
 
-Uint64
-Suma::get_current_gci(Signal*)
-{
-  return m_current_gci;
-}
+Uint64 Suma::get_current_gci(Signal *) { return m_current_gci; }
 
-void
-Suma::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
-{
-  CreateNodegroupImplReq reqCopy = *(CreateNodegroupImplReq*)
-    signal->getDataPtr();
+void Suma::execCREATE_NODEGROUP_IMPL_REQ(Signal *signal) {
+  CreateNodegroupImplReq reqCopy =
+      *(CreateNodegroupImplReq *)signal->getDataPtr();
   CreateNodegroupImplReq *req = &reqCopy;
 
   Uint32 err = 0;
   Uint32 rt = req->requestType;
 
   NdbNodeBitmask tmp;
-  for (Uint32 i = 0; i<NDB_ARRAY_SIZE(req->nodes) && req->nodes[i]; i++)
-  {
+  for (Uint32 i = 0; i < NDB_ARRAY_SIZE(req->nodes) && req->nodes[i]; i++) {
     ndbrequire(req->nodes[i] <= MAX_NDB_NODES);
     tmp.set(req->nodes[i]);
   }
   Uint32 cnt = tmp.count();
   Uint32 group = req->nodegroupId;
 
-  switch(rt){
-  case CreateNodegroupImplReq::RT_ABORT:
-    jam();
-    break;
-  case CreateNodegroupImplReq::RT_PARSE:
-    jam();
-    break;
-  case CreateNodegroupImplReq::RT_PREPARE:
-    jam();
-    break;
-  case CreateNodegroupImplReq::RT_COMMIT:
-    jam();
-    break;
-  case CreateNodegroupImplReq::RT_COMPLETE:
-    jam();
-    CRASH_INSERTION(13043);
-
-    Uint64 gci = (Uint64(req->gci_hi) << 32) | req->gci_lo;
-    ndbrequire(gci > m_last_complete_gci);
-
-    Uint32 state = 0;
-    if (c_nodeGroup != RNIL)
-    {
+  switch (rt) {
+    case CreateNodegroupImplReq::RT_ABORT:
       jam();
-      NdbNodeBitmask check = tmp;
-      check.bitAND(c_nodes_in_nodegroup_mask);
-      ndbrequire(check.isclear());
-      ndbrequire(c_nodeGroup != group);
-      ndbrequire(cnt == c_nodes_in_nodegroup_mask.count());
-      state = Bucket::BUCKET_CREATED_OTHER;
-    }
-    else if (tmp.get(getOwnNodeId()))
-    {
+      break;
+    case CreateNodegroupImplReq::RT_PARSE:
       jam();
-      c_nodeGroup = group;
-      c_nodes_in_nodegroup_mask.assign(tmp);
-      fix_nodegroup();
-      state = Bucket::BUCKET_CREATED_SELF;
-    }
-    if (state != 0)
-    {
-      for (Uint32 i = 0; i<c_no_of_buckets; i++)
-      {
+      break;
+    case CreateNodegroupImplReq::RT_PREPARE:
+      jam();
+      break;
+    case CreateNodegroupImplReq::RT_COMMIT:
+      jam();
+      break;
+    case CreateNodegroupImplReq::RT_COMPLETE:
+      jam();
+      CRASH_INSERTION(13043);
+
+      Uint64 gci = (Uint64(req->gci_hi) << 32) | req->gci_lo;
+      ndbrequire(gci > m_last_complete_gci);
+
+      Uint32 state = 0;
+      if (c_nodeGroup != RNIL) {
         jam();
-        m_switchover_buckets.set(i);
-        c_buckets[i].m_switchover_gci = gci - 1; // start from gci
-        c_buckets[i].m_state = state | (c_no_of_buckets << 8);
+        NdbNodeBitmask check = tmp;
+        check.bitAND(c_nodes_in_nodegroup_mask);
+        ndbrequire(check.isclear());
+        ndbrequire(c_nodeGroup != group);
+        ndbrequire(cnt == c_nodes_in_nodegroup_mask.count());
+        state = Bucket::BUCKET_CREATED_OTHER;
+      } else if (tmp.get(getOwnNodeId())) {
+        jam();
+        c_nodeGroup = group;
+        c_nodes_in_nodegroup_mask.assign(tmp);
+        fix_nodegroup();
+        state = Bucket::BUCKET_CREATED_SELF;
       }
-    }
+      if (state != 0) {
+        for (Uint32 i = 0; i < c_no_of_buckets; i++) {
+          jam();
+          m_switchover_buckets.set(i);
+          c_buckets[i].m_switchover_gci = gci - 1;  // start from gci
+          c_buckets[i].m_state = state | (c_no_of_buckets << 8);
+        }
+      }
   }
 
   {
-    CreateNodegroupImplConf* conf =
-      (CreateNodegroupImplConf*)signal->getDataPtrSend();
+    CreateNodegroupImplConf *conf =
+        (CreateNodegroupImplConf *)signal->getDataPtrSend();
     conf->senderRef = reference();
     conf->senderData = req->senderData;
     sendSignal(req->senderRef, GSN_CREATE_NODEGROUP_IMPL_CONF, signal,
@@ -8961,9 +13040,9 @@ Suma::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
   }
   return;
 
-//error:
+  // error:
   CreateNodegroupImplRef *ref =
-    (CreateNodegroupImplRef*)signal->getDataPtrSend();
+      (CreateNodegroupImplRef *)signal->getDataPtrSend();
   ref->senderRef = reference();
   ref->senderData = req->senderData;
   ref->errorCode = err;
@@ -8972,70 +13051,62 @@ Suma::execCREATE_NODEGROUP_IMPL_REQ(Signal* signal)
   return;
 }
 
-void
-Suma::execDROP_NODEGROUP_IMPL_REQ(Signal* signal)
-{
-  DropNodegroupImplReq reqCopy = *(DropNodegroupImplReq*)
-    signal->getDataPtr();
+void Suma::execDROP_NODEGROUP_IMPL_REQ(Signal *signal) {
+  DropNodegroupImplReq reqCopy = *(DropNodegroupImplReq *)signal->getDataPtr();
   DropNodegroupImplReq *req = &reqCopy;
 
   Uint32 err = 0;
   Uint32 rt = req->requestType;
   Uint32 group = req->nodegroupId;
 
-  switch(rt){
-  case DropNodegroupImplReq::RT_ABORT:
-    jam();
-    break;
-  case DropNodegroupImplReq::RT_PARSE:
-    jam();
-    break;
-  case DropNodegroupImplReq::RT_PREPARE:
-    jam();
-    break;
-  case DropNodegroupImplReq::RT_COMMIT:
-    jam();
-    break;
-  case DropNodegroupImplReq::RT_COMPLETE:
-    jam();
-    CRASH_INSERTION(13043);
-
-    Uint64 gci = (Uint64(req->gci_hi) << 32) | req->gci_lo;
-    ndbrequire(gci > m_last_complete_gci);
-
-    Uint32 state;
-    if (c_nodeGroup != group)
-    {
+  switch (rt) {
+    case DropNodegroupImplReq::RT_ABORT:
       jam();
-      state = Bucket::BUCKET_DROPPED_OTHER;
       break;
-    }
-    else
-    {
+    case DropNodegroupImplReq::RT_PARSE:
       jam();
-      state = Bucket::BUCKET_DROPPED_SELF;
-    }
+      break;
+    case DropNodegroupImplReq::RT_PREPARE:
+      jam();
+      break;
+    case DropNodegroupImplReq::RT_COMMIT:
+      jam();
+      break;
+    case DropNodegroupImplReq::RT_COMPLETE:
+      jam();
+      CRASH_INSERTION(13043);
 
-    for (Uint32 i = 0; i<c_no_of_buckets; i++)
-    {
-      jam();
-      m_switchover_buckets.set(i);
-      if (c_buckets[i].m_state != 0)
-      {
-        jamLine(c_buckets[i].m_state);
-        g_eventLogger->info("c_buckets[%u].m_state: %u", i,
-                            c_buckets[i].m_state);
+      Uint64 gci = (Uint64(req->gci_hi) << 32) | req->gci_lo;
+      ndbrequire(gci > m_last_complete_gci);
+
+      Uint32 state;
+      if (c_nodeGroup != group) {
+        jam();
+        state = Bucket::BUCKET_DROPPED_OTHER;
+        break;
+      } else {
+        jam();
+        state = Bucket::BUCKET_DROPPED_SELF;
       }
-      ndbrequire(c_buckets[i].m_state == 0); // XXX todo
-      c_buckets[i].m_switchover_gci = gci - 1; // start from gci
-      c_buckets[i].m_state = state | (c_no_of_buckets << 8);
-    }
-    break;
+
+      for (Uint32 i = 0; i < c_no_of_buckets; i++) {
+        jam();
+        m_switchover_buckets.set(i);
+        if (c_buckets[i].m_state != 0) {
+          jamLine(c_buckets[i].m_state);
+          g_eventLogger->info("c_buckets[%u].m_state: %u", i,
+                              c_buckets[i].m_state);
+        }
+        ndbrequire(c_buckets[i].m_state == 0);    // XXX todo
+        c_buckets[i].m_switchover_gci = gci - 1;  // start from gci
+        c_buckets[i].m_state = state | (c_no_of_buckets << 8);
+      }
+      break;
   }
-  
+
   {
-    DropNodegroupImplConf* conf =
-      (DropNodegroupImplConf*)signal->getDataPtrSend();
+    DropNodegroupImplConf *conf =
+        (DropNodegroupImplConf *)signal->getDataPtrSend();
     conf->senderRef = reference();
     conf->senderData = req->senderData;
     sendSignal(req->senderRef, GSN_DROP_NODEGROUP_IMPL_CONF, signal,
@@ -9043,9 +13114,8 @@ Suma::execDROP_NODEGROUP_IMPL_REQ(Signal* signal)
   }
   return;
 
-//error:
-  DropNodegroupImplRef *ref =
-    (DropNodegroupImplRef*)signal->getDataPtrSend();
+  // error:
+  DropNodegroupImplRef *ref = (DropNodegroupImplRef *)signal->getDataPtrSend();
   ref->senderRef = reference();
   ref->senderData = req->senderData;
   ref->errorCode = err;
@@ -9083,5 +13153,5 @@ Suma::shrinkTransientPools(Uint32 pool_index)
   }
 }
 
-//template void append(DataBuffer<11>&,SegmentedSectionPtr,SectionSegmentPool&);
-
+// template void
+// append(DataBuffer<11>&,SegmentedSectionPtr,SectionSegmentPool&);

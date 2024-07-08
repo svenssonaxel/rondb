@@ -23,36 +23,35 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-
 #define DBTUP_C
 #define DBTUP_META_CPP
-#include "Dbtup.hpp"
-#include <cstring>
-#include <RefConvert.hpp>
 #include <ndb_limits.h>
+#include <RefConvert.hpp>
+#include <cstring>
 #include <pc.hpp>
+#include "Dbtup.hpp"
 // Error codes
-#include <signaldata/CreateTable.hpp>
-#include <signaldata/CreateTab.hpp>
-#include <signaldata/TupFrag.hpp>
-#include <signaldata/FsOpenReq.hpp>
-#include <signaldata/FsReadWriteReq.hpp>
-#include <signaldata/FsCloseReq.hpp>
-#include <signaldata/FsRef.hpp>
-#include <signaldata/FsConf.hpp>
-#include <signaldata/FsRemoveReq.hpp>
-#include <signaldata/DropTab.hpp>
+#include <AttributeDescriptor.hpp>
+#include <backup/Backup.hpp>
+#include <backup/BackupFormat.hpp>
 #include <signaldata/AlterTab.hpp>
 #include <signaldata/AlterTable.hpp>
+#include <signaldata/AttrInfo.hpp>
 #include <signaldata/CreateFilegroupImpl.hpp>
-#include <AttributeDescriptor.hpp>
+#include <signaldata/CreateTab.hpp>
+#include <signaldata/CreateTable.hpp>
+#include <signaldata/DropTab.hpp>
+#include <signaldata/FsCloseReq.hpp>
+#include <signaldata/FsConf.hpp>
+#include <signaldata/FsOpenReq.hpp>
+#include <signaldata/FsReadWriteReq.hpp>
+#include <signaldata/FsRef.hpp>
+#include <signaldata/FsRemoveReq.hpp>
+#include <signaldata/LqhFrag.hpp>
+#include <signaldata/TupFrag.hpp>
+#include "../dblqh/Dblqh.hpp"
 #include "AttributeOffset.hpp"
 #include "my_sys.h"
-#include <signaldata/LqhFrag.hpp>
-#include <signaldata/AttrInfo.hpp>
-#include "../dblqh/Dblqh.hpp"
-#include <backup/BackupFormat.hpp>
-#include <backup/Backup.hpp>
 
 #include <EventLogger.hpp>
 
@@ -65,9 +64,116 @@ extern EventLogger * g_eventLogger;
 //#define DEBUG_TUP_META 1
 //#define DEBUG_TUP_META_EXTRA 1
 //#define DEBUG_DROP_TAB 1
-//#define DEBUG_DYN_META 1
-//#define DEBUG_HASH 1
-//#define DEBUG_ROW_SIZE 1
+<<<<<<< RonDB // RONDB-624 todo
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+#endif
+
+#ifdef DEBUG_DROP_TAB
+#define DEB_DROP_TAB(arglist) do { g_eventLogger->info arglist ; } while (0)
+#else
+=======
+#endif
+
+#ifdef DEBUG_DROP_TAB
+#define DEB_DROP_TAB(arglist)    \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
+#else
+>>>>>>> MySQL 8.0.36
+#define 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DEB_DROP_TAB(arglist) do { } while (0)
+#endif
+
+#ifdef 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DEB_DROP_TAB(arglist) \
+  do {                        \
+  } while (0)
+#endif
+
+#ifdef 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+DEBUG_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DYN_META
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DISK
+#define DEB_DISK(arglist) do { g_eventLogger->info arglist ; } while
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DISK
+#define DEB_DISK(arglist)       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1
+//#define
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(0)
+#else
+#define
+// RONDB-624 todo: Glue these lines together ^v
+=======
+\
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DEBUG_HASH
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DEB_DISK(arglist) do { } while (0)
+#endif
+
+#ifdef DEBUG_TUP_META
+#define DEB_TUP_META(arglist) do { g_eventLogger->info arglist ; }
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ do {                           \
+    g_eventLogger->info arglist; \
+  }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 1
+//#define DEBUG_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ROW_SIZE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TUP_META(arglist) do { } while
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DISK(arglist) \
+  do {                    \
+  } while (0)
+#endif
+
+#ifdef DEBUG_TUP_META
+#define DEB_TUP_META(arglist)    \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
+#else
+#define DEB_TUP_META(arglist) \
+  do {                        \
+  } while
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 1
 #endif
 
 #ifdef DEBUG_ROW_SIZE
@@ -107,26 +213,28 @@ extern EventLogger * g_eventLogger;
 #endif
 
 #ifdef DEBUG_TUP_META_EXTRA
-#define DEB_TUP_META_EXTRA(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_TUP_META_EXTRA(arglist) \
+  do {                              \
+    g_eventLogger->info arglist;    \
+  } while (0)
 #else
-#define DEB_TUP_META_EXTRA(arglist) do { } while (0)
+#define DEB_TUP_META_EXTRA(arglist) \
+  do {                              \
+  } while (0)
 #endif
 
-void
-Dbtup::execCREATE_TAB_REQ(Signal* signal)
-{
+void Dbtup::execCREATE_TAB_REQ(Signal *signal) {
   jamEntry();
 
-  CreateTabReq reqCopy = *(CreateTabReq*)signal->getDataPtr();
-  CreateTabReq* req = &reqCopy;
+  CreateTabReq reqCopy = *(CreateTabReq *)signal->getDataPtr();
+  CreateTabReq *req = &reqCopy;
 
   TablerecPtr regTabPtr;
   FragoperrecPtr fragOperPtr;
   regTabPtr.i = req->tableId;
   ptrCheckGuard(regTabPtr, cnoOfTablerec, tablerec);
 
-  if (regTabPtr.p->tableStatus != NOT_DEFINED)
-  {
+  if (regTabPtr.p->tableStatus != NOT_DEFINED) {
     jam();
     g_eventLogger->info("regTabPtr.p->tableStatus : %u",
                         regTabPtr.p->tableStatus);
@@ -134,8 +242,7 @@ Dbtup::execCREATE_TAB_REQ(Signal* signal)
     goto sendref;
   }
 
-  if (cfirstfreeFragopr == RNIL)
-  {
+  if (cfirstfreeFragopr == RNIL) {
     jam();
     terrorCode = ZNOFREE_FRAGOP_ERROR;
     goto sendref;
@@ -144,25 +251,26 @@ Dbtup::execCREATE_TAB_REQ(Signal* signal)
   seizeFragoperrec(fragOperPtr);
   fragOperPtr.p->tableidFrag = regTabPtr.i;
   fragOperPtr.p->attributeCount = req->noOfAttributes;
-  std::memset(fragOperPtr.p->m_null_bits, 0, sizeof(fragOperPtr.p->m_null_bits));
+  std::memset(fragOperPtr.p->m_null_bits, 0,
+              sizeof(fragOperPtr.p->m_null_bits));
   fragOperPtr.p->charsetIndex = 0;
   fragOperPtr.p->lqhBlockrefFrag = req->senderRef;
   fragOperPtr.p->m_extra_row_gci_bits =
-    req->GCPIndicator > 1 ? req->GCPIndicator - 1 : 0;
+      req->GCPIndicator > 1 ? req->GCPIndicator - 1 : 0;
   fragOperPtr.p->m_extra_row_author_bits = req->extraRowAuthorBits;
 
   regTabPtr.p->m_createTable.m_fragOpPtrI = fragOperPtr.i;
   regTabPtr.p->m_createTable.defValSectionI = RNIL;
-  regTabPtr.p->tableStatus= DEFINING;
+  regTabPtr.p->tableStatus = DEFINING;
   regTabPtr.p->m_bits = 0;
   regTabPtr.p->m_bits |=
     (req->checksumIndicator ? Tablerec::TR_Checksum : 0);
   regTabPtr.p->m_bits |=
     (req->GCPIndicator ? Tablerec::TR_RowGCI : 0);
   regTabPtr.p->m_bits |=
-    (req->forceVarPartFlag? Tablerec::TR_ForceVarPart : 0);
+    (req->forceVarPartFlag ? Tablerec::TR_ForceVarPart : 0);
   regTabPtr.p->m_bits |=
-    (req->GCPIndicator > 1 ? Tablerec::TR_ExtraRowGCIBits : 0);
+      (req->GCPIndicator > 1 ? Tablerec::TR_ExtraRowGCIBits : 0);
   regTabPtr.p->m_bits |=
     (req->extraRowAuthorBits ? Tablerec::TR_ExtraRowAuthorBits : 0);
   regTabPtr.p->m_bits |=
@@ -178,62 +286,57 @@ Dbtup::execCREATE_TAB_REQ(Signal* signal)
 
   regTabPtr.p->m_offsets[MM].m_disk_ref_offset= 0;
   regTabPtr.p->m_offsets[MM].m_null_words= 0;
-  regTabPtr.p->m_offsets[MM].m_fix_header_size= 0;
-  regTabPtr.p->m_offsets[MM].m_max_var_offset= 0;
-  regTabPtr.p->m_offsets[MM].m_max_dyn_offset= 0;
-  regTabPtr.p->m_offsets[MM].m_dyn_null_words= 0;
+  regTabPtr.p->m_offsets[MM].m_fix_header_size = 0;
+  regTabPtr.p->m_offsets[MM].m_max_var_offset = 0;
+  regTabPtr.p->m_offsets[MM].m_max_dyn_offset = 0;
+  regTabPtr.p->m_offsets[MM].m_dyn_null_words = 0;
 
-  regTabPtr.p->m_offsets[DD].m_disk_ref_offset= 0;
-  regTabPtr.p->m_offsets[DD].m_null_words= 0;
-  regTabPtr.p->m_offsets[DD].m_fix_header_size= 0;
-  regTabPtr.p->m_offsets[DD].m_max_var_offset= 0;
-  regTabPtr.p->m_offsets[DD].m_max_dyn_offset= 0;
-  regTabPtr.p->m_offsets[DD].m_dyn_null_words= 0;
+  regTabPtr.p->m_offsets[DD].m_disk_ref_offset = 0;
+  regTabPtr.p->m_offsets[DD].m_null_words = 0;
+  regTabPtr.p->m_offsets[DD].m_fix_header_size = 0;
+  regTabPtr.p->m_offsets[DD].m_max_var_offset = 0;
+  regTabPtr.p->m_offsets[DD].m_max_dyn_offset = 0;
+  regTabPtr.p->m_offsets[DD].m_dyn_null_words = 0;
 
-  regTabPtr.p->m_attributes[MM].m_no_of_fixsize= 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_varsize= 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dynamic= 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dyn_fix= 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dyn_var= 0;
+  regTabPtr.p->m_attributes[MM].m_no_of_fixsize = 0;
+  regTabPtr.p->m_attributes[MM].m_no_of_varsize = 0;
+  regTabPtr.p->m_attributes[MM].m_no_of_dynamic = 0;
+  regTabPtr.p->m_attributes[MM].m_no_of_dyn_fix = 0;
+  regTabPtr.p->m_attributes[MM].m_no_of_dyn_var = 0;
 
-  regTabPtr.p->m_attributes[DD].m_no_of_fixsize= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_varsize= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dynamic= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dyn_fix= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dyn_var= 0;
+  regTabPtr.p->m_attributes[DD].m_no_of_fixsize = 0;
+  regTabPtr.p->m_attributes[DD].m_no_of_varsize = 0;
+  regTabPtr.p->m_attributes[DD].m_no_of_dynamic = 0;
+  regTabPtr.p->m_attributes[DD].m_no_of_dyn_fix = 0;
+  regTabPtr.p->m_attributes[DD].m_no_of_dyn_var = 0;
 
   // Reserve space for bitmap length
-  regTabPtr.p->m_dyn_null_bits[MM]= DYN_BM_LEN_BITS;
-  regTabPtr.p->m_dyn_null_bits[DD]= DYN_BM_LEN_BITS;
-  regTabPtr.p->noOfKeyAttr= req->noOfKeyAttr;
-  regTabPtr.p->noOfCharsets= req->noOfCharsets;
-  regTabPtr.p->m_no_of_attributes= req->noOfAttributes;
-  regTabPtr.p->dynTabDescriptor[MM]= nullptr;
-  regTabPtr.p->dynTabDescriptor[DD]= nullptr;
+  regTabPtr.p->m_dyn_null_bits[MM] = DYN_BM_LEN_BITS;
+  regTabPtr.p->m_dyn_null_bits[DD] = DYN_BM_LEN_BITS;
+  regTabPtr.p->noOfKeyAttr = req->noOfKeyAttr;
+  regTabPtr.p->noOfCharsets = req->noOfCharsets;
+  regTabPtr.p->m_no_of_attributes = req->noOfAttributes;
+  regTabPtr.p->dynTabDescriptor[MM] = nullptr;
+  regTabPtr.p->dynTabDescriptor[DD] = nullptr;
   regTabPtr.p->m_no_of_extra_columns = 0;
 
-  if (regTabPtr.p->m_bits & Tablerec::TR_ExtraRowGCIBits)
-  {
+  if (regTabPtr.p->m_bits & Tablerec::TR_ExtraRowGCIBits) {
     jam();
     regTabPtr.p->m_no_of_extra_columns++;
   }
 
-  if (regTabPtr.p->m_bits & Tablerec::TR_ExtraRowAuthorBits)
-  {
+  if (regTabPtr.p->m_bits & Tablerec::TR_ExtraRowAuthorBits) {
     jam();
     regTabPtr.p->m_no_of_extra_columns++;
   }
 
   {
     Uint32 offset[10];
-    Uint32 allocSize= getTabDescrOffsets(req->noOfAttributes,
-                                         req->noOfCharsets,
-                                         req->noOfKeyAttr,
-                                         regTabPtr.p->m_no_of_extra_columns,
-                                         offset);
-    Uint32* tableDescriptorRef= allocTabDescr(allocSize, regTabPtr.i);
-    if (tableDescriptorRef == nullptr)
-    {
+    Uint32 allocSize = getTabDescrOffsets(
+        req->noOfAttributes, req->noOfCharsets, req->noOfKeyAttr,
+        regTabPtr.p->m_no_of_extra_columns, offset);
+    Uint32* tableDescriptorRef = allocTabDescr(allocSize, regTabPtr.i);
+    if (tableDescriptorRef == nullptr) {
       jam();
       goto error;
     }
@@ -241,7 +344,7 @@ Dbtup::execCREATE_TAB_REQ(Signal* signal)
   }
 
   {
-    CreateTabConf* conf = (CreateTabConf*)signal->getDataPtrSend();
+    CreateTabConf *conf = (CreateTabConf *)signal->getDataPtrSend();
     conf->senderData = req->senderData;
     conf->senderRef = reference();
     conf->tupConnectPtr = fragOperPtr.i;
@@ -256,7 +359,7 @@ error:
   releaseFragoperrec(fragOperPtr);
 
 sendref:
-  CreateTabRef* ref = (CreateTabRef*)signal->getDataPtrSend();
+  CreateTabRef *ref = (CreateTabRef *)signal->getDataPtrSend();
   ref->senderData = req->senderData;
   ref->senderRef = reference();
   ref->errorCode = terrorCode;
@@ -264,13 +367,12 @@ sendref:
              CreateTabRef::SignalLength, JBB);
 }
 
-void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
-{
+void Dbtup::execTUP_ADD_ATTRREQ(Signal *signal) {
   FragoperrecPtr fragOperPtr;
   TablerecPtr regTabPtr;
 
   jamEntry();
-  fragOperPtr.i= signal->theData[0];
+  fragOperPtr.i = signal->theData[0];
   ptrCheckGuard(fragOperPtr, cnoOfFragoprec, fragoperrec);
   Uint32 attrId = signal->theData[2];
   Uint32 attrDescriptor = signal->theData[3];
@@ -279,7 +381,7 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
 
   ndbrequire(csNumber < NDB_ARRAY_SIZE(all_charsets));
 
-  regTabPtr.i= fragOperPtr.p->tableidFrag;
+  regTabPtr.i = fragOperPtr.p->tableidFrag;
   ptrCheckGuard(regTabPtr, cnoOfTablerec, tablerec);
 
   ndbrequire(fragOperPtr.p->attributeCount > 0);
@@ -290,11 +392,11 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
 
   regTabPtr.p->tabDescriptor[(attrId * ZAD_SIZE)] = attrDescriptor;
   Uint32 attrLen = AttributeDescriptor::getSize(attrDescriptor);
-  
-  Uint32 attrDes2= 0;
-  Uint32 bytes= AttributeDescriptor::getSizeInBytes(attrDescriptor);
-  Uint32 words= (bytes + 3) / 4;
-  Uint32 ind= AttributeDescriptor::getDiskBased(attrDescriptor);
+
+  Uint32 attrDes2 = 0;
+  Uint32 bytes = AttributeDescriptor::getSizeInBytes(attrDescriptor);
+  Uint32 words = (bytes + 3) / 4;
+  Uint32 ind = AttributeDescriptor::getDiskBased(attrDescriptor);
   if (!AttributeDescriptor::getDynamic(attrDescriptor))
   {
     jam();
@@ -305,10 +407,9 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
                   ind == 0 ? "MM" : "DD"));
     Uint32 null_pos;
     ndbrequire(ind <= 1);
-    null_pos= fragOperPtr.p->m_null_bits[ind];
+    null_pos = fragOperPtr.p->m_null_bits[ind];
 
-    if (AttributeDescriptor::getNullable(attrDescriptor)) 
-    {
+    if (AttributeDescriptor::getNullable(attrDescriptor)) {
       jam();
       fragOperPtr.p->m_null_bits[ind]++;
     }
@@ -320,29 +421,23 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
     {
       jam();
       regTabPtr.p->m_attributes[ind].m_no_of_fixsize++;
-      if (attrLen == 0)
-      {
+      if (attrLen == 0) {
         /* Static bit type. */
-	jam();
-	Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
-	fragOperPtr.p->m_null_bits[ind] += bitCount;
+        jam();
+        Uint32 bitCount = AttributeDescriptor::getArraySize(attrDescriptor);
+        fragOperPtr.p->m_null_bits[ind] += bitCount;
       }
-    }
-    else
-    {
+    } else {
       jam();
       regTabPtr.p->m_attributes[ind].m_no_of_varsize++;
     }
-    if (null_pos > AO_NULL_FLAG_POS_MASK)
-    {
+    if (null_pos > AO_NULL_FLAG_POS_MASK) {
       jam();
       terrorCode = ZTOO_MANY_BITS_ERROR;
       goto error;
-    }      
+    }
     AttributeOffset::setNullFlagPos(attrDes2, null_pos);
-  }
-  else
-  {
+  } else {
     jam();
     DEB_DYN_META(("(%u) tab(%u) attrId %u is dynamic %s column",
                   instance(),
@@ -373,13 +468,12 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
      * xxx internally as 'null'.
      */
 
-    Uint32 null_pos= regTabPtr.p->m_dyn_null_bits[ind];
+    Uint32 null_pos = regTabPtr.p->m_dyn_null_bits[ind];
 
-    if (AttributeDescriptor::getArrayType(attrDescriptor)==NDB_ARRAYTYPE_FIXED)
-    {
+    if (AttributeDescriptor::getArrayType(attrDescriptor) ==
+        NDB_ARRAYTYPE_FIXED) {
       /* A fixed-size dynamic attribute. */
-      if (AttributeDescriptor::getSize(attrDescriptor)==0)
-      {
+      if (AttributeDescriptor::getSize(attrDescriptor) == 0) {
         jam();
         /**
          * Bit type. These are stored directly in the bitmap.
@@ -395,8 +489,8 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
         AttributeDescriptor::setDiskBased(attrDescriptor, 0);
         regTabPtr.p->tabDescriptor[(attrId * ZAD_SIZE)] = attrDescriptor;
         null_pos= regTabPtr.p->m_dyn_null_bits[MM];
-        null_pos+= bits;
-        regTabPtr.p->m_dyn_null_bits[MM]+= bits+1;
+        null_pos += bits;
+        regTabPtr.p->m_dyn_null_bits[MM] += bits + 1;
         regTabPtr.p->m_attributes[ind].m_no_of_dynamic--;
         regTabPtr.p->m_attributes[MM].m_no_of_dynamic++;
         DEB_DYN_META(("(%u) tab(%u) attrId %u is moved from dynamic %s column"
@@ -405,33 +499,27 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
                       regTabPtr.i,
                       attrId,
                       ind == 0 ? "MM" : "DD"));
-      }
-      else
-      {
+      } else {
         jam();
         /*
          * We use one NULL bit per 4 bytes of dynamic fixed-size attribute. So
          * for dynamic fixsize longer than 64 bytes (16 null bits), it is more
          * efficient to store them as dynamic varsize internally.
          */
-        if(words > InternalMaxDynFix)
-          goto treat_as_varsize;
+        if (words > InternalMaxDynFix) goto treat_as_varsize;
 
         regTabPtr.p->m_attributes[ind].m_no_of_dyn_fix++;
-        Uint32 null_bits= (bytes+3) >> 2;
-        regTabPtr.p->m_dyn_null_bits[ind]+= null_bits;
+        Uint32 null_bits = (bytes + 3) >> 2;
+        regTabPtr.p->m_dyn_null_bits[ind] += null_bits;
       }
-    }
-    else
-    {
+    } else {
       /* A variable-sized dynamic attribute. */
-  treat_as_varsize:
+    treat_as_varsize:
       jam();
       regTabPtr.p->m_attributes[ind].m_no_of_dyn_var++;
       regTabPtr.p->m_dyn_null_bits[ind]++;
     }
-    if (null_pos > AO_NULL_FLAG_POS_MASK)
-    {
+    if (null_pos > AO_NULL_FLAG_POS_MASK) {
       jam();
       terrorCode = ZTOO_MANY_BITS_ERROR;
       goto error;
@@ -443,46 +531,41 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
               regTabPtr.p->m_attributes[ind].m_no_of_dynamic);
   }
   handleCharsetPos(csNumber, regTabPtr.p->charsetArray,
-                   regTabPtr.p->noOfCharsets,
-                   fragOperPtr.p->charsetIndex, attrDes2);
+                   regTabPtr.p->noOfCharsets, fragOperPtr.p->charsetIndex,
+                   attrDes2);
   regTabPtr.p->tabDescriptor[(attrId * ZAD_SIZE) + 1] = attrDes2;
 
   if ((ERROR_INSERTED(4009) && attrId == 0) ||
-      (ERROR_INSERTED(4010) && lastAttr))
-  {
+      (ERROR_INSERTED(4010) && lastAttr)) {
     jam();
     CLEAR_ERROR_INSERT_VALUE;
     terrorCode = 1;
     goto error;
   }
 
-  if (!receive_defvalue(signal, regTabPtr))
-  {
+  if (!receive_defvalue(signal, regTabPtr)) {
     jam();
     goto error;
   }
 
   if ((ERROR_INSERTED(4032) && (attrId == 0)) ||
-      (ERROR_INSERTED(4033) && lastAttr))
-  {
+      (ERROR_INSERTED(4033) && lastAttr)) {
     jam();
     CLEAR_ERROR_INSERT_VALUE;
     terrorCode = 1;
     goto error;
   }
 
-  if (! lastAttr)
-  {
+  if (!lastAttr) {
     jam();
     signal->theData[0] = fragOperPtr.p->lqhPtrFrag;
     signal->theData[1] = lastAttr;
-    sendSignal(fragOperPtr.p->lqhBlockrefFrag, GSN_TUP_ADD_ATTCONF, 
-	       signal, 2, JBB);
+    sendSignal(fragOperPtr.p->lqhBlockrefFrag, GSN_TUP_ADD_ATTCONF, signal, 2,
+               JBB);
     return;
   }
 
-  if (fragOperPtr.p->m_extra_row_gci_bits)
-  {
+  if (fragOperPtr.p->m_extra_row_gci_bits) {
     jam();
 
     const Uint32 bits = fragOperPtr.p->m_extra_row_gci_bits;
@@ -493,13 +576,12 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
     Uint32 desc = 0;
     Uint32 off = 0;
 
-    AttributeDescriptor::setSize(desc, 0); // bit
+    AttributeDescriptor::setSize(desc, 0);  // bit
     AttributeDescriptor::setArraySize(desc, bits);
     AttributeOffset::setNullFlagPos(off, fragOperPtr.p->m_null_bits[MM]);
     fragOperPtr.p->m_null_bits[MM] += bits;
 
-    if (fragOperPtr.p->m_null_bits[MM] > AO_NULL_FLAG_POS_MASK)
-    {
+    if (fragOperPtr.p->m_null_bits[MM] > AO_NULL_FLAG_POS_MASK) {
       jam();
       terrorCode = ZTOO_MANY_BITS_ERROR;
       goto error;
@@ -512,8 +594,7 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
     extraAttrId++;
   }
 
-  if (fragOperPtr.p->m_extra_row_author_bits)
-  {
+  if (fragOperPtr.p->m_extra_row_author_bits) {
     jam();
 
     const Uint32 bits = fragOperPtr.p->m_extra_row_author_bits;
@@ -524,13 +605,12 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
     Uint32 desc = 0;
     Uint32 off = 0;
 
-    AttributeDescriptor::setSize(desc, 0); // bit
+    AttributeDescriptor::setSize(desc, 0);  // bit
     AttributeDescriptor::setArraySize(desc, bits);
     AttributeOffset::setNullFlagPos(off, fragOperPtr.p->m_null_bits[MM]);
     fragOperPtr.p->m_null_bits[MM] += bits;
 
-    if (fragOperPtr.p->m_null_bits[MM] > AO_NULL_FLAG_POS_MASK)
-    {
+    if (fragOperPtr.p->m_null_bits[MM] > AO_NULL_FLAG_POS_MASK) {
       jam();
       terrorCode = ZTOO_MANY_BITS_ERROR;
       goto error;
@@ -543,28 +623,25 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
     extraAttrId++;
   }
 
-#define BTW(x) ((x+31) >> 5)
-  regTabPtr.p->m_offsets[MM].m_null_words= BTW(fragOperPtr.p->m_null_bits[MM]);
-  regTabPtr.p->m_offsets[DD].m_null_words= BTW(fragOperPtr.p->m_null_bits[DD]);
+#define BTW(x) ((x + 31) >> 5)
+  regTabPtr.p->m_offsets[MM].m_null_words = BTW(fragOperPtr.p->m_null_bits[MM]);
+  regTabPtr.p->m_offsets[DD].m_null_words = BTW(fragOperPtr.p->m_null_bits[DD]);
 #undef BTW
 
   {
     /* Allocate  dynamic descriptors. */
-    for (Uint32 i = 0; i < NO_DYNAMICS; ++i)
-    {
+    for (Uint32 i = 0; i < NO_DYNAMICS; ++i) {
       jam();
       Uint32 offset[3];
-      Uint32 allocSize= getDynTabDescrOffsets(
-                          (regTabPtr.p->m_dyn_null_bits[i]+31)>>5,
-                          offset);
-      Uint32* dynTableDescriptorRef= allocTabDescr(allocSize, regTabPtr.i);
-      if (dynTableDescriptorRef == nullptr)
-      {
+      Uint32 allocSize = getDynTabDescrOffsets(
+          (regTabPtr.p->m_dyn_null_bits[i] + 31) >> 5, offset);
+      Uint32* dynTableDescriptorRef = allocTabDescr(allocSize, regTabPtr.i);
+      if (dynTableDescriptorRef == nullptr) {
         jam();
         goto error;
       }
-      setupDynDescriptorReferences(dynTableDescriptorRef,
-                                   regTabPtr.p, offset, i);
+      setupDynDescriptorReferences(dynTableDescriptorRef, regTabPtr.p, offset,
+                                   i);
     }
   }
 
@@ -573,50 +650,47 @@ void Dbtup::execTUP_ADD_ATTRREQ(Signal* signal)
                 instance(),
                 regTabPtr.i));
   terrorCode = computeTableMetaData(regTabPtr, __LINE__);
-  if (terrorCode)
-  {
+  if (terrorCode) {
     jam();
     goto error;
   }
 
-  if (store_default_record(regTabPtr) < 0)
-  {
+  if (store_default_record(regTabPtr) < 0) {
     jam();
     goto error;
   }
 
   ndbrequire(regTabPtr.p->tableStatus == DEFINING);
-  regTabPtr.p->tableStatus= DEFINED;
+  regTabPtr.p->tableStatus = DEFINED;
 
   signal->theData[0] = fragOperPtr.p->lqhPtrFrag;
   signal->theData[1] = lastAttr;
-  sendSignal(fragOperPtr.p->lqhBlockrefFrag, GSN_TUP_ADD_ATTCONF, 
-	     signal, 2, JBB);
+  sendSignal(fragOperPtr.p->lqhBlockrefFrag, GSN_TUP_ADD_ATTCONF, signal, 2,
+             JBB);
 
   releaseFragoperrec(fragOperPtr);
   return;
-error:
-  {
-    /* Release any unprocessed sections */
-    SectionHandle handle(this, signal);
-    releaseSections(handle);
-  }
+error : {
+  /* Release any unprocessed sections */
+  SectionHandle handle(this, signal);
+  releaseSections(handle);
+}
   /* Release segmented section used to receive Attr default value */
   releaseSection(regTabPtr.p->m_createTable.defValSectionI);
   regTabPtr.p->m_createTable.defValSectionI = RNIL;
-  free_var_part(DefaultValuesFragment.p, regTabPtr.p, &regTabPtr.p->m_default_value_location);
+  free_var_part(DefaultValuesFragment.p, regTabPtr.p,
+                &regTabPtr.p->m_default_value_location);
   regTabPtr.p->m_default_value_location.setNull();
 
-  signal->theData[0]= fragOperPtr.p->lqhPtrFrag;
-  signal->theData[1]= terrorCode;
-  sendSignal(fragOperPtr.p->lqhBlockrefFrag,
-             GSN_TUP_ADD_ATTRREF, signal, 2, JBB);
-  
+  signal->theData[0] = fragOperPtr.p->lqhPtrFrag;
+  signal->theData[1] = terrorCode;
+  sendSignal(fragOperPtr.p->lqhBlockrefFrag, GSN_TUP_ADD_ATTRREF, signal, 2,
+             JBB);
+
   return;
 }
 
-bool Dbtup::receive_defvalue(Signal* signal, const TablerecPtr& regTabPtr)
-{
+bool Dbtup::receive_defvalue(Signal *signal, const TablerecPtr &regTabPtr) {
   jam();
   Uint32 defValueBytes = 0;
   Uint32 defValueWords = 0;
@@ -629,8 +703,7 @@ bool Dbtup::receive_defvalue(Signal* signal, const TablerecPtr& regTabPtr)
 
   const Uint32 numSections = signal->getNoOfSections();
 
-  if (numSections == 0)
-  {
+  if (numSections == 0) {
     jam();
     return true;
   }
@@ -652,8 +725,7 @@ bool Dbtup::receive_defvalue(Signal* signal, const TablerecPtr& regTabPtr)
   Uint32 *dst = NULL;
   AttributeHeader ah(attrId, defValueBytes);
 
-  if (defValueBytes == 0)
-  {
+  if (defValueBytes == 0) {
     jam();
     releaseSections(handle);
     return true;
@@ -662,8 +734,7 @@ bool Dbtup::receive_defvalue(Signal* signal, const TablerecPtr& regTabPtr)
   /* We have a default value, double check to be sure this is not
    * a primary key
    */
-  if (AttributeDescriptor::getPrimaryKey(attrDescriptor))
-  {
+  if (AttributeDescriptor::getPrimaryKey(attrDescriptor)) {
     jam();
     releaseSections(handle);
     /* Default value for primary key column not supported */
@@ -673,84 +744,67 @@ bool Dbtup::receive_defvalue(Signal* signal, const TablerecPtr& regTabPtr)
 
   Uint32 bytes;
   if (attrLen)
-    bytes= AttributeDescriptor::getSizeInBytes(attrDescriptor);
+    bytes = AttributeDescriptor::getSizeInBytes(attrDescriptor);
   else
-    bytes= ((arraySize + AD_SIZE_IN_WORDS_OFFSET)
-                              >> AD_SIZE_IN_WORDS_SHIFT) * 4;
+    bytes =
+        ((arraySize + AD_SIZE_IN_WORDS_OFFSET) >> AD_SIZE_IN_WORDS_SHIFT) * 4;
 
-  terrorCode= 0;
+  terrorCode = 0;
 
-  if (attrLen)
-  {
-    if (arrayType == NDB_ARRAYTYPE_FIXED)
-    {
+  if (attrLen) {
+    if (arrayType == NDB_ARRAYTYPE_FIXED) {
       jam();
-      if (defValueBytes != bytes)
-      {
+      if (defValueBytes != bytes) {
+        jam();
+        terrorCode = ZBAD_DEFAULT_VALUE_LEN;
+      }
+    } else {
+      jam();
+      if (defValueBytes > bytes) {
         jam();
         terrorCode = ZBAD_DEFAULT_VALUE_LEN;
       }
     }
-    else
-    {
-      jam();
-      if (defValueBytes > bytes)
-      {
-        jam();
-        terrorCode = ZBAD_DEFAULT_VALUE_LEN;
-      }
-    }
-  }
-  else
-  {
+  } else {
     /*
      * The condition is for BIT type.
      * Even though it is fixed, the compare operator should be > rather than ==,
-     * for the 4-byte alignment, the space for BIT type occupied 4 bytes at least.
-     * yet the bytes of default value can be 1, 2, 3, 4, 5, 6, 7, 8 bytes.
+     * for the 4-byte alignment, the space for BIT type occupied 4 bytes at
+     * least. yet the bytes of default value can be 1, 2, 3, 4, 5, 6, 7, 8
+     * bytes.
      */
     jam();
-    if (defValueBytes > bytes)
-    {
+    if (defValueBytes > bytes) {
       jam();
       terrorCode = ZBAD_DEFAULT_VALUE_LEN;
     }
   }
-  
+
   jam();
 
-  if (likely( !terrorCode ))
-  {
+  if (likely(!terrorCode)) {
     jam();
     dst = cinBuffer;
-    
+
     ndbrequire(r.getWords(dst, defValueWords));
-    
+
     /* Check that VAR types have valid inline length */
-    if ((attrLen) &&
-        (arrayType != NDB_ARRAYTYPE_FIXED))
-    {
+    if ((attrLen) && (arrayType != NDB_ARRAYTYPE_FIXED)) {
       jam();
-      const uchar* valPtr = (const uchar*) dst;
+      const uchar *valPtr = (const uchar *)dst;
       Uint32 internalVarSize = 0;
-      
-      if (arrayType == NDB_ARRAYTYPE_SHORT_VAR)
-      {
+
+      if (arrayType == NDB_ARRAYTYPE_SHORT_VAR) {
         jam();
         internalVarSize = 1 + valPtr[0];
-      }
-      else if (arrayType == NDB_ARRAYTYPE_MEDIUM_VAR)
-      {
+      } else if (arrayType == NDB_ARRAYTYPE_MEDIUM_VAR) {
         jam();
         internalVarSize = 2 + valPtr[0] + (256 * Uint32(valPtr[1]));
-      }
-      else
-      {
+      } else {
         ndbabort();
       }
-      
-      if (unlikely(internalVarSize != defValueBytes))
-      {
+
+      if (unlikely(internalVarSize != defValueBytes)) {
         jam();
         terrorCode = ZBAD_DEFAULT_VALUE_LEN;
         releaseSections(handle);
@@ -758,13 +812,10 @@ bool Dbtup::receive_defvalue(Signal* signal, const TablerecPtr& regTabPtr)
       }
     }
 
-    if (likely( appendToSection(regTabPtr.p->m_createTable.defValSectionI, 
-                                (const Uint32 *)&ah, 1) ))
-    {  
-      if (likely( appendToSection(regTabPtr.p->m_createTable.defValSectionI, 
-                                  (const Uint32*)dst, 
-                                  defValueWords)))
-      {
+    if (likely(appendToSection(regTabPtr.p->m_createTable.defValSectionI,
+                               (const Uint32 *)&ah, 1))) {
+      if (likely(appendToSection(regTabPtr.p->m_createTable.defValSectionI,
+                                 (const Uint32 *)dst, defValueWords))) {
         jam();
         releaseSections(handle);
         return true;
@@ -778,28 +829,25 @@ bool Dbtup::receive_defvalue(Signal* signal, const TablerecPtr& regTabPtr)
   return false;
 }
 
-void Dbtup::execTUPFRAGREQ(Signal* signal)
-{
+void Dbtup::execTUPFRAGREQ(Signal *signal) {
   jamEntry();
 
-  TupFragReq copy = *(TupFragReq*)signal->getDataPtr();
-  TupFragReq* req = &copy;
+  TupFragReq copy = *(TupFragReq *)signal->getDataPtr();
+  TupFragReq *req = &copy;
 
   FragrecordPtr regFragPtr;
 
-  Uint32 tableId        = req->tableId;
-  Uint32 userptr        = req->userPtr;
-  Uint32 userRef        = req->userRef;
-  Uint32 reqinfo        = req->reqInfo;
-  Uint32 fragId         = req->fragId;
-  Uint32 tablespace_id  = req->tablespaceid;
-  Uint32 changeMask     = req->changeMask;
-  Uint32 partitionId    = req->partitionId;
+  Uint32 tableId = req->tableId;
+  Uint32 userptr = req->userPtr;
+  Uint32 userRef = req->userRef;
+  Uint32 reqinfo = req->reqInfo;
+  Uint32 fragId = req->fragId;
+  Uint32 tablespace_id = req->tablespaceid;
+  Uint32 changeMask = req->changeMask;
+  Uint32 partitionId = req->partitionId;
 
-  Uint64 maxRows =
-    (((Uint64)req->maxRowsHigh) << 32) + req->maxRowsLow;
-  Uint64 minRows =
-    (((Uint64)req->minRowsHigh) << 32) + req->minRowsLow;
+  Uint64 maxRows = (((Uint64)req->maxRowsHigh) << 32) + req->maxRowsLow;
+  Uint64 minRows = (((Uint64)req->minRowsHigh) << 32) + req->minRowsLow;
 
   (void)reqinfo;
   (void)maxRows;
@@ -811,19 +859,17 @@ void Dbtup::execTUPFRAGREQ(Signal* signal)
   Uint32 readFragId;
 #endif
 
-  if (req->userPtr == (Uint32)-1) 
-  {
+  if (req->userPtr == (Uint32)-1) {
     jam();
     abortAddFragOp(signal);
     return;
   }
-  
+
   TablerecPtr regTabPtr;
 
 #ifndef VM_TRACE
   // config mismatch - do not crash if release compiled
-  if (tableId >= cnoOfTablerec)
-  {
+  if (tableId >= cnoOfTablerec) {
     jam();
     terrorCode = 800;
     goto sendref;
@@ -834,30 +880,27 @@ void Dbtup::execTUPFRAGREQ(Signal* signal)
   ptrCheckGuard(regTabPtr, cnoOfTablerec, tablerec);
 
   getFragmentrec(regFragPtr, fragId, regTabPtr.i);
-  if (regFragPtr.i != RNIL64)
-  {
+  if (regFragPtr.i != RNIL64) {
     jam();
-    terrorCode= ZEXIST_FRAG_ERROR;
+    terrorCode = ZEXIST_FRAG_ERROR;
     goto sendref;
   }
 
   if (!seizeFragrecord(regFragPtr))
   {
     jam();
-    terrorCode= ZFULL_FRAGRECORD_ERROR;
+    terrorCode = ZFULL_FRAGRECORD_ERROR;
     goto sendref;
   }
 
-  for (Uint32 i = 0; i < NUM_TUP_FRAGMENT_MUTEXES; i++)
-  {
+  for (Uint32 i = 0; i < NUM_TUP_FRAGMENT_MUTEXES; i++) {
     NdbMutex_Init(&regFragPtr.p->tup_frag_mutex[i]);
   }
   NdbMutex_Init(&regFragPtr.p->tup_frag_page_map_mutex);
   {
-    Uint32 noAllocatedPages = 1; //allocFragPage(regFragPtr.p);
+    Uint32 noAllocatedPages = 1;  // allocFragPage(regFragPtr.p);
 
-    if (noAllocatedPages == 0)
-    {
+    if (noAllocatedPages == 0) {
       jam();
       releaseFragrec(regFragPtr);
       terrorCode = ZNO_PAGES_ALLOCATED_ERROR;
@@ -865,8 +908,19 @@ void Dbtup::execTUPFRAGREQ(Signal* signal)
     }
   }
 
-  if (!addfragtotab(regTabPtr.i, fragId, regFragPtr.i))
-  {
+  if (!addfragtotab(regTabPtr.i, fragId, regFragPtr.i)) {
+    jam();
+    releaseFragrec(regFragPtr);
+    terrorCode = ZNO_FREE_TAB_ENTRY_ERROR;
+    goto sendref;
+  }
+
+  if ((ERROR_INSERTED(4007) && regTabPtr.p->fragid[0] == fragId) ||
+      (ERROR_INSERTED(4008) && regTabPtr.p->fragid[1] == fragId) ||
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
     jam();
     releaseFragrec(regFragPtr);
     terrorCode= ZNO_FREE_TAB_ENTRY_ERROR;
@@ -887,7 +941,26 @@ void Dbtup::execTUPFRAGREQ(Signal* signal)
   if ((ERROR_INSERTED(4007) && found_first) ||
       (ERROR_INSERTED(4008) && found_second) ||
       ERROR_INSERTED(4050))
-  {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ {
+    jam();
+    releaseFragrec(regFragPtr);
+    terrorCode= ZNO_FREE_TAB_ENTRY_ERROR;
+    goto sendref;
+  }
+
+  if ((ERROR_INSERTED(4007) && regTabPtr.p->fragid[0] == fragId) ||
+      (ERROR_INSERTED(4008) && regTabPtr.p->fragid[1] == fragId) ||
+      ERROR_INSERTED(4050))
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     ERROR_INSERTED(4050))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
     jam();
     releaseFragrec(regFragPtr);
     remove_frag_from_tab(regTabPtr, fragId);
@@ -897,11 +970,11 @@ void Dbtup::execTUPFRAGREQ(Signal* signal)
   }
 #endif
   regFragPtr.p->fragStatus = Fragrecord::FS_ONLINE;
-  regFragPtr.p->fragTableId= regTabPtr.i;
-  regFragPtr.p->fragmentId= fragId;
-  regFragPtr.p->partitionId= partitionId;
-  regFragPtr.p->m_tablespace_id= tablespace_id;
-  regFragPtr.p->m_undo_complete= 0;
+  regFragPtr.p->fragTableId = regTabPtr.i;
+  regFragPtr.p->fragmentId = fragId;
+  regFragPtr.p->partitionId = partitionId;
+  regFragPtr.p->m_tablespace_id = tablespace_id;
+  regFragPtr.p->m_undo_complete = 0;
   regFragPtr.p->m_lcp_scan_op = RNIL;
   regFragPtr.p->m_lcp_keep_list_head.setNull();
   regFragPtr.p->m_lcp_keep_list_tail.setNull();
@@ -931,59 +1004,54 @@ void Dbtup::execTUPFRAGREQ(Signal* signal)
    */
   regFragPtr.p->m_average_row_size = 200;
 
-  for (Uint32 i = 0; i<MAX_FREE_LIST+1; i++)
+  for (Uint32 i = 0; i < MAX_FREE_LIST + 1; i++)
     ndbrequire(regFragPtr.p->free_var_page_array[i].isEmpty());
 
   CreateFilegroupImplReq rep;
   std::memset(&rep, 0, sizeof(rep));
-  if(regTabPtr.p->m_no_of_disk_attributes)
-  {
+  if (regTabPtr.p->m_no_of_disk_attributes) {
     {
       jam();
       D("Tablespace_client - execTUPFRAGREQ");
       Tablespace_client tsman(0, this, c_tsman, 0, 0, 0,
                               regFragPtr.p->m_tablespace_id);
       ndbrequire(tsman.get_tablespace_info(this, &rep) == 0);
-      regFragPtr.p->m_logfile_group_id= rep.tablespace.logfile_group_id;
+      regFragPtr.p->m_logfile_group_id = rep.tablespace.logfile_group_id;
     }
     {
       Page_cache_client pgman(this, c_pgman);
       int res = pgman.add_fragment(regTabPtr.i, fragId);
       jamEntry();
-      if (res != 0)
-      {
+      if (res != 0) {
         jam();
         releaseFragrec(regFragPtr);
         remove_frag_from_tab(regTabPtr, fragId);
-        terrorCode= ZNO_FREE_TAB_ENTRY_ERROR;
+        terrorCode = ZNO_FREE_TAB_ENTRY_ERROR;
         goto sendref;
       }
     }
-  }
-  else
-  {
+  } else {
     jam();
     regFragPtr.p->m_logfile_group_id = RNIL;
   }
   new (&regFragPtr.p->m_disk_alloc_info)
-    Disk_alloc_info(regTabPtr.p, rep.tablespace.extent_size);
+      Disk_alloc_info(regTabPtr.p, rep.tablespace.extent_size);
 
-  if (AlterTableReq::getReorgFragFlag(changeMask))
-  {
+  if (AlterTableReq::getReorgFragFlag(changeMask)) {
     jam();
     regFragPtr.p->fragStatus = Fragrecord::FS_REORG_NEW;
   }
 
-  signal->theData[0]= userptr;
-  signal->theData[1]= fragId;
-  signal->theData[2]= regFragPtr.i;
+  signal->theData[0] = userptr;
+  signal->theData[1] = fragId;
+  signal->theData[2] = regFragPtr.i;
   sendSignal(userRef, GSN_TUPFRAGCONF, signal, 3, JBB);
 
   return;
 
 sendref:
-  signal->theData[0]= userptr;
-  signal->theData[1]= terrorCode;
+  signal->theData[0] = userptr;
+  signal->theData[1] = terrorCode;
   sendSignal(userRef, GSN_TUPFRAGREF, signal, 2, JBB);
 }
 
@@ -993,20 +1061,18 @@ sendref:
   in varsize memory associated with the dummy fragment(DefaultValuesFragment).
   There is a DBTUP global set of defaults records in DefaultValuesFragment.
   One record per table stored on varsize pages.
-  
+
   Each Table_record has a Local_key pointing to start of its default values
   in TUP's default values fragment.
 */
-int Dbtup::store_default_record(const TablerecPtr& regTabPtr)
-{
+int Dbtup::store_default_record(const TablerecPtr &regTabPtr) {
   Uint32 RdefValSectionI = regTabPtr.p->m_createTable.defValSectionI;
   jam();
 
-  if (RdefValSectionI == RNIL) //No default values are stored for the table
+  if (RdefValSectionI == RNIL)  // No default values are stored for the table
   {
     jam();
-    if (ERROR_INSERTED(4034))
-    {
+    if (ERROR_INSERTED(4034)) {
       jam();
       CLEAR_ERROR_INSERT_VALUE;
       terrorCode = 1;
@@ -1022,48 +1088,40 @@ int Dbtup::store_default_record(const TablerecPtr& regTabPtr)
   /**
    * Alloc var-length memory for storing defaults
    */
-  Uint32* var_data_ptr= alloc_var_part(&terrorCode,
-                                       DefaultValuesFragment.p,
-                                       regTabPtr.p,
-                                       sizes,
-                                       &regTabPtr.p->m_default_value_location,
+  Uint32 *var_data_ptr =
+      alloc_var_part(&terrorCode, DefaultValuesFragment.p, regTabPtr.p, sizes,
+                     &regTabPtr.p->m_default_value_location,
                                        __LINE__,
                                        false);
-  if (unlikely( var_data_ptr == 0 ))
-  {
+  if (unlikely(var_data_ptr == 0)) {
     jam();
     /* Caller releases the default values section */
     return -1;
   }
 
-  if (ERROR_INSERTED(4034))
-  {
+  if (ERROR_INSERTED(4034)) {
     jam();
     CLEAR_ERROR_INSERT_VALUE;
     terrorCode = 1;
     return -1;
   }
-      
-  
+
   copy(var_data_ptr, RdefValSectionI);
   releaseSection(RdefValSectionI);
-  regTabPtr.p->m_createTable.defValSectionI= RNIL;
+  regTabPtr.p->m_createTable.defValSectionI = RNIL;
 
   return 0;
 }
 
-bool Dbtup::addfragtotab(Uint32 tableId,
-                         Uint32 fragId,
-                         Uint64 fragIndex)
-{
+bool Dbtup::addfragtotab(Uint32 tableId, Uint32 fragId,
+                         Uint64 fragIndex) {
   return c_lqh->setTupFragPtrI(tableId,
                                fragId,
                                fragIndex);
 }
 
 void
-Dbtup::remove_frag_from_tab(TablerecPtr tabPtr, Uint32 fragId)
-{
+Dbtup::remove_frag_from_tab(TablerecPtr tabPtr, Uint32 fragId) {
   ndbrequire(c_lqh->setTupFragPtrI(tabPtr.i,
                                    fragId,
                                    RNIL64));
@@ -1071,13 +1129,74 @@ Dbtup::remove_frag_from_tab(TablerecPtr tabPtr, Uint32 fragId)
 
 bool Dbtup::get_fragment_record(TablerecPtr & tabPtr,
                                 FragrecordPtr & fragPtr,
-                                Uint32 tableId,
-                                Uint32 fragId)
+                               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtup::getFragmentrec(FragrecordPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtup::getFragmentrec(FragrecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 tableId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regFragPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&regFragPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,      Uint32 fragId)
 {
   tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   fragPtr.i = c_lqh->m_ldm_instance_used->getTupFragPtrI(tabPtr.i,
-                                                         fragId);
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+EmulatedJamBuffer*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+EmulatedJamBuffer
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                    fragId);
   if (fragPtr.i != RNIL64)
   {
     jam();
@@ -1108,12 +1227,11 @@ void Dbtup::getFragmentrec(FragrecordPtr& regFragPtr,
     return;
   }
   thrjamDebug(jamBuf);
-  regFragPtr.i= RNIL64;
+  regFragPtr.i = RNIL64;
   ptrNull(regFragPtr);
 }
 
-bool Dbtup::seizeFragrecord(FragrecordPtr& regFragPtr)
-{
+bool Dbtup::seizeFragrecord(FragrecordPtr &regFragPtr) {
   bool ret_code = c_fragment_pool.seize(regFragPtr);
   if (ret_code)
   {
@@ -1123,170 +1241,150 @@ bool Dbtup::seizeFragrecord(FragrecordPtr& regFragPtr)
   return ret_code;
 }
 
-void Dbtup::seizeFragoperrec(FragoperrecPtr& fragOperPtr)
-{
-  fragOperPtr.i= cfirstfreeFragopr;
+void Dbtup::seizeFragoperrec(FragoperrecPtr &fragOperPtr) {
+  fragOperPtr.i = cfirstfreeFragopr;
   ptrCheckGuard(fragOperPtr, cnoOfFragoprec, fragoperrec);
   cfirstfreeFragopr = fragOperPtr.p->nextFragoprec;
   fragOperPtr.p->nextFragoprec = RNIL;
   fragOperPtr.p->inUse = true;
   RSS_OP_ALLOC(cnoOfFreeFragoprec);
-}//Dbtup::seizeFragoperrec()
+}  // Dbtup::seizeFragoperrec()
 
-void Dbtup::seizeAlterTabOperation(AlterTabOperationPtr& alterTabOpPtr)
-{
-  alterTabOpPtr.i= cfirstfreeAlterTabOp;
+void Dbtup::seizeAlterTabOperation(AlterTabOperationPtr &alterTabOpPtr) {
+  alterTabOpPtr.i = cfirstfreeAlterTabOp;
   ptrCheckGuard(alterTabOpPtr, cnoOfAlterTabOps, alterTabOperRec);
-  cfirstfreeAlterTabOp= alterTabOpPtr.p->nextAlterTabOp;
+  cfirstfreeAlterTabOp = alterTabOpPtr.p->nextAlterTabOp;
   memset(alterTabOpPtr.p, 0, sizeof(AlterTabOperation));
-  alterTabOpPtr.p->nextAlterTabOp= RNIL;
+  alterTabOpPtr.p->nextAlterTabOp = RNIL;
   alterTabOpPtr.p->dynTableDescriptor[MM] = nullptr;
   alterTabOpPtr.p->dynTableDescriptor[DD] = nullptr; 
   alterTabOpPtr.p->tableDescriptor = nullptr;
 }
 
-void
-Dbtup::execALTER_TAB_REQ(Signal *signal)
-{
+void Dbtup::execALTER_TAB_REQ(Signal *signal) {
   jamEntry();
 
-  AlterTabReq copy= *(AlterTabReq *)signal->getDataPtr();
-  AlterTabReq * req = &copy;
+  AlterTabReq copy = *(AlterTabReq *)signal->getDataPtr();
+  AlterTabReq *req = &copy;
 
   TablerecPtr regTabPtr;
-  regTabPtr.i= req->tableId;
+  regTabPtr.i = req->tableId;
   ptrCheckGuard(regTabPtr, cnoOfTablerec, tablerec);
 
-  switch((AlterTabReq::RequestType)req->requestType){
-  case AlterTabReq::AlterTablePrepare:
-  {
-    jam();
+  switch ((AlterTabReq::RequestType)req->requestType) {
+    case AlterTabReq::AlterTablePrepare: {
+      jam();
 
-    if (AlterTableReq::getAddAttrFlag(req->changeMask))
-    {
-      jam();
-      SectionHandle handle(this, signal);
-      ndbrequire(handle.m_cnt == 1);
-      ::copy(signal->theData+25, handle.m_ptr[0]);
-      releaseSections(handle);
-    }
-    handleAlterTablePrepare(signal, req, regTabPtr);
-    return;
-  }
-  case AlterTabReq::AlterTableCommit:
-  {
-    jam();
-    handleAlterTableCommit(signal, req, regTabPtr);
-    return;
-  }
-  case AlterTabReq::AlterTableRevert:
-  {
-    jam();
-    handleAlterTableAbort(signal, req, regTabPtr.p);
-    return;
-  }
-  case AlterTabReq::AlterTableComplete:
-  {
-    jam();
-    handleAlterTableComplete(signal, req, regTabPtr.i);
-    return;
-  }
-  case AlterTabReq::AlterTableSumaEnable:
-  {
-    FragrecordPtr regFragPtr;
-    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
-    {
-      jam();
-      if ((regFragPtr.i = c_lqh->getNextTupFragrec(regTabPtr.i, i)) != RNIL64)
-      {
+      if (AlterTableReq::getAddAttrFlag(req->changeMask)) {
         jam();
-        ndbrequire(c_fragment_pool.getPtr(regFragPtr));
-        switch(regFragPtr.p->fragStatus){
-        case Fragrecord::FS_REORG_COMMIT_NEW:
+        SectionHandle handle(this, signal);
+        ndbrequire(handle.m_cnt == 1);
+        ::copy(signal->theData + 25, handle.m_ptr[0]);
+        releaseSections(handle);
+      }
+      handleAlterTablePrepare(signal, req, regTabPtr);
+      return;
+    }
+    case AlterTabReq::AlterTableCommit: {
+      jam();
+      handleAlterTableCommit(signal, req, regTabPtr);
+      return;
+    }
+    case AlterTabReq::AlterTableRevert: {
+      jam();
+      handleAlterTableAbort(signal, req, regTabPtr.p);
+      return;
+    }
+    case AlterTabReq::AlterTableComplete: {
+      jam();
+      handleAlterTableComplete(signal, req, regTabPtr.i);
+      return;
+    }
+    case AlterTabReq::AlterTableSumaEnable: {
+      FragrecordPtr regFragPtr;
+      for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++) {
+        jam();
+        if ((regFragPtr.i = c_lqh->getNextTupFragrec(regTabPtr.i, i)) != RNIL64) {
           jam();
-          if (0)
-            g_eventLogger->info(
-                "tab: %u frag: %u toggle fragstate from %s to %s",
-                regFragPtr.p->fragTableId, regFragPtr.p->fragmentId,
-                "FS_REORG_COMMIT_NEW", "FS_REORG_COMPLETE_NEW");
-          regFragPtr.p->fragStatus = Fragrecord::FS_REORG_COMPLETE_NEW;
-          break;
-        default:
-          break;
+        ndbrequire(c_fragment_pool.getPtr(regFragPtr));
+          switch (regFragPtr.p->fragStatus) {
+            case Fragrecord::FS_REORG_COMMIT_NEW:
+              jam();
+              if (0)
+                g_eventLogger->info(
+                    "tab: %u frag: %u toggle fragstate from %s to %s",
+                    regFragPtr.p->fragTableId, regFragPtr.p->fragmentId,
+                    "FS_REORG_COMMIT_NEW", "FS_REORG_COMPLETE_NEW");
+              regFragPtr.p->fragStatus = Fragrecord::FS_REORG_COMPLETE_NEW;
+              break;
+            default:
+              break;
+          }
         }
       }
+      sendAlterTabConf(signal, RNIL);
+      return;
     }
-    sendAlterTabConf(signal, RNIL);
-    return;
-  }
-  case AlterTabReq::AlterTableSumaFilter:
-  {
-    Uint32 gci = signal->theData[signal->getLength() - 1];
-    regTabPtr.p->m_reorg_suma_filter.m_gci_hi = gci;
-    FragrecordPtr regFragPtr;
-    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
-    {
-      jam();
-      if ((regFragPtr.i = c_lqh->getNextTupFragrec(regTabPtr.i, i)) != RNIL64)
-      {
+    case AlterTabReq::AlterTableSumaFilter: {
+      Uint32 gci = signal->theData[signal->getLength() - 1];
+      regTabPtr.p->m_reorg_suma_filter.m_gci_hi = gci;
+      FragrecordPtr regFragPtr;
+      for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++) {
         jam();
-        ndbrequire(c_fragment_pool.getPtr(regFragPtr));
-        switch(regFragPtr.p->fragStatus){
-        case Fragrecord::FS_REORG_COMMIT:
+        if ((regFragPtr.i = c_lqh->getNextTupFragrec(regTabPtr.i, i)) != RNIL64) {
           jam();
-          if (0)
-            g_eventLogger->info(
-                "tab: %u frag: %u toggle fragstate from %s to %s (gci: %u)",
-                regFragPtr.p->fragTableId, regFragPtr.p->fragmentId,
-                "FS_REORG_COMMIT", "FS_REORG_COMPLETE", gci);
-          regFragPtr.p->fragStatus = Fragrecord::FS_REORG_COMPLETE;
-          break;
-        default:
-          break;
+        ndbrequire(c_fragment_pool.getPtr(regFragPtr));
+          switch (regFragPtr.p->fragStatus) {
+            case Fragrecord::FS_REORG_COMMIT:
+              jam();
+              if (0)
+                g_eventLogger->info(
+                    "tab: %u frag: %u toggle fragstate from %s to %s (gci: %u)",
+                    regFragPtr.p->fragTableId, regFragPtr.p->fragmentId,
+                    "FS_REORG_COMMIT", "FS_REORG_COMPLETE", gci);
+              regFragPtr.p->fragStatus = Fragrecord::FS_REORG_COMPLETE;
+              break;
+            default:
+              break;
+          }
         }
       }
+      signal->theData[0] = ~Uint32(0);
+      return;
     }
-    signal->theData[0] = ~Uint32(0);
-    return;
-  }
-  case AlterTabReq::AlterTableReadOnly:
-  case AlterTabReq::AlterTableReadWrite:
-    jam();
-    signal->theData[0] = 0;
-    signal->theData[1] = RNIL;
-    return;
-  default:
-    break;
+    case AlterTabReq::AlterTableReadOnly:
+    case AlterTabReq::AlterTableReadWrite:
+      jam();
+      signal->theData[0] = 0;
+      signal->theData[1] = RNIL;
+      return;
+    default:
+      break;
   }
   ndbabort();
 }
 
-void
-Dbtup::handleAlterTablePrepare(Signal *signal,
-                               const AlterTabReq *req,
-                               const TablerecPtr regTabPtr)
-{
+void Dbtup::handleAlterTablePrepare(Signal *signal, const AlterTabReq *req,
+                                    const TablerecPtr regTabPtr) {
   Uint32 connectPtr = RNIL;
-  if (AlterTableReq::getAddAttrFlag(req->changeMask))
-  {
+  if (AlterTableReq::getAddAttrFlag(req->changeMask)) {
     jam();
 
-    Uint32 noOfNewAttr= req->noOfNewAttr;
-    Uint32 newNoOfCharsets= req->newNoOfCharsets;
-    Uint32 newNoOfKeyAttrs= req->newNoOfKeyAttrs;
+    Uint32 noOfNewAttr = req->noOfNewAttr;
+    Uint32 newNoOfCharsets = req->newNoOfCharsets;
+    Uint32 newNoOfKeyAttrs = req->newNoOfKeyAttrs;
 
-    Uint32 *attrInfo= signal->theData+25;
+    Uint32 *attrInfo = signal->theData + 25;
 
-    Uint32 oldNoOfAttr= regTabPtr.p->m_no_of_attributes;
-    Uint32 newNoOfAttr= oldNoOfAttr+noOfNewAttr;
+    Uint32 oldNoOfAttr = regTabPtr.p->m_no_of_attributes;
+    Uint32 newNoOfAttr = oldNoOfAttr + noOfNewAttr;
 
     /* Can only add attributes if varpart already present. */
     bool mm_varpart_exists = true;
     bool disk_varpart_exists = true;
-    if((regTabPtr.p->m_attributes[MM].m_no_of_varsize +
-        regTabPtr.p->m_attributes[MM].m_no_of_dynamic +
-        (regTabPtr.p->m_bits & Tablerec::TR_ForceVarPart)) == 0)
-    {
+    if ((regTabPtr.p->m_attributes[MM].m_no_of_varsize +
+         regTabPtr.p->m_attributes[MM].m_no_of_dynamic +
+         (regTabPtr.p->m_bits & Tablerec::TR_ForceVarPart)) == 0) {
       jam();
       mm_varpart_exists = false;
     }
@@ -1303,7 +1401,29 @@ Dbtup::handleAlterTablePrepare(Signal *signal,
         check_attrInfo++;
         bool is_disk_based = AttributeDescriptor::getDiskBased(attrDescriptor);
         if ((is_disk_based && !disk_varpart_exists) ||
-            (!is_disk_based && !mm_varpart_exists))
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   (!is_disk_based
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+desc=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*desc =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ && !mm_varpart_exists))
         {
           jam();
           sendAlterTabRef(signal, ZINVALID_ALTER_TAB);
@@ -1351,10 +1471,29 @@ Dbtup::handleAlterTablePrepare(Signal *signal,
            4 * ZAD_SIZE * oldNoOfAttr);
 
     /**
-     * Copy extra columns descriptors to end of attrDesPtr
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Copy
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+charsetIndex,
+>>>>>>> MySQL 8.0.36
+ extra columns descriptors to end of attrDesPtr
      */
     {
-      const Uint32 * src = regTabPtr.p->tabDescriptor;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+charsetIndex,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ Uint32 * src = regTabPtr.p->tabDescriptor;
       src += ZAD_SIZE * oldNoOfAttr;
 
       Uint32 * dst = attrDesPtr + (ZAD_SIZE * newNoOfAttr);
@@ -1437,7 +1576,25 @@ Dbtup::handleAlterTablePrepare(Signal *signal,
           Uint32 bits= AttributeDescriptor::getArraySize(attrDescriptor);
           null_pos = dyn_nullbits[MM];
           null_pos += bits;
-          dyn_nullbits[MM] += bits+1;
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AlterTabReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AlterTabReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req,
+=======
+*req,
+>>>>>>> MySQL 8.0.36
+ dyn_nullbits[MM] += bits+1;
           noDynamic[ind]--;
           noDynamic[MM]++;
         }
@@ -1464,7 +1621,7 @@ Dbtup::handleAlterTablePrepare(Signal *signal,
                regTabPtr.p->m_attributes[DD].m_no_of_dynamic +
                noOfNewAttr));
     regAlterTabOpPtr.p->noOfDynFix[MM]= noDynFix[MM];
-    regAlterTabOpPtr.p->noOfDynFix[DD]= noDynFix[DD];
+    regAlterTabOpPtr.p->noOfDynFix[DD] = noDynFix[DD];
     regAlterTabOpPtr.p->noOfDynVar[MM]= noDynVar[MM];
     regAlterTabOpPtr.p->noOfDynVar[DD]= noDynVar[DD];
     regAlterTabOpPtr.p->noOfDynamic[MM]= noDynamic[MM];
@@ -1488,13 +1645,12 @@ Dbtup::handleAlterTablePrepare(Signal *signal,
         jam();
         dynTableDescriptorRef = allocTabDescr(allocSize, regTabPtr.i);
       }
-      if (dynTableDescriptorRef == nullptr)
-      {
+      if (dynTableDescriptorRef == nullptr) {
         jam();
         releaseTabDescr(tableDescriptorRef);
         if (inx == DD)
         {
-          jam();
+            jam();
           releaseTabDescr(regAlterTabOpPtr.p->dynTableDescriptor[MM]);
         }
         releaseAlterTabOpRec(regAlterTabOpPtr);
@@ -1585,16 +1741,32 @@ Dbtup::handleAlterTableCommit(Signal *signal,
 
     /* Recompute aggregate table meta data. */
     DEB_DYN_META(("(%u) tab(%u) computeTableMetaData: ALTER",
-                  instance(),
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AlterTabReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AlterTabReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req,
+=======
+*req,
+>>>>>>> MySQL 8.0.36
+        instance(),
                   tabPtr.i));
     computeTableMetaData(tabPtr, __LINE__);
   }
 
-  if (AlterTableReq::getReorgFragFlag(req->changeMask))
-  {
+  if (AlterTableReq::getReorgFragFlag(req->changeMask)) {
     FragrecordPtr regFragPtr;
-    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
-    {
+    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++) {
       jam();
       if ((regFragPtr.i = c_lqh->getNextTupFragrec(tabPtr.i, i)) != RNIL64)
       {
@@ -1605,10 +1777,66 @@ Dbtup::handleAlterTableCommit(Signal *signal,
           jam();
           regFragPtr.p->fragStatus = Fragrecord::FS_REORG_COMMIT;
           if (0)
-            g_eventLogger->info(
-                "tab: %u frag: %u toggle fragstate from %s to %s",
-                regFragPtr.p->fragTableId, regFragPtr.p->fragmentId,
-                "FS_ONLINE", "FS_REORG_COMMIT");
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+g_eventLogger->info(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Uint32 noOfCharsets,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      Uint32 noOfCharsets, Uint32 &charsetIndex,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+                "tab: %u frag: %u toggle fragstate from %s 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 &
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%s",
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+charsetIndex,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              regFragPtr.p->fragTableId, regFragPtr.p->fragmentId,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CHARSET_INFO*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CHARSET_INFO
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cs
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cs
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           "FS_ONLINE", "FS_REORG_COMMIT");
           break;
         case Fragrecord::FS_REORG_NEW:
           jam();
@@ -1635,10 +1863,31 @@ Dbtup::handleAlterTableComplete(Signal *signal,
                                 const AlterTabReq* req,
                                 Uint32 tableId)
 {
-  if (AlterTableReq::getReorgCompleteFlag(req->changeMask))
-  {
+  if (AlterTableReq::getReorgCompleteFlag(req->changeMask)) {
     FragrecordPtr regFragPtr;
-    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
+    for (Uint32 i = 0; i < MAX_FRAG_PER_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LQH;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+attributes=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+attributes
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i++)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     {
       jam();
       if ((regFragPtr.i = c_lqh->getNextTupFragrec(tableId, i)) != RNIL64)
@@ -1648,11 +1897,56 @@ Dbtup::handleAlterTableComplete(Signal *signal,
         switch(regFragPtr.p->fragStatus){
         case Fragrecord::FS_REORG_COMPLETE:
           jam();
-          if (0)
-            g_eventLogger->info(
-                "tab: %u frag: %u toggle fragstate from %s to %s",
-                regFragPtr.p->fragTableId, regFragPtr.p->fragmentId,
-                "FS_REORG_COMPLETE", "FS_ONLINE");
+          if (0)           g_eventLogger->info(
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regTabPtr->m_offsets[MM].m_disk_ref_offset= pos[MM] +
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regTabPtr->m_offsets[MM].m_disk_ref_offset
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ "tab: %u frag: %u toggle fragstate from %s to %s",
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   Tuple_header::HeaderSize;
+    pos[MM] += Disk_part_ref::SZ32; // 8 bytes
+=======
+=
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          regFragPtr.p->fragTableId, regFragPtr.p->fragmentId,
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regTabPtr->m_bits |= Tablerec::TR_DiskPart;
+  }
+  else
+  {
+    regTabPtr->m_offsets[MM].m_disk_ref_offset =
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    pos[MM] + Tuple_header::HeaderSize;
+    pos[MM] += Disk_part_ref::SZ32;  // 8 bytes
+    regTabPtr->m_bits |= Tablerec::TR_DiskPart;
+  } else {
+    regTabPtr->m_offsets[MM].m_disk_ref_offset =
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              "FS_REORG_COMPLETE", "FS_ONLINE");
           regFragPtr.p->fragStatus = Fragrecord::FS_ONLINE;
           break;
         case Fragrecord::FS_REORG_COMPLETE_NEW:
@@ -2026,8 +2320,8 @@ Dbtup::computeTableMetaData(TablerecPtr tabPtr, Uint32 line)
   ndbassert(dynamic_count[DD] ==regTabPtr->m_attributes[DD].m_no_of_dynamic);
   ndbassert(statvar_count[DD] ==regTabPtr->m_attributes[DD].m_no_of_varsize);
 
-  regTabPtr->m_offsets[MM].m_fix_header_size= 
-    Tuple_header::HeaderSize + fix_size[MM] + pos[MM];
+  regTabPtr->m_offsets[MM].m_fix_header_size =
+      Tuple_header::HeaderSize + fix_size[MM] + pos[MM];
 
   DEB_ROW_SIZE(("(%u) tab(%u) HeaderSize: %u, fix_size: %u, pos: %u,"
                 " fix_header_size: %u",
@@ -2038,53 +2332,52 @@ Dbtup::computeTableMetaData(TablerecPtr tabPtr, Uint32 line)
                 pos[MM],
                 regTabPtr->m_offsets[MM].m_fix_header_size));
 
-  regTabPtr->m_offsets[DD].m_fix_header_size= 
-    fix_size[DD] + pos[DD];
+  regTabPtr->m_offsets[DD].m_fix_header_size = fix_size[DD] + pos[DD];
 
-  if(regTabPtr->m_attributes[DD].m_no_of_varsize > 0 ||
-     regTabPtr->m_attributes[DD].m_no_of_fixsize > 0 ||
+  if (regTabPtr->m_attributes[DD].m_no_of_varsize > 0 ||
+      regTabPtr->m_attributes[DD].m_no_of_fixsize > 0 ||
      regTabPtr->m_attributes[DD].m_no_of_dynamic > 0)
   {
     jam();
     regTabPtr->m_offsets[DD].m_fix_header_size += Tuple_header::HeaderSize;
   }
 
-  Uint32 mm_vars= regTabPtr->m_attributes[MM].m_no_of_varsize;
-  Uint32 mm_dyns= regTabPtr->m_attributes[MM].m_no_of_dyn_fix +
-                  regTabPtr->m_attributes[MM].m_no_of_dyn_var;
-  Uint32 dd_vars= regTabPtr->m_attributes[DD].m_no_of_varsize;
-  Uint32 dd_dyns= regTabPtr->m_attributes[DD].m_no_of_dyn_fix +
+  Uint32 mm_vars = regTabPtr->m_attributes[MM].m_no_of_varsize;
+  Uint32 mm_dyns = regTabPtr->m_attributes[MM].m_no_of_dyn_fix +
+                   regTabPtr->m_attributes[MM].m_no_of_dyn_var;
+  Uint32 dd_vars = regTabPtr->m_attributes[DD].m_no_of_varsize;
+  Uint32 dd_dyns = regTabPtr->m_attributes[DD].m_no_of_dyn_fix +
                   regTabPtr->m_attributes[DD].m_no_of_dyn_var;
 
-  regTabPtr->m_offsets[MM].m_max_var_offset= var_size[MM];
+  regTabPtr->m_offsets[MM].m_max_var_offset = var_size[MM];
   /*
     Size of the expanded dynamic part. Needs room for bitmap, (N+1) 16-bit
     offset words with 32-bit padding, and all attribute data.
   */
-  regTabPtr->m_offsets[MM].m_max_dyn_offset= 
-    (regTabPtr->m_offsets[MM].m_dyn_null_words<<2) + 4*((mm_dyns+2)>>1) +
-    dyn_size[MM];
-  
-  regTabPtr->m_offsets[DD].m_max_var_offset= var_size[DD];
-  regTabPtr->m_offsets[DD].m_max_dyn_offset= 
-    (regTabPtr->m_offsets[DD].m_dyn_null_words<<2) + 4*((dd_dyns+2)>>1) +
-    dyn_size[DD];
+  regTabPtr->m_offsets[MM].m_max_dyn_offset =
+      (regTabPtr->m_offsets[MM].m_dyn_null_words << 2) +
+      4 * ((mm_dyns + 2) >> 1) + dyn_size[MM];
+
+  regTabPtr->m_offsets[DD].m_max_var_offset = var_size[DD];
+  regTabPtr->m_offsets[DD].m_max_dyn_offset =
+      (regTabPtr->m_offsets[DD].m_dyn_null_words << 2) +
+      4 * ((dd_dyns + 2) >> 1) + dyn_size[DD];
 
   /* Room for data for all the attributes. */
   Uint32 total_rec_size[2];
   total_rec_size[MM] =
     pos[MM] + fix_size[MM] +
-    ((var_size[MM] + 3) >> 2) + ((dyn_size[MM] + 3) >> 2);
+                          ((var_size[MM] + 3) >> 2) +
+                          ((dyn_size[MM] + 3) >> 2);
   total_rec_size[DD] =
     pos[DD] + fix_size[DD] +
-    ((var_size[DD] + 3) >> 2) + ((dyn_size[DD] + 3) >> 2);
+                          ((var_size[DD] + 3) >> 2) + ((dyn_size[DD] + 3) >> 2);
   /*
     Room for offset arrays and dynamic bitmaps. There is one extra 16-bit
     offset in each offset array (for easy computation of final length).
     Also one word for storing total length of varsize+dynamic part
   */
-  if (mm_vars + regTabPtr->m_attributes[MM].m_no_of_dynamic)
-  {
+  if (mm_vars + regTabPtr->m_attributes[MM].m_no_of_dynamic) {
     jam();
     total_rec_size[MM] += (mm_vars + 2) >> 1;
     total_rec_size[MM] += regTabPtr->m_offsets[MM].m_dyn_null_words;
@@ -2111,7 +2404,7 @@ Dbtup::computeTableMetaData(TablerecPtr tabPtr, Uint32 line)
 
   total_rec_size[MM] += COPY_TUPLE_HEADER32;
 
-  regTabPtr->total_rec_size= total_rec_size[MM] + total_rec_size[DD];
+  regTabPtr->total_rec_size = total_rec_size[MM] + total_rec_size[DD];
 
   DEB_TUP_META(("(%u) tab(%u) New total_rec_size set to %u",
                 instance(),
@@ -2123,21 +2416,19 @@ Dbtup::computeTableMetaData(TablerecPtr tabPtr, Uint32 line)
   return 0;
 }
 
-void
-Dbtup::undo_createtable_logsync_callback(Signal* signal, Uint32 ptrI, 
-					 Uint32 res)
-{
+void Dbtup::undo_createtable_logsync_callback(Signal *signal, Uint32 ptrI,
+                                              Uint32 res) {
   jamEntry();
   FragoperrecPtr fragOperPtr;
-  fragOperPtr.i= ptrI;
+  fragOperPtr.i = ptrI;
   ptrCheckGuard(fragOperPtr, cnoOfFragoprec, fragoperrec);
-  
+
   signal->theData[0] = fragOperPtr.p->lqhPtrFrag;
   signal->theData[1] = 1;
-  sendSignal(fragOperPtr.p->lqhBlockrefFrag, GSN_TUP_ADD_ATTCONF, 
-	     signal, 2, JBB);
-  
-  releaseFragoperrec(fragOperPtr);  
+  sendSignal(fragOperPtr.p->lqhBlockrefFrag, GSN_TUP_ADD_ATTCONF, signal, 2,
+             JBB);
+
+  releaseFragoperrec(fragOperPtr);
 }
 
 /*
@@ -2150,32 +2441,28 @@ Dbtup::undo_createtable_logsync_callback(Signal* signal, Uint32 ptrI,
  * 5 tabDescriptor ( attribute descriptors, each ZAD_SIZE )
  */
 void Dbtup::setUpDescriptorReferences(Uint32* desc,
-                                      Tablerec* const regTabPtr,
-                                      const Uint32* offset)
-{
-  regTabPtr->readFunctionArray = (ReadFunction*)(desc + offset[0]);
-  regTabPtr->updateFunctionArray = (UpdateFunction*)(desc + offset[1]);
-  regTabPtr->charsetArray = (CHARSET_INFO**)(desc + offset[2]);
+                                      Tablerec *const regTabPtr,
+                                      const Uint32 *offset) {
+  regTabPtr->readFunctionArray = (ReadFunction *)(desc + offset[0]);
+  regTabPtr->updateFunctionArray = (UpdateFunction *)(desc + offset[1]);
+  regTabPtr->charsetArray = (CHARSET_INFO **)(desc + offset[2]);
   regTabPtr->readKeyArray = (Uint32*)(desc + offset[3]);
-  regTabPtr->tabDescriptor= (Uint32*)(desc + offset[4]);
+  regTabPtr->tabDescriptor = (Uint32*)(desc + offset[4]);
   regTabPtr->m_real_order_descriptor = (Uint16*)(desc + offset[5]);
 }
 
 void Dbtup::setupDynDescriptorReferences(Uint32* desc,
-                                         Tablerec* const regTabPtr,
-                                         const Uint32* offset,
-                                         Uint32 ind)
-{
+                                         Tablerec *const regTabPtr,
+                                         const Uint32 *offset, Uint32 ind) {
   regTabPtr->dynTabDescriptor[ind] = desc;
-  regTabPtr->dynVarSizeMask[ind] = desc+offset[0];
-  regTabPtr->dynFixSizeMask[ind] = desc+offset[1];
+  regTabPtr->dynVarSizeMask[ind] = desc + offset[0];
+  regTabPtr->dynFixSizeMask[ind] = desc + offset[1];
 }
 
-void Dbtup::setUpKeyArray(Tablerec* const regTabPtr)
-{
-  Uint32* keyArray = regTabPtr->readKeyArray;
-  Uint32 countKeyAttr= 0;
-  for (Uint32 i= 0; i < regTabPtr->m_no_of_attributes; i++) {
+void Dbtup::setUpKeyArray(Tablerec *const regTabPtr) {
+  Uint32 *keyArray = regTabPtr->readKeyArray;
+  Uint32 countKeyAttr = 0;
+  for (Uint32 i = 0; i < regTabPtr->m_no_of_attributes; i++) {
     jam();
     Uint32 attrDescriptor = regTabPtr->tabDescriptor[(i * ZAD_SIZE)];
     if (AttributeDescriptor::getPrimaryKey(attrDescriptor))
@@ -2197,79 +2484,89 @@ void Dbtup::setUpKeyArray(Tablerec* const regTabPtr)
    * Dynamic bit fields are never stored in disk part.
    */
   Uint32 cnt = 0;
-  Uint16* order = regTabPtr->m_real_order_descriptor;
-  for (Uint32 type = 0; type < 8; type++)
-  {
-    for (Uint32 i= 0; i < regTabPtr->m_no_of_attributes; i++) 
-    {
+  Uint16 *order = regTabPtr->m_real_order_descriptor;
+  for (Uint32 type = 0; type < 8; type++) {
+    for (Uint32 i = 0; i < regTabPtr->m_no_of_attributes; i++) {
       jam();
       Uint32 desc = regTabPtr->tabDescriptor[(i * ZAD_SIZE)];
       Uint32 t = 0;
 
       if (AttributeDescriptor::getDynamic(desc) &&
           AttributeDescriptor::getArrayType(desc) == NDB_ARRAYTYPE_FIXED &&
-          AttributeDescriptor::getSize(desc) == 0)
-      {
+          AttributeDescriptor::getSize(desc) == 0) {
         /*
           Dynamic bit types are stored inside the dynamic NULL bitmap, and are
           never expanded. So we do not need any real_order_descriptor for
           them.
         */
         jam();
-        if(type==0)
-          cnt++;
+        if (type == 0) cnt++;
         continue;
       }
 
       if ((AttributeDescriptor::getArrayType(desc) != NDB_ARRAYTYPE_FIXED) ||
           (AttributeDescriptor::getDynamic(desc) &&
            AttributeDescriptor::getArrayType(desc) == NDB_ARRAYTYPE_FIXED &&
-           AttributeDescriptor::getSizeInWords(desc) > InternalMaxDynFix))
-      {
-	t += 1;
+           AttributeDescriptor::getSizeInWords(desc) > InternalMaxDynFix)) {
+        t += 1;
       }
-      if (AttributeDescriptor::getDynamic(desc)) 
-      {
-	t += 2;
+      if (AttributeDescriptor::getDynamic(desc)) {
+        t += 2;
       }
-      if (AttributeDescriptor::getDiskBased(desc))
-      {
-	t += 4;
+      if (AttributeDescriptor::getDiskBased(desc)) {
+        t += 4;
       }
       if(t == type)
       {
 	* order++ = (i * ZAD_SIZE);
         DEB_DYN_META(("(%u) Attribute %u is listed in order %u",
-                      instance(),
-                      i,
+                      instance()
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+order++
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ *order++
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+               i,
                       cnt));
-	cnt++;
+        cnt++;
       }
     }
   }
   ndbrequire(cnt == regTabPtr->m_no_of_attributes);
 }
 
-void Dbtup::releaseFragoperrec(FragoperrecPtr fragOperPtr) 
-{
+void Dbtup::releaseFragoperrec(FragoperrecPtr fragOperPtr) {
   fragOperPtr.p->inUse = false;
   fragOperPtr.p->nextFragoprec = cfirstfreeFragopr;
   cfirstfreeFragopr = fragOperPtr.i;
   RSS_OP_FREE(cnoOfFreeFragoprec);
-}//Dbtup::releaseFragoperrec()
+}  // Dbtup::releaseFragoperrec()
 
-void Dbtup::releaseAlterTabOpRec(AlterTabOperationPtr regAlterTabOpPtr)
-{
-  regAlterTabOpPtr.p->nextAlterTabOp= cfirstfreeAlterTabOp;
-  cfirstfreeAlterTabOp= regAlterTabOpPtr.i;
+void Dbtup::releaseAlterTabOpRec(AlterTabOperationPtr regAlterTabOpPtr) {
+  regAlterTabOpPtr.p->nextAlterTabOp = cfirstfreeAlterTabOp;
+  cfirstfreeAlterTabOp = regAlterTabOpPtr.i;
 }
 
 /*
  * LQH aborts on-going create table operation.  The table is later
  * dropped by DICT.
  */
-void Dbtup::abortAddFragOp(Signal* signal)
-{
+void Dbtup::abortAddFragOp(Signal *signal) {
   FragoperrecPtr fragOperPtr;
 
   fragOperPtr.i = signal->theData[1];
@@ -2278,33 +2575,28 @@ void Dbtup::abortAddFragOp(Signal* signal)
   releaseFragoperrec(fragOperPtr);
 }
 
-void
-Dbtup::execDROP_TAB_REQ(Signal* signal)
-{
+void Dbtup::execDROP_TAB_REQ(Signal *signal) {
   jamEntry();
-  DropTabReq* req= (DropTabReq*)signal->getDataPtr();
-  
+  DropTabReq *req = (DropTabReq *)signal->getDataPtr();
+
   TablerecPtr tabPtr;
-  tabPtr.i= req->tableId;
+  tabPtr.i = req->tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-  
+
   tabPtr.p->m_dropTable.tabUserRef = req->senderRef;
   tabPtr.p->m_dropTable.tabUserPtr = req->senderData;
   tabPtr.p->tableStatus = DROPPING;
 
-  DEB_DISK(("(%u)Drop table(%u) start, pg_count: %u",
-            instance(),
-            tabPtr.i,
+  DEB_DISK(("(%u)Drop table(%u) start, pg_count: %u", instance(), tabPtr.i,
             c_page_map_pool_ptr->m_pg_count));
 
-  signal->theData[0]= ZREL_FRAG;
-  signal->theData[1]= tabPtr.i;
-  signal->theData[2]= RNIL;
+  signal->theData[0] = ZREL_FRAG;
+  signal->theData[1] = tabPtr.i;
+  signal->theData[2] = RNIL;
   sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);
 }
 
-void Dbtup::releaseTabDescr(Tablerec* const regTabPtr) 
-{
+void Dbtup::releaseTabDescr(Tablerec *const regTabPtr) {
   Uint32* desc = (Uint32*)regTabPtr->readFunctionArray;
   if (desc != nullptr)
   {
@@ -2319,12 +2611,10 @@ void Dbtup::releaseTabDescr(Tablerec* const regTabPtr)
 
   /* Release dynamic descriptor, etc for mm and disk data. */
 
-  for (Uint16 i = 0; i < NO_DYNAMICS; ++i)
-  {
+  for (Uint16 i = 0; i < NO_DYNAMICS; ++i) {
     jam();
     desc = regTabPtr->dynTabDescriptor[i];
-    if(desc != nullptr)
-    {
+    if (desc != nullptr) {
       jam();
       regTabPtr->dynTabDescriptor[i] = nullptr;
       regTabPtr->dynVarSizeMask[i] = nullptr;
@@ -2334,11 +2624,10 @@ void Dbtup::releaseTabDescr(Tablerec* const regTabPtr)
   }
 }
 
-void Dbtup::releaseFragment(Signal* signal, Uint32 tableId, 
-			    Uint32 logfile_group_id)
-{
+void Dbtup::releaseFragment(Signal *signal, Uint32 tableId,
+                            Uint32 logfile_group_id) {
   TablerecPtr tabPtr;
-  tabPtr.i= tableId;
+  tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   Uint32 fragId = RNIL;
   Uint32 i = 0;
@@ -2357,22 +2646,21 @@ void Dbtup::releaseFragment(Signal* signal, Uint32 tableId,
   }
   if (fragId != RNIL) {
     jam();
-    
+
     signal->theData[0] = ZUNMAP_PAGES;
     signal->theData[1] = tabPtr.i;
     signal->theData[2] = fragId;
     signal->theData[3] = 0;
-    sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);  
+    sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);
     return;
   }
 
   CallbackPtr cb;
-  if (logfile_group_id != RNIL)
-  {
+  if (logfile_group_id != RNIL) {
     jam();
-    cb.m_callbackData= tabPtr.i;
+    cb.m_callbackData = tabPtr.i;
     cb.m_callbackIndex = DROP_TABLE_LOG_BUFFER_CALLBACK;
-    Uint32 sz= sizeof(Disk_undo::Drop) >> 2;
+    Uint32 sz = sizeof(Disk_undo::Drop) >> 2;
     D("Logfile_client - releaseFragment");
     int r0;
     {
@@ -2380,11 +2668,9 @@ void Dbtup::releaseFragment(Signal* signal, Uint32 tableId,
       r0 = lgman.alloc_log_space(sz, false, false, jamBuffer());
     }
     jamEntry();
-    if (r0)
-    {
+    if (r0) {
       jam();
-      warningEvent("Failed to alloc log space for drop table: %u",
- 		   tabPtr.i);
+      warningEvent("Failed to alloc log space for drop table: %u", tabPtr.i);
       goto done;
     }
     int res;
@@ -2393,25 +2679,25 @@ void Dbtup::releaseFragment(Signal* signal, Uint32 tableId,
       res= lgman.get_log_buffer(signal, sz, &cb);
     }
     jamEntry();
-    switch(res){
-    case 0:
-      jam();
-      return;
-    case -1:
-      jam();
+    switch (res) {
+      case 0:
+        jam();
+        return;
+      case -1:
+        jam();
       {
         Logfile_client lgman(this, c_lgman, logfile_group_id);
         lgman.free_log_space(sz, jamBuffer());
       }
-      g_eventLogger->warning("Out of space in RG_TRANSACTION_MEMORY resource,"
-                             " increase config parameter GlobalSharedMemory");
-      warningEvent("Failed to get log buffer for drop table: %u",
-		   tabPtr.i);
-      jamEntry();
-      goto done;
-    default:
-      jam();
-      goto execute;
+      g_eventLogger->warning(
+            "Out of space in RG_TRANSACTION_MEMORY resource,"
+            " increase config parameter GlobalSharedMemory");
+        warningEvent("Failed to get log buffer for drop table: %u", tabPtr.i);
+        jamEntry();
+        goto done;
+      default:
+        jam();
+        goto execute;
     }
   }
 done:
@@ -2423,104 +2709,94 @@ execute:
   return;
 }
 
-void
-Dbtup::drop_fragment_unmap_pages(Signal *signal, 
-				 TablerecPtr tabPtr, 
-				 FragrecordPtr fragPtr,
-				 Uint32 pos)
-{
-  if (tabPtr.p->m_no_of_disk_attributes)
-  {
+void Dbtup::drop_fragment_unmap_pages(Signal *signal, TablerecPtr tabPtr,
+                                      FragrecordPtr fragPtr, Uint32 pos) {
+  if (tabPtr.p->m_no_of_disk_attributes) {
     jam();
-    Disk_alloc_info& alloc_info= fragPtr.p->m_disk_alloc_info;
+    Disk_alloc_info &alloc_info = fragPtr.p->m_disk_alloc_info;
 
-    if (!alloc_info.m_unmap_pages.isEmpty())
-    {
+    if (!alloc_info.m_unmap_pages.isEmpty()) {
       jam();
       signal->theData[0] = ZUNMAP_PAGES;
       signal->theData[1] = tabPtr.i;
       signal->theData[2] = fragPtr.p->fragmentId;
       signal->theData[3] = pos;
-      sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);  
+      sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);
       return;
     }
-    while(alloc_info.m_dirty_pages[pos].isEmpty() &&
+    while (alloc_info.m_dirty_pages[pos].isEmpty() &&
           pos < EXTENT_SEARCH_MATRIX_COLS)
       pos++;
-    
-    if (pos == EXTENT_SEARCH_MATRIX_COLS)
-    {
+
+    if (pos == EXTENT_SEARCH_MATRIX_COLS) {
       jam();
-      if(alloc_info.m_curr_extent_info_ptr_i != RNIL)
-      {
+      if (alloc_info.m_curr_extent_info_ptr_i != RNIL) {
         jam();
-	Local_extent_info_list
-	  list(c_extent_pool, alloc_info.m_free_extents[0]);
-	Ptr<Extent_info> ext_ptr;
-        ndbrequire(c_extent_pool.getPtr(ext_ptr, alloc_info.m_curr_extent_info_ptr_i));
+        Local_extent_info_list list(c_extent_pool,
+                                    alloc_info.m_free_extents[0]);
+        Ptr<Extent_info> ext_ptr;
+        ndbrequire(
+            c_extent_pool.getPtr(ext_ptr, alloc_info.m_curr_extent_info_ptr_i));
         list.addFirst(ext_ptr);
-	alloc_info.m_curr_extent_info_ptr_i= RNIL;
+        alloc_info.m_curr_extent_info_ptr_i = RNIL;
       }
-      
+
       drop_fragment_free_extent(signal, tabPtr, fragPtr, 0);
       return;
     }
-    
+
     Ptr<Page> pagePtr;
-    Page_pool *pool= (Page_pool*)&m_global_page_pool;
+    Page_pool *pool = (Page_pool *)&m_global_page_pool;
     jam();
     {
       Local_Page_list list(*pool, alloc_info.m_dirty_pages[pos]);
       list.first(pagePtr);
       list.remove(pagePtr);
     }
-    
+
     Page_cache_client::Request req;
     req.m_page.m_page_no = pagePtr.p->m_page_no;
     req.m_page.m_file_no = pagePtr.p->m_file_no;
     req.m_table_id = fragPtr.p->fragTableId;
     req.m_fragment_id = fragPtr.p->fragmentId;
-    
-    req.m_callback.m_callbackData= pos;
-    req.m_callback.m_callbackFunction = 
-      safe_cast(&Dbtup::drop_fragment_unmap_page_callback);
-    
-    int flags= Page_cache_client::COMMIT_REQ;
+
+    req.m_callback.m_callbackData = pos;
+    req.m_callback.m_callbackFunction =
+        safe_cast(&Dbtup::drop_fragment_unmap_page_callback);
+
+    int flags = Page_cache_client::COMMIT_REQ;
     Page_cache_client pgman(this, c_pgman);
-    int res= pgman.get_page(signal, req, flags);
+    int res = pgman.get_page(signal, req, flags);
     jamEntry();
-    switch(res)
-    {
-    case 0:
-      jam();
-      break;
-    case -1:
-      jam();
-      break;
-    default:
-      jam();
-      ndbrequire((Uint32)res == pagePtr.i);
-      drop_fragment_unmap_page_callback(signal, pos, res);
+    switch (res) {
+      case 0:
+        jam();
+        break;
+      case -1:
+        jam();
+        break;
+      default:
+        jam();
+        ndbrequire((Uint32)res == pagePtr.i);
+        drop_fragment_unmap_page_callback(signal, pos, res);
     }
     return;
   }
-  drop_fragment_free_extent(signal, tabPtr, fragPtr, 0);  
+  drop_fragment_free_extent(signal, tabPtr, fragPtr, 0);
 }
 
-void
-Dbtup::drop_fragment_unmap_page_callback(Signal* signal, 
-					 Uint32 pos, Uint32 page_id)
-{
+void Dbtup::drop_fragment_unmap_page_callback(Signal *signal, Uint32 pos,
+                                              Uint32 page_id) {
   jam();
   Ptr<GlobalPage> page;
   ndbrequire(m_global_page_pool.getPtr(page, page_id));
-  
-  Local_key key;
-  key.m_page_no = ((Page*)page.p)->m_page_no;
-  key.m_file_no = ((Page*)page.p)->m_file_no;
 
-  Uint32 fragId = ((Page*)page.p)->m_fragment_id;
-  Uint32 tableId = ((Page*)page.p)->m_table_id;
+  Local_key key;
+  key.m_page_no = ((Page *)page.p)->m_page_no;
+  key.m_file_no = ((Page *)page.p)->m_file_no;
+
+  Uint32 fragId = ((Page *)page.p)->m_fragment_id;
+  Uint32 tableId = ((Page *)page.p)->m_table_id;
   Page_cache_client pgman(this, c_pgman);
   pgman.drop_page(key, page_id);
   jamEntry();
@@ -2528,80 +2804,80 @@ Dbtup::drop_fragment_unmap_page_callback(Signal* signal,
   FragrecordPtr fragPtr;
   getFragmentrec(fragPtr, fragId, tableId);
   ndbrequire(fragPtr.i != RNIL64);
-  
+
   signal->theData[0] = ZUNMAP_PAGES;
   signal->theData[1] = tableId;
   signal->theData[2] = fragPtr.p->fragmentId;
   signal->theData[3] = pos;
-  sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);  
+  sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);
 }
 
-void
-Dbtup::drop_fragment_free_extent(Signal *signal, 
-				 TablerecPtr tabPtr, 
-				 FragrecordPtr fragPtr,
-				 Uint32 pos)
-{
-  if (tabPtr.p->m_no_of_disk_attributes)
-  {
+void Dbtup::drop_fragment_free_extent(Signal *signal, TablerecPtr tabPtr,
+                                      FragrecordPtr fragPtr, Uint32 pos) {
+  if (tabPtr.p->m_no_of_disk_attributes) {
     jam();
-    Disk_alloc_info& alloc_info= fragPtr.p->m_disk_alloc_info;
-    for(; pos<EXTENT_SEARCH_MATRIX_SIZE; pos++)
-    {
+    Disk_alloc_info &alloc_info = fragPtr.p->m_disk_alloc_info;
+    for (; pos < EXTENT_SEARCH_MATRIX_SIZE; pos++) {
       jam();
-      if(!alloc_info.m_free_extents[pos].isEmpty())
-      {
-	jam();
+      if (!alloc_info.m_free_extents[pos].isEmpty()) {
+        jam();
         drop_fragment_free_extent_log_buffer_continue(signal,
                                                       tabPtr,
                                                       fragPtr);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
 	return;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	
+	return;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+        return;
       }
     }
-    
-    for(pos= 0; pos < EXTENT_SEARCH_MATRIX_COLS; pos++)
-    {
+
+    for (pos = 0; pos < EXTENT_SEARCH_MATRIX_COLS; pos++) {
       jam();
       ndbrequire(alloc_info.m_page_requests[pos].isEmpty());
-      alloc_info.m_dirty_pages[pos].init(); // Clear dirty page list head
+      alloc_info.m_dirty_pages[pos].init();  // Clear dirty page list head
     }
   }
-  
+
   signal->theData[0] = ZFREE_VAR_PAGES;
   signal->theData[1] = tabPtr.i;
   signal->theData[2] = fragPtr.p->fragmentId;
-  sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);  
+  sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
 }
 
-void
-Dbtup::drop_table_log_buffer_callback(Signal* signal, Uint32 tablePtrI,
-				      Uint32 logfile_group_id)
-{
+void Dbtup::drop_table_log_buffer_callback(Signal *signal, Uint32 tablePtrI,
+                                           Uint32 logfile_group_id) {
   ndbrequire(logfile_group_id != 0);
   TablerecPtr tabPtr;
   tabPtr.i = tablePtrI;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-  
+
   ndbrequire(tabPtr.p->m_no_of_disk_attributes);
 
   Disk_undo::Drop drop;
   drop.m_table = tabPtr.i;
   Uint32 sz = sizeof(drop) >> 2;
-  drop.m_type_length = 
-    (Disk_undo::UNDO_DROP << 16) | sz;
+  drop.m_type_length = (Disk_undo::UNDO_DROP << 16) | sz;
   D("Logfile_client - drop_table_log_buffer_callback");
   {
     Logfile_client lgman(this, c_lgman, logfile_group_id);
-  
-    Logfile_client::Change c[1] = {{ &drop, sizeof(drop) >> 2 } };
+
+    Logfile_client::Change c[1] = {{&drop, sizeof(drop) >> 2}};
 #ifdef DEBUG_TUP_META
     Uint64 lsn =
 #endif
-      lgman.add_entry_simple(c, 1, sz);
+        lgman.add_entry_simple(c, 1, sz);
     jamEntry();
 
-    DEB_TUP_META(("Add UNDO_TUP_DROP in lsn: %llu for tab: %u",
-                  lsn, tabPtr.i));
+    DEB_TUP_META(("Add UNDO_TUP_DROP in lsn: %llu for tab: %u", lsn, tabPtr.i));
 
     /**
      * Normally we would eventually want a sync_lsn for this log entry
@@ -2631,23 +2907,20 @@ Dbtup::drop_table_log_buffer_callback(Signal* signal, Uint32 tablePtrI,
   drop_table_logsync_callback(signal, tabPtr.i, logfile_group_id);
 }
 
-void
-Dbtup::drop_table_logsync_callback(Signal* signal, 
-				   Uint32 tabPtrI, 
-				   Uint32 logfile_group_id)
-{
+void Dbtup::drop_table_logsync_callback(Signal *signal, Uint32 tabPtrI,
+                                        Uint32 logfile_group_id) {
   jam();
   TablerecPtr tabPtr;
   tabPtr.i = tabPtrI;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-  
-  DropTabConf * const dropConf= (DropTabConf *)signal->getDataPtrSend();
-  dropConf->senderRef= reference();
-  dropConf->senderData= tabPtr.p->m_dropTable.tabUserPtr;
-  dropConf->tableId= tabPtr.i;
-  sendSignal(tabPtr.p->m_dropTable.tabUserRef, GSN_DROP_TAB_CONF,
-             signal, DropTabConf::SignalLength, JBB);
-  
+
+  DropTabConf *const dropConf = (DropTabConf *)signal->getDataPtrSend();
+  dropConf->senderRef = reference();
+  dropConf->senderData = tabPtr.p->m_dropTable.tabUserPtr;
+  dropConf->tableId = tabPtr.i;
+  sendSignal(tabPtr.p->m_dropTable.tabUserRef, GSN_DROP_TAB_CONF, signal,
+             DropTabConf::SignalLength, JBB);
+
   releaseTabDescr(tabPtr.p);
   free_var_part(DefaultValuesFragment.p,
                 tabPtr.p,
@@ -2656,71 +2929,64 @@ Dbtup::drop_table_logsync_callback(Signal* signal,
   initTab(tabPtr.p);
 }
 
-void
-Dbtup::drop_fragment_free_extent_log_buffer_continue(Signal* signal,
+void Dbtup::drop_fragment_free_extent_log_buffer_continue(Signal *signal,
                                                      TablerecPtr tabPtr,
                                                      FragrecordPtr fragPtr)
 {
   jam();
   ndbrequire(tabPtr.p->m_no_of_disk_attributes);
-  Disk_alloc_info& alloc_info= fragPtr.p->m_disk_alloc_info;  
+  Disk_alloc_info &alloc_info = fragPtr.p->m_disk_alloc_info;
 
-  for(Uint32 pos = 0; pos<EXTENT_SEARCH_MATRIX_SIZE; pos++)
-  {
+  for (Uint32 pos = 0; pos < EXTENT_SEARCH_MATRIX_SIZE; pos++) {
     jam();
-    if(!alloc_info.m_free_extents[pos].isEmpty())
-    {
+    if (!alloc_info.m_free_extents[pos].isEmpty()) {
       jam();
-      Local_extent_info_list
-	list(c_extent_pool, alloc_info.m_free_extents[pos]);
+      Local_extent_info_list list(c_extent_pool,
+                                  alloc_info.m_free_extents[pos]);
       Ptr<Extent_info> ext_ptr;
       list.first(ext_ptr);
 
       Uint64 lsn = 0;
       D("Tablespace_client - drop_fragment_free_extent_log_buffer_callback");
-      Tablespace_client tsman(signal, this, c_tsman, tabPtr.i, 
-			      fragPtr.p->fragmentId,
-                              c_lqh->getCreateSchemaVersion(tabPtr.i),
-			      fragPtr.p->m_tablespace_id);
-      
+      Tablespace_client tsman(
+          signal, this, c_tsman, tabPtr.i, fragPtr.p->fragmentId,
+          c_lqh->getCreateSchemaVersion(tabPtr.i), fragPtr.p->m_tablespace_id);
+
       tsman.free_extent(&ext_ptr.p->m_key, lsn);
       jamEntry();
       c_extent_hash.remove(ext_ptr);
       list.release(ext_ptr);
-      
+
       signal->theData[0] = ZFREE_EXTENT;
       signal->theData[1] = tabPtr.i;
       signal->theData[2] = fragPtr.p->fragmentId;
       signal->theData[3] = pos;
-      sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);  
+      sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);
       return;
     }
   }
   ndbabort();
 }
 
-void
-Dbtup::drop_fragment_free_var_pages(Signal* signal,
+void Dbtup::drop_fragment_free_var_pages(Signal *signal,
                                     TablerecPtr tabPtr,
                                     FragrecordPtr fragPtr)
 {
   jam();
   PagePtr pagePtr;
-  for (Uint32 i = 0; i<MAX_FREE_LIST+1; i++)
-  {
+  for (Uint32 i = 0; i < MAX_FREE_LIST + 1; i++) {
     jam();
-    if (! fragPtr.p->free_var_page_array[i].isEmpty())
-    {
+    if (!fragPtr.p->free_var_page_array[i].isEmpty()) {
       jam();
       Local_Page_list list(c_page_pool, fragPtr.p->free_var_page_array[i]);
       ndbrequire(list.first(pagePtr));
       list.remove(pagePtr);
       returnCommonArea(pagePtr.i, 1);
-    
+
       signal->theData[0] = ZFREE_VAR_PAGES;
       signal->theData[1] = tabPtr.i;
       signal->theData[2] = fragPtr.p->fragmentId;
-      sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);  
+      sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);
       return;
     }
   }
@@ -2731,70 +2997,64 @@ Dbtup::drop_fragment_free_var_pages(Signal* signal,
   signal->theData[0] = ZFREE_PAGES;
   signal->theData[1] = tabPtr.i;
   signal->theData[2] = fragPtr.p->fragmentId;
-  memcpy(signal->theData+3, &iter, sizeof(iter));
-  sendSignal(reference(), GSN_CONTINUEB, signal, 3 + sizeof(iter)/4, JBB);
+  memcpy(signal->theData + 3, &iter, sizeof(iter));
+  sendSignal(reference(), GSN_CONTINUEB, signal, 3 + sizeof(iter) / 4, JBB);
 }
 
-void
-Dbtup::drop_fragment_free_pages(Signal* signal,
+void Dbtup::drop_fragment_free_pages(Signal *signal,
                                 TablerecPtr tabPtr,
                                 FragrecordPtr fragPtr)
 {
   jam();
   Uint32 i;
   DynArr256::ReleaseIterator iter;
-  memcpy(&iter, signal->theData+3, sizeof(iter));
+  memcpy(&iter, signal->theData + 3, sizeof(iter));
   DynArr256 map(c_page_map_pool_ptr, fragPtr.p->m_page_map);
   Uint32 realpid;
-  for (i = 0; i<16; i++)
-  {
-    switch(map.release(iter, &realpid)){
-    case 0:
-      jam();
-      goto done;
-    case 1:
-      if (realpid != RNIL && ((realpid & FREE_PAGE_BIT) == 0))
-      {
+  for (i = 0; i < 16; i++) {
+    switch (map.release(iter, &realpid)) {
+      case 0:
         jam();
-        /**
-         * Both words in fragment page map can still have bit 30
-         * set even for allocated pages to indicate the states
-         * for lcp already scanned and state of page at last
-         * LCP.
-         */
-        realpid &= PAGE_BIT_MASK;
-        returnCommonArea(realpid, 1);
-      }
-      jam();
-      break;
-    case 2:
-      jam();
-      break;
+        goto done;
+      case 1:
+        if (realpid != RNIL && ((realpid & FREE_PAGE_BIT) == 0)) {
+          jam();
+          /**
+           * Both words in fragment page map can still have bit 30
+           * set even for allocated pages to indicate the states
+           * for lcp already scanned and state of page at last
+           * LCP.
+           */
+          realpid &= PAGE_BIT_MASK;
+          returnCommonArea(realpid, 1);
+        }
+        jam();
+        break;
+      case 2:
+        jam();
+        break;
     }
   }
-  
+
   signal->theData[0] = ZFREE_PAGES;
   signal->theData[1] = tabPtr.i;
   signal->theData[2] = fragPtr.p->fragmentId;
-  memcpy(signal->theData+3, &iter, sizeof(iter));
-  sendSignal(reference(), GSN_CONTINUEB, signal, 3 + sizeof(iter)/4, JBB);
+  memcpy(signal->theData + 3, &iter, sizeof(iter));
+  sendSignal(reference(), GSN_CONTINUEB, signal, 3 + sizeof(iter) / 4, JBB);
   return;
 
 done:
-  for (i = 0; i<MAX_FREE_LIST+1; i++)
-  {
+  for (i = 0; i < MAX_FREE_LIST + 1; i++) {
     ndbassert(fragPtr.p->free_var_page_array[i].isEmpty());
   }
-  
-  fragPtr.p->thFreeFirst.init(); // Clear free list head
-  
+
+  fragPtr.p->thFreeFirst.init();  // Clear free list head
+
   /**
    * Finish
    */
-  DEB_DISK(("(%u)Drop table(%u) done, pg_count: %u",
-             instance(),
-             tabPtr.i,
-             c_page_map_pool_ptr->m_pg_count));
+  DEB_DISK(("(%u)Drop table(%u) done, pg_count: %u", instance(), tabPtr.i,
+            c_page_map_pool_ptr->m_pg_count));
   /**
    * Remove LCP's for fragment
    */
@@ -2802,22 +3062,17 @@ done:
   drop_fragment_fsremove_init(signal, tabPtr, fragPtr);
 }
 
-void
-Dbtup::drop_fragment_fsremove_done(Signal* signal,
-                                   TablerecPtr tabPtr,
-                                   FragrecordPtr fragPtr)
-{
+void Dbtup::drop_fragment_fsremove_done(Signal *signal, TablerecPtr tabPtr,
+                                        FragrecordPtr fragPtr) {
   jam();
-  DEB_TUP_META(("(%u)Done drop fragment: tab(%u,%u)",
-               instance(),
-               fragPtr.p->fragTableId,
-               fragPtr.p->fragmentId));
+  DEB_TUP_META(("(%u)Done drop fragment: tab(%u,%u)", instance(),
+                fragPtr.p->fragTableId, fragPtr.p->fragmentId));
 
   /**
    * LCP's removed...
    *   now continue with "next"
    */
-  Uint32 logfile_group_id = fragPtr.p->m_logfile_group_id ;
+  Uint32 logfile_group_id = fragPtr.p->m_logfile_group_id;
 
   remove_frag_from_tab(tabPtr, fragPtr.p->fragmentId);
   releaseFragrec(fragPtr);
@@ -2826,23 +3081,20 @@ Dbtup::drop_fragment_fsremove_done(Signal* signal,
     pgman.drop_fragment(tabPtr.i, fragPtr.p->fragmentId);
   }
   jam();
-  if (tabPtr.p->tableStatus == DROPPING)
-  {
+  if (tabPtr.p->tableStatus == DROPPING) {
     jam();
-    signal->theData[0]= ZREL_FRAG;
-    signal->theData[1]= tabPtr.i;
-    signal->theData[2]= logfile_group_id;
+    signal->theData[0] = ZREL_FRAG;
+    signal->theData[1] = tabPtr.i;
+    signal->theData[2] = logfile_group_id;
     sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);
-  }
-  else
-  {
+  } else {
     jam();
-    DropFragConf* conf = (DropFragConf*)signal->getDataPtrSend();
+    DropFragConf *conf = (DropFragConf *)signal->getDataPtrSend();
     conf->senderRef = reference();
     conf->senderData = tabPtr.p->m_dropTable.tabUserPtr;
     conf->tableId = tabPtr.i;
-    sendSignal(tabPtr.p->m_dropTable.tabUserRef, GSN_DROP_FRAG_CONF,
-               signal, DropFragConf::SignalLength, JBB);
+    sendSignal(tabPtr.p->m_dropTable.tabUserRef, GSN_DROP_FRAG_CONF, signal,
+               DropFragConf::SignalLength, JBB);
     return;
   }
 }
@@ -2860,37 +3112,24 @@ Dbtup::drop_fragment_fsremove_done(Signal* signal,
  * files to gather the information about which files are needed to
  * actually delete.
  */
-void
-Dbtup::drop_fragment_fsremove_init(Signal *signal,
-                                   TablerecPtr tabPtr,
-                                   FragrecordPtr fragPtr)
-{
+void Dbtup::drop_fragment_fsremove_init(Signal *signal, TablerecPtr tabPtr,
+                                        FragrecordPtr fragPtr) {
   jam();
   tabPtr.p->m_dropTable.m_lcpno = 0;
   tabPtr.p->m_dropTable.m_firstFileId = ZNIL;
   tabPtr.p->m_dropTable.m_lastFileId = 0;
   tabPtr.p->m_dropTable.m_numDataFiles = 0;
 
-  DEB_TUP_META(("(%u)Start drop fragment: tab(%u,%u)",
-               instance(),
-               fragPtr.p->fragTableId,
-               fragPtr.p->fragmentId));
+  DEB_TUP_META(("(%u)Start drop fragment: tab(%u,%u)", instance(),
+                fragPtr.p->fragTableId, fragPtr.p->fragmentId));
 
-  lcp_open_ctl_file(signal,
-                    tabPtr.i,
-                    fragPtr.p->fragTableId,
-                    fragPtr.p->fragmentId,
-                    0);
+  lcp_open_ctl_file(signal, tabPtr.i, fragPtr.p->fragTableId,
+                    fragPtr.p->fragmentId, 0);
 }
 
-void
-Dbtup::lcp_open_ctl_file(Signal *signal,
-                         Uint32 tabPtrI,
-                         Uint32 tableId,
-                         Uint32 fragmentId,
-                         Uint32 ctl_file)
-{
-  FsOpenReq *req = (FsOpenReq*)signal->getDataPtrSend();
+void Dbtup::lcp_open_ctl_file(Signal *signal, Uint32 tabPtrI, Uint32 tableId,
+                              Uint32 fragmentId, Uint32 ctl_file) {
+  FsOpenReq *req = (FsOpenReq *)signal->getDataPtrSend();
   req->userReference = reference();
   req->fileFlags = FsOpenReq::OM_READONLY;
   FsOpenReq::v2_setCount(req->fileNumber, 0xFFFFFFFF);
@@ -2907,12 +3146,10 @@ Dbtup::lcp_open_ctl_file(Signal *signal,
   sendSignal(NDBFS_REF, GSN_FSOPENREQ, signal, FsOpenReq::SignalLength, JBA);
 }
 
-void
-Dbtup::execFSOPENREF(Signal *signal)
-{
+void Dbtup::execFSOPENREF(Signal *signal) {
   jamEntry();
-  FsRef *ref = (FsRef*)signal->getDataPtr();
-  TablerecPtr tabPtr; 
+  FsRef *ref = (FsRef *)signal->getDataPtr();
+  TablerecPtr tabPtr;
   FragrecordPtr fragPtr;
 
   tabPtr.i = ref->userPointer;
@@ -2920,24 +3157,18 @@ Dbtup::execFSOPENREF(Signal *signal)
   fragPtr.i = tabPtr.p->m_dropTable.m_fragPtrI;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
 
-  if (tabPtr.p->m_dropTable.m_lcpno == 0)
-  {
+  if (tabPtr.p->m_dropTable.m_lcpno == 0) {
     jam();
     tabPtr.p->m_dropTable.m_lcpno = 1;
-    lcp_open_ctl_file(signal,
-                      tabPtr.i,
-                      fragPtr.p->fragTableId,
-                      fragPtr.p->fragmentId,
-                      1);
+    lcp_open_ctl_file(signal, tabPtr.i, fragPtr.p->fragTableId,
+                      fragPtr.p->fragmentId, 1);
     return;
   }
   lcp_read_completed(signal, tabPtr, fragPtr);
 }
 
-void
-Dbtup::execFSOPENCONF(Signal *signal)
-{
-  FsConf *conf = (FsConf*)signal->getDataPtr();
+void Dbtup::execFSOPENCONF(Signal *signal) {
+  FsConf *conf = (FsConf *)signal->getDataPtr();
   jamEntry();
   TablerecPtr tabPtr;
   FragrecordPtr fragPtr;
@@ -2948,23 +3179,14 @@ Dbtup::execFSOPENCONF(Signal *signal)
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
   tabPtr.p->m_dropTable.m_filePointer = conf->filePointer;
 
-  lcp_read_ctl_file(signal,
-                    tabPtr.i,
-                    conf->filePointer,
-                    fragPtr.p->fragTableId,
-                    fragPtr.p->fragmentId,
-                    tabPtr.p->m_dropTable.m_lcpno);
+  lcp_read_ctl_file(signal, tabPtr.i, conf->filePointer, fragPtr.p->fragTableId,
+                    fragPtr.p->fragmentId, tabPtr.p->m_dropTable.m_lcpno);
 }
 
-void
-Dbtup::lcp_read_ctl_file(Signal *signal,
-                         Uint32 tabPtrI,
-                         Uint32 filePointer,
-                         Uint32 tableId,
-                         Uint32 fragmentId,
-                         Uint32 ctl_file)
-{
-  FsReadWriteReq *req = (FsReadWriteReq*)signal->getDataPtrSend();
+void Dbtup::lcp_read_ctl_file(Signal *signal, Uint32 tabPtrI,
+                              Uint32 filePointer, Uint32 tableId,
+                              Uint32 fragmentId, Uint32 ctl_file) {
+  FsReadWriteReq *req = (FsReadWriteReq *)signal->getDataPtrSend();
   req->userPointer = tabPtrI;
   req->filePointer = filePointer;
   req->userReference = reference();
@@ -2977,22 +3199,18 @@ Dbtup::lcp_read_ctl_file(Signal *signal,
   req->data.memoryAddress.memoryOffset = 0;
   req->data.memoryAddress.fileOffset = 0;
   req->data.memoryAddress.size = BackupFormat::NDB_LCP_CTL_FILE_SIZE_BIG;
-  sendSignal(NDBFS_REF, GSN_FSREADREQ, signal,
-             FsReadWriteReq::FixedLength + 3, JBA);
+  sendSignal(NDBFS_REF, GSN_FSREADREQ, signal, FsReadWriteReq::FixedLength + 3,
+             JBA);
 }
 
-void
-Dbtup::execFSREADREF(Signal *signal)
-{
+void Dbtup::execFSREADREF(Signal *signal) {
   jamEntry();
   ndbabort();
 }
 
-void
-Dbtup::execFSREADCONF(Signal *signal)
-{
+void Dbtup::execFSREADCONF(Signal *signal) {
   jamEntry();
-  FsConf *conf = (FsConf*)signal->getDataPtr();
+  FsConf *conf = (FsConf *)signal->getDataPtr();
   TablerecPtr tabPtr;
   FragrecordPtr fragPtr;
 
@@ -3002,67 +3220,49 @@ Dbtup::execFSREADCONF(Signal *signal)
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
 
   const Uint32 bytesRead = conf->bytes_read;
-  if (bytesRead != 0)
-  {
+  if (bytesRead != 0) {
     jam();
-    if (handle_ctl_info(tabPtr, fragPtr, bytesRead))
-    {
+    if (handle_ctl_info(tabPtr, fragPtr, bytesRead)) {
       jam();
-      DEB_DROP_TAB(("(%u) handle_ctl_info failed, drop all tab(%u,%u)"
-                    ", ctl: %u",
-                    instance(),
-                    fragPtr.p->fragTableId,
-                    fragPtr.p->fragmentId,
-                    tabPtr.p->m_dropTable.m_lcpno));
+      DEB_DROP_TAB(
+          ("(%u) handle_ctl_info failed, drop all tab(%u,%u)"
+           ", ctl: %u",
+           instance(), fragPtr.p->fragTableId, fragPtr.p->fragmentId,
+           tabPtr.p->m_dropTable.m_lcpno));
       ndbassert(false);
       tabPtr.p->m_dropTable.m_firstFileId = 0;
-      tabPtr.p->m_dropTable.m_numDataFiles =
-        BackupFormat::NDB_MAX_LCP_FILES;
-      tabPtr.p->m_dropTable.m_lastFileId =
-        BackupFormat::NDB_MAX_LCP_FILES - 1;
+      tabPtr.p->m_dropTable.m_numDataFiles = BackupFormat::NDB_MAX_LCP_FILES;
+      tabPtr.p->m_dropTable.m_lastFileId = BackupFormat::NDB_MAX_LCP_FILES - 1;
       tabPtr.p->m_dropTable.m_lcpno = 1;
-    }
-    else
-    {
-      DEB_DROP_TAB(("(%u) handle_ctl_info succeeded, drop all tab(%u,%u),"
-                    " ctl: %u",
-                    instance(),
-                    fragPtr.p->fragTableId,
-                    fragPtr.p->fragmentId,
-                    tabPtr.p->m_dropTable.m_lcpno));
+    } else {
+      DEB_DROP_TAB(
+          ("(%u) handle_ctl_info succeeded, drop all tab(%u,%u),"
+           " ctl: %u",
+           instance(), fragPtr.p->fragTableId, fragPtr.p->fragmentId,
+           tabPtr.p->m_dropTable.m_lcpno));
     }
   }
-  lcp_close_ctl_file(signal,
-                     tabPtr.i,
-                     tabPtr.p->m_dropTable.m_filePointer);
+  lcp_close_ctl_file(signal, tabPtr.i, tabPtr.p->m_dropTable.m_filePointer);
 }
 
-void
-Dbtup::lcp_close_ctl_file(Signal *signal,
-                          Uint32 tabPtrI,
-                          Uint32 filePointer)
-{
-  FsCloseReq *req = (FsCloseReq*)signal->getDataPtrSend();
+void Dbtup::lcp_close_ctl_file(Signal *signal, Uint32 tabPtrI,
+                               Uint32 filePointer) {
+  FsCloseReq *req = (FsCloseReq *)signal->getDataPtrSend();
   req->userPointer = tabPtrI;
   req->userReference = reference();
   req->filePointer = filePointer;
   req->fileFlag = 0;
-  sendSignal(NDBFS_REF, GSN_FSCLOSEREQ, signal,
-             FsCloseReq::SignalLength, JBA);
+  sendSignal(NDBFS_REF, GSN_FSCLOSEREQ, signal, FsCloseReq::SignalLength, JBA);
 }
 
-void
-Dbtup::execFSCLOSEREF(Signal *signal)
-{
+void Dbtup::execFSCLOSEREF(Signal *signal) {
   jamEntry();
   ndbabort();
 }
 
-void
-Dbtup::execFSCLOSECONF(Signal *signal)
-{
+void Dbtup::execFSCLOSECONF(Signal *signal) {
   jamEntry();
-  FsConf *conf = (FsConf*)signal->getDataPtr();
+  FsConf *conf = (FsConf *)signal->getDataPtr();
   TablerecPtr tabPtr;
   FragrecordPtr fragPtr;
 
@@ -3071,97 +3271,73 @@ Dbtup::execFSCLOSECONF(Signal *signal)
   fragPtr.i = tabPtr.p->m_dropTable.m_fragPtrI;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
 
-  if (tabPtr.p->m_dropTable.m_lcpno == 0)
-  {
+  if (tabPtr.p->m_dropTable.m_lcpno == 0) {
     jam();
     tabPtr.p->m_dropTable.m_lcpno = 1;
-    lcp_open_ctl_file(signal,
-                      tabPtr.i,
-                      fragPtr.p->fragTableId,
-                      fragPtr.p->fragmentId,
-                      1);
+    lcp_open_ctl_file(signal, tabPtr.i, fragPtr.p->fragTableId,
+                      fragPtr.p->fragmentId, 1);
     return;
   }
   lcp_read_completed(signal, tabPtr, fragPtr);
 }
 
-bool
-Dbtup::handle_ctl_info(TablerecPtr tabPtr,
-                       FragrecordPtr fragPtr,
-                       Uint32 bytesRead)
-{
+bool Dbtup::handle_ctl_info(TablerecPtr tabPtr, FragrecordPtr fragPtr,
+                            Uint32 bytesRead) {
   jam();
   BackupFormat::LCPCtlFile *lcpCtlFilePtr =
-    (BackupFormat::LCPCtlFile*)&m_read_ctl_file_data[0];
+      (BackupFormat::LCPCtlFile *)&m_read_ctl_file_data[0];
   ndbassert(bytesRead == BackupFormat::NDB_LCP_CTL_FILE_SIZE_SMALL ||
             bytesRead == BackupFormat::NDB_LCP_CTL_FILE_SIZE_BIG);
 #ifdef DEBUG_DROP_TAB
   Uint32 createTableVersion = lcpCtlFilePtr->CreateTableVersion;
-  DEB_DROP_TAB(("(%u)tab(%u,%u)handle_ctl_info table_version: %u",
-                instance(),
-                fragPtr.p->fragTableId,
-                fragPtr.p->fragmentId,
+  DEB_DROP_TAB(("(%u)tab(%u,%u)handle_ctl_info table_version: %u", instance(),
+                fragPtr.p->fragTableId, fragPtr.p->fragmentId,
                 createTableVersion));
 #endif
   if ((bytesRead != BackupFormat::NDB_LCP_CTL_FILE_SIZE_SMALL &&
        bytesRead != BackupFormat::NDB_LCP_CTL_FILE_SIZE_BIG) ||
-      !c_backup->convert_ctl_page_to_host(lcpCtlFilePtr))
-  {
+      !c_backup->convert_ctl_page_to_host(lcpCtlFilePtr)) {
     jam();
     return true;
   }
-  Uint32 lastDataFileNumber =
-    lcpCtlFilePtr->LastDataFileNumber;
+  Uint32 lastDataFileNumber = lcpCtlFilePtr->LastDataFileNumber;
   Uint32 numFiles = lcpCtlFilePtr->NumPartPairs;
-  if (numFiles == 0)
-  {
+  if (numFiles == 0) {
     jam();
     numFiles = 1;
   }
   Uint32 startFileNumber;
-  if (lastDataFileNumber >= (numFiles-1))
-  {
+  if (lastDataFileNumber >= (numFiles - 1)) {
     jam();
     startFileNumber = lastDataFileNumber - (numFiles - 1);
-  }
-  else
-  {
+  } else {
     jam();
     startFileNumber =
-      BackupFormat::NDB_MAX_LCP_FILES + lastDataFileNumber - (numFiles - 1);
+        BackupFormat::NDB_MAX_LCP_FILES + lastDataFileNumber - (numFiles - 1);
   }
-  if (tabPtr.p->m_dropTable.m_firstFileId == ZNIL)
-  {
+  if (tabPtr.p->m_dropTable.m_firstFileId == ZNIL) {
     jam();
     tabPtr.p->m_dropTable.m_firstFileId = startFileNumber;
     tabPtr.p->m_dropTable.m_lastFileId = lastDataFileNumber;
     tabPtr.p->m_dropTable.m_numDataFiles = numFiles;
-  }
-  else
-  {
+  } else {
     Uint32 this_last = lastDataFileNumber;
     Uint32 prev_last = tabPtr.p->m_dropTable.m_lastFileId;
     Uint32 diff;
-    if (prev_last > this_last)
-    {
+    if (prev_last > this_last) {
       jam();
       diff = prev_last - this_last;
-    }
-    else if (prev_last < this_last)
-    {
+    } else if (prev_last < this_last) {
       jam();
       diff = this_last - prev_last;
-    }
-    else
-    {
+    } else {
       /* equal, don't do anything since they should not differ */
       jam();
       return false;
     }
     if (diff > BackupFormat::NDB_MAX_FILES_PER_LCP &&
         diff < (BackupFormat::NDB_MAX_LCP_FILES -
-                BackupFormat::NDB_MAX_FILES_PER_LCP))
-    {
+                BackupFormat::NDB_MAX_FILES_PER_LCP)) {
       /**
        * Should not happen that they are more than 8 files apart.
        */
@@ -3169,31 +3345,25 @@ Dbtup::handle_ctl_info(TablerecPtr tabPtr,
       return true;
     }
     Uint32 last;
-    if (diff <= BackupFormat::NDB_MAX_FILES_PER_LCP)
-    {
+    if (diff <= BackupFormat::NDB_MAX_FILES_PER_LCP) {
       /* The larger is the last */
       jam();
       last = MAX(this_last, prev_last);
-    }
-    else
-    {
+    } else {
       /* The smaller is the last */
       jam();
       last = MIN(this_last, prev_last);
       diff = BackupFormat::NDB_MAX_FILES_PER_LCP - diff;
     }
     tabPtr.p->m_dropTable.m_numDataFiles += diff;
-    if (last == tabPtr.p->m_dropTable.m_lastFileId)
-    {
+    if (last == tabPtr.p->m_dropTable.m_lastFileId) {
       jam();
       /**
        * The last file is the same, so the new one needs to set the start
        * file number, but we need not set the last file number.
        */
       tabPtr.p->m_dropTable.m_firstFileId = startFileNumber;
-    }
-    else
-    {
+    } else {
       jam();
       /**
        * The last file is the new one, so the new one needs not set the start
@@ -3205,13 +3375,9 @@ Dbtup::handle_ctl_info(TablerecPtr tabPtr,
   return false;
 }
 
-void
-Dbtup::lcp_read_completed(Signal *signal,
-                          TablerecPtr tabPtr,
-                          FragrecordPtr fragPtr)
-{
-  if (tabPtr.p->m_dropTable.m_firstFileId == ZNIL)
-  {
+void Dbtup::lcp_read_completed(Signal *signal, TablerecPtr tabPtr,
+                               FragrecordPtr fragPtr) {
+  if (tabPtr.p->m_dropTable.m_firstFileId == ZNIL) {
     jam();
     tabPtr.p->m_dropTable.m_firstFileId = 0;
     tabPtr.p->m_dropTable.m_lastFileId = 0;
@@ -3227,32 +3393,24 @@ Dbtup::lcp_read_completed(Signal *signal,
   ndbrequire(tabPtr.p->m_dropTable.m_numDataFiles <=
              BackupFormat::NDB_MAX_LCP_FILES);
   ndbrequire(tabPtr.p->m_dropTable.m_numDataFiles > 0);
-  DEB_TUP_META(("(%u)Prepared drop fragment: tab(%u,%u)"
-                " firstFileId: %u, lastFileId: %u, numDataFiles: %u",
-               instance(),
-               fragPtr.p->fragTableId,
-               fragPtr.p->fragmentId,
-               tabPtr.p->m_dropTable.m_firstFileId,
-               tabPtr.p->m_dropTable.m_lastFileId,
-               tabPtr.p->m_dropTable.m_numDataFiles));
+  DEB_TUP_META(
+      ("(%u)Prepared drop fragment: tab(%u,%u)"
+       " firstFileId: %u, lastFileId: %u, numDataFiles: %u",
+       instance(), fragPtr.p->fragTableId, fragPtr.p->fragmentId,
+       tabPtr.p->m_dropTable.m_firstFileId, tabPtr.p->m_dropTable.m_lastFileId,
+       tabPtr.p->m_dropTable.m_numDataFiles));
 
-  drop_fragment_fsremove(signal,
-                         tabPtr,
-                         fragPtr);
+  drop_fragment_fsremove(signal, tabPtr, fragPtr);
 }
 
-void
-Dbtup::drop_fragment_fsremove(Signal* signal, 
-                              TablerecPtr tabPtr, 
-                              FragrecordPtr fragPtr)
-{
+void Dbtup::drop_fragment_fsremove(Signal *signal, TablerecPtr tabPtr,
+                                   FragrecordPtr fragPtr) {
   jam();
   Uint32 loop_count;
   Uint32 lcpno;
   Uint32 file_type = tabPtr.p->m_dropTable.m_file_type;
 
-  if (file_type == 0 || file_type == 1)
-  {
+  if (file_type == 0 || file_type == 1) {
     jam();
     lcpno = tabPtr.p->m_dropTable.m_firstFileId;
     loop_count = MIN(8, (BackupFormat::NDB_MAX_LCP_FILES - lcpno));
@@ -3260,23 +3418,18 @@ Dbtup::drop_fragment_fsremove(Signal* signal,
     tabPtr.p->m_dropTable.m_firstFileId += loop_count;
     tabPtr.p->m_dropTable.m_firstFileId %= BackupFormat::NDB_MAX_LCP_FILES;
     tabPtr.p->m_dropTable.m_numDataFiles -= loop_count;
-    if (tabPtr.p->m_dropTable.m_numDataFiles == 0)
-    {
+    if (tabPtr.p->m_dropTable.m_numDataFiles == 0) {
       jam();
       tabPtr.p->m_dropTable.m_file_type++;
       tabPtr.p->m_dropTable.m_numDataFiles =
-        BackupFormat::NDB_MAX_FILES_PER_LCP;
+          BackupFormat::NDB_MAX_FILES_PER_LCP;
     }
-  }
-  else if (file_type == 2)
-  {
+  } else if (file_type == 2) {
     jam();
     lcpno = 0;
     loop_count = 2;
     tabPtr.p->m_dropTable.m_file_type++;
-  }
-  else
-  {
+  } else {
     jam();
     ndbrequire(file_type == 3);
     drop_fragment_fsremove_done(signal, tabPtr, fragPtr);
@@ -3286,44 +3439,35 @@ Dbtup::drop_fragment_fsremove(Signal* signal,
   Uint32 fragId = fragPtr.p->fragmentId;
   Uint32 tableId = fragPtr.p->fragTableId;
 
-  FsRemoveReq* req = (FsRemoveReq*)signal->getDataPtrSend();
+  FsRemoveReq *req = (FsRemoveReq *)signal->getDataPtrSend();
   req->userReference = reference();
   req->userPointer = tabPtr.i;
   req->directory = 0;
   req->ownDirectory = 0;
-  for (Uint32 i = 0; i < loop_count; i++)
-  {
+  for (Uint32 i = 0; i < loop_count; i++) {
     FsOpenReq::setVersion(req->fileNumber, 5);
-    if (file_type == 2)
-    {
+    if (file_type == 2) {
       jam();
       FsOpenReq::setSuffix(req->fileNumber, FsOpenReq::S_CTL);
-      DEB_DROP_TAB(("(%u)Dropping ctl file for tab(%u,%u), ctl: %u",
-                    instance(),
-                    tableId,
-                    fragId,
-                    lcpno));
-    }
-    else
-    {
+      DEB_DROP_TAB(("(%u)Dropping ctl file for tab(%u,%u), ctl: %u", instance(),
+                    tableId, fragId, lcpno));
+    } else {
       jam();
       FsOpenReq::setSuffix(req->fileNumber, FsOpenReq::S_DATA);
     }
     FsOpenReq::v5_setLcpNo(req->fileNumber, lcpno++);
     FsOpenReq::v5_setTableId(req->fileNumber, tableId);
     FsOpenReq::v5_setFragmentId(req->fileNumber, fragId);
-    sendSignal(NDBFS_REF, GSN_FSREMOVEREQ, signal,
-               FsRemoveReq::SignalLength, JBB);
+    sendSignal(NDBFS_REF, GSN_FSREMOVEREQ, signal, FsRemoveReq::SignalLength,
+               JBB);
   }
   tabPtr.p->m_dropTable.m_outstanding_ops = loop_count;
 }
 
-void
-Dbtup::execFSREMOVEREF(Signal* signal)
-{
+void Dbtup::execFSREMOVEREF(Signal *signal) {
   jamEntry();
-  FsRef* ref = (FsRef*)signal->getDataPtr();
-  TablerecPtr tabPtr; 
+  FsRef *ref = (FsRef *)signal->getDataPtr();
+  TablerecPtr tabPtr;
 
   const Uint32 userPointer = ref->userPointer;
   tabPtr.i = userPointer;
@@ -3335,27 +3479,22 @@ Dbtup::execFSREMOVEREF(Signal* signal)
   Uint32 fragId = fragPtr.p->fragmentId;
   Uint32 tableId = fragPtr.p->fragTableId;
 
-  if (tabPtr.p->m_dropTable.m_file_type == 3)
-  {
-    DEB_DROP_TAB(("(%u) Failed to remove ctl file tab(%u,%u)",
-                  instance(),
-                  tableId,
-                  fragId));
+  if (tabPtr.p->m_dropTable.m_file_type == 3) {
+    DEB_DROP_TAB(("(%u) Failed to remove ctl file tab(%u,%u)", instance(),
+                  tableId, fragId));
   }
 #endif
-  FsConf* conf = (FsConf*)signal->getDataPtrSend();
+  FsConf *conf = (FsConf *)signal->getDataPtrSend();
   conf->userPointer = userPointer;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   execFSREMOVECONF(signal);
 }
 
-void
-Dbtup::execFSREMOVECONF(Signal* signal)
-{
+void Dbtup::execFSREMOVECONF(Signal *signal) {
   jamEntry();
-  FsConf* conf = (FsConf*)signal->getDataPtrSend();
-  
-  TablerecPtr tabPtr; 
+  FsConf *conf = (FsConf *)signal->getDataPtrSend();
+
+  TablerecPtr tabPtr;
   FragrecordPtr fragPtr;
 
   tabPtr.i = conf->userPointer;
@@ -3366,115 +3505,95 @@ Dbtup::execFSREMOVECONF(Signal* signal)
 
   ndbrequire(tabPtr.p->m_dropTable.m_outstanding_ops > 0);
   tabPtr.p->m_dropTable.m_outstanding_ops--;
-  if (tabPtr.p->m_dropTable.m_outstanding_ops > 0)
-  {
+  if (tabPtr.p->m_dropTable.m_outstanding_ops > 0) {
     jam();
     return;
   }
-  drop_fragment_fsremove(signal,
-                         tabPtr,
-                         fragPtr);
+  drop_fragment_fsremove(signal, tabPtr, fragPtr);
 }
 
-Uint32
-Dbtup::get_max_lcp_record_size(Uint32 tableId)
-{
+Uint32 Dbtup::get_max_lcp_record_size(Uint32 tableId) {
   TablerecPtr tabPtr;
-  tabPtr.i= tableId;
+  tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
 
-  DEB_TUP_META_EXTRA(("(%u)LCP tab(%u) use total_rec_size = %u",
-                      instance(),
-                      tableId,
-                      tabPtr.p->total_rec_size));
+  DEB_TUP_META_EXTRA(("(%u)LCP tab(%u) use total_rec_size = %u", instance(),
+                      tableId, tabPtr.p->total_rec_size));
 
   return tabPtr.p->total_rec_size;
 }
 // End remove LCP
 
-void
-Dbtup::start_restore_table(Uint32 tableId)
-{
+void Dbtup::start_restore_table(Uint32 tableId) {
   jam();
   TablerecPtr tabPtr;
-  tabPtr.i= tableId;
+  tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
 
   ndbassert(Uint16(tabPtr.p->m_attributes[DD].m_no_of_fixsize << 16) == 0);
   ndbassert(Uint16(tabPtr.p->m_attributes[DD].m_no_of_varsize << 16) == 0);
 
   Uint32 saveAttrCounts =
-    (Uint32(tabPtr.p->m_attributes[DD].m_no_of_fixsize) << 16) |
-    (Uint32(tabPtr.p->m_attributes[DD].m_no_of_varsize) << 0);
+      (Uint32(tabPtr.p->m_attributes[DD].m_no_of_fixsize) << 16) |
+      (Uint32(tabPtr.p->m_attributes[DD].m_no_of_varsize) << 0);
 
   tabPtr.p->m_dropTable.tabUserPtr = saveAttrCounts;
   tabPtr.p->m_dropTable.tabUserRef =
-    (tabPtr.p->m_bits & Tablerec::TR_RowGCI)? 1 : 0;
+      (tabPtr.p->m_bits & Tablerec::TR_RowGCI) ? 1 : 0;
   tabPtr.p->m_createTable.defValLocation = tabPtr.p->m_default_value_location;
 
   Uint32 *tabDesc = tabPtr.p->tabDescriptor;
-  for(Uint32 i= 0; i<tabPtr.p->m_no_of_attributes; i++)
-  {
+  for (Uint32 i = 0; i < tabPtr.p->m_no_of_attributes; i++) {
     jam();
-    Uint32 disk = AttributeDescriptor::getDiskBased(* tabDesc);
-    Uint32 null = AttributeDescriptor::getNullable(* tabDesc);
+    Uint32 disk = AttributeDescriptor::getDiskBased(*tabDesc);
+    Uint32 null = AttributeDescriptor::getNullable(*tabDesc);
 
     ndbrequire(tabPtr.p->notNullAttributeMask.get(i) != null);
-    if (disk)
-    {
+    if (disk) {
       tabPtr.p->notNullAttributeMask.clear(i);
     }
     tabDesc += 2;
   }
-  
-  DEB_DISK(("(%u) start_restore_table Tab(%u) no of disk attr: %u",
-            instance(),
-            tabPtr.i,
-            tabPtr.p->m_no_of_disk_attributes));
+
+  DEB_DISK(("(%u) start_restore_table Tab(%u) no of disk attr: %u", instance(),
+            tabPtr.i, tabPtr.p->m_no_of_disk_attributes));
 
   tabPtr.p->m_no_of_disk_attributes = 0;
   tabPtr.p->m_attributes[DD].m_no_of_fixsize = 0;
   tabPtr.p->m_attributes[DD].m_no_of_varsize = 0;
   /* Avoid LQH trampling GCI restored in raw format */
-  tabPtr.p->m_bits &= ~((Uint16) Tablerec::TR_RowGCI);
+  tabPtr.p->m_bits &= ~((Uint16)Tablerec::TR_RowGCI);
   tabPtr.p->m_default_value_location.setNull();
 }
 
-
-void
-Dbtup::complete_restore_table(Uint32 tableId)
-{
+void Dbtup::complete_restore_table(Uint32 tableId) {
   jam();
   TablerecPtr tabPtr;
-  tabPtr.i= tableId;
+  tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
-  
+
   Uint32 restoreAttrCounts = tabPtr.p->m_dropTable.tabUserPtr;
 
-  tabPtr.p->m_attributes[DD].m_no_of_fixsize= restoreAttrCounts >> 16;
-  tabPtr.p->m_attributes[DD].m_no_of_varsize= restoreAttrCounts & 0xffff;
-  tabPtr.p->m_bits |= ((tabPtr.p->m_dropTable.tabUserRef & 1) ?
-    Tablerec::TR_RowGCI : 0);
+  tabPtr.p->m_attributes[DD].m_no_of_fixsize = restoreAttrCounts >> 16;
+  tabPtr.p->m_attributes[DD].m_no_of_varsize = restoreAttrCounts & 0xffff;
+  tabPtr.p->m_bits |=
+      ((tabPtr.p->m_dropTable.tabUserRef & 1) ? Tablerec::TR_RowGCI : 0);
 
-  tabPtr.p->m_no_of_disk_attributes = 
-    tabPtr.p->m_attributes[DD].m_no_of_fixsize + 
-    tabPtr.p->m_attributes[DD].m_no_of_varsize;
+  tabPtr.p->m_no_of_disk_attributes =
+      tabPtr.p->m_attributes[DD].m_no_of_fixsize +
+      tabPtr.p->m_attributes[DD].m_no_of_varsize;
   tabPtr.p->m_default_value_location = tabPtr.p->m_createTable.defValLocation;
-  
+
   DEB_DISK(("(%u) complete_restore_table Tab(%u) no of disk attr: %u",
-            instance(),
-            tabPtr.i,
-            tabPtr.p->m_no_of_disk_attributes));
+            instance(), tabPtr.i, tabPtr.p->m_no_of_disk_attributes));
 
   Uint32 *tabDesc = tabPtr.p->tabDescriptor;
-  for(Uint32 i= 0; i<tabPtr.p->m_no_of_attributes; i++)
-  {
+  for (Uint32 i = 0; i < tabPtr.p->m_no_of_attributes; i++) {
     jam();
-    Uint32 disk= AttributeDescriptor::getDiskBased(* tabDesc);
-    Uint32 null= AttributeDescriptor::getNullable(* tabDesc);
-    
-    if(disk && !null)
-      tabPtr.p->notNullAttributeMask.set(i);
+    Uint32 disk = AttributeDescriptor::getDiskBased(*tabDesc);
+    Uint32 null = AttributeDescriptor::getNullable(*tabDesc);
+
+    if (disk && !null) tabPtr.p->notNullAttributeMask.set(i);
     
     tabDesc += 2;
   }
@@ -3491,8 +3610,22 @@ Dbtup::complete_restore_fragment(Signal* signal,
                                  Uint32 tableId,
                                  Uint32 fragId)
 {
+<<<<<<< RonDB // RONDB-624 todo
   /**
-   * Rebuild free page list
+   *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void
+Dbtup::complete_restore_fragment(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtup::complete_restore_fragment(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Rebuild free page list
    */
   Ptr<Fragoperrec> fragOpPtr;
   seizeFragoperrec(fragOpPtr);
@@ -3502,31 +3635,191 @@ Dbtup::complete_restore_fragment(Signal* signal,
   fragOpPtr.p->m_restoredLocalLcpId = restoredLocalLcpId;
   fragOpPtr.p->m_maxGciCompleted = maxGciCompleted;
   FragrecordPtr fragPtr;
-  getFragmentrec(fragPtr, fragId, tableId);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                                
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ getFragmentrec(fragPtr, fragId, tableId);
   ndbrequire(fragPtr.i != RNIL64);
   /**
    * Restore will simply restore an LCP, no need to record rows
-   * that was changed as part of this process. However any rows
+   * that was changed as part of this process. However 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+any rows
    * changed by REDO log or other activity will be counted until
    * we start next LCP.
    *
-   * See detailed comment on setting m_lcp_start_gci in
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 senderData,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ * See detailed comment 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+on
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setting
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+senderData,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ m_lcp_start_gci in
    * get_lcp_frag_stats function.
    *
    * maxGciCompleted == 0 indicates that no LCP was found to use
-   * in restore so setting to ~0 to ensure that we will run next
-   * LCP for this fragment and not use the idle LCP optimisation.
+   * in restore so setting to ~0 to ensure 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that we will run next
+   * LCP for this fragment and
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 restoredLocalLcpId,
+           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ not use the idle 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LCP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+optimisation.
+||||||| Common ancestor
+=======
+restoredLocalLcpId,
+>>>>>>> MySQL 8.0.36
    *
-   * We might have records written that have old_gci set up to
+   * We might have records written that have old_gci set 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+up
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+||||||| Common ancestor
+maxGciCompleted,
+=======
+>>>>>>> MySQL 8.0.36
    * maxGciWritten. When these records are changed the first
-   * time we also need to record it as a row change. So we need to
-   * cater for that in the minimum old_gci to trigger an update of
+   * time we also need to record 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+as
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+maxGciCompleted,
+>>>>>>> MySQL 8.0.36
+ a row change. So we need to
+   * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cater
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+for
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+maxGciWritten,
+=======
+>>>>>>> MySQL 8.0.36
+ that in the minimum old_gci to trigger an update of
    * the row change count.
    */
   Uint32 lcp_start_gci;
-  if (maxGciCompleted == 0)
-  {
-    jam();
+  if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(maxGciCompleted
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+maxGciWritten,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0)
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ tableId,
+ {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+||||||| Common ancestor
+tableId,
+=======
+>>>>>>> MySQL 8.0.36
     lcp_start_gci = Uint32(~0);
   }
   else if (maxGciCompleted > maxGciWritten)
@@ -3608,16 +3901,14 @@ Dbtup::get_frag_stats(Uint64 fragPtrI) const
 }
 
 Uint64
-Dbtup::get_restore_row_count(Uint32 tableId, Uint32 fragId)
-{
+Dbtup::get_restore_row_count(Uint32 tableId, Uint32 fragId) {
   FragrecordPtr fragPtr;
   getFragmentrec(fragPtr, fragId, tableId);
   ndbrequire(fragPtr.i != RNIL64);
   return fragPtr.p->m_row_count;
 }
 
-void
-Dbtup::get_frag_memory(Uint64 fragPtrI,
+void Dbtup::get_frag_memory(Uint64 fragPtrI,
                        Uint64 & mem_bytes,
                        Uint64 & free_mem_bytes,
                        Uint64 & disk_bytes,
@@ -3656,16 +3947,10 @@ Dbtup::get_frag_memory(Uint64 fragPtrI,
   }
 }
 
-void
-Dbtup::get_lcp_frag_stats(Uint64 fragPtrI,
-                          Uint32 startGci,
-                          Uint32 & maxPageCount,
-                          Uint64 & row_count,
-                          Uint64 & prev_row_count,
-                          Uint64 & row_change_count,
-                          Uint64 & memory_used_in_bytes,
-                          bool reset_flag)
-{
+void Dbtup::get_lcp_frag_stats(Uint64 fragPtrI, Uint32 startGci,
+                               Uint32 &maxPageCount, Uint64 &row_count,
+                               Uint64 &prev_row_count, Uint64 &row_change_count,
+                               Uint64 &memory_used_in_bytes, bool reset_flag) {
   /**
    * We want to count the number of rows, the number of changed rows
    * and the memory used in bytes as input to the Partial LCP
@@ -3700,7 +3985,7 @@ Dbtup::get_lcp_frag_stats(Uint64 fragPtrI,
    *
    * After REDO log execution we move onto the Copy Fragment part.
    * In this part the same principle still applies that if a row
-   * that have its old GCI set higher than the Max Completed GCI 
+   * that have its old GCI set higher than the Max Completed GCI
    * of the LCP restored then the row change can be ignored since
    * it must have been counted already when setting the GCI above
    * the Max Completed GCI before.
@@ -3740,12 +4025,9 @@ Dbtup::get_lcp_frag_stats(Uint64 fragPtrI,
   row_change_count = fragptr.p->m_lcp_changed_rows;
   maxPageCount = fragptr.p->m_max_page_cnt;
 
-  if (reset_flag)
-  {
+  if (reset_flag) {
     jam();
-    if (fragptr.p->m_lcp_start_gci == Uint32(~0) &&
-        row_change_count == 0)
-    {
+    if (fragptr.p->m_lcp_start_gci == Uint32(~0) && row_change_count == 0) {
       jam();
       /**
        * When no LCP existed before in restart we don't want to run the
@@ -3771,9 +4053,9 @@ Dbtup::get_lcp_frag_stats(Uint64 fragPtrI,
   Uint64 fixed_size = fs.fixedRecordBytes * fs.fixedElemCount;
   /* mem_size now contains memory in fixed part */
   Uint64 var_size_allocated =
-    (fs.varMemoryAllocPages *
-     (Tup_varsize_page::DATA_WORDS - 1) * sizeof(Uint32));
-  Uint64 var_size_free =  fs.varMemoryFreeBytes;
+      (fs.varMemoryAllocPages * (Tup_varsize_page::DATA_WORDS - 1) *
+       sizeof(Uint32));
+  Uint64 var_size_free = fs.varMemoryFreeBytes;
   ndbassert(var_size_allocated >= var_size_free);
   memory_used_in_bytes = fixed_size + (var_size_allocated - var_size_free);
 
@@ -3783,21 +4065,17 @@ Dbtup::get_lcp_frag_stats(Uint64 fragPtrI,
    * allocatable for rows. This means ignoring the header plus one word at the
    * end of the page which is used for list processing.
    */
-  if (row_count != 0)
-  {
-    Uint64 average_row_size = memory_used_in_bytes /
-                              row_count;
+  if (row_count != 0) {
+    Uint64 average_row_size = memory_used_in_bytes / row_count;
     /* A simple safeguard */
     average_row_size = MAX(average_row_size, 32);
     fragptr.p->m_average_row_size = average_row_size;
   }
 }
 
-void
-Dbtup::execDROP_FRAG_REQ(Signal* signal)
-{
+void Dbtup::execDROP_FRAG_REQ(Signal *signal) {
   jamEntry();
-  DropFragReq* req= (DropFragReq*)signal->getDataPtr();
+  DropFragReq *req = (DropFragReq *)signal->getDataPtr();
 
   TablerecPtr tabPtr;
   tabPtr.i = req->tableId;
@@ -3809,8 +4087,7 @@ Dbtup::execDROP_FRAG_REQ(Signal* signal)
 
   FragrecordPtr fragPtr;
 
-  if (get_fragment_record(tabPtr, fragPtr, tabPtr.i, fragId))
-  {
+  if (get_fragment_record(tabPtr, fragPtr, tabPtr.i, fragId)) {
     jam();
 
     signal->theData[0] = ZUNMAP_PAGES;
@@ -3821,10 +4098,10 @@ Dbtup::execDROP_FRAG_REQ(Signal* signal)
     return;
   }
 
-  DropFragConf* conf = (DropFragConf*)signal->getDataPtrSend();
+  DropFragConf *conf = (DropFragConf *)signal->getDataPtrSend();
   conf->senderRef = reference();
   conf->senderData = tabPtr.p->m_dropTable.tabUserPtr;
   conf->tableId = tabPtr.i;
-  sendSignal(tabPtr.p->m_dropTable.tabUserRef, GSN_DROP_FRAG_CONF,
-             signal, DropFragConf::SignalLength, JBB);
+  sendSignal(tabPtr.p->m_dropTable.tabUserRef, GSN_DROP_FRAG_CONF, signal,
+             DropFragConf::SignalLength, JBB);
 }

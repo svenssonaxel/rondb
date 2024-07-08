@@ -25,10 +25,10 @@
 
 #define DBTUP_C
 #define DBTUP_ABORT_CPP
-#include "Dbtup.hpp"
-#include <RefConvert.hpp>
 #include <ndb_limits.h>
+#include <RefConvert.hpp>
 #include <pc.hpp>
+#include "Dbtup.hpp"
 
 #define JAM_FILE_ID 409
 
@@ -37,13 +37,41 @@
 #endif
 
 #ifdef DEBUG_LCP
-#define DEB_LCP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP(arglist)         \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP(arglist) do { } while (0)
+#define DEB_LCP(arglist) \
+  do {                   \
+  } while (0)
 #endif
 
-void Dbtup::handle_disk_reorg_flag(OperationrecPtr operPtr,
-                                   Tablerec *regTabPtr)
+void Dbtup::handle_disk_reorg_flag(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+OperationrecPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+operPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,      Tablerec *regTabPtr)
 {
   OperationrecPtr lastOperPtr = operPtr;
   findLastOp(lastOperPtr);
@@ -52,7 +80,10 @@ void Dbtup::handle_disk_reorg_flag(OperationrecPtr operPtr,
   ndbrequire(prevOperPtr.i != RNIL);
   ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(prevOperPtr));
 
-  Tuple_header *copy_last =
+  Tuple_header 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*copy_last =
     get_copy_tuple(&lastOperPtr.p->m_copy_tuple_location);
   Tuple_header *copy_prev =
     get_copy_tuple(&prevOperPtr.p->m_copy_tuple_location);
@@ -148,12 +179,88 @@ Dbtup::do_tup_abort_operation(Signal* signal,
         memcpy(&key, copy->get_disk_ref_ptr(tablePtrP), sizeof(key));
         Uint32 row_size = key.m_page_idx;
         disk_page_abort_prealloc(signal, fragPtrP, &key, row_size);
-        bits = bits & (~Tuple_header::DISK_REORG);
-        tuple_ptr->m_header_bits= bits;
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Operationrec* opPtrP,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    bits 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bits
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*opPtrP,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(~Tuple_header::DISK_REORG);
+||||||| Common ancestor
+=======
+*fragPtrP,
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Fragrecord* fragPtrP,
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    tuple_ptr->m_header_bits= bits;
       }
       else if (opPtrP->m_uncommitted_used_space > 0)
       {
-        jam();
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tablePtrP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tablePtrP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
         Local_key key;
         memcpy(&key, tuple_ptr->get_disk_ref_ptr(tablePtrP), sizeof(key));
         Uint32 inc_size = opPtrP->m_uncommitted_used_space;
@@ -226,7 +333,27 @@ Dbtup::do_tup_abort_operation(Signal* signal,
         DEB_LCP(("MM_SHRINK ABORT: tab(%u,%u) row(%u,%u)",
                  fragPtrP->fragTableId,
                  fragPtrP->fragmentId,
-                 opPtrP->m_tuple_location.m_page_no,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Var_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Var_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pageP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*pageP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          opPtrP->m_tuple_location.m_page_no,
                  opPtrP->m_tuple_location.m_page_idx));
       }
       tuple_ptr->m_header_bits= bits & ~Tuple_header::MM_GROWN;
@@ -285,8 +412,7 @@ void Dbtup::do_tup_abortreq(Signal* signal, Uint32 flags)
            regOperPtr.p->m_tuple_location.m_page_no,
            regOperPtr.p->m_tuple_location.m_page_idx));
 
-  if (get_tuple_state(regOperPtr.p) == TUPLE_PREPARED)
-  {
+  if (get_tuple_state(regOperPtr.p) == TUPLE_PREPARED) {
     jam();
 
     /**
@@ -297,7 +423,27 @@ void Dbtup::do_tup_abortreq(Signal* signal, Uint32 flags)
     {
       jam();
       executeTuxAbortTriggers(signal,
-                              regOperPtr.p,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtup::do_tup_abortreq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtup::do_tup_abortreq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                         regOperPtr.p,
                               regFragPtr.p,
                               regTabPtr.p);
 
@@ -306,12 +452,33 @@ void Dbtup::do_tup_abortreq(Signal* signal, Uint32 flags)
       while (loopOpPtr.i != RNIL) 
       {
         jam();
-        ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOpPtr));
-        if (get_tuple_state(loopOpPtr.p) != TUPLE_ALREADY_ABORTED)
+        ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOpPtr)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+get_ptr(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    if (get_tuple_state(loopOpPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+get_ptr(&page, &regOperPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  &page, &regOperPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.p) != TUPLE_ALREADY_ABORTED)
         {
           jam();
-          executeTuxAbortTriggers(signal,
-                                  loopOpPtr.p,
+          executeTuxAbortTriggers(signal,                        loopOpPtr.p,
                                   regFragPtr.p,
                                   regTabPtr.p);
         }
@@ -348,39 +515,28 @@ void Dbtup::do_tup_abortreq(Signal* signal, Uint32 flags)
       handle_disk_row_resize(regOperPtr, regTabPtr.p);
     }
     {
-      do_tup_abort_operation(signal, 
-                             tuple_ptr,
-                             regOperPtr.p,
-                             regFragPtr.p,
+      do_tup_abort_operation(signal, tuple_ptr, regOperPtr.p, regFragPtr.p,
                              regTabPtr.p,
                              full_transaction);
-      
+
       OperationrecPtr loopOpPtr;
       loopOpPtr.i = regOperPtr.p->nextActiveOp;
-      while (loopOpPtr.i != RNIL) 
-      {
+      while (loopOpPtr.i != RNIL) {
         jam();
         ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(loopOpPtr));
-        if (get_tuple_state(loopOpPtr.p) != TUPLE_ALREADY_ABORTED)
-        {
+        if (get_tuple_state(loopOpPtr.p) != TUPLE_ALREADY_ABORTED) {
           jam();
-          do_tup_abort_operation(signal,
-                                 tuple_ptr,
-                                 loopOpPtr.p,
-                                 regFragPtr.p,
+          do_tup_abort_operation(signal, tuple_ptr, loopOpPtr.p, regFragPtr.p,
                                  regTabPtr.p,
                                  full_transaction);
-          set_tuple_state(loopOpPtr.p, TUPLE_ALREADY_ABORTED);      
+          set_tuple_state(loopOpPtr.p, TUPLE_ALREADY_ABORTED);
         }
         loopOpPtr.i = loopOpPtr.p->nextActiveOp;
       }
-      if (tuple_ptr->m_header_bits & Tuple_header::FREE)
-      {
+      if (tuple_ptr->m_header_bits & Tuple_header::FREE) {
         jam();
         setInvalidChecksum(tuple_ptr, regTabPtr.p);
-      }
-      else
-      {
+      } else {
         jam();
         setChecksum(tuple_ptr, regTabPtr.p);
       }
@@ -388,40 +544,32 @@ void Dbtup::do_tup_abortreq(Signal* signal, Uint32 flags)
   }
 
   bool first_and_last = false;
-  if (regOperPtr.p->is_first_operation() && regOperPtr.p->is_last_operation())
-  {
+  if (regOperPtr.p->is_first_operation() && regOperPtr.p->is_last_operation()) {
     jam();
     /* Abort of only (remaining) op on this row */
     first_and_last = true;
-    if (regOperPtr.p->m_undo_buffer_space)
-    {
+    if (regOperPtr.p->m_undo_buffer_space) {
       jam();
       D("Logfile_client - do_tup_abortreq");
       Logfile_client lgman(this, c_lgman, regFragPtr.p->m_logfile_group_id);
-      lgman.free_log_space(regOperPtr.p->m_undo_buffer_space,
-                           jamBuffer());
+      lgman.free_log_space(regOperPtr.p->m_undo_buffer_space, jamBuffer());
     }
   }
 
   removeActiveOpList(regOperPtr.p, tuple_ptr);
 
-  if (first_and_last &&
-      (flags & ZABORT_DEALLOC) &&
-      (tuple_ptr->m_header_bits & Tuple_header::FREE))
-  {
+  if (first_and_last && (flags & ZABORT_DEALLOC) &&
+      (tuple_ptr->m_header_bits & Tuple_header::FREE)) {
     jam();
     /* Free var and fixed records for this row */
     Local_key tmp = regOperPtr.p->m_tuple_location;
     if (regTabPtr.p->m_attributes[MM].m_no_of_varsize +
-        regTabPtr.p->m_attributes[MM].m_no_of_dynamic)
-    {
+        regTabPtr.p->m_attributes[MM].m_no_of_dynamic) {
       jam();
       free_var_rec(regFragPtr.p, regTabPtr.p, &tmp, page);
-    }
-    else
-    {
+    } else {
       jam();
-      free_fix_rec(regFragPtr.p, regTabPtr.p, &tmp, (Fix_page*)page.p);
+      free_fix_rec(regFragPtr.p, regTabPtr.p, &tmp, (Fix_page *)page.p);
     }
     regOperPtr.p->m_tuple_location.setNull();
   }
@@ -432,129 +580,128 @@ void Dbtup::do_tup_abortreq(Signal* signal, Uint32 flags)
 /* **************************************************************** */
 /* ********************** TRANSACTION ERROR MODULE **************** */
 /* **************************************************************** */
-int Dbtup::TUPKEY_abort(KeyReqStruct * req_struct, int error_type)
-{
-  switch(error_type) {
-  case 1:
-//tmupdate_alloc_error:
-    terrorCode= ZMEM_NOMEM_ERROR;
-    jam();
-    break;
-
-  case 15:
-    jam();
-    terrorCode = ZREGISTER_INIT_ERROR;
-    break;
-
-  case 16:
-    jam();
-    terrorCode = ZTRY_TO_UPDATE_ERROR;
-    break;
-
-  case 17:
-    jam();
-    terrorCode = ZNO_ILLEGAL_NULL_ATTR;
-    break;
-
-  case 19:
-    jam();
-    terrorCode = ZTRY_TO_UPDATE_ERROR;
-    break;
-
-  case 20:
-    jam();
-    terrorCode = ZREGISTER_INIT_ERROR;
-    break;
-
-  case 22:
-    jam();
-    terrorCode = ZTOTAL_LEN_ERROR;
-    break;
-
-  case 23:
-    jam();
-    terrorCode = ZREGISTER_INIT_ERROR;
-    break;
-
-  case 24:
-    jam();
-    terrorCode = ZREGISTER_INIT_ERROR;
-    break;
-
-  case 26:
-    jam();
-    terrorCode = ZREGISTER_INIT_ERROR;
-    break;
-
-  case 27:
-    jam();
-    terrorCode = ZREGISTER_INIT_ERROR;
-    break;
-
-  case 28:
-    jam();
-    terrorCode = ZREGISTER_INIT_ERROR;
-    break;
-
-  case 29:
-    jam();
-    break;
-
-  case 30:
-    jam();
-    terrorCode = ZCALL_ERROR;
-    break;
-
-  case 31:
-    jam();
-    terrorCode = ZSTACK_OVERFLOW_ERROR;
-    break;
-
-  case 32:
-    jam();
-    terrorCode = ZSTACK_UNDERFLOW_ERROR;
-    break;
-
-  case 33:
-    jam();
-    terrorCode = ZNO_INSTRUCTION_ERROR;
-    break;
-
-  case 34:
-    jam();
-    terrorCode = ZOUTSIDE_OF_PROGRAM_ERROR;
-    break;
-
-  case 35:
-    jam();
-    terrorCode = ZTOO_MANY_INSTRUCTIONS_ERROR;
-    break;
-
-  case 39:
-    if (get_trans_state(req_struct->operPtrP) == TRANS_TOO_MUCH_AI) {
+int Dbtup::TUPKEY_abort(KeyReqStruct *req_struct, int error_type) {
+  switch (error_type) {
+    case 1:
+      // tmupdate_alloc_error:
+      terrorCode = ZMEM_NOMEM_ERROR;
       jam();
-      terrorCode = ZTOO_MUCH_ATTRINFO_ERROR;
-    } else if (get_trans_state(req_struct->operPtrP) == TRANS_ERROR_WAIT_TUPKEYREQ) {
+      break;
+
+    case 15:
       jam();
-      terrorCode = ZSEIZE_ATTRINBUFREC_ERROR;
-    } else {
+      terrorCode = ZREGISTER_INIT_ERROR;
+      break;
+
+    case 16:
+      jam();
+      terrorCode = ZTRY_TO_UPDATE_ERROR;
+      break;
+
+    case 17:
+      jam();
+      terrorCode = ZNO_ILLEGAL_NULL_ATTR;
+      break;
+
+    case 19:
+      jam();
+      terrorCode = ZTRY_TO_UPDATE_ERROR;
+      break;
+
+    case 20:
+      jam();
+      terrorCode = ZREGISTER_INIT_ERROR;
+      break;
+
+    case 22:
+      jam();
+      terrorCode = ZTOTAL_LEN_ERROR;
+      break;
+
+    case 23:
+      jam();
+      terrorCode = ZREGISTER_INIT_ERROR;
+      break;
+
+    case 24:
+      jam();
+      terrorCode = ZREGISTER_INIT_ERROR;
+      break;
+
+    case 26:
+      jam();
+      terrorCode = ZREGISTER_INIT_ERROR;
+      break;
+
+    case 27:
+      jam();
+      terrorCode = ZREGISTER_INIT_ERROR;
+      break;
+
+    case 28:
+      jam();
+      terrorCode = ZREGISTER_INIT_ERROR;
+      break;
+
+    case 29:
+      jam();
+      break;
+
+    case 30:
+      jam();
+      terrorCode = ZCALL_ERROR;
+      break;
+
+    case 31:
+      jam();
+      terrorCode = ZSTACK_OVERFLOW_ERROR;
+      break;
+
+    case 32:
+      jam();
+      terrorCode = ZSTACK_UNDERFLOW_ERROR;
+      break;
+
+    case 33:
+      jam();
+      terrorCode = ZNO_INSTRUCTION_ERROR;
+      break;
+
+    case 34:
+      jam();
+      terrorCode = ZOUTSIDE_OF_PROGRAM_ERROR;
+      break;
+
+    case 35:
+      jam();
+      terrorCode = ZTOO_MANY_INSTRUCTIONS_ERROR;
+      break;
+
+    case 39:
+      if (get_trans_state(req_struct->operPtrP) == TRANS_TOO_MUCH_AI) {
+        jam();
+        terrorCode = ZTOO_MUCH_ATTRINFO_ERROR;
+      } else if (get_trans_state(req_struct->operPtrP) ==
+                 TRANS_ERROR_WAIT_TUPKEYREQ) {
+        jam();
+        terrorCode = ZSEIZE_ATTRINBUFREC_ERROR;
+      } else {
+        ndbabort();
+      }  // if
+      break;
+    case 40:
+      jam();
+      terrorCode = ZUNSUPPORTED_BRANCH;
+      break;
+    default:
       ndbabort();
-    }//if
-    break;
-  case 40:
-    jam();
-    terrorCode = ZUNSUPPORTED_BRANCH;
-    break;
-  default:
-    ndbabort();
-  }//switch
+  }  // switch
   tupkeyErrorLab(req_struct);
   return -1;
 }
 
-void Dbtup::early_tupkey_error(KeyReqStruct* req_struct)
-{
-  Operationrec * const regOperPtr = req_struct->operPtrP;
+void Dbtup::early_tupkey_error(KeyReqStruct *req_struct) {
+  Operationrec *const regOperPtr = req_struct->operPtrP;
   ndbrequire(!regOperPtr->op_struct.bit_field.in_active_list);
   set_trans_state(regOperPtr, TRANS_IDLE);
   set_tuple_state(regOperPtr, TUPLE_PREPARED);
@@ -562,9 +709,8 @@ void Dbtup::early_tupkey_error(KeyReqStruct* req_struct)
   send_TUPKEYREF(req_struct);
 }
 
-void Dbtup::tupkeyErrorLab(KeyReqStruct* req_struct)
-{
-  Operationrec * const regOperPtr = req_struct->operPtrP;
+void Dbtup::tupkeyErrorLab(KeyReqStruct *req_struct) {
+  Operationrec *const regOperPtr = req_struct->operPtrP;
   Uint32 undo_buffer_space = regOperPtr->m_undo_buffer_space;
   bool is_tuple_loc_null = regOperPtr->m_tuple_location.isNull();
 
@@ -572,53 +718,45 @@ void Dbtup::tupkeyErrorLab(KeyReqStruct* req_struct)
   set_tuple_state(regOperPtr, TUPLE_PREPARED);
 
   if (undo_buffer_space &&
-      (regOperPtr->is_first_operation() && regOperPtr->is_last_operation()))
-  {
+      (regOperPtr->is_first_operation() && regOperPtr->is_last_operation())) {
     jam();
 
     D("Logfile_client - tupkeyErrorLab");
     Logfile_client lgman(this, c_lgman, prepare_fragptr.p->m_logfile_group_id);
-    lgman.free_log_space(regOperPtr->m_undo_buffer_space,
-                         jamBuffer());
+    lgman.free_log_space(regOperPtr->m_undo_buffer_space, jamBuffer());
   }
 
   Uint32 *ptr = 0;
-  if (!is_tuple_loc_null)
-  {
+  if (!is_tuple_loc_null) {
     PagePtr tmp;
-    ptr= get_ptr(&tmp,
-                 &regOperPtr->m_tuple_location,
-                 prepare_tabptr.p);
+    ptr = get_ptr(&tmp, &regOperPtr->m_tuple_location, prepare_tabptr.p);
   }
 
   bool use_lock = regOperPtr->op_struct.bit_field.in_active_list;
-  if (use_lock)
-  {
+  if (use_lock) {
     jamDebug();
     acquire_frag_mutex(req_struct->fragPtrP,
                        regOperPtr->fragPageId,
                        jamBuffer());
   }
-  removeActiveOpList(regOperPtr, (Tuple_header*)ptr);
-  if (use_lock)
-  {
+  removeActiveOpList(regOperPtr, (Tuple_header *)ptr);
+  if (use_lock) {
     jamDebug();
     release_frag_mutex(req_struct->fragPtrP,
                        regOperPtr->fragPageId,
                        jamBuffer());
   }
   initOpConnection(regOperPtr);
-  TupKeyRef * const tupKeyRef =
-    (TupKeyRef *)req_struct->signal->getDataPtrSend();  
+  TupKeyRef *const tupKeyRef =
+      (TupKeyRef *)req_struct->signal->getDataPtrSend();
   tupKeyRef->userRef = req_struct->operPtrP->userpointer;
   tupKeyRef->errorCode = terrorCode;
   tupKeyRef->noExecInstructions = req_struct->no_exec_instructions;
 }
 
-void Dbtup::send_TUPKEYREF(const KeyReqStruct* req_struct)
-{
-  TupKeyRef * const tupKeyRef =
-    (TupKeyRef *)req_struct->signal->getDataPtrSend();  
+void Dbtup::send_TUPKEYREF(const KeyReqStruct *req_struct) {
+  TupKeyRef *const tupKeyRef =
+      (TupKeyRef *)req_struct->signal->getDataPtrSend();
   tupKeyRef->userRef = req_struct->operPtrP->userpointer;
   tupKeyRef->errorCode = terrorCode;
   tupKeyRef->noExecInstructions = req_struct->no_exec_instructions;
@@ -627,22 +765,19 @@ void Dbtup::send_TUPKEYREF(const KeyReqStruct* req_struct)
 /**
  * Unlink one operation from the m_operation_ptr_i list in the tuple.
  */
-void Dbtup::removeActiveOpList(Operationrec*  const regOperPtr,
-                               Tuple_header *tuple_ptr)
-{
+void Dbtup::removeActiveOpList(Operationrec *const regOperPtr,
+                               Tuple_header *tuple_ptr) {
   OperationrecPtr nextOperPtr;
   OperationrecPtr prevOperPtr;
 
-  if(!regOperPtr->m_copy_tuple_location.isNull())
-  {
+  if (!regOperPtr->m_copy_tuple_location.isNull()) {
     jam();
     c_undo_buffer.free_copy_tuple(&regOperPtr->m_copy_tuple_location);
   }
 
   prevOperPtr.i = regOperPtr->prevActiveOp;
   nextOperPtr.i = RNIL;
-  if (regOperPtr->op_struct.bit_field.in_active_list)
-  {
+  if (regOperPtr->op_struct.bit_field.in_active_list) {
     /*
      * Have called both prepareActiveOpList and insertActiveOpList.
      * Could also be an initial INSERT operation or a REFRESH that inserts
@@ -651,21 +786,16 @@ void Dbtup::removeActiveOpList(Operationrec*  const regOperPtr,
     ndbassert(!m_is_query_block);
     nextOperPtr.i = regOperPtr->nextActiveOp;
     prevOperPtr.i = regOperPtr->prevActiveOp;
-    regOperPtr->op_struct.bit_field.in_active_list= false;
-    if (nextOperPtr.i != RNIL)
-    {
+    regOperPtr->op_struct.bit_field.in_active_list = false;
+    if (nextOperPtr.i != RNIL) {
       jam();
       ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(nextOperPtr));
       nextOperPtr.p->prevActiveOp = prevOperPtr.i;
-    }
-    else
-    {
+    } else {
       jam();
       tuple_ptr->m_operation_ptr_i = prevOperPtr.i;
     }
-  }
-  else if (prevOperPtr.i != RNIL)
-  {
+  } else if (prevOperPtr.i != RNIL) {
     /**
      * Aborted update after calling prepareActiveOpList but before calling
      * insertActiveOpList. We have not inserted ourselves into the list and
@@ -676,13 +806,11 @@ void Dbtup::removeActiveOpList(Operationrec*  const regOperPtr,
     ndbassert(!m_is_query_block);
     ndbrequire(tuple_ptr->m_operation_ptr_i == prevOperPtr.i);
   }
-  if (prevOperPtr.i != RNIL)
-  {
+  if (prevOperPtr.i != RNIL) {
     jam();
     ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(prevOperPtr));
     prevOperPtr.p->nextActiveOp = nextOperPtr.i;
-    if (nextOperPtr.i == RNIL)
-    {
+    if (nextOperPtr.i == RNIL) {
       jam();
       /**
        * We are the leader in the list of the operations on this row.
@@ -691,13 +819,11 @@ void Dbtup::removeActiveOpList(Operationrec*  const regOperPtr,
        * to transfer the leader functionality to the second in line.
        */
       prevOperPtr.p->op_struct.bit_field.m_load_diskpage_on_commit =
-        regOperPtr->op_struct.bit_field.m_load_diskpage_on_commit;
+          regOperPtr->op_struct.bit_field.m_load_diskpage_on_commit;
       prevOperPtr.p->op_struct.bit_field.m_wait_log_buffer =
-        regOperPtr->op_struct.bit_field.m_wait_log_buffer;
+          regOperPtr->op_struct.bit_field.m_wait_log_buffer;
       if (regOperPtr->op_struct.bit_field.delete_insert_flag &&
-          regOperPtr->op_type == ZINSERT &&
-          prevOperPtr.p->op_type == ZDELETE)
-      {
+          regOperPtr->op_type == ZINSERT && prevOperPtr.p->op_type == ZDELETE) {
         jam();
         /**
          * If someone somehow manages to first delete the record and then
@@ -711,6 +837,6 @@ void Dbtup::removeActiveOpList(Operationrec*  const regOperPtr,
       }
     }
   }
-  regOperPtr->prevActiveOp= RNIL;
-  regOperPtr->nextActiveOp= RNIL;
+  regOperPtr->prevActiveOp = RNIL;
+  regOperPtr->nextActiveOp = RNIL;
 }

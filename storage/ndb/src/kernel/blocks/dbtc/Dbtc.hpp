@@ -26,34 +26,45 @@
 #ifndef DBTC_H
 #define DBTC_H
 
-#include "util/require.h"
 #include <ndb_limits.h>
-#include <pc.hpp>
-#include <SimulatedBlock.hpp>
-#include "CountingPool.hpp"
-#include <RWPool.hpp>
-#include <DLHashTable.hpp>
-#include <IntrusiveList.hpp>
-#include <DataBuffer.hpp>
-#include <Bitmask.hpp>
+#include <portlib/NdbTick.h>
+#include <trigger_definitions.h>
 #include <AttributeList.hpp>
-#include "kernel/DbtcState.hpp"
-#include <signaldata/DihScanTab.hpp>
+#include <Bitmask.hpp>
+#include <DLHashTable.hpp>
+#include <DataBuffer.hpp>
+#include <IntrusiveList.hpp>
+#include <KeyTable.hpp>
+#include <RWPool.hpp>
+#include <SignalCounter.hpp>
+#include <SimulatedBlock.hpp>
+#include <pc.hpp>
 #include <signaldata/AttrInfo.hpp>
-#include <signaldata/LqhTransConf.hpp>
+#include <signaldata/DihScanTab.hpp>
+#include <signaldata/EventReport.hpp>
 #include <signaldata/LqhKey.hpp>
-#include <signaldata/TrigAttrInfo.hpp>
+#include <signaldata/LqhTransConf.hpp>
 #include <signaldata/TcIndx.hpp>
 #include <signaldata/TransIdAI.hpp>
-#include <signaldata/EventReport.hpp>
-#include <signaldata/TcContinueB.hpp>
-#include <trigger_definitions.h>
-#include <SignalCounter.hpp>
-#include <KeyTable.hpp>
-#include <portlib/NdbTick.h>
+#include <
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signaldata/TcContinueB.hpp>
+#include <trigger_definitions
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+trigger_definitions
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signaldata/TrigAttrInfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.hpp>
+#include "CountingPool.hpp"
 #include "TransientPool.hpp"
 #include "TransientSlotPool.hpp"
-
+#include "kernel/DbtcState.hpp"
+#include "util/require.h"
 
 #define JAM_FILE_ID 350
 
@@ -270,35 +281,35 @@ public:
     CS_STARTED = dbtc_apiconnect_state::CS_STARTED, // 2
     CS_RECEIVING = dbtc_apiconnect_state::CS_RECEIVING, // 3
     CS_RESTART = dbtc_apiconnect_state::CS_RESTART, // 7
-    CS_ABORTING = dbtc_apiconnect_state::CS_ABORTING, // 8
-    CS_COMPLETING = dbtc_apiconnect_state::CS_COMPLETING, // 9
-    CS_COMPLETE_SENT = dbtc_apiconnect_state::CS_COMPLETE_SENT, // 10
-    CS_PREPARE_TO_COMMIT = dbtc_apiconnect_state::CS_PREPARE_TO_COMMIT, // 11
-    CS_COMMIT_SENT = dbtc_apiconnect_state::CS_COMMIT_SENT, // 12
-    CS_START_COMMITTING = dbtc_apiconnect_state::CS_START_COMMITTING, // 13
-    CS_COMMITTING = dbtc_apiconnect_state::CS_COMMITTING, // 14
-    CS_REC_COMMITTING = dbtc_apiconnect_state::CS_REC_COMMITTING, // 15
-    CS_WAIT_ABORT_CONF = dbtc_apiconnect_state::CS_WAIT_ABORT_CONF, // 16
-    CS_WAIT_COMPLETE_CONF = dbtc_apiconnect_state::CS_WAIT_COMPLETE_CONF, // 17
-    CS_WAIT_COMMIT_CONF = dbtc_apiconnect_state::CS_WAIT_COMMIT_CONF, // 18
-    CS_FAIL_ABORTING = dbtc_apiconnect_state::CS_FAIL_ABORTING, // 19
-    CS_FAIL_ABORTED = dbtc_apiconnect_state::CS_FAIL_ABORTED, // 20
-    CS_FAIL_PREPARED = dbtc_apiconnect_state::CS_FAIL_PREPARED, // 21
-    CS_FAIL_COMMITTING = dbtc_apiconnect_state::CS_FAIL_COMMITTING, // 22
-    CS_FAIL_COMMITTED = dbtc_apiconnect_state::CS_FAIL_COMMITTED, // 23
+    CS_ABORTING = dbtc_apiconnect_state::CS_ABORTING,                      // 8
+    CS_COMPLETING = dbtc_apiconnect_state::CS_COMPLETING,                  // 9
+    CS_COMPLETE_SENT = dbtc_apiconnect_state::CS_COMPLETE_SENT,            // 10
+    CS_PREPARE_TO_COMMIT = dbtc_apiconnect_state::CS_PREPARE_TO_COMMIT,    // 11
+    CS_COMMIT_SENT = dbtc_apiconnect_state::CS_COMMIT_SENT,                // 12
+    CS_START_COMMITTING = dbtc_apiconnect_state::CS_START_COMMITTING,      // 13
+    CS_COMMITTING = dbtc_apiconnect_state::CS_COMMITTING,                  // 14
+    CS_REC_COMMITTING = dbtc_apiconnect_state::CS_REC_COMMITTING,          // 15
+    CS_WAIT_ABORT_CONF = dbtc_apiconnect_state::CS_WAIT_ABORT_CONF,        // 16
+    CS_WAIT_COMPLETE_CONF = dbtc_apiconnect_state::CS_WAIT_COMPLETE_CONF,  // 17
+    CS_WAIT_COMMIT_CONF = dbtc_apiconnect_state::CS_WAIT_COMMIT_CONF,      // 18
+    CS_FAIL_ABORTING = dbtc_apiconnect_state::CS_FAIL_ABORTING,            // 19
+    CS_FAIL_ABORTED = dbtc_apiconnect_state::CS_FAIL_ABORTED,              // 20
+    CS_FAIL_PREPARED = dbtc_apiconnect_state::CS_FAIL_PREPARED,            // 21
+    CS_FAIL_COMMITTING = dbtc_apiconnect_state::CS_FAIL_COMMITTING,        // 22
+    CS_FAIL_COMMITTED = dbtc_apiconnect_state::CS_FAIL_COMMITTED,          // 23
 
-    CS_FAIL_COMPLETED = dbtc_apiconnect_state::CS_FAIL_COMPLETED, // 24
-    CS_START_SCAN = dbtc_apiconnect_state::CS_START_SCAN, // 25
+    CS_FAIL_COMPLETED = dbtc_apiconnect_state::CS_FAIL_COMPLETED,  // 24
+    CS_START_SCAN = dbtc_apiconnect_state::CS_START_SCAN,          // 25
 
     /**
      * Sending FIRE_TRIG_REQ
      */
-    CS_SEND_FIRE_TRIG_REQ = dbtc_apiconnect_state::CS_SEND_FIRE_TRIG_REQ, // 26
+    CS_SEND_FIRE_TRIG_REQ = dbtc_apiconnect_state::CS_SEND_FIRE_TRIG_REQ,  // 26
 
     /**
      * Waiting for FIRE_TRIG_CONF/REF (or operations generated by this)
      */
-    CS_WAIT_FIRE_TRIG_REQ = dbtc_apiconnect_state::CS_WAIT_FIRE_TRIG_REQ, // 27
+    CS_WAIT_FIRE_TRIG_REQ = dbtc_apiconnect_state::CS_WAIT_FIRE_TRIG_REQ,  // 27
     CS_RELEASE = dbtc_apiconnect_state::CS_RELEASE // 28
   };
 
@@ -326,37 +337,19 @@ public:
     OS_MAX_STATE_VAL = 19
   };
 
-  enum AbortState {
-    AS_IDLE = 0,
-    AS_ACTIVE = 1
-  };
+  enum AbortState { AS_IDLE = 0, AS_ACTIVE = 1 };
 
-  enum HostState {
-    HS_ALIVE = 0,
-    HS_DEAD = 1
-  };
+  enum HostState { HS_ALIVE = 0, HS_DEAD = 1 };
 
-  enum LqhTransState {
-    LTS_IDLE = 0,
-    LTS_ACTIVE = 1,
+  enum LqhTransState { LTS_IDLE = 0, LTS_ACTIVE = 1,
     LTS_WAIT = 2
   };
 
-  enum FailState {
-    FS_IDLE = 0,
-    FS_LISTENING = 1,
-    FS_COMPLETING = 2
-  };
+  enum FailState { FS_IDLE = 0, FS_LISTENING = 1, FS_COMPLETING = 2 };
 
-  enum SystemStartState {
-    SSS_TRUE = 0,
-    SSS_FALSE = 1
-  };
+  enum SystemStartState { SSS_TRUE = 0, SSS_FALSE = 1 };
 
-  enum TimeOutCheckState {
-    TOCS_TRUE = 0,
-    TOCS_FALSE = 1
-  };
+  enum TimeOutCheckState { TOCS_TRUE = 0, TOCS_FALSE = 1 };
 
   enum ReturnSignal {
     RS_NO_RETURN = 0,
@@ -365,77 +358,78 @@ public:
     RS_TCROLLBACKCONF = 4,
     RS_TCROLLBACKREP = 5
   };
-  
+
   enum IndexOperationState {
     IOS_NOOP = 0,
     IOS_INDEX_ACCESS = 1,
     IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF = 2,
     IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI = 3
   };
-  
+
   enum IndexState {
-    IS_BUILDING = 0,          // build in progress, start state at create
-    IS_ONLINE = 1,            // ready to use
-    IS_OFFLINE = 2            // not in use
+    IS_BUILDING = 0,  // build in progress, start state at create
+    IS_ONLINE = 1,    // ready to use
+    IS_OFFLINE = 2    // not in use
   };
 
   /* Sub states of IndexOperation while waiting for TransId_AI
    * from index table lookup
    */
   enum IndexTransIdAIState {
-    ITAS_WAIT_HEADER   = 0,     // Initial state
-    ITAS_WAIT_FRAGID   = 1,     // Waiting for fragment id word
-    ITAS_WAIT_KEY      = 2,     // Waiting for (more) key information
-    ITAS_ALL_RECEIVED  = 3,     // All TransIdAI info received
-    ITAS_WAIT_KEY_FAIL = 4     // Failed collecting key
+    ITAS_WAIT_HEADER = 0,   // Initial state
+    ITAS_WAIT_FRAGID = 1,   // Waiting for fragment id word
+    ITAS_WAIT_KEY = 2,      // Waiting for (more) key information
+    ITAS_ALL_RECEIVED = 3,  // All TransIdAI info received
+    ITAS_WAIT_KEY_FAIL = 4  // Failed collecting key
   };
 
-  class Dbdih* c_dih;
+  class Dbdih *c_dih;
   /**--------------------------------------------------------------------------
    * LOCAL SYMBOLS PER 'SYMBOL-VALUED' VARIABLE
    *
    *
    *            NSYMB ZTC_CONNECT_FILESIZE  = 200
-   *            NSYMB ZHOST_FILESIZE        = 16  
+   *            NSYMB ZHOST_FILESIZE        = 16
    *            NSYMB ZDATABUF_FILESIZE     = 4000
-   *            NSYMB ZATTRBUF_FILESIZE     = 4000 
-   *            NSYMB ZGCP_FILESIZE         = 10 
+   *            NSYMB ZATTRBUF_FILESIZE     = 4000
+   *            NSYMB ZGCP_FILESIZE         = 10
    *
    *
    *  ABORTED CODES
    *  TPHASE    NSYMB ZSPH1 = 1
    *            NSYMB ZLASTPHASE = 255
    *
-   * 
+   *
    * LQH_TRANS
-   *       NSYMB ZTRANS_ABORTED = 1 
-   *       NSYMB ZTRANS_PREPARED = 2 
+   *       NSYMB ZTRANS_ABORTED = 1
+   *       NSYMB ZTRANS_PREPARED = 2
    *       NSYMB ZTRANS_COMMITTED = 3
    *       NSYMB ZCOMPLETED_LQH_TRANS = 4
-   *       NSYMB ZTRANS_COMPLETED = 5 
+   *       NSYMB ZTRANS_COMPLETED = 5
    *
-   * 
-   * TAKE OVER 
+   *
+   * TAKE OVER
    *       NSYMB ZTAKE_OVER_IDLE = 0
    *       NSYMB ZTAKE_OVER_ACTIVE = 1
-   * 
+   *
    * ATTRBUF (ATTRBUF_RECORD)
    *          NSYMB ZINBUF_DATA_LEN = 24
    *          NSYMB ZINBUF_NEXTFREE = 25    (NOT USED )
-   *          NSYMB ZINBUF_PREV = 26   
-   *          NSYMB ZINBUF_NEXT = 27    
+   *          NSYMB ZINBUF_PREV = 26
+   *          NSYMB ZINBUF_NEXT = 27
    -------------------------------------------------------------------------*/
   /*
     2.3 RECORDS AND FILESIZES
     -------------------------
   */
-  typedef DataBufferSegment<11, RT_DBTC_ATTRIBUTE_BUFFER> AttributeBufferSegment;
+  typedef DataBufferSegment<11, RT_DBTC_ATTRIBUTE_BUFFER>
+      AttributeBufferSegment;
   typedef TransientPool<AttributeBufferSegment> AttributeBuffer_pool;
   static constexpr Uint32 DBTC_ATTRIBUTE_BUFFER_TRANSIENT_POOL_INDEX = 0;
   typedef DataBuffer<11, AttributeBuffer_pool, RT_DBTC_ATTRIBUTE_BUFFER>
-            AttributeBuffer;
+      AttributeBuffer;
   typedef LocalDataBuffer<11, AttributeBuffer_pool, RT_DBTC_ATTRIBUTE_BUFFER>
-            LocalAttributeBuffer;
+      LocalAttributeBuffer;
 
   /* **************************************************************** */
   /* ---------------------------------------------------------------- */
@@ -469,12 +463,12 @@ public:
      * Trigger type, defines what the trigger is used for
      */
     TriggerType::Value triggerType;
-    
+
     /**
      * Trigger type, defines what the trigger is used for
      */
     TriggerEvent::Value triggerEvent;
-    
+
     /**
      * Next ptr (used in pool/list)
      */
@@ -482,15 +476,15 @@ public:
       Uint32 nextPool;
       Uint32 nextHash;
     };
-    
+
     /**
      * Index id, only used by secondary_index triggers.  This is same as
      * index table id in DICT.
      **/
     union {
-      Uint32 indexId; // For unique index trigger
-      Uint32 tableId; // For reorg trigger
-      Uint32 fkId;    // For FK trigger
+      Uint32 indexId;  // For unique index trigger
+      Uint32 tableId;  // For reorg trigger
+      Uint32 fkId;     // For FK trigger
     };
 
     /**
@@ -498,10 +492,10 @@ public:
      */
     Uint32 prevHash;
 
-    Uint32 oldTriggerIds[2]; // For upgrade :(
+    Uint32 oldTriggerIds[2];  // For upgrade :(
 
-    inline void print(NdbOut & s) const { 
-      s << "[DefinedTriggerData = " << triggerId << "]"; 
+    inline void print(NdbOut &s) const {
+      s << "[DefinedTriggerData = " << triggerId << "]";
     }
 
     bool equal(const TcDefinedTriggerData &defined_trigger) const
@@ -518,7 +512,7 @@ public:
   typedef Ptr<TcDefinedTriggerData> DefinedTriggerPtr;
   typedef TransientPool<TcDefinedTriggerData> TcDefinedTriggerData_pool;
   typedef DLHashTable<TcDefinedTriggerData_pool> TcDefinedTriggerData_hash;
-  
+
   /**
    * Pool of trigger data record
    */
@@ -527,11 +521,10 @@ public:
 
   /**
    * The hash table of triggers
-   */  
+   */
   TcDefinedTriggerData_hash c_theDefinedTriggerHash;
 
-  bool getDefinedTriggerData(DefinedTriggerPtr &defTriggerPtr,
-                             Uint32 triggerId)
+  bool getDefinedTriggerData(DefinedTriggerPtr &defTriggerPtr,         Uint32 triggerId)
   {
     TcDefinedTriggerData triggerData;
     triggerData.triggerId = triggerId;
@@ -552,11 +545,11 @@ public:
   static constexpr Uint32 DBTC_COMMIT_ACK_MARKER_BUFFER_TRANSIENT_POOL_INDEX = 1;
   typedef DataBuffer<5,
                      CommitAckMarkerBuffer_pool,
-                     RT_DBTC_COMMIT_ACK_MARKER_BUFFER> CommitAckMarkerBuffer;
-  typedef LocalDataBuffer<5,
-                          CommitAckMarkerBuffer_pool,
+                     RT_DBTC_COMMIT_ACK_MARKER_BUFFER>
+      CommitAckMarkerBuffer;
+  typedef LocalDataBuffer<5, CommitAckMarkerBuffer_pool,
                           RT_DBTC_COMMIT_ACK_MARKER_BUFFER>
-                              LocalCommitAckMarkerBuffer;
+      LocalCommitAckMarkerBuffer;
 
   alignas(64) CommitAckMarkerBuffer_pool c_theCommitAckMarkerBufferPool;
   RSS_AP_SNAPSHOT(c_theCommitAckMarkerBufferPool);
@@ -569,13 +562,10 @@ public:
   /* WHEN A TRIGGER IS ACTIVATED AND RELEASED */
   /* WHEN THE TRIGGER IS DEACTIVATED.         */
   /* **************************************** */
-  struct TcFiredTriggerData
-  {
+  struct TcFiredTriggerData {
     static constexpr Uint32 TYPE_ID = RT_DBTC_FIRED_TRIGGER_DATA;
 
-    TcFiredTriggerData()
-      : m_magic(Magic::make(TYPE_ID))
-    {}
+    TcFiredTriggerData() : m_magic(Magic::make(TYPE_ID)) {}
 
     Uint32 m_magic;
 
@@ -583,7 +573,7 @@ public:
      * Trigger id, used to identify the trigger
      **/
     Uint32 triggerId;
-    
+
     /**
      * The operation that fired the trigger
      */
@@ -615,12 +605,12 @@ public:
      * Trigger attribute info, primary key value(s)
      */
     AttributeBuffer::Head keyValues;
-    
+
     /**
      * Trigger attribute info, attribute value(s) before operation
      */
     AttributeBuffer::Head beforeValues;
-    
+
     /**
      * Trigger attribute info, attribute value(s) after operation
      */
@@ -629,12 +619,11 @@ public:
     /**
      * Next ptr (used in list/hash)
      */
-    union
-    {
+    union {
       Uint32 nextList;
       Uint32 nextHash;
     };
-    
+
     /**
      * Prev pointer (used in list)
      */
@@ -642,25 +631,24 @@ public:
       Uint32 prevList;
       Uint32 prevHash;
     };
-    
-    inline void print(NdbOut & s) const { 
-      s << "[FiredTriggerData = " << triggerId << "]"; 
+
+    inline void print(NdbOut &s) const {
+      s << "[FiredTriggerData = " << triggerId << "]";
     }
 
-    inline Uint32 hashValue() const {
-      return fireingOperation ^ nodeId;
-    }
+    inline Uint32 hashValue() const { return fireingOperation ^ nodeId; }
 
-    inline bool equal(const TcFiredTriggerData & rec) const {
+    inline bool equal(const TcFiredTriggerData &rec) const {
       return fireingOperation == rec.fireingOperation && nodeId == rec.nodeId;
     }
   };
   typedef Ptr<TcFiredTriggerData> FiredTriggerPtr;
   typedef TransientPool<TcFiredTriggerData> TcFiredTriggerData_pool;
   static constexpr Uint32 DBTC_FIRED_TRIGGER_DATA_TRANSIENT_POOL_INDEX = 2;
-  typedef LocalDLFifoList<TcFiredTriggerData_pool> Local_TcFiredTriggerData_fifo;
+  typedef LocalDLFifoList<TcFiredTriggerData_pool>
+      Local_TcFiredTriggerData_fifo;
   typedef DLHashTable<TcFiredTriggerData_pool> TcFiredTriggerData_hash;
-  
+
   /**
    * Pool of trigger data record
    */
@@ -692,7 +680,6 @@ public:
     Uint32 prevList;
   };
 
-
   /* ************* INDEX DATA *************** */
   /* THIS RECORD FORMS LISTS OF ACTIVE        */
   /* INDEX FOR EACH TABLE.                    */
@@ -704,10 +691,8 @@ public:
   struct TcIndexData {
     static constexpr Uint32 TYPE_ID = RT_DBTC_INDEX_DATA;
     Uint32 m_magic;
-    TcIndexData() :
-      m_magic(Magic::make(TYPE_ID)),
-      indexState(IS_OFFLINE)
-    {}
+    TcIndexData() : m_magic(Magic::make(TYPE_ID)),
+      indexState(IS_OFFLINE) {}
 
     /**
      *  IndexState
@@ -718,7 +703,7 @@ public:
      * Index id, same as index table id in DICT
      */
     Uint32 indexId;
-    
+
     /**
      * Index attribute list.  Only the length is used in v21x.
      */
@@ -769,7 +754,7 @@ public:
  
   /**
    * The list of defined indexes
-   */  
+   */
   UintR c_maxNumberOfIndexes;
 
   bool getIndexDataOperation(TcIndexDataPtr &indexPtr, Uint32 indexId)
@@ -787,43 +772,40 @@ public:
   struct TcIndexOperation {
     static constexpr Uint32 TYPE_ID = RT_DBTC_INDEX_OPERATION;
 
-    TcIndexOperation() :
-      m_magic(Magic::make(TYPE_ID)),
-      indexOpState(IOS_NOOP),
-      pendingKeyInfo(0),
-      keyInfoSectionIVal(RNIL),
-      pendingAttrInfo(0),
-      attrInfoSectionIVal(RNIL),
-      transIdAIState(ITAS_WAIT_HEADER),
-      pendingTransIdAI(0),
-      transIdAISectionIVal(RNIL),
-      indexReadTcConnect(RNIL),
-      savedFlags(0)
-    {}
+    TcIndexOperation()
+        : m_magic(Magic::make(TYPE_ID)),
+          indexOpState(IOS_NOOP),
+          pendingKeyInfo(0),
+          keyInfoSectionIVal(RNIL),
+          pendingAttrInfo(0),
+          attrInfoSectionIVal(RNIL),
+          transIdAIState(ITAS_WAIT_HEADER),
+          pendingTransIdAI(0),
+          transIdAISectionIVal(RNIL),
+          indexReadTcConnect(RNIL),
+          savedFlags(0) {}
 
-    ~TcIndexOperation()
-    {
-    }
-    
+    ~TcIndexOperation() {}
+
     Uint32 m_magic;
 
     // Index data
     Uint32 indexOpId;
-    IndexOperationState indexOpState; // Used to mark on-going TcKeyReq
+    IndexOperationState indexOpState;  // Used to mark on-going TcKeyReq
     Uint32 pendingKeyInfo;
     Uint32 keyInfoSectionIVal;
     Uint32 pendingAttrInfo;
     Uint32 attrInfoSectionIVal;
     IndexTransIdAIState transIdAIState;
     Uint32 pendingTransIdAI;
-    Uint32 transIdAISectionIVal; // For accumulating TransId_AI
+    Uint32 transIdAISectionIVal;  // For accumulating TransId_AI
     Uint32 fragmentId;
-    
+
     TcKeyReq tcIndxReq;
     UintR connectionIndex;
-    UintR indexReadTcConnect; //
-    
-    Uint32 savedFlags; // Saved transaction flags
+    UintR indexReadTcConnect;  //
+
+    Uint32 savedFlags;  // Saved transaction flags
 
     /**
      * Next ptr (used in list)
@@ -834,7 +816,7 @@ public:
      */
     Uint32 prevList;
   };
-  
+
   typedef Ptr<TcIndexOperation> TcIndexOperationPtr;
   typedef TransientPool<TcIndexOperation> TcIndexOperation_pool;
   static constexpr Uint32 DBTC_INDEX_OPERATION_TRANSIENT_POOL_INDEX = 3;
@@ -866,22 +848,18 @@ public:
      */
     IndexAttributeList childTableColumns;
 
-    Uint32 parentTableId; // could be unique index table...
-    Uint32 childTableId;  //
-    Uint32 childIndexId;  // (could be tableId too)
-    Uint32 bits;          // CreateFKImplReq::Bits
+    Uint32 parentTableId;  // could be unique index table...
+    Uint32 childTableId;   //
+    Uint32 childIndexId;   // (could be tableId too)
+    Uint32 bits;           // CreateFKImplReq::Bits
 
     Uint32 nextPool;
     Uint32 nextHash;
     Uint32 prevHash;
 
-    Uint32 hashValue() const {
-      return key;
-    }
+    Uint32 hashValue() const { return key; }
 
-    bool equal(const TcFKData& obj) const {
-      return key == obj.key;
-    }
+    bool equal(const TcFKData &obj) const { return key == obj.key; }
   };
 
   typedef CountingPool<RecordPool<RWPool<TcFKData>>> FK_pool;
@@ -906,24 +884,22 @@ public:
   /*******************************************************************>*/
   /*       TC_CONNECT RECORD ALIGNED TO BE 128 BYTES                   */
   /*******************************************************************>*/
-  struct TcConnectRecord
-  {
+  struct TcConnectRecord {
     static constexpr Uint32 TYPE_ID = RT_DBTC_CONNECT_RECORD;
 
     TcConnectRecord()
-    : m_magic(Magic::make(TYPE_ID)),
-      commitAckMarker(RNIL),
-      tcConnectstate(OS_CONNECTED),
-      apiConnect(RNIL),
-      nextList(RNIL),
-      noOfNodes(0),
-      m_overtakeable_operation(0),
-      m_special_op_flags(0),
-      prevList(RNIL),
-      triggeringOperation(RNIL),
-      indexOp(RNIL),
-      currentTriggerId(RNIL)
-    {
+        : m_magic(Magic::make(TYPE_ID)),
+          commitAckMarker(RNIL),
+          tcConnectstate(OS_CONNECTED),
+          apiConnect(RNIL),
+          nextList(RNIL),
+          noOfNodes(0),
+          m_overtakeable_operation(0),
+          m_special_op_flags(0),
+          prevList(RNIL),
+          triggeringOperation(RNIL),
+          indexOp(RNIL),
+          currentTriggerId(RNIL) {
       NdbTick_Invalidate(&m_start_ticks);
       thePendingTriggers.init();
     }
@@ -933,50 +909,50 @@ public:
     // First 16 byte cache line. Those variables are only
     // used in error cases.
     //---------------------------------------------------
-    UintR  tcOprec;      /* TC OPREC of operation being taken over       */
-    Uint16 failData[4];  /* Failed nodes when taking over an operation   */
-    UintR  nextTcFailHash;
+    UintR tcOprec;      /* TC OPREC of operation being taken over       */
+    Uint16 failData[4]; /* Failed nodes when taking over an operation   */
+    UintR nextTcFailHash;
 
     //---------------------------------------------------
     // Second 16 byte cache line. Those variables are used
     // from LQHKEYCONF to sending COMMIT and COMPLETED.
     //---------------------------------------------------
-    UintR lastLqhCon;        /* Connect record in last replicas Lqh record   */
-    Uint16 lastLqhNodeId;    /* Node id of last replicas Lqh                 */
-    Uint16 m_execAbortOption;/* TcKeyReq::ExecuteAbortOption */
-    UintR  commitAckMarker;  /* CommitMarker I value */
+    UintR lastLqhCon;         /* Connect record in last replicas Lqh record   */
+    Uint16 lastLqhNodeId;     /* Node id of last replicas Lqh                 */
+    Uint16 m_execAbortOption; /* TcKeyReq::ExecuteAbortOption */
+    UintR commitAckMarker;    /* CommitMarker I value */
 
     //---------------------------------------------------
     // Third 16 byte cache line. The hottest variables.
     //---------------------------------------------------
-    OperationState tcConnectstate;         /* THE STATE OF THE CONNECT*/
-    UintR apiConnect;                      /* POINTER TO API CONNECT RECORD */
-    UintR nextList;                   /* NEXT TC RECORD*/
+    OperationState tcConnectstate; /* THE STATE OF THE CONNECT*/
+    UintR apiConnect;              /* POINTER TO API CONNECT RECORD */
+    UintR nextList;                /* NEXT TC RECORD*/
     Uint8 dirtyOp;
     Uint8 opSimple;
-    Uint8 lastReplicaNo;     /* NUMBER OF THE LAST REPLICA IN THE OPERATION */
-    Uint8 noOfNodes;         /* TOTAL NUMBER OF NODES IN OPERATION          */
-    Uint8 operation;         /* OPERATION TYPE                              */
-                             /* 0 = READ REQUEST                            */
-                             /* 1 = UPDATE REQUEST                          */
-                             /* 2 = INSERT REQUEST                          */
-                             /* 3 = DELETE REQUEST                          */
+    Uint8 lastReplicaNo; /* NUMBER OF THE LAST REPLICA IN THE OPERATION */
+    Uint8 noOfNodes;     /* TOTAL NUMBER OF NODES IN OPERATION          */
+    Uint8 operation;     /* OPERATION TYPE                              */
+                         /* 0 = READ REQUEST                            */
+                         /* 1 = UPDATE REQUEST                          */
+                         /* 2 = INSERT REQUEST                          */
+                         /* 3 = DELETE REQUEST                          */
     Uint8 m_overtakeable_operation;
     Uint8 m_util_flag;
-    Uint16 m_special_op_flags; // See ApiConnectRecord::SpecialOpFlags
+    Uint16 m_special_op_flags;  // See ApiConnectRecord::SpecialOpFlags
     enum SpecialOpFlags {
       SOF_NORMAL = 0,
-      SOF_INDEX_TABLE_READ = 1,       // Read index table
-      SOF_REORG_TRIGGER = 4,          // A reorg trigger
-      SOF_REORG_MOVING = 8,           // A record that should be moved
-      SOF_TRIGGER = 16,               // A trigger
+      SOF_INDEX_TABLE_READ = 1,  // Read index table
+      SOF_REORG_TRIGGER = 4,     // A reorg trigger
+      SOF_REORG_MOVING = 8,      // A record that should be moved
+      SOF_TRIGGER = 16,          // A trigger
       SOF_REORG_COPY = 32,
       SOF_REORG_DELETE = 64,
       SOF_DEFERRED_UK_TRIGGER = 128,  // Op has deferred trigger
       SOF_DEFERRED_FK_TRIGGER = 256,
-      SOF_FK_READ_COMMITTED = 512,    // reply to TC even for dirty read
+      SOF_FK_READ_COMMITTED = 512,  // reply to TC even for dirty read
       SOF_FULLY_REPLICATED_TRIGGER = 1024
-      ,SOF_UTIL_FLAG = 2048            // Sender to TC is DBUTIL (higher prio)
+      ,SOF_UTIL_FLAG = 2048  // Sender to TC is DBUTIL (higher prio)
       ,SOF_BATCH_SAFE = 4096           // Batching is safe for this operation
       ,SOF_BATCH_UNSAFE = 8192         // Batching is unsafe for this operation
     };
@@ -990,8 +966,8 @@ public:
     // tcNodedata expands 4 Bytes into the next cache line
     // with indexes almost never used.
     //---------------------------------------------------
-    UintR clientData;           /* SENDERS OPERATION POINTER              */
-    UintR prevList;        /* DOUBLY LINKED LIST OF TC CONNECT RECORDS*/
+    UintR clientData; /* SENDERS OPERATION POINTER              */
+    UintR prevList;   /* DOUBLY LINKED LIST OF TC CONNECT RECORDS*/
     UintR savePointId;
 
     Uint16 tcNodedata[4];
@@ -1006,9 +982,9 @@ public:
     BlockReference lqhkeyreq_ref;
 
     // Trigger data
-    UintR numFiredTriggers;      // As reported by lqhKeyConf
-    UintR numReceivedTriggers;   // FIRE_TRIG_ORD
-    UintR triggerExecutionCount;// No of outstanding op due to triggers
+    UintR numFiredTriggers;       // As reported by lqhKeyConf
+    UintR numReceivedTriggers;    // FIRE_TRIG_ORD
+    UintR triggerExecutionCount;  // No of outstanding op due to triggers
     UintR savedState[LqhKeyConf::SignalLength];
     /**
      * The list of pending fired triggers
@@ -1034,53 +1010,48 @@ public:
 
   /************************** API CONNECT RECORD ***********************
    * The API connect record contains the connection record to which the
-   * application connects.  
+   * application connects.
    *
-   * The application can send one operation at a time.  It can send a 
-   * new operation immediately after sending the previous operation. 
-   * Thereby several operations can be active in one transaction within TC. 
-   * This is achieved by using the API connect record. 
-   * Each active operation is handled by the TC connect record. 
-   * As soon as the TC connect record has sent the     
-   * request to the LQH it is ready to receive new operations. 
-   * The LQH connect record takes care of waiting for an operation to      
-   * complete.  
-   * When an operation has completed on the LQH connect record, 
-   * a new operation can be started on this LQH connect record. 
+   * The application can send one operation at a time.  It can send a
+   * new operation immediately after sending the previous operation.
+   * Thereby several operations can be active in one transaction within TC.
+   * This is achieved by using the API connect record.
+   * Each active operation is handled by the TC connect record.
+   * As soon as the TC connect record has sent the
+   * request to the LQH it is ready to receive new operations.
+   * The LQH connect record takes care of waiting for an operation to
+   * complete.
+   * When an operation has completed on the LQH connect record,
+   * a new operation can be started on this LQH connect record.
    *******************************************************************
-   *                                                                   
-   *       API CONNECT RECORD ALIGNED TO BE 256 BYTES                  
+   *
+   *       API CONNECT RECORD ALIGNED TO BE 256 BYTES
    ********************************************************************/
-  
+
   /*******************************************************************>*/
   // We break out the API Timer for optimisation on scanning rather than
   // on fast access.
   /*******************************************************************>*/
-  struct ApiConTimers
-  {
+  struct ApiConTimers {
     static constexpr Uint32 TYPE_ID = RT_DBTC_API_CONNECT_TIMERS;
     static constexpr Uint32 INDEX_BITS = 3;
     static constexpr Uint32 INDEX_MASK = (1 << INDEX_BITS) - 1;
     static constexpr Uint32 INDEX_MAX_COUNT = (1 << INDEX_BITS) - 2;
 
-    struct TimerEntry
-    {
+    struct TimerEntry {
       Uint32 m_timer;
       Uint32 m_apiConnectRecord;
     };
 
-    ApiConTimers():
-      m_magic(Magic::make(TYPE_ID)),
-      m_count(0),
-      m_top(0),
-      nextList(RNIL),
-      prevList(RNIL)
-    {}
+    ApiConTimers()
+        : m_magic(Magic::make(TYPE_ID)),
+          m_count(0),
+          m_top(0),
+          nextList(RNIL),
+          prevList(RNIL) {}
 
-    static void static_asserts()
-    {
-      static_assert(sizeof(ApiConTimers) ==
-                      sizeof(TimerEntry) << INDEX_BITS);
+    static void static_asserts() {
+      static_assert(sizeof(ApiConTimers) == sizeof(TimerEntry) << INDEX_BITS);
     }
 
     Uint32 m_magic;
@@ -1099,7 +1070,7 @@ public:
   alignas(64) ApiConTimers_pool c_apiConTimersPool;
   RSS_AP_SNAPSHOT(c_apiConTimersPool);
   LocalApiConTimers_list::Head c_apiConTimersList;
-  ApiConTimers* c_currentApiConTimers;
+  ApiConTimers *c_currentApiConTimers;
 
   /**
    * Limit the resource (signal/job buffer) usage of a transaction
@@ -1111,32 +1082,24 @@ public:
   static const Uint8 MaxCascadingScansPerTransaction = 1;
   static const Uint32 MaxExecutingTriggerOpsPerTrans = 32;
 
-  struct ApiConnectRecord
-  {
+  struct ApiConnectRecord {
     static constexpr Uint32 TYPE_ID = RT_DBTC_API_CONNECT_RECORD;
 
-    enum ConnectionKind
-    {
-      CK_NONE = 0,
-      CK_FREE,
-      CK_USER,
-      CK_COPY,
-      CK_FAIL
-    };
+    enum ConnectionKind { CK_NONE = 0, CK_FREE, CK_USER, CK_COPY, CK_FAIL };
 
     ApiConnectRecord();
-    
+
     Uint32 m_magic;
     //---------------------------------------------------
     // First 16 byte cache line. Hot variables.
     //---------------------------------------------------
     Uint32 m_apiConTimer;
-    Uint32 m_apiConTimer_line; // Last line updating timer
+    Uint32 m_apiConTimer_line;  // Last line updating timer
     ConnectionState apiConnectstate;
     ConnectionKind apiConnectkind;
     UintR transid[2];
     LocalTcConnectRecord_fifo::Head tcConnect;
-    
+
     //---------------------------------------------------
     // Second 16 byte cache line. Hot variables.
     //---------------------------------------------------
@@ -1155,16 +1118,16 @@ public:
     UintR prevGcpConnect;
     UintR gcpPointer;
     UintR ndbapiConnect;
-    
+
     //---------------------------------------------------
     // Fourth 16 byte cache line. Only used in late phases.
     // Plus 4 bytes of error handling.
     //---------------------------------------------------
-    UintR nextApiConnect; // free, freeFail, ctransidFailHash, PREPARE_COMMIT
+    UintR nextApiConnect;  // free, freeFail, ctransidFailHash, PREPARE_COMMIT
     BlockReference ndbapiBlockref;
     UintR apiCopyRecord;
     Uint64 globalcheckpointid;
-    
+
     //---------------------------------------------------
     // Second 64 byte cache line starts. First 16 byte
     // cache line in this one. Variables primarily used
@@ -1173,7 +1136,7 @@ public:
     UintR lqhkeyreqrec;
     union {
       Uint32 buddyPtr;
-      Int32 pendingTriggers; // For deferred triggers
+      Int32 pendingTriggers;  // For deferred triggers
     };
     union {
       UintR apiScanRec;
@@ -1185,14 +1148,14 @@ public:
     bool send_fail_data_process_ongoing;
     bool check_fail_data_process_ongoing;
 
-    /** 
+    /**
      * num_commit_ack_markers
      *
-     * Number of operations sent by this transaction 
+     * Number of operations sent by this transaction
      * to LQH with their CommitAckMarker flag set.
      *
-     * Includes marked operations currently in-progress and 
-     * those which prepared successfully, 
+     * Includes marked operations currently in-progress and
+     * those which prepared successfully,
      * Excludes failed operations (LQHKEYREF)
      */
     Uint32 num_commit_ack_markers;
@@ -1204,17 +1167,16 @@ public:
     ReturnSignal returnsignal;
     AbortState abortState;
 
-    enum TransactionFlags
-    {
+    enum TransactionFlags {
       TF_INDEX_OP_RETURN = 1,
-      TF_TRIGGER_PENDING = 2, // Used to mark waiting for a CONTINUEB
-      TF_EXEC_FLAG       = 4,
+      TF_TRIGGER_PENDING = 2,  // Used to mark waiting for a CONTINUEB
+      TF_EXEC_FLAG = 4,
       TF_COMMIT_ACK_MARKER_RECEIVED = 8,
-      TF_DEFERRED_CONSTRAINTS = 16, // check constraints in deferred fashion
-      TF_DEFERRED_UK_TRIGGERS = 32, // trans has deferred UK triggers
-      TF_DEFERRED_FK_TRIGGERS = 64, // trans has deferred FK triggers
+      TF_DEFERRED_CONSTRAINTS = 16,  // check constraints in deferred fashion
+      TF_DEFERRED_UK_TRIGGERS = 32,  // trans has deferred UK triggers
+      TF_DEFERRED_FK_TRIGGERS = 64,  // trans has deferred FK triggers
       TF_DISABLE_FK_CONSTRAINTS = 128,
-      TF_LATE_COMMIT = 256 // Wait sending apiCommit until complete phase done
+      TF_LATE_COMMIT = 256  // Wait sending apiCommit until complete phase done
       ,TF_SINGLE_EXEC_FLAG = 512
 
       ,TF_END = 0
@@ -1224,12 +1186,11 @@ public:
     Uint32 timeOutCounter;
     Uint32 takeOverRec;
 
-    Uint8 tckeyrec; // Changed from R
+    Uint8 tckeyrec;  // Changed from R
 
     Uint8 tcindxrec;
 
-    enum ApiFailStates
-    {
+    enum ApiFailStates {
       AFS_API_OK = 0,
       AFS_API_FAILED = 1,
       AFS_API_DISCONNECTED = 2
@@ -1237,7 +1198,7 @@ public:
     Uint8 apiFailState;
 
     Uint8 singleUserMode;
-    
+
     Uint8 m_pre_commit_pass;
 
     // number of on-going cascading scans (FK child scans) at a transaction.
@@ -1246,7 +1207,7 @@ public:
     // Trigger execution loop active
     bool m_inExecuteTriggers;
 
-    Uint16 m_special_op_flags; // Used to mark on-going TcKeyReq as indx table
+    Uint16 m_special_op_flags;  // Used to mark on-going TcKeyReq as indx table
 
     Uint16 returncode;
     Uint16 takeOverInd;
@@ -1258,7 +1219,7 @@ public:
     UintR currentTcConnect;
     BlockReference tcBlockref;
     UintR failureNr;
-    
+
     //---------------------------------------------------
     // Second 64 byte cache line. Third 16 byte cache line
     // in this one. Variables primarily used in early phase
@@ -1273,13 +1234,13 @@ public:
     // and COMPLETECONF
     //---------------------------------------------------
     UintR tcSendArray[6];
-    NdbNodeBitmask m_transaction_nodes; 
-    
+    NdbNodeBitmask m_transaction_nodes;
+
     // Trigger data
-    
+
     /**
      * The list of fired triggers
-     */  
+     */
     Local_TcFiredTriggerData_fifo::Head theFiredTriggers;
 
     // Count the outstanding FIRE_TRIG_REQs of a transaction.
@@ -1292,10 +1253,9 @@ public:
     UintR m_firstTcConnectPtrI_FT;
     UintR m_lastTcConnectPtrI_FT;
 
-
     // Index data
-    
-    UintR noIndexOp;     // No outstanding index ops
+
+    UintR noIndexOp;  // No outstanding index ops
 
     // Index op return context
     UintR indexOp;
@@ -1304,7 +1264,7 @@ public:
     UintR attrInfoLen;
     Uint32 immediateTriggerId;  // Id of trigger op being fired NOW
     Uint32 firedFragId;
-    
+
 #ifdef ERROR_INSERT
     Uint32 continueBCount;  // ERROR_INSERT 8082
 #endif
@@ -1316,7 +1276,7 @@ public:
 
     bool isExecutingDeferredTriggers() const {
       return apiConnectstate == CS_SEND_FIRE_TRIG_REQ ||
-        apiConnectstate == CS_WAIT_FIRE_TRIG_REQ ;
+             apiConnectstate == CS_WAIT_FIRE_TRIG_REQ;
     }
 
     // Number of on-going trigger operations at a transaction
@@ -1329,41 +1289,33 @@ public:
      *
      * Used to avoid recursive calls of executeTriggers
      */
-    class ExecTriggersGuard
-    {
-      ApiConnectRecord* m_recPtr;
-    public:
-      ExecTriggersGuard(ApiConnectRecord* recPtr)
-      {
-        if (recPtr->m_inExecuteTriggers)
-        {
+    class ExecTriggersGuard {
+      ApiConnectRecord *m_recPtr;
+
+     public:
+      ExecTriggersGuard(ApiConnectRecord *recPtr) {
+        if (recPtr->m_inExecuteTriggers) {
           m_recPtr = NULL;
-        }
-        else
-        {
+        } else {
           m_recPtr = recPtr;
           m_recPtr->m_inExecuteTriggers = true;
         }
       }
 
-      ~ExecTriggersGuard()
-      {
-        if (m_recPtr)
-        {
+      ~ExecTriggersGuard() {
+        if (m_recPtr) {
           assert(m_recPtr->m_inExecuteTriggers == true);
           m_recPtr->m_inExecuteTriggers = false;
         }
       }
 
-      bool canExecNow() const
-      {
-        assert(m_recPtr == NULL ||
-               m_recPtr->m_inExecuteTriggers);
+      bool canExecNow() const {
+        assert(m_recPtr == NULL || m_recPtr->m_inExecuteTriggers);
         return (m_recPtr != NULL);
       }
     };
   };
-  
+
   typedef TransientPool<ApiConnectRecord> ApiConnectRecord_pool;
   static constexpr Uint32 DBTC_API_CONNECT_RECORD_TRANSIENT_POOL_INDEX = 6;
   typedef LocalDLFifoList<ApiConnectRecord_pool, IA_GcpConnect>
@@ -1374,33 +1326,27 @@ public:
       LocalApiConnectRecord_api_list;
   typedef Ptr<ApiConnectRecord> ApiConnectRecordPtr;
 
-  class PrefetchApiConTimer
-  {
-  public:
-    PrefetchApiConTimer(const ApiConTimers_pool& pool, ApiConnectRecordPtr apiConPtr, bool for_write)
-    : m_apiConTimers(NULL), m_timer_index(0), checked(false)
-    {
+  class PrefetchApiConTimer {
+   public:
+    PrefetchApiConTimer(const ApiConTimers_pool &pool,
+                        ApiConnectRecordPtr apiConPtr, bool for_write)
+        : m_apiConTimers(NULL), m_timer_index(0), checked(false) {
       m_apiConPtr = apiConPtr;
       const Uint32 apiConTimer = m_apiConPtr.p->m_apiConTimer;
       ApiConTimersPtr apiConTimers;
       require(apiConTimer != RNIL);
       apiConTimers.i = apiConTimer >> ApiConTimers::INDEX_BITS;
-      if (for_write)
-      {
+      if (for_write) {
         require(pool.getUncheckedPtrRW(apiConTimers));
-      }
-      else
-      {
+      } else {
         require(pool.getUncheckedPtrRO(apiConTimers));
       }
       m_timer_index = apiConTimer & ApiConTimers::INDEX_MASK;
       m_apiConTimers = apiConTimers.p;
     }
 
-    bool check_ptr()
-    {
-      if (unlikely(!Magic::check_ptr(m_apiConTimers)))
-      {
+    bool check_ptr() {
+      if (unlikely(!Magic::check_ptr(m_apiConTimers))) {
         return false;
       }
       assert(m_timer_index < m_apiConTimers->m_top);
@@ -1411,34 +1357,31 @@ public:
       return true;
     }
 
-    void set_timer(Uint32 value, Uint32 line)
-    {
-      if (!checked)
-      {
+    void set_timer(Uint32 value, Uint32 line) {
+      if (!checked) {
         require(check_ptr());
       }
       m_apiConTimers->m_entries[m_timer_index].m_timer = value;
       m_apiConPtr.p->m_apiConTimer_line = line;
     }
 
-    Uint32 get_timer()
-    {
-      if (!checked)
-      {
+    Uint32 get_timer() {
+      if (!checked) {
         require(check_ptr());
       }
       return m_apiConTimers->m_entries[m_timer_index].m_timer;
     }
-  private:
+
+   private:
     ApiConnectRecordPtr m_apiConPtr;
-    ApiConTimers* m_apiConTimers;
+    ApiConTimers *m_apiConTimers;
     Uint32 m_timer_index;
     bool checked;
   };
 
   void setApiConTimer(ApiConnectRecordPtr apiConPtr, Uint32 value, Uint32 line)
 #ifdef DBTC_MAIN
-;
+      ;
 #else
   {
     const Uint32 apiConTimer = apiConPtr.p->m_apiConTimer;
@@ -1450,14 +1393,13 @@ public:
     ndbassert(timer_index < apiConTimers.p->m_top);
     ndbassert(apiConTimers.p->m_count > 0);
     ndbassert(apiConTimers.p->m_entries[timer_index].m_apiConnectRecord ==
-                apiConPtr.i);
+              apiConPtr.i);
 
     apiConTimers.p->m_entries[timer_index].m_timer = value;
     apiConPtr.p->m_apiConTimer_line = line;
   }
 #endif
-  Uint32 getApiConTimer(const ApiConnectRecordPtr apiConPtr) const
-  {
+  Uint32 getApiConTimer(const ApiConnectRecordPtr apiConPtr) const {
     const Uint32 apiConTimer = apiConPtr.p->m_apiConTimer;
     ApiConTimersPtr apiConTimers;
     ndbrequire(apiConTimer != RNIL);
@@ -1467,21 +1409,18 @@ public:
     ndbassert(timer_index < apiConTimers.p->m_top);
     ndbassert(apiConTimers.p->m_count > 0);
     ndbassert(apiConTimers.p->m_entries[timer_index].m_apiConnectRecord ==
-                apiConPtr.i);
+              apiConPtr.i);
 
     return apiConTimers.p->m_entries[timer_index].m_timer;
   }
 
-  bool seizeApiConTimer(ApiConnectRecordPtr apiConPtr)
-  {
+  bool seizeApiConTimer(ApiConnectRecordPtr apiConPtr) {
     ndbrequire(apiConPtr.p->m_apiConTimer == RNIL);
     if (unlikely(c_currentApiConTimers == NULL) ||
-        (c_currentApiConTimers->m_top == ApiConTimers::INDEX_MAX_COUNT))
-    {
+        (c_currentApiConTimers->m_top == ApiConTimers::INDEX_MAX_COUNT)) {
       jam();
       ApiConTimersPtr apiConTimersptr;
-      if (unlikely(!c_apiConTimersPool.seize(apiConTimersptr)))
-      {
+      if (unlikely(!c_apiConTimersPool.seize(apiConTimersptr))) {
         jam();
         return false;
       }
@@ -1490,10 +1429,11 @@ public:
       timers_list.addLast(apiConTimersptr);
       c_currentApiConTimers = apiConTimersptr.p;
     }
-    ApiConTimers* apiConTimers = c_currentApiConTimers;
+    ApiConTimers *apiConTimers = c_currentApiConTimers;
     const Uint32 timer_index = apiConTimers->m_top;
     const Uint32 apiConTimer =
-      (c_apiConTimersList.getLast() << ApiConTimers::INDEX_BITS) | timer_index;
+        (c_apiConTimersList.getLast() << ApiConTimers::INDEX_BITS) |
+        timer_index;
     apiConTimers->m_entries[timer_index].m_timer = 0;
     apiConTimers->m_entries[timer_index].m_apiConnectRecord = apiConPtr.i;
     apiConTimers->m_top++;
@@ -1503,8 +1443,7 @@ public:
     return true;
   }
 
-  void releaseApiConTimer(ApiConnectRecordPtr apiConPtr)
-  {
+  void releaseApiConTimer(ApiConnectRecordPtr apiConPtr) {
     const Uint32 apiConTimer = apiConPtr.p->m_apiConTimer;
     ndbrequire(apiConTimer != RNIL);
 
@@ -1516,8 +1455,7 @@ public:
     apiConTimers.p->m_entries[timer_index].m_apiConnectRecord = RNIL;
     ndbassert(apiConTimers.p->m_count > 0);
     apiConTimers.p->m_count--;
-    if (apiConTimers.p->m_count == 0)
-    {
+    if (apiConTimers.p->m_count == 0) {
       jam();
       LocalApiConTimers_list timers_list(c_apiConTimersPool,
                                          c_apiConTimersList);
@@ -1525,15 +1463,11 @@ public:
       c_apiConTimersPool.release(apiConTimers);
       checkPoolShrinkNeed(DBTC_API_CONNECT_TIMERS_TRANSIENT_POOL_INDEX,
                           c_apiConTimersPool);
-      if (apiConTimers.p == c_currentApiConTimers)
-      {
+      if (apiConTimers.p == c_currentApiConTimers) {
         jam();
-        if (timers_list.last(apiConTimers))
-        {
+        if (timers_list.last(apiConTimers)) {
           c_currentApiConTimers = apiConTimers.p;
-        }
-        else
-        {
+        } else {
           c_currentApiConTimers = NULL;
         }
       }
@@ -1541,107 +1475,99 @@ public:
     apiConPtr.p->m_apiConTimer = RNIL;
   }
 
-  void
-  check_blockref(BlockReference ref)
-  {
+  void check_blockref(BlockReference ref) {
     Uint32 nodeId = refToNode(ref);
     ndbrequire(nodeId > 0 && nodeId < MAX_NODES);
   }
   // ********************** CACHE RECORD **************************************
   //---------------------------------------------------------------------------
   // This record is used between reception of TCKEYREQ and sending of LQHKEYREQ
-  // It is separated so as to improve the cache hit rate and also to minimise 
+  // It is separated so as to improve the cache hit rate and also to minimise
   // the necessary memory storage in NDB Cluster.
   //---------------------------------------------------------------------------
 
-  struct CacheRecord
-  {
+  struct CacheRecord {
     static constexpr Uint32 TYPE_ID = RT_DBTC_CACHE_RECORD;
 
-    CacheRecord()
-      : m_magic(Magic::make(TYPE_ID))
-    {}
+    CacheRecord() : m_magic(Magic::make(TYPE_ID)) {}
 
     Uint32 m_magic;
 
     /* Fields used by TCKEYREQ/TCINDXREQ/SCANTABREQ */
-      Uint32 keyInfoSectionI;   /* KeyInfo section I-val */
-      Uint32 attrInfoSectionI;  /* AttrInfo section I-val */
+    Uint32 keyInfoSectionI;  /* KeyInfo section I-val */
+    Uint32 attrInfoSectionI; /* AttrInfo section I-val */
 
-      // TODO : Consider using section length + other vars for this 
-      UintR  currReclenAi;      /* AttrInfo words received so far */
-      Uint16 attrlength;        /* Total AttrInfo length */
-      Uint16 save1;             /* KeyInfo words received so far */
-      Uint16 keylen;            /* KEY LENGTH SENT BY REQUEST SIGNAL */
-    
-      /* Distribution information */
-      // TODO : Consider placing this info into other records
-      Uint8  distributionKeyIndicator;
-      Uint8  viaSPJFlag;        /* Send request via the SPJ block.*/
-      UintR  distributionKey;
+    // TODO : Consider using section length + other vars for this
+    UintR currReclenAi; /* AttrInfo words received so far */
+    Uint16 attrlength;  /* Total AttrInfo length */
+    Uint16 save1;       /* KeyInfo words received so far */
+    Uint16 keylen;      /* KEY LENGTH SENT BY REQUEST SIGNAL */
+
+    /* Distribution information */
+    // TODO : Consider placing this info into other records
+    Uint8 distributionKeyIndicator;
+    Uint8 viaSPJFlag; /* Send request via the SPJ block.*/
+    UintR distributionKey;
     /* End of fields used by TCKEYREQ/TCINDXREQ/SCANTABREQ */
-    
 
     /* TCKEYREQ/TCINDXREQ only fields */
-      UintR  schemaVersion;/* SCHEMA VERSION USED IN TRANSACTION         */
-      UintR  tableref;     /* POINTER TO THE TABLE IN WHICH THE FRAGMENT EXISTS*/
-    
-      UintR  fragmentid;   /* THE COMPUTED FRAGMENT ID                     */
-      UintR  hashValue;    /* THE HASH VALUE USED TO LOCATE FRAGMENT       */
-    
-      Uint8  m_special_hash; // collation or distribution key
-      Uint8  m_no_hash;      // Hash not required for LQH (special variant)
-      Uint8  m_no_disk_flag; 
-      Uint8  m_op_queue;
-      Uint8  lenAiInTckeyreq;  /* LENGTH OF ATTRIBUTE INFORMATION IN TCKEYREQ */
-    
-      Uint8  fragmentDistributionKey;  /* DIH generation no */
-    
-      /**
-       * EXECUTION MODE OF OPERATION                    
-       * 0 = NORMAL EXECUTION, 1 = INTERPRETED EXECUTION
-       */
-      Uint8  opExec;
-      Uint8  m_read_committed_base;
-      Uint8  m_noWait;
-    
-      /* Use of Long signals */
-      Uint8  isLongTcKeyReq;   /* Incoming TcKeyReq used long signal */
-      Uint32 scanInfo;
-    
-      Uint32 scanTakeOverInd;
-      Uint32 unlockNodeId;     /* NodeId for unlock operation */
-    /* End of TCKEYREQ/TCINDXREQ only fields */
+    UintR schemaVersion; /* SCHEMA VERSION USED IN TRANSACTION         */
+    UintR tableref;      /* POINTER TO THE TABLE IN WHICH THE FRAGMENT EXISTS*/
 
+    UintR fragmentid; /* THE COMPUTED FRAGMENT ID                     */
+    UintR hashValue;  /* THE HASH VALUE USED TO LOCATE FRAGMENT       */
+
+    Uint8 m_special_hash;  // collation or distribution key
+    Uint8 m_no_hash;       // Hash not required for LQH (special variant)
+    Uint8 m_no_disk_flag;
+    Uint8 m_op_queue;
+    Uint8 lenAiInTckeyreq; /* LENGTH OF ATTRIBUTE INFORMATION IN TCKEYREQ */
+
+    Uint8 fragmentDistributionKey; /* DIH generation no */
+
+    /**
+     * EXECUTION MODE OF OPERATION
+     * 0 = NORMAL EXECUTION, 1 = INTERPRETED EXECUTION
+     */
+    Uint8 opExec;
+    Uint8 m_read_committed_base;
+    Uint8 m_noWait;
+
+    /* Use of Long signals */
+    Uint8 isLongTcKeyReq; /* Incoming TcKeyReq used long signal */
+    Uint32 scanInfo;
+
+    Uint32 scanTakeOverInd;
+    Uint32 unlockNodeId; /* NodeId for unlock operation */
+    /* End of TCKEYREQ/TCINDXREQ only fields */
   };
-  
+
   typedef Ptr<CacheRecord> CacheRecordPtr;
   typedef TransientPool<CacheRecord> CacheRecord_pool;
   static constexpr Uint32 DBTC_CACHE_RECORD_TRANSIENT_POOL_INDEX = 7;
   CacheRecord m_local_cache_record;
-  
+
   /* ************************ HOST RECORD ********************************** */
   /********************************************************/
   /* THIS RECORD CONTAINS ALIVE-STATUS ON ALL NODES IN THE*/
   /* SYSTEM                                               */
   /********************************************************/
   struct HostRecord {
-    Bitmask<(MAX_NDBMT_LQH_THREADS+1+31)/32> lqh_pack_mask;
-    struct PackedWordsContainer lqh_pack[MAX_NDBMT_LQH_THREADS+1];
+    Bitmask<(MAX_NDBMT_LQH_THREADS + 1 + 31) / 32> lqh_pack_mask;
+    struct PackedWordsContainer lqh_pack[MAX_NDBMT_LQH_THREADS + 1];
     struct PackedWordsContainer packTCKEYCONF;
     HostState hostStatus;
     LqhTransState lqhTransStatus;
-    bool  inPackedList;
+    bool inPackedList;
 
     Uint32 m_location_domain_id;
 
-    enum NodeFailBits
-    {
-      NF_TAKEOVER          = 0x1,
-      NF_CHECK_SCAN        = 0x2,
+    enum NodeFailBits {
+      NF_TAKEOVER = 0x1,
+      NF_CHECK_SCAN = 0x2,
       NF_CHECK_TRANSACTION = 0x4,
-      NF_BLOCK_HANDLE      = 0x8,
-      NF_NODE_FAIL_BITS    = 0xF // All bits...
+      NF_BLOCK_HANDLE = 0x8,
+      NF_NODE_FAIL_BITS = 0xF  // All bits...
     };
     Uint32 m_nf_bits;
     NdbNodeBitmask _m_lqh_trans_conf;
@@ -1667,9 +1593,9 @@ public:
     Uint64 time_track_transaction_error_histogram[TIME_TRACK_HISTOGRAM_RANGES];
   };
   Uint32 m_my_location_domain_id;
-  
+
   typedef Ptr<HostRecord> HostRecordPtr;
-  
+
   /* *********** TABLE RECORD ********************************************* */
 
   /********************************************************/
@@ -1684,33 +1610,41 @@ public:
     Uint8 singleUserMode;
 
     enum {
-      TR_ENABLED      = 1 << 0,
-      TR_DROPPING     = 1 << 1,
+      TR_ENABLED = 1 << 0,
+      TR_DROPPING = 1 << 1,
       TR_STORED_TABLE = 1 << 2,
-      TR_PREPARED     = 1 << 3
-      ,TR_USER_DEFINED_PARTITIONING = 1 << 4
-      ,TR_READ_BACKUP = (1 << 5)
-      ,TR_FULLY_REPLICATED = (1<<6)
-      ,TR_DELAY_COMMIT = (1 << 7)
+      TR_PREPARED = 1 << 3,
+      TR_USER_DEFINED_PARTITIONING = 1 << 4,
+      TR_READ_BACKUP = (1 << 5),
+      TR_FULLY_REPLICATED = (1 << 6),
+      TR_DELAY_COMMIT = (1 << 7)
       ,TR_HASH_FUNCTION = (1 << 8)
     };
-    Uint8 get_enabled()     const { return (m_flags & TR_ENABLED)      != 0; }
-    Uint8 get_dropping()    const { return (m_flags & TR_DROPPING)     != 0; }
+    Uint8 get_enabled() const { return (m_flags & TR_ENABLED) != 0; }
+    Uint8 get_dropping() const { return (m_flags & TR_DROPPING) != 0; }
     Uint8 get_storedTable() const { return (m_flags & TR_STORED_TABLE) != 0; }
-    Uint8 get_prepared()    const { return (m_flags & TR_PREPARED)     != 0; }
-    void set_enabled(Uint8 f)     { f ? m_flags |= (Uint16)TR_ENABLED      : m_flags &= ~(Uint16)TR_ENABLED; }
-    void set_dropping(Uint8 f)    { f ? m_flags |= (Uint16)TR_DROPPING     : m_flags &= ~(Uint16)TR_DROPPING; }
-    void set_storedTable(Uint8 f) { f ? m_flags |= (Uint16)TR_STORED_TABLE : m_flags &= ~(Uint16)TR_STORED_TABLE; }
-    void set_prepared(Uint8 f)    { f ? m_flags |= (Uint16)TR_PREPARED : m_flags &= ~(Uint16)TR_PREPARED; }
+    Uint8 get_prepared() const { return (m_flags & TR_PREPARED) != 0; }
+    void set_enabled(Uint8 f) {
+      f ? m_flags |= (Uint16)TR_ENABLED : m_flags &= ~(Uint16)TR_ENABLED;
+    }
+    void set_dropping(Uint8 f) {
+      f ? m_flags |= (Uint16)TR_DROPPING : m_flags &= ~(Uint16)TR_DROPPING;
+    }
+    void set_storedTable(Uint8 f) {
+      f ? m_flags |= (Uint16)TR_STORED_TABLE
+        : m_flags &= ~(Uint16)TR_STORED_TABLE;
+    }
+    void set_prepared(Uint8 f) {
+      f ? m_flags |= (Uint16)TR_PREPARED : m_flags &= ~(Uint16)TR_PREPARED;
+    }
 
     Uint8 get_user_defined_partitioning() const {
       return (m_flags & TR_USER_DEFINED_PARTITIONING) != 0;
     }
 
     void set_user_defined_partitioning(Uint8 f) {
-      f ?
-        m_flags |= (Uint16)TR_USER_DEFINED_PARTITIONING :
-        m_flags &= ~(Uint16)TR_USER_DEFINED_PARTITIONING;
+      f ? m_flags |= (Uint16)TR_USER_DEFINED_PARTITIONING
+        : m_flags &= ~(Uint16)TR_USER_DEFINED_PARTITIONING;
     }
 
     Uint8 noOfKeyAttr;
@@ -1720,19 +1654,18 @@ public:
 
     bool checkTable(Uint32 schemaVersion) const {
       return !get_dropping() &&
-	((/** normal transaction path */
-          get_enabled() &&
-          table_version_major(schemaVersion) ==
-          table_version_major(currentSchemaVersion)) 
-         ||
-         (/** 
-           * unique index is relaxed for DbUtil and transactions ongoing
-           * while index is created
-           */
-          get_prepared() && schemaVersion == currentSchemaVersion &&
-          DictTabInfo::isUniqueIndex(tableType)));
+             ((/** normal transaction path */
+               get_enabled() &&
+               table_version_major(schemaVersion) ==
+                   table_version_major(currentSchemaVersion)) ||
+              (/**
+                * unique index is relaxed for DbUtil and transactions ongoing
+                * while index is created
+                */
+               get_prepared() && schemaVersion == currentSchemaVersion &&
+               DictTabInfo::isUniqueIndex(tableType)));
     }
-    
+
     Uint32 getErrorCode(Uint32 schemaVersion) const;
   };
   typedef Ptr<TableRecord> TableRecordPtr;
@@ -1753,8 +1686,7 @@ public:
    * the placement of the SPJ worker still, this means that we can
    * have multiple SPJ workers on the same node.
    */
-  struct ScanFragLocation
-  {
+  struct ScanFragLocation {
     Uint32 primaryBlockRef;
     Uint32 preferredBlockRef;
     Uint32 fragId;
@@ -1762,14 +1694,10 @@ public:
 
 #define NUM_FRAG_LOCATIONS_IN_ARRAY 32
 
-  struct ScanFragLocationRec
-  {
+  struct ScanFragLocationRec {
     static constexpr Uint32 TYPE_ID = RT_DBTC_FRAG_LOCATION;
 
-    ScanFragLocationRec()
-    : m_magic(Magic::make(TYPE_ID)),
-      nextList(RNIL)
-    {}
+    ScanFragLocationRec() : m_magic(Magic::make(TYPE_ID)), nextList(RNIL) {}
 
     Uint32 m_magic;
 
@@ -1793,23 +1721,23 @@ public:
   RSS_AP_SNAPSHOT(m_fragLocationPool);
 
   /**
-   * There is max 16 ScanFragRec's for 
+   * There is max 16 ScanFragRec's for
    * each scan started in TC. Each ScanFragRec is used by
-   * a scan fragment "process" that scans one fragment at a time. 
+   * a scan fragment "process" that scans one fragment at a time.
    * It will receive max 16 tuples in each request
    */
   struct ScanFragRec {
     static constexpr Uint32 TYPE_ID = RT_DBTC_SCAN_FRAGMENT;
     ScanFragRec();
     /**
-     * ScanFragState      
-     *  WAIT_GET_PRIMCONF : Waiting for DIGETPRIMCONF when starting a new 
+     * ScanFragState
+     *  WAIT_GET_PRIMCONF : Waiting for DIGETPRIMCONF when starting a new
      *   fragment scan (Obsolete; Checked for, but never set)
      *  LQH_ACTIVE : The scan process has sent a command to LQH and is
      *   waiting for the response
      *  LQH_ACTIVE_CLOSE : The scan process has sent close to LQH and is
      *   waiting for the response (Unused)
-     *  DELIVERED : The result have been delivered, this scan frag process 
+     *  DELIVERED : The result have been delivered, this scan frag process
      *   are waiting for a SCAN_NEXTREQ to tell us to continue scanning
      *  RETURNING_FROM_DELIVERY : SCAN_NEXTREQ received and continuing scan
      *   soon (Unused)
@@ -1828,12 +1756,12 @@ public:
     };
     Uint32 m_magic;
     // Timer for checking timeout of this fragment scan
-    Uint32  scanFragTimer;
+    Uint32 scanFragTimer;
 
     // Fragment id as reported back by DIGETNODESREQ
     Uint32 lqhScanFragId;
 
-    // Blockreference of LQH 
+    // Blockreference of LQH
     BlockReference lqhBlockref;
 
     // getNodeInfo.m_connectCount, set at seize used so that
@@ -1849,12 +1777,8 @@ public:
     // The value of fragmentCompleted in the last received SCAN_FRAGCONF
     Uint8 m_scan_frag_conf_status;
 
-    inline void startFragTimer(Uint32 timeVal){
-      scanFragTimer = timeVal;
-    }
-    inline void stopFragTimer(void){
-      scanFragTimer = 0;
-    }
+    inline void startFragTimer(Uint32 timeVal) { scanFragTimer = timeVal; }
+    inline void stopFragTimer(void) { scanFragTimer = 0; }
 
     Uint32 m_ops;
     Uint32 m_apiPtr;
@@ -1864,7 +1788,7 @@ public:
     Uint32 prevList;
     NDB_TICKS m_start_ticks;
   };
-  
+
   typedef Ptr<ScanFragRec> ScanFragRecPtr;
   typedef TransientPool<ScanFragRec> ScanFragRec_pool;
   static constexpr Uint32 DBTC_SCAN_FRAGMENT_TRANSIENT_POOL_INDEX = 9;
@@ -1873,72 +1797,69 @@ public:
   typedef LocalDLList<ScanFragRec_pool> Local_ScanFragRec_dllist;
 
   /**
-   * Each scan allocates one ScanRecord to store information 
+   * Each scan allocates one ScanRecord to store information
    * about the current scan
    *
    */
   struct ScanRecord {
     static constexpr Uint32 TYPE_ID = RT_DBTC_SCAN_RECORD;
     ScanRecord()
-    : m_magic(Magic::make(TYPE_ID)),
-      scanState(IDLE),
-      scanApiRec(RNIL)
-    {
+        : m_magic(Magic::make(TYPE_ID)), scanState(IDLE), scanApiRec(RNIL) {
       NdbTick_Invalidate(&m_start_ticks);
     }
     /** NOTE! This is the old comment for ScanState. - MASV
-     *       STATE TRANSITIONS OF SCAN_STATE. SCAN_STATE IS THE STATE 
+     *       STATE TRANSITIONS OF SCAN_STATE. SCAN_STATE IS THE STATE
      *       VARIABLE OF THE RECEIVE AND DELIVERY PROCESS.
-     *       THE PROCESS HAS THREE STEPS IT GOES THROUGH.  
-     *       1) THE INITIAL STATES WHEN RECEIVING DATA FOR THE SCAN.         
-     *          - WAIT_SCAN_TAB_INFO                                         
-     *          - WAIT_AI                                                    
-     *          - WAIT_FRAGMENT_COUNT                                        
-     *       2) THE EXECUTION STATES WHEN THE SCAN IS PERFORMED.             
-     *          - SCAN_NEXT_ORDERED                                          
-     *          - DELIVERED                                                  
-     *          - QUEUED_DELIVERED                                           
-     *       3) THE CLOSING STATE WHEN THE SCAN PROCESS IS CLOSING UP 
-     *          EVERYTHING.        
-     *          - CLOSING_SCAN                                               
-     *       INITIAL START WHEN SCAN_TABREQ RECEIVED                         
-     *       -> WAIT_SCAN_TAB_INFO (IF ANY SCAN_TABINFO TO BE RECEIVED)      
-     *       -> WAIT_AI (IF NO SCAN_TAB_INFO BUT ATTRINFO IS RECEIVED)       
-     *       -> WAIT_FRAGMENT_COUNT (IF NEITHER SCAN_TABINFO OR ATTRINFO 
-     *                               RECEIVED)       
-     *                                                                       
-     *       WAIT_SCAN_TAB_INFO TRANSITIONS:                                 
-     *       -> WAIT_SCAN_TABINFO (WHEN MORE SCAN_TABINFO RECEIVED)          
-     *       -> WAIT_AI (WHEN ATTRINFO RECEIVED AFTER RECEIVING ALL 
-     *                    SCAN_TABINFO)        
-     *       -> WAIT_FRAGMENT_COUNT (WHEN NO ATTRINFO RECEIVED AFTER 
-     *                               RECEIVING ALL SCAN_TABINFO )            
-     *       WAIT_AI TRANSITIONS:                                            
-     *       -> WAIT_AI (WHEN MORE ATTRINFO RECEIVED)                        
-     *       -> WAIT_FRAGMENT_COUNT (WHEN ALL ATTRINFO RECEIVED)             
-     *                                                                       
-     *       WAIT_FRAGMENT_COUNT TRANSITIONS:                                
-     *       -> SCAN_NEXT_ORDERED                                            
-     *                                                                       
-     *       SCAN_NEXT_ORDERED TRANSITIONS:                                  
-     *       -> DELIVERED (WHEN FIRST SCAN_FRAGCONF ARRIVES WITH OPERATIONS 
-     *                     TO REPORT IN IT)                                  
-     *       -> CLOSING_SCAN (WHEN SCAN IS CLOSED BY SCAN_NEXTREQ OR BY SOME 
-     *                        ERROR)      
+     *       THE PROCESS HAS THREE STEPS IT GOES THROUGH.
+     *       1) THE INITIAL STATES WHEN RECEIVING DATA FOR THE SCAN.
+     *          - WAIT_SCAN_TAB_INFO
+     *          - WAIT_AI
+     *          - WAIT_FRAGMENT_COUNT
+     *       2) THE EXECUTION STATES WHEN THE SCAN IS PERFORMED.
+     *          - SCAN_NEXT_ORDERED
+     *          - DELIVERED
+     *          - QUEUED_DELIVERED
+     *       3) THE CLOSING STATE WHEN THE SCAN PROCESS IS CLOSING UP
+     *          EVERYTHING.
+     *          - CLOSING_SCAN
+     *       INITIAL START WHEN SCAN_TABREQ RECEIVED
+     *       -> WAIT_SCAN_TAB_INFO (IF ANY SCAN_TABINFO TO BE RECEIVED)
+     *       -> WAIT_AI (IF NO SCAN_TAB_INFO BUT ATTRINFO IS RECEIVED)
+     *       -> WAIT_FRAGMENT_COUNT (IF NEITHER SCAN_TABINFO OR ATTRINFO
+     *                               RECEIVED)
+     *
+     *       WAIT_SCAN_TAB_INFO TRANSITIONS:
+     *       -> WAIT_SCAN_TABINFO (WHEN MORE SCAN_TABINFO RECEIVED)
+     *       -> WAIT_AI (WHEN ATTRINFO RECEIVED AFTER RECEIVING ALL
+     *                    SCAN_TABINFO)
+     *       -> WAIT_FRAGMENT_COUNT (WHEN NO ATTRINFO RECEIVED AFTER
+     *                               RECEIVING ALL SCAN_TABINFO )
+     *       WAIT_AI TRANSITIONS:
+     *       -> WAIT_AI (WHEN MORE ATTRINFO RECEIVED)
+     *       -> WAIT_FRAGMENT_COUNT (WHEN ALL ATTRINFO RECEIVED)
+     *
+     *       WAIT_FRAGMENT_COUNT TRANSITIONS:
+     *       -> SCAN_NEXT_ORDERED
+     *
+     *       SCAN_NEXT_ORDERED TRANSITIONS:
+     *       -> DELIVERED (WHEN FIRST SCAN_FRAGCONF ARRIVES WITH OPERATIONS
+     *                     TO REPORT IN IT)
+     *       -> CLOSING_SCAN (WHEN SCAN IS CLOSED BY SCAN_NEXTREQ OR BY SOME
+     *                        ERROR)
      *
      *       DELIVERED TRANSITIONS:
-     *       -> SCAN_NEXT_ORDERED (IF SCAN_NEXTREQ ARRIVES BEFORE ANY NEW 
+     *       -> SCAN_NEXT_ORDERED (IF SCAN_NEXTREQ ARRIVES BEFORE ANY NEW
      *                             OPERATIONS TO REPORT ARRIVES)
-     *       -> QUEUED_DELIVERED (IF NEW OPERATION TO REPORT ARRIVES BEFORE 
+     *       -> QUEUED_DELIVERED (IF NEW OPERATION TO REPORT ARRIVES BEFORE
      *                            SCAN_NEXTREQ)
-     *       -> CLOSING_SCAN (WHEN SCAN IS CLOSED BY SCAN_NEXTREQ OR BY SOME 
-     *                        ERROR)      
-     *   
-     *       QUEUED_DELIVERED TRANSITIONS:  
-     *       -> DELIVERED (WHEN SCAN_NEXTREQ ARRIVES AND QUEUED OPERATIONS 
+     *       -> CLOSING_SCAN (WHEN SCAN IS CLOSED BY SCAN_NEXTREQ OR BY SOME
+     *                        ERROR)
+     *
+     *       QUEUED_DELIVERED TRANSITIONS:
+     *       -> DELIVERED (WHEN SCAN_NEXTREQ ARRIVES AND QUEUED OPERATIONS
      *                     TO REPORT ARE SENT TO THE APPLICATION)
-     *       -> CLOSING_SCAN (WHEN SCAN IS CLOSED BY SCAN_NEXTREQ OR BY 
-     *                        SOME ERROR)      
+     *       -> CLOSING_SCAN (WHEN SCAN IS CLOSED BY SCAN_NEXTREQ OR BY
+     *                        SOME ERROR)
      */
     enum ScanState {
       IDLE = 0,
@@ -1959,14 +1880,17 @@ public:
     ScanFragLocation_list::Head m_fragLocations;
 
     ScanFragRec_dllist::Head m_running_scan_frags;  // Currently in LQH
-    union { Uint32 m_queued_count; Uint32 scanReceivedOperations; };
-    ScanFragRec_dllist::Head m_queued_scan_frags;   // In TC !sent to API
-    ScanFragRec_dllist::Head m_delivered_scan_frags;// Delivered to API
+    union {
+      Uint32 m_queued_count;
+      Uint32 scanReceivedOperations;
+    };
+    ScanFragRec_dllist::Head m_queued_scan_frags;     // In TC !sent to API
+    ScanFragRec_dllist::Head m_delivered_scan_frags;  // Delivered to API
 
-    // Id of the next fragment to be scanned. Used by scan fragment 
+    // Id of the next fragment to be scanned. Used by scan fragment
     // processes when they are ready for the next fragment
     Uint32 scanNextFragId;
-    
+
     // Total number of fragments in the table we are scanning
     Uint32 scanNoFrag;
 
@@ -1976,7 +1900,7 @@ public:
     // Reference to ApiConnectRecord
     Uint32 scanApiRec;
 
-    // Number of scan frag processes that belong to this scan 
+    // Number of scan frag processes that belong to this scan
     Uint32 scanParallel;
 
     // Schema version used by this scan
@@ -1988,7 +1912,6 @@ public:
     // The index of table that is scanned
     Uint32 scanTableref;
     Uint32 m_scan_cookie;
-    Uint32 m_schema_version_scan_cookie;
 
     // Number of operation records per scanned fragment
     // Number of operations in first batch
@@ -2000,7 +1923,7 @@ public:
     Uint32 batch_byte_size;
     Uint32 m_scan_block_no;
 
-    Uint32 scanRequestInfo; // ScanFrag format
+    Uint32 scanRequestInfo;  // ScanFrag format
 
     // Close is ordered
     bool m_close_scan_req;
@@ -2028,10 +1951,92 @@ public:
   typedef Ptr<ScanRecord> ScanRecordPtr;
   typedef TransientPool<ScanRecord> ScanRecord_pool;
   static constexpr Uint32 DBTC_SCAN_RECORD_TRANSIENT_POOL_INDEX = 10;
-  
+
   /*************************************************************************>*/
   /*                     GLOBAL CHECKPOINT INFORMATION RECORD                */
   /*                                                                         */
+  /*       THIS RECORD IS USED TO STORE THE GLOBALCHECKPOINT NUMBER AND A
+   *       COUNTER DURING THE COMPLETION PHASE OF THE TRANSACTION            */
+  /*************************************************************************>*/
+  /*                                                                         */
+  /*       GCP RECORD ALIGNED TO BE 32 BYTES                                 */
+  /*************************************************************************>*/
+  struct GcpRecord {
+    static constexpr Uint32 TYPE_ID = RT_DBTC_GCP_RECORD;
+
+    GcpRecord() : m_magic(Magic::make(TYPE_ID)) {}
+
+    Uint32 m_magic;
+    Uint16 gcpNomoretransRec;
+    LocalApiConnectRecord_gcp_list::Head apiConnectList;
+    UintR nextList;
+    Uint64 gcpId;
+  }; /* p2c: size = 32 bytes */
+
+  typedef Ptr<GcpRecord> GcpRecordPtr;
+  typedef TransientPool<GcpRecord> GcpRecord_pool;
+  static constexpr Uint32 DBTC_GCP_RECORD_TRANSIENT_POOL_INDEX = 11;
+  typedef LocalSLFifoList<GcpRecord_pool> LocalGcpRecord_list;
+
+  /*************************************************************************>*/
+  /*               TC_FAIL_RECORD                                            */
+  /*       THIS RECORD IS USED WHEN HANDLING TAKE OVER OF ANOTHER FAILED
+   *       TC NODE.       */
+  /*************************************************************************>*/
+  struct TcFailRecord {
+    Uint16 queueList[MAX_NDB_NODES];
+    Uint8 takeOverProcState[MAX_NDB_NODES];
+    Uint32 m_schema_version_scan_cookie;
+
+     UintR completedTakeOver;
+    UintR currentHashIndexTakeOver;
+    Uint32 maxInstanceId;
+    bool takeOverFailed;
+    bool handledOneTransaction;
+    Uint32 takeOverInstanceId;
+    FailState failStatus;
+    Uint16 queueIndex;
+    Uint16 takeOverNode;
+  };
+  typedef Ptr<TcFailRecord> TcFailRecordPtr;
+
+ public:
+  Dbtc(Block_context &, Uint32 instanceNumber = 0);
+  ~Dbtc() override;
+
+ private:
+  BLOCK_DEFINES(Dbtc);
+
+  // Transit signals
+  void execPACKED_SIGNAL(Signal *signal);
+  void execABORTED(Signal *signal);
+  void execATTRINFO(Signal *signal);
+  void execCONTINUEB(Signal *signal);
+  void execKEYINFO(Signal *signal);
+  void execSCAN_NEXTREQ(Signal *signal);
+  void execSCAN_PROCREQ(Signal *signal);
+  void execSCAN_PROCCONF(Signal *signal);
+  void execTAKE_OVERTCCONF(Signal *signal);
+  void execLQHKEYREF(Signal *signal);
+  void execTRANSID_AI_R(Signal *signal);
+  void execKEYINFO20_R(Signal *signal);
+  void execROUTE_ORD(Signal *signal);
+  // Received signals
+  void execDUMP_STATE_ORD(Signal *signal);
+  void execDBINFO_SCANREQ(Signal *signal);
+  void execSEND_PACKED(Signal *signal);
+  void execCOMPLETED(Signal *signal);
+  void execCOMMITTED(Signal *signal);
+  void execDIGETNODESREF(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void execDIVERIFYCONF(Signal *signal);
+  void execDIH_SCAN_TAB_REF(Signal *signal, ScanRecordPtr scanptr,
+                            ApiConnectRecordPtr apiConnectptr);
+  void execDIH_SCAN_TAB_CONF(Signal *signal, ScanRecordPtr scanptr,
+                             TableRecordPtr tabPtr,
+                             ApiConnectRecordPtr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                        */
   /*       THIS RECORD IS USED TO STORE THE GLOBALCHECKPOINT NUMBER AND A 
    *       COUNTER DURING THE COMPLETION PHASE OF THE TRANSACTION            */
   /*************************************************************************>*/
@@ -2199,7 +2204,177 @@ private:
                        CacheRecordPtr& cachePtr,
                        ApiConnectRecord* regApiPtr);
   void releaseCacheRecord(ApiConnectRecordPtr transPtr, CacheRecord*);
-  void TCKEY_abort(Signal* signal,
+||||||| Common ancestor
+                        */
+  /*       THIS RECORD IS USED TO STORE THE GLOBALCHECKPOINT NUMBER AND A 
+   *       COUNTER DURING THE COMPLETION PHASE OF THE TRANSACTION            */
+  /*************************************************************************>*/
+  /*                                                                         */
+  /*       GCP RECORD ALIGNED TO BE 32 BYTES                                 */
+  /*************************************************************************>*/
+  struct GcpRecord
+  {
+    static constexpr Uint32 TYPE_ID = RT_DBTC_GCP_RECORD;
+
+    GcpRecord()
+      : m_magic(Magic::make(TYPE_ID))
+    {}
+
+    Uint32 m_magic;
+    Uint16 gcpNomoretransRec;
+    LocalApiConnectRecord_gcp_list::Head apiConnectList;
+    UintR nextList;
+    Uint64 gcpId;
+  }; /* p2c: size = 32 bytes */
+  
+  typedef Ptr<GcpRecord> GcpRecordPtr;
+  typedef TransientPool<GcpRecord> GcpRecord_pool;
+  static constexpr Uint32 DBTC_GCP_RECORD_TRANSIENT_POOL_INDEX = 11;
+  typedef LocalSLFifoList<GcpRecord_pool> LocalGcpRecord_list;
+
+  /*************************************************************************>*/
+  /*               TC_FAIL_RECORD                                            */
+  /*       THIS RECORD IS USED WHEN HANDLING TAKE OVER OF ANOTHER FAILED 
+   *       TC NODE.       */
+  /*************************************************************************>*/
+  struct TcFailRecord {
+    Uint16 queueList[MAX_NDB_NODES];
+    Uint8 takeOverProcState[MAX_NDB_NODES];
+    UintR completedTakeOver;
+    UintR currentHashIndexTakeOver;
+    Uint32 maxInstanceId;
+    bool   takeOverFailed;
+    bool   handledOneTransaction;
+    Uint32 takeOverInstanceId;
+    FailState failStatus;
+    Uint16 queueIndex;
+    Uint16 takeOverNode;
+  };
+  typedef Ptr<TcFailRecord> TcFailRecordPtr;
+
+public:
+  Dbtc(Block_context&, Uint32 instanceNumber = 0);
+  ~Dbtc() override;
+
+private:
+  BLOCK_DEFINES(Dbtc);
+
+  // Transit signals
+  void execPACKED_SIGNAL(Signal* signal);
+  void execABORTED(Signal* signal);
+  void execATTRINFO(Signal* signal);
+  void execCONTINUEB(Signal* signal);
+  void execKEYINFO(Signal* signal);
+  void execSCAN_NEXTREQ(Signal* signal);
+  void execSCAN_PROCREQ(Signal* signal);
+  void execSCAN_PROCCONF(Signal* signal);
+  void execTAKE_OVERTCCONF(Signal* signal);
+  void execLQHKEYREF(Signal* signal);
+  void execTRANSID_AI_R(Signal* signal);
+  void execKEYINFO20_R(Signal* signal);
+  void execROUTE_ORD(Signal* signal);
+  // Received signals
+  void execDUMP_STATE_ORD(Signal* signal);
+  void execDBINFO_SCANREQ(Signal* signal);
+  void execSEND_PACKED(Signal* signal);
+  void execCOMPLETED(Signal* signal);
+  void execCOMMITTED(Signal* signal);
+  void execDIGETNODESREF(Signal* signal, ApiConnectRecordPtr apiConnectptr);
+  void execDIVERIFYCONF(Signal* signal);
+  void execDIH_SCAN_TAB_REF(Signal* signal,
+                            ScanRecordPtr scanptr,
+                            ApiConnectRecordPtr apiConnectptr);
+  void execDIH_SCAN_TAB_CONF(Signal* signal,
+                             ScanRecordPtr scanptr,
+                             TableRecordPtr tabPtr,
+                             ApiConnectRecordPtr apiConnectptr);
+  void execGCP_NOMORETRANS(Signal* signal);
+  void execLQHKEYCONF(Signal* signal);
+  void execNDB_STTOR(Signal* signal);
+  void execREAD_NODESCONF(Signal* signal);
+  void execREAD_NODESREF(Signal* signal);
+  void execSTTOR(Signal* signal);
+  void execTC_COMMITREQ(Signal* signal);
+  void execTC_CLOPSIZEREQ(Signal* signal);
+  void execTCGETOPSIZEREQ(Signal* signal);
+  void execTCKEYREQ(Signal* signal);
+  void execTCRELEASEREQ(Signal* signal);
+  void execTCSEIZEREQ(Signal* signal);
+  void execTCROLLBACKREQ(Signal* signal);
+  void execTC_HBREP(Signal* signal);
+  void execTC_SCHVERREQ(Signal* signal);
+  void execTAB_COMMITREQ(Signal* signal);
+  void execSCAN_TABREQ(Signal* signal);
+  void execSCAN_TABINFO(Signal* signal);
+  void execSCAN_FRAGCONF(Signal* signal);
+  void execSCAN_FRAGREF(Signal* signal);
+  void execREAD_CONFIG_REQ(Signal* signal);
+  void execLQH_TRANSCONF(Signal* signal);
+  void execCOMPLETECONF(Signal* signal);
+  void execCOMMITCONF(Signal* signal);
+  void execABORTCONF(Signal* signal);
+  void execNODE_FAILREP(Signal* signal);
+  void execINCL_NODEREQ(Signal* signal);
+  void execTIME_SIGNAL(Signal* signal);
+  void execAPI_FAILREQ(Signal* signal);
+  void execSCAN_HBREP(Signal* signal);
+
+  void execABORT_ALL_REQ(Signal* signal);
+
+  void execCREATE_TRIG_IMPL_REQ(Signal* signal);
+  void execDROP_TRIG_IMPL_REQ(Signal* signal);
+  void execFIRE_TRIG_ORD(Signal* signal);
+  void execTRIG_ATTRINFO(Signal* signal);
+  void execCREATE_INDX_IMPL_REQ(Signal* signal);
+  void execDROP_INDX_IMPL_REQ(Signal* signal);
+  void execTCINDXREQ(Signal* signal);
+  void execINDXKEYINFO(Signal* signal);
+  void execINDXATTRINFO(Signal* signal);
+  void execALTER_INDX_IMPL_REQ(Signal* signal);
+  void execSIGNAL_DROPPED_REP(Signal* signal);
+
+  void execFIRE_TRIG_REF(Signal*);
+  void execFIRE_TRIG_CONF(Signal*);
+
+  void execCREATE_FK_IMPL_REQ(Signal* signal);
+  void execDROP_FK_IMPL_REQ(Signal* signal);
+  void execUPD_QUERY_DIST_ORD(Signal*);
+
+  // Index table lookup
+  void execTCKEYCONF(Signal* signal);
+  void execTCKEYREF(Signal* signal);
+  void execTRANSID_AI(Signal* signal);
+  void execTCROLLBACKREP(Signal* signal);
+
+  void execCREATE_TAB_REQ(Signal* signal);
+  void execPREP_DROP_TAB_REQ(Signal* signal);
+  void execDROP_TAB_REQ(Signal* signal);
+  void checkWaitDropTabFailedLqh(Signal*, NodeId nodeId, Uint32 tableId);
+  void execALTER_TAB_REQ(Signal* signal);
+  void set_timeout_value(Uint32 timeOut);
+  void set_appl_timeout_value(Uint32 timeOut);
+  void set_no_parallel_takeover(Uint32);
+  void updateBuddyTimer(ApiConnectRecordPtr);
+
+  // Statement blocks
+  void updatePackedList(Signal* signal, HostRecord* ahostptr, 
+			Uint16 ahostIndex);
+  void clearTcNodeData(Signal* signal, 
+                       UintR TLastLqhIndicator,
+                       UintR Tstart);
+  void errorReport(Signal* signal, int place);
+  void warningReport(Signal* signal, int place);
+  void printState(Signal* signal, int place, ApiConnectRecordPtr apiConnectptr, bool force_trace = false);
+  int seizeTcRecord(Signal* signal, ApiConnectRecordPtr apiConnectptr);
+  int seizeCacheRecord(Signal* signal, CacheRecordPtr& cachePtr, ApiConnectRecord* regApiPtr);
+  void releaseCacheRecord(ApiConnectRecordPtr transPtr, CacheRecord*);
+=======
+apiConnectptr);
+>>>>>>> MySQL 8.0.36
+  void execGCP_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+abort(Signal* signal,
                    int place,
                    ApiConnectRecordPtr apiConnectptr);
   void check_tc_hbrep(Signal *signal, ApiConnectRecordPtr const apiConnectptr);
@@ -2209,127 +2384,1230 @@ private:
                            UintR hostId);
   void sendPackedSignal(Signal* signal,
                         struct PackedWordsContainer * container);
-  Uint32 sendCommitLqh(Signal* signal,
-                       TcConnectRecord * regTcPtr,
-                       ApiConnectRecord* regApiPtr);
-  Uint32 sendCompleteLqh(Signal* signal,
-                         TcConnectRecord * const regTcPtr,
-                         ApiConnectRecord* const regApiPtr);
+  Uint32 sendCommitLqh
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+abort(Signal* signal, int place, ApiConnectRecordPtr apiConnectptr);
+  void copyFromToLen(UintR* sourceBuffer, UintR* destBuffer, UintR copyLen);
+  void reportNodeFailed(Signal* signal, NodeId nodeId);
+  void sendPackedTCKEYCONF(Signal* signal,
+                           HostRecord * ahostptr,
+                           UintR hostId);
+  void sendPackedSignal(Signal* signal,
+                        struct PackedWordsContainer * container);
+  Uint32 sendCommitLqh
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NOMORETRANS
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *signal);
+  void execLQHKEYCONF(Signal *signal);
+  void execNDB_STTOR(Signal *signal);
+  void execREAD_NODESCONF(Signal *signal);
+  void execREAD_NODESREF(Signal *signal);
+  void execSTTOR(Signal *signal);
+  void execTC_COMMITREQ(Signal *signal);
+  void execTC_CLOPSIZEREQ(Signal *signal);
+  void execTCGETOPSIZEREQ(Signal *signal);
+  void execTCKEYREQ(Signal *signal);
+  void execTCRELEASEREQ(Signal *signal);
+  void execTCSEIZEREQ(Signal *signal);
+  void execTCROLLBACKREQ(Signal *
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ TC_FAIL_HASH_SIZE must be divisible by 16.
+ */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-  void startSendFireTrigReq(Signal*, Ptr<ApiConnectRecord>);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+524288
+#define
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+4096
+#define
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ execTC_HBREP(Signal 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+2048
+||||||| Common ancestor
+1024
+=======
+*signal);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-  void sendFireTrigReq(Signal*, Ptr<ApiConnectRecord>);
+  void execTC_SCHVERREQ(Signal *signal);
+  void execTAB_COMMITREQ(Signal *signal);
+  void execSCAN_TABREQ(Signal *signal);
+  void execSCAN_TABINFO(Signal *signal);
+  void execSCAN_FRAGCONF(Signal *signal);
+  void execSCAN_FRAGREF(Signal *signal);
+  void execREAD_CONFIG_REQ(Signal *signal);
+  void execLQH_TRANSCONF(Signal *signal);
+  void execCOMPLETECONF(Signal *signal);
+  void execCOMMITCONF(Signal *signal);
+  void execABORTCONF(Signal *signal);
+  void execNODE_FAILREP(Signal *signal);
+  void execINCL_NODEREQ(Signal *signal);
+  void execTIME_SIGNAL(Signal *signal);
+  void execAPI_FAILREQ(Signal *signal);
+  void execSCAN_HBREP(Signal *signal);
 
-  Uint32 sendFireTrigReqLqh(Signal*, Ptr<TcConnectRecord>, Uint32 pass, ApiConnectRecord* regApiPtr);
+  void execABORT_ALL_REQ(Signal *signal);
 
-  void checkWaitFireTrigConfDone(Signal*,
-                                 Ptr<ApiConnectRecord>);
+  void execCREATE_TRIG_IMPL_REQ(Signal *signal);
+  void execDROP_TRIG_IMPL_REQ(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 transid1,
+                                     ApiConnectRecordPtr apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal *signal, Uint32 transid1, ApiConnectRecordPtr apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal *signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void execFIRE_TRIG_ORD(Signal *signal);
+  void execTRIG_ATTRINFO(Signal *signal);
+  void execCREATE_INDX_IMPL_REQ(Signal *signal);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+remove_takeover
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+remove_transaction_from_tc_fail
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execDROP_INDX_IMPL
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transaction
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+hash
+// RONDB-624 todo: Glue these lines together ^v
+=======
+REQ
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+, ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+, ApiConnectRecord* regApiPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+);
+  void execTCINDXREQ(Signal *signal);
+  void execINDXKEYINFO(Signal *signal);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setFailData
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+setupFailData
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execINDXATTRINFO
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint16 data
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal* signal, ApiConnectRecord* regApiPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal *signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setupFailData
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+findApiConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execALTER_INDX_IMPL_REQ
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+, ApiConnectRecordPtr regApiPtr, Uint32 type
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+, Uint32 transid1, Uint32 transid2, ApiConnectRecordPtr& apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+);
+  bool 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+findApiConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+initApiConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execSIGNAL_DROPPED_REP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *signal);
+
+  void execFIRE_TRIG_REF(Signal *);
+  void execFIRE_TRIG_CONF(Signal 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                      ApiConnectRecordPtr& apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                      LqhTransConf::OperationStatus transStatus,
+                          Uint32 reqinfo,
+                          BlockReference applRef,
+                          Uint64 gci,
+                          NodeId nodeId,
+                          ApiConnectRecordPtr apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*);
+
+  void execCREATE_FK_IMPL_REQ(Signal *signal);
+  void execDROP_FK_IMPL_REQ(Signal *signal);
+  void execUPD_QUERY_DIST_ORD(Signal *);
+
+  // Index table lookup
+  void execTCKEYCONF(Signal *signal);
+  void execTCKEYREF(Signal *signal);
+  void execTRANSID_AI(Signal *signal);
+  void execTCROLLBACKREP(Signal *signal);
+
+  void execCREATE_TAB_REQ(Signal *signal);
+  void execPREP_DROP_TAB_REQ(Signal *signal);
+  void execDROP_TAB_REQ(Signal *signal);
+  void checkWaitDropTabFailedLqh(Signal *, NodeId nodeId, Uint32 tableId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+initApiConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+updateApiStateFail
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execALTER_TAB_REQ
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *signal);
+  void set_timeout_value(Uint32 timeOut);
+  void set_appl_timeout_value(Uint32 timeOut);
+  void set_no_parallel_takeover(Uint32);
+  void updateBuddyTimer(ApiConnectRecordPtr);
+
+  // Statement blocks
+  void updatePackedList(Signal *signal, HostRecord *ahostptr,
+                        Uint16 ahostIndex);
+  void clearTcNodeData(Signal *signal, UintR TLastLqhIndicator, UintR Tstart);
+  void errorReport(Signal *signal, int place);
+  void warningReport(Signal *signal, int place);
+  void printState(Signal *signal, int place, ApiConnectRecordPtr apiConnectptr,
+                  bool force_trace = false);
+  int seizeTcRecord(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  int seizeCacheRecord(Signal *signal, CacheRecordPtr &cachePtr,
+                       ApiConnectRecord *regApiPtr);
+  void releaseCacheRecord(ApiConnectRecordPtr transPtr, CacheRecord *);
+  void TCKEY_abort(Signal *signal, int place,
+                   ApiConnectRecordPtr apiConnectptr);
+  void copyFromToLen(UintR *sourceBuffer, UintR *destBuffer, UintR copyLen);
+  void reportNodeFailed(Signal *signal, NodeId nodeId);
+  void sendPackedTCKEYCONF(Signal *signal, HostRecord *ahostptr, UintR hostId);
+  void sendPackedSignal(Signal *signal, struct PackedWordsContainer *container);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+void
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+updateApiStateFail
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+findTcConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendCommitLqh
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *signal, TcConnectRecord *regTcPtr,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *regApiPtr);
+  Uint32 sendCompleteLqh(Signal *signal, TcConnectRecord *const regTcPtr,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ Uint32 transid2,
+||||||| Common ancestor
+Uint32 transid2,
+=======
+>>>>>>> MySQL 8.0.36
+       ApiConnectRecord *const regApiPtr);
+
+  void startSendFireTrigReq(Signal *, Ptr<ApiConnectRecord>);
+
+  void sendFireTrigReq(Signal *, Ptr<ApiConnectRecord>);
+
+  Uint32 sendFireTrigReqLqh(Signal *, Ptr<TcConnectRecord>,  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LqhTransConf::OperationStatus transStatus
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tcOprec
+// RONDB-624 todo: Glue these lines together ^v
+=======
+pass
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecordPtr apiConnectptr);
+  void
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   ApiConnectRecord *regApiPtr);
+
+  void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+initTcConnectFail(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+checkWaitFireTrigConfDone(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+reqinfo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, Ptr<ApiConnectRecord>);
 
 /**
- * These use modulo 2 hashing, so these need to be a number which is 2^n.
- * TC_FAIL_HASH_SIZE must be divisible by 16.
- */
-#define TC_FAIL_HASH_SIZE 524288
-#define TRANSID_FAIL_HASH_SIZE 2048
+ * These use modulo 2 hashing, so these need to be a number which 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+is
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+BlockReference applRef,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+instanceKey,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+2^n.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-  void sendTCKEY_FAILREF(Signal* signal, ApiConnectRecord *);
-  void sendTCKEY_FAILCONF(Signal* signal, ApiConnectRecord *);
-  void routeTCKEY_FAILREFCONF(Signal* signal, const ApiConnectRecord *, 
-			      Uint32 gsn, Uint32 len);
-  void execTCKEY_FAILREFCONF_R(Signal* signal);
+ */
+#define TC_FAIL_HASH_SIZE 4096
+#define TRANSID_FAIL_HASH_SIZE 1024
+
+  void sendTCKEY_FAILREF(Signal *signal, ApiConnectRecord *);
+  void sendTCKEY_FAILCONF(Signal *signal, ApiConnectRecord *);
+  void routeTCKEY_FAILREFCONF(Signal *signal, const ApiConnectRecord 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  Uint64 gci
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Uint32 tcOprec
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ NodeId nodeId,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 reqinfo,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     Uint32 gsn, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+LqhTransConf::OperationStatus
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ApiConnectRecordPtr apiConnectptr);
+  bool findTcConnectFail(Signal* signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+transStatus,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+len);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  void execTCKEY_FAILREFCONF_R(Signal *signal);
   void timer_handling(Signal *signal);
-  void checkStartTimeout(Signal* signal);
-  void checkStartFragTimeout(Signal* signal);
-  void timeOutFoundFragLab(Signal* signal, Uint32 TscanConPtr);
-  void timeOutLoopStartFragLab(Signal* signal, Uint32 TscanConPtr);
-  int  releaseAndAbort(Signal* signal, ApiConnectRecord* regApiPtr);
+  void checkStartTimeout(Signal *signal);
+  void checkStartFragTimeout(Signal *signal);
+  void timeOutFoundFragLab(Signal *signal, Uint32 TscanConPtr);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NodeId
+// RONDB-624 todo: Glue these lines together ^v
+=======
+timeOutLoopStartFragLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transid1
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+nodeId
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, Uint32 TscanConPtr);
+  int releaseAndAbort(Signal *signal, ApiConnectRecord *regApiPtr);
 
   void scan_for_read_backup(Signal *, Uint32, Uint32, Uint32);
-  void releaseMarker(ApiConnectRecord * const regApiPtr);
+  void releaseMarker(ApiConnectRecord *const regApiPtr);
 
-  Uint32 get_transid_fail_bucket(Uint32 transid1);
-  void insert_transid_fail_hash(Uint32 transid1, ApiConnectRecordPtr apiConnectptr);
-  void remove_from_transid_fail_hash(Uint32 transid1,
+  Uint32 get_transid_fail_bucket(Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transid2,
+                         Uint32 tcOprec,
+                         ApiConnectRecordPtr apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnectPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+transid1
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+initTcConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+updateTcStateFail
+// RONDB-624 todo: Glue these lines together ^v
+=======
+insert_transid_fail_hash
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Uint32 transid1,
+                                ApiConnectRecordPtr apiConnectptr);
+  void remove_from_transid_fail_hash(Signal *signal, Uint32 transid1,
                                      ApiConnectRecordPtr apiConnectptr);
   Uint32 get_tc_fail_bucket(Uint32 transid1, Uint32 tcOprec);
   void insert_tc_fail_hash(Uint32 transid1, Uint32 tcOprec);
-  void remove_takeover_transaction(Signal *signal, ApiConnectRecordPtr);
+  void remove_transaction_from_tc_fail_hash(Signal *signal,
+                                            ApiConnectRecord *regApiPtr);
 
-  void initTcFail(Signal* signal);
-  void releaseTakeOver(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void setFailData(Uint16 data);
-  bool setupFailData(Signal* signal, ApiConnectRecordPtr regApiPtr, Uint32 type);
-  bool findApiConnectFail(Signal* signal,
-                          Uint32 transid1,
-                          Uint32 transid2,
-                          ApiConnectRecordPtr& apiConnectptr);
-  void initApiConnectFail(Signal* signal,
-                          Uint32 transid1,
-                          Uint32 transid2,
-                          LqhTransConf::OperationStatus transStatus,
-                          Uint32 reqinfo,
-                          BlockReference applRef,
-                          Uint64 gci,
-                          NodeId nodeId,
-                          ApiConnectRecordPtr apiConnectptr);
-  void updateApiStateFail(Signal* signal,
-                          Uint32 transid1,
-                          Uint32 transid2,
-                          LqhTransConf::OperationStatus transStatus,
-                          Uint32 reqinfo,
-                          BlockReference applRef,
-                          Uint64 gci,
-                          NodeId nodeId,
-                          ApiConnectRecordPtr apiConnectptr);
-  bool findTcConnectFail(Signal* signal,
-                         Uint32 transid1,
-                         Uint32 transid2,
-                         Uint32 tcOprec,
-                         ApiConnectRecordPtr apiConnectptr);
-  void initTcConnectFail(Signal* signal,
-                         Uint32 instanceKey,
-                         Uint32 tcOprec,
-                         Uint32 reqinfo,
-                         LqhTransConf::OperationStatus transStatus,
-                         NodeId nodeId,
-                         Uint32 apiConnectPtr);
-  void updateTcStateFail(Signal* signal,
-                         Uint32 instanceKey,
-                         Uint32 tcOprec,
-                         Uint32 reqinfo,
-                         LqhTransConf::OperationStatus transStatus,
-                         NodeId nodeId,
-                         ApiConnectRecordPtr apiConnecptr);
+  void initTcFail(Signal *signal);
+  void releaseTakeOver(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void setupFailData(Signal *signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnecptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regApiPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+updateTcStateFail
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+handleFailedApiConnection
+// RONDB-624 todo: Glue these lines together ^v
+=======
+findApiConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, Uint32 transid1, Uint32 transid2,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    ApiConnectRecordPtr &apiConnectptr);
+  void initApiConnectFail(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+instanceKey
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*TloopCount
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, Uint32 transid1, Uint32 transid2,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        LqhTransConf::OperationStatus
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcOprec
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TapiFailedNode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+transStatus
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                         Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+reqinfo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+       bool apiNodeFailed
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32 reqinfo, BlockReference applRef, Uint64 gci
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                         LqhTransConf::OperationStatus 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transStatus,
+||||||| Common ancestor
+=======
+NodeId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ nodeId,     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+set_api_fail_state(Uint32 TapiFailedNode, bool apiNodeFailed, ApiConnectRecord* regApiPtr);
+  void handleApiFailState(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+updateApiStateFail(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+UintR anApiConnectptr);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void
+// RONDB-624 todo: Glue these lines together ^v
+=======
+transid1,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+handleFailedApiNode(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+transid2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                         ApiConnectRecordPtr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnecptr);
 
-  bool handleFailedApiConnection(Signal*,
-                                 Uint32 *TloopCount,
-                                 Uint32 TapiFailedNode,
-                                 bool apiNodeFailed,
-                                 ApiConnectRecordPtr apiConnectptr);
-  void set_api_fail_state(Uint32 TapiFailedNode, bool apiNodeFailed, ApiConnectRecord* regApiPtr);
-  void handleApiFailState(Signal* signal, UintR anApiConnectptr);
-  void handleFailedApiNode(Signal* signal,
-                           UintR aFailedNode,
-                           UintR anApiConnectPtr);
+||||||| Common ancestor
+=======
+LqhTransConf::OperationStatus
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ bool handleFailedApiConnection(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+UintR aFailedNode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+transStatus
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       Uint32 *TloopCount,
+      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ UintR anApiConnectPtr);
   void handleScanStop(Signal* signal, UintR aFailedNode);
   void initScanTcrec(Signal* signal);
-  Uint32 initScanrec(ScanRecordPtr,  const class ScanTabReq*,
-                     const UintR scanParallel,
-                     const Uint32 apiPtr[],
-                     Uint32 apiConnectPtr);
-  void initScanfragrec(Signal* signal);
-  void releaseScanResources(Signal*,
-                            ScanRecordPtr,
-                            ApiConnectRecordPtr apiConnectptr,
-                            bool not_started = false);
-  ScanRecordPtr seizeScanrec(Signal* signal);
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+initScanrec(ScanRecordPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+reqinfo,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ BlockReference 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+applRef,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+class
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ScanTabReq*,
+=======
+gci,
+>>>>>>> MySQL 8.0.36
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ Uint32 TapiFailedNode,
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const UintR scanParallel,
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     NodeId nodeId, ApiConnectRecordPtr apiConnectptr);
+  bool findTcConnectFail(Signal *signal, Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const Uint32 apiPtr[],
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+transid1, Uint32 transid2,
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+            bool apiNodeFailed,
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+initScanfragrec(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal);
+=======
+tcOprec, ApiConnectRecordPtr apiConnectptr);
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+releaseScanResources(Signal*,
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+initTcConnectFail(Signal *signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 instanceKey, Uint32 tcOprec,
+        ApiConnectRecordPtr apiConnectptr);
+  void set_api_fail_state(Uint32 TapiFailedNode, bool apiNodeFailed, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ApiConnectRecord* regApiPtr);
+  void handleApiFailState(Signal* signal, UintR anApiConnectptr);
+||||||| Common ancestor
+ScanRecordPtr,
+=======
+>>>>>>> MySQL 8.0.36
+  void handleFailedApiNode(Signal* signal,
+     Uint32 reqinfo,
+                     UintR aFailedNode,
+   LqhTransConf::OperationStatus transStatus,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+UintR
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+anApiConnectPtr);
+||||||| Common ancestor
+false);
+=======
+>>>>>>> MySQL 8.0.36
+ NodeId 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+void
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+nodeId,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+handleScanStop(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+seizeScanrec(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal, UintR aFailedNode
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+apiConnectPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+initScanTcrec
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendDihGetNodesLab
+// RONDB-624 todo: Glue these lines together ^v
+=======
+updateTcStateFail
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal);
+||||||| Common ancestor
+ScanRecordPtr, ApiConnectRecordPtr);
+=======
+*signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ instanceKey, Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+initScanrec(ScanRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendDihGetNodeReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tcOprec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,  const class 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ScanTabReq*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32 reqinfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                     const UintR 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scanParallel
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  ScanFragLocationPtr &fragLocationPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  LqhTransConf::OperationStatus transStatus
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                     const NodeId 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiPtr[]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+scanFragId
+// RONDB-624 todo: Glue these lines together ^v
+=======
+nodeId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, ApiConnectRecordPtr apiConnecptr);
 
-  void sendDihGetNodesLab(Signal*, ScanRecordPtr, ApiConnectRecordPtr);
+  bool handleFailedApiConnection(Signal *, Uint32 *TloopCount,
+  Uint32 apiConnectPtr);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+initScanfragrec(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal);
+||||||| Common ancestor
+is_multi_spj_scan);
+=======
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+releaseScanResources(Signal*,
+||||||| Common ancestor
+get_next_frag_location(ScanFragLocationPtr fragLocationPtr,
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                      Uint32 TapiFailedNode, bool apiNodeFailed,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ScanRecordPtr,
+||||||| Common ancestor
+  Uint32 & fragId,
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                          ApiConnectRecordPtr apiConnectptr);
+ ApiConnectRecordPtr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr,
+||||||| Common ancestor
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+set_api_fail_state(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TapiFailedNode,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+primaryBlockRef,
+=======
+bool apiNodeFailed,
+>>>>>>> MySQL 8.0.36
+                         bool 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+not_started
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ApiConnectRecord *regApiPtr);
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+false);
+||||||| Common ancestor
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ handleApiFailState(Signal 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ScanRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+seizeScanrec(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UintR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+preferredBlockRef
+// RONDB-624 todo: Glue these lines together ^v
+=======
+anApiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sendDihGetNodesLab
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+get_and_step_next_frag_location
+// RONDB-624 todo: Glue these lines together ^v
+=======
+handleFailedApiNode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Signal*,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanFragLocationPtr &
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal *signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ScanRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragLocationPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UintR aFailedNode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, ApiConnectRecordPtr);
   bool sendDihGetNodeReq(Signal*,
-                         ScanRecordPtr,
-                         ScanFragLocationPtr &fragLocationPtr,
-                         Uint32 scanFragId,
-                         bool is_multi_spj_scan);
+                        UintR anApiConnectPtr);
+ ScanRecordPtr,
+ void handleScanStop(Signal *signal, UintR aFailedNode);
+  void initScanTcrec(Signal *signal);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ScanRecord
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*scanPtrP,
+=======
+initScanrec(ScanRecordPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ const class ScanTabReq *,
+          ScanFragLocationPtr &fragLocationPtr,
+          const UintR scanParallel, const Uint32 apiPtr[],
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scanFragId,
+||||||| Common ancestor
+& fragId,
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         Uint32 apiConnectPtr);
+  void initScanfragrec(Signal *signal);
+  void releaseScanResources(Signal *, ScanRecordPtr,
+       bool is_multi_spj_scan);
   void get_next_frag_location(ScanFragLocationPtr fragLocationPtr,
                               Uint32 & fragId,
                               Uint32 & primaryBlockRef,
@@ -2337,330 +3615,643 @@ private:
   void get_and_step_next_frag_location(ScanFragLocationPtr & fragLocationPtr,
                                        ScanRecord *scanPtrP,
                                        Uint32 & fragId,
-                                       Uint32 & primaryBlockRef,
-                                       Uint32 & preferredBlockRef);
-  void sendFragScansLab(Signal*, ScanRecordPtr, ApiConnectRecordPtr);
-  bool sendScanFragReq(Signal*,
-                       ScanRecordPtr,
-                       ScanFragRecPtr,
-                       ScanFragLocationPtr & fragLocationPtr,
-                       ApiConnectRecordPtr const apiConnectptr);
-  void sendScanTabConf(Signal* signal, ScanRecordPtr, ApiConnectRecordPtr);
-  void send_close_scan(Signal*, ScanFragRecPtr, const ApiConnectRecordPtr);
-  void close_scan_req(Signal*, ScanRecordPtr, bool received_req, ApiConnectRecordPtr apiConnectptr);
-  void close_scan_req_send_conf(Signal*, ScanRecordPtr, ApiConnectRecordPtr apiConnectptr);
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       ApiConnectRecordPtr apiConnectptr,
+                            bool not_started = false);
+  ScanRecordPtr seizeScanrec(Signal *signal);
+
+  void sendDihGetNodesLab(Signal *, ScanRecordPtr, ApiConnectRecordPtr);
+  bool sendDihGetNodeReq(Signal *, ScanRecordPtr,
+                         ScanFragLocationPtr &fragLocationPtr,
+                         Uint32 scanFragId, bool is_multi_spj_scan);
+  void get_next_frag_location(ScanFragLocationPtr fragLocationPtr,
+                              Uint32 &fragId, Uint32 &primaryBlockRef,
+                              Uint32 &preferredBlockRef);
+  void get_and_step_next_frag_location(ScanFragLocationPtr &fragLocationPtr,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+checkGcpFinished(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+checkGcp(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
   
-  void checkGcpFinished(Signal* signal);
-  void commitGciHandling(Signal* signal,
-                         Uint64 Tgci,
-                         ApiConnectRecordPtr apiConnectptr,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Tgci,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Tgci,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr,
                          Uint32 line);
-  void copyApi(Signal *signal,
-               Ptr<ApiConnectRecord> dst,
-               Ptr<ApiConnectRecord> src);
-  void DIVER_node_fail_handling(Signal* signal, Uint64 Tgci, ApiConnectRecordPtr apiConnectptr);
-  void gcpTcfinished(Signal* signal, Uint64 gci, Uint32 line);
-  void handleGcp(Signal* signal, ApiConnectRecordPtr);
-  void hash(Signal* signal, CacheRecord * regCachePtr);
-  bool handle_special_hash(Uint32 dstHash[4], 
-                           const Uint32* src,
-                           Uint32 srcLen,
-                           const Uint32 tabPtrI,
-                           bool distr,
-                           bool use_new_hash_function);
+||||||| Common ancestor
+apiConnectptr);
+=======
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+copyApi(Signal *signal,
+               Ptr<ApiConnectRecord>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+copyApi(Ptr<ApiConnectRecord>
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+dst,
+              
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dst,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+            ScanRecord *scanPtrP, Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+gci, Uint32 line);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+gci);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&fragId,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+                                       Uint32 &primaryBlockRef,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+src,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+src,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
   
-  void initApiConnect(Signal* signal);
-  void initApiConnectRec(Signal* signal, 
-			 ApiConnectRecord * const regApiPtr,
-			 bool releaseIndexOperations = false);
-  void inithost(Signal* signal);
-  void initialiseScanrec(Signal* signal);
-  void initTable(Signal* signal);
-  void initialiseTcConnect(Signal* signal);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+srcLen,
+||||||| Common ancestor
+srcLen, 
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtrI,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtrI,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+distr,
+                           bool use_new_hash_function
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+distr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32 &preferredBlockRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void sendFragScansLab(Signal *, ScanRecordPtr, ApiConnectRecordPtr);
+  bool sendScanFragReq(Signal *, ScanRecordPtr, ScanFragRecPtr,
+                       ScanFragLocationPtr &fragLocationPtr,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal,
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+apiConnectptr);
+=======
+const apiConnectptr);
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+releaseApiCon(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendScanTabConf(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+UintR
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ScanRecordPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                     ApiConnectRecordPtr apiConnectptr,
+                             bool first = true
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+aApiConnectPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+releaseApiCon
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+releaseApiConCopy
+// RONDB-624 todo: Glue these lines together ^v
+=======
+send_close_scan
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *, ScanFragRecPtr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+UintR
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+aApiConnectPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+releaseApiConCopy
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+releaseApiConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+=======
+close_scan_req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *, ScanRecordPtr, bool received_req,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+releaseApiConnectFail(ApiConnectRecordPtr apiConnectptr);
+  void releaseAttrinfo(CacheRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+releaseAttrinfo(CacheRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                   ApiConnectRecordPtr apiConnectptr);
+  void close_scan_req_send_conf(Signal *, ScanRecordPtr,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+releaseTcCon(Signal *signal, Uint32 & loop_count, bool detach
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+releaseTcCon(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                           ApiConnectRecordPtr apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+
+  void checkGcp(TcConnectRecordPtr);
+  void commitGciHandling(Signal *signal, Uint64 Tgci,
+                         ApiConnectRecordPtr apiConnectptr);
+  void copyApi(Ptr<ApiConnectRecord> dst, Ptr<ApiConnectRecord> src);
+  void DIVER_node_fail_handling(Signal *signal, Uint64 Tgci,
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+gci, Uint32 line);
+||||||| Common ancestor
+gci);
+=======
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal,
+                                            
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ApiConnectRecordPtr apiConnectptr);
+  void gcpTcfinished(Signal *signal, Uint64 gci);
+  void handleGcp(Signal *signal, ApiConnectRecordPtr);
+  void hash(Signal *signal, CacheRecord *regCachePtr);
+  bool handle_special_hash(Uint32 dstHash[4], const Uint32 *src, Uint32 srcLen,
+                           Uint32 tabPtrI, bool distr);
+
+  void initApiConnect(Signal *signal);
+  void initApiConnectRec(Signal *signal, ApiConnectRecord *const regApiPtr,
+                         bool releaseIndexOperations = false);
+  void inithost(Signal *signal);
+  void initialiseScanrec(Signal *signal);
+  void initTable(Signal *signal);
+  void initialiseTcConnect(Signal *signal);
   void linkApiToGcp(Ptr<GcpRecord>, Ptr<ApiConnectRecord>);
   void linkGciInGcilist(Ptr<GcpRecord>);
-  void linkTcInConnectionlist(Signal* signal, ApiConnectRecord* regApiPtr);
-  void releaseAbortResources(Signal* signal,
-                             ApiConnectRecordPtr apiConnectptr,
-                             bool first = true);
-  void releaseApiCon(Signal* signal, UintR aApiConnectPtr);
-  void releaseApiConCopy(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void releaseApiConnectFail(ApiConnectRecordPtr apiConnectptr);
-  void releaseAttrinfo(CacheRecordPtr cachePtr, ApiConnectRecord* regApiPtr);
-  void releaseKeys(CacheRecord* regCachePtr);
-  void releaseDirtyRead(Signal*, ApiConnectRecordPtr, TcConnectRecord*);
-  void releaseDirtyWrite(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  bool releaseTcCon(Signal *signal, Uint32 & loop_count, bool detach);
-  void releaseTcConnectFail(TcConnectRecordPtr);
-  void releaseTransResources(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void checkPoolShrinkNeed(Uint32 pool_index, const TransientFastSlotPool& pool);
+  void linkTcInConnectionlist(Signal *signal, ApiConnectRecord *regApiPtr);
+  void releaseAbortResources(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void releaseApiCon(Signal *signal, UintR aApiConnectPtr);
+  void releaseApiConCopy(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void releaseApiConnectFail(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void releaseAttrinfo(CacheRecordPtr cachePtr, ApiConnectRecord *regApiPtr);
+  void releaseKeys(CacheRecord *regCachePtr);
+  void releaseDirtyRead(Signal *, ApiConnectRecordPtr, TcConnectRecord *);
+  void releaseDirtyWrite(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void releaseTcCon();
+  void releaseTcConnectFail(Signal *signal);
+  void releaseTransResources(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void checkPoolShrinkNeed(Uint32 pool_index,
+                           const TransientFastSlotPool &pool);
   void sendPoolShrink(Uint32 pool_index);
-  bool seizeApiConnect(Signal* signal, ApiConnectRecordPtr& apiConnectptr);
-  bool seizeApiConnectCopy(Signal* signal, ApiConnectRecord* regApiPtr);
-  bool seizeApiConnectFail(Signal* signal, ApiConnectRecordPtr& apiConnectptr);
+  bool seizeApiConnect(Signal *signal, ApiConnectRecordPtr &apiConnectptr);
+  bool seizeApiConnectCopy(Signal *signal, ApiConnectRecord *regApiPtr);
+  bool seizeApiConnectFail(Signal *signal, ApiConnectRecordPtr &apiConnectptr);
   [[noreturn]] void crash_gcp(Uint32 line, const char msg[]);
-  void seizeGcp(Ptr<GcpRecord> & dst, Uint64 gci, Uint32 line);
-  void seizeTcConnectFail(Signal* signal);
-  Ptr<ApiConnectRecord> sendApiCommitAndCopy(Signal* signal,
+  void seizeGcp(Ptr<GcpRecord> &dst, Uint64 gci);
+  void seizeTcConnectFail(Signal *signal);
+  Ptr<ApiConnectRecord> sendApiCommitAndCopy(Signal *signal,
                                              ApiConnectRecordPtr apiConnectptr);
-  void sendApiCommitSignal(Signal* signal, Ptr<ApiConnectRecord>);
-  void sendApiLateCommitSignal(Signal* signal, Ptr<ApiConnectRecord> apiCopy);
-  void sendContinueTimeOutControl(Signal* signal, Uint32 TapiConPtr);
-  void sendlqhkeyreq(Signal* signal, 
-                     BlockReference TBRef,
-                     CacheRecord*,
-                     ApiConnectRecord* regApiPtr);
-  void sendSystemError(Signal* signal, int line);
-  void sendtckeyconf(Signal* signal, UintR TcommitFlag, ApiConnectRecordPtr apiConnectptr);
+  void sendApiCommitSignal(Signal *signal, Ptr<ApiConnectRecord>);
+  void sendApiLateCommitSignal(Signal *signal, Ptr<ApiConnectRecord> apiCopy);
+  void sendContinueTimeOutControl(Signal *signal, Uint32 TapiConPtr);
+  void sendlqhkeyreq(Signal *signal, BlockReference TBRef, CacheRecord *,
+                     ApiConnectRecord *regApiPtr);
+  void sendSystemError(Signal *signal, int line);
+  void sendtckeyconf(Signal *signal, UintR TcommitFlag,
+                     ApiConnectRecordPtr apiConnectptr);
   void unlinkApiConnect(Ptr<GcpRecord>, Ptr<ApiConnectRecord>);
   void unlinkAndReleaseGcp(Ptr<GcpRecord>);
-  void unlinkReadyTcCon(ApiConnectRecord* regApiPtr);
-  void handleFailedOperation(Signal* signal,
-			     const LqhKeyRef * const lqhKeyRef, 
-			     bool gotLqhKeyRef);
-  void markOperationAborted(ApiConnectRecord * const regApiPtr,
-			    TcConnectRecord * const regTcPtr);
-  void clearCommitAckMarker(ApiConnectRecord * const regApiPtr,
-			    TcConnectRecord * const regTcPtr);
+  void unlinkReadyTcCon(ApiConnectRecord *regApiPtr);
+  void handleFailedOperation(Signal *signal, const LqhKeyRef *const lqhKeyRef,
+                             bool gotLqhKeyRef);
+  void markOperationAborted(ApiConnectRecord *const regApiPtr,
+                            TcConnectRecord *const regTcPtr);
+  void clearCommitAckMarker(ApiConnectRecord *const regApiPtr,
+                            TcConnectRecord *const regTcPtr);
   // Trigger and index handling
-  int saveINDXKEYINFO(Signal* signal,
-                      TcIndexOperation* indexOp,
-                      const Uint32 *src, 
-                      Uint32 len);
-  bool receivedAllINDXKEYINFO(TcIndexOperation* indexOp);
-  int saveINDXATTRINFO(Signal* signal,
-                        TcIndexOperation* indexOp,
-                        const Uint32 *src, 
-                        Uint32 len);
-  bool receivedAllINDXATTRINFO(TcIndexOperation* indexOp);
-  Uint32 saveTRANSID_AI(Signal* signal,
-                        TcIndexOperation* indexOp, 
-                        const Uint32 *src,
-                        Uint32 len);
-  bool receivedAllTRANSID_AI(TcIndexOperation* indexOp);
-  void readIndexTable(Signal* signal,
-                      ApiConnectRecordPtr transPtr,
-                      TcIndexOperation* indexOp,
-                      Uint32 special_op_flags);
-  void executeIndexOperation(Signal* signal, 
-			     ApiConnectRecord* regApiPtr,
-			     TcIndexOperation* indexOp);
-  bool seizeIndexOperation(ApiConnectRecord* regApiPtr,
-			   TcIndexOperationPtr& indexOpPtr);
-  void releaseIndexOperation(ApiConnectRecord* regApiPtr,
-			     TcIndexOperation* indexOp);
-  void releaseAllSeizedIndexOperations(
+  int saveINDXKEYINFO(Signal *signal, TcIndexOperation *indexOp,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+releaseAllSeizedIndexOperations(
                Signal *signal,
-               LocalTcIndexOperation_dllist::Head *seized_index_head,
+||||||| Common ancestor
+releaseAllSeizedIndexOperations(ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+              LocalTcIndexOperation_dllist::Head *seized_index_head,
                Uint32 & loop_count,
                bool detach);
-  void setupIndexOpReturn(ApiConnectRecord* regApiPtr,
-			  TcConnectRecord* regTcPtr);
+||||||| Common ancestor
+regApiPtr);
+=======
+>>>>>>> MySQL 8.0.36
+ const Uint32 *src, Uint32 len);
+  bool receivedAllINDXKEYINFO(TcIndexOperation *indexOp);
+  int saveINDXATTRINFO(Signal *signal, TcIndexOperation *indexOp,
+                       const Uint32 *src, Uint32 len);
+  bool receivedAllINDXATTRINFO(TcIndexOperation *indexOp);
+  Uint32 saveTRANSID_AI(Signal *signal, TcIndexOperation *indexOp,
+                        const Uint32 *src, Uint32 len);
+  bool receivedAllTRANSID_AI(TcIndexOperation *indexOp);
+  void readIndexTable(Signal *signal, ApiConnectRecordPtr transPtr,
+                      TcIndexOperation *indexOp, Uint32 special_op_flags);
+  void executeIndexOperation(Signal *signal, ApiConnectRecord *regApiPtr,
+                             TcIndexOperation *indexOp);
+  bool seizeIndexOperation(ApiConnectRecord *regApiPtr,
+                           TcIndexOperationPtr &indexOpPtr);
+  void releaseIndexOperation(ApiConnectRecord *regApiPtr,
+                             TcIndexOperation *indexOp);
+  void releaseAllSeizedIndexOperations(ApiConnectRecord *regApiPtr);
+  void setupIndexOpReturn(ApiConnectRecord *regApiPtr,
+                          TcConnectRecord *regTcPtr);
 
-  void saveTriggeringOpState(Signal* signal,
-			     TcConnectRecord* trigOp);
-  void restoreTriggeringOpState(Signal* signal, 
-				TcConnectRecord* trigOp);
-  void trigger_op_finished(Signal* signal,
-                           ApiConnectRecordPtr,
-                           Uint32 triggerPtrI,
-                           TcConnectRecord* triggeringOp,
+  void saveTriggeringOpState(Signal *signal, TcConnectRecord *trigOp);
+  void restoreTriggeringOpState(Signal *signal, TcConnectRecord *trigOp);
+  void trigger_op_finished(Signal *signal, ApiConnectRecordPtr,
+                           Uint32 triggerPtrI, TcConnectRecord *triggeringOp,
                            Uint32 returnCode);
-  void continueTriggeringOp(Signal* signal,
-                            TcConnectRecord* trigOp,
+  void continueTriggeringOp(Signal *signal, TcConnectRecord *trigOp,
                             ApiConnectRecordPtr);
 
-  void executeTriggers(Signal* signal, ApiConnectRecordPtr const* transPtr);
-  void waitToExecutePendingTrigger(Signal* signal, ApiConnectRecordPtr transPtr);
-  bool executeTrigger(Signal* signal,
-                      TcFiredTriggerData* firedTriggerData,
-                      ApiConnectRecordPtr const* transPtr,
-                      TcConnectRecordPtr* opPtr);
-  void executeIndexTrigger(Signal* signal,
-                           TcDefinedTriggerData* definedTriggerData,
-                           TcFiredTriggerData* firedTriggerData,
-                           ApiConnectRecordPtr const* transPtr,
-                           TcConnectRecordPtr* opPtr);
-  Uint32 appendDataToSection(Uint32& sectionIVal,
-                             AttributeBuffer & src,
-                             AttributeBuffer::DataBufferIterator & iter,
+  void executeTriggers(Signal *signal, ApiConnectRecordPtr const *transPtr);
+  void waitToExecutePendingTrigger(Signal *signal,
+                                   ApiConnectRecordPtr transPtr);
+  bool executeTrigger(Signal *signal, TcFiredTriggerData *firedTriggerData,
+                      ApiConnectRecordPtr const *transPtr,
+                      TcConnectRecordPtr *opPtr);
+  void executeIndexTrigger(Signal *signal,
+                           TcDefinedTriggerData *definedTriggerData,
+                           TcFiredTriggerData *firedTriggerData,
+                           ApiConnectRecordPtr const *transPtr,
+                           TcConnectRecordPtr *opPtr);
+  Uint32 appendDataToSection(Uint32 &sectionIVal, AttributeBuffer &src,
+                             AttributeBuffer::DataBufferIterator &iter,
                              Uint32 len);
-  bool appendAttrDataToSection(Uint32& sectionIVal,
-                               AttributeBuffer& values,
-                               bool withHeaders,
-                               Uint32& attrId,
-                               bool& hasNull);
-  void insertIntoIndexTable(Signal* signal, 
-                            TcFiredTriggerData* firedTriggerData, 
-                            ApiConnectRecordPtr const* transPtr,
-                            TcConnectRecordPtr* opPtr,
-                            TcIndexData* indexData);
-  void deleteFromIndexTable(Signal* signal, 
-                            TcFiredTriggerData* firedTriggerData, 
-                            ApiConnectRecordPtr const* transPtr,
-                            TcConnectRecordPtr* opPtr,
-                            TcIndexData* indexData);
+  bool appendAttrDataToSection(Uint32 &sectionIVal, AttributeBuffer &values,
+                               bool withHeaders, Uint32 &attrId, bool &hasNull);
+  void insertIntoIndexTable(Signal *signal,
+                            TcFiredTriggerData *firedTriggerData,
+                            ApiConnectRecordPtr const *transPtr,
+                            TcConnectRecordPtr *opPtr, TcIndexData *indexData);
+  void deleteFromIndexTable(Signal *signal,
+                            TcFiredTriggerData *firedTriggerData,
+                            ApiConnectRecordPtr const *transPtr,
+                            TcConnectRecordPtr *opPtr, TcIndexData *indexData);
 
-  void executeReorgTrigger(Signal* signal,
-                           TcDefinedTriggerData* definedTriggerData,
-                           TcFiredTriggerData* firedTriggerData,
-                           ApiConnectRecordPtr const* transPtr,
-                           TcConnectRecordPtr* opPtr);
+  void executeReorgTrigger(Signal *signal,
+                           TcDefinedTriggerData *definedTriggerData,
+                           TcFiredTriggerData *firedTriggerData,
+                           ApiConnectRecordPtr const *transPtr,
+                           TcConnectRecordPtr *opPtr);
 
-  void executeFKParentTrigger(Signal* signal,
-                              TcDefinedTriggerData* definedTriggerData,
-                              TcFiredTriggerData* firedTriggerData,
-                              ApiConnectRecordPtr const* transPtr,
-                              TcConnectRecordPtr* opPtr);
+  void executeFKParentTrigger(Signal *signal,
+                              TcDefinedTriggerData *definedTriggerData,
+                              TcFiredTriggerData *firedTriggerData,
+                              ApiConnectRecordPtr const *transPtr,
+                              TcConnectRecordPtr *opPtr);
 
-  void executeFKChildTrigger(Signal* signal,
-                              TcDefinedTriggerData* definedTriggerData,
-                              TcFiredTriggerData* firedTriggerData,
-                              ApiConnectRecordPtr const* transPtr,
-                              TcConnectRecordPtr* opPtr);
+  void executeFKChildTrigger(Signal *signal,
+                             TcDefinedTriggerData *definedTriggerData,
+                             TcFiredTriggerData *firedTriggerData,
+                             ApiConnectRecordPtr const *transPtr,
+                             TcConnectRecordPtr *opPtr);
 
-  void fk_readFromParentTable(Signal* signal,
-                              TcFiredTriggerData* firedTriggerData,
-                              ApiConnectRecordPtr const* transPtr,
-                              TcConnectRecordPtr* opPtr,
-                              TcFKData* fkData);
-  void fk_readFromChildTable(Signal* signal,
-                             TcFiredTriggerData* firedTriggerData,
-                             ApiConnectRecordPtr const* transPtr,
-                             TcConnectRecordPtr* opPtr,
-                             TcFKData* fkData,
+  void fk_readFromParentTable(Signal *signal,
+                              TcFiredTriggerData *firedTriggerData,
+                              ApiConnectRecordPtr const *transPtr,
+                              TcConnectRecordPtr *opPtr, TcFKData *fkData);
+  void fk_readFromChildTable(Signal *signal,
+                             TcFiredTriggerData *firedTriggerData,
+                             ApiConnectRecordPtr const *transPtr,
+                             TcConnectRecordPtr *opPtr, TcFKData *fkData,
                              Uint32 op, Uint32 attrValuesPtrI);
 
-  Uint32 fk_buildKeyInfo(Uint32& keyInfoPtrI, bool& hasNull,
-                         LocalAttributeBuffer& values,
-                         TcFKData* fkData,
+  Uint32 fk_buildKeyInfo(Uint32 &keyInfoPtrI, bool &hasNull,
+                         LocalAttributeBuffer &values, TcFKData *fkData,
                          bool parent);
 
-  void fk_execTCINDXREQ(Signal*, ApiConnectRecordPtr, TcConnectRecordPtr,
+  void fk_execTCINDXREQ(Signal *, ApiConnectRecordPtr, TcConnectRecordPtr,
                         Uint32 operation);
-  void fk_scanFromChildTable(Signal* signal,
-                             TcFiredTriggerData* firedTriggerData,
-                             ApiConnectRecordPtr const* transPtr,
-                             Uint32 opPtrI,
-                             TcFKData* fkData,
-                             Uint32 op, Uint32 attrValuesPtrI);
-  void fk_scanFromChildTable_done(Signal* signal,
-                                  TcConnectRecordPtr,
+  void fk_scanFromChildTable(Signal *signal,
+                             TcFiredTriggerData *firedTriggerData,
+                             ApiConnectRecordPtr const *transPtr, Uint32 opPtrI,
+                             TcFKData *fkData, Uint32 op,
+                             Uint32 attrValuesPtrI);
+  void fk_scanFromChildTable_done(Signal *signal, TcConnectRecordPtr,
                                   ApiConnectRecordPtr);
-  void fk_scanFromChildTable_abort(Signal* signal,
-                                   TcConnectRecordPtr,
+  void fk_scanFromChildTable_abort(Signal *signal, TcConnectRecordPtr,
                                    ApiConnectRecordPtr);
 
-  void execSCAN_TABREF(Signal*);
-  void execSCAN_TABCONF(Signal*);
-  void execKEYINFO20(Signal*);
+  void execSCAN_TABREF(Signal *);
+  void execSCAN_TABCONF(Signal *);
+  void execKEYINFO20(Signal *);
 
-  Uint32 fk_buildBounds(SegmentedSectionPtr & dst,
-                        LocalAttributeBuffer & src,
-                        TcFKData* fkData);
-  Uint32 fk_constructAttrInfoSetNull(const TcFKData*);
-  Uint32 fk_constructAttrInfoUpdateCascade(const TcFKData*,
-                                           AttributeBuffer::Head&);
+  Uint32 fk_buildBounds(SegmentedSectionPtr &dst, LocalAttributeBuffer &src,
+                        TcFKData *fkData);
+  Uint32 fk_constructAttrInfoSetNull(const TcFKData *);
+  Uint32 fk_constructAttrInfoUpdateCascade(const TcFKData *,
+                                           AttributeBuffer::Head &);
 
-  bool executeFullyReplicatedTrigger(Signal* signal,
-                                     TcDefinedTriggerData* definedTriggerData,
-                                     TcFiredTriggerData* firedTriggerData,
-                                     ApiConnectRecordPtr const* transPtr,
-                                     TcConnectRecordPtr* opPtr);
+  bool executeFullyReplicatedTrigger(Signal *signal,
+                                     TcDefinedTriggerData *definedTriggerData,
+                                     TcFiredTriggerData *firedTriggerData,
+                                     ApiConnectRecordPtr const *transPtr,
+                                     TcConnectRecordPtr *opPtr);
 
-  void releaseFiredTriggerData(Signal *signal,
+  void releaseFiredTriggerData(Signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *signal,
                                Local_TcFiredTriggerData_fifo::Head* triggers,
                                Uint32 & loop_count,
                                bool detach);
-  void abortTransFromTrigger(Signal* signal,
-                             ApiConnectRecordPtr transPtr,
+  void abortTransFromTrigger(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ *signal, ApiConnectRecordPtr transPtr,
                              Uint32 error);
   // Generated statement blocks
-  void warningHandlerLab(Signal* signal, int line);
-  [[noreturn]] void systemErrorLab(Signal* signal, int line);
-  void sendSignalErrorRefuseLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void scanTabRefLab(Signal* signal, Uint32 errCode, ApiConnectRecord* regApiPtr);
-  void diFcountReqLab(Signal* signal, ScanRecordPtr, ApiConnectRecordPtr);
-  void signalErrorRefuseLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void abort080Lab(Signal* signal);
-  void abortScanLab(Signal* signal, ScanRecordPtr, Uint32 errCode, 
-		    bool not_started, ApiConnectRecordPtr apiConnectptr);
-  void abort010Lab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void abort015Lab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void packLqhkeyreq(Signal* signal, 
-                     BlockReference TBRef,
-                     CacheRecordPtr,
+  void warningHandlerLab(Signal *signal, int line);
+  [[noreturn]] void systemErrorLab(Signal *signal, int line);
+  void sendSignalErrorRefuseLab(Signal *signal,
+                                ApiConnectRecordPtr apiConnectptr);
+  void scanTabRefLab(Signal *signal, Uint32 errCode,
+                     ApiConnectRecord *regApiPtr);
+  void diFcountReqLab(Signal *signal, ScanRecordPtr, ApiConnectRecordPtr);
+  void signalErrorRefuseLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void abort080Lab(Signal *signal);
+  void abortScanLab(Signal *signal, ScanRecordPtr, Uint32 errCode,
+                    bool not_started, ApiConnectRecordPtr apiConnectptr);
+  void abort010Lab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void abort015Lab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void packLqhkeyreq(Signal *signal, BlockReference TBRef, CacheRecordPtr,
                      ApiConnectRecordPtr apiConnectptr);
-  void packLqhkeyreq040Lab(Signal* signal,
-                           BlockReference TBRef,
-                           CacheRecordPtr,
+  void packLqhkeyreq040Lab(Signal *signal, BlockReference TBRef, CacheRecordPtr,
                            ApiConnectRecordPtr apiConnectptr);
-  void returnFromQueuedDeliveryLab(Signal* signal);
-  void insert_take_over_failed_node(Signal*, Uint32 failedNodeId);
-  void startTakeOverLab(Signal* signal,
-                        Uint32 instanceId,
-                        Uint32 failedNodeId);
-  void toCompleteHandlingLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void toCommitHandlingLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void toAbortHandlingLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void abortErrorLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void nodeTakeOverCompletedLab(Signal* signal,
-                                NodeId nodeId,
+  void returnFromQueuedDeliveryLab(Signal *signal);
+  void insert_take_over_failed_node(Signal *, Uint32 failedNodeId);
+  void startTakeOverLab(Signal *signal, Uint32 instanceId, Uint32 failedNodeId);
+  void toCompleteHandlingLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void toCommitHandlingLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void toAbortHandlingLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void abortErrorLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void nodeTakeOverCompletedLab(Signal *signal, NodeId nodeId,
                                 Uint32 maxInstanceId);
-  void ndbsttorry010Lab(Signal* signal);
-  void commit020Lab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void complete010Lab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void releaseAtErrorLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void appendToSectionErrorLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void scanKeyinfoLab(Signal* signal, CacheRecord*, ApiConnectRecordPtr);
-  void scanAttrinfoLab(Signal* signal, UintR Tlen, ApiConnectRecordPtr apiConnectptr);
-  void attrinfoDihReceivedLab(Signal* signal, CacheRecordPtr cachePtr, ApiConnectRecordPtr apiConnectptr);
-  void aiErrorLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void scanReleaseResourcesLab(Signal* signal);
-  void scanCompletedLab(Signal* signal);
-  void scanError(Signal* signal, ScanRecordPtr, Uint32 errorCode);
-  void diverify010Lab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void intstartphase3x010Lab(Signal* signal);
-  void sttorryLab(Signal* signal);
-  void abortBeginErrorLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void tabStateErrorLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void wrongSchemaVersionErrorLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void noFreeConnectionErrorLab(Signal* signal, ApiConnectRecordPtr apiConnectptr);
-  void tckeyreq050Lab(Signal* signal, CacheRecordPtr cachePtr, ApiConnectRecordPtr apiConnectptr);
-  void logAbortingOperation(Signal* signal, ApiConnectRecordPtr apiPtr, TcConnectRecordPtr tcPtr, Uint32 error);
-  void logTransactionTimeout(Signal* signal, Uint32 apiConn, Uint32 errCode, bool force = false);
+  void ndbsttorry010Lab(Signal *signal);
+  void commit020Lab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void complete010Lab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void releaseAtErrorLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void appendToSectionErrorLab(Signal *signal,
+                               ApiConnectRecordPtr apiConnectptr);
+  void scanKeyinfoLab(Signal *signal, CacheRecord *, ApiConnectRecordPtr);
+  void scanAttrinfoLab(Signal *signal, UintR Tlen,
+                       ApiConnectRecordPtr apiConnectptr);
+  void attrinfoDihReceivedLab(Signal *signal, CacheRecordPtr cachePtr,
+                              ApiConnectRecordPtr apiConnectptr);
+  void aiErrorLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void scanReleaseResourcesLab(Signal *signal);
+  void scanCompletedLab(Signal *signal);
+  void scanError(Signal *signal, ScanRecordPtr, Uint32 errorCode);
+  void diverify010Lab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void intstartphase3x010Lab(Signal *signal);
+  void sttorryLab(Signal *signal);
+  void abortBeginErrorLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void tabStateErrorLab(Signal *signal, ApiConnectRecordPtr apiConnectptr);
+  void wrongSchemaVersionErrorLab(Signal *signal,
+                                  ApiConnectRecordPtr apiConnectptr);
+  void noFreeConnectionErrorLab(Signal *signal,
+                                ApiConnectRecordPtr apiConnectptr);
+  void tckeyreq050Lab(Signal *signal, CacheRecordPtr cachePtr,
+                      ApiConnectRecordPtr apiConnectptr);
+  void logAbortingOperation(Signal *signal, ApiConnectRecordPtr apiPtr,
+                            TcConnectRecordPtr tcPtr, Uint32 error);
+  void logTransactionTimeout(Signal *signal, Uint32 apiConn, Uint32 errCode,
+                             bool force = false);
   void periodicLogOddTimeoutAndResetTimer(ApiConnectRecordPtr apiPtr);
-  void logScanTimeout(Signal* signal, ScanFragRecPtr scanFragPtr, ScanRecordPtr scanPtr);
-  void timeOutFoundLab(Signal* signal, UintR anAdd, Uint32 errCode);
-  void completeTransAtTakeOverLab(Signal* signal, UintR TtakeOverInd);
-  void completeTransAtTakeOverDoLast(Signal* signal, UintR TtakeOverInd);
-  void completeTransAtTakeOverDoOne(Signal* signal, UintR TtakeOverInd, ApiConnectRecordPtr apiConnectptr);
-  void timeOutLoopStartLab(Signal* signal, Uint32 apiConnectPtr);
-  void initialiseRecordsLab(Signal* signal, UintR Tdata0, Uint32, Uint32);
-  void tckeyreq020Lab(Signal* signal, CacheRecordPtr cachePtr, ApiConnectRecordPtr apiConnectptr);
-  void intstartphase1x010Lab(Signal* signal, NodeId nodeId);
-  void startphase1x010Lab(Signal* signal);
+  void logScanTimeout(Signal *signal, ScanFragRecPtr scanFragPtr,
+                      ScanRecordPtr scanPtr);
+  void timeOutFoundLab(Signal *signal, UintR anAdd, Uint32 errCode);
+  void completeTransAtTakeOverLab(Signal *signal, UintR TtakeOverInd);
+  void completeTransAtTakeOverDoLast(Signal *signal, UintR TtakeOverInd);
+  void completeTransAtTakeOverDoOne(Signal *signal, UintR TtakeOverInd,
+                                    ApiConnectRecordPtr apiConnectptr);
+  void timeOutLoopStartLab(Signal *signal, Uint32 apiConnectPtr);
+  void initialiseRecordsLab(Signal *signal, UintR Tdata0, Uint32, Uint32);
+  void tckeyreq020Lab(Signal *signal, CacheRecordPtr cachePtr,
+                      ApiConnectRecordPtr apiConnectptr);
+  void intstartphase1x010Lab(Signal *signal, NodeId nodeId);
+  void startphase1x010Lab(Signal *signal);
 
-  void lqhKeyConf_checkTransactionState(Signal * signal,
+  void lqhKeyConf_checkTransactionState(Signal *signal,
                                         ApiConnectRecordPtr apiConnectptr);
 
-  void checkDropTab(Signal* signal);
+  void checkDropTab(Signal *signal);
 
-  void checkScanActiveInFailedLqh(Signal* signal,
-				  Uint32 scanPtrI,
-				  Uint32 failedNodeId);
-  void checkScanFragList(Signal*, Uint32 failedNodeId, ScanRecord * scanP, 
-                         Local_ScanFragRec_dllist::Head&);
+  void checkScanActiveInFailedLqh(Signal *signal, Uint32 scanPtrI,
+                                  Uint32 failedNodeId);
+  void checkScanFragList(Signal *, Uint32 failedNodeId, ScanRecord *scanP,
+                         Local_ScanFragRec_dllist::Head &);
 
-  void nodeFailCheckTransactions(Signal*,Uint32 transPtrI,Uint32 failedNodeId);
-  void ndbdFailBlockCleanupCallback(Signal* signal, Uint32 failedNodeId, Uint32 ignoredRc);
-  void checkNodeFailComplete(Signal* signal, Uint32 failedNodeId, Uint32 bit);
+  void nodeFailCheckTransactions(Signal *, Uint32 transPtrI,
+                                 Uint32 failedNodeId);
+  void ndbdFailBlockCleanupCallback(Signal *signal, Uint32 failedNodeId,
+                                    Uint32 ignoredRc);
+  void checkNodeFailComplete(Signal *signal, Uint32 failedNodeId, Uint32 bit);
 
-  void apiFailBlockCleanupCallback(Signal* signal, Uint32 failedNodeId, Uint32 ignoredRc);
-  
+  void apiFailBlockCleanupCallback(Signal *signal, Uint32 failedNodeId,
+                                   Uint32 ignoredRc);
+
   // Initialisation
   void initData();
-  void initRecords(const ndb_mgm_configuration_iterator * mgm_cfg);
+  void initRecords(const ndb_mgm_configuration_iterator *mgm_cfg);
 
   /**
    * Functions used at completion of activities tracked for timing.
@@ -2670,12 +4261,11 @@ private:
    * 3) Scan operations
    * 4) Execution of SCAN_FRAGREQ's (local scans)
    */
-   void time_track_init_histogram_limits(void);
-   Uint32 time_track_calculate_histogram_position(NDB_TICKS & start_ticks);
+  void time_track_init_histogram_limits(void);
+  Uint32 time_track_calculate_histogram_position(NDB_TICKS &start_ticks);
 
-   void time_track_complete_scan(ScanRecord * const scanPtr,
-                                 Uint32 apiNodeId);
-   void time_track_complete_scan_error(ScanRecord * const scanPtr,
+  void time_track_complete_scan(ScanRecord *const scanPtr, Uint32 apiNodeId);
+  void time_track_complete_scan_error(ScanRecord *const scanPtr,
                                        Uint32 apiNodeId);
    void time_track_complete_key_operation(TcConnectRecord * const tcConnectPtr,
                                           Uint32 apiNodeId,
@@ -3061,7 +4651,47 @@ private:
   /* *********************************************************************** */
   /* ******$                           DATA BUFFER                   ******$ */
   /*                                                                         */
-  /*       THIS BUFFER IS USED AS A GENERAL DATA STORAGE.                    */
+  /*       THIS BUFFER IS USED AS A GENERAL DATA STORAGE.           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+name,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*name,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+count)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*count)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      */
   /* *********************************************************************** */
   /* *********************************************************************** */
   /* ******$                 ATTRIBUTE INFORMATION RECORD            ******$ */
@@ -3069,8 +4699,49 @@ private:
     CAN CONTAIN ONE (1) ATTRINFO SIGNAL. ONE SIGNAL CONTAINS 24 ATTR.          
     INFO WORDS. BUT 32 ELEMENTS ARE USED TO MAKE PLEX HAPPY.                   
     SOME OF THE ELEMENTS ARE USED TO THE FOLLOWING THINGS:                     
-    DATA LENGTH IN THIS RECORD IS STORED IN THE ELEMENT INDEXED BY             
-    ZINBUF_DATA_LEN.                                                           
+    DATA LENGTH IN THIS RECORD IS STORED IN THE ELEMENT INDEXED BY  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+MonotonicCounters() :
+=======
+MonotonicCounters()
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cattrinfoCount(0),
+=======
+   : cattrinfoCount(0),
+>>>>>>> MySQL 8.0.36
+     
+    ZINBUF_DATA_LEN.                                                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+build_event_rep(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+build_event_rep(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
     NEXT FREE ATTRBUF IS POINTED OUT BY THE ELEMENT INDEXED BY                 
     PREVIOUS ATTRBUF IS POINTED OUT BY THE ELEMENT INDEXED BY ZINBUF_PREV      
     (NOT USED YET).                                                            
@@ -3083,11 +4754,71 @@ private:
   /*       THIS RECORD IS USED TO STORE THE GCP NUMBER AND A COUNTER        */
   /*                DURING THE COMPLETION PHASE OF THE TRANSACTION          */
   /**************************************************************************/
-  /*                                                                        */
+  /*            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+build_continueB(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+build_continueB(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint64*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+vars[]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*vars[]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                */
   /*       GCP RECORD ALIGNED TO BE 32 BYTES                                */
   /**************************************************************************/
   /**************************************************************************/
-  /*                          TC_FAIL_RECORD                                */
+  /*                          TC_FAIL_RECORD             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+diff(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+diff(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  */
   /*  THIS RECORD IS USED WHEN HANDLING TAKE OVER OF ANOTHER FAILED TC NODE.*/
   /**************************************************************************/
   TcFailRecord *tcFailRecord;
@@ -3115,7 +4846,7 @@ private:
 
   enum TransErrorLogLevel
   {
-    /* No logging */
+  /* No logging */
     TELL_NONE                       = 0x0000,
 
     /* When to log */
@@ -3144,7 +4875,10 @@ private:
 
 
     /* 'Full logging' value */
-    TELL_FULL                       = 0x0701
+    TELL_FULL         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+              = 0x0701
   };
 
 #ifdef ERROR_INSERT
@@ -3156,12 +4890,102 @@ private:
   Uint32 c_trans_error_loglevel;
   Uint32 m_take_over_operations;
 
-  void dump_trans(ApiConnectRecordPtr transPtr);
-  bool hasOp(ApiConnectRecordPtr transPtr, Uint32 op);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NodeId nodeId);
+    // insert all keys when exact keys not known
+    bool insert_in_commit_ack_marker_all(Dbtc *tc,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NodeId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+void
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+nodeId);
+>>>>>>> MySQL 8.0.36
+ dump_trans(ApiConnectRecordPtr transPtr);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+hasOp(ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+insert
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transPtr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+all
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+keys when
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+op);
 
-//#define DEBUG_QUERY_THREAD_USAGE
-#ifdef DEBUG_QUERY_THREAD_USAGE
-  Uint64 c_qt_used_dirty_flag;
+//#define
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+exact
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DEBUG_QUERY_THREAD_USAGE
+#ifdef
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+keys
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DEBUG_QUERY_THREAD_USAGE
+||||||| Common ancestor
+=======
+not
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ known
+    bool insert_in_commit_ack_marker_all(Dbtc *tc, Uint64 c_qt_used_dirty_flag;
   Uint64 c_qt_used_locked_read;
   Uint64 c_qt_used_locked_read_take_over;
 
@@ -3180,21 +5004,105 @@ private:
   Uint64 c_last_no_qt_disk_flag;
   Uint64 c_last_no_qt_util_flag;
   Uint64 c_last_no_qt_no_exec_flag;
-  Uint64 c_last_no_qt_exec_count;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TransientFastSlotPool*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TransientFastSlotPool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *c_last_no_qt_exec_count;
   Uint64 c_last_no_qt_wrong_version;
   void query_thread_usage(Signal*);
 #endif
   void send_commit_loop(Signal *signal,
-                        ApiConnectRecordPtr const apiConnectptr,
-                        Uint32 tcConnectPtrI,
-                        Uint32 line);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendRemoveMarker(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendRemoveMarker(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   Uint32 instanceKey,
+              ApiConnectRecordPtr const apiConnectptr,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+instanceKey,
+			Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                Uint32 tcConnectPtrI,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+removeMarkerForFailedAPI(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+removeMarkerForFailedAPI(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   Uint32 line);
   void send_complete_loop(Signal *signal,
                           ApiConnectRecordPtr const apiConnectptr,
                           Uint32 tcConnectPtrI,
                           Uint32 line);
   void send_to_abort_handling(Signal *signal,
                               ApiConnectRecordPtr const apiConnectptr,
-                              Uint32 tcConnectPtrI,
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+checkAbortAllTimeout(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+checkAbortAllTimeout(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  Uint32 tcConnectPtrI,
                               Uint32 line);
   void check_to_abort_handling(Signal *signal,
                                ApiConnectRecordPtr const apiConnectptr,
@@ -3447,7 +5355,30 @@ Dbtc::send_abort_break(Signal* signal,
    * Reset timer to avoid time-out in real-time break.
    * Increase counter to ensure that we don't think that all ABORTED have
    * been received before all have been sent.
-   *---------------------------------------------------------------------*/
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const TransientFastSlotPool&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const TransientFastSlotPool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*---------------------------------------------------------------------*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pool)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pool) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   apiConnectptr.p->counter++;
   setApiConTimer(apiConnectptr, ctcTimer, line);
   signal->theData[0] = TcContinueB::ZABORT_BREAK;
@@ -3458,22 +5389,22 @@ Dbtc::send_abort_break(Signal* signal,
 }
 
 #ifdef DBTC_MAIN
-void Dbtc::setApiConTimer(ApiConnectRecordPtr apiConPtr, Uint32 value, Uint32 line)
-  {
-    const Uint32 apiConTimer = apiConPtr.p->m_apiConTimer;
-    ApiConTimersPtr apiConTimers;
-    ndbrequire(apiConTimer != RNIL);
-    apiConTimers.i = apiConTimer >> ApiConTimers::INDEX_BITS;
-    c_apiConTimersPool.getPtr(apiConTimers);
-    const Uint32 timer_index = apiConTimer & ApiConTimers::INDEX_MASK;
-    ndbassert(timer_index < apiConTimers.p->m_top);
-    ndbassert(apiConTimers.p->m_count > 0);
-    ndbassert(apiConTimers.p->m_entries[timer_index].m_apiConnectRecord ==
-                apiConPtr.i);
+void Dbtc::setApiConTimer(ApiConnectRecordPtr apiConPtr, Uint32 value,
+                          Uint32 line) {
+  const Uint32 apiConTimer = apiConPtr.p->m_apiConTimer;
+  ApiConTimersPtr apiConTimers;
+  ndbrequire(apiConTimer != RNIL);
+  apiConTimers.i = apiConTimer >> ApiConTimers::INDEX_BITS;
+  c_apiConTimersPool.getPtr(apiConTimers);
+  const Uint32 timer_index = apiConTimer & ApiConTimers::INDEX_MASK;
+  ndbassert(timer_index < apiConTimers.p->m_top);
+  ndbassert(apiConTimers.p->m_count > 0);
+  ndbassert(apiConTimers.p->m_entries[timer_index].m_apiConnectRecord ==
+            apiConPtr.i);
 
-    apiConTimers.p->m_entries[timer_index].m_timer = value;
-    apiConPtr.p->m_apiConTimer_line = line;
-  }
+  apiConTimers.p->m_entries[timer_index].m_timer = value;
+  apiConPtr.p->m_apiConTimer_line = line;
+}
 
 
 #endif

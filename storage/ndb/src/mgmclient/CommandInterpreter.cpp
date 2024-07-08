@@ -26,15 +26,27 @@
 #include <ndb_global.h>
 
 #include <mgmapi.h>
-#include <ConfigValues.hpp>
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<ConfigValues.hpp>
 #include "mgmcommon/NdbMgm.hpp"
-#include <ndbd_exit_codes.h>
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"mgmcommon/NdbMgm.hpp"
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+<ndbd_exit_codes.h>
+#include "mgmcommon/NdbMgm.hpp"
 
-#include <util/BaseString.hpp>
-#include <util/Vector.hpp>
+#include <NdbTCP.h>
 #include <kernel/BlockNumbers.h>
 #include <kernel/signaldata/DumpStateOrd.hpp>
-#include <NdbTCP.h>
+#include <util/BaseString.hpp>
+#include <util/Vector.hpp>
 #include <../../src/mgmapi/mgmapi_configuration.hpp>
 
 enum StopState
@@ -46,8 +58,8 @@ enum StopState
 };
 static StopState g_stop_state[MAX_NDB_NODES];
 
-#include "portlib/ndb_password.h"
 #include "portlib/NdbMem.h"
+#include "portlib/ndb_password.h"
 
 /**
  *  @class CommandInterpreter
@@ -56,23 +68,21 @@ static StopState g_stop_state[MAX_NDB_NODES];
  *  For command syntax, see the HELP command.
  */
 class CommandInterpreter {
-public:
+ public:
   /**
    *   Constructor
    *   @param host Management server to use when executing commands
    */
-  CommandInterpreter(const char* host,
-                     const char* default_prompt,
-                     int verbose,
+  CommandInterpreter(const char *host, const char *default_prompt, int verbose,
                      int connect_retry_delay);
   ~CommandInterpreter();
-  
+
   int setDefaultBackupPassword(const char backup_password[]);
   int setAlwaysEncryptBackup(bool on);
 
   /**
-   *   Reads one line from the stream, parse the line to find 
-   *   a command and then calls a suitable method which executes 
+   *   Reads one line from the stream, parse the line to find
+   *   a command and then calls a suitable method which executes
    *   the command.
    *
    *   @return true until quit/bye/exit has been typed
@@ -80,7 +90,7 @@ public:
   bool execute(const char *line, int try_reconnect = -1,
                bool interactive = true, int *error = NULL);
 
-private:
+ private:
   void printError();
   bool execute_impl(const char *line, bool interactive);
 
@@ -93,11 +103,10 @@ private:
    *                                first token on the command line
    *   @return 0 if analyseAfterFirstToken succeeds, otherwise -1
    */
-  int  analyseAfterFirstToken(int processId, char* allAfterFirstToken);
+  int analyseAfterFirstToken(int processId, char *allAfterFirstToken);
 
-  int  executeCommand(Vector<BaseString> &command_list,
-                      unsigned command_pos,
-                      int *node_ids, int no_of_nodes);
+  int executeCommand(Vector<BaseString> &command_list, unsigned command_pos,
+                     int *node_ids, int no_of_nodes);
   /**
    *   Parse the block specification part of the LOG* commands,
    *   things after LOG*: [BLOCK = {ALL|<blockName>+}]
@@ -107,8 +116,8 @@ private:
    *   @param[out]  blocks  ALL or name of all the blocks
    *   @return true if correct syntax, otherwise false
    */
-  bool parseBlockSpecification(const char* allAfterLog,
-			       Vector<BaseString>& blocks);
+  bool parseBlockSpecification(const char *allAfterLog,
+                               Vector<BaseString> &blocks);
 
   /*
    *   A bunch of execute functions: Executes one of the commands
@@ -121,20 +130,42 @@ private:
    *   this case "22". Each function is responsible to check the parameters
    *   argument.
    */
-  int  executeHelp(char* parameters);
-  int  executeShow(char* parameters);
-  int  executePurge(char* parameters);
-  int  executeConnect(char* parameters, bool interactive);
-  int  executeShutdown(char* parameters);
-  int  executePrompt(char* parameters);
-  void executeClusterLog(char* parameters);
+  int executeHelp(char *parameters);
+  int executeShow(char *parameters);
+  int executePurge(char *parameters);
+  int executeConnect(char *parameters, bool interactive);
+  int executeShutdown(char *parameters);
+  int executePrompt(char *parameters);
+  void executeClusterLog(char *parameters);
 
   bool get_node_section(ConfigValues::Iterator & iter,
                         int node_id,
                         Uint32 type);
-  bool get_node_status(int processId,
+  bool get_node_status(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+int processId,
                        int &num_mgm_nodes_alive,
-                       int &num_data_nodes_alive,
+||||||| Common ancestor
+BaseString&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BaseString
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                      int &num
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+encryption
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&encryption
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_data_nodes_alive,
                        int &num_api_nodes_alive,
                        bool &is_node_up,
                        ndb_mgm_node_type &node_type);
@@ -145,66 +176,65 @@ private:
   bool check_before_config_change(int, bool&, ndb_mgm_node_type &);
 
   int setBackupEncryptionPassword(BaseString& encryption_password,
-                                  bool& encryption_password_set,
+                                  bool &encryption_password_set,
                                   bool interactive);
 
-public:
+ public:
   int  executeHostname(int processId, const char* parameters, bool all);
   int  executeActivate(int processId, const char* parameters, bool all);
   int  executeDeactivate(int processId, const char* parameters, bool all);
-  int  executeStop(int processId, const char* parameters, bool all);
-  int  executeEnterSingleUser(char* parameters);
-  int  executeExitSingleUser(char* parameters);
-  int  executeStart(int processId, const char* parameters, bool all);
-  int  executeRestart(int processId, const char* parameters, bool all);
-  int  executeLogLevel(int processId, const char* parameters, bool all);
-  int  executeError(int processId, const char* parameters, bool all);
-  int  executeLog(int processId, const char* parameters, bool all);
-  int  executeTestOn(int processId, const char* parameters, bool all);
-  int  executeTestOff(int processId, const char* parameters, bool all);
-  int  executeStatus(int processId, const char* parameters, bool all);
-  int  executeEventReporting(int processId, const char* parameters, bool all);
-  int  executeNodeLog(int processId, const char* parameters, bool all);
-  int  executeDumpState(int processId, const char* parameters, bool all);
-  int  executeReport(int processId, const char* parameters, bool all);
-  int  executeStartBackup(char * parameters, bool interactive);
-  int  executeAbortBackup(char * parameters);
-  int  executeStop(Vector<BaseString> &command_list, unsigned command_pos,
+  int  executeStop(int processId, const char *parameters, bool all);
+  int executeEnterSingleUser(char *parameters);
+  int executeExitSingleUser(char *parameters);
+  int executeStart(int processId, const char *parameters, bool all);
+  int executeRestart(int processId, const char *parameters, bool all);
+  int executeLogLevel(int processId, const char *parameters, bool all);
+  int executeError(int processId, const char *parameters, bool all);
+  int executeLog(int processId, const char *parameters, bool all);
+  int executeTestOn(int processId, const char *parameters, bool all);
+  int executeTestOff(int processId, const char *parameters, bool all);
+  int executeStatus(int processId, const char *parameters, bool all);
+  int executeEventReporting(int processId, const char *parameters, bool all);
+  int executeNodeLog(int processId, const char *parameters, bool all);
+  int executeDumpState(int processId, const char *parameters, bool all);
+  int executeReport(int processId, const char *parameters, bool all);
+  int executeStartBackup(char *parameters, bool interactive);
+  int executeAbortBackup(char *parameters);
+  int executeStop(Vector<BaseString> &command_list, unsigned command_pos,
+                  int *node_ids, int no_of_nodes);
+  int executeRestart(Vector<BaseString> &command_list, unsigned command_pos,
+                     int *node_ids, int no_of_nodes);
+  int executeStart(Vector<BaseString> &command_list, unsigned command_pos,
                    int *node_ids, int no_of_nodes);
-  int  executeRestart(Vector<BaseString> &command_list, unsigned command_pos,
-                      int *node_ids, int no_of_nodes);
-  int  executeStart(Vector<BaseString> &command_list, unsigned command_pos,
-                    int *node_ids, int no_of_nodes);
-  int executeCreateNodeGroup(char* parameters);
-  int executeDropNodeGroup(char* parameters);
-  const char* get_current_prompt() const
-  {
+  int executeCreateNodeGroup(char *parameters);
+  int executeDropNodeGroup(char *parameters);
+  const char *get_current_prompt() const {
     // return the current prompt
     return m_prompt;
   }
-public:
+
+ public:
   bool connect(bool interactive);
   void disconnect(void);
 
   /**
    * A execute function definition
    */
-public:
-  typedef int (CommandInterpreter::* ExecuteFunction)(int processId, 
-						       const char * param, 
-						       bool all);
-  
+ public:
+  typedef int (CommandInterpreter::*ExecuteFunction)(int processId,
+                                                     const char *param,
+                                                     bool all);
+
   struct CommandFunctionPair {
-    const char * command;
+    const char *command;
     ExecuteFunction executeFunction;
   };
-private:
+
+ private:
   /**
-   * 
+   *
    */
-  int  executeForAll(const char * cmd, 
-		     ExecuteFunction fun,
-		     const char * param);
+  int executeForAll(const char *cmd, ExecuteFunction fun, const char *param);
 
   NdbMgmHandle m_mgmsrv;
   NdbMgmHandle m_mgmsrv2;
@@ -213,19 +243,19 @@ private:
   int m_verbose;
   int m_try_reconnect;
   int m_error;
-  struct NdbThread* m_event_thread;
+  struct NdbThread *m_event_thread;
   NdbMutex *m_print_mutex;
   int m_connect_retry_delay;
-  const char* m_default_prompt;
-  const char* m_prompt;
+  const char *m_default_prompt;
+  const char *m_prompt;
   BaseString m_prompt_copy;
-  const char* m_default_backup_password;
+  const char *m_default_backup_password;
   bool m_always_encrypt_backup;
   char m_onetime_backup_password[1024];
   bool m_onetime_backup_password_set;
 };
 
-NdbMutex* print_mutex;
+NdbMutex *print_mutex;
 
 /*
  * Facade object for CommandInterpreter
@@ -233,35 +263,27 @@ NdbMutex* print_mutex;
 
 #include "ndb_mgmclient.hpp"
 
-Ndb_mgmclient::Ndb_mgmclient(const char *host, const char* default_prompt,
-                             int verbose, int connect_retry_delay)
-{
-  m_cmd= new CommandInterpreter(host, default_prompt,
-                                verbose, connect_retry_delay);
+Ndb_mgmclient::Ndb_mgmclient(const char *host, const char *default_prompt,
+                             int verbose, int connect_retry_delay) {
+  m_cmd = new CommandInterpreter(host, default_prompt, verbose,
+                                 connect_retry_delay);
 }
-Ndb_mgmclient::~Ndb_mgmclient()
-{
-  delete m_cmd;
-}
+Ndb_mgmclient::~Ndb_mgmclient() { delete m_cmd; }
 bool Ndb_mgmclient::execute(const char *line, int try_reconnect,
-                            bool interactive, int *error)
-{
+                            bool interactive, int *error) {
   return m_cmd->execute(line, try_reconnect, interactive, error);
 }
-const char*Ndb_mgmclient::get_current_prompt() const
-{
+const char *Ndb_mgmclient::get_current_prompt() const {
   // return the current prompt
   return m_cmd->get_current_prompt();
 }
 
 int Ndb_mgmclient::set_default_backup_password(
-                       const char backup_password[]) const
-{
+    const char backup_password[]) const {
   return m_cmd->setDefaultBackupPassword(backup_password);
 }
 
-int Ndb_mgmclient::set_always_encrypt_backup(bool on) const
-{
+int Ndb_mgmclient::set_always_encrypt_backup(bool on) const {
   return m_cmd->setAlwaysEncryptBackup(on);
 }
 
@@ -284,312 +306,529 @@ int Ndb_mgmclient::set_always_encrypt_backup(bool on) const
 /*****************************************************************************
  * HELP
  *****************************************************************************/
-static const char* helpText =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help\n"
-"---------------------------------------------------------------------------\n"
-"HELP                                   Print help text\n"
-"HELP COMMAND                           Print detailed help for COMMAND(e.g. SHOW)\n"
-#ifdef VM_TRACE // DEBUG ONLY
-"HELP DEBUG                             Help for debug compiled version\n"
+static const char *helpText =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "HELP                                   Print help text\n"
+    "HELP COMMAND                           Print detailed help for "
+    "COMMAND(e.g. SHOW)\n"
+#ifdef VM_TRACE  // DEBUG ONLY
+    "HELP DEBUG                             Help for debug compiled version\n"
 #endif
-"SHOW                                   Print information about cluster\n"
-"CREATE NODEGROUP <id>,<id>...          Add a Nodegroup containing nodes\n"
-"DROP NODEGROUP <NG>                    Drop nodegroup with id NG\n"
-"START BACKUP [<backup id>] [ENCRYPT [PASSWORD='<password>']] "
-  "[SNAPSHOTSTART | SNAPSHOTEND] [NOWAIT | WAIT STARTED | WAIT COMPLETED]\n"
-"                                       Start backup "
-  "(default WAIT COMPLETED,SNAPSHOTEND)\n"
-"ABORT BACKUP <backup id>               Abort backup\n"
-"SHUTDOWN                               Shutdown all processes in cluster\n"
-"PROMPT [<prompt-string>]               Toggle the prompt between string specified\n"
-"                                       or default prompt if no string specified\n"
-"CLUSTERLOG ON [<severity>] ...         Enable Cluster logging\n"
-"CLUSTERLOG OFF [<severity>] ...        Disable Cluster logging\n"
-"CLUSTERLOG TOGGLE [<severity>] ...     Toggle severity filter on/off\n"
-"CLUSTERLOG INFO                        Print cluster log information\n"
-"<id> HOSTNAME [<hostname/IP>]          Change hostname of a deactivated node\n"
+    "SHOW                                   Print information about cluster\n"
+    "CREATE NODEGROUP <id>,<id>...          Add a Nodegroup containing nodes\n"
+    "DROP NODEGROUP <NG>                    Drop nodegroup with id NG\n"
+    "START BACKUP [<backup id>] [ENCRYPT [PASSWORD='<password>']] "
+    "[SNAPSHOTSTART | SNAPSHOTEND] [NOWAIT | WAIT STARTED | WAIT COMPLETED]\n"
+    "                                       Start backup "
+    "(default WAIT COMPLETED,SNAPSHOTEND)\n"
+    "ABORT BACKUP <backup id>               Abort backup\n"
+    "SHUTDOWN                               Shutdown all processes in cluster\n"
+    "PROMPT [<prompt-string>]               Toggle the prompt between string "
+    "specified\n"
+    "                                       or default prompt if no string "
+    "specified\n"
+    "CLUSTERLOG ON [<severity>] ...         Enable Cluster logging\n"
+    "CLUSTERLOG OFF [<severity>] ...        Disable Cluster logging\n"
+    "CLUSTERLOG TOGGLE [<severity>] ...     Toggle severity filter on/off\n"
+    "CLUSTERLOG INFO                        Print cluster log information\n"
+    "<id> HOSTNAME [<hostname/IP>]          Change hostname of a deactivated node\n"
 "<id> ACTIVATE                          Activate a node previously deactivated\n"
 "<id> DEACTIVATE                        Deactivate a node (and stop it)\n"
 "<id> START                             Start data node (started with -n)\n"
-"<id> RESTART [-n] [-i] [-a] [-f]       Restart data or management server node\n"
-"<id> STOP [-a] [-f]                    Stop data or management server node\n"
-"<id> NODELOG DEBUG ON                  Enable Debug logging in node log\n"
-"<id> NODELOG DEBUG OFF                 Disable Debug logging in node log\n"
-"ENTER SINGLE USER MODE <id>            Enter single user mode\n"
-"EXIT SINGLE USER MODE                  Exit single user mode\n"
-"<id> STATUS                            Print status\n"
-"<id> CLUSTERLOG {<category>=<level>}+  Set log level for cluster log\n"
-"PURGE STALE SESSIONS                   Reset reserved nodeid's in the mgmt server\n"
-"CONNECT [<connectstring>]              Connect to management server (reconnect if already connected)\n"
-"<id> REPORT <report-type>              Display report for <report-type>\n"
-"QUIT                                   Quit management client\n"
-;
+    "<id> RESTART [-n] [-i] [-a] [-f]       Restart data or management server "
+    "node\n"
+    "<id> STOP [-a] [-f]                    Stop data or management server "
+    "node\n"
+    "<id> NODELOG DEBUG ON                  Enable Debug logging in node log\n"
+    "<id> NODELOG DEBUG OFF                 Disable Debug logging in node log\n"
+    "ENTER SINGLE USER MODE <id>            Enter single user mode\n"
+    "EXIT SINGLE USER MODE                  Exit single user mode\n"
+    "<id> STATUS                            Print status\n"
+    "<id> CLUSTERLOG {<category>=<level>}+  Set log level for cluster log\n"
+    "PURGE STALE SESSIONS                   Reset reserved nodeid's in the "
+    "mgmt server\n"
+    "CONNECT [<connectstring>]              Connect to management server "
+    "(reconnect if already connected)\n"
+    "<id> REPORT <report-type>              Display report for <report-type>\n"
+    "QUIT                                   Quit management client\n";
 
-static const char* helpTextShow =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for SHOW command\n"
-"---------------------------------------------------------------------------\n"
-"SHOW Print information about cluster\n\n"
-"SHOW               Print information about cluster.The status reported is from\n"
-"                   the perspective of the data nodes. API and Management Server nodes\n"
-"                   are only reported as connected once the data nodes have started.\n"
-;
+static const char *helpTextShow =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for SHOW command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "SHOW Print information about cluster\n\n"
+    "SHOW               Print information about cluster.The status reported is "
+    "from\n"
+    "                   the perspective of the data nodes. API and Management "
+    "Server nodes\n"
+    "                   are only reported as connected once the data nodes "
+    "have started.\n";
 
-static const char* helpTextHelp =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for HELP command\n"
-"---------------------------------------------------------------------------\n"
-"HELP List available commands of RonDB Management Client\n\n"
-"HELP               List available commands.\n"
-;
+static const char *helpTextHelp =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for HELP command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "HELP List available commands of RonDB Management Client\n\n"
+    "HELP               List available commands.\n";
 
-static const char* helpTextBackup =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for BACKUP command\n"
-"---------------------------------------------------------------------------\n"
-"BACKUP  A backup is a snapshot of the database at a given time. \n"
-"        The backup consists of three main parts:\n\n"
-"        Metadata: the names and definitions of all database tables. \n"
-"        Table records: the data actually stored in the database tables \n"
-"        at the time that the backup was made.\n"
-"        Transaction log: a sequential record telling how \n"
-"        and when data was stored in the database.\n\n"
-"        Backups are stored on each data node in the cluster that \n"
-"        participates in the backup.\n\n"
-"        The cluster log records backup related events (such as \n"
-"        backup started, aborted, finished).\n"
-;
+static const char *helpTextBackup =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for BACKUP command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "BACKUP  A backup is a snapshot of the database at a given time. \n"
+    "        The backup consists of three main parts:\n\n"
+    "        Metadata: the names and definitions of all database tables. \n"
+    "        Table records: the data actually stored in the database tables \n"
+    "        at the time that the backup was made.\n"
+    "        Transaction log: a sequential record telling how \n"
+    "        and when data was stored in the database.\n\n"
+    "        Backups are stored on each data node in the cluster that \n"
+    "        participates in the backup.\n\n"
+    "        The cluster log records backup related events (such as \n"
+    "        backup started, aborted, finished).\n";
 
-static const char* helpTextStartBackup =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for START BACKUP command\n"
-"---------------------------------------------------------------------------\n"
-"START BACKUP  Start a cluster backup\n\n"
-"START BACKUP [<backup id>] [ENCRYPT [PASSWORD='<password>']]\n"
-"    [SNAPSHOTSTART | SNAPSHOTEND] [NOWAIT | WAIT STARTED | WAIT COMPLETED]\n"
-"                   Start a backup for the cluster.\n"
-"                   Each backup gets an ID number that is reported to the\n"
-"                   user. This ID number can help you find the backup on the\n"
-"                   file system, or ABORT BACKUP if you wish to cancel a \n"
-"                   running backup.\n"
-"                   You can also start specified backup using START BACKUP <backup id> \n\n"
-"                   <backup id> \n"
-"                     Start a specified backup using <backup id> as bakcup ID number.\n" 
-"                   <password> \n"
-"                      Password for encrypting the backup files.\n"
-"                      Should be enclosed in double/single quotes, \n"
-"                      should be less than 256 characters in length and\n"
-"                      be at least one character long.\n"
-"                      Allowed characters: 0-9, A-Z, a-z, space( ), comma(,), \n"
-"                      #&()*+-./:;<=>?@[]_{|}~.\n"
-"                   SNAPSHOTSTART \n"
-"                     Backup snapshot is taken around the time the backup is started.\n" 
-"                   SNAPSHOTEND \n"
-"                     Backup snapshot is taken around the time the backup is completed.\n" 
-"                   NOWAIT \n"
-"                     Start a cluster backup and return immediately.\n"
-"                     The management client will return control directly\n"
-"                     to the user without waiting for the backup\n"
-"                     to have started.\n"
-"                     The status of the backup is recorded in the Cluster log.\n"
-"                   WAIT STARTED\n"
-"                     Start a cluster backup and return until the backup has\n"
-"                     started. The management client will wait for the backup \n"
-"                     to have started before returning control to the user.\n"
-"                   WAIT COMPLETED\n"
-"                     Start a cluster backup and return until the backup has\n"
-"                     completed. The management client will wait for the backup\n"
-"                     to complete before returning control to the user.\n"
-;
+static const char *helpTextStartBackup =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for START BACKUP command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "START BACKUP  Start a cluster backup\n\n"
+    "START BACKUP [<backup id>] [ENCRYPT [PASSWORD='<password>']]\n"
+    "    [SNAPSHOTSTART | SNAPSHOTEND] [NOWAIT | WAIT STARTED | WAIT "
+    "COMPLETED]\n"
+    "                   Start a backup for the cluster.\n"
+    "                   Each backup gets an ID number that is reported to the\n"
+    "                   user. This ID number can help you find the backup on "
+    "the\n"
+    "                   file system, or ABORT BACKUP if you wish to cancel a \n"
+    "                   running backup.\n"
+    "                   You can also start specified backup using START BACKUP "
+    "<backup id> \n\n"
+    "                   <backup id> \n"
+    "                     Start a specified backup using <backup id> as bakcup "
+    "ID number.\n"
+    "                   <password> \n"
+    "                      Password for encrypting the backup files.\n"
+    "                      Should be enclosed in double/single quotes, \n"
+    "                      should be less than 256 characters in length and\n"
+    "                      be at least one character long.\n"
+    "                      Allowed characters: 0-9, A-Z, a-z, space( ), "
+    "comma(,), \n"
+    "                      #&()*+-./:;<=>?@[]_{|}~.\n"
+    "                   SNAPSHOTSTART \n"
+    "                     Backup snapshot is taken around the time the backup "
+    "is started.\n"
+    "                   SNAPSHOTEND \n"
+    "                     Backup snapshot is taken around the time the backup "
+    "is completed.\n"
+    "                   NOWAIT \n"
+    "                     Start a cluster backup and return immediately.\n"
+    "                     The management client will return control directly\n"
+    "                     to the user without waiting for the backup\n"
+    "                     to have started.\n"
+    "                     The status of the backup is recorded in the Cluster "
+    "log.\n"
+    "                   WAIT STARTED\n"
+    "                     Start a cluster backup and return until the backup "
+    "has\n"
+    "                     started. The management client will wait for the "
+    "backup \n"
+    "                     to have started before returning control to the "
+    "user.\n"
+    "                   WAIT COMPLETED\n"
+    "                     Start a cluster backup and return until the backup "
+    "has\n"
+    "                     completed. The management client will wait for the "
+    "backup\n"
+    "                     to complete before returning control to the user.\n";
 
-static const char* helpTextAbortBackup =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for ABORT BACKUP command\n"
-"---------------------------------------------------------------------------\n"
-"ABORT BACKUP  Abort a cluster backup\n\n"
-"ABORT BACKUP <backup id>  \n"
-"                   Abort a backup that is already in progress.\n"
-"                   The backup id can be seen in the cluster log or in the\n"
-"                   output of the START BACKUP command.\n"
-;
+static const char *helpTextAbortBackup =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for ABORT BACKUP command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "ABORT BACKUP  Abort a cluster backup\n\n"
+    "ABORT BACKUP <backup id>  \n"
+    "                   Abort a backup that is already in progress.\n"
+    "                   The backup id can be seen in the cluster log or in "
+    "the\n"
+    "                   output of the START BACKUP command.\n";
 
-static const char* helpTextShutdown =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for SHUTDOWN command\n"
-"---------------------------------------------------------------------------\n"
-"SHUTDOWN  Shutdown the cluster\n\n"
-"SHUTDOWN           Shutdown the data nodes and management nodes.\n"
-"                   MySQL Servers and NDBAPI nodes are currently not \n"
-"                   shut down by issuing this command.\n"
-;
+static const char *helpTextShutdown =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for SHUTDOWN command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "SHUTDOWN  Shutdown the cluster\n\n"
+    "SHUTDOWN           Shutdown the data nodes and management nodes.\n"
+    "                   MySQL Servers and NDBAPI nodes are currently not \n"
+    "                   shut down by issuing this command.\n";
 
-static const char* helpTextClusterlogOn =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for CLUSTERLOG ON command\n"
-"---------------------------------------------------------------------------\n"
-"CLUSTERLOG ON  Enable Cluster logging\n\n"
-"CLUSTERLOG ON [<severity>] ... \n"
-"                   Turn the cluster log on.\n"
-"                   It tells management server which severity levels\n"
-"                   messages will be logged.\n\n"
-"                   <severity> can be any one of the following values:\n"
-"                   ALERT, CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-;
+static const char *helpTextClusterlogOn =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for CLUSTERLOG ON command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "CLUSTERLOG ON  Enable Cluster logging\n\n"
+    "CLUSTERLOG ON [<severity>] ... \n"
+    "                   Turn the cluster log on.\n"
+    "                   It tells management server which severity levels\n"
+    "                   messages will be logged.\n\n"
+    "                   <severity> can be any one of the following values:\n"
+    "                   ALERT, CRITICAL, ERROR, WARNING, INFO, DEBUG.\n";
 
-static const char* helpTextClusterlogOff =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for CLUSTERLOG OFF command\n"
-"---------------------------------------------------------------------------\n"
-"CLUSTERLOG OFF  Disable Cluster logging\n\n"
-"CLUSTERLOG OFF [<severity>] ...  \n"
-"                   Turn the cluster log off.\n"
-"                   It tells management server which serverity\n"
-"                   levels logging will be disabled.\n\n"
-"                   <severity> can be any one of the following values:\n"
-"                   ALERT, CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-;
+static const char *helpTextClusterlogOff =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for CLUSTERLOG OFF command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "CLUSTERLOG OFF  Disable Cluster logging\n\n"
+    "CLUSTERLOG OFF [<severity>] ...  \n"
+    "                   Turn the cluster log off.\n"
+    "                   It tells management server which serverity\n"
+    "                   levels logging will be disabled.\n\n"
+    "                   <severity> can be any one of the following values:\n"
+    "                   ALERT, CRITICAL, ERROR, WARNING, INFO, DEBUG.\n";
 
-static const char* helpTextClusterlogToggle =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for CLUSTERLOG TOGGLE command\n"
-"---------------------------------------------------------------------------\n"
-"CLUSTERLOG TOGGLE  Toggle severity filter on/off\n\n"
-"CLUSTERLOG TOGGLE [<severity>] ...  \n"
-"                   Toggle serverity filter on/off.\n"
-"                   If a serverity level is already enabled,then it will\n"
-"                   be disabled after you use the command,vice versa.\n\n"
-"                   <severity> can be any one of the following values:\n"
-"                   ALERT, CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-;
+static const char *helpTextClusterlogToggle =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for CLUSTERLOG TOGGLE command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "CLUSTERLOG TOGGLE  Toggle severity filter on/off\n\n"
+    "CLUSTERLOG TOGGLE [<severity>] ...  \n"
+    "                   Toggle serverity filter on/off.\n"
+    "                   If a serverity level is already enabled,then it will\n"
+    "                   be disabled after you use the command,vice versa.\n\n"
+    "                   <severity> can be any one of the following values:\n"
+    "                   ALERT, CRITICAL, ERROR, WARNING, INFO, DEBUG.\n";
 
-static const char* helpTextClusterlogInfo =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for CLUSTERLOG INFO command\n"
-"---------------------------------------------------------------------------\n"
-"CLUSTERLOG INFO  Print cluster log information\n\n"
-"CLUSTERLOG INFO    Display which severity levels have been enabled,\n"
-"                   see HELP CLUSTERLOG for list of the severity levels.\n"
-;
+static const char *helpTextClusterlogInfo =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for CLUSTERLOG INFO command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "CLUSTERLOG INFO  Print cluster log information\n\n"
+    "CLUSTERLOG INFO    Display which severity levels have been enabled,\n"
+    "                   see HELP CLUSTERLOG for list of the severity levels.\n";
 
-static const char* helpTextHostname =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for HOSTNAME command\n"
-"---------------------------------------------------------------------------\n"
-"HOSTNAME Change hostname of a currently deactive node\n\n"
-"<id> HOSTNAME [<hostname>]    Set the new hostname of the node identified   \n"
-"                              by <id>.\n\n"
-;
+static const char 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+helpTextHostname
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+helpTextStart
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*helpTextStart
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for HOSTNAME command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "HOSTNAME Change hostname of a currently deactive node\n\n"
+    "<id> HOSTNAME [<hostname>]    Set the new hostname of the node identified   \n"
+    "                              by <id>.\n\n";
 
-static const char* helpTextActivate =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for ACTIVATE command\n"
-"---------------------------------------------------------------------------\n"
-"ACTIVATE Activate a previously deactive node\n\n"
-"<id> ACTIVATE        Activate the node identified by <id>.\n\n"
-"We can define a node in the configuration for future growth. For example we\n"
-"can start with a single node, but still define the number of replicas to be\n"
-"3 and 3 nodes are defined. 2 of those of nodes are defined as Not Active.  \n"
-"If later we want to start any of these nodes we need to execute the        \n"
-"ACTIVATE NODE command. The active nodes won't allow an inactive node to    \n"
-"join the cluster. It is possible to create inactive nodes of all types, API\n"
-", Management nodes and Data nodes. When starting an inactive node it must  \n"
-"always be started with the flag --initial since it is assumed to be an     \n"
-"initial start of the node. The actual start will then be treated as a      \n"
-"normal initial node restart of the now activated node.                     \n"
-;
-static const char* helpTextDeactivate =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for DEACTIVATE command\n"
-"---------------------------------------------------------------------------\n"
-"DEACTIVATE Dectivate a previously deactive node\n\n"
-"<id> DEACTIVATE        Deactivate the node identified by <id>.\n\n"
-"We can deactivate a node currently active. A node can be used temporarily  \n"
+static const char 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+helpTextActivate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+helpTextRestart
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*helpTextRestart
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for ACTIVATE command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "ACTIVATE Activate a previously deactive node\n\n"
+    "<id> ACTIVATE        Activate the node identified by <id>
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(or All data nodes)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(or All data "
+    "nodes)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.\n\n"
+    "We can define a node in the configuration for future growth. For example we\n"
+    "can start with a single node, but still define the number of replicas to be\n"
+    "3 and 3 nodes are defined. 2 of those of nodes are defined as Not Active.  \n"
+    "If later we want to start any of these nodes we need to execute the        \n"
+    "ACTIVATE NODE command. The active nodes won't allow an inactive node to    \n"
+    "join the cluster. It is possible to create inactive nodes of all types, API\n"
+    ", Management nodes and Data nodes. When starting an inactive node it must  \n"
+    "always be started with the flag --initial since it is assumed to be an     \n"
+    "initial start of the node. The actual start will then be treated as a      \n"
+    "normal initial node restart of the now activated node.                     \n";
+static const char 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+helpTextDeactivate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+helpTextStop
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*helpTextStop
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for DEACTIVATE command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "DEACTIVATE Dectivate a previously deactive node\n\n"
+    "<id> DEACTIVATE        Deactivate the node identified by <id>.\n\n"
+    "We can deactivate a node currently active. A node can be used temporarily  \n"
 "during a change of the cluster to ensure that we have proper replication   \n"
-"during the change. As an example if we have a cluster with 2 data nodes and\n"
+    "during the change. As an example if we have a cluster with 2 data nodes and\n"
 "we want to change one of the data nodes to another machine we can first    \n"
 "activate a node and start it up. Thus after this start we have 3 replicas, \n"
-"now we can deactivate the node we no longer need. This will both stop the  \n"
-"node and deactivate the node. The node can only rejoin the cluster through \n"
+    "now we can deactivate the node we no longer need. This will both stop the  \n"
+    "node and deactivate the node. The node can only rejoin the cluster through \n"
 "a new activation and initial start after this. Thus we cannot reuse any    \n"
-"log files and checkpoint files from the deactivated node.                  \n"
-;
-static const char* helpTextStart =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for START command\n"
-"---------------------------------------------------------------------------\n"
-"START  Start data node (started with -n)\n\n"
-"<id> START         Start the data node identified by <id>.\n"
-"                   Only starts data nodes that have not\n"
-"                   yet joined the cluster. These are nodes\n"
+    "log files and checkpoint files from the deactivated node.                  \n";
+static const char 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+helpTextStart
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+helpTextEnterSingleUserMode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*helpTextEnterSingleUserMode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for START "
+    "command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "START  Start data node (started with -n)\n\n"
+    "<id> START         Start the data node identified by <id>.\n"
+    "                   Only starts data nodes that have not\n"
+"                   yet joined the cluster. These 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+are
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+or
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "or
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ nodes\n"
 "                   launched or restarted with the -n(--nostart)\n"
-"                   option.\n\n"
-"                   It does not launch the ndbd process on a remote\n"
-"                   machine.\n"
-;
+    "                   option.\n\n"
+"                   It does not launch the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbd process on a remote\n"
+"                 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+database.
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "database.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  machine.\n";
 
-static const char* helpTextRestart =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for RESTART command\n"
-"---------------------------------------------------------------------------\n"
-"RESTART  Restart data or management server node\n\n"
-"<id> RESTART [-n] [-i] [-a] [-f]\n"
-"                   Restart the data or management node <id>(or All data nodes).\n\n"
+static const char 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+helpTextRestart
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+helpTextExitSingleUserMode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*helpTextExitSingleUserMode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for RESTART "
+    "command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "RESTART  Restart data or management server node\n\n"
+    "<id> RESTART [-n] [-i] [-a] [-f]\n"
+    "                   Restart the data or management node <id>(or All data nodes).\n\n"
 "                   -n (--nostart) restarts the node but does not\n"
 "                   make it join the cluster. Use '<id> START' to\n"
 "                   join the node to the cluster.\n\n"
-"                   -i (--initial) perform initial start.\n"
+    "                   -i (--initial) perform initial start.\n"
 "                   This cleans the file system (ndb_<id>_fs)\n"
-"                   and the node will copy data from another node\n"
+"                   and the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node will copy data from another node\n"
 "                   in the same node group during start up.\n\n"
 "                   Consult the documentation before using -i.\n\n" 
 "                   INCORRECT USE OF -i WILL CAUSE DATA LOSS!\n\n"
-"                   -a Aborts the node, not syncing GCP.\n\n"
+"                   -a Aborts the node, not syncing GCP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+database
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "database
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.\n\n"
 "                   -f Force restart even if that would mean the\n"
 "                      whole cluster would need to be restarted\n"
 ;
 
-static const char* helpTextStop =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for STOP command\n"
-"---------------------------------------------------------------------------\n"
-"STOP  Stop data or management server node\n\n"
+static const char 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+helpTextStop
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+helpTextNodelog
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*helpTextNodelog
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for STOP command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "STOP  Stop data or management server node\n\n"
 "<id> STOP [-a] [-f]\n"
-"                   Stop the data or management server node <id>.\n\n"
+    "                   Stop the data or management server node <id>.\n\n"
 "                   ALL STOP will just stop all data nodes.\n\n"
 "                   If you desire to also shut down management servers,\n"
 "                   use SHUTDOWN instead.\n\n"
 "                   -a Aborts the node, not syncing GCP.\n\n"
 "                   -f Force stop even if that would mean the\n"
-"                      whole cluster would need to be stopped\n"
-;
+"                      whole cluster would need to be stopped\n";
 
-static const char* helpTextEnterSingleUserMode =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for ENTER SINGLE USER MODE command\n"
-"---------------------------------------------------------------------------\n"
-"ENTER SINGLE USER MODE  Enter single user mode\n\n"
-"ENTER SINGLE USER MODE <id> \n"
-"                   Enters single-user mode, whereby only the MySQL Server or NDBAPI\n" 
+static const char 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+helpTextEnterSingleUserMode
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+helpTextStatus
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*helpTextStatus
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for ENTER SINGLE USER MODE command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "ENTER SINGLE USER MODE  Enter single user mode\n\n"
+    "ENTER SINGLE USER MODE <id> \n"
+    "                   Enters single-user mode, whereby only the MySQL Server or NDBAPI\n" 
 "                   node identified by <id> is allowed to access the database. \n"
 ;
 
 static const char* helpTextExitSingleUserMode =
 "---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for EXIT SINGLE USER MODE command\n"
-"---------------------------------------------------------------------------\n"
-"EXIT SINGLE USER MODE  Exit single user mode\n\n"
-"EXIT SINGLE USER MODE \n"
-"                   Exits single-user mode, allowing all SQL nodes \n"
-"                   (that is, all running mysqld processes) to access the database. \n" 
+    " RonDB -- Management Client -- Help for EXIT SINGLE USER MODE command\n"
+    "---------------------------------------------------------------------------\n"
+    "EXIT SINGLE USER MODE  Exit single user mode\n\n"
+    "EXIT SINGLE USER MODE \n"
+    "                   Exits single-user mode, allowing all SQL 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+system(ndb_<id>_fs).
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "system(ndb_<id>_fs).
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ \n"
+    "                   (that is, all running mysqld processes) to access the database. \n" 
 ;
 
-static const char* helpTextNodelog =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for NODELOG command\n"
-"---------------------------------------------------------------------------\n"
+static const char* helpTextNodelog 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+"-------------------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+"
+    "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+--\n"
+    " RonDB -- Management Client -- Help for NODELOG command\n"
+    "---------------------------------------------------------------------------\n"
 "<id> NODELOG DEBUG ON   Enable debug messages in node log\n"
-"<id> NODELOG DEBUG OFF  Disable debug messages in node log\n"
+"<id> NODELOG DEBUG OFF  Disable debug messages in 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+establishes
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "establishes
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ log\n"
 ;
 
 static const char* helpTextStatus =
@@ -597,23 +836,132 @@ static const char* helpTextStatus =
 " RonDB -- Management Client -- Help for STATUS command\n"
 "---------------------------------------------------------------------------\n"
 "STATUS  Print status\n\n"
-"<id> STATUS        Displays status information for the data node <id>\n"
-"                   or for All data nodes. \n\n"
-"                   e.g.\n"
+    "<id> STATUS        Displays status information for the data node <id>\n"
+"                   or for All 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+data
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Cluster
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "Cluster
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ nodes. \n\n"
+    "                   e.g.\n"
 "                      ALL STATUS\n"
-"                      1 STATUS\n\n"
-"                   When a node is starting, the start phase will be\n"
-"                   listed.\n\n"
-"                   Start Phase   Meaning\n"
-"                   1             Clear the cluster file system(ndb_<id>_fs). \n"
-"                                 This stage occurs only when the --initial option \n"
-"                                 has been specified.\n"
-"                   2             This stage sets up Cluster connections, establishes \n"
-"                                 inter-node communications and starts Cluster heartbeats.\n"
-"                   3             The arbitrator node is elected.\n"
-"                   4             Initializes a number of internal cluster variables.\n"
-"                   5             For an initial start or initial node restart,\n"
-"                                 the redo log files are created.\n"
+    "                      1 STATUS\n\n"
+"                   When a node is starting, the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+start phase will be
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+variables.
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "variables.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+\n"
+    "                   listed.\n\n"
+"                   Start 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Phase   Meaning
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+restart,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "restart,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+\n"
+    "                   1             Clear the cluster file system(ndb_<id>_fs). \n"
+    "                                 This stage occurs only when the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+--initial
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+internal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "internal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ option \n"
+    "                                 has been specified.\n"
+    "                   2             This stage sets up Cluster connections, establishes 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+indexes.
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "indexes.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+\n"
+    "                                 inter-node communications and starts Cluster heartbeats.\n"
+    "                   3             The arbitrator 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+can
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "can
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ is elected.\n"
+    "                   4             Initializes a number of internal 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cluster
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+over
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+    "over
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ variables.\n"
+    "                   5             For an initial start or initial node restart,\n"
+    "      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+helpTextClusterlog
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*helpTextClusterlog
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                          the redo log files are created.\n"
 "                   6             If this is an initial start, create internal system tables.\n"
 "                   7             Update internal variables. \n"
 "                   8             In a system restart, rebuild all indexes.\n"
@@ -625,173 +973,173 @@ static const char* helpTextStatus =
 ;
 
 static const char* helpTextClusterlog =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for CLUSTERLOG command\n"
-"---------------------------------------------------------------------------\n"
-"CLUSTERLOG  Set log level for cluster log\n\n"
-" <id> CLUSTERLOG {<category>=<level>}+  \n"
-"                   Logs <category> events with priority less than \n"
-"                   or equal to <level> in the cluster log.\n\n"
-"                   <category> can be any one of the following values:\n"
-"                   STARTUP, SHUTDOWN, STATISTICS, CHECKPOINT, NODERESTART,\n"
-"                   CONNECTION, ERROR, INFO, CONGESTION, DEBUG, or BACKUP. \n\n"
-"                   <level> is represented by one of the numbers \n"
-"                   from 1 to 15 inclusive, where 1 indicates 'most important' \n"
-"                   and 15 'least important'.\n\n"
-"                   <severity> can be any one of the following values:\n"
-"                   ALERT, CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-;
+"--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for CLUSTERLOG command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "CLUSTERLOG  Set log level for cluster log\n\n"
+    " <id> CLUSTERLOG {<category>=<level>}+  \n"
+    "                   Logs <category> events with priority less than \n"
+    "                   or equal to <level> in the cluster log.\n\n"
+    "                   <category> can be any one of the following values:\n"
+    "                   STARTUP, SHUTDOWN, STATISTICS, CHECKPOINT, "
+    "NODERESTART,\n"
+    "                   CONNECTION, ERROR, INFO, CONGESTION, DEBUG, or BACKUP. "
+    "\n\n"
+    "                   <level> is represented by one of the numbers \n"
+    "                   from 1 to 15 inclusive, where 1 indicates 'most "
+    "important' \n"
+    "                   and 15 'least important'.\n\n"
+    "                   <severity> can be any one of the following values:\n"
+    "                   ALERT, CRITICAL, ERROR, WARNING, INFO, DEBUG.\n";
 
+static const char *helpTextPurgeStaleSessions =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for PURGE STALE SESSIONS "
+    "command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "PURGE STALE SESSIONS  Reset reserved nodeid's in the mgmt server\n\n"
+    "PURGE STALE SESSIONS \n"
+    "                   Running this statement forces all reserved \n"
+    "                   node IDs to be checked; any that are not \n"
+    "                   being used by nodes acutally connected to \n"
+    "                   the cluster are then freed.\n\n"
+    "                   This command is not normally needed, but may be\n"
+    "                   required in some situations where failed nodes \n"
+    "                   cannot rejoin the cluster due to failing to\n"
+    "                   allocate a node id.\n";
 
-static const char* helpTextPurgeStaleSessions =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for PURGE STALE SESSIONS command\n"
-"---------------------------------------------------------------------------\n"
-"PURGE STALE SESSIONS  Reset reserved nodeid's in the mgmt server\n\n"
-"PURGE STALE SESSIONS \n"
-"                   Running this statement forces all reserved \n"
-"                   node IDs to be checked; any that are not \n"
-"                   being used by nodes acutally connected to \n"
-"                   the cluster are then freed.\n\n"   
-"                   This command is not normally needed, but may be\n"
-"                   required in some situations where failed nodes \n"
-"                   cannot rejoin the cluster due to failing to\n"
-"                   allocate a node id.\n" 
-;
+static const char *helpTextConnect =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for CONNECT command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "CONNECT  Connect to management server (reconnect if already connected)\n\n"
+    "CONNECT [<connectstring>] \n"
+    "                   Connect to management server.\n"
+    "                   The optional parameter connectstring specifies the \n"
+    "                   connect string to user.\n\n"
+    "                   A connect string may be:\n"
+    "                       mgm-server\n"
+    "                       mgm-server:port\n"
+    "                       mgm1:port,mgm2:port\n"
+    "                   With multiple management servers comma separated.\n"
+    "                   The management client with try to connect to the \n"
+    "                   management servers in the order they are listed.\n\n"
+    "                   If no connect string is specified, the default \n"
+    "                   is used. \n";
 
-static const char* helpTextConnect =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for CONNECT command\n"
-"---------------------------------------------------------------------------\n"
-"CONNECT  Connect to management server (reconnect if already connected)\n\n"
-"CONNECT [<connectstring>] \n"
-"                   Connect to management server.\n"
-"                   The optional parameter connectstring specifies the \n"
-"                   connect string to user.\n\n"
-"                   A connect string may be:\n"
-"                       mgm-server\n"
-"                       mgm-server:port\n"
-"                       mgm1:port,mgm2:port\n"
-"                   With multiple management servers comma separated.\n"
-"                   The management client with try to connect to the \n"
-"                   management servers in the order they are listed.\n\n"
-"                   If no connect string is specified, the default \n"
-"                   is used. \n"
-;
-
-static const char* helpTextReport =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for REPORT command\n"
-"---------------------------------------------------------------------------\n"
-"REPORT  Displays a report of type <report-type> for the specified data \n"
-"        node, or for all data nodes using ALL\n"
-;
+static const char *helpTextReport =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for REPORT command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "REPORT  Displays a report of type <report-type> for the specified data \n"
+    "        node, or for all data nodes using ALL\n";
 static void helpTextReportFn();
 static void helpTextReportTypeOptionFn();
 
+static const char *helpTextQuit =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for QUIT command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "QUIT  Quit management client\n\n"
+    "QUIT               Terminates the management client. \n";
 
-static const char* helpTextQuit =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for QUIT command\n"
-"---------------------------------------------------------------------------\n"
-"QUIT  Quit management client\n\n"
-"QUIT               Terminates the management client. \n"                    
-;
+static const char *helpTextPrompt =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for PROMPT command\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "PROMPT  Toggle the prompt between string specified\n"
+    "        or default prompt if no string specified\n\n"
+    "PROMPT [<prompt-string>]       Changes the prompt to <prompt-string>\n"
+    "                               No string resets the prompt to default\n\n";
 
-
-static const char* helpTextPrompt =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for PROMPT command\n"
-"---------------------------------------------------------------------------\n"
-"PROMPT  Toggle the prompt between string specified\n"
-"        or default prompt if no string specified\n\n"
-"PROMPT [<prompt-string>]       Changes the prompt to <prompt-string>\n"
-"                               No string resets the prompt to default\n\n"
-;
-
-
-#ifdef VM_TRACE // DEBUG ONLY
-static const char* helpTextDebug =
-"---------------------------------------------------------------------------\n"
-" RonDB -- Management Client -- Help for Debugging (Internal use only)\n"
-"---------------------------------------------------------------------------\n"
-"SHOW PROPERTIES                       Print config properties object\n"
-"<id> LOGLEVEL {<category>=<level>}+   Set log level\n"
+#ifdef VM_TRACE  // DEBUG ONLY
+static const char *helpTextDebug =
+    "--------------------------------------------------------------------------"
+    "-\n"
+    " RonDB -- Management Client -- Help for Debugging (Internal use "
+    "only)\n"
+    "--------------------------------------------------------------------------"
+    "-\n"
+    "SHOW PROPERTIES                       Print config properties object\n"
+    "<id> LOGLEVEL {<category>=<level>}+   Set log level\n"
 #ifdef ERROR_INSERT
-"<id> ERROR <errorNo>                  Inject error into NDB node\n"
+    "<id> ERROR <errorNo>                  Inject error into NDB node\n"
 #endif
-"<id> LOG [BLOCK = {ALL|<block>+}]     Set logging on in & out signals\n"
-"<id> TESTON                           Start signal logging\n"
-"<id> TESTOFF                          Stop signal logging\n"
-"<id> DUMP <arg>                       Dump system state to cluster.log\n"
-"\n"
-"<id>       = ALL | Any database node id\n"
-;
+    "<id> LOG [BLOCK = {ALL|<block>+}]     Set logging on in & out signals\n"
+    "<id> TESTON                           Start signal logging\n"
+    "<id> TESTOFF                          Stop signal logging\n"
+    "<id> DUMP <arg>                       Dump system state to cluster.log\n"
+    "\n"
+    "<id>       = ALL | Any database node id\n";
 #endif
 
 struct st_cmd_help {
   const char *cmd;
-  const char * help;
-  void (* help_fn)();
-}help_items[]={
-  {"SHOW", helpTextShow, NULL},
-  {"HELP", helpTextHelp, NULL},
-  {"BACKUP", helpTextBackup, NULL},
-  {"START BACKUP", helpTextStartBackup, NULL},
-  {"START BACKUP NOWAIT", helpTextStartBackup, NULL},
-  {"START BACKUP WAIT STARTED", helpTextStartBackup, NULL},
-  {"START BACKUP WAIT", helpTextStartBackup, NULL},
-  {"START BACKUP WAIT COMPLETED", helpTextStartBackup, NULL},
-  {"ABORT BACKUP", helpTextAbortBackup, NULL},
-  {"SHUTDOWN", helpTextShutdown, NULL},
-  {"CLUSTERLOG ON", helpTextClusterlogOn, NULL},
-  {"CLUSTERLOG OFF", helpTextClusterlogOff, NULL},
-  {"CLUSTERLOG TOGGLE", helpTextClusterlogToggle, NULL},
-  {"CLUSTERLOG INFO", helpTextClusterlogInfo, NULL},
-  {"HOSTNAME", helpTextHostname, NULL},
+  const char *help;
+  void (*help_fn)();
+} help_items[] = {{"SHOW", helpTextShow, NULL},
+                  {"HELP", helpTextHelp, NULL},
+                  {"BACKUP", helpTextBackup, NULL},
+                  {"START BACKUP", helpTextStartBackup, NULL},
+                  {"START BACKUP NOWAIT", helpTextStartBackup, NULL},
+                  {"START BACKUP WAIT STARTED", helpTextStartBackup, NULL},
+                  {"START BACKUP WAIT", helpTextStartBackup, NULL},
+                  {"START BACKUP WAIT COMPLETED", helpTextStartBackup, NULL},
+                  {"ABORT BACKUP", helpTextAbortBackup, NULL},
+                  {"SHUTDOWN", helpTextShutdown, NULL},
+                  {"CLUSTERLOG ON", helpTextClusterlogOn, NULL},
+                  {"CLUSTERLOG OFF", helpTextClusterlogOff, NULL},
+                  {"CLUSTERLOG TOGGLE", helpTextClusterlogToggle, NULL},
+                  {"CLUSTERLOG INFO", helpTextClusterlogInfo, NULL},
+                  {"HOSTNAME", helpTextHostname, NULL},
   {"ACTIVATE", helpTextActivate, NULL},
   {"DEACTIVATE", helpTextDeactivate, NULL},
   {"START", helpTextStart, NULL},
-  {"RESTART", helpTextRestart, NULL},
-  {"STOP", helpTextStop, NULL},
-  {"ENTER SINGLE USER MODE", helpTextEnterSingleUserMode, NULL},
-  {"EXIT SINGLE USER MODE", helpTextExitSingleUserMode, NULL},
-  {"STATUS", helpTextStatus, NULL},
-  {"CLUSTERLOG", helpTextClusterlog, NULL},
-  {"NODELOG", helpTextNodelog, NULL},
-  {"NODELOG DEBUG", helpTextNodelog, NULL},
-  {"NODELOG DEBUG", helpTextNodelog, NULL},
-  {"NODELOG DEBUG ON", helpTextNodelog, NULL},
-  {"NODELOG DEBUG OFF", helpTextNodelog, NULL},
-  {"PURGE STALE SESSIONS", helpTextPurgeStaleSessions, NULL},
-  {"CONNECT", helpTextConnect, NULL},
-  {"REPORT", helpTextReport, helpTextReportFn},
-  {"QUIT", helpTextQuit, NULL},
-  {"PROMPT", helpTextPrompt, NULL},
-#ifdef VM_TRACE // DEBUG ONLY
-  {"DEBUG", helpTextDebug, NULL},
-#endif //VM_TRACE
-  {NULL, NULL, NULL}
-};
+                  {"RESTART", helpTextRestart, NULL},
+                  {"STOP", helpTextStop, NULL},
+                  {"ENTER SINGLE USER MODE", helpTextEnterSingleUserMode, NULL},
+                  {"EXIT SINGLE USER MODE", helpTextExitSingleUserMode, NULL},
+                  {"STATUS", helpTextStatus, NULL},
+                  {"CLUSTERLOG", helpTextClusterlog, NULL},
+                  {"NODELOG", helpTextNodelog, NULL},
+                  {"NODELOG DEBUG", helpTextNodelog, NULL},
+                  {"NODELOG DEBUG", helpTextNodelog, NULL},
+                  {"NODELOG DEBUG ON", helpTextNodelog, NULL},
+                  {"NODELOG DEBUG OFF", helpTextNodelog, NULL},
+                  {"PURGE STALE SESSIONS", helpTextPurgeStaleSessions, NULL},
+                  {"CONNECT", helpTextConnect, NULL},
+                  {"REPORT", helpTextReport, helpTextReportFn},
+                  {"QUIT", helpTextQuit, NULL},
+                  {"PROMPT", helpTextPrompt, NULL},
+#ifdef VM_TRACE  // DEBUG ONLY
+                  {"DEBUG", helpTextDebug, NULL},
+#endif  // VM_TRACE
+                  {NULL, NULL, NULL}};
 
-static bool
-convert(const char* s, int& val) {
-  
-  if (s == NULL)
-    return false;
+static bool convert(const char *s, int &val) {
+  if (s == NULL) return false;
 
-  if (strlen(s) == 0)
-    return false;
+  if (strlen(s) == 0) return false;
 
   errno = 0;
-  char* p;
+  char *p;
   long v = strtol(s, &p, 10);
-  if (errno != 0)
-    return false;
+  if (errno != 0) return false;
 
-  if (p != &s[strlen(s)])
-    return false;
-  
+  if (p != &s[strlen(s)]) return false;
+
   val = v;
   return true;
 }
@@ -800,42 +1148,38 @@ convert(const char* s, int& val) {
  * Constructor
  */
 CommandInterpreter::CommandInterpreter(const char *host,
-                                       const char* default_prompt,
-                                       int verbose, int connect_retry_delay) :
-  m_constr(host),
-  m_connected(false),
-  m_verbose(verbose),
-  m_try_reconnect(0),
-  m_error(-1),
-  m_event_thread(NULL),
-  m_connect_retry_delay(connect_retry_delay),
-  m_default_prompt(default_prompt),
-  m_prompt(default_prompt),
-  m_default_backup_password(nullptr),
-  m_always_encrypt_backup(false),
-  m_onetime_backup_password_set(false)
-{
-  m_print_mutex= NdbMutex_Create();
+                                       const char *default_prompt, int verbose,
+                                       int connect_retry_delay)
+    : m_constr(host),
+      m_connected(false),
+      m_verbose(verbose),
+      m_try_reconnect(0),
+      m_error(-1),
+      m_event_thread(NULL),
+      m_connect_retry_delay(connect_retry_delay),
+      m_default_prompt(default_prompt),
+      m_prompt(default_prompt),
+      m_default_backup_password(nullptr),
+      m_always_encrypt_backup(false),
+      m_onetime_backup_password_set(false) {
+  m_print_mutex = NdbMutex_Create();
 }
 
 /*
  * Destructor
  */
-CommandInterpreter::~CommandInterpreter() 
-{
+CommandInterpreter::~CommandInterpreter() {
   disconnect();
   NdbMutex_Destroy(m_print_mutex);
 }
 
-static bool 
-emptyString(const char* s) 
-{
+static bool emptyString(const char *s) {
   if (s == NULL) {
     return true;
   }
 
   for (unsigned int i = 0; i < strlen(s); ++i) {
-    if (! isspace(s[i])) {
+    if (!isspace(s[i])) {
       return false;
     }
   }
@@ -843,17 +1187,12 @@ emptyString(const char* s)
   return true;
 }
 
-void
-CommandInterpreter::printError() 
-{
-  if (m_mgmsrv)
-  {
-    ndbout_c("* %5d: %s", 
-             ndb_mgm_get_latest_error(m_mgmsrv),
+void CommandInterpreter::printError() {
+  if (m_mgmsrv) {
+    ndbout_c("* %5d: %s", ndb_mgm_get_latest_error(m_mgmsrv),
              ndb_mgm_get_latest_error_msg(m_mgmsrv));
     ndbout_c("*        %s", ndb_mgm_get_latest_error_desc(m_mgmsrv));
-    if (ndb_mgm_check_connection(m_mgmsrv))
-    {
+    if (ndb_mgm_check_connection(m_mgmsrv)) {
       disconnect();
     }
   }
@@ -862,69 +1201,64 @@ CommandInterpreter::printError()
 /*
  * print log event from mgmsrv to console screen
  */
-#define make_uint64(a,b) (((Uint64)(a)) + (((Uint64)(b)) << 32))
-#define Q64(a) make_uint64(event->EVENT.a ## _lo, event->EVENT.a ## _hi)
+#define make_uint64(a, b) (((Uint64)(a)) + (((Uint64)(b)) << 32))
+#define Q64(a) make_uint64(event->EVENT.a##_lo, event->EVENT.a##_hi)
 #define R event->source_nodeid
 #define Q(a) event->EVENT.a
-#define QVERSION getMajor(Q(version)), getMinor(Q(version)), getBuild(Q(version))
-#define NDB_LE_(a) NDB_LE_ ## a
-static void
-printLogEvent(struct ndb_logevent* event)
-{
+#define QVERSION \
+  getMajor(Q(version)), getMinor(Q(version)), getBuild(Q(version))
+#define NDB_LE_(a) NDB_LE_##a
+static void printLogEvent(struct ndb_logevent *event) {
   switch (event->type) {
-    /** 
+    /**
      * NDB_MGM_EVENT_CATEGORY_BACKUP
      */
-#undef  EVENT
+#undef EVENT
 #define EVENT BackupStarted
-  case NDB_LE_BackupStarted:
-      ndbout_c("Node %u: Backup %u started from node %d",
-               R, Q(backup_id), Q(starting_node));
+    case NDB_LE_BackupStarted:
+      ndbout_c("Node %u: Backup %u started from node %d", R, Q(backup_id),
+               Q(starting_node));
       break;
 #undef EVENT
 #define EVENT BackupStatus
     case NDB_LE_BackupStatus:
       if (Q(starting_node))
-        ndbout_c("Node %u: Local backup status: backup %u started from node %u\n" 
-                 " #Records: %llu #LogRecords: %llu\n"
-                 " Data: %llu bytes Log: %llu bytes", R,
-                 Q(backup_id),
-                 Q(starting_node),
-                 Q64(n_records),
-                 Q64(n_log_records),
-                 Q64(n_bytes),
-                 Q64(n_log_bytes));
+        ndbout_c(
+            "Node %u: Local backup status: backup %u started from node %u\n"
+            " #Records: %llu #LogRecords: %llu\n"
+            " Data: %llu bytes Log: %llu bytes",
+            R, Q(backup_id), Q(starting_node), Q64(n_records),
+            Q64(n_log_records), Q64(n_bytes), Q64(n_log_bytes));
       else
         ndbout_c("Node %u: Backup not started", R);
       break;
-#undef  EVENT
+#undef EVENT
 #define EVENT BackupFailedToStart
     case NDB_LE_BackupFailedToStart:
-      ndbout_c("Node %u: Backup request from %d failed to start. Error: %d",
-               R, Q(starting_node), Q(error));
+      ndbout_c("Node %u: Backup request from %d failed to start. Error: %d", R,
+               Q(starting_node), Q(error));
       break;
-#undef  EVENT
+#undef EVENT
 #define EVENT BackupCompleted
     case NDB_LE_BackupCompleted:
-      ndbout_c("Node %u: Backup %u started from node %u completed\n" 
-               " StartGCP: %u StopGCP: %u\n" 
-               " #Records: %u #LogRecords: %u\n" 
-               " Data: %u bytes Log: %u bytes", R,
-               Q(backup_id), Q(starting_node),
-               Q(start_gci), Q(stop_gci),
-               Q(n_records), Q(n_log_records),
-               Q(n_bytes),   Q(n_log_bytes));
+      ndbout_c(
+          "Node %u: Backup %u started from node %u completed\n"
+          " StartGCP: %u StopGCP: %u\n"
+          " #Records: %u #LogRecords: %u\n"
+          " Data: %u bytes Log: %u bytes",
+          R, Q(backup_id), Q(starting_node), Q(start_gci), Q(stop_gci),
+          Q(n_records), Q(n_log_records), Q(n_bytes), Q(n_log_bytes));
       break;
-#undef  EVENT
+#undef EVENT
 #define EVENT BackupAborted
     case NDB_LE_BackupAborted:
       ndbout_c("Node %u: Backup %u started from %d has been aborted. Error: %d",
                R, Q(backup_id), Q(starting_node), Q(error));
       break;
-    /** 
-     * NDB_MGM_EVENT_CATEGORY_STARTUP
-     */ 
-#undef  EVENT
+      /**
+       * NDB_MGM_EVENT_CATEGORY_STARTUP
+       */
+#undef EVENT
 #define EVENT NDBStartStarted
     case NDB_LE_NDBStartStarted:
       if (getMinor(Q(version)) == 0 || (getMinor(Q(version)) >= 10))
@@ -934,11 +1268,10 @@ printLogEvent(struct ndb_logevent* event)
       }
       else
       {
-        ndbout_c("Node %u: Start initiated (RonDB version %d.0%d.%d)",
-                 R, QVERSION);
+        ndbout_c("Node %u: Start initiated (RonDB version %d.0%d.%d)",   R, QVERSION);
       }
       break;
-#undef  EVENT
+#undef EVENT
 #define EVENT NDBStartCompleted
     case NDB_LE_NDBStartCompleted:
       if (getMinor(Q(version)) == 0 || (getMinor(Q(version)) >= 10))
@@ -948,97 +1281,84 @@ printLogEvent(struct ndb_logevent* event)
       }
       else
       {
-        ndbout_c("Node %u: Started (RonDB version %d.0%d.%d)",
-                 R, QVERSION);
+        ndbout_c("Node %u: Started (RonDB version %d.0%d.%d)",   R, QVERSION);
       }
       break;
-#undef  EVENT
+#undef EVENT
 #define EVENT NDBStopStarted
     case NDB_LE_NDBStopStarted:
       ndbout_c("Node %u: %s shutdown initiated", R,
                (Q(stoptype) == 1 ? "Cluster" : "Node"));
       g_stop_state[R] = StopState::StopStarted;
       break;
-#undef  EVENT
+#undef EVENT
 #define EVENT NDBStopCompleted
-    case NDB_LE_NDBStopCompleted:
-      {
-        BaseString action_str("");
-        BaseString signum_str("");
-        getRestartAction(Q(action), action_str);
-        if (Q(signum))
-          signum_str.appfmt(" Initiated by signal %d.", 
-                            Q(signum));
-        ndbout_c("Node %u: Node shutdown completed%s.%s", 
-                 R, action_str.c_str(), signum_str.c_str());
+    case NDB_LE_NDBStopCompleted: {
+      BaseString action_str("");
+      BaseString signum_str("");
+      getRestartAction(Q(action), action_str);
+      if (Q(signum)) signum_str.appfmt(" Initiated by signal %d.", Q(signum));
+      ndbout_c("Node %u: Node shutdown completed%s.%s", R, action_str.c_str(),
+               signum_str.c_str());
         g_stop_state[R] = StopState::StopCompleted;
-      }
-      break;
-#undef  EVENT
+      } break;
+#undef EVENT
 #define EVENT NDBStopForced
-    case NDB_LE_NDBStopForced:
-      {
-        BaseString action_str("");
-        BaseString reason_str("");
-        BaseString sphase_str("");
-        int signum = Q(signum);
-        int error = Q(error); 
-        int sphase = Q(sphase); 
-        int extra = Q(extra); 
-        getRestartAction(Q(action), action_str);
-        if (signum)
-          reason_str.appfmt(" Initiated by signal %d.", signum);
-        if (error)
-        {
-          ndbd_exit_classification cl;
-          ndbd_exit_status st;
-          const char *msg = ndbd_exit_message(error, &cl);
-          const char *cl_msg = ndbd_exit_classification_message(cl, &st);
-          const char *st_msg = ndbd_exit_status_message(st);
-          reason_str.appfmt(" Caused by error %d: \'%s(%s). %s\'.", 
-                            error, msg, cl_msg, st_msg);
-          if (extra != 0)
-            reason_str.appfmt(" (extra info %d)", extra);
-        }
-        if (sphase < 255)
-          sphase_str.appfmt(" Occurred during startphase %u.", sphase);
-        ndbout_c("Node %u: Forced node shutdown completed%s.%s%s",
-                 R, action_str.c_str(), sphase_str.c_str(), 
-                 reason_str.c_str());
-        g_stop_state[R] = StopState::StopCompleted;
+    case NDB_LE_NDBStopForced: {
+      BaseString action_str("");
+      BaseString reason_str("");
+      BaseString sphase_str("");
+      int signum = Q(signum);
+      int error = Q(error);
+      int sphase = Q(sphase);
+      int extra = Q(extra);
+      getRestartAction(Q(action), action_str);
+      if (signum) reason_str.appfmt(" Initiated by signal %d.", signum);
+      if (error) {
+        ndbd_exit_classification cl;
+        ndbd_exit_status st;
+        const char *msg = ndbd_exit_message(error, &cl);
+        const char *cl_msg = ndbd_exit_classification_message(cl, &st);
+        const char *st_msg = ndbd_exit_status_message(st);
+        reason_str.appfmt(" Caused by error %d: \'%s(%s). %s\'.", error, msg,
+                          cl_msg, st_msg);
+        if (extra != 0) reason_str.appfmt(" (extra info %d)", extra);
       }
-      break;
-#undef  EVENT
+      if (sphase < 255)
+        sphase_str.appfmt(" Occurred during startphase %u.", sphase);
+      ndbout_c("Node %u: Forced node shutdown completed%s.%s%s", R,
+               action_str.c_str(), sphase_str.c_str(), reason_str.c_str());
+        g_stop_state[R] = StopState::StopCompleted;
+      } break;
+#undef EVENT
 #define EVENT StopAborted
     case NDB_LE_NDBStopAborted:
       ndbout_c("Node %u: Node shutdown aborted", R);
       g_stop_state[R] = StopState::StopAborted;
       break;
-    /** 
-     * NDB_MGM_EVENT_CATEGORY_STATISTIC
-     */ 
+      /**
+       * NDB_MGM_EVENT_CATEGORY_STATISTIC
+       */
 #undef EVENT
 #define EVENT MemoryUsage
-    case NDB_LE_MemoryUsage:
-    {
-
-      if (Q(gth) == 0)
-      {
+    case NDB_LE_MemoryUsage: {
+      if (Q(gth) == 0) {
         // Only print MemoryUsage report for increased/decreased
         break;
       }
 
-      const int percent = Q(pages_total) ? (Q(pages_used)*100)/Q(pages_total) : 0;
+      const int percent =
+          Q(pages_total) ? (Q(pages_used) * 100) / Q(pages_total) : 0;
       ndbout_c("Node %u: %s usage %s %d%s(%d %dK pages of total %d)", R,
-               (Q(block) == DBACC ? "Index" : (Q(block) == DBTUP ?"Data":"<unknown>")),
-               (Q(gth) > 0 ? "increased to" : "decreased to"),
-               percent, "%",
-               Q(pages_used), Q(page_size_kb)/1024, Q(pages_total));
+               (Q(block) == DBACC ? "Index"
+                                  : (Q(block) == DBTUP ? "Data" : "<unknown>")),
+               (Q(gth) > 0 ? "increased to" : "decreased to"), percent, "%",
+               Q(pages_used), Q(page_size_kb) / 1024, Q(pages_total));
       break;
     }
-    /** 
+    /**
      * default nothing to print
-     */ 
+     */
     default:
       break;
   }
@@ -1054,191 +1374,167 @@ struct event_thread_param {
 
 static int do_event_thread = 0;
 
-static void*
-event_thread_run(void* p)
-{
+static void *event_thread_run(void *p) {
   DBUG_ENTER("event_thread_run");
 
-  struct event_thread_param param= *(struct event_thread_param*)p;
-  NdbMgmHandle handle= *(param.m);
-  NdbMutex* printmutex= *(param.p);
+  struct event_thread_param param = *(struct event_thread_param *)p;
+  NdbMgmHandle handle = *(param.m);
+  NdbMutex *printmutex = *(param.p);
 
-  int filter[] = { 15, NDB_MGM_EVENT_CATEGORY_BACKUP,
-		   1, NDB_MGM_EVENT_CATEGORY_STARTUP,
-                   5, NDB_MGM_EVENT_CATEGORY_STATISTIC,
-		   0 };
+  int filter[] = {
+      15, NDB_MGM_EVENT_CATEGORY_BACKUP,    1, NDB_MGM_EVENT_CATEGORY_STARTUP,
+      5,  NDB_MGM_EVENT_CATEGORY_STATISTIC, 0};
 
-  NdbLogEventHandle log_handle= NULL;
+  NdbLogEventHandle log_handle = NULL;
   struct ndb_logevent log_event;
 
-  log_handle= ndb_mgm_create_logevent_handle(handle, filter);
-  if (log_handle) 
-  {
-    do_event_thread= 1;
+  log_handle = ndb_mgm_create_logevent_handle(handle, filter);
+  if (log_handle) {
+    do_event_thread = 1;
     do {
-      int res= ndb_logevent_get_next(log_handle, &log_event, 2000);
-      if (res > 0)
-      {
+      int res = ndb_logevent_get_next(log_handle, &log_event, 2000);
+      if (res > 0) {
         Guard g(printmutex);
         printLogEvent(&log_event);
-      }
-      else if (res < 0)
+      } else if (res < 0)
         break;
-    } while(do_event_thread);
+    } while (do_event_thread);
     ndb_mgm_destroy_logevent_handle(&log_handle);
-  }
-  else
-  {
-    do_event_thread= 0;
+  } else {
+    do_event_thread = 0;
   }
 
   DBUG_RETURN(NULL);
 }
 
-bool
-CommandInterpreter::connect(bool interactive)
-{
+bool CommandInterpreter::connect(bool interactive) {
   DBUG_ENTER("CommandInterpreter::connect");
 
-  if(m_connected)
-    DBUG_RETURN(m_connected);
+  if (m_connected) DBUG_RETURN(m_connected);
 
   m_mgmsrv = ndb_mgm_create_handle();
-  if(m_mgmsrv == NULL) {
+  if (m_mgmsrv == NULL) {
     ndbout_c("Can't create handle to management server.");
     exit(-1);
   }
 
   if (interactive) {
     m_mgmsrv2 = ndb_mgm_create_handle();
-    if(m_mgmsrv2 == NULL) {
+    if (m_mgmsrv2 == NULL) {
       ndbout_c("Can't create 2:nd handle to management server.");
       /**
-       * Disconnect(), in class destructor calls ndb_mgm_destroy_handle only when
-       * m_event_thread & m_connected is set. So, ndb_mgm_destroy_handle() has to be called
-       * on failures before setting m_event_thread & m_connected.
+       * Disconnect(), in class destructor calls ndb_mgm_destroy_handle only
+       * when m_event_thread & m_connected is set. So, ndb_mgm_destroy_handle()
+       * has to be called on failures before setting m_event_thread &
+       * m_connected.
        */
       ndb_mgm_destroy_handle(&m_mgmsrv);
       exit(-1);
     }
   }
 
-  if (ndb_mgm_set_connectstring(m_mgmsrv, m_constr))
-  {
+  if (ndb_mgm_set_connectstring(m_mgmsrv, m_constr)) {
     printError();
     ndb_mgm_destroy_handle(&m_mgmsrv);
-    if(interactive)
-    {
+    if (interactive) {
       ndb_mgm_destroy_handle(&m_mgmsrv2);
     }
     exit(-1);
   }
 
-  if(ndb_mgm_connect(m_mgmsrv, m_try_reconnect-1, m_connect_retry_delay, 1))
-  {
+  if (ndb_mgm_connect(m_mgmsrv, m_try_reconnect - 1, m_connect_retry_delay,
+                      1)) {
     ndb_mgm_destroy_handle(&m_mgmsrv);
-    if(interactive)
-    {
+    if (interactive) {
       ndb_mgm_destroy_handle(&m_mgmsrv2);
     }
-    DBUG_RETURN(m_connected); // couldn't connect, always false
+    DBUG_RETURN(m_connected);  // couldn't connect, always false
   }
 
-
-  const char *host= ndb_mgm_get_connected_host(m_mgmsrv);
-  unsigned port= ndb_mgm_get_connected_port(m_mgmsrv);
+  const char *host = ndb_mgm_get_connected_host(m_mgmsrv);
+  unsigned port = ndb_mgm_get_connected_port(m_mgmsrv);
   if (interactive) {
     BaseString constr;
-    constr.assfmt("%s %d",host,port);
-    if(!ndb_mgm_set_connectstring(m_mgmsrv2, constr.c_str()) &&
-       !ndb_mgm_connect(m_mgmsrv2, m_try_reconnect-1, m_connect_retry_delay, 1))
-    {
-      DBUG_PRINT("info",("2:ndb connected to Management Server ok at: %s:%d",
-                         host, port));
+    constr.assfmt("%s %d", host, port);
+    if (!ndb_mgm_set_connectstring(m_mgmsrv2, constr.c_str()) &&
+        !ndb_mgm_connect(m_mgmsrv2, m_try_reconnect - 1, m_connect_retry_delay,
+                         1)) {
+      DBUG_PRINT("info", ("2:ndb connected to Management Server ok at: %s:%d",
+                          host, port));
       assert(m_event_thread == NULL);
       assert(do_event_thread == 0);
-      do_event_thread= 0;
+      do_event_thread = 0;
       struct event_thread_param p;
-      p.m= &m_mgmsrv2;
-      p.p= &m_print_mutex;
-      m_event_thread = NdbThread_Create(event_thread_run,
-                                        (void**)&p,
-                                        0, // default stack size
+      p.m = &m_mgmsrv2;
+      p.p = &m_print_mutex;
+      m_event_thread = NdbThread_Create(event_thread_run, (void **)&p,
+                                        0,  // default stack size
                                         "CommandInterpreted_event_thread",
                                         NDB_THREAD_PRIO_LOW);
-      if (m_event_thread)
-      {
-        DBUG_PRINT("info",("Thread created ok, waiting for started..."));
-        int iter= 1000; // try for 30 seconds
-        while(do_event_thread == 0 &&
-              iter-- > 0)
-          NdbSleep_MilliSleep(30);
+      if (m_event_thread) {
+        DBUG_PRINT("info", ("Thread created ok, waiting for started..."));
+        int iter = 1000;  // try for 30 seconds
+        while (do_event_thread == 0 && iter-- > 0) NdbSleep_MilliSleep(30);
       }
-      if (m_event_thread == NULL ||
-          do_event_thread == 0 ||
-          do_event_thread == -1)
-      {
-        DBUG_PRINT("info",("Warning, event thread startup failed, "
-                           "degraded printouts as result, errno=%d",
-                           errno));
-        printf("Warning, event thread startup failed, "
-               "degraded printouts as result, errno=%d\n", errno);
-        do_event_thread= 0;
-        if (m_event_thread)
-        {
+      if (m_event_thread == NULL || do_event_thread == 0 ||
+          do_event_thread == -1) {
+        DBUG_PRINT("info", ("Warning, event thread startup failed, "
+                            "degraded printouts as result, errno=%d",
+                            errno));
+        printf(
+            "Warning, event thread startup failed, "
+            "degraded printouts as result, errno=%d\n",
+            errno);
+        do_event_thread = 0;
+        if (m_event_thread) {
           void *res;
           NdbThread_WaitFor(m_event_thread, &res);
           NdbThread_Destroy(&m_event_thread);
         }
         ndb_mgm_disconnect(m_mgmsrv2);
       }
-    }
-    else
-    {
-      DBUG_PRINT("warning",
-                 ("Could not do 2:nd connect to mgmtserver for event listening"));
-      DBUG_PRINT("info", ("code: %d, msg: %s",
-                          ndb_mgm_get_latest_error(m_mgmsrv2),
-                          ndb_mgm_get_latest_error_msg(m_mgmsrv2)));
+    } else {
+      DBUG_PRINT(
+          "warning",
+          ("Could not do 2:nd connect to mgmtserver for event listening"));
+      DBUG_PRINT("info",
+                 ("code: %d, msg: %s", ndb_mgm_get_latest_error(m_mgmsrv2),
+                  ndb_mgm_get_latest_error_msg(m_mgmsrv2)));
       printf("Warning, event connect failed, degraded printouts as result\n");
-      printf("code: %d, msg: %s\n",
-             ndb_mgm_get_latest_error(m_mgmsrv2),
+      printf("code: %d, msg: %s\n", ndb_mgm_get_latest_error(m_mgmsrv2),
              ndb_mgm_get_latest_error_msg(m_mgmsrv2));
     }
   }
-  m_connected= true;
+  m_connected = true;
 
   char buf[512];
-  const char *sockaddr_string = Ndb_combine_address_port(buf, sizeof(buf),
-                                                   host, port);
+  const char *sockaddr_string =
+      Ndb_combine_address_port(buf, sizeof(buf), host, port);
 
-    DBUG_PRINT("info",("Connected to Management Server at: %s", sockaddr_string));
+  DBUG_PRINT("info",
+             ("Connected to Management Server at: %s", sockaddr_string));
 
-  if (m_verbose)
-  {
-      printf("Connected to Management Server at: %s\n", sockaddr_string);
+  if (m_verbose) {
+    printf("Connected to Management Server at: %s\n", sockaddr_string);
   }
 
   DBUG_RETURN(m_connected);
 }
 
-void
-CommandInterpreter::disconnect(void)
-{
+void CommandInterpreter::disconnect(void) {
   DBUG_ENTER("CommandInterpreter::disconnect");
 
   if (m_event_thread) {
     void *res;
-    do_event_thread= 0;
+    do_event_thread = 0;
     NdbThread_WaitFor(m_event_thread, &res);
     NdbThread_Destroy(&m_event_thread);
-    m_event_thread= NULL;
+    m_event_thread = NULL;
     ndb_mgm_destroy_handle(&m_mgmsrv2);
   }
-  if (m_connected)
-  {
+  if (m_connected) {
     ndb_mgm_destroy_handle(&m_mgmsrv);
-    m_connected= false;
+    m_connected = false;
   }
   DBUG_VOID_RETURN;
 }
@@ -1246,53 +1542,38 @@ CommandInterpreter::disconnect(void)
 //*****************************************************************************
 //*****************************************************************************
 
-bool
-CommandInterpreter::execute(const char *_line, int try_reconnect,
-			    bool interactive, int *error)
-{
-  if (try_reconnect >= 0)
-    m_try_reconnect = try_reconnect;
-  bool result= execute_impl(_line, interactive);
-  if (error)
-    *error= m_error;
+bool CommandInterpreter::execute(const char *_line, int try_reconnect,
+                                 bool interactive, int *error) {
+  if (try_reconnect >= 0) m_try_reconnect = try_reconnect;
+  bool result = execute_impl(_line, interactive);
+  if (error) *error = m_error;
 
   return result;
 }
 
-static void
-invalid_command(const char *cmd, const char *msg=0)
-{
+static void invalid_command(const char *cmd, const char *msg = 0) {
   ndbout << "Invalid command: " << cmd << endl;
-  if(msg)
-      ndbout << msg << endl;
+  if (msg) ndbout << msg << endl;
   ndbout << "Type HELP for help." << endl << endl;
 }
-
 
 // Utility class for easier checking of args
 // given to the commands
 class ClusterInfo {
-  ndb_mgm_cluster_state* m_status;
+  ndb_mgm_cluster_state *m_status;
 
-public:
-  ClusterInfo() :
-    m_status(NULL) {}
+ public:
+  ClusterInfo() : m_status(NULL) {}
 
   ~ClusterInfo() {
-    if (m_status)
-      free(m_status);
+    if (m_status) free(m_status);
   }
 
   bool fetch(NdbMgmHandle handle, bool all_nodes = false) {
-
-    const ndb_mgm_node_type types[2] = {
-      NDB_MGM_NODE_TYPE_NDB,
-      NDB_MGM_NODE_TYPE_UNKNOWN
-    };
-    m_status = ndb_mgm_get_status2(handle,
-                                   !all_nodes ? types : 0);
-    if (m_status == NULL)
-    {
+    const ndb_mgm_node_type types[2] = {NDB_MGM_NODE_TYPE_NDB,
+                                        NDB_MGM_NODE_TYPE_UNKNOWN};
+    m_status = ndb_mgm_get_status2(handle, !all_nodes ? types : 0);
+    if (m_status == NULL) {
       ndbout_c("ERROR: couldn't fetch cluster status");
       return false;
     }
@@ -1301,8 +1582,7 @@ public:
 
   bool is_valid_ndb_nodeid(int nodeid) const {
     // Check valid NDB nodeid
-    if (nodeid < 1 || nodeid >= MAX_NDB_NODES)
-    {
+    if (nodeid < 1 || nodeid >= MAX_NDB_NODES) {
       ndbout_c("ERROR: illegal nodeid %d!", nodeid);
       return false;
     }
@@ -1310,33 +1590,24 @@ public:
   }
 
   bool is_ndb_node(int nodeid) const {
-
-    if (!is_valid_ndb_nodeid(nodeid))
-      return false;
+    if (!is_valid_ndb_nodeid(nodeid)) return false;
 
     bool found = false;
-    for (int i = 0; i < m_status->no_of_nodes; i++)
-    {
+    for (int i = 0; i < m_status->no_of_nodes; i++) {
       if (m_status->node_states[i].node_id == nodeid &&
-          m_status->node_states[i].node_type == NDB_MGM_NODE_TYPE_NDB)
-      {
+          m_status->node_states[i].node_type == NDB_MGM_NODE_TYPE_NDB) {
         found = true;
         break;
       }
     }
 
-    if (!found)
-      ndbout_c("ERROR: node %d is not a NDB node!", nodeid);
+    if (!found) ndbout_c("ERROR: node %d is not a NDB node!", nodeid);
 
     return found;
   }
 };
 
-
-
-static void
-split_args(const char* line, Vector<BaseString>& args)
-{
+static void split_args(const char *line, Vector<BaseString> &args) {
   // Split the command line on space
   BaseString tmp(line);
   tmp.split(args);
@@ -1345,14 +1616,11 @@ split_args(const char* line, Vector<BaseString>& args)
   // spaces in the command line
   // ie. "hello<space><space>world" becomes ("hello, "", "world")
   //
-  for (unsigned i= 0; i < args.size(); i++)
-    if (args[i].length() == 0)
-      args.erase(i--);
+  for (unsigned i = 0; i < args.size(); i++)
+    if (args[i].length() == 0) args.erase(i--);
 }
 
-static void
-split_args_with_quotes(const char* line, Vector<BaseString>& args)
-{
+static void split_args_with_quotes(const char *line, Vector<BaseString> &args) {
   // Split the command line on space
   BaseString tmp(line);
   tmp.splitWithQuotedStrings(args);
@@ -1361,52 +1629,43 @@ split_args_with_quotes(const char* line, Vector<BaseString>& args)
   // spaces in the command line
   // ie. "hello<space><space>world" becomes ("hello, "", "world")
   //
-  for (unsigned i= 0; i < args.size(); i++)
-    if (args[i].length() == 0)
-      args.erase(i--);
+  for (unsigned i = 0; i < args.size(); i++)
+    if (args[i].length() == 0) args.erase(i--);
 }
 
-
-bool
-CommandInterpreter::execute_impl(const char *_line, bool interactive)
-{
+bool CommandInterpreter::execute_impl(const char *_line, bool interactive) {
   DBUG_ENTER("CommandInterpreter::execute_impl");
-  DBUG_PRINT("enter",("line='%s'", _line));
-  m_error= 0;
+  DBUG_PRINT("enter", ("line='%s'", _line));
+  m_error = 0;
 
-  if(_line == NULL)
-  {
+  if (_line == NULL) {
     // Pressing Ctrl-C on some platforms will cause 'readline' to
-    // to return NULL, handle it as graceful exit of ndb_mgm 
+    // to return NULL, handle it as graceful exit of ndb_mgm
     m_error = -1;
-    DBUG_RETURN(false); // Terminate gracefully
+    DBUG_RETURN(false);  // Terminate gracefully
   }
 
-  char* line = strdup(_line);
-  if (line == NULL)
-  {
+  char *line = strdup(_line);
+  if (line == NULL) {
     ndbout_c("ERROR: Memory allocation error at %s:%d.", __FILE__, __LINE__);
     m_error = -1;
-    DBUG_RETURN(false); // Terminate gracefully
+    DBUG_RETURN(false);  // Terminate gracefully
   }
   NdbAutoPtr<char> ap(line);
 
   int do_continue;
   do {
-    do_continue= 0;
-    BaseString::trim(line," \t");
-    if (line[0] == 0 ||
-	line[0] == '#')
-    {
+    do_continue = 0;
+    BaseString::trim(line, " \t");
+    if (line[0] == 0 || line[0] == '#') {
       DBUG_RETURN(true);
     }
     // for mysql client compatibility remove trailing ';'
     {
-      unsigned last= (unsigned)(strlen(line)-1);
-      if (line[last] == ';')
-      {
-	line[last]= 0;
-	do_continue= 1;
+      unsigned last = (unsigned)(strlen(line) - 1);
+      if (line[last] == ';') {
+        line[last] = 0;
+        do_continue = 1;
       }
     }
   } while (do_continue);
@@ -1415,37 +1674,32 @@ CommandInterpreter::execute_impl(const char *_line, bool interactive)
   Vector<BaseString> command_list;
   split_args(line, command_list);
 
-  char* firstToken = strtok(line, " ");
-  char* allAfterFirstToken = strtok(NULL, "");
+  char *firstToken = strtok(line, " ");
+  char *allAfterFirstToken = strtok(NULL, "");
 
   if (native_strcasecmp(firstToken, "HELP") == 0 ||
       native_strcasecmp(firstToken, "?") == 0) {
     m_error = executeHelp(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if (native_strcasecmp(firstToken, "CONNECT") == 0) {
+  } else if (native_strcasecmp(firstToken, "CONNECT") == 0) {
     m_error = executeConnect(allAfterFirstToken, interactive);
     DBUG_RETURN(true);
-  }
-  else if (native_strcasecmp(firstToken, "SLEEP") == 0) {
-    if (allAfterFirstToken)
-      NdbSleep_SecSleep(atoi(allAfterFirstToken));
+  } else if (native_strcasecmp(firstToken, "SLEEP") == 0) {
+    if (allAfterFirstToken) NdbSleep_SecSleep(atoi(allAfterFirstToken));
     DBUG_RETURN(true);
-  }
-  else if((native_strcasecmp(firstToken, "QUIT") == 0 ||
-	  native_strcasecmp(firstToken, "EXIT") == 0 ||
-	  native_strcasecmp(firstToken, "BYE") == 0) && 
-	  allAfterFirstToken == NULL){
+  } else if ((native_strcasecmp(firstToken, "QUIT") == 0 ||
+              native_strcasecmp(firstToken, "EXIT") == 0 ||
+              native_strcasecmp(firstToken, "BYE") == 0) &&
+             allAfterFirstToken == NULL) {
     DBUG_RETURN(false);
   }
 
-  if (!connect(interactive)){
+  if (!connect(interactive)) {
     m_error = -1;
     DBUG_RETURN(true);
   }
 
-  if (ndb_mgm_check_connection(m_mgmsrv))
-  {
+  if (ndb_mgm_check_connection(m_mgmsrv)) {
     disconnect();
     connect(interactive);
   }
@@ -1453,67 +1707,57 @@ CommandInterpreter::execute_impl(const char *_line, bool interactive)
     Guard g(m_print_mutex);
     m_error = executeShow(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if (native_strcasecmp(firstToken, "SHUTDOWN") == 0) {
-    m_error= executeShutdown(allAfterFirstToken);
+  } else if (native_strcasecmp(firstToken, "SHUTDOWN") == 0) {
+    m_error = executeShutdown(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if (native_strcasecmp(firstToken, "CLUSTERLOG") == 0){
+  } else if (native_strcasecmp(firstToken, "CLUSTERLOG") == 0) {
     executeClusterLog(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if(native_strcasecmp(firstToken, "START") == 0 &&
-	  allAfterFirstToken != NULL &&
-	  native_strncasecmp(allAfterFirstToken, "BACKUP", sizeof("BACKUP") - 1) == 0){
+  } else if (native_strcasecmp(firstToken, "START") == 0 &&
+             allAfterFirstToken != NULL &&
+             native_strncasecmp(allAfterFirstToken, "BACKUP",
+                                sizeof("BACKUP") - 1) == 0) {
     // password length should be less than sizeof(line_buffer)
     static_assert(MAX_BACKUP_ENCRYPTION_PASSWORD_LENGTH < 512);
-    m_error= executeStartBackup(allAfterFirstToken, interactive);
+    m_error = executeStartBackup(allAfterFirstToken, interactive);
     DBUG_RETURN(true);
-  }
-  else if(native_strcasecmp(firstToken, "ABORT") == 0 &&
-	  allAfterFirstToken != NULL &&
-	  native_strncasecmp(allAfterFirstToken, "BACKUP", sizeof("BACKUP") - 1) == 0){
+  } else if (native_strcasecmp(firstToken, "ABORT") == 0 &&
+             allAfterFirstToken != NULL &&
+             native_strncasecmp(allAfterFirstToken, "BACKUP",
+                                sizeof("BACKUP") - 1) == 0) {
     m_error = executeAbortBackup(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if (native_strcasecmp(firstToken, "PURGE") == 0) {
+  } else if (native_strcasecmp(firstToken, "PURGE") == 0) {
     m_error = executePurge(allAfterFirstToken);
     DBUG_RETURN(true);
-  }                
-  else if(native_strcasecmp(firstToken, "ENTER") == 0 &&
-	  allAfterFirstToken != NULL &&
-	  allAfterFirstToken != NULL &&
-	  native_strncasecmp(allAfterFirstToken, "SINGLE USER MODE ", 
-		  sizeof("SINGLE USER MODE") - 1) == 0){
+  } else if (native_strcasecmp(firstToken, "ENTER") == 0 &&
+             allAfterFirstToken != NULL && allAfterFirstToken != NULL &&
+             native_strncasecmp(allAfterFirstToken, "SINGLE USER MODE ",
+                                sizeof("SINGLE USER MODE") - 1) == 0) {
     m_error = executeEnterSingleUser(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if(native_strcasecmp(firstToken, "EXIT") == 0 &&
-	  allAfterFirstToken != NULL &&
-	  native_strncasecmp(allAfterFirstToken, "SINGLE USER MODE ", 
-		  sizeof("SINGLE USER MODE") - 1) == 0){
+  } else if (native_strcasecmp(firstToken, "EXIT") == 0 &&
+             allAfterFirstToken != NULL &&
+             native_strncasecmp(allAfterFirstToken, "SINGLE USER MODE ",
+                                sizeof("SINGLE USER MODE") - 1) == 0) {
     m_error = executeExitSingleUser(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if(native_strcasecmp(firstToken, "CREATE") == 0 &&
-	  allAfterFirstToken != NULL &&
-	  native_strncasecmp(allAfterFirstToken, "NODEGROUP",
-                      sizeof("NODEGROUP") - 1) == 0){
+  } else if (native_strcasecmp(firstToken, "CREATE") == 0 &&
+             allAfterFirstToken != NULL &&
+             native_strncasecmp(allAfterFirstToken, "NODEGROUP",
+                                sizeof("NODEGROUP") - 1) == 0) {
     m_error = executeCreateNodeGroup(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if(native_strcasecmp(firstToken, "DROP") == 0 &&
-	  allAfterFirstToken != NULL &&
-	  native_strncasecmp(allAfterFirstToken, "NODEGROUP",
-                      sizeof("NODEGROUP") - 1) == 0){
+  } else if (native_strcasecmp(firstToken, "DROP") == 0 &&
+             allAfterFirstToken != NULL &&
+             native_strncasecmp(allAfterFirstToken, "NODEGROUP",
+                                sizeof("NODEGROUP") - 1) == 0) {
     m_error = executeDropNodeGroup(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if (native_strcasecmp(firstToken, "PROMPT") == 0) {
+  } else if (native_strcasecmp(firstToken, "PROMPT") == 0) {
     m_error = executePrompt(allAfterFirstToken);
     DBUG_RETURN(true);
-  }
-  else if (native_strcasecmp(firstToken, "ALL") == 0) {
+  } else if (native_strcasecmp(firstToken, "ALL") == 0) {
     m_error = analyseAfterFirstToken(-1, allAfterFirstToken);
   } else {
     /**
@@ -1521,38 +1765,33 @@ CommandInterpreter::execute_impl(const char *_line, bool interactive)
      */
     int node_ids[MAX_NODES];
     unsigned pos;
-    for (pos= 0; pos < command_list.size(); pos++)
-    {
+    for (pos = 0; pos < command_list.size(); pos++) {
       int node_id;
-      if (convert(command_list[pos].c_str(), node_id))
-      {
+      if (convert(command_list[pos].c_str(), node_id)) {
         if (node_id <= 0 || node_id > MAX_NODES) {
-          ndbout << "Invalid node ID: " << command_list[pos].c_str()
-                 << "." << endl;
+          ndbout << "Invalid node ID: " << command_list[pos].c_str() << "."
+                 << endl;
           DBUG_RETURN(true);
         }
-        node_ids[pos]= node_id;
+        node_ids[pos] = node_id;
         continue;
       }
       break;
     }
-    int no_of_nodes= pos;
-    if (no_of_nodes == 0)
-    {
+    int no_of_nodes = pos;
+    if (no_of_nodes == 0) {
       /* No digit found */
       invalid_command(_line);
       m_error = -1;
       DBUG_RETURN(true);
     }
-    if (pos == command_list.size())
-    {
+    if (pos == command_list.size()) {
       /* No command found */
       invalid_command(_line);
       m_error = -1;
       DBUG_RETURN(true);
     }
-    if (no_of_nodes == 1)
-    {
+    if (no_of_nodes == 1) {
       m_error = analyseAfterFirstToken(node_ids[0], allAfterFirstToken);
       DBUG_RETURN(true);
     }
@@ -1562,31 +1801,31 @@ CommandInterpreter::execute_impl(const char *_line, bool interactive)
   DBUG_RETURN(true);
 }
 
-
 /**
  * List of commands used as second command argument
  */
 static const CommandInterpreter::CommandFunctionPair commands[] = {
-  { "START", &CommandInterpreter::executeStart }
-  ,{ "RESTART", &CommandInterpreter::executeRestart }
-  ,{ "STOP", &CommandInterpreter::executeStop }
-  ,{ "STATUS", &CommandInterpreter::executeStatus }
-  ,{ "LOGLEVEL", &CommandInterpreter::executeLogLevel }
-  ,{ "CLUSTERLOG", &CommandInterpreter::executeEventReporting }
-  ,{ "NODELOG", &CommandInterpreter::executeNodeLog }
+    {"START", &CommandInterpreter::executeStart},
+    {"RESTART", &CommandInterpreter::executeRestart},
+    {"STOP", &CommandInterpreter::executeStop},
+    {"STATUS", &CommandInterpreter::executeStatus},
+    {"LOGLEVEL", &CommandInterpreter::executeLogLevel},
+    {"CLUSTERLOG", &CommandInterpreter::executeEventReporting},
+    {"NODELOG", &CommandInterpreter::executeNodeLog}
 #ifdef ERROR_INSERT
-  ,{ "ERROR", &CommandInterpreter::executeError }
+    ,
+    {"ERROR", &CommandInterpreter::executeError}
 #endif
-  ,{ "LOG", &CommandInterpreter::executeLog }
-  ,{ "TESTON", &CommandInterpreter::executeTestOn }
-  ,{ "TESTOFF", &CommandInterpreter::executeTestOff }
-  ,{ "DUMP", &CommandInterpreter::executeDumpState }
-  ,{ "REPORT", &CommandInterpreter::executeReport }
+    ,
+    {"LOG", &CommandInterpreter::executeLog},
+    {"TESTON", &CommandInterpreter::executeTestOn},
+    {"TESTOFF", &CommandInterpreter::executeTestOff},
+    {"DUMP", &CommandInterpreter::executeDumpState},
+    {"REPORT", &CommandInterpreter::executeReport}
   ,{ "HOSTNAME", &CommandInterpreter::executeHostname }
   ,{ "ACTIVATE", &CommandInterpreter::executeActivate }
   ,{ "DEACTIVATE", &CommandInterpreter::executeDeactivate }
 };
-
 
 //*****************************************************************************
 //*****************************************************************************
@@ -2126,7 +2365,27 @@ CommandInterpreter::executeShow(char* parameters)
         return -1;
       case NDB_MGM_NODE_TYPE_MAX:
         break;                                  /* purify: deadcode */
-      }
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+allAfterFirstToken)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*allAfterFirstToken)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  }
     }
 
     // Create iterator for nodes in the config
@@ -2139,7 +2398,29 @@ CommandInterpreter::executeShow(char* parameters)
 
     ndbout << "Cluster Configuration" << endl
            << "---------------------" << endl;
-    print_nodes(state, it, "ndbd",     ndb_nodes, NDB_MGM_NODE_TYPE_NDB, master_id);
+    print_nodes(state, it, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"ndbd",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+secondToken
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*secondToken
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    ndb_nodes, NDB_MGM_NODE_TYPE_NDB, master_id);
     print_nodes(state, it, "ndb_mgmd", mgm_nodes, NDB_MGM_NODE_TYPE_MGM, 0);
     print_nodes(state, it, "mysqld",   api_nodes, NDB_MGM_NODE_TYPE_API, 0);
 
@@ -2163,7 +2444,7 @@ CommandInterpreter::executeConnect(char* parameters, bool interactive)
     basestring= new BaseString(parameters);
     m_constr= basestring->trim().c_str();
   }
-  if ( connect(interactive) == false ){
+  if ( connect(interactive) == false ) {
     return -1;
   }
   if (basestring != NULL)
@@ -2183,7 +2464,19 @@ CommandInterpreter::executeClusterLog(char* parameters)
   {
     ndbout_c("ERROR: Missing argument(s).");
     m_error = -1;
-    DBUG_VOID_RETURN;
+    DBUG_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+VOID_RETURN;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pos,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+pos, int *node_ids,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   }
 
   enum ndb_mgm_event_severity severity = NDB_MGM_EVENT_SEVERITY_ALL;
@@ -2191,7 +2484,19 @@ CommandInterpreter::executeClusterLog(char* parameters)
   char * tmpString = strdup(parameters);
   if (tmpString == NULL)
   {
-    ndbout_c("ERROR: Memory allocation error at %s:%d.", __FILE__, __LINE__);
+    ndbout_c("ERROR: Memory allocation error at %s:%d.", 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+__FILE__,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+int *node_ids,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ __LINE__);
     m_error = -1;
     DBUG_VOID_RETURN;
   }
@@ -2242,7 +2547,7 @@ CommandInterpreter::executeClusterLog(char* parameters)
 	assert(false);
 	continue;
       }
-      if(enabled[i].value)
+      if (enabled[i].value)
 	ndbout << BaseString(str).ndb_toupper() << " ";
     }
     ndbout << endl;
@@ -2274,9 +2579,53 @@ CommandInterpreter::executeClusterLog(char* parameters)
   if (item == NULL) {
     res_enable=
       ndb_mgm_set_clusterlog_severity_filter(m_mgmsrv,
-					     NDB_MGM_EVENT_SEVERITY_ON,
-					     enable, NULL);
-    if (res_enable < 0)
+					  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  NDB_MGM_EVENT_SEVERITY_ON
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+allAfterLog
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*allAfterLog
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                                                  enable, NULL);
+    if (res_enable <
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+BaseString>&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BaseString>
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+blocks
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&blocks
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
     {
       ndbout << "Couldn't set filter" << endl;
       printError();
@@ -2288,8 +2637,28 @@ CommandInterpreter::executeClusterLog(char* parameters)
     DBUG_VOID_RETURN;
   }
 
-  do {
-    severity= NDB_MGM_ILLEGAL_EVENT_SEVERITY;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+do {
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+newAllAfterLog
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*newAllAfterLog
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   severity= NDB_MGM_ILLEGAL_EVENT_SEVERITY;
     if (native_strcasecmp(item, "ALL") == 0) {
       severity = NDB_MGM_EVENT_SEVERITY_ALL;	
     } else if (native_strcasecmp(item, "ALERT") == 0) {
@@ -2298,14 +2667,54 @@ CommandInterpreter::executeClusterLog(char* parameters)
       severity = NDB_MGM_EVENT_SEVERITY_CRITICAL;
     } else if (native_strcasecmp(item, "ERROR") == 0) {
       severity = NDB_MGM_EVENT_SEVERITY_ERROR;
-    } else if (native_strcasecmp(item, "WARNING") == 0) {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+firstTokenAfterLog
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*firstTokenAfterLog
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ } else if (native_strcasecmp(item, "WARNING") == 0) {
       severity = NDB_MGM_EVENT_SEVERITY_WARNING;
     } else if (native_strcasecmp(item, "INFO") == 0) {
       severity = NDB_MGM_EVENT_SEVERITY_INFO;
     } else if (native_strcasecmp(item, "DEBUG") == 0) {
       severity = NDB_MGM_EVENT_SEVERITY_DEBUG;
     } else if (native_strcasecmp(item, "OFF") == 0 ||
-	       native_strcasecmp(item, "ON") == 0) {
+	    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+allAfterFirstToken
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*allAfterFirstToken
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  native_strcasecmp(item, "ON") == 0) {
       if (enable < 0) // only makes sense with toggle
 	severity = NDB_MGM_EVENT_SEVERITY_ON;
     }
@@ -2315,7 +2724,27 @@ CommandInterpreter::executeClusterLog(char* parameters)
       DBUG_VOID_RETURN;
     }
 
-    res_enable= ndb_mgm_set_clusterlog_severity_filter(m_mgmsrv, severity,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+blockName
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*blockName
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ res_enable= ndb_mgm_set_clusterlog_severity_filter(m_mgmsrv, severity,
 						       enable, NULL);
     if (res_enable < 0)
     {
@@ -2336,8 +2765,7 @@ CommandInterpreter::executeClusterLog(char* parameters)
 //*****************************************************************************
 //*****************************************************************************
 
-int
-CommandInterpreter::executeStop(int processId, const char *parameters,
+int CommandInterpreter::executeStop(int processId, const char *parameters,
                                 bool all) 
 {
   Vector<BaseString> command_list;
@@ -2384,7 +2812,8 @@ CommandInterpreter::executeStop(Vector<BaseString> &command_list,
   if (no_of_nodes > 0)
   {
     /* Check that nodes to stop are not already deactivated */
-    ndb_mgm_configuration * conf = ndb_mgm_get_configuration(m_mgmsrv,0);
+    ndb_mgm_configuration * conf =
+          ndb_mgm_get_configuration(m_mgmsrv,0);
     if (conf == 0)
     {
       ndbout_c("Could not get configuration");
@@ -2415,7 +2844,28 @@ CommandInterpreter::executeStop(Vector<BaseString> &command_list,
       }
     }
   }
-  int result= ndb_mgm_stop4(m_mgmsrv, no_of_nodes, node_ids, abort,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+/*parameters*/)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/*parameters*/)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+int
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+=======
+{
+>>>>>>> MySQL 8.0.36
+ result= ndb_mgm_stop4(m_mgmsrv, no_of_nodes, node_ids, abort,
                             force, &need_disconnect);
   if (result < 0)
   {
@@ -2436,7 +2886,7 @@ CommandInterpreter::executeStop(Vector<BaseString> &command_list,
     }
   }
 
-  if(need_disconnect)
+  if (need_disconnect)
   {
     ndbout << "Disconnecting to allow Management Server to shutdown" << endl;
     disconnect();
@@ -2445,8 +2895,7 @@ CommandInterpreter::executeStop(Vector<BaseString> &command_list,
   return retval;
 }
 
-int
-CommandInterpreter::executeEnterSingleUser(char* parameters) 
+int CommandInterpreter::executeEnterSingleUser(char *parameters) 
 {
   strtok(parameters, " ");
   struct ndb_mgm_reply reply;
@@ -2482,14 +2931,33 @@ int CommandInterpreter::executeExitSingleUser(char* /*parameters*/)
   } else {
     ndbout_c("Exiting single user mode in progress.");
     ndbout_c("Use ALL STATUS or SHOW to see when single user mode has been exited.");
-    return 0;
+      return 0;
   }
 }
 
 bool
 CommandInterpreter::get_node_section(ConfigValues::Iterator & iter,
                                       int node_id,
-                                      Uint32 type)
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+master_id)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+master_id)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+{
+>>>>>>> MySQL 8.0.36
+                Uint32 type)
 {
   bool ret;
   Uint32 check_node_id = 0;
@@ -2505,38 +2973,267 @@ CommandInterpreter::get_node_section(ConfigValues::Iterator & iter,
   }
   if (check_node_id != (Uint32)node_id)
   {
-    ndbout_c("Node %d not found in configuration", node_id);
-    return false;
+    ndbout_c("Node 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%d
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0 ||
+>>>>>>> MySQL 8.0.36
+ not found in 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+configuration",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+||
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ node_id);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  return false;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0 ||
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   }
-  if (type == 0)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+||
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (type == 0)
   {
-    return true;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<<
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
   }
-  Uint32 check_type;
-  ret = iter.get(CFG_TYPE_OF_SECTION, &check_type);
+||||||| Common ancestor
+hostname;
+	}
+
+	char
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tmp[100];
+	ndbout
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   ndbout
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+check_type;
+  ret
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"  ("
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"\t@"
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+iter.get(CFG_TYPE_OF_SECTION,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ndbGetVersionString(node_state->version,
+           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+hostname;
+        }
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &check_type);
   require(ret);
-  if (check_type != type)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(check_type
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tmp[100];
+>>>>>>> MySQL 8.0.36
+ != type)
   {
-    iter.closeSection();
-    ndbout_c("Node %d found, but with wrong node type", node_id);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+iter.closeSection();
+||||||| Common ancestor
+=======
+ndbout
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ << "  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbout_c("Node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+("
+>>>>>>> MySQL 8.0.36
+ %d found, but with wrong node type", node_id);
     return false;
-  }
-  return true;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+<<
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ return true;
 }
 
 Uint32
-CommandInterpreter::count_active_nodes(ndb_mgm_configuration *conf,
-                                       ndb_mgm_node_type node_type)
+CommandInterpreter::count
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  node
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndbGetVersionString(node
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+active_nodes(ndb_mgm_configuration *conf
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+state->mysql_version
+// RONDB-624 todo: Glue these lines together ^v
+=======
+state->version
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ ndb_mgm_node_type node_type)
 {
-  Uint32 node_count = 0;
-  ConfigValues::Iterator iter(conf->m_config_values);
+  Uint32 node_count =
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+node_state->mysql_version,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ConfigValues::Iterator
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tmp,
+>>>>>>> MySQL 8.0.36
+ iter(conf->m_config_values);
   for (int i = 0; i < MAX_NODES; i++)
   {
     if (!iter.openSection(CFG_SECTION_NODE, i))
       continue;
     Uint32 check_type = Uint32(~0);
-    Uint32 is_active = 1;
-    require(iter.get(CFG_TYPE_OF_SECTION, &check_type));
+    Uint32 is_active 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+sizeof(tmp));
+>>>>>>> MySQL 8.0.36
+ 1;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+require(iter.get(CFG_TYPE_OF_SECTION,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  tmp,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&check_type));
+||||||| Common ancestor
+sizeof(tmp));
+	if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     iter.get(CFG_NODE_ACTIVE, &is_active);
     if ((ndb_mgm_node_type)check_type == node_type &&
         is_active)
@@ -2569,16 +3266,68 @@ CommandInterpreter::check_before_config_change(int processId,
 
   if (num_mgm_nodes_alive == 0)
   {
-    ndbout_c("At least one MGM server need to be alive to change the config");
+    ndbout_c("At least one MGM server need to be alive to change the config")
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     return false;
   }
-  return true;
+  return 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
 }
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  ndbout_c(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
 int
 CommandInterpreter::executeHostname(int processId,
-                                    const char* parameters,
-                                    bool all)
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ndbout_c("
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+user)", config_hostname);
+=======
+user)",
+>>>>>>> MySQL 8.0.36
+ const char* parameters,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      config_hostname);
+          } else          bool all)
 {
   if (all)
   {
@@ -2597,7 +3346,31 @@ CommandInterpreter::executeHostname(int processId,
   Vector<BaseString> command_list;
   if (!parameters)
   {
-    ndbout_c("Need a hostname parameter to this command");
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbout_c("Need
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+a
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+firstToken
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*firstToken
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ hostname parameter to this command");
     ndbout_c("<id> HOSTNAME hostname");
     return -1;
   }
@@ -2654,10 +3427,40 @@ CommandInterpreter::executeHostname(int processId,
     assert(ret);
     if (check_node_id == (Uint32)processId)
     {
-      iter.set(CFG_CONNECTION_HOSTNAME_1, new_hostname);
-    }
+      iter.set(CFG_CONNECTION_HOSTNAME_1, new_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+hostname);
+||||||| Common ancestor
+id;
+	break;
+=======
+id;
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  }
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    break;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     else
-    {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+
       ret = iter.get(CFG_CONNECTION_NODE_2, &check_node_id);
       assert(ret);
       if (check_node_id == (Uint32)processId)
@@ -2675,15 +3478,35 @@ CommandInterpreter::executeHostname(int processId,
     ndb_mgm_destroy_configuration(conf);
     return -1;
   }
-  ndbout_c("Configuration changed to reflect new hostname of node %d",
+    ndbout_c("Configuration changed to reflect new hostname of node %d",
            processId);
   ndbout_c("Now changing hostname in the cluster");
 
-  ret_code = ndb_mgm_set_hostname(m_mgmsrv, processId, new_hostname);
+  ret_code = ndb_mgm_set_hostname(m_mgmsrv, processId, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new_hostname);
   if (ret_code < 0)
   {
     ndbout_c("Failed to set hostname for node %d in the cluster",
-             processId);
+           
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  break;                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+processId);
+||||||| Common ancestor
+=======
+break;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     printError();
     return -1;
   }
@@ -2746,7 +3569,31 @@ CommandInterpreter::executeActivate(int processId,
   iter.closeSection();
 
   int ret_code = ndb_mgm_set_configuration(m_mgmsrv, conf);
-  if (ret_code != 0)
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ret_code
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+parameters)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*parameters)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0)
   {
     ndbout_c("Failed to change configuration");
     printError();
@@ -2790,15 +3637,58 @@ CommandInterpreter::wait_for_stop_report(int processId)
 bool
 CommandInterpreter::get_node_status(int processId,
                                     int &num_mgm_nodes_alive,
-                                    int &num_data_nodes_alive,
-                                    int &num_api_nodes_alive,
-                                    bool & is_node_up,
-                                    ndb_mgm_node_type & node_type)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+{
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                              int &num
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{{NDB_MGM
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  {NDB_MGM
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_data_nodes_alive,                                   int &num_api_nodes_alive,
+                                    bool & is_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node_up,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+filter(m_mgmsrv,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+filter(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                              ndb_mgm_node_type & node_type)
 {
   bool found = false;
   num_mgm_nodes_alive = 0;
   num_data_nodes_alive = 0;
-  num_api_nodes_alive = 0;
+  num_api_nodes_alive =
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+m_mgmsrv,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0;
   ndb_mgm_cluster_state2 *state = ndb_mgm_get_status3(m_mgmsrv, nullptr);
   if (state == NULL)
   {
@@ -2835,9 +3725,36 @@ CommandInterpreter::get_node_status(int processId,
       {
         is_node_up = false;
       }
-      else
-      {
-        is_node_up = true;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   else
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        is_node_up = true
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	assert(false);
+	continue
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  assert(false);
+        continue
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
       }
     }
   }
@@ -2859,8 +3776,7 @@ CommandInterpreter::stop_node(int processId)
   if (result < 0)
   {
     wait_for_stop_report(processId);
-    if (g_stop_state[processId] == StopState::StopAborted)
-    {
+    if (g_stop_state[processId] == StopState::StopAborted)   {
       ndbout_c("Node %d cannot be stopped/deactivated since it would stop the"
                " cluster",
                processId);
@@ -2878,8 +3794,56 @@ CommandInterpreter::stop_node(int processId)
   {
     wait_for_stop_report(processId);
   }
-  ndbout_c("Node %d was successfully stopped",
-           processId);
+  ndbout_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c("Node %d was
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+enable=
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+enable
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+successfully
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+stopped",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ndb_mgm_set_clusterlog_severity_filter(m_mgmsrv,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndb_mgm_set_clusterlog_severity_filter(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NDB_MGM_EVENT_SEVERITY_ON,
+					    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   m_mgmsrv, NDB_MGM_EVENT_SEVERITY_ON,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  processId);
   return 0;
 }
 
@@ -2955,7 +3919,19 @@ CommandInterpreter::executeDeactivate(int processId,
       ndbout_c("Deactivating node %d means no API nodes can connect"
                " to the cluster, this is allowed, so proceeding",
                processId);
-    }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+command_pos,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+command_pos, int *node_ids,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   }
   else if (node_count == 0)
   {
@@ -2963,27 +3939,49 @@ CommandInterpreter::executeDeactivate(int processId,
     iter.closeSection();
     return 0;
   }
-  else if (node_type == NDB_MGM_NODE_TYPE_MGM)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else if (node_type
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*node_ids,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ == NDB_MGM_NODE_TYPE_MGM)
   {
     int node_id = 0;
     int result = ndb_mgm_get_nodeid(m_mgmsrv, &node_id);
-    if (result < 0)
-    {
+    if (result < 0)   {
       printError();
       ndbout_c("Failed to get node id of connected MGM server");
       iter.closeSection();
       ndb_mgm_destroy_configuration(conf);
       return -1;
     }
-    if (node_id == processId)
-    {
+    if (node_id == processId) {
       ndbout_c("The MGM client is connected to the node you are trying to "
                "deactivate, this is not allowed.\nConnect to the other "
                "MGM server to perform the deactivation");
       iter.closeSection();
       ndb_mgm_destroy_configuration(conf);
-      return -1;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   return -1;
     }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+abort,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+abort, force,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   }
   iter.set(CFG_NODE_ACTIVE, Uint32(0));
   iter.closeSection();
@@ -2992,13 +3990,21 @@ CommandInterpreter::executeDeactivate(int processId,
   {
     if (node_type == NDB_MGM_NODE_TYPE_NDB)
     {
-      int result = stop_node(processId);
-      if (result < 0)
-      {
+      int 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+result
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+force,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ = stop_node(processId);
+      if (result < 0)     {
         return -1;
       }
-    }
-    else if (node_type == NDB_MGM_NODE_TYPE_MGM)
+    }   else if (node_type == NDB_MGM_NODE_TYPE_MGM)
     {
       ndbout_c("Node %d is a MGM server, need to deactivate it before "
                "stopping it\nsince otherwise the config change transaction"
@@ -3008,7 +4014,58 @@ CommandInterpreter::executeDeactivate(int processId,
     else
     {
       ndbout_c("Node %d is an API/mysqld node, we cannot stop it from here\n"
-               "we will proceeed with deactivation still",
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+retval;
+}
+
+int
+CommandInterpreter::executeEnterSingleUser(char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+retval;
+}
+
+int CommandInterpreter::executeEnterSingleUser(char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+parameters)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*parameters)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"we
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+will
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+id
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*id
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ proceeed with deactivation still",
                processId);
     }
   }
@@ -3052,12 +4109,11 @@ CommandInterpreter::executeDeactivate(int processId,
   return 0;
 }
 
-int CommandInterpreter::executeStart(int processId, const char* /*parameters*/,
-                                     bool all)
-{
+int CommandInterpreter::executeStart(int processId, const char * /*parameters*/,
+                                     bool all) {
   int result;
   int retval = 0;
-  if(all) {
+  if (all) {
     result = ndb_mgm_start(m_mgmsrv, 0, 0);
   } else {
     result = ndb_mgm_start(m_mgmsrv, 1, &processId);
@@ -3071,7 +4127,7 @@ int CommandInterpreter::executeStart(int processId, const char* /*parameters*/,
   }
   else
   {
-    if(all)
+    if (all)
       ndbout_c("RonDB is being started.");
     else
       ndbout_c("Database node %d is being started.", processId);
@@ -3079,35 +4135,28 @@ int CommandInterpreter::executeStart(int processId, const char* /*parameters*/,
   return retval;
 }
 
-int CommandInterpreter::executeStart(Vector<BaseString>& /*command_list*/,
-                                     unsigned /*command_pos*/, int* node_ids,
-                                     int no_of_nodes)
-{
+int CommandInterpreter::executeStart(Vector<BaseString> & /*command_list*/,
+                                     unsigned /*command_pos*/, int *node_ids,
+                                     int no_of_nodes) {
   int result;
-  result= ndb_mgm_start(m_mgmsrv, no_of_nodes, node_ids);
+  result = ndb_mgm_start(m_mgmsrv, no_of_nodes, node_ids);
 
   if (result <= 0) {
     ndbout_c("Start failed.");
     printError();
     return -1;
-  }
-  else
-  {
+  } else {
     ndbout << "Node";
-    for (int i= 0; i < no_of_nodes; i++)
-      ndbout << " " << node_ids[i];
+    for (int i = 0; i < no_of_nodes; i++) ndbout << " " << node_ids[i];
     ndbout_c(" is being started");
   }
   return 0;
 }
 
-int
-CommandInterpreter::executeRestart(int processId, const char* parameters,
-				   bool all)
-{
+int CommandInterpreter::executeRestart(int processId, const char *parameters,
+                                       bool all) {
   Vector<BaseString> command_list;
-  if (parameters)
-    split_args(parameters, command_list);
+  if (parameters) split_args(parameters, command_list);
 
   int retval;
   if (all)
@@ -3118,39 +4167,32 @@ CommandInterpreter::executeRestart(int processId, const char* parameters,
   return retval;
 }
 
-int
-CommandInterpreter::executeRestart(Vector<BaseString> &command_list,
-                                   unsigned command_pos,
-                                   int *node_ids, int no_of_nodes)
-{
+int CommandInterpreter::executeRestart(Vector<BaseString> &command_list,
+                                       unsigned command_pos, int *node_ids,
+                                       int no_of_nodes) {
   int result;
   int retval = 0;
-  int nostart= 0;
-  int initialstart= 0;
-  int abort= 0;
-  int need_disconnect= 0;
+  int nostart = 0;
+  int initialstart = 0;
+  int abort = 0;
+  int need_disconnect = 0;
   int force = 0;
 
-  for (; command_pos < command_list.size(); command_pos++)
-  {
-    const char *item= command_list[command_pos].c_str();
-    if (native_strcasecmp(item, "-N") == 0)
-    {
-      nostart= 1;
+  for (; command_pos < command_list.size(); command_pos++) {
+    const char *item = command_list[command_pos].c_str();
+    if (native_strcasecmp(item, "-N") == 0) {
+      nostart = 1;
       continue;
     }
-    if (native_strcasecmp(item, "-I") == 0)
-    {
-      initialstart= 1;
+    if (native_strcasecmp(item, "-I") == 0) {
+      initialstart = 1;
       continue;
     }
-    if (native_strcasecmp(item, "-A") == 0)
-    {
-      abort= 1;
+    if (native_strcasecmp(item, "-A") == 0) {
+      abort = 1;
       continue;
     }
-    if (native_strcasecmp(item, "-F") == 0)
-    {
+    if (native_strcasecmp(item, "-F") == 0) {
       force = 1;
       continue;
     }
@@ -3160,19 +4202,18 @@ CommandInterpreter::executeRestart(Vector<BaseString> &command_list,
   }
 
   struct ndb_mgm_cluster_state *cl = ndb_mgm_get_status(m_mgmsrv);
-  if(cl == NULL)
-  {
+  if (cl == NULL) {
     ndbout_c("Could not get status");
     printError();
     return -1;
   }
-  NdbAutoPtr<char> ap1((char*)cl);
+  NdbAutoPtr<char> ap1((char *)cl);
 
   // We allow 'all restart' in single user mode
-  if(node_ids != 0) {
-    for (int i = 0; i<cl->no_of_nodes; i++) {
-      if((cl->node_states+i)->node_status == NDB_MGM_NODE_STATUS_SINGLEUSER)
-      {
+  if (node_ids != 0) {
+    for (int i = 0; i < cl->no_of_nodes; i++) {
+      if ((cl->node_states + i)->node_status ==
+          NDB_MGM_NODE_STATUS_SINGLEUSER) {
         ndbout_c("Cannot restart nodes: single user mode");
         return -1;
       }
@@ -3184,47 +4225,38 @@ CommandInterpreter::executeRestart(Vector<BaseString> &command_list,
     ndbout_c("Starting shutdown. This may take a while. Please wait...");
   }
 
-  for (int i= 0; i < no_of_nodes; i++)
-  {
+  for (int i = 0; i < no_of_nodes; i++) {
     int j = 0;
-    while((j < cl->no_of_nodes) && cl->node_states[j].node_id != node_ids[i])
+    while ((j < cl->no_of_nodes) && cl->node_states[j].node_id != node_ids[i])
       j++;
 
-    if(cl->node_states[j].node_id != node_ids[i])
-    {
+    if (cl->node_states[j].node_id != node_ids[i]) {
       ndbout << node_ids[i] << ": Node not found" << endl;
       return -1;
     }
 
-    if(cl->node_states[j].node_type == NDB_MGM_NODE_TYPE_MGM)
-    {
+    if (cl->node_states[j].node_type == NDB_MGM_NODE_TYPE_MGM) {
       ndbout << "Shutting down MGM node"
-	     << " " << node_ids[i] << " for restart" << endl;
+             << " " << node_ids[i] << " for restart" << endl;
     }
   }
 
-  result= ndb_mgm_restart4(m_mgmsrv, no_of_nodes, node_ids,
-                           initialstart, nostart, abort, force,
-                           &need_disconnect);
+  result = ndb_mgm_restart4(m_mgmsrv, no_of_nodes, node_ids, initialstart,
+                            nostart, abort, force, &need_disconnect);
 
   if (result <= 0) {
     ndbout_c("Restart failed.");
     printError();
     retval = -1;
-  }
-  else
-  {
+  } else {
     if (node_ids == 0)
       ndbout_c("All DB nodes are being restarted.");
-    else
-    {
+    else {
       ndbout << "Node";
-      for (int i= 0; i < no_of_nodes; i++)
-        ndbout << " " << node_ids[i];
+      for (int i = 0; i < no_of_nodes; i++) ndbout << " " << node_ids[i];
       ndbout_c(" is being restarted");
     }
-    if(need_disconnect)
-      disconnect();
+    if (need_disconnect) disconnect();
   }
   return retval;
 }
@@ -3232,16 +4264,11 @@ CommandInterpreter::executeRestart(Vector<BaseString> &command_list,
 /**
  * print status of one node
  */
-static
-void
-print_status(const ndb_mgm_node_state * state)
-{
+static void print_status(const ndb_mgm_node_state *state) {
   Uint32 version = state->version;
-  if (state->node_type != NDB_MGM_NODE_TYPE_NDB)
-  {
-    if (version != 0)
-    {
-      ndbout << "Node " << state->node_id <<": connected" ;
+  if (state->node_type != NDB_MGM_NODE_TYPE_NDB) {
+    if (version != 0) {
+      ndbout << "Node " << state->node_id << ": connected";
       if (getMinor(version) == 0 || (getMinor(version) >= 10))
       {
         ndbout_c(" (RonDB Version %d.%d.%d)",
@@ -3251,81 +4278,62 @@ print_status(const ndb_mgm_node_state * state)
       }
       else
       {
-        ndbout_c(" (RonDB Version %d.0%d.%d)",
-                 getMajor(version) ,
-                 getMinor(version),
+        ndbout_c(" (RonDB Version %d.0%d.%d)",   getMajor(version),   getMinor(version),
                  getBuild(version));
       }
       
-    }
-    else
-    {
+    } else {
       ndbout << "Node " << state->node_id << ": not connected" << endl;
     }
     return;
   }
-  
-  ndbout << "Node " << state->node_id 
-         << ": " << status_string(state->node_status);
-  switch(state->node_status){
-  case NDB_MGM_NODE_STATUS_STARTING:
-    ndbout << " (Last completed phase " << state->start_phase << ")";
-    break;
-  case NDB_MGM_NODE_STATUS_SHUTTING_DOWN:
-    ndbout << " (Last completed phase " << state->start_phase << ")";
-    break;
-  default:
-    break;
+
+  ndbout << "Node " << state->node_id << ": "
+         << status_string(state->node_status);
+  switch (state->node_status) {
+    case NDB_MGM_NODE_STATUS_STARTING:
+      ndbout << " (Last completed phase " << state->start_phase << ")";
+      break;
+    case NDB_MGM_NODE_STATUS_SHUTTING_DOWN:
+      ndbout << " (Last completed phase " << state->start_phase << ")";
+      break;
+    default:
+      break;
   }
 
-  if(state->node_status != NDB_MGM_NODE_STATUS_NO_CONTACT)
-  {
+  if (state->node_status != NDB_MGM_NODE_STATUS_NO_CONTACT) {
     char tmp[100];
-    ndbout_c(" (%s)", ndbGetVersionString(version, 
-                                          state->mysql_version, 0, 
-					  tmp, sizeof(tmp))); 
-  }
-  else
-  {
+    ndbout_c(" (%s)", ndbGetVersionString(version, state->mysql_version, 0, tmp,
+                                          sizeof(tmp)));
+  } else {
     ndbout << endl;
   }
 }
 
-int
-CommandInterpreter::executeStatus(int processId, 
-				  const char* parameters, bool all) 
-{
-  if (! emptyString(parameters)) {
+int CommandInterpreter::executeStatus(int processId, const char *parameters,
+                                      bool all) {
+  if (!emptyString(parameters)) {
     ndbout_c("No parameters expected to this command.");
     return -1;
   }
 
-  ndb_mgm_node_type types[2] = {
-    NDB_MGM_NODE_TYPE_NDB,
-    NDB_MGM_NODE_TYPE_UNKNOWN
-  };
+  ndb_mgm_node_type types[2] = {NDB_MGM_NODE_TYPE_NDB,
+                                NDB_MGM_NODE_TYPE_UNKNOWN};
   struct ndb_mgm_cluster_state *cl;
   cl = ndb_mgm_get_status2(m_mgmsrv, all ? types : 0);
-  if(cl == NULL) 
-  {
+  if (cl == NULL) {
     ndbout_c("Can't get status of node %d.", processId);
     printError();
     return -1;
   }
-  NdbAutoPtr<char> ap1((char*)cl);
+  NdbAutoPtr<char> ap1((char *)cl);
 
-  if (all)
-  {
-    for (int i = 0; i<cl->no_of_nodes; i++)
-      print_status(cl->node_states+i);
+  if (all) {
+    for (int i = 0; i < cl->no_of_nodes; i++) print_status(cl->node_states + i);
     return 0;
-  }
-  else
-  {
-    for (int i = 0; i<cl->no_of_nodes; i++)
-    {
-      if (cl->node_states[i].node_id == processId)
-      {
+  } else {
+    for (int i = 0; i < cl->no_of_nodes; i++) {
+      if (cl->node_states[i].node_id == processId) {
         print_status(cl->node_states + i);
         return 0;
       }
@@ -3334,39 +4342,35 @@ CommandInterpreter::executeStatus(int processId,
     return -1;
   }
   return 0;
-} //
+}  //
 
-int CommandInterpreter::executeDumpState(int processId, const char* parameters,
-                                         bool /*all*/)
-{
-  if(emptyString(parameters))
-  {
+int CommandInterpreter::executeDumpState(int processId, const char *parameters,
+                                         bool /*all*/) {
+  if (emptyString(parameters)) {
     ndbout_c("ERROR: Expected argument!");
     return -1;
   }
 
   int params[25];
   int num_params = 0;
-  const size_t max_params = sizeof(params)/sizeof(params[0]);
+  const size_t max_params = sizeof(params) / sizeof(params[0]);
 
   Vector<BaseString> args;
   split_args(parameters, args);
 
-  if (args.size() > max_params)
-  {
+  if (args.size() > max_params) {
     ndbout_c("ERROR: Too many arguments, max %d allowed", (int)max_params);
     return -1;
   }
 
-  for (unsigned i = 0; i < args.size(); i++)
-  {
-    const char* arg = args[i].c_str();
+  for (unsigned i = 0; i < args.size(); i++) {
+    const char *arg = args[i].c_str();
 
-    if (my_strtoll(arg, NULL, 0) < 0 ||
-        my_strtoll(arg, NULL, 0) > 0xffffffff)
-    {
-      ndbout_c("ERROR: Illegal value '%s' in argument to signal.\n"
-               "(Value must be between 0 and 0xffffffff.)", arg);
+    if (my_strtoll(arg, NULL, 0) < 0 || my_strtoll(arg, NULL, 0) > 0xffffffff) {
+      ndbout_c(
+          "ERROR: Illegal value '%s' in argument to signal.\n"
+          "(Value must be between 0 and 0xffffffff.)",
+          arg);
       return -1;
     }
     assert(num_params < (int)max_params);
@@ -3375,10 +4379,9 @@ int CommandInterpreter::executeDumpState(int processId, const char* parameters,
   }
 
   ndbout << "Sending dump signal with data:" << endl;
-  for (int i = 0; i < num_params; i++)
-  {
+  for (int i = 0; i < num_params; i++) {
     ndbout.setHexFormat(1) << params[i] << " ";
-    if (!((i+1) & 0x3)) ndbout << endl;
+    if (!((i + 1) & 0x3)) ndbout << endl;
   }
   ndbout << endl;
 
@@ -3386,10 +4389,8 @@ int CommandInterpreter::executeDumpState(int processId, const char* parameters,
   return ndb_mgm_dump_state(m_mgmsrv, processId, params, num_params, &reply);
 }
 
-static void
-report_memoryusage(const ndb_logevent& event)
-{
-  const ndb_logevent_MemoryUsage& usage = event.MemoryUsage;
+static void report_memoryusage(const ndb_logevent &event) {
+  const ndb_logevent_MemoryUsage &usage = event.MemoryUsage;
   const Uint32 block = usage.block;
   const Uint32 total = usage.pages_total;
   const Uint32 used = usage.pages_used;
@@ -3398,124 +4399,95 @@ report_memoryusage(const ndb_logevent& event)
   ndbout_c("Node %u: %s usage is %d%%(%d %dK pages of total %d)",
            event.source_nodeid,
            (block == DBACC ? "Index" : (block == DBTUP ? "Data" : "<unknown>")),
-           (total ? (used * 100 / total) : 0),
-           used,
-           usage.page_size_kb/1024,
+           (total ? (used * 100 / total) : 0), used, usage.page_size_kb / 1024,
            total);
 }
 
-
-static void
-report_backupstatus(const ndb_logevent& event)
-{
-  const ndb_logevent_BackupStatus& status = event.BackupStatus;
+static void report_backupstatus(const ndb_logevent &event) {
+  const ndb_logevent_BackupStatus &status = event.BackupStatus;
   assert(event.type == NDB_LE_BackupStatus);
 
-
   if (status.starting_node)
-    ndbout_c("Node %u: Local backup status: backup %u started from node %u\n"
-             " #Records: %llu #LogRecords: %llu\n"
-             " Data: %llu bytes Log: %llu bytes",
-             event.source_nodeid,
-             status.backup_id,
-             refToNode(status.starting_node),
-             make_uint64(status.n_records_lo, status.n_records_hi),
-             make_uint64(status.n_log_records_lo, status.n_log_records_hi),
-             make_uint64(status.n_bytes_lo, status.n_bytes_hi),
-             make_uint64(status.n_log_bytes_lo, status.n_log_bytes_hi));
+    ndbout_c(
+        "Node %u: Local backup status: backup %u started from node %u\n"
+        " #Records: %llu #LogRecords: %llu\n"
+        " Data: %llu bytes Log: %llu bytes",
+        event.source_nodeid, status.backup_id, refToNode(status.starting_node),
+        make_uint64(status.n_records_lo, status.n_records_hi),
+        make_uint64(status.n_log_records_lo, status.n_log_records_hi),
+        make_uint64(status.n_bytes_lo, status.n_bytes_hi),
+        make_uint64(status.n_log_bytes_lo, status.n_log_bytes_hi));
   else
-    ndbout_c("Node %u: Backup not started",
-             event.source_nodeid);
+    ndbout_c("Node %u: Backup not started", event.source_nodeid);
 }
 
-static
-void
-report_events(const ndb_logevent& event)
-{
+static void report_events(const ndb_logevent &event) {
   Uint32 threshold = 0;
   Logger::LoggerLevel severity = Logger::LL_WARNING;
-  LogLevel::EventCategory cat= LogLevel::llInvalid;
+  LogLevel::EventCategory cat = LogLevel::llInvalid;
   EventLogger::EventTextFunction textF;
 
-  const EventReport * real_event = (const EventReport*)event.SavedEvent.data;
+  const EventReport *real_event = (const EventReport *)event.SavedEvent.data;
   Uint32 type = real_event->getEventType();
 
-  if (EventLoggerBase::event_lookup(type,cat,threshold,severity,textF))
+  if (EventLoggerBase::event_lookup(type, cat, threshold, severity, textF))
     return;
 
   char out[1024];
   Uint32 pos = 0;
-  if (event.source_nodeid != 0)
-  {
+  if (event.source_nodeid != 0) {
     BaseString::snprintf(out, sizeof(out), "Node %u: ", event.source_nodeid);
-    pos= (Uint32)strlen(out);
+    pos = (Uint32)strlen(out);
   }
-  textF(out+pos, sizeof(out)-pos, event.SavedEvent.data, event.SavedEvent.len);
+  textF(out + pos, sizeof(out) - pos, event.SavedEvent.data,
+        event.SavedEvent.len);
 
   char timestamp_str[64];
-  Logger::format_timestamp(event.SavedEvent.time, timestamp_str, sizeof(timestamp_str));
+  Logger::format_timestamp(event.SavedEvent.time, timestamp_str,
+                           sizeof(timestamp_str));
 
   ndbout_c("%s %s", timestamp_str, out);
 }
 
-static int
-sort_log(const void *_a, const void *_b)
-{
-  const ndb_logevent * a = (const ndb_logevent*)_a;
-  const ndb_logevent * b = (const ndb_logevent*)_b;
+static int sort_log(const void *_a, const void *_b) {
+  const ndb_logevent *a = (const ndb_logevent *)_a;
+  const ndb_logevent *b = (const ndb_logevent *)_b;
 
-  if (a->source_nodeid == b->source_nodeid)
-  {
+  if (a->source_nodeid == b->source_nodeid) {
     return a->SavedEvent.seq - b->SavedEvent.seq;
   }
 
-  if (a->SavedEvent.time < b->SavedEvent.time)
-    return -1;
-  if (a->SavedEvent.time > b->SavedEvent.time)
-    return 1;
+  if (a->SavedEvent.time < b->SavedEvent.time) return -1;
+  if (a->SavedEvent.time > b->SavedEvent.time) return 1;
 
-  if (a->SavedEvent.seq < b->SavedEvent.seq)
-    return -1;
-  if (a->SavedEvent.seq > b->SavedEvent.seq)
-    return 1;
+  if (a->SavedEvent.seq < b->SavedEvent.seq) return -1;
+  if (a->SavedEvent.seq > b->SavedEvent.seq) return 1;
 
   return (a->source_nodeid - b->source_nodeid);
 }
 
-static const
-struct st_report_cmd {
+static const struct st_report_cmd {
   const char *name;
   const char *help;
   Ndb_logevent_type type;
-  void (*print_event_fn)(const ndb_logevent&);
-  int (* sort_fn)(const void *_a, const void *_b);
+  void (*print_event_fn)(const ndb_logevent &);
+  int (*sort_fn)(const void *_a, const void *_b);
 } report_cmds[] = {
 
-  { "BackupStatus",
-    "Report backup status of respective node",
-    NDB_LE_BackupStatus,
-    report_backupstatus, 0 },
+    {"BackupStatus", "Report backup status of respective node",
+     NDB_LE_BackupStatus, report_backupstatus, 0},
 
-  { "MemoryUsage",
-    "Report memory usage of respective node",
-    NDB_LE_MemoryUsage,
-    report_memoryusage, 0 },
+    {"MemoryUsage", "Report memory usage of respective node",
+     NDB_LE_MemoryUsage, report_memoryusage, 0},
 
-  { "EventLog",
-    "Report events in datanodes circular event log buffer",
-    NDB_LE_SavedEvent,
-    report_events, sort_log },
+    {"EventLog", "Report events in datanodes circular event log buffer",
+     NDB_LE_SavedEvent, report_events, sort_log},
 
-  { 0, 0, NDB_LE_ILLEGAL_TYPE, 0, 0 }
-};
+    {0, 0, NDB_LE_ILLEGAL_TYPE, 0, 0}};
 
-
-int
-CommandInterpreter::executeReport(int nodeid, const char* parameters,
-                                  bool all) 
-{
-  if (emptyString(parameters))
-  {
+int CommandInterpreter::executeReport(int nodeid, const char *parameters,
+                                      bool all) {
+  if (emptyString(parameters)) {
     ndbout_c("ERROR: missing report type specifier!");
     return -1;
   }
@@ -3523,53 +4495,44 @@ CommandInterpreter::executeReport(int nodeid, const char* parameters,
   Vector<BaseString> args;
   split_args(parameters, args);
 
-  const st_report_cmd* report_cmd = report_cmds;
-  for (; report_cmd->name; report_cmd++)
-  {
+  const st_report_cmd *report_cmd = report_cmds;
+  for (; report_cmd->name; report_cmd++) {
     if (native_strncasecmp(report_cmd->name, args[0].c_str(),
-                    args[0].length()) == 0)
+                           args[0].length()) == 0)
       break;
   }
 
-  if (!report_cmd->name)
-  {
+  if (!report_cmd->name) {
     ndbout_c("ERROR: '%s' - report type specifier unknown!", args[0].c_str());
     return -1;
   }
 
-  if (!all)
-  {
+  if (!all) {
     ClusterInfo info;
-    if (!info.fetch(m_mgmsrv))
-    {
+    if (!info.fetch(m_mgmsrv)) {
       printError();
       return -1;
     }
 
     // Check that given nodeid is a NDB node
-    if (!info.is_ndb_node(nodeid))
-      return -1;
+    if (!info.is_ndb_node(nodeid)) return -1;
   }
 
-  struct ndb_mgm_events* events =
-    ndb_mgm_dump_events(m_mgmsrv, report_cmd->type,
-                        all ? 0 : 1, &nodeid);
-  if (!events)
-  {
+  struct ndb_mgm_events *events =
+      ndb_mgm_dump_events(m_mgmsrv, report_cmd->type, all ? 0 : 1, &nodeid);
+  if (!events) {
     ndbout_c("ERROR: failed to fetch report!");
     printError();
     return -1;
   }
 
-  if (report_cmd->sort_fn)
-  {
-    qsort(events->events, events->no_of_events,
-          sizeof(events->events[0]), report_cmd->sort_fn);
+  if (report_cmd->sort_fn) {
+    qsort(events->events, events->no_of_events, sizeof(events->events[0]),
+          report_cmd->sort_fn);
   }
 
-  for (int i = 0; i < events->no_of_events; i++)
-  {
-    const ndb_logevent& event = events->events[i];
+  for (int i = 0; i < events->no_of_events; i++) {
+    const ndb_logevent &event = events->events[i];
     report_cmd->print_event_fn(event);
   }
 
@@ -3577,24 +4540,18 @@ CommandInterpreter::executeReport(int nodeid, const char* parameters,
   return 0;
 }
 
-
-static void
-helpTextReportFn()
-{
+static void helpTextReportFn() {
   ndbout_c("  <report-type> =");
-  const st_report_cmd* report_cmd = report_cmds;
+  const st_report_cmd *report_cmd = report_cmds;
   for (; report_cmd->name; report_cmd++)
     ndbout_c("    %s\t- %s", report_cmd->name, report_cmd->help);
 }
 
-static void 
-helpTextReportTypeOptionFn()
-{
+static void helpTextReportTypeOptionFn() {
   ndbout << "<report-type> = ";
-  const st_report_cmd* report_cmd = report_cmds;
-  for (; report_cmd->name; report_cmd++){
-    if (report_cmd != report_cmds)
-      ndbout << " | ";
+  const st_report_cmd *report_cmd = report_cmds;
+  for (; report_cmd->name; report_cmd++) {
+    if (report_cmd != report_cmds) ndbout << " | ";
     ndbout << BaseString(report_cmd->name).ndb_toupper().c_str();
   }
   ndbout << endl;
@@ -3603,65 +4560,59 @@ helpTextReportTypeOptionFn()
 //*****************************************************************************
 //*****************************************************************************
 
-int CommandInterpreter::executeLogLevel(int processId, const char* parameters,
-                                        bool /*all*/)
-{
+int CommandInterpreter::executeLogLevel(int processId, const char *parameters,
+                                        bool /*all*/) {
   if (emptyString(parameters)) {
     ndbout << "Expected argument" << endl;
     return -1;
-  } 
+  }
   BaseString tmp(parameters);
   Vector<BaseString> spec;
   tmp.split(spec, "=");
-  if(spec.size() != 2){
+  if (spec.size() != 2) {
     ndbout << "Invalid loglevel specification: " << parameters << endl;
     return -1;
   }
 
   spec[0].trim().ndb_toupper();
   int category = ndb_mgm_match_event_category(spec[0].c_str());
-  if(category == NDB_MGM_ILLEGAL_EVENT_CATEGORY){
+  if (category == NDB_MGM_ILLEGAL_EVENT_CATEGORY) {
     category = atoi(spec[0].c_str());
-    if(category < NDB_MGM_MIN_EVENT_CATEGORY ||
-       category > NDB_MGM_MAX_EVENT_CATEGORY){
+    if (category < NDB_MGM_MIN_EVENT_CATEGORY ||
+        category > NDB_MGM_MAX_EVENT_CATEGORY) {
       ndbout << "Unknown category: \"" << spec[0].c_str() << "\"" << endl;
       return -1;
     }
   }
-  
+
   int level = atoi(spec[1].c_str());
-  if(level < 0 || level > 15){
+  if (level < 0 || level > 15) {
     ndbout << "Invalid level: " << spec[1].c_str() << endl;
     return -1;
   }
-  
+
   ndbout << "Executing LOGLEVEL on node " << processId << flush;
 
   struct ndb_mgm_reply reply;
   int result;
-  result = ndb_mgm_set_loglevel_node(m_mgmsrv, 
-				     processId,
-				     (ndb_mgm_event_category)category,
-				     level, 
-				     &reply);
-  
+  result = ndb_mgm_set_loglevel_node(
+      m_mgmsrv, processId, (ndb_mgm_event_category)category, level, &reply);
+
   if (result < 0) {
     ndbout_c(" failed.");
     printError();
     return -1;
   } else {
     ndbout_c(" OK!");
-  }  
+  }
   return 0;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-int CommandInterpreter::executeError(int processId, 
-				      const char* parameters, bool /* all */) 
-{
-  if (emptyString(parameters))
-  {
+int CommandInterpreter::executeError(int processId, const char *parameters,
+                                     bool /* all */) {
+  if (emptyString(parameters)) {
     ndbout_c("ERROR: Missing error number.");
     return -1;
   }
@@ -3669,14 +4620,13 @@ int CommandInterpreter::executeError(int processId,
   Vector<BaseString> args;
   split_args(parameters, args);
 
-  if (args.size() >= 2)
-  {
+  if (args.size() >= 2) {
     ndbout << "ERROR: Too many arguments." << endl;
     return -1;
   }
 
   int errorNo;
-  if (! convert(args[0].c_str(), errorNo)) {
+  if (!convert(args[0].c_str(), errorNo)) {
     ndbout << "ERROR: Expected an integer." << endl;
     return -1;
   }
@@ -3687,24 +4637,21 @@ int CommandInterpreter::executeError(int processId,
 //*****************************************************************************
 //*****************************************************************************
 
-int CommandInterpreter::executeLog(int processId, const char* parameters,
-                                   bool /*all*/)
-{
+int CommandInterpreter::executeLog(int processId, const char *parameters,
+                                   bool /*all*/) {
   struct ndb_mgm_reply reply;
   Vector<BaseString> blocks;
-  if (! parseBlockSpecification(parameters, blocks)) {
+  if (!parseBlockSpecification(parameters, blocks)) {
     return -1;
   }
 
   BaseString block_names;
-  for (unsigned i = 0; i<blocks.size(); i++)
+  for (unsigned i = 0; i < blocks.size(); i++)
     block_names.appfmt("%s|", blocks[i].c_str());
 
-  int result = ndb_mgm_log_signals(m_mgmsrv,
-				   processId, 
-				   NDB_MGM_SIGNAL_LOG_MODE_INOUT, 
-				   block_names.c_str(),
-				   &reply);
+  int result =
+      ndb_mgm_log_signals(m_mgmsrv, processId, NDB_MGM_SIGNAL_LOG_MODE_INOUT,
+                          block_names.c_str(), &reply);
   if (result != 0) {
     ndbout_c("Execute LOG on node %d failed.", processId);
     printError();
@@ -3713,14 +4660,11 @@ int CommandInterpreter::executeLog(int processId, const char* parameters,
   return 0;
 }
 
-
 //*****************************************************************************
 //*****************************************************************************
-int
-CommandInterpreter::executeTestOn(int processId,
-				  const char* parameters, bool /*all*/) 
-{
-  if (! emptyString(parameters)) {
+int CommandInterpreter::executeTestOn(int processId, const char *parameters,
+                                      bool /*all*/) {
+  if (!emptyString(parameters)) {
     ndbout << "No parameters expected to this command." << endl;
     return -1;
   }
@@ -3736,11 +4680,9 @@ CommandInterpreter::executeTestOn(int processId,
 
 //*****************************************************************************
 //*****************************************************************************
-int
-CommandInterpreter::executeTestOff(int processId,
-				   const char* parameters, bool /*all*/) 
-{
-  if (! emptyString(parameters)) {
+int CommandInterpreter::executeTestOff(int processId, const char *parameters,
+                                       bool /*all*/) {
+  if (!emptyString(parameters)) {
     ndbout << "No parameters expected to this command." << endl;
     return -1;
   }
@@ -3754,55 +4696,43 @@ CommandInterpreter::executeTestOff(int processId,
   return 0;
 }
 
-
 //*****************************************************************************
 //*****************************************************************************
 
-int CommandInterpreter::executeNodeLog(int processId, const char* parameters,
-                                       bool /*all*/)
-{
+int CommandInterpreter::executeNodeLog(int processId, const char *parameters,
+                                       bool /*all*/) {
   Vector<BaseString> command_list;
-  if (parameters)
-    split_args(parameters, command_list);
+  if (parameters) split_args(parameters, command_list);
 
   int ret_val;
   int params[1];
   int num_params = 1;
-  if (command_list.size() != 2)
-  {
+  if (command_list.size() != 2) {
     ndbout_c("ERROR: Wrong number of argument(s).");
     ret_val = -1;
     return ret_val;
   }
 
   const char *item = command_list[0].c_str();
-  if (native_strcasecmp(item, "DEBUG") == 0)
-  {
+  if (native_strcasecmp(item, "DEBUG") == 0) {
     const char *item = command_list[1].c_str();
-    if (native_strcasecmp(item, "ON") == 0)
-    {
-      DBUG_PRINT("info",("ON"));
+    if (native_strcasecmp(item, "ON") == 0) {
+      DBUG_PRINT("info", ("ON"));
       params[0] = DumpStateOrd::EnableEventLoggerDebug;
-    }
-    else if (native_strcasecmp(item, "OFF") == 0)
-    {
-      DBUG_PRINT("info",("OFF"));
+    } else if (native_strcasecmp(item, "OFF") == 0) {
+      DBUG_PRINT("info", ("OFF"));
       params[0] = DumpStateOrd::DisableEventLoggerDebug;
-    }
-    else
-    {
+    } else {
       ndbout << "Invalid argument." << endl;
       ret_val = -1;
       return ret_val;
-   }
-  }
-  else
-  {
+    }
+  } else {
     ndbout << "Invalid argument." << endl;
     ret_val = -1;
     return ret_val;
   }
- 
+
   struct ndb_mgm_reply reply;
   return ndb_mgm_dump_state(m_mgmsrv, processId, params, num_params, &reply);
 }
@@ -3811,9 +4741,8 @@ int CommandInterpreter::executeNodeLog(int processId, const char* parameters,
 //*****************************************************************************
 
 int CommandInterpreter::executeEventReporting(int processId,
-                                              const char* parameters,
-                                              bool /*all*/)
-{
+                                              const char *parameters,
+                                              bool /*all*/) {
   int retval = 0;
   if (emptyString(parameters)) {
     ndbout << "Expected argument" << endl;
@@ -3823,94 +4752,77 @@ int CommandInterpreter::executeEventReporting(int processId,
   Vector<BaseString> specs;
   split_args(parameters, specs);
 
-  for (int i=0; i < (int) specs.size(); i++)
-  {
+  for (int i = 0; i < (int)specs.size(); i++) {
     Vector<BaseString> spec;
     specs[i].split(spec, "=");
-    if(spec.size() != 2){
+    if (spec.size() != 2) {
       ndbout << "Invalid loglevel specification: " << specs[i] << endl;
       continue;
     }
 
     spec[0].trim().ndb_toupper();
     int category = ndb_mgm_match_event_category(spec[0].c_str());
-    if(category == NDB_MGM_ILLEGAL_EVENT_CATEGORY){
-      if(!convert(spec[0].c_str(), category) ||
-	 category < NDB_MGM_MIN_EVENT_CATEGORY ||
-	 category > NDB_MGM_MAX_EVENT_CATEGORY){
-	ndbout << "Unknown category: \"" << spec[0].c_str() << "\"" << endl;
-	continue;
+    if (category == NDB_MGM_ILLEGAL_EVENT_CATEGORY) {
+      if (!convert(spec[0].c_str(), category) ||
+          category < NDB_MGM_MIN_EVENT_CATEGORY ||
+          category > NDB_MGM_MAX_EVENT_CATEGORY) {
+        ndbout << "Unknown category: \"" << spec[0].c_str() << "\"" << endl;
+        continue;
       }
     }
 
     int level;
-    if (!convert(spec[1].c_str(),level))
-    {
+    if (!convert(spec[1].c_str(), level)) {
       ndbout << "Invalid level: " << spec[1].c_str() << endl;
       continue;
     }
 
     ndbout << "Executing CLUSTERLOG " << spec[0] << "=" << spec[1]
-	   << " on node " << processId << flush;
+           << " on node " << processId << flush;
 
     struct ndb_mgm_reply reply;
     int result;
-    result = ndb_mgm_set_loglevel_clusterlog(m_mgmsrv, 
-					     processId,
-					     (ndb_mgm_event_category)category,
-					     level, 
-					     &reply);
-  
+    result = ndb_mgm_set_loglevel_clusterlog(
+        m_mgmsrv, processId, (ndb_mgm_event_category)category, level, &reply);
+
     if (result != 0) {
-      ndbout_c(" failed."); 
+      ndbout_c(" failed.");
       printError();
       retval = -1;
     } else {
-      ndbout_c(" OK!"); 
+      ndbout_c(" OK!");
     }
   }
   return retval;
 }
 
-
 /*****************************************************************************
  * Backup
  *****************************************************************************/
 int CommandInterpreter::setBackupEncryptionPassword(
-                            BaseString& encryption_password,
-                            bool& encryption_password_set,
-                            bool interactive)
-{
-  if (encryption_password_set)
-    return 0;
-  if (m_default_backup_password != nullptr)
-  {
+    BaseString &encryption_password, bool &encryption_password_set,
+    bool interactive) {
+  if (encryption_password_set) return 0;
+  if (m_default_backup_password != nullptr) {
     encryption_password = m_default_backup_password;
     encryption_password_set = true;
-  }
-  else if (interactive)
-  {
-    int r = ndb_get_password_from_tty("Enter backup password: ",
-                                      m_onetime_backup_password,
-                                      sizeof(m_onetime_backup_password) - 1);
-    if (r < 0)
-    {
+  } else if (interactive) {
+    int r = ndb_get_password_from_tty(
+        "Enter backup password: ", m_onetime_backup_password,
+        sizeof(m_onetime_backup_password) - 1);
+    if (r < 0) {
       return -1;
     }
     encryption_password = m_onetime_backup_password;
     encryption_password_set = true;
     m_onetime_backup_password_set = true;
-  }
-  else
-  {
+  } else {
     return -1;
   }
   return 0;
 }
 
-int
-CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
-{
+int CommandInterpreter::executeStartBackup(char *parameters, bool interactive) {
   struct ndb_mgm_reply reply;
   unsigned int backupId;
   unsigned int input_backupId = 0;
@@ -3918,30 +4830,26 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
 
   Vector<BaseString> args;
   Vector<BaseString> args1;
-  if (parameters)
-  {
+  if (parameters) {
     split_args_with_quotes(parameters, args);
   }
   // Retain case of password, convert the rest to uppercase
-  for (unsigned i= 0; i < args.size(); i++)
-  {
+  for (unsigned i = 0; i < args.size(); i++) {
     BaseString arg_copy = args[i];
     arg_copy.ndb_toupper();
-    if (arg_copy.starts_with("PASSWORD="))
-    {
-      args[i] = BaseString("PASSWORD=").append(
-      args[i].substr(strlen("PASSWORD="), args[i].length()));
-    }
-    else
-    {
+    if (arg_copy.starts_with("PASSWORD=")) {
+      args[i] =
+          BaseString("PASSWORD=")
+              .append(args[i].substr(strlen("PASSWORD="), args[i].length()));
+    } else {
       args[i].ndb_toupper();
     }
   }
-  int sz= args.size();
+  int sz = args.size();
 
   int result;
   int flags = 2;
-  //1,snapshot at start time. 0 snapshot at end time
+  // 1,snapshot at start time. 0 snapshot at end time
   unsigned int backuppoint = 0;
   BaseString encryption_password = "";
   bool encryption_password_set = false;
@@ -3953,31 +4861,36 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
 
   /*
    All the commands list as follow:
-   start backup <backupid> nowait | start backup <backupid> snapshotstart/snapshotend nowati | start backup <backupid> nowait snapshotstart/snapshotend
-   start backup <backupid> | start backup <backupid> wait completed | start backup <backupid> snapshotstart/snapshotend
-   start backup <backupid> snapshotstart/snapshotend wait completed | start backup <backupid> wait completed snapshotstart/snapshotend
-   start backup <backupid> wait started | start backup <backupid> snapshotstart/snapshotend wait started
+   start backup <backupid> nowait | start backup <backupid>
+   snapshotstart/snapshotend nowati | start backup <backupid> nowait
+   snapshotstart/snapshotend start backup <backupid> | start backup <backupid>
+   wait completed | start backup <backupid> snapshotstart/snapshotend start
+   backup <backupid> snapshotstart/snapshotend wait completed | start backup
+   <backupid> wait completed snapshotstart/snapshotend start backup <backupid>
+   wait started | start backup <backupid> snapshotstart/snapshotend wait started
    start backup <backupid> wait started snapshotstart/snapshotend
   */
-  for (int i= 1; i < sz; i++)
-  {
+  for (int i = 1; i < sz; i++) {
     if (i == 1 && sscanf(args[1].c_str(), "%llu", &tmp_backupId) == 1) {
       char out[1024];
       BaseString::snprintf(out, sizeof(out), "%u: ", MAX_BACKUPS);
-      // to detect wraparound due to overflow, check if number of digits in 
+      // to detect wraparound due to overflow, check if number of digits in
       // input backup ID <= number of digits in max backup ID
-      if (tmp_backupId > 0 && tmp_backupId < MAX_BACKUPS && args[1].length() <= strlen(out)) {
+      if (tmp_backupId > 0 && tmp_backupId < MAX_BACKUPS &&
+          args[1].length() <= strlen(out)) {
         input_backupId = static_cast<unsigned>(tmp_backupId);
         continue;
       } else {
-        BaseString::snprintf(out, sizeof(out), "Backup ID out of range [1 - %u]", MAX_BACKUPS-1);
+        BaseString::snprintf(out, sizeof(out),
+                             "Backup ID out of range [1 - %u]",
+                             MAX_BACKUPS - 1);
         invalid_command(parameters, out);
         return -1;
       }
     }
 
     if (args[i] == "SNAPSHOTEND") {
-      if (b_log ==true) {
+      if (b_log == true) {
         invalid_command(parameters);
         return -1;
       }
@@ -3986,7 +4899,7 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
       continue;
     }
     if (args[i] == "SNAPSHOTSTART") {
-      if (b_log ==true) {
+      if (b_log == true) {
         invalid_command(parameters);
         return -1;
       }
@@ -3995,7 +4908,8 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
       continue;
     }
     if (args[i] == "NOWAIT") {
-      if (b_nowait == true || b_wait_completed == true || b_wait_started ==true) {
+      if (b_nowait == true || b_wait_completed == true ||
+          b_wait_started == true) {
         invalid_command(parameters);
         return -1;
       }
@@ -4004,62 +4918,50 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
       continue;
     }
     if (args[i] == "WAIT") {
-      if (b_nowait == true || b_wait_completed == true || b_wait_started ==true) {
+      if (b_nowait == true || b_wait_completed == true ||
+          b_wait_started == true) {
         invalid_command(parameters);
         return -1;
       }
-      if (i+1 < sz) {
-        if (args[i+1] == "COMPLETED") {
+      if (i + 1 < sz) {
+        if (args[i + 1] == "COMPLETED") {
           b_wait_completed = true;
-          flags = 2; 
+          flags = 2;
           i++;
-        }
-        else if (args[i+1] == "STARTED") {
+        } else if (args[i + 1] == "STARTED") {
           b_wait_started = true;
           flags = 1;
           i++;
-        }
-        else {
+        } else {
           invalid_command(parameters);
           return -1;
         }
-      }
-      else {
+      } else {
         invalid_command(parameters);
         return -1;
       }
       continue;
     }
-    if (args[i] == "ENCRYPT")
-    {
-      if (encryption_password_set)
-      {
+    if (args[i] == "ENCRYPT") {
+      if (encryption_password_set) {
         // password already set
         invalid_command(parameters);
         return -1;
       }
 
-      if ((i + 1) < sz)
-      {
+      if ((i + 1) < sz) {
         BaseString key, value;
-        if ((args[i + 1].splitKeyValue(key, value)) &&
-            (key == "PASSWORD"))
-        {
+        if ((args[i + 1].splitKeyValue(key, value)) && (key == "PASSWORD")) {
           char out[1024];
           encryption_password = value;
           Uint32 len = encryption_password.length();
-          const char* passwd = encryption_password.c_str();
+          const char *passwd = encryption_password.c_str();
 
-          if ((len >= 2) &&
-              (strchr("\"'", passwd[0])) &&
-              (passwd[0] == passwd[len - 1]))
-          {
+          if ((len >= 2) && (strchr("\"'", passwd[0])) &&
+              (passwd[0] == passwd[len - 1])) {
             encryption_password = encryption_password.substr(1, len - 1);
-          }
-          else
-          {
-            BaseString::snprintf(out,
-                                 sizeof(out),
+          } else {
+            BaseString::snprintf(out, sizeof(out),
                                  "Encryption password should be within"
                                  " quotes");
             invalid_command(parameters, out);
@@ -4068,11 +4970,9 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
           encryption_password_set = true;
           i++;
         }
-      }
-      else if (setBackupEncryptionPassword(encryption_password,
-                                           encryption_password_set,
-                                           interactive) != 0)
-      {
+      } else if (setBackupEncryptionPassword(encryption_password,
+                                             encryption_password_set,
+                                             interactive) != 0) {
         invalid_command(parameters, "Encryption need password");
         return -1;
       }
@@ -4082,38 +4982,31 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
     return -1;
   }
 
-  if (!encryption_password_set && m_always_encrypt_backup)
-  {
-    if (setBackupEncryptionPassword(encryption_password,
-                                    encryption_password_set,
-                                    interactive) != 0)
-    {
+  if (!encryption_password_set && m_always_encrypt_backup) {
+    if (setBackupEncryptionPassword(
+            encryption_password, encryption_password_set, interactive) != 0) {
       invalid_command(parameters, "Encryption need password");
       return -1;
     }
-  }
-  else if (!encryption_password_set &&
-           m_default_backup_password != nullptr &&
-           m_verbose > 0)
-  {
-    ndbout_c("Warning, unencrypted backup requested although backup password "
-             "is provided.");
+  } else if (!encryption_password_set && m_default_backup_password != nullptr &&
+             m_verbose > 0) {
+    ndbout_c(
+        "Warning, unencrypted backup requested although backup password "
+        "is provided.");
   }
 
-  //print message
+  // print message
   if (flags == 2)
     ndbout_c("Waiting for completed, this may take several minutes");
   if (flags == 1)
     ndbout_c("Waiting for started, this may take several minutes");
 
-  NdbLogEventHandle log_handle= NULL;
+  NdbLogEventHandle log_handle = NULL;
   struct ndb_logevent log_event;
-  if (flags > 0 && !interactive)
-  {
-    int filter[] = { 15, NDB_MGM_EVENT_CATEGORY_BACKUP, 0, 0 };
+  if (flags > 0 && !interactive) {
+    int filter[] = {15, NDB_MGM_EVENT_CATEGORY_BACKUP, 0, 0};
     log_handle = ndb_mgm_create_logevent_handle(m_mgmsrv, filter);
-    if (!log_handle)
-    {
+    if (!log_handle) {
       ndbout << "Initializing start of backup failed" << endl;
       printError();
       return -1;
@@ -4124,16 +5017,11 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
    * start backup N | start backup snapshotstart/snapshotend |
    * start backup encrypt password=X
    */
-  result = ndb_mgm_start_backup4(m_mgmsrv, flags, &backupId, &reply,
-                                 input_backupId, backuppoint,
-                                 encryption_password_set
-                                   ? encryption_password.c_str()
-                                   : nullptr,
-                                 encryption_password_set
-                                   ? encryption_password.length()
-                                   : 0);
-  if (m_onetime_backup_password_set)
-  {
+  result = ndb_mgm_start_backup4(
+      m_mgmsrv, flags, &backupId, &reply, input_backupId, backuppoint,
+      encryption_password_set ? encryption_password.c_str() : nullptr,
+      encryption_password_set ? encryption_password.length() : 0);
+  if (m_onetime_backup_password_set) {
     NdbMem_SecureClear(m_onetime_backup_password,
                        sizeof(m_onetime_backup_password));
     m_onetime_backup_password_set = false;
@@ -4143,57 +5031,47 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
     ndbout << "Backup failed" << endl;
     printError();
 
-    if (log_handle) 
-      ndb_mgm_destroy_logevent_handle(&log_handle);
+    if (log_handle) ndb_mgm_destroy_logevent_handle(&log_handle);
     return result;
   }
 
   /**
    * If interactive, event listener thread is already running
    */
-  if (log_handle && !interactive)
-  {
+  if (log_handle && !interactive) {
     int count = 0;
     int retry = 0;
     int res;
     do {
-      if ((res= ndb_logevent_get_next(log_handle, &log_event, 60000)) > 0)
-      {
+      if ((res = ndb_logevent_get_next(log_handle, &log_event, 60000)) > 0) {
         int print = 0;
         switch (log_event.type) {
           case NDB_LE_BackupStarted:
-            if (log_event.BackupStarted.backup_id == backupId)
-              print = 1;
+            if (log_event.BackupStarted.backup_id == backupId) print = 1;
             break;
           case NDB_LE_BackupCompleted:
-            if (log_event.BackupCompleted.backup_id == backupId)
-              print = 1;
+            if (log_event.BackupCompleted.backup_id == backupId) print = 1;
             break;
           case NDB_LE_BackupAborted:
-            if (log_event.BackupAborted.backup_id == backupId)
-              print = 1;
+            if (log_event.BackupAborted.backup_id == backupId) print = 1;
             break;
           default:
             break;
         }
-        if (print)
-        {
+        if (print) {
           Guard g(m_print_mutex);
           printLogEvent(&log_event);
           count++;
           // for WAIT STARTED, exit after printing "Backup started" logevent
-          if(flags == 1 && log_event.type == NDB_LE_BackupStarted) 
-          {
+          if (flags == 1 && log_event.type == NDB_LE_BackupStarted) {
             ndb_mgm_destroy_logevent_handle(&log_handle);
             return 0;
           }
         }
-      }
-      else
-      {
+      } else {
         retry++;
       }
-    } while(res >= 0 && count < 2 && retry < 3);
+    } while (res >= 0 && count < 2 && retry < 3);
 
     if (retry >= 3)
       ndbout << "get backup event failed for " << retry << " times" << endl;
@@ -4204,32 +5082,29 @@ CommandInterpreter::executeStartBackup(char* parameters, bool interactive)
   return 0;
 }
 
-int
-CommandInterpreter::executeAbortBackup(char* parameters) 
-{
+int CommandInterpreter::executeAbortBackup(char *parameters) {
   unsigned int bid = 0;
   unsigned long long int tmp_bid = 0;
   struct ndb_mgm_reply reply;
-  if (emptyString(parameters))
-    goto executeAbortBackupError1;
+  if (emptyString(parameters)) goto executeAbortBackupError1;
 
   {
     strtok(parameters, " ");
-    char* id = strtok(NULL, "\0");
-    if(id == 0 || sscanf(id, "%llu", &tmp_bid) != 1) 
+    char *id = strtok(NULL, "\0");
+    if (id == 0 || sscanf(id, "%llu", &tmp_bid) != 1)
       goto executeAbortBackupError1;
 
-    // to detect wraparound due to overflow, check if number of digits in 
+    // to detect wraparound due to overflow, check if number of digits in
     // input backup ID > number of digits in max backup ID
     char out[1024];
     BaseString::snprintf(out, sizeof(out), "%u", MAX_BACKUPS);
-    if(tmp_bid <= 0 || tmp_bid >= MAX_BACKUPS || strlen(id) > strlen(out))
+    if (tmp_bid <= 0 || tmp_bid >= MAX_BACKUPS || strlen(id) > strlen(out))
       goto executeAbortBackupError2;
-    else 
+    else
       bid = static_cast<unsigned>(tmp_bid);
   }
   {
-    int result= ndb_mgm_abort_backup(m_mgmsrv, bid, &reply);
+    int result = ndb_mgm_abort_backup(m_mgmsrv, bid, &reply);
     if (result != 0) {
       ndbout << "Abort of backup " << bid << " failed" << endl;
       printError();
@@ -4239,20 +5114,18 @@ CommandInterpreter::executeAbortBackup(char* parameters)
     }
   }
   return 0;
- executeAbortBackupError1:
+executeAbortBackupError1:
   ndbout << "Invalid arguments: expected <BackupId>" << endl;
   return -1;
- executeAbortBackupError2:
-  ndbout << "Invalid arguments: <BackupId> out of range [1-" << MAX_BACKUPS-1 << "]" << endl;
+executeAbortBackupError2:
+  ndbout << "Invalid arguments: <BackupId> out of range [1-" << MAX_BACKUPS - 1
+         << "]" << endl;
   return -1;
 }
 
-int
-CommandInterpreter::executeCreateNodeGroup(char* parameters)
-{
-  char *id= strchr(parameters, ' ');
-  if (emptyString(id))
-    goto err;
+int CommandInterpreter::executeCreateNodeGroup(char *parameters) {
+  char *id = strchr(parameters, ' ');
+  if (emptyString(id)) goto err;
 
   {
     Vector<int> nodes;
@@ -4260,23 +5133,21 @@ CommandInterpreter::executeCreateNodeGroup(char* parameters)
     Vector<BaseString> nodelist;
     args.split(nodelist, ",");
 
-    for (Uint32 i = 0; i<nodelist.size(); i++)
-    {
+    for (Uint32 i = 0; i < nodelist.size(); i++) {
       nodes.push_back(atoi(nodelist[i].c_str()));
     }
     nodes.push_back(0);
 
     int ng;
     struct ndb_mgm_reply reply;
-    const int result= ndb_mgm_create_nodegroup(m_mgmsrv, nodes.getBase(),
-                                               &ng, &reply);
+    const int result =
+        ndb_mgm_create_nodegroup(m_mgmsrv, nodes.getBase(), &ng, &reply);
     if (result != 0) {
       printError();
       return -1;
     } else {
       ndbout << "Nodegroup " << ng << " created" << endl;
     }
-
   }
 
   return 0;
@@ -4285,22 +5156,18 @@ err:
   return -1;
 }
 
-int
-CommandInterpreter::executeDropNodeGroup(char* parameters)
-{
+int CommandInterpreter::executeDropNodeGroup(char *parameters) {
   int ng = -1;
-  if (emptyString(parameters))
-    goto err;
+  if (emptyString(parameters)) goto err;
 
   {
-    char* id = strchr(parameters, ' ');
-    if(id == 0 || sscanf(id, "%d", &ng) != 1)
-      goto err;
+    char *id = strchr(parameters, ' ');
+    if (id == 0 || sscanf(id, "%d", &ng) != 1) goto err;
   }
 
   {
     struct ndb_mgm_reply reply;
-    const int result= ndb_mgm_drop_nodegroup(m_mgmsrv, ng, &reply);
+    const int result = ndb_mgm_drop_nodegroup(m_mgmsrv, ng, &reply);
     if (result != 0) {
       printError();
       return -1;
@@ -4314,16 +5181,12 @@ err:
   return -1;
 }
 
-int
-CommandInterpreter::setDefaultBackupPassword(const char backup_password[])
-{
+int CommandInterpreter::setDefaultBackupPassword(const char backup_password[]) {
   m_default_backup_password = backup_password;
   return 0;
 }
 
-int
-CommandInterpreter::setAlwaysEncryptBackup(bool on)
-{
+int CommandInterpreter::setAlwaysEncryptBackup(bool on) {
   m_always_encrypt_backup = on;
   return 0;
 }

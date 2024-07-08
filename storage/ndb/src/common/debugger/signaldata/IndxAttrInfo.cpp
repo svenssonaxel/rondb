@@ -26,11 +26,8 @@
 
 #include <signaldata/IndxAttrInfo.hpp>
 
-bool printINDXATTRINFO(FILE* output,
-                       const Uint32* theData,
-                       Uint32 len,
-                       Uint16 /*receiverBlockNo*/)
-{
+bool printINDXATTRINFO(FILE *output, const Uint32 *theData, Uint32 len,
+                       Uint16 /*receiverBlockNo*/) {
 //  const IndxAttrInfo * const sig = (IndxAttrInfo *) theData;
   printHex(output, theData, len, "");
   return true;

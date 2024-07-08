@@ -25,9 +25,9 @@
 
 #define DBTUP_C
 #define DBTUP_DISK_ALLOC_CPP
-#include "Dbtup.hpp"
 #include <signaldata/LgmanContinueB.hpp>
 #include "../dblqh/Dblqh.hpp"
+#include "Dbtup.hpp"
 
 #define JAM_FILE_ID 426
 
@@ -40,40 +40,224 @@
 //#define DEBUG_EXTENT_BITS 1
 //#define DEBUG_EXTENT_BITS_HASH 1
 //#define DEBUG_FREE_EXTENT 1
-//#define DEBUG_UNDO 1
-//#define DEBUG_UNDO_LCP 1
-//#define DEBUG_UNDO_ALLOC 1
-//#define DEBUG_FREE_SPACE 1
+//#define 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DEBUG
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DEB_LCP(arglist) do { g
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DEB_LCP(arglist)         \
+  do {                           \
+    g
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+UNDO
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+eventLogger->info arglist ; } while
+// RONDB-624 todo: Glue these lines together ^v
+=======
+eventLogger->info arglist; \
+  } while
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 1
+//#define 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DEB_LCP(arglist) do { } while (0)
+#endif
+
+#ifdef 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DEB_LCP(arglist) \
+  do {                   \
+  } while (0)
+#endif
+
+#ifdef 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+DEBUG_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+UNDO
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+PGMAN
+#define DEB_PGMAN(arglist) do { g
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PGMAN
+#define DEB_PGMAN(arglist)       \
+  do {                           \
+    g
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LCP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+eventLogger->info arglist ; } while
+// RONDB-624 todo: Glue these lines together ^v
+=======
+eventLogger->info arglist; \
+  } while
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 1
+//#define 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DEB_PGMAN(arglist) do { } while (0)
+#endif
+
+#ifdef 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DEB_PGMAN(arglist) \
+  do {                     \
+  } while (0)
+#endif
+
+#ifdef 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+DEBUG_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+UNDO
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+PGMAN_IO
+#define DEB_PGMAN_IO(arglist) do { g
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PGMAN_IO
+#define DEB_PGMAN_IO(arglist)    \
+  do {                           \
+    g
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ALLOC
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+eventLogger->info arglist ; } while
+// RONDB-624 todo: Glue these lines together ^v
+=======
+eventLogger->info arglist; \
+  } while
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 1
+//#define DEBUG_FREE_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SPACE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+IO(arglist) do
+// RONDB-624 todo: Glue these lines together ^v
+=======
+IO(arglist) \
+  do
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{ } while (0)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+{                        \
+  } while (0)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 #endif
 
 #ifdef DEBUG_REORG
-#define DEB_REORG(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_REORG(arglist) \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_REORG(arglist) do { } while (0)
+#define DEB_REORG(arglist) \
+  do {                           \
+  } while (0)
 #endif
 
 #ifdef DEBUG_FREE_SPACE
-#define DEB_FREE_SPACE(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_FREE_SPACE(arglist) \
+  do {                                \
+    g_eventLogger->info arglist;      \
+  } while (0)
 #else
-#define DEB_FREE_SPACE(arglist) do { } while (0)
+#define DEB_FREE_SPACE(arglist) \
+  do {                                \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP
-#define DEB_LCP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP(arglist)        \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP(arglist) do { } while (0)
+#define DEB_LCP(arglist) \
+  do {                    \
+  } while (0)
 #endif
 
 #ifdef DEBUG_PGMAN
-#define DEB_PGMAN(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_PGMAN(arglist)    \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_PGMAN(arglist) do { } while (0)
+#define DEB_PGMAN(arglist) \
+  do {    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DEBUG_PGMAN
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DEBUG_UNDO
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                    \
+  } while (0)
 #endif
 
-#ifdef DEBUG_PGMAN_IO
-#define DEB_PGMAN_IO(arglist) do { g_eventLogger->info arglist ; } while (0)
+#ifdef DEBUG_UNDO
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_IO
+#define DEB_PGMAN_IO(arglist)  \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_PGMAN_IO(arglist) do { } while (0)
+#define DEB_PGMAN_IO(arglist) \
+  do {                          \
+  } while (0)
 #endif
 
 #ifdef DEBUG_EXTENT_BITS
@@ -895,14 +1079,74 @@ Dbtup::disk_page_prealloc(Signal* signal,
   }
   
   if (!found)
-  {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+do
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         \
+  do
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
     Uint32 pos;
+                           \
     if ((pos= alloc.find_extent(sz)) != RNIL)
     {
-      jam();
-      Local_extent_info_list list(c_extent_pool, alloc.m_free_extents[pos]);
-      list.first(ext);
-      list.remove(ext);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     jam();
+      Local
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dump
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    \
+      dump
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_extent_info_list list(c_extent_pool, alloc.m_free_extents[pos]);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     list.first
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ndbabort
+// RONDB-624 todo: Glue these lines together ^v
+=======
+\
+      ndbabort
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(ext);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+            \
+    }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                        \
+  }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    list.remove(ext);
       DEB_FREE_EXTENT(("(%p) Remove ext.p: %p from pos: %u",
                        &alloc, ext.p, pos));
     }
@@ -912,23 +1156,106 @@ Dbtup::disk_page_prealloc(Signal* signal,
       /**
        * We need to alloc an extent
        */
-      if (!c_extent_pool.seize(ext))
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+do
+// RONDB-624 todo: Glue these lines together ^v
+=======
+          \
+  do
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                         \
+    if (!c_extent_pool.seize(ext))
       {
 	jam();
-	err= 1606;
-	c_page_request_pool.release(req);
-	return -err;
-      }
+	err= 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1606;
+	c
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dump
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    \
+      dump
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_page_request_pool.release(req);
+	return 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-err
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ndbabort()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+\
+      ndbabort()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+            \
+    }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                        \
+  }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    }
       {  
         Tablespace_client tsman(signal, this, c_tsman,
                       fragPtrP->fragTableId,
                       fragPtrP->fragmentId,
-                      c_lqh->getCreateSchemaVersion(fragPtrP->fragTableId),
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtrP, 
+					Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tabPtrP,
+                                        Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                   c_lqh->getCreateSchemaVersion(fragPtrP->fragTableId),
                       fragPtrP->m_tablespace_id);
         err= tsman.alloc_extent(&ext.p->m_key, &ext.p->m_extent_no);
       }
-      if (err < 0)
-      {
+      if (err < 0)     {
         jamEntry();
         c_extent_pool.release(ext);
         c_page_request_pool.release(req);
@@ -957,7 +1284,27 @@ Dbtup::disk_page_prealloc(Signal* signal,
                "(%u)new:extent .i=%u in tab(%u,%u),"
                " page(%u,%u)->%u,"
                " empty_page: %u",
-                instance(),
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Extent_info*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Extent_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+extP)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*extP)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   instance(),
                 ext.i,
                 fragPtr.p->fragTableId,
                 fragPtr.p->fragmentId,
@@ -969,7 +1316,8 @@ Dbtup::disk_page_prealloc(Signal* signal,
       c_extent_hash.add(ext);
 
       Local_fragment_extent_list list1(c_extent_pool, alloc.m_extent_list);
-      list1.addFirst(ext);
+      list1.addFirst(ext)
+      ;
     }
     jam(); 
     alloc.m_curr_extent_info_ptr_i= ext.i;
@@ -1018,9 +1366,22 @@ Dbtup::disk_page_prealloc(Signal* signal,
                      " newPageBits: %u, free_page_count(%u,%u)",
                      instance(),
                      ext.p->m_extent_no,
-                     pageBits,
-                     newPageBits,
-                     ext.p->m_free_page_count[pageBits],
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pageBits,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     PagePtr pagePtr,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  newPageBits,
+   PagePtr pagePtr,                 ext.p->m_free_page_count[pageBits],
                      ext.p->m_free_page_count[newPageBits]));
     ddrequire(ext.p->m_free_page_count[pageBits] > 0);
     ext.p->m_free_page_count[pageBits]--;
@@ -1033,7 +1394,7 @@ Dbtup::disk_page_prealloc(Signal* signal,
                   key->m_file_no,
                   key->m_page_no));
   update_extent_pos(jamBuffer(),
-                    fragPtr.p,
+    fragPtr.p,
                     ext,
                     pageBits,
                     newPageBits,
@@ -1146,7 +1507,8 @@ Dbtup::disk_page_prealloc_dirty_page(Disk_alloc_info & alloc,
                               fragPtrP);
   }
 
-  DEB_FREE_SPACE(("(%u) update_extent_pos from %u page(%u,%u)"
+  DEB_FREE_SPACE((
+          "(%u) update_extent_pos from %u page(%u,%u)"
                   ", free: %u, used: %u",
                   instance(),
                   __LINE__,
@@ -1166,8 +1528,7 @@ Dbtup::disk_page_prealloc_dirty_page(Disk_alloc_info & alloc,
 void
 Dbtup::disk_page_prealloc_transit_page(Fragrecord *fragPtrP,
 				       Ptr<Page_request> req, 
-				       Uint32 old_idx,
-                                       Uint32 sz)
+				       Uint32 old_idx,              Uint32 sz)
 {
   jam();
   Disk_alloc_info& alloc = fragPtrP->m_disk_alloc_info;
@@ -1186,7 +1547,33 @@ Dbtup::disk_page_prealloc_transit_page(Fragrecord *fragPtrP,
   if (old_idx != new_idx)
   {
     jam();
-    disk_page_move_page_request(alloc, extentPtr, req, old_idx, new_idx);
+    disk_page_move_page_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+request(alloc,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+COLS -1
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+COLS
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ extentPtr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req, old_idx,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+-1
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ new_idx);
   }
 
   req.p->m_uncommitted_used_space = used;
@@ -1199,8 +1586,58 @@ Dbtup::disk_page_prealloc_transit_page(Fragrecord *fragPtrP,
                   free,
                   used));
   update_extent_pos(jamBuffer(),
-                    fragPtrP,
-                    extentPtr,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Local_key*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Local_key
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+key,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*key,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Fragrecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *fragPtrP,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Disk_alloc_info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Disk_alloc_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+alloc=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&alloc =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              extentPtr,
                     old_idx,
                     new_idx,
                     -Int32(sz));
@@ -1224,7 +1661,7 @@ Dbtup::disk_page_prealloc_callback(Signal* signal,
 
   PagePtr pagePtr;
   pagePtr.i = gpage.i;
-  pagePtr.p = reinterpret_cast<Page*>(gpage.p);
+  pagePtr.p = reinterpret_cast<Page *>(gpage.p);
 
   Disk_alloc_info& alloc= fragPtr.p->m_disk_alloc_info;
 
@@ -1247,9 +1684,20 @@ Dbtup::disk_page_prealloc_callback(Signal* signal,
                         key.m_file_no,
                         key.m_page_no,
                         pagePtr.p->m_file_no,
-                        pagePtr.p->m_page_no,
-                        globalData.m_restart_seq,
-                        pagePtr.p->m_restart_seq,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     pagePtr.p->m_page_no,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tsman(signal, this, c_tsman,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tsman(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          signal, this, c_tsman,     globalData.m_restart_seq,     pagePtr.p->m_restart_seq,
                         fragPtr.p->fragTableId,
                         fragPtr.p->fragmentId,
                         pagePtr.p->m_table_id,
@@ -1293,14 +1741,61 @@ Dbtup::disk_page_prealloc_callback(Signal* signal,
       real_idx,
       extentPtr.p->m_free_page_count[idx],
       extentPtr.p->m_free_page_count[real_idx],
-      pagePtr.p->uncommitted_used_space,
-      free));
+      pagePtr.p->uncommitted_used_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+space,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pool.seize(ext))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+pool.seize(ext)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
     ddrequire(extentPtr.p->m_free_page_count[idx] > 0);
     extentPtr.p->m_free_page_count[idx]--;
     extentPtr.p->m_free_page_count[real_idx]++;
-    DEB_FREE_SPACE(("(%u) update_extent_pos from %u page(%u,%u)",
-                    instance(),
+    DEB_FREE_SPACE(("(%u) update_extent_pos from %u page(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u,%u)",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, this, c_tsman,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+            signal, this, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      instance()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        fragPtrP->fragTableId
+// RONDB-624 todo: Glue these lines together ^v
+=======
+c_tsman, fragPtrP->fragTableId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                     __LINE__,
                     pagePtr.p->m_file_no,
                     pagePtr.p->m_page_no));
@@ -1332,10 +1827,29 @@ Dbtup::disk_page_prealloc_callback(Signal* signal,
 
 void
 Dbtup::disk_page_move_dirty_page(Disk_alloc_info& alloc,
-                                 Ptr<Extent_info> extentPtr,
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DEB_EXTENT_BITS_HASH((
+=======
+DEB_EXTENT_BITS_HASH(
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     "(%u)new:extent
+// RONDB-624 todo: Glue these lines together ^v
+=======
+("(%u)new:extent
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  Ptr<Extent_info> extentPtr,
                                  Ptr<Page> pagePtr,
-                                 Uint32 old_idx,
-                                 Uint32 new_idx,
+                                 Uint32 old_idx,                  Uint32 new_idx,
                                  Fragrecord *fragPtrP)
 {
   DEB_EXTENT_BITS(("(%u)dpmdp:extent(%u) page(%u,%u):%u, old_idx: %u,"
@@ -1343,8 +1857,32 @@ Dbtup::disk_page_move_dirty_page(Disk_alloc_info& alloc,
                    ", free_space: %u, uncommitted_space: %u",
                    instance(),
                    extentPtr.p->m_extent_no,
-                   pagePtr.p->m_file_no,
-                   pagePtr.p->m_page_no,
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        pagePtr.p->m_file_no,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tsman(signal, this, c_tsman,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tsman(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          signal, this, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       pagePtr.p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        fragPtrP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+c_tsman, fragPtrP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->m_page_no,
                    pagePtr.i,
                    old_idx,
                    new_idx,
@@ -1380,8 +1918,9 @@ Dbtup::disk_page_move_page_request(Disk_alloc_info& alloc,
   old_list.remove(req);
   new_list.addLast(req);
 
-  DEB_EXTENT_BITS(("(%u)dpmpqr:extent(%u) page(%u,%u), old_idx: %u new_idx: %u"
-                   ", free_page_count(%u,%u)",
+  DEB_EXTENT_BITS(
+        ("(%u)dpmpqr:extent(%u) page(%u,%u), old_idx: %u new_idx: %u"
+       ", free_page_count(%u,%u)",
                    instance(),
                    extentPtr.p->m_extent_no,
                    req.p->m_key.m_file_no,
@@ -1445,10 +1984,54 @@ Dbtup::disk_page_prealloc_initial_callback(Signal*signal,
    *
    * Unfortunately there is no sure way of discovering if we are reusing
    * an already used disk page. The extent information isn't synchronised
-   * together with the disk page itself. So it is perfectly possible to
-   * allocate an extent and write a page in it and then restart and as
-   * part of recovery processing the extent isn't any more a part of this
-   * fragment. A new extent can be used and this can be any extent. So this
+   * together with the disk page itself. So it is perfectly possible 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+   * allocate an extent and write a
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ instance(),
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ page in it and then restart 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+and
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+instance(),
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ as
+   * part of recovery processing the extent isn't any more a part of 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+this
+   * fragment. A new extent can
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragPtr.p->fragTableId,
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ be used and this can be 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+any
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+fragPtr.p->fragTableId,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ extent. So this
    * means that we can even allocate the same extent once more by the same
    * fragment after the restart.
    *
@@ -1464,16 +2047,119 @@ Dbtup::disk_page_prealloc_initial_callback(Signal*signal,
 
   convertThPage((Fix_page*)pagePtr.p, tabPtr.p, DD);
 
-  /**
+   /**
    * We have acquired an empty page without reading it from
-   * disk. The page might however have been used in the past
+   * disk. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+The
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+PagePtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pagePtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ might however have been used 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the past
+||||||| Common ancestor
+old_idx,
+=======
+>>>>>>> MySQL 8.0.36
    * and thus UNDO log entries might have to be written at
    * recovery towards this page. To ensure those UNDO log entries
-   * are executed we need to set the LSN of the page to the
+   * are executed we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+need
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+PagePtr pagePtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+old_idx,
+>>>>>>> MySQL 8.0.36
+ the LSN of the page 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+||||||| Common ancestor
+sz,
+=======
+>>>>>>> MySQL 8.0.36
    * current LSN number.
    *
    * The problem happens if we write the page before we have updated
-   * the LSN of the page. In this case the page will be written with
+   * the LSN of the page. In this case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+sz,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ will be written with
    * LSN 0 which isn't ok if the page was previously used.
    */
   Uint32 logfile_group_id= fragPtr.p->m_logfile_group_id;
@@ -1484,11 +2170,59 @@ Dbtup::disk_page_prealloc_initial_callback(Signal*signal,
   }
   Page_cache_client pgman(this, c_pgman);
   pgman.set_lsn(req.p->m_key, lsn);
-  DEB_PGMAN_IO(("(%u) Get empty page (%u,%u) set LSN: %llu"
-                ", used: %u, free: %u, idx: %u",
-                instance(),
+  DEB_PGMAN_IO(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+("(%u)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+alloc,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+alloc, extentPtr, pagePtr, old_idx, new_idx,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Get empty page (%u,%u) set LSN: %llu"
+                ", used: %u, free: %u, idx: 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+extentPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+fragPtrP);
+  }
+
+  pagePtr.p->uncommitted_used_space = used;
+  update_extent_pos(jamBuffer(), alloc, extentPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, -Int32(sz));
+}
+
+void Dbtup::disk_page_prealloc_transit_page(Disk_alloc_info &alloc,
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+instance()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+              pagePtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                            Ptr<Page_request> req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                 req.p->m_key.m_file_no,
-                req.p->m_key.m_page_no,
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req.p->m_key.m_page_no,
                 lsn,
                 req.p->m_uncommitted_used_space,
                 pagePtr.p->free_space,
@@ -1499,9 +2233,41 @@ Dbtup::disk_page_prealloc_initial_callback(Signal*signal,
 
   pagePtr.p->m_page_no= req.p->m_key.m_page_no;
   pagePtr.p->m_file_no= req.p->m_key.m_file_no;
+||||||| Common ancestor
+old_idx,
+                              new_idx,
+                              fragPtrP);
+  }
+
+  pagePtr.p->uncommitted_used_space = used;
+  update_extent_pos(jamBuffer(), alloc, extentPtr, -Int32(sz));
+}
+
+
+void
+Dbtup::disk_page_prealloc_transit_page(Disk_alloc_info& alloc,
+				  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   pagePtr.p->m_table_id= fragPtr.p->fragTableId;
-  pagePtr.p->m_ndb_version = htonl(NDB_DISK_V2);
-  pagePtr.p->m_create_table_version =
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pagePtr.p->m_ndb_version = htonl(NDB_DISK_V2);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Ptr<Page_request> req, 
+				  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ pagePtr.p->m_create_table_version =
     c_lqh->getCreateSchemaVersion(fragPtr.p->fragTableId);
   pagePtr.p->m_fragment_id = fragPtr.p->fragmentId;
   pagePtr.p->m_extent_no = extentPtr.p->m_extent_no; // logical extent no
@@ -1521,8 +2287,27 @@ Dbtup::disk_page_prealloc_initial_callback(Signal*signal,
     ddrequire(pagePtr.p->free_space == req.p->m_original_estimated_free_space);
   }
 #endif
+<<<<<<< RonDB // RONDB-624 todo
 
-  {
+||||||| Common ancestor
+void
+Dbtup::disk_page_prealloc_callback(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtup::disk_page_prealloc_callback(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
     /**
      * add to dirty list
      */
@@ -1533,7 +2318,31 @@ Dbtup::disk_page_prealloc_initial_callback(Signal*signal,
 
   {
     /**
-     * release page request
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+release
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Disk_alloc_info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Disk_alloc_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+alloc=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&alloc =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ request
      */
     Local_page_request_list list(c_page_request_pool, 
 				 alloc.m_page_requests[idx]);
@@ -1601,14 +2410,49 @@ Dbtup::disk_page_set_dirty(PagePtr pagePtr, Fragrecord *fragPtrP)
     jam();
     idx &= ~0x8000;
     DEB_EXTENT_BITS(("((%u)Reset list_index bit 0x8000 on page(%u,%u):%u"
-                     ", idx = %u, free: %u, used: %u",
-                     instance(),
-                     pagePtr.p->m_file_no,
+                     ", idx = %u, free: %u, used: %u",             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   instance(),
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+free,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   free,                pagePtr.p->m_file_no,
                      pagePtr.p->m_page_no,
                      pagePtr.i,
                      idx,
                      free,
-                     used));
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Dbtup::disk_page_move_dirty_page(Disk_alloc_info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Dbtup::disk_page_move_dirty_page(Disk_alloc_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+alloc,
+=======
+&alloc,
+>>>>>>> MySQL 8.0.36
+             used));
     ddrequire(idx == alloc.calc_page_free_bits(free - used));
   }
   
@@ -1619,23 +2463,55 @@ Dbtup::disk_page_set_dirty(PagePtr pagePtr, Fragrecord *fragPtrP)
                         fragPtrP->fragTableId,
                         fragPtrP->fragmentId,
                         c_lqh->getCreateSchemaVersion(fragPtrP->fragTableId),
-                        fragPtrP->m_tablespace_id);
+                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ fragPtrP->m_tablespace_id);
   
   pagePtr.p->list_index = idx;
   Page_pool *pool= (Page_pool*)&m_global_page_pool;
   Local_Page_list list(*pool, alloc.m_dirty_pages[idx]);
   list.addFirst(pagePtr);
   
-  // Make sure no one will allocate it...
-  tsman.unmap_page(&key, EXTENT_SEARCH_MATRIX_COLS - 1);
+  // Make sure no one will allocate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 new_idx,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ it...
+  tsman.unmap_page(&key, EXTENT_SEARCH_MATRIX_COLS 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Fragrecord *fragPtrP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+new_idx, Fragrecord *fragPtrP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   jamEntry();
 }
 
 void
 Dbtup::disk_page_dirty_header(Signal *signal,
                               Fragrecord* regFragPtr,
-                              Local_key key,
-                              PagePtr pagePtr,
+                              Local_key key,            PagePtr pagePtr,
                               Int32 add)
 {
   /**
@@ -1648,15 +2524,78 @@ Dbtup::disk_page_dirty_header(Signal *signal,
    * checkpointed. However we only need to make sure that the page isn't
    * released from page cache without being written to disk.
    *
-   * We accomplish this by using the new interface DIRTY_HEADER that
+   * We accomplish this by using the new interface DIRTY_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+HEADER
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+idx;
+}
+
+void
+Dbtup::disk_page_move_page_request(Disk_alloc_info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+idx;
+}
+
+void Dbtup::disk_page_move_page_request(Disk_alloc_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+alloc,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&alloc,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    * makes the page dirty without putting it into fragment dirty list.
    * Thus avoiding being unnecessarily checkpointed.
    *
    * Since we are ensuring that the page will be written to disk before
    * being released, it is a good idea to also put it into the dirty list.
-   * This ensures that the page is used for future allocations of new
+   * This ensures that the page is used for 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+future
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req,
+=======
+req, Uint32 old_idx,
+>>>>>>> MySQL 8.0.36
+ allocations of new
    * rows for as long as it stays in the page cache or get written to disk.
-   * To put it into the dirty list isn't required, but still makes sense.
+   * To put it into the dirty list isn't required, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+but
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+still
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+old_idx,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ makes sense.
    *
    * The actual update of the uncommitted_used_space happens in
    * disk_page_prealloc_dirty_page, this method also ensures that the
@@ -1668,9 +2607,7 @@ Dbtup::disk_page_dirty_header(Signal *signal,
   {
     Uint32 overflow_space = Uint32(-add);
     disk_page_abort_prealloc_callback_1(signal,
-                                        regFragPtr,
-                                        pagePtr,
-                                        overflow_space,
+                                        regFragPtr,                      pagePtr,                      overflow_space,
                                         0);
   }
   else
@@ -1751,8 +2688,7 @@ Dbtup::disk_page_unmap_callback(Uint32 when,
                 pagePtr.i,
                 pagePtr.p->m_page_header.m_page_lsn_hi,
                 pagePtr.p->m_page_header.m_page_lsn_lo,
-                when,
-                dirty_count,
+                when, dirty_count,
                 ptrI));
 
   Disk_alloc_info& alloc= fragPtr.p->m_disk_alloc_info;
@@ -1780,13 +2716,37 @@ Dbtup::disk_page_unmap_callback(Uint32 when,
     ndbrequire((idx & 0x8000) == 0);
 
     /**
-     * Page is being written to disk, remove from dirty page list, we cannot
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Page
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Disk_alloc_info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Disk_alloc_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is being written to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+alloc=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&alloc =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ disk, remove from dirty page list, we cannot
      * use this page while it is being paged out.
      *
      * Insert into m_unmap_pages, this ensures that we handle those pages
      * correctly during Drop Table execution.
      */
-    Page_pool *pool= (Page_pool*)&m_global_page_pool;
+    Page_pool *pool = (Page_pool *)&m_global_page_pool;
     Local_Page_list list(*pool, alloc.m_dirty_pages[idx]);
     Local_Page_list list2(*pool, alloc.m_unmap_pages);
     list.remove(pagePtr);
@@ -1816,7 +2776,27 @@ Dbtup::disk_page_unmap_callback(Uint32 when,
                        pagePtr.p->m_page_no,
                        used,
                        free,
-                       idx));
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Disk_alloc_info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Disk_alloc_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+alloc=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&alloc =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                    idx));
       
       ddrequire(free >= used);
       ddrequire(alloc.calc_page_free_bits(free - used) == idx);
@@ -1829,19 +2809,99 @@ Dbtup::disk_page_unmap_callback(Uint32 when,
                     fragPtr.p->m_tablespace_id);
       
       tsman.unmap_page(&key, idx);
-      jamEntry();
-    }
+    instance(), pagePtr.p->m_file_no, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jamEntry();
+||||||| Common ancestor
+=======
+pagePtr.p->m_page_no,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ pagePtr.i,
+   }
   }
-  else if (when == 1)
-  {
-    /**
-     * After page out
-     */
+  else if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+instance(),
+=======
+idx));
+>>>>>>> MySQL 8.0.36
+ == 1)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+ddrequire(idx
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ == alloc.calc_page_free_bits(free - 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+||||||| Common ancestor
+=======
+used));
+>>>>>>> MySQL 8.0.36
+  }
+
+  ddrequire(free 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+>=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+After
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+used);
+
+>>>>>>> MySQL 8.0.36
+ page 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+out
+||||||| Common ancestor
+=======
+D("Tablespace_client
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ - disk_page_set_dirty");
+  Tablespace_client 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pagePtr.p->m_file_no,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tsman(0, this, c_tsman, fragPtr.p->fragTableId,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     jam();
 
     Local_key key;
     key.m_page_no = pagePtr.p->m_page_no;
-    key.m_file_no = pagePtr.p->m_file_no;
+    key.m_file_no = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+pagePtr.p->m_file_no;
     Uint32 real_free = pagePtr.p->free_space;
     
     if (DBG_DISK)
@@ -1856,9 +2916,41 @@ Dbtup::disk_page_unmap_callback(Uint32 when,
 
     D("Tablespace_client - disk_page_unmap_callback");
     Tablespace_client tsman(0, this, c_tsman,
-                   fragPtr.p->fragTableId,
-                   fragPtr.p->fragmentId,
-                   c_lqh->getCreateSchemaVersion(fragPtr.p->fragTableId),
+                   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pagePtr.p->m_page_no,
+                     pagePtr.i,
+                     idx));
+    ddrequire(idx == alloc.calc_page_free_bits(free - used));
+  }
+  
+  ddrequire(free >= used);
+  
+  D("Tablespace_client - disk_page_set_dirty");
+  Tablespace_client tsman(0, this, c_tsman,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+fragPtr.p->fragmentId,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragPtr.p->fragmentId,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     fragPtr.p->fragmentId,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+c_lqh->getCreateSchemaVersion(fragPtr.p->fragTableId),
                    fragPtr.p->m_tablespace_id);
     
     if (DBG_DISK && alloc.calc_page_free_bits(real_free) != (idx & ~0x8000))
@@ -1870,9 +2962,20 @@ Dbtup::disk_page_unmap_callback(Uint32 when,
     }
     DEB_EXTENT_BITS(("(%u)tab(%u,%u), page(%u,%u):%u real_free: %u,"
                      " new_bits: %u",
-                    instance(),
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      instance(),
                     fragPtr.p->fragTableId,
-                    fragPtr.p->fragmentId,
+            
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 dirty_count,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     Uint32 dirty_count,  fragPtr.p->fragmentId,
                     pagePtr.p->m_file_no,
                     pagePtr.p->m_page_no,
                     pagePtr.i,
@@ -1908,8 +3011,7 @@ Dbtup::disk_page_alloc(Signal* signal,
     key->m_page_idx= ((Fix_page*)pagePtr.p)->alloc_record();
     jamLine(Uint16(key->m_page_idx));
     lsn= disk_page_undo_alloc(signal,
-                              pagePtr.p,
-                              key,
+                              pagePtr.p,               key,
                               gci,
                               logfile_group_id,
                               undo_size);
@@ -1946,9 +3048,19 @@ Dbtup::disk_page_alloc(Signal* signal,
       jam();
       Uint32 ext = pagePtr.p->m_extent_info_ptr;
       Ptr<Extent_info> extentPtr;
-      ndbrequire(c_extent_pool.getPtr(extentPtr, ext));
+      ndbrequire(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_extent_pool.getPtr(extentPtr, ext));
       disk_page_move_dirty_page(alloc,
-                                extentPtr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0, this, c_tsman,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+          0, this, c_tsman,             extentPtr,
                                 pagePtr,
                                 old_idx,
                                 new_idx,
@@ -1962,13 +3074,23 @@ Dbtup::disk_page_alloc(Signal* signal,
                         sz);
     }
     lsn= disk_page_undo_alloc(signal,
-                              pagePtr.p,
-                              key,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tsman(0, this, c_tsman,
+=======
+tsman(
+>>>>>>> MySQL 8.0.36
+        0, this, c_tsman,     pagePtr.p,            key,
                               gci,
                               logfile_group_id,
                               undo_size);
   }
-  DEB_PGMAN((
+  DEB_PGMAN(
+        (
     "(%u)disk_page_alloc: tab(%u,%u):%u,page(%u,%u).%u.%u,gci: %u,"
     "row_id(%u,%u), lsn=%llu, alloc_size: %u, free: %u, used: %u",
               instance(),
@@ -1988,68 +3110,178 @@ Dbtup::disk_page_alloc(Signal* signal,
               pagePtr.p->uncommitted_used_space));
 }
 
-void
-Dbtup::disk_page_free(Signal *signal, 
+void Dbtup::disk_page_free(Signal *signal, 
 		      Tablerec *tabPtrP,
-                      Fragrecord * fragPtrP,
-		      const Local_key* key,
-                      PagePtr pagePtr,
-                      Uint32 gci,
-                      const Local_key *row_id,
-                      Uint32 undo_len)
-{
+                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Fragrecord * fragPtrP,
+		
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Fragrecord* fragPtrP, 
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     Fragrecord 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*fragPtrP,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Local_key *key,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+PagePtr pagePtr,
+           
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ PagePtr pagePtr,
+           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     PagePtr pagePtr, Uint32 gci,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                       const Local_key *row_id,
+                      Uint32 undo_len) {
   jam();
   if (DBG_DISK)
     ndbout << " disk_page_free " << *key << endl;
   
   Uint32 page_idx= key->m_page_idx;
   jamLine(Uint16(key->m_page_idx));
-  Uint32 logfile_group_id= fragPtrP->m_logfile_group_id;
-  Disk_alloc_info& alloc= fragPtrP->m_disk_alloc_info;
+  Uint32 logfile_group_id = fragPtrP->m_logfile_group_id;
+  Disk_alloc_info &alloc = fragPtrP->m_disk_alloc_info;
   Uint32 old_free= pagePtr.p->free_space;
 
   Uint32 sz;
   Uint64 lsn;
-  if ((tabPtrP->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
-  {
+  if ((tabPtrP->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0) {
     jamDebug();
     sz = 1;
     const Uint32 *src= ((Fix_page*)pagePtr.p)->get_ptr(page_idx, 0);
     if (!((*(src + 1)) < Tup_page::DATA_WORDS))
     {
-      g_eventLogger->info(
-        "(%u)disk_page_free crash:tab(%u,%u):%u,page(%u,%u).%u.%u"
+      g_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+eventLogger->info(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+PGMAN((
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PGMAN(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+  (
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+"(%u)disk_page_free crash:tab(%u,%u):%u,page(%u,%u).%u.%u"
         ",gci:%u,row(%u,%u), row_ref(%u,%u)",
-                 instance(),
-                 fragPtrP->fragTableId,
-                 fragPtrP->fragmentId,
-                 pagePtr.p->m_create_table_version,
-                 pagePtr.p->m_file_no,
-                 pagePtr.p->m_page_no,
-                 page_idx,
-                 pagePtr.i,
-                 gci,
-                 row_id->m_page_no,
-                 row_id->m_page_idx,
+                 instance(),  fragPtrP->fragTableId,  fragPtrP->fragmentId,
+                 pagePtr.p->m_create_table_version,  pagePtr.p->m_file_no,  pagePtr.p->m_page_no,
+                 page_idx,  pagePtr.i,  gci,  row_id->m_page_no,  row_id->m_page_idx,
                  *src,
                  *(src + 1));
       ndbrequire(((*(src + 1)) < Tup_page::DATA_WORDS));
     }
-    lsn= disk_page_undo_free(signal,
+    lsn = disk_page_undo_free(signal,
                              pagePtr.p,
                              key,
 			     src,
                              tabPtrP->m_offsets[DD].m_fix_header_size,
-			     gci,
-                             logfile_group_id,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+			
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ 
+		      Tablerec *tabPtrP,
+                      Fragrecord * fragPtrP,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ Tablerec *tabPtrP,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    Fragrecord 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+gci,
+               
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Local_key* key,
+                      PagePtr pagePtr,
+               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fragPtrP, Local_key *key,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     PagePtr pagePtr,        logfile_group_id,
                              undo_len,
-                             false);
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Disk_alloc_info&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Disk_alloc_info
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+alloc=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&alloc =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  false);
     ((Fix_page*)pagePtr.p)->free_record(page_idx);
   }
   else
   {
     jam();
-    const Uint32 *src = ((Var_page*)pagePtr.p)->get_ptr(page_idx);
+    const Uint32 *src = ((Var_page *)pagePtr.p)->get_ptr(page_idx);
     sz = ((Var_page*)pagePtr.p)->get_entry_len(page_idx);
     Uint32 size_len = (sizeof(Dbtup::Disk_undo::Update_Free) >> 2);
     Uint32 new_undo_len = size_len + (sz - 1);
@@ -2080,22 +3312,27 @@ Dbtup::disk_page_free(Signal *signal,
      */
     ndbrequire(undo_len >= new_undo_len);
     ndbrequire((new_undo_len + 32) >= undo_len);
-    lsn = disk_page_undo_free(signal,
-                              pagePtr.p,
-                              key,
-			      src,
-                              sz,
-			      gci,
-                              logfile_group_id,
-                              undo_len,
+    lsn = disk_page_undo_free(signal,  pagePtr.p,  key,  src,
+                              sz,  gci,
+                              logfile_group_id,  undo_len,
                               true);
-    
+
     ((Var_page*)pagePtr.p)->free_record(page_idx, 0);
   }
-  DEB_PGMAN((
-    "(%u)disk_page_free:tab(%u,%u):%u,page(%u,%u).%u.%u,gci:%u,row(%u,%u)"
+  DEB_PGMAN(
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    (
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+"(%u)disk_page_free:tab(%u,%u):%u,page(%u,%u).%u.%u,gci:%u,row(%u,%u)"
     ", lsn=%llu, new_undo_len: %u, undo_len: %u",
-             instance(),
+       instance(),
              fragPtrP->fragTableId,
              fragPtrP->fragmentId,
              pagePtr.p->m_create_table_version,
@@ -2128,17 +3365,13 @@ Dbtup::disk_page_free(Signal *signal,
 
   Uint32 new_idx = alloc.calc_page_free_bits(new_free - used);
   ddrequire(alloc.calc_page_free_bits(old_free - used) == old_idx);
-  
+
   Ptr<Extent_info> extentPtr;
   ndbrequire(c_extent_pool.getPtr(extentPtr, ext));
-  
-  if (old_idx != new_idx)
-  {
+
+  if (old_idx != new_idx) {
     jam();
-    disk_page_move_dirty_page(alloc,
-                              extentPtr,
-                              pagePtr,
-                              old_idx,
+    disk_page_move_dirty_page(alloc, extentPtr, pagePtr, old_idx,
                               new_idx,
                               fragPtrP);
   }
@@ -2161,57 +3394,52 @@ Dbtup::disk_page_free(Signal *signal,
                     change);
 }
 
-void
-Dbtup::disk_page_abort_prealloc(Signal *signal, Fragrecord* fragPtrP, 
-				Local_key* key, Uint32 sz)
-{
+void Dbtup::disk_page_abort_prealloc(Signal *signal, Fragrecord *fragPtrP,
+                                     Local_key *key, Uint32 sz) {
   jam();
 
   Page_cache_client::Request req;
-  req.m_callback.m_callbackData= sz;
-  req.m_callback.m_callbackFunction = 
-    safe_cast(&Dbtup::disk_page_abort_prealloc_callback);
-  
-  int flags= Page_cache_client::ABORT_REQ;
+  req.m_callback.m_callbackData = sz;
+  req.m_callback.m_callbackFunction =
+      safe_cast(&Dbtup::disk_page_abort_prealloc_callback);
+
+  int flags = Page_cache_client::ABORT_REQ;
   memcpy(&req.m_page, key, sizeof(Local_key));
   req.m_table_id = fragPtrP->fragTableId;
   req.m_fragment_id = fragPtrP->fragmentId;
 
   Page_cache_client pgman(this, c_pgman);
-  int res= pgman.get_page(signal, req, flags);
+  int res = pgman.get_page(signal, req, flags);
   jamEntry();
-  switch(res)
-  {
-  case 0:
-    jam();
-    c_lqh->increment_usage_count_for_table(req.m_table_id);
-    break;
-  case -1:
-    ndbabort();
-  default:
-    jam();
-    ndbrequire(res > 0);
-    Ptr<GlobalPage> gpage;
-    ndbrequire(m_global_page_pool.getPtr(gpage, (Uint32)res));
-    PagePtr pagePtr;
-    pagePtr.i = gpage.i;
-    pagePtr.p = reinterpret_cast<Page*>(gpage.p);
+  switch (res) {
+    case 0:
+      jam();
+      c_lqh->increment_usage_count_for_table(req.m_table_id);
+      break;
+    case -1:
+      ndbabort();
+    default:
+      jam();
+      ndbrequire(res > 0);
+      Ptr<GlobalPage> gpage;
+      ndbrequire(m_global_page_pool.getPtr(gpage, (Uint32)res));
+      PagePtr pagePtr;
+      pagePtr.i = gpage.i;
+      pagePtr.p = reinterpret_cast<Page *>(gpage.p);
 
-    disk_page_abort_prealloc_callback_1(signal, fragPtrP, pagePtr, sz, 0);
+      disk_page_abort_prealloc_callback_1(signal, fragPtrP, pagePtr, sz, 0);
   }
 }
 
-void
-Dbtup::disk_page_abort_prealloc_callback(Signal* signal, 
-					 Uint32 sz, Uint32 page_id)
-{
-  jamEntry();  
+void Dbtup::disk_page_abort_prealloc_callback(Signal *signal, Uint32 sz,
+                                              Uint32 page_id) {
+  jamEntry();
   Ptr<GlobalPage> gpage;
   ndbrequire(m_global_page_pool.getPtr(gpage, page_id));
-  
+
   PagePtr pagePtr;
   pagePtr.i = gpage.i;
-  pagePtr.p = reinterpret_cast<Page*>(gpage.p);
+  pagePtr.p = reinterpret_cast<Page *>(gpage.p);
 
   Uint32 tableId = pagePtr.p->m_table_id;
 
@@ -2224,17 +3452,14 @@ Dbtup::disk_page_abort_prealloc_callback(Signal* signal,
   disk_page_abort_prealloc_callback_1(signal, fragPtr.p, pagePtr, sz, 0);
 }
 
-void
-Dbtup::disk_page_abort_prealloc_callback_1(Signal* signal, 
-					   Fragrecord* fragPtrP,
-					   PagePtr pagePtr,
-					   Uint32 sz,
-                                           Int32 change)
-{
+void Dbtup::disk_page_abort_prealloc_callback_1(Signal *signal,
+                                                Fragrecord *fragPtrP,
+                                                PagePtr pagePtr, Uint32 sz,
+                                           Int32 change) {
   jam();
   disk_page_set_dirty(pagePtr, fragPtrP);
 
-  Disk_alloc_info& alloc= fragPtrP->m_disk_alloc_info;
+  Disk_alloc_info &alloc = fragPtrP->m_disk_alloc_info;
 
   Ptr<Extent_info> extentPtr;
   ndbrequire(c_extent_pool.getPtr(extentPtr, pagePtr.p->m_extent_info_ptr));
@@ -2254,15 +3479,12 @@ Dbtup::disk_page_abort_prealloc_callback_1(Signal* signal,
 
   Uint32 new_idx = alloc.calc_page_free_bits(free - (used - sz));
 
-  if (idx != new_idx)
-  {
+  if (idx != new_idx) {
     jam();
-    disk_page_move_dirty_page(alloc,
-                              extentPtr,
+    disk_page_move_dirty_page(alloc, extentPtr,
                               pagePtr,
                               idx,
-                              new_idx,
-                              fragPtrP);
+                              new_idx, fragPtrP);
   }
   
   DEB_FREE_SPACE(("(%u) update_extent_pos from %u page(%u,%u)"
@@ -2283,132 +3505,161 @@ Dbtup::disk_page_abort_prealloc_callback_1(Signal* signal,
                     change);
 }
 
-Uint64
-Dbtup::disk_page_undo_alloc(Signal *signal,
-                            Page* page,
-                            const Local_key* key,
-                            Uint32 gci,
-                            Uint32 logfile_group_id,
-                            Uint32 alloc_size)
-{
+Uint64 Dbtup::disk_page_undo_alloc(Signal *signal, Page *page,
+                                   const Local_key *key,
+                     Uint32 gci,
+                                   Uint32 logfile_group_id, Uint32 alloc_size) {
   jam();
   Disk_undo::Alloc alloc;
-  alloc.m_type_length= (Disk_undo::UNDO_ALLOC << 16) | (sizeof(alloc) >> 2);
+  alloc.m_type_length = (Disk_undo::UNDO_ALLOC << 16) | (sizeof(alloc) >> 2);
   alloc.m_page_no = key->m_page_no;
-  alloc.m_file_no_page_idx= key->m_file_no << 16 | key->m_page_idx;
-  
-  Logfile_client::Change c[1] = {{ &alloc, sizeof(alloc) >> 2 } };
-  
+  alloc.m_file_no_page_idx = key->m_file_no << 16 | key->m_page_idx;
+
+  Logfile_client::Change c[1] = {{&alloc, sizeof(alloc) >> 2}};
+
   Uint64 lsn;
   {
     D("Logfile_client - disk_page_undo_alloc");
     Logfile_client lgman(this, c_lgman, logfile_group_id);
-    lsn= lgman.add_entry_simple(c, 1, alloc_size);
+    lsn = lgman.add_entry_simple(c, 1, alloc_size);
   }
   jamEntry();
   {
     Page_cache_client pgman(this, c_pgman);
-    pgman.update_lsn(signal, * key, lsn);
+    pgman.update_lsn(signal, *key, lsn);
   }
   jamEntry();
 
   return lsn;
 }
 
-Uint64
-Dbtup::disk_page_undo_update(Signal *signal,
-                             Page* page,
-                             const Local_key* key,
-			     const Uint32* src,
-                             Uint32 sz,
-			     Uint32 gci,
-                             Uint32 logfile_group_id,
-                             Uint32 alloc_size,
-                             bool var_disk)
-{
+Uint64 Dbtup::disk_page_undo_update(Signal *signal, Page *page,
+                                    const Local_key *key, const Uint32 *src,
+                                    Uint32 sz, Uint32 gci,
+                                    Uint32 logfile_group_id,
+                                    Uint32 alloc_size,
+                             bool var_disk) {
   jam();
 
   Disk_undo::Update_Free update;
   update.m_page_no = key->m_page_no;
-  update.m_file_no_page_idx= key->m_file_no << 16 | key->m_page_idx;
-  update.m_gci= gci;
-  
-  update.m_type_length= 
-    (Disk_undo::UNDO_UPDATE << 16) | (sz + (sizeof(update) >> 2) - 1);
+  update.m_file_no_page_idx = key->m_file_no << 16 | key->m_page_idx;
+  update.m_gci = gci;
+
+  update.m_type_length =
+      (Disk_undo::UNDO_UPDATE << 16) | (sz + (sizeof(update) >> 2) - 1);
 
   Logfile_client::Change c[3] = {
-    { &update, 3 },
-    { src, sz },
-    { &update.m_type_length, 1 }
-  };
+      {&update, 3}, {src, sz}, {&update.m_type_length, 1}};
 
-  ndbassert(4*(3 + sz + 1) == (sizeof(update) + 4*sz - 4));
+  ndbassert(4 * (3 + sz + 1) == (sizeof(update) + 4 * sz - 4));
 
   Uint64 lsn;
   {
     D("Logfile_client - disk_page_undo_update");
     Logfile_client lgman(this, c_lgman, logfile_group_id);
-    lsn= lgman.add_entry_complex(c, 3, true, alloc_size, var_disk);
+    lsn = lgman.add_entry_complex(c, 3, true, alloc_size, var_disk);
   }
   jamEntry();
   {
     Page_cache_client pgman(this, c_pgman);
-    pgman.update_lsn(signal, * key, lsn);
+    pgman.update_lsn(signal, *key, lsn);
   }
   jamEntry();
 
   return lsn;
 }
-  
-Uint64
-Dbtup::disk_page_undo_free(Signal *signal,
-                           Page* page,
+
+Uint64 Dbtup::disk_page_undo_free(Signal *signal, Page *page,
+                                  const Local_key *key, const Uint32 *src,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Page* page,
                            const Local_key* key,
 			   const Uint32* src,
-                           Uint32 sz,
+      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Page* page,
+           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+       Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+             Uint32 sz
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        const Local_key* key
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sz
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+			   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+			   const 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+Uint32 gci,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 logfile_group_id,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 sz,
 			   Uint32 gci,
-                           Uint32 logfile_group_id,
-                           Uint32 alloc_size,
-                           bool var_disk)
-{
+                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+       Uint32 alloc_size, bool var_disk) {
   jam();
 
   Disk_undo::Update_Free free;
   free.m_page_no = key->m_page_no;
-  free.m_file_no_page_idx= key->m_file_no << 16 | key->m_page_idx;
-  free.m_gci= gci;
-  
-  free.m_type_length= 
-    (Disk_undo::UNDO_FREE << 16) | (sz + (sizeof(free) >> 2) - 1);
-  
+  free.m_file_no_page_idx = key->m_file_no << 16 | key->m_page_idx;
+  free.m_gci = gci;
+
+  free.m_type_length =
+      (Disk_undo::UNDO_FREE << 16) | (sz + (sizeof(free) >> 2) - 1);
+
   Logfile_client::Change c[3] = {
-    { &free, 3 },
-    { src, sz },
-    { &free.m_type_length, 1 }
-  };
-  
-  ndbassert(4*(3 + sz + 1) == (sizeof(free) + 4*sz - 4));
-  
+      {&free, 3}, {src, sz}, {&free.m_type_length, 1}};
+
+  ndbassert(4 * (3 + sz + 1) == (sizeof(free) + 4 * sz - 4));
+
   Uint64 lsn;
   {
     D("Logfile_client - disk_page_undo_free");
     Logfile_client lgman(this, c_lgman, logfile_group_id);
-    lsn= lgman.add_entry_complex(c, 3, false, alloc_size, var_disk);
+    lsn = lgman.add_entry_complex(c, 3, false, alloc_size, var_disk);
   }
   jamEntry();
   {
     Page_cache_client pgman(this, c_pgman);
-    pgman.update_lsn(signal, * key, lsn);
+    pgman.update_lsn(signal, *key, lsn);
   }
   jamEntry();
   return lsn;
 }
-  
+
 #define DBG_UNDO 0
 
-void
-Dbtup::verify_undo_log_execution()
-{
+void Dbtup::verify_undo_log_execution() {
   ndbrequire(!f_undo.m_in_intermediate_log_record);
 }
 
@@ -2451,211 +3702,198 @@ Dbtup::verify_undo_log_execution()
  * When the page is available immediately, the callback which applies the
  * undo records (disk_restart_undo_callback()) is executed.
  */
-void
-Dbtup::disk_restart_undo(Signal* signal,
-                         Uint64 lsn,
-			 Uint32 type,
-                         const Uint32 * ptr,
-                         Uint32 len)
-{
+void Dbtup::disk_restart_undo(Signal *signal, Uint64 lsn, Uint32 type,
+                              const Uint32 *ptr, Uint32 len) {
   f_undo_done = false;
-  f_undo.m_lsn= lsn;
-  f_undo.m_ptr= ptr;
-  f_undo.m_len= len;
+  f_undo.m_lsn = lsn;
+  f_undo.m_ptr = ptr;
+  f_undo.m_len = len;
   f_undo.m_type = type;
 
   Page_cache_client::Request preq;
-  switch(f_undo.m_type){
-  case File_formats::Undofile::UNDO_LOCAL_LCP_FIRST:
-  case File_formats::Undofile::UNDO_LOCAL_LCP:
-  case File_formats::Undofile::UNDO_LCP_FIRST:
-  case File_formats::Undofile::UNDO_LCP:
-  {
-    /**
-     * Searching for end of UNDO log execution is only done in
-     * lgman.cpp. So here we assume that we are supposed to continue
-     * executing the UNDO log. So no checks for end in this logic.
-     */
-    jam();
-    Uint32 lcpId;
-    Uint32 localLcpId;
-    Uint32 tableId;
-    Uint32 fragId;
-    if (f_undo.m_type == File_formats::Undofile::UNDO_LOCAL_LCP ||
-        f_undo.m_type == File_formats::Undofile::UNDO_LOCAL_LCP_FIRST)
-    {
+  switch (f_undo.m_type) {
+    case File_formats::Undofile::UNDO_LOCAL_LCP_FIRST:
+    case File_formats::Undofile::UNDO_LOCAL_LCP:
+    case File_formats::Undofile::UNDO_LCP_FIRST:
+    case File_formats::Undofile::UNDO_LCP: {
+      /**
+       * Searching for end of UNDO log execution is only done in
+       * lgman.cpp. So here we assume that we are supposed to continue
+       * executing the UNDO log. So no checks for end in this logic.
+       */
       jam();
-      ndbrequire(len == 4);
-      lcpId = ptr[0];
-      localLcpId = ptr[1];
-      tableId = ptr[2] >> 16;
-      fragId = ptr[2] & 0xFFFF;
+      Uint32 lcpId;
+      Uint32 localLcpId;
+      Uint32 tableId;
+      Uint32 fragId;
+      if (f_undo.m_type == File_formats::Undofile::UNDO_LOCAL_LCP ||
+          f_undo.m_type == File_formats::Undofile::UNDO_LOCAL_LCP_FIRST) {
+        jam();
+        ndbrequire(len == 4);
+        lcpId = ptr[0];
+        localLcpId = ptr[1];
+        tableId = ptr[2] >> 16;
+        fragId = ptr[2] & 0xFFFF;
+      } else {
+        jam();
+        ndbrequire(len == 3);
+        lcpId = ptr[0];
+        localLcpId = 0;
+        tableId = ptr[1] >> 16;
+        fragId = ptr[1] & 0xFFFF;
+      }
+      if (tableId != 0) {
+        jam();
+        disk_restart_undo_lcp(tableId, fragId, Fragrecord::UC_LCP, lcpId,
+                              localLcpId, lsn);
+      }
+      if (!isNdbMtLqh()) disk_restart_undo_next(signal);
+
+      DEB_UNDO_LCP(("(%u)UNDO LCP [%u,%u] tab(%u,%u)", instance(), lcpId,
+                    localLcpId, tableId, fragId));
+      return;
     }
-    else
-    {
+    case File_formats::Undofile::UNDO_TUP_ALLOC: {
       jam();
-      ndbrequire(len == 3);
-      lcpId = ptr[0];
-      localLcpId = 0;
-      tableId = ptr[1] >> 16;
-      fragId = ptr[1] & 0xFFFF;
-    }
-    if (tableId != 0)
-    {
-      jam();
-      disk_restart_undo_lcp(tableId,
-                            fragId,
-                            Fragrecord::UC_LCP,
-                            lcpId,
-                            localLcpId,
-                            lsn);
-    }
-    if (!isNdbMtLqh())
-      disk_restart_undo_next(signal);
-    
-    DEB_UNDO_LCP(("(%u)UNDO LCP [%u,%u] tab(%u,%u)",
-                  instance(),
-                  lcpId,
-                  localLcpId,
-                  tableId,
-                  fragId));
-    return;
-  }
-  case File_formats::Undofile::UNDO_TUP_ALLOC:
-  {
-    jam();
-    Disk_undo::Alloc* rec= (Disk_undo::Alloc*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
+      Disk_undo::Alloc *rec = (Disk_undo::Alloc *)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
     f_undo.m_tot_len = 0;
     break;
-  }
-  case File_formats::Undofile::UNDO_TUP_UPDATE:
-  {
-    jam();
-    Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
+    }
+    case File_formats::Undofile::UNDO_TUP_UPDATE: {
+      jam();
+      Disk_undo::Update
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+_Free*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ *rec = (Disk_undo::Update_Free*)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
     f_undo.m_tot_len = 0;
     break;
-  }
-  case File_formats::Undofile::UNDO_TUP_UPDATE_PART:
-  case File_formats::Undofile::UNDO_TUP_UPDATE_VAR_PART:
+    }
+    case File_formats::Undofile::UNDO_TUP_UPDATE_PART: case File_formats::Undofile::UNDO_TUP_UPDATE_VAR_PART:
   {
-    jam();
-    Disk_undo::UpdatePart* rec= (Disk_undo::UpdatePart*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = rec->m_offset;
+      jam();
+      Disk_undo::UpdatePart *rec = (Disk_undo::UpdatePart *)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = rec->m_offset;
     f_undo.m_tot_len = 0;
     break;
-  }
-  case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_VAR_PART:
-  case File_formats::Undofile::UNDO_TUP_FREE_VAR_PART:
-  {
-    jam();
-    Disk_undo::Update_Free_FirstVarPart* rec=
+    }
+    case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_VAR_PART:
+  case File_formats::Undofile::UNDO_TUP_FREE_VAR_PART: {
+      jam();
+      Disk_undo::Update
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+_Free_FirstVarPart*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ *rec =
       (Disk_undo::Update_Free_FirstVarPart*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
     f_undo.m_tot_len = rec->m_tot_len;
     break;
-  }
-  case File_formats::Undofile::UNDO_TUP_FREE:
-  {
-    jam();
-    Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
-    f_undo.m_tot_len = 0;
-    break;
-  }
-  case File_formats::Undofile::UNDO_TUP_FREE_PART:
-  case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_PART:
-  {
-    jam();
-    Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
-    f_undo.m_tot_len = 0;
-    break;
-  }
-  case File_formats::Undofile::UNDO_TUP_DROP:
-  {
-    jam();
-    Disk_undo::Drop* rec = (Disk_undo::Drop*)ptr;
-    /**
-     * We could come here in a number of situations:
-     * 1) It could be a record that belongs to a table that we are not
-     *    restoring, in this case we won't find the table in the search
-     *    below.
-     * 2) It could belong to a table we are restoring, but this is a
-     *    drop of a previous incarnation of this table. Definitely no
-     *    more log records should be executed for this table.
-     * 
-     * Coming here after we reached the end of the fragment LCP should not
-     * happen, so we insert an ndbrequire to ensure this doesn't happen.
-     */
-    Uint32 tableId = rec->m_table;
-    if (tableId < cnoOfTablerec)
-    {
+    }
+    case File_formats::Undofile::UNDO_TUP_FREE: {
       jam();
-      DEB_UNDO_LCP(("(%u)UNDO_TUP_DROP: lsn: %llu, tab: %u",
-                    instance(),
-                    lsn,
-                    tableId));
-      for(Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
-      {
+      Disk_undo::Update_Free *rec = (Disk_undo::Update_Free *)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
+    f_undo.m_tot_len = 0;
+    break;
+    }
+    case File_formats::Undofile::UNDO_TUP_FREE_PART: case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_PART:
+  {
+      jam();
+      Disk_undo::Update_Free *rec = (Disk_undo::Update_Free *)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
+    f_undo.m_tot_len = 0;
+    break;
+    }
+    case File_formats::Undofile::UNDO_TUP_DROP: {
+      jam();
+      Disk_undo::Drop *rec = (Disk_undo::Drop *)ptr;
+    /**
+       * We could come here in a number of situations:
+       * 1) It could be a record that belongs to a table that we are not
+       *    restoring, in this case we won't find the table in the search
+       *    below.
+       * 2) It could belong to a table we are restoring, but this is a
+       *    drop of a previous incarnation of this table. Definitely no
+       *    more log records should be executed for this table.
+       *
+       * Coming here after we reached the end of the fragment LCP should not
+       * happen, so we insert an ndbrequire to ensure this doesn't happen.
+       */
+    Uint32 tableId = rec->m_table;
+      if (tableId < cnoOfTablerec) {
         jam();
-        Uint32 fragId = c_lqh->getNextTupFragid(tableId, i);
-        if (fragId != RNIL)
-        {
+      DEB_UNDO_LCP(("(%u)UNDO_TUP_DROP: lsn: %llu, tab: %u", instance(), lsn,
+                    tableId));
+        for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++) {
           jam();
-          jamLine(Uint16(fragId));
-          disk_restart_undo_lcp(tableId, fragId,
-                                Fragrecord::UC_DROP, 0, 0, lsn);
+        Uint32 fragId = c_lqh->getNextTupFragid(tableId, i);
+        if (fragId != RNIL) {
+            jam();
+            jamLine(Uint16(fragId));
+            disk_restart_undo_lcp(tableId, fragId,
+                                  Fragrecord::UC_DROP, 0, 0, lsn);
+          }
         }
       }
+    return;
     }
-    return;
-  }
-  case File_formats::Undofile::UNDO_END:
-    jam();
-    f_undo_done = true;
-    ndbrequire(c_pending_undo_page_hash.getCount() == 0);
-    return;
-  default:
-    ndbabort();
+    case File_formats::Undofile::UNDO_END:
+      jam();
+      f_undo_done = true;
+      ndbrequire(c_pending_undo_page_hash.getCount() == 0);
+      return;
+    default:
+      ndbabort();
   }
 
   f_undo.m_key = preq.m_page;
   preq.m_table_id = (~0); /* Special code for table id for UNDO_REQ */
   preq.m_fragment_id = 0;
-  preq.m_callback.m_callbackFunction = 
-    safe_cast(&Dbtup::disk_restart_undo_callback);
+  preq.m_callback.m_callbackFunction =
+      safe_cast(&Dbtup::disk_restart_undo_callback);
 
   Ptr<Pending_undo_page> cur_undo_record_page;
   cur_undo_record_page.i = RNIL;
   cur_undo_record_page.p = nullptr;
 
-  if (isNdbMtLqh())
-  {
+  if (isNdbMtLqh()) {
     jam();
     Pending_undo_page key(preq.m_page.m_file_no, preq.m_page.m_page_no);
 
-    if (c_pending_undo_page_hash.find(cur_undo_record_page, key))
-    {
+    if (c_pending_undo_page_hash.find(cur_undo_record_page, key)) {
       jam();
       /**
        *  Page of the current undo record being processed already has a pending
@@ -2671,17 +3909,12 @@ Dbtup::disk_restart_undo(Signal* signal,
                                     cur_undo_record_page.p->m_apply_undo_head);
       // add to Apply_undo list of the page it belongs to
       undoList.addLast(cur_undo_record);
-      DEB_UNDO(("LDM(%u) WAIT page(%u,%u) count:%u lsn:%llu,"
-                " data[%u,%u,%u], pending.p = %p",
-                instance(),
-                preq.m_page.m_file_no,
-                preq.m_page.m_page_no,
-                undoList.getCount(),
-                f_undo.m_lsn,
-                f_undo.m_data[3],
-                f_undo.m_data[4],
-                f_undo.m_data[5],
-                cur_undo_record.p));
+      DEB_UNDO(
+          ("LDM(%u) WAIT page(%u,%u) count:%u lsn:%llu,"
+           " data[%u,%u,%u], pending.p = %p",
+           instance(), preq.m_page.m_file_no, preq.m_page.m_page_no,
+           undoList.getCount(), f_undo.m_lsn, f_undo.m_data[3],
+           f_undo.m_data[4], f_undo.m_data[5], cur_undo_record.p));
       ndbrequire(undoList.getCount() <= MAX_PENDING_UNDO_RECORDS);
       return;
     }
@@ -2694,78 +3927,66 @@ Dbtup::disk_restart_undo(Signal* signal,
 
   int flags = Page_cache_client::UNDO_REQ;
   Page_cache_client pgman(this, c_pgman);
-  int res= pgman.get_page(signal, preq, flags);
+  int res = pgman.get_page(signal, preq, flags);
 
   jamEntry();
 
-  switch(res)
-  {
-  case 0:
-    jam();
-    m_immediate_flag = false;
-
-    if (isNdbMtLqh())
-    {
-      //initialize page, add to hash table
-      new(cur_undo_record_page.p)
-          Pending_undo_page(preq.m_page.m_file_no, preq.m_page.m_page_no);
-      c_pending_undo_page_hash.add(cur_undo_record_page);
-
-      //add undo record to list
-      Ptr<Apply_undo> cur_undo_record;
-      ndbrequire(c_apply_undo_pool.seize(cur_undo_record));
-
-      f_undo.m_magic = cur_undo_record.p->m_magic;
-      *(cur_undo_record.p) = f_undo;
-
-      LocalApply_undo_list undoList(c_apply_undo_pool,
-                                    cur_undo_record_page.p->m_apply_undo_head);
-      undoList.addLast(cur_undo_record);
-      DEB_UNDO(("LDM(%u) FIRST WAIT page(%u,%u) count:%u lsn:%llu,"
-                " data[%u,%u,%u], pending.p = %p",
-                instance(),
-                preq.m_page.m_file_no,
-                preq.m_page.m_page_no,
-                undoList.getCount(),
-                f_undo.m_lsn,
-                f_undo.m_data[3],
-                f_undo.m_data[4],
-                f_undo.m_data[5],
-                cur_undo_record.p));
-
-    }
-    break; // Wait for callback
-  case -1:
-    ndbabort();
-  default:
-    ndbrequire(res > 0);
-    DEB_UNDO(("LDM(%u) DIRECT_EXECUTE Page:%u lsn:%llu",
-                        instance(),
-                        preq.m_page.m_page_no,
-                        f_undo.m_lsn));
-    if (isNdbMtLqh())
-    {
+  switch (res) {
+    case 0:
       jam();
-      c_pending_undo_page_pool.release(cur_undo_record_page);
-      // no page stored in hash, so i = RNIL
-      preq.m_callback.m_callbackData = RNIL;
-    }
-    jam();
-    /**
-     * The m_immediate_flag variable stays false except for the time
-     * from this call to execute until we reach the callback
-     * where it is immediately read and immediately set back to
-     * false again. Essentially this is a parameter to the
-     * callback which is hard to get into the callback handling.
-     */
-    m_immediate_flag = true;
-    execute(signal, preq.m_callback, res); // run callback
+      m_immediate_flag = false;
+
+      if (isNdbMtLqh()) {
+        // initialize page, add to hash table
+        new (cur_undo_record_page.p)
+            Pending_undo_page(preq.m_page.m_file_no, preq.m_page.m_page_no);
+        c_pending_undo_page_hash.add(cur_undo_record_page);
+
+        // add undo record to list
+        Ptr<Apply_undo> cur_undo_record;
+        ndbrequire(c_apply_undo_pool.seize(cur_undo_record));
+
+        f_undo.m_magic = cur_undo_record.p->m_magic;
+        *(cur_undo_record.p) = f_undo;
+
+        LocalApply_undo_list undoList(
+            c_apply_undo_pool, cur_undo_record_page.p->m_apply_undo_head);
+        undoList.addLast(cur_undo_record);
+        DEB_UNDO(
+            ("LDM(%u) FIRST WAIT page(%u,%u) count:%u lsn:%llu,"
+             " data[%u,%u,%u], pending.p = %p",
+             instance(), preq.m_page.m_file_no, preq.m_page.m_page_no,
+             undoList.getCount(), f_undo.m_lsn, f_undo.m_data[3],
+             f_undo.m_data[4], f_undo.m_data[5], cur_undo_record.p));
+      }
+      break;  // Wait for callback
+    case -1:
+      ndbabort();
+    default:
+      ndbrequire(res > 0);
+      DEB_UNDO(("LDM(%u) DIRECT_EXECUTE Page:%u lsn:%llu", instance(),
+                preq.m_page.m_page_no, f_undo.m_lsn));
+      if (isNdbMtLqh()) {
+        jam();
+        c_pending_undo_page_pool.release(cur_undo_record_page);
+        // no page stored in hash, so i = RNIL
+        preq.m_callback.m_callbackData = RNIL;
+      }
+      jam();
+      /**
+       * The m_immediate_flag variable stays false except for the time
+       * from this call to execute until we reach the callback
+       * where it is immediately read and immediately set back to
+       * false again. Essentially this is a parameter to the
+       * callback which is hard to get into the callback handling.
+       */
+      m_immediate_flag = true;
+      execute(signal, preq.m_callback, res);  // run callback
   }
 }
 
-void
-Dbtup::disk_restart_undo_next(Signal* signal, Uint32 applied, Uint32 count_pending)
-{
+void Dbtup::disk_restart_undo_next(Signal *signal, Uint32 applied,
+                                   Uint32 count_pending) {
   signal->theData[0] = LgmanContinueB::EXECUTE_UNDO_RECORD;
   /* Flag indicating whether UNDO log was applied. */
   signal->theData[1] = applied;
@@ -2778,186 +3999,130 @@ Dbtup::disk_restart_undo_next(Signal* signal, Uint32 applied, Uint32 count_pendi
  * lcpId == RNIL when no LCP exists. It is called with the lcpId to restore
  * the fragment with when called with a value other than RNIL.
  */
-void
-Dbtup::disk_restart_lcp_id(Uint32 tableId,
-                           Uint32 fragId,
-                           Uint32 lcpId,
-                           Uint32 localLcpId)
-{
+void Dbtup::disk_restart_lcp_id(Uint32 tableId, Uint32 fragId, Uint32 lcpId,
+                                Uint32 localLcpId) {
   /**
    * disk_restart_lcp_id is called from DBLQH when the restore of a
    * fragment is completed. At this time we know exactly which
    * lcpId that this fragment should use in its restore.
    * If no LCP is used to restore then lcpId is RNIL.
    */
-  if (lcpId == RNIL)
-  {
+  if (lcpId == RNIL) {
     jam();
     disk_restart_undo_lcp(tableId, fragId, Fragrecord::UC_NO_LCP, 0, 0, 0);
-    DEB_UNDO_LCP(("(%u)mark_no_lcp tab(%u,%u), UC_NO_LCP",
-                  instance(),
-                  tableId,
-                  fragId));
-  }
-  else
-  {
+    DEB_UNDO_LCP(
+        ("(%u)mark_no_lcp tab(%u,%u), UC_NO_LCP", instance(), tableId, fragId));
+  } else {
     jam();
-    disk_restart_undo_lcp(tableId,
-                          fragId,
-                          Fragrecord::UC_SET_LCP,
-                          lcpId,
-                          localLcpId,
-                          0); 
+    disk_restart_undo_lcp(tableId, fragId, Fragrecord::UC_SET_LCP, lcpId,
+                          localLcpId, 0);
     DEB_UNDO_LCP(("(%u)mark_no_lcp tab(%u,%u), UC_SET_LCP, LCP(%u,%u)",
-                  instance(),
-                  tableId,
-                  fragId,
-                  lcpId,
-                  localLcpId));
+                  instance(), tableId, fragId, lcpId, localLcpId));
   }
 }
 
-void
-Dbtup::disk_restart_undo_lcp(Uint32 tableId,
-                             Uint32 fragId,
-                             Uint32 flag, 
-			     Uint32 lcpId,
-                             Uint32 localLcpId,
-                             Uint32 lsn)
-{
+void Dbtup::disk_restart_undo_lcp(Uint32 tableId, Uint32 fragId, Uint32 flag,
+                                  Uint32 lcpId, Uint32 localLcpId, Uint32 lsn) {
   Ptr<Tablerec> tabPtr;
-  tabPtr.i= tableId;
+  tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
 
   if (tabPtr.p->tableStatus == DEFINED &&
-      tabPtr.p->m_no_of_real_disk_attributes)
-  {
+      tabPtr.p->m_no_of_real_disk_attributes) {
     jam();
     FragrecordPtr fragPtr;
     getFragmentrec(fragPtr, fragId, tabPtr.i);
-    if (!fragPtr.isNull())
-    {
+    if (!fragPtr.isNull()) {
       jam();
-      DEB_UNDO_LCP(("(%u)tab(%u,%u), lcp(%u,%u), flag: %u,"
-                    " Fragment restore LCP(%u,%u), complete: %u",
-                    instance(),
-                    tableId,
-                    fragId,
-                    lcpId,
-                    localLcpId,
-                    flag,
-                    fragPtr.p->m_restore_lcp_id,
-                    fragPtr.p->m_restore_local_lcp_id,
-                    fragPtr.p->m_undo_complete));
-      switch(flag){
-      case Fragrecord::UC_DROP:
-      {
-        jam();
-        /**
-         * In this case we have decided to start with a table.
-         * If the table was dropped it must have been another table
-         * that was dropped. Given that UNDO_TUP_CREATE isn't
-         * logged we can find this at times. We should not look
-         * any more at log records from this table going backwards
-         * since they are belonging to an old table.
-         */
-	fragPtr.p->m_undo_complete = Fragrecord::UC_CREATE;
-        return;
-      }
-      case Fragrecord::UC_CREATE:
-      {
-        /**
-         * We have reached a point in the undo log record where the table
-         * was created. This is not always inserted, but we don't perform
-         * any UNDO operations after this operation have been seen.
-         */
-        jam();
-	fragPtr.p->m_undo_complete = Fragrecord::UC_CREATE;
-	return;
-      }
-      case Fragrecord::UC_NO_LCP:
-      {
-        jam();
-        /**
-         * We are restoring a table that had no LCPs connected to it.
-         * We need to run the UNDO log for this table all the way back
-         * to the table creation. We don't track table creations in the
-         * UNDO log, so we have to execute the UNDO log back to the
-         * LCP before it was created.
-         */
-	fragPtr.p->m_undo_complete = Fragrecord::UC_NO_LCP;
-        return;
-      }
-      case Fragrecord::UC_LCP:
-	jam();
-        if (fragPtr.p->m_undo_complete == 0 &&
-            fragPtr.p->m_restore_lcp_id == lcpId &&
-            fragPtr.p->m_restore_local_lcp_id == localLcpId)
-	{
-	  jam();
+      DEB_UNDO_LCP(
+          ("(%u)tab(%u,%u), lcp(%u,%u), flag: %u,"
+           " Fragment restore LCP(%u,%u), complete: %u",
+           instance(), tableId, fragId, lcpId, localLcpId, flag,
+           fragPtr.p->m_restore_lcp_id, fragPtr.p->m_restore_local_lcp_id,
+           fragPtr.p->m_undo_complete));
+      switch (flag) {
+        case Fragrecord::UC_DROP: {
+          jam();
           /**
-           * We have reached the LCP UNDO log record, this indicates that the
-           * fragment is now rolled back to where it should be.
-           * We might still need to execute UNDO log record to synchronize the
-           * page information with the extent bits.
+           * In this case we have decided to start with a table.
+           * If the table was dropped it must have been another table
+           * that was dropped. Given that UNDO_TUP_CREATE isn't
+           * logged we can find this at times. We should not look
+           * any more at log records from this table going backwards
+           * since they are belonging to an old table.
            */
-	  fragPtr.p->m_undo_complete = flag;
-          DEB_UNDO_LCP(("(%u)tab(%u,%u) lcp(%u,%u) -> done, lsn=%u",
-                        instance(),
-                        tableId,
-                        fragId,
-                        lcpId,
-                        localLcpId,
-                        lsn));
-	}
-	return;
-      case Fragrecord::UC_SET_LCP:
-      {
-	jam();
-        /**
-         * Used before UNDO log execution starts to set
-         * m_restore_lcp_id for the fragment.
-         */
-        DEB_UNDO_LCP(("(%u)table(%u,%u) restore to lcp(%u,%u)",
-                      instance(),
-                      tableId,
-                      fragId,
-                      lcpId,
-                      localLcpId));
-	ndbrequire(fragPtr.p->m_undo_complete == 0);
-	ndbrequire(fragPtr.p->m_restore_lcp_id == RNIL);
-	fragPtr.p->m_restore_lcp_id = lcpId;
-        fragPtr.p->m_restore_local_lcp_id = localLcpId;
-	return;
-      }
+          fragPtr.p->m_undo_complete = Fragrecord::UC_CREATE;
+          return;
+        }
+        case Fragrecord::UC_CREATE: {
+          /**
+           * We have reached a point in the undo log record where the table
+           * was created. This is not always inserted, but we don't perform
+           * any UNDO operations after this operation have been seen.
+           */
+          jam();
+          fragPtr.p->m_undo_complete = Fragrecord::UC_CREATE;
+          return;
+        }
+        case Fragrecord::UC_NO_LCP: {
+          jam();
+          /**
+           * We are restoring a table that had no LCPs connected to it.
+           * We need to run the UNDO log for this table all the way back
+           * to the table creation. We don't track table creations in the
+           * UNDO log, so we have to execute the UNDO log back to the
+           * LCP before it was created.
+           */
+          fragPtr.p->m_undo_complete = Fragrecord::UC_NO_LCP;
+          return;
+        }
+        case Fragrecord::UC_LCP:
+          jam();
+          if (fragPtr.p->m_undo_complete == 0 &&
+              fragPtr.p->m_restore_lcp_id == lcpId &&
+              fragPtr.p->m_restore_local_lcp_id == localLcpId) {
+            jam();
+            /**
+             * We have reached the LCP UNDO log record, this indicates that the
+             * fragment is now rolled back to where it should be.
+             * We might still need to execute UNDO log record to synchronize the
+             * page information with the extent bits.
+             */
+            fragPtr.p->m_undo_complete = flag;
+            DEB_UNDO_LCP(("(%u)tab(%u,%u) lcp(%u,%u) -> done, lsn=%u",
+                          instance(), tableId, fragId, lcpId, localLcpId, lsn));
+          }
+          return;
+        case Fragrecord::UC_SET_LCP: {
+          jam();
+          /**
+           * Used before UNDO log execution starts to set
+           * m_restore_lcp_id for the fragment.
+           */
+          DEB_UNDO_LCP(("(%u)table(%u,%u) restore to lcp(%u,%u)", instance(),
+                        tableId, fragId, lcpId, localLcpId));
+          ndbrequire(fragPtr.p->m_undo_complete == 0);
+          ndbrequire(fragPtr.p->m_restore_lcp_id == RNIL);
+          fragPtr.p->m_restore_lcp_id = lcpId;
+          fragPtr.p->m_restore_local_lcp_id = localLcpId;
+          return;
+        }
       }
       jamLine(flag);
       ndbabort();
+    } else {
+      DEB_UNDO_LCP(
+          ("(%u)table(%u,%u) No fragment found", instance(), tableId, fragId));
     }
-    else
-    {
-      DEB_UNDO_LCP(("(%u)table(%u,%u) No fragment found",
-                    instance(),
-                    tableId,
-                    fragId));
-    }
-  }
-  else
-  {
-    DEB_UNDO_LCP(("(%u)table(%u,%u) tabStatus: %u, disk: %u",
-                  instance(),
-                  tableId,
-                  fragId,
-                  tabPtr.p->tableStatus,
+  } else {
+    DEB_UNDO_LCP(("(%u)table(%u,%u) tabStatus: %u, disk: %u", instance(),
+                  tableId, fragId, tabPtr.p->tableStatus,
                   tabPtr.p->m_no_of_real_disk_attributes));
   }
 }
 
-void
-Dbtup::release_undo_record(Ptr<Apply_undo>& undo_record, bool pending)
-{
-  if (pending)
-  {
+void Dbtup::release_undo_record(Ptr<Apply_undo> &undo_record, bool pending) {
+  if (pending) {
     jam();
     c_apply_undo_pool.release(undo_record);
   }
@@ -2972,53 +4137,42 @@ Dbtup::release_undo_record(Ptr<Apply_undo>& undo_record, bool pending)
  * If it isn't present, the current undo record being processed in this signal
  * execution is the one which should be applied (f_undo).
  */
-void
-Dbtup::disk_restart_undo_callback(Signal* signal,
-				  Uint32 page_i,
-				  Uint32 page_id)
-{
+void Dbtup::disk_restart_undo_callback(Signal *signal, Uint32 page_i,
+                                       Uint32 page_id) {
   jamEntry();
   Ptr<GlobalPage> gpage;
   ndbrequire(m_global_page_pool.getPtr(gpage, page_id));
   PagePtr pagePtr;
   pagePtr.i = gpage.i;
-  pagePtr.p = reinterpret_cast<Page*>(gpage.p);
+  pagePtr.p = reinterpret_cast<Page *>(gpage.p);
   bool immediate_flag = m_immediate_flag;
   m_immediate_flag = false;
-  Pending_undo_page* pendingPage = NULL;
-  Apply_undo* undo = &f_undo;
+  Pending_undo_page *pendingPage = NULL;
+  Apply_undo *undo = &f_undo;
   Uint32 count_pending = 1;
 
   bool pending = false;
 
-  if (isNdbMtLqh())
-  {
+  if (isNdbMtLqh()) {
     jam();
     pending = (page_i != RNIL);
 
-    if (pending)
-    {
+    if (pending) {
       jam();
       pendingPage = c_pending_undo_page_hash.getPtr(page_i);
       // page has outstanding undo records
       LocalApply_undo_list undoList(c_apply_undo_pool,
                                     pendingPage->m_apply_undo_head);
       count_pending = undoList.getCount();
-      Tup_fixsize_page *fix_page = (Tup_fixsize_page*)pagePtr.p;
+      Tup_fixsize_page *fix_page = (Tup_fixsize_page *)pagePtr.p;
       (void)fix_page;
-      DEB_UNDO(("LDM(%u) EXECUTE LIST CALLBACK page(%u,%u) on_page(%u,%u)"
-                " tab(%u,%u) count:%u",
-                instance(),
-                pendingPage->m_file_no,
-                pendingPage->m_page_no,
-                fix_page->m_file_no,
-                fix_page->m_page_no,
-                fix_page->m_table_id,
-                fix_page->m_fragment_id,
-                count_pending));
-    }
-    else
-    {
+      DEB_UNDO(
+          ("LDM(%u) EXECUTE LIST CALLBACK page(%u,%u) on_page(%u,%u)"
+           " tab(%u,%u) count:%u",
+           instance(), pendingPage->m_file_no, pendingPage->m_page_no,
+           fix_page->m_file_no, fix_page->m_page_no, fix_page->m_table_id,
+           fix_page->m_fragment_id, count_pending));
+    } else {
       DEB_UNDO(("LDM(%u) PAGE_NOT_FOUND_HASH", instance()));
     }
   }
@@ -3073,10 +4227,8 @@ Dbtup::disk_restart_undo_callback(Signal* signal,
    * also synchronize the extent bits with the page information.
    */
 
-  if (! (pagePtr.p->list_index & 0x8000) ||
-      pagePtr.p->nextList != RNIL ||
-      pagePtr.p->prevList != RNIL)
-  {
+  if (!(pagePtr.p->list_index & 0x8000) || pagePtr.p->nextList != RNIL ||
+      pagePtr.p->prevList != RNIL) {
     jam();
     pagePtr.p->list_index |= 0x8000;
     pagePtr.p->nextList = pagePtr.p->prevList = RNIL;
@@ -3085,49 +4237,40 @@ Dbtup::disk_restart_undo_callback(Signal* signal,
     lsn += pagePtr.p->m_page_header.m_page_lsn_hi;
     lsn <<= 32;
     lsn += pagePtr.p->m_page_header.m_page_lsn_lo;
-    DEB_EXTENT_BITS(("(%u)Set list_index bit 0x8000 on page(%u,%u)"
-                     " when undo, page_lsn = %llu, key(%u,%u).%u"
-                     ", undo_lsn: %llu",
-                     instance(),
-                     pagePtr.p->m_file_no,
-                     pagePtr.p->m_page_no,
-                     lsn,
-                     undo->m_key.m_file_no,
-                     undo->m_key.m_page_no,
-                     undo->m_key.m_page_idx,
-                     undo->m_lsn));
+    DEB_EXTENT_BITS(
+        ("(%u)Set list_index bit 0x8000 on page(%u,%u)"
+         " when undo, page_lsn = %llu, key(%u,%u).%u"
+         ", undo_lsn: %llu",
+         instance(), pagePtr.p->m_file_no, pagePtr.p->m_page_no, lsn,
+         undo->m_key.m_file_no, undo->m_key.m_page_no, undo->m_key.m_page_idx,
+         undo->m_lsn));
 #endif
   }
-  
-  Uint32 tableId= pagePtr.p->m_table_id;
+
+  Uint32 tableId = pagePtr.p->m_table_id;
   Uint32 fragId = pagePtr.p->m_fragment_id;
   Uint32 applied = 0;
 
-  if (!pending) // direct execute, page not present in hash table.
+  if (!pending)  // direct execute, page not present in hash table.
   {
     ndbrequire(count_pending == 1);
   }
 
-  for (Uint32 i = 1; i <= count_pending; i++)
-  {
+  for (Uint32 i = 1; i <= count_pending; i++) {
     Ptr<Apply_undo> pending_undo;
-    if (pending)
-    {
+    if (pending) {
       jam();
-      //Remove, process, release all Apply_undo from the list.
+      // Remove, process, release all Apply_undo from the list.
       LocalApply_undo_list undoList(c_apply_undo_pool,
                                     pendingPage->m_apply_undo_head);
       undoList.removeFirst(pending_undo);
       undo = pending_undo.p;
       undo->m_ptr = &undo->m_data[0];
-      DEB_UNDO(("(%u) Execute pending data[%u,%u,%u], lsn: %llu,"
-                " pending.p = %p",
-                instance(),
-                undo->m_data[3],
-                undo->m_data[4],
-                undo->m_data[5],
-                undo->m_lsn,
-                pending_undo.p));
+      DEB_UNDO(
+          ("(%u) Execute pending data[%u,%u,%u], lsn: %llu,"
+           " pending.p = %p",
+           instance(), undo->m_data[3], undo->m_data[4], undo->m_data[5],
+           undo->m_lsn, pending_undo.p));
     }
 
     /**
@@ -3141,33 +4284,25 @@ Dbtup::disk_restart_undo_callback(Signal* signal,
     preq.m_fragment_id = fragId;
     Page_cache_client pgman(this, c_pgman);
     ndbrequire(pgman.init_page_entry(preq));
-  
+
     // process the undo record/s
-    if (tableId >= cnoOfTablerec)
-    {
+    if (tableId >= cnoOfTablerec) {
       jam();
-      DEB_UNDO(("(%u)UNDO table> %u, page(%u,%u).%u",
-               instance(),
-               tableId,
-               undo->m_key.m_file_no,
-               undo->m_key.m_page_no,
-               undo->m_key.m_page_idx));
+      DEB_UNDO(("(%u)UNDO table> %u, page(%u,%u).%u", instance(), tableId,
+                undo->m_key.m_file_no, undo->m_key.m_page_no,
+                undo->m_key.m_page_idx));
       release_undo_record(pending_undo, pending);
       continue;
     }
-  
+
     undo->m_table_ptr.i = tableId;
     ptrCheckGuard(undo->m_table_ptr, cnoOfTablerec, tablerec);
-    
-    if (! (undo->m_table_ptr.p->tableStatus == DEFINED &&
-           undo->m_table_ptr.p->m_no_of_real_disk_attributes))
-    {
+
+    if (!(undo->m_table_ptr.p->tableStatus == DEFINED &&
+          undo->m_table_ptr.p->m_no_of_real_disk_attributes)) {
       jam();
-      DEB_UNDO(("(%u)UNDO !defined (%u) on page(%u,%u).%u",
-                instance(),
-                tableId,
-                undo->m_key.m_file_no,
-                undo->m_key.m_page_no,
+      DEB_UNDO(("(%u)UNDO !defined (%u) on page(%u,%u).%u", instance(), tableId,
+                undo->m_key.m_file_no, undo->m_key.m_page_no,
                 undo->m_key.m_page_idx));
       release_undo_record(pending_undo, pending);
       continue;
@@ -3177,32 +4312,21 @@ Dbtup::disk_restart_undo_callback(Signal* signal,
     Uint32 page_version = pagePtr.p->m_ndb_version;
 
     ndbrequire(page_version >= NDB_DISK_V2);
-    if (create_table_version !=
-          c_lqh->getCreateSchemaVersion(tableId))
-    {
+    if (create_table_version != c_lqh->getCreateSchemaVersion(tableId)) {
       jam();
       DEB_UNDO(("UNDO fragment null %u/%u, old,new=(%u,%u), page(%u,%u).%u",
-                 tableId,
-                 fragId,
-                 create_table_version,
-                 c_lqh->getCreateSchemaVersion(tableId),
-                 undo->m_key.m_file_no,
-                 undo->m_key.m_page_no,
-                 undo->m_key.m_page_idx));
+                tableId, fragId, create_table_version,
+                c_lqh->getCreateSchemaVersion(tableId), undo->m_key.m_file_no,
+                undo->m_key.m_page_no, undo->m_key.m_page_idx));
       release_undo_record(pending_undo, pending);
       continue;
     }
 
     getFragmentrec(undo->m_fragment_ptr, fragId, undo->m_table_ptr.i);
-    if (undo->m_fragment_ptr.isNull())
-    {
+    if (undo->m_fragment_ptr.isNull()) {
       jam();
-      DEB_UNDO(("(%u)UNDO fragment null tab(%u,%u), page(%u,%u).%u",
-                instance(),
-                tableId,
-                fragId,
-                undo->m_key.m_file_no,
-                undo->m_key.m_page_no,
+      DEB_UNDO(("(%u)UNDO fragment null tab(%u,%u), page(%u,%u).%u", instance(),
+                tableId, fragId, undo->m_key.m_file_no, undo->m_key.m_page_no,
                 undo->m_key.m_page_idx));
       release_undo_record(pending_undo, pending);
       continue;
@@ -3216,67 +4340,59 @@ Dbtup::disk_restart_undo_callback(Signal* signal,
 
     undo->m_page_ptr = pagePtr;
 
-    if (undo->m_lsn <= lsn &&
-        !undo->m_fragment_ptr.p->m_undo_complete)
-    {
+    if (undo->m_lsn <= lsn && !undo->m_fragment_ptr.p->m_undo_complete) {
       jam();
 
       applied = applied | 1;
       /**
        * Apply undo record
        */
-      switch(undo->m_type){
-      case File_formats::Undofile::UNDO_TUP_ALLOC:
+      switch (undo->m_type) {
+        case File_formats::Undofile::UNDO_TUP_ALLOC:
       {
         jam();
         disk_restart_undo_alloc(undo);
         break;
       }
-      case File_formats::Undofile::UNDO_TUP_UPDATE:
-      {
-        jam();
-        disk_restart_undo_update(undo);
-        break;
-      }
-      case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_PART:
-      {
-        jam();
+      case File_formats::Undofile::UNDO_TUP_UPDATE: {
+          jam();
+          disk_restart_undo_update(undo);
+          break;
+        }
+        case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_PART: {
+          jam();
         undo->m_in_intermediate_log_record = false;
         disk_restart_undo_update_first_part(undo);
-        break;
-      }
-      case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_VAR_PART:
-      {
-        jam();
-        undo->m_in_intermediate_log_record = true;
-        disk_restart_undo_update_first_part(undo);
-        break;
-      }
-      case File_formats::Undofile::UNDO_TUP_UPDATE_PART:
-      {
-        jam();
-        undo->m_in_intermediate_log_record = true;
-        disk_restart_undo_update_part(undo);
-        break;
-      }
-      case File_formats::Undofile::UNDO_TUP_UPDATE_VAR_PART:
+          break;
+        }
+        case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_VAR_PART: {
+          jam();
+          undo->m_in_intermediate_log_record = true;
+          disk_restart_undo_update_first_part(undo);
+          break;
+        }
+        case File_formats::Undofile::UNDO_TUP_UPDATE_PART: {
+          jam();
+          undo->m_in_intermediate_log_record = true;
+          disk_restart_undo_update_part(undo);
+          break;
+        }
+        case File_formats::Undofile::UNDO_TUP_UPDATE_VAR_PART:
       {
         jam();
         undo->m_in_intermediate_log_record = false;
         disk_restart_undo_update_part(undo);
         break;
       }
-      case File_formats::Undofile::UNDO_TUP_FREE:
-      {
-        jam();
-        disk_restart_undo_free(undo, true, false);
-        break;
-      }
-      case File_formats::Undofile::UNDO_TUP_FREE_PART:
-      {
-        jam();
-        undo->m_in_intermediate_log_record = false;
-        disk_restart_undo_free(undo, false, false);
+      case File_formats::Undofile::UNDO_TUP_FREE: {
+          jam();
+          disk_restart_undo_free(undo, true, false);
+          break;
+        }
+        case File_formats::Undofile::UNDO_TUP_FREE_PART: {
+          jam();
+          undo->m_in_intermediate_log_record = false;
+          disk_restart_undo_free(undo, false, false);
         break;
       }
       case File_formats::Undofile::UNDO_TUP_FREE_VAR_PART:
@@ -3284,29 +4400,26 @@ Dbtup::disk_restart_undo_callback(Signal* signal,
         jam();
         undo->m_in_intermediate_log_record = true;
         disk_restart_undo_free(undo, false, true);
-        break;
-      }
-      default:
-        ndbabort();
+          break;
+        }
+        default:
+          ndbabort();
       }
 
       if ((undo->m_type != File_formats::Undofile::UNDO_TUP_UPDATE_PART) &&
           (undo->m_type != File_formats::Undofile::UNDO_TUP_UPDATE_VAR_PART))
       {
         jam();
-        lsn = undo->m_lsn - 1; // make sure undo isn't run again...
+        lsn = undo->m_lsn - 1;  // make sure undo isn't run again...
         Page_cache_client pgman(this, c_pgman);
         pgman.update_lsn(signal, undo->m_key, lsn);
         jamEntry();
         disk_restart_undo_page_bits(signal, undo);
       }
-    }
-    else
-    {
+    } else {
       jam();
       if (!immediate_flag &&
-          undo->m_fragment_ptr.p->m_undo_complete != Fragrecord::UC_CREATE)
-      {
+          undo->m_fragment_ptr.p->m_undo_complete != Fragrecord::UC_CREATE) {
         jam();
         /**
          * See Lemma 1 and Lemma 2 in analysis of extent page
@@ -3336,26 +4449,60 @@ Dbtup::disk_restart_undo_callback(Signal* signal,
       }
       else
       {
-        DEB_UNDO(("(%u)UNDO ignored: page_lsn: %llu"
-                  ", undo_lsn: %llu, page(%u,%u).%u",
-                  instance(),
-                  lsn,
-                  undo->m_lsn,
-                  undo->m_key.m_file_no,
-                  undo->m_key.m_page_no,
-                  undo->m_key.m_page_idx));
+        DEB_UNDO(
+            ("(%u)UNDO ignored: page_lsn: %llu"
+             ", undo_lsn: %llu, page(%u,%u).%u",
+             instance(), lsn, undo->m_lsn, undo->m_key.m_file_no,
+             undo->m_key.m_page_no, undo->m_key.m_page_idx));
       }
     }
     release_undo_record(pending_undo, pending);
   }
 
-  ndbassert(count_pending != 0);
+  ndbassert(count_pending != 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   if (isNdbMtLqh() && pending)
-  {
-    jam();
-    LocalApply_undo_list undoList(c_apply_undo_pool,
-                                  pendingPage->m_apply_undo_head);
-    DEB_UNDO(("LDM(%u) Page:%u CheckCount:%u Applied:%u", instance(),
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+  DEB_UNDO(
+  jam();
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ LocalApply_undo_list undoList(c_apply_undo_pool,
+||||||| Common ancestor
+{
+=======
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                          pendingPage->m_apply_undo_head);
+    DEB_UNDO(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DEB_UNDO(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+("LDM(%u) Page:%u CheckCount:%u Applied:%u", instance(),
         pendingPage->m_page_no, undoList.getCount(), count_pending));
     ndbrequire(undoList.getCount() == 0);
     c_pending_undo_page_hash.remove(page_i);
@@ -3377,11 +4524,8 @@ Dbtup::disk_restart_undo_alloc(Apply_undo* undo)
   lsn += undo->m_page_ptr.p->m_page_header.m_page_lsn_lo;
   DEB_UNDO_ALLOC(("(%u)applying %lld UNDO_TUP_ALLOC on page(%u,%u).%u"
                   ", page_lsn: %llu, tab(%u,%u), flag: %u",
-                  instance(),
-                  undo->m_lsn,
-                  undo->m_key.m_file_no,
-                  undo->m_key.m_page_no,
-                  undo->m_key.m_page_idx,
+                  instance(), undo->m_lsn, undo->m_key.m_file_no,
+             undo->m_key.m_page_no, undo->m_key.m_page_idx,
                   lsn,
                   undo->m_fragment_ptr.p->fragTableId,
                   undo->m_fragment_ptr.p->fragmentId,
@@ -3430,39 +4574,30 @@ Dbtup::prepare_undo_varpage(Var_page* page_ptr,
   }
   return page_ptr->get_ptr(idx);
 }
-void
-Dbtup::disk_restart_undo_update(Apply_undo* undo)
-{
-  Uint32* ptr;
-  Uint32 len= undo->m_len - 4;
+void Dbtup::disk_restart_undo_update(Apply_undo *undo) {
+  Uint32 *ptr;
+  Uint32 len = undo->m_len - 4;
 #ifdef DEBUG_UNDO
   {
-  const Disk_undo::Update_Free *update =
+    const Disk_undo::Update_Free *update =
     (const Disk_undo::Update_Free*)undo->m_ptr;
-  const Uint32* src= update->m_data;
-  Uint64 lsn = 0;
-  lsn += undo->m_page_ptr.p->m_page_header.m_page_lsn_hi;
-  lsn <<= 32;
-  lsn += undo->m_page_ptr.p->m_page_header.m_page_lsn_lo;
-  DEB_UNDO(("(%u)applying %lld UNDO_TUP_UPDATE on page(%u,%u).%u,"
-            " page_lsn: %llu, data[%u,%u]",
-            instance(),
-            undo->m_lsn,
-            undo->m_key.m_file_no,
-            undo->m_key.m_page_no,
-            undo->m_key.m_page_idx,
-            lsn,
-            src[0],
-            src[1]));
+    const Uint32 *src = update->m_data;
+    Uint64 lsn = 0;
+    lsn += undo->m_page_ptr.p->m_page_header.m_page_lsn_hi;
+    lsn <<= 32;
+    lsn += undo->m_page_ptr.p->m_page_header.m_page_lsn_lo;
+    DEB_UNDO(
+        ("(%u)applying %lld UNDO_TUP_UPDATE on page(%u,%u).%u,"
+         " page_lsn: %llu, data[%u,%u]",
+         instance(), undo->m_lsn, undo->m_key.m_file_no, undo->m_key.m_page_no,
+         undo->m_key.m_page_idx, lsn, src[0], src[1]));
   }
 #endif
-  if ((undo->m_table_ptr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
-  {
-    ptr= ((Fix_page*)undo->m_page_ptr.p)->get_ptr(undo->m_key.m_page_idx, len);
+  if ((undo->m_table_ptr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0) {
+    ptr =
+        ((Fix_page *)undo->m_page_ptr.p)->get_ptr(undo->m_key.m_page_idx, len);
     ndbrequire(len == undo->m_table_ptr.p->m_offsets[DD].m_fix_header_size);
-  }
-  else
-  {
+  } else {
     Uint32 idx = undo->m_key.m_page_idx;
     Var_page *page_ptr = (Var_page*)undo->m_page_ptr.p;
     ptr = prepare_undo_varpage(page_ptr, idx, len);
@@ -3470,15 +4605,13 @@ Dbtup::disk_restart_undo_update(Apply_undo* undo)
 
   const Disk_undo::Update_Free *update =
     (const Disk_undo::Update_Free*)undo->m_ptr;
-  const Uint32* src= update->m_data;
+  const Uint32 *src = update->m_data;
   ndbrequire(src[1] < Tup_page::DATA_WORDS);
   memcpy(ptr, src, 4 * len);
 }
 
-void
-Dbtup::disk_restart_undo_update_first_part(Apply_undo* undo)
-{
-  Uint32* ptr;
+void Dbtup::disk_restart_undo_update_first_part(Apply_undo *undo) {
+  Uint32 *ptr;
   Uint32 header_len = 5;
   if (!undo->m_in_intermediate_log_record)
   {
@@ -3491,20 +4624,17 @@ Dbtup::disk_restart_undo_update_first_part(Apply_undo* undo)
 #ifdef DEBUG_UNDO
     const Disk_undo::Update_Free *update =
       (const Disk_undo::Update_Free*)undo->m_ptr;
-    const Uint32* src= update->m_data;
-    DEB_UNDO(("(%u)applying %lld UNDO_TUP_FIRST_UPDATE_PART"
-              " on page(%u,%u).%u[%u], data[%x,%x], tot_len: %u"
+    const Uint32 *src = update->m_data;
+    DEB_UNDO(
+        ("(%u)applying %lld UNDO_TUP_FIRST_UPDATE_PART"
+         " on page(%u,%u).%u[%u], data[%x,%x], tot_len: %u"
               ", len: %u",
               instance(),
               undo->m_lsn,
               undo->m_key.m_file_no,
               undo->m_key.m_page_no,
-              undo->m_key.m_page_idx,
-              undo->m_offset,
-              undo->m_in_intermediate_log_record ? src[1] : src[0],
-              undo->m_in_intermediate_log_record ? src[2] : src[1],
-              undo->m_tot_len,
-              len));
+              undo->m_key.m_page_idx, undo->m_offset, undo->m_in_intermediate_log_record ? src[1] : src[0], undo->m_in_intermediate_log_record ? src[2] : src[1],
+         undo->m_tot_len, len));
 #endif
   }
 
@@ -3514,22 +4644,42 @@ Dbtup::disk_restart_undo_update_first_part(Apply_undo* undo)
    * the fixed size row handling.
    */
   Uint32 *src;
-  if ((undo->m_table_ptr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
-  {
+  if ((undo->m_table_ptr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0) {
     Disk_undo::Update_Free *update =
       (Disk_undo::Update_Free*)undo->m_ptr;
     src = update->m_data;
-    ptr= ((Fix_page*)undo->m_page_ptr.p)->get_ptr(undo->m_key.m_page_idx, len);
+    ptr =
+        ((Fix_page *)undo->m_page_ptr.p)->get_ptr(undo->m_key.m_page_idx, len);
     ndbrequire(len < undo->m_table_ptr.p->m_offsets[DD].m_fix_header_size);
-  }
-  else
-  {
+  } else {
     Disk_undo::Update_Free_FirstVarPart *update =
       (Disk_undo::Update_Free_FirstVarPart*)undo->m_ptr;
     src = update->m_data;
     Uint32 idx = undo->m_key.m_page_idx;
     Var_page *page_ptr = (Var_page*)undo->m_page_ptr.p;
-    ptr = prepare_undo_varpage(page_ptr,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+src
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*src 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= prepare_undo_varpage(page_ptr,
                                idx,
                                undo->m_tot_len);
   }
@@ -3540,99 +4690,97 @@ Dbtup::disk_restart_undo_update_first_part(Apply_undo* undo)
   memcpy(ptr, src, 4 * len);
 }
 
-void
-Dbtup::disk_restart_undo_update_part(Apply_undo* undo)
-{
-  Uint32* ptr;
-  Uint32 len= undo->m_len - 5;
+void Dbtup::disk_restart_undo_update_part(Apply_undo *undo) {
+  Uint32 *ptr;
+  Uint32 len = undo->m_len - 5;
 
   DEB_UNDO(("(%u)applying %lld UNDO_TUP_UPDATE_PART on page(%u,%u).%u[%u]"
             ", len: %u",
-            instance(),
-            undo->m_lsn,
-            undo->m_key.m_file_no,
-            undo->m_key.m_page_no,
-            undo->m_key.m_page_idx,
-            undo->m_offset,
+            instance(), undo->m_lsn, undo->m_key.m_file_no,
+            undo->m_key.m_page_no, undo->m_key.m_page_idx, undo->m_offset,
             len));
 
   Uint32 offset = undo->m_offset;
-  if ((undo->m_table_ptr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
-  {
-    Uint32 fix_header_size = undo->m_table_ptr.p->m_offsets[DD].m_fix_header_size;
-    ptr= ((Fix_page*)undo->m_page_ptr.p)->get_ptr(undo->m_key.m_page_idx, len);
+  if ((undo->m_table_ptr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0) {
+    Uint32 fix_header_size =
+        undo->m_table_ptr.p->m_offsets[DD].m_fix_header_size;
+    ptr =
+        ((Fix_page *)undo->m_page_ptr.p)->get_ptr(undo->m_key.m_page_idx, len);
     ndbrequire((len + offset) == fix_header_size);
   }
   else
   {
     Uint32 idx = undo->m_key.m_page_idx;
-    Var_page *page_ptr = (Var_page*)undo->m_page_ptr.p;
+    Var_page *page_ptr = (Var_page *)undo->m_page_ptr.p;
     ptr = page_ptr->get_ptr(idx);
     Uint32 tot_len = page_ptr->get_entry_len(idx);
     ndbrequire(tot_len == (offset + len));
   }
   ptr = &ptr[offset];
 
-  const Disk_undo::UpdatePart *update = (const Disk_undo::UpdatePart*)undo->m_ptr;
-  const Uint32* src= update->m_data;
-  ndbrequire(undo->m_offset != 0 ||
-             src[1] < Tup_page::DATA_WORDS);
+  const Disk_undo::UpdatePart *update =
+      (const Disk_undo::UpdatePart *)undo->m_ptr;
+  const Uint32 *src = update->m_data;
+  ndbrequire(undo->m_offset != 0 || src[1] < Tup_page::DATA_WORDS);
 #ifdef DEBUG_UNDO_SPLIT
   log_buf_print(src, len);
 #endif
   memcpy(ptr, src, 4 * len);
 }
 
-void
-Dbtup::disk_restart_undo_free(Apply_undo* undo,
+void Dbtup::disk_restart_undo_free(Apply_undo *undo,
                               bool full_free,
-                              bool varsized_part)
-{
-  Uint32* ptr, idx = undo->m_key.m_page_idx;
+                              bool varsized_part) {
+  Uint32 *ptr, idx = undo->m_key.m_page_idx;
   Uint32 header_len = varsized_part ? 5 : 4;
-  Uint32 len= undo->m_len - header_len;
+  Uint32 len = undo->m_len - header_len;
 #ifdef DEBUG_UNDO_ALLOC
   {
     Uint64 lsn = 0;
     lsn += undo->m_page_ptr.p->m_page_header.m_page_lsn_hi;
     lsn <<= 32;
     lsn += undo->m_page_ptr.p->m_page_header.m_page_lsn_lo;
-    const char *free_str = (const char*)"UNDO_TUP_FREE";
-    const char *free_part_str = (const char*)"UNDO_TUP_FREE_PART";
+    const char *free_str = (const char *)"UNDO_TUP_FREE";
+    const char *free_part_str = (const char *)"UNDO_TUP_FREE_PART";
     const char *free_var_part_str = (const char*)"UNDO_TUP_FREE_VAR_PART";
     Uint32 *src;
     if (!varsized_part)
     {
       Disk_undo::Update_Free *free =
-        (Disk_undo::Update_Free*)undo->m_ptr;
-      src= free->m_data;
+        (Disk_undo::Update_Free *)undo->m_ptr;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ src= free->m_data;
     }
     else
     {
       Disk_undo::Update_Free_FirstVarPart *free =
         (Disk_undo::Update_Free_FirstVarPart*)undo->m_ptr;
-      src= free->m_data;
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *src = free->m_data;
     }
-    DEB_UNDO_ALLOC(("(%u)applying %lld %s on page(%u,%u).%u, page_lsn:"
-                    " %llu idx:%u, tab(%u,%u), flag: %u,"
-                    " data[%u,%u], len: %u, ptr: %p",
+    DEB_UNDO_ALLOC(
+        ("(%u)applying %lld %s on page(%u,%u).%u, page_lsn:"
+         " %llu idx:%u, tab(%u,%u), flag: %u,"
+         " data[%u,%u], len: %u, ptr: %p",
                     instance(),
                     undo->m_lsn,
                     full_free ?
                       free_str : varsized_part ?
                         free_var_part_str : free_part_str,
-                    undo->m_key.m_file_no,
-                    undo->m_key.m_page_no,
-                    undo->m_key.m_page_idx,
-                    lsn,
-                    idx,
-                    undo->m_fragment_ptr.p->fragTableId,
-                    undo->m_fragment_ptr.p->fragmentId,
-                    undo->m_fragment_ptr.p->m_undo_complete,
-                    src[0],
-                    src[1],
-                    len,
-                    src));
+         undo->m_key.m_file_no, undo->m_key.m_page_no, undo->m_key.m_page_idx,
+         lsn, idx, undo->m_fragment_ptr.p->fragTableId,
+         undo->m_fragment_ptr.p->fragmentId,
+         undo->m_fragment_ptr.p->m_undo_complete, src[0], src[1], len, src));
   }
 #endif
   if ((undo->m_table_ptr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
@@ -3661,13 +4809,12 @@ Dbtup::disk_restart_undo_free(Apply_undo* undo,
     }
     Uint32 new_idx= page_ptr->alloc_record(idx,
                                            alloc_len,
-                                           (Var_page*)ctemp_page);
+                                           (Var_page *)ctemp_page);
     ndbrequire(new_idx == idx);
     ptr = page_ptr->get_ptr(idx);
   }
 
-  if (idx != undo->m_key.m_page_idx)
-  {
+  if (idx != undo->m_key.m_page_idx) {
     Uint64 lsn = undo->m_lsn;
     jam();
     jamLine(lsn & 0xFFFF);
@@ -3680,54 +4827,74 @@ Dbtup::disk_restart_undo_free(Apply_undo* undo,
   if (!varsized_part)
   {
     Disk_undo::Update_Free *free =
-      (Disk_undo::Update_Free*)undo->m_ptr;
-    src= free->m_data;
+      (Disk_undo::Update_Free *)undo->m_ptr;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ src= free->m_data;
   }
   else
   {
     Disk_undo::Update_Free_FirstVarPart *free =
       (Disk_undo::Update_Free_FirstVarPart*)undo->m_ptr;
-    src= free->m_data;
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *src = free->m_data;
   }
   ndbrequire(src[1] < Tup_page::DATA_WORDS);
   memcpy(ptr, src, 4 * len);
 }
 
-void
-Dbtup::disk_restart_undo_page_bits(Signal* signal, Apply_undo* undo)
-{
-  Fragrecord* fragPtrP = undo->m_fragment_ptr.p;
-  Disk_alloc_info& alloc= fragPtrP->m_disk_alloc_info;
-  
+void Dbtup::disk_restart_undo_page_bits(Signal *signal, Apply_undo *undo) {
+  Fragrecord *fragPtrP = undo->m_fragment_ptr.p;
+  Disk_alloc_info &alloc = fragPtrP->m_disk_alloc_info;
+
   /**
    * Set alloc.m_curr_extent_info_ptr_i to
    *   current this extent (and move old extend into free matrix)
    */
-  Page* pageP = undo->m_page_ptr.p;
+  Page *pageP = undo->m_page_ptr.p;
   Uint32 free = pageP->free_space;
   Uint32 new_idx = alloc.calc_page_free_bits(free);
   pageP->list_index = 0x8000 | new_idx;
 
   D("Tablespace_client - disk_restart_undo_page_bits");
-  Tablespace_client tsman(signal, this, c_tsman,
-			  fragPtrP->fragTableId,
-	 		  fragPtrP->fragmentId,
-                          c_lqh->getCreateSchemaVersion(fragPtrP->fragTableId),
-			  fragPtrP->m_tablespace_id);
+  Tablespace_client tsman(signal, this, c_tsman, fragPtrP->fragTableId,
+                          fragPtrP->fragmentId,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new_idx:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+new_bits:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                    c_lqh->getCreateSchemaVersion(fragPtrP->fragTableId),
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new_idx,
+||||||| Common ancestor
+new_bits,
+=======
+>>>>>>> MySQL 8.0.36
+        fragPtrP->m_tablespace_id);
 
-  DEB_EXTENT_BITS(("(%u)tab(%u,%u), page(%u,%u):%u new_idx: %u,"
-                   " free_space: %u, page_tab(%u,%u).%u",
-                  instance(),
-                  fragPtrP->fragTableId,
-                  fragPtrP->fragmentId,
-                  pageP->m_file_no,
-                  pageP->m_page_no,
-                  undo->m_page_ptr.i,
-                  new_idx,
-                  free,
-                  pageP->m_table_id,
-                  pageP->m_fragment_id,
-                  pageP->m_create_table_version));
+  DEB_EXTENT_BITS(
+      ("(%u)tab(%u,%u), page(%u,%u):%u new_bits: %u,"
+       " free_space: %u, page_tab(%u,%u).%u",
+       instance(), fragPtrP->fragTableId, fragPtrP->fragmentId,
+       pageP->m_file_no, pageP->m_page_no, undo->m_page_ptr.i, new_bits, free,
+       pageP->m_table_id, pageP->m_fragment_id, pageP->m_create_table_version));
 
   tsman.restart_undo_page_free_bits(&undo->m_key, new_idx);
   jamEntry();
@@ -3981,15 +5148,22 @@ Dbtup::disk_restart_undo_page_bits(Signal* signal, Apply_undo* undo)
  * disk_page_prealloc_callback is called before the callback used by
  * the caller to actually perform the insert action.
  */
-int
-Dbtup::disk_restart_alloc_extent(EmulatedJamBuffer* jamBuf, 
-                                 Uint32 tableId,
-                                 Uint32 fragId,
-                                 Uint32 create_table_version,
+int Dbtup::disk_restart_alloc_extent(EmulatedJamBuffer *jamBuf, Uint32 tableId,
+                                     Uint32 fragId, Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+create_table_version,
 				 const Local_key* key,
                                  Uint32 extent_no,
-                                 Uint32 pages)
-{
+||||||| Common ancestor
+create_table_version,
+				 const Local_key* key,
+=======
+create_table_version,
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                  const Local_key *key, Uint32 pages) {
   /**
    * This function is called from TSMAN in rep thread. Must not use any
    * block variables other than extent information.
@@ -3999,69 +5173,61 @@ Dbtup::disk_restart_alloc_extent(EmulatedJamBuffer* jamBuf,
   tabPtr.i = tableId;
   ptrCheckGuard(tabPtr, cnoOfTablerec, tablerec);
   Uint32 current_create_table_version = c_lqh->getCreateSchemaVersion(tableId);
-  DEB_EXTENT_BITS(("(%u)disk_restart_alloc_extent: tab(%u,%u):%u,"
-                   " current version: %u",
-                   instance(),
-                   tableId,
-                   fragId,
-                   create_table_version,
-                   current_create_table_version));
+  DEB_EXTENT_BITS(
+      ("(%u)disk_restart_alloc_extent: tab(%u,%u):%u,"
+       " current version: %u",
+       instance(), tableId, fragId, create_table_version,
+       current_create_table_version));
 
   if (tabPtr.p->tableStatus == DEFINED &&
       tabPtr.p->m_no_of_real_disk_attributes &&
       (current_create_table_version == create_table_version ||
-       create_table_version == 0))
-  {
+       create_table_version == 0)) {
     thrjam(jamBuf);
     getFragmentrec(fragPtr, fragId, tabPtr.i);
 
-    if (!fragPtr.isNull())
-    {
+    if (!fragPtr.isNull()) {
       thrjam(jamBuf);
 
-      Disk_alloc_info& alloc= fragPtr.p->m_disk_alloc_info;
-      
+      Disk_alloc_info &alloc = fragPtr.p->m_disk_alloc_info;
+
       Ptr<Extent_info> ext;
       ndbrequire(c_extent_pool.seize(ext));
 #ifdef VM_TRACE
-      ndbout << "allocated " << pages << " pages: " << *key 
-	     << " table: " << tabPtr.i << " fragment: " << fragId << endl;
-#endif      
+      ndbout << "allocated " << pages << " pages: " << *key
+             << " table: " << tabPtr.i << " fragment: " << fragId << endl;
+#endif
       ext.p->m_key = *key;
       ext.p->m_extent_no = extent_no;
       ext.p->m_first_page_no = ext.p->m_key.m_page_no;
-      ext.p->m_free_space= 0;
+      ext.p->m_free_space = 0;
       DEB_FREE_SPACE(("(%u)4 Set m_free_space: %u, extP: %p",
                       instance(),
                       ext.p->m_free_space,
                       ext.p));
-      ext.p->m_empty_page_no = (1 << 16); // We don't know, so assume none
-      DEB_EXTENT_BITS_HASH((
-                "(%u)restart:extent(%u).%u in tab(%u,%u),"
-                " first_page(%u,%u)",
-                instance(),
-                ext.p->m_extent_no,
-                ext.i,
-                fragPtr.p->fragTableId,
-                fragPtr.p->fragmentId,
-                ext.p->m_key.m_file_no,
-                ext.p->m_first_page_no));
+      ext.p->m_empty_page_no = (1 << 16);  // We don't know, so assume none
+      DEB_EXTENT_BITS_HASH(
+          ("(%u)restart:extent(%u).%u in tab(%u,%u),"
+           " first_page(%u,%u)",
+           instance(), ext.p->m_extent_no, ext.i, fragPtr.p->fragTableId,
+           fragPtr.p->fragmentId, ext.p->m_key.m_file_no,
+           ext.p->m_first_page_no));
       memset(ext.p->m_free_page_count, 0, sizeof(ext.p->m_free_page_count));
-      
-      if (alloc.m_curr_extent_info_ptr_i != RNIL)
-      {
+
+      if (alloc.m_curr_extent_info_ptr_i != RNIL) {
         thrjam(jamBuf);
         Ptr<Extent_info> old;
         ndbrequire(c_extent_pool.getPtr(old, alloc.m_curr_extent_info_ptr_i));
         ndbassert(old.p->m_free_matrix_pos == RNIL);
-        Uint32 pos= alloc.calc_extent_pos(old.p);
-        Local_extent_info_list new_list(c_extent_pool, alloc.m_free_extents[pos]);
+        Uint32 pos = alloc.calc_extent_pos(old.p);
+        Local_extent_info_list new_list(c_extent_pool,
+                                        alloc.m_free_extents[pos]);
         new_list.addFirst(old);
         DEB_FREE_EXTENT(("(%p) 2:Add ext.p: %p from pos: %u",
                        &alloc, old.p, pos));
-        old.p->m_free_matrix_pos= pos;
+        old.p->m_free_matrix_pos = pos;
       }
-      
+
       alloc.m_curr_extent_info_ptr_i = ext.i;
       ext.p->m_free_matrix_pos = RNIL;
       c_extent_hash.add(ext);
@@ -4086,14 +5252,9 @@ Dbtup::disk_restart_alloc_extent(EmulatedJamBuffer* jamBuf,
  * manipulated at the same time from LDM thread activity, this is
  * safe guarded by the restart phase serialisation.
  */
-void
-Dbtup::disk_restart_page_bits(EmulatedJamBuffer* jamBuf, 
-                              Uint32 tableId,
-                              Uint32 fragId,
-                              Uint32 create_table_version,
-			      const Local_key* key,
-                              Uint32 bits)
-{
+void Dbtup::disk_restart_page_bits(EmulatedJamBuffer *jamBuf, Uint32 tableId,
+                                   Uint32 fragId, Uint32 create_table_version,
+                                   const Local_key *key, Uint32 bits) {
   thrjam(jamBuf);
   TablerecPtr tabPtr;
   FragrecordPtr fragPtr;
@@ -4103,22 +5264,22 @@ Dbtup::disk_restart_page_bits(EmulatedJamBuffer* jamBuf,
   if (tabPtr.p->tableStatus == DEFINED &&
       tabPtr.p->m_no_of_real_disk_attributes &&
       (current_create_table_version == create_table_version ||
-       create_table_version == 0))
-  {
+       create_table_version == 0)) {
     thrjam(jamBuf);
     getFragmentrec(fragPtr, fragId, tabPtr.i);
     ndbrequire(fragPtr.i != RNIL64);
-    Disk_alloc_info& alloc= fragPtr.p->m_disk_alloc_info;
-    
+    Disk_alloc_info &alloc = fragPtr.p->m_disk_alloc_info;
+
     Ptr<Extent_info> ext;
     ndbrequire(c_extent_pool.getPtr(ext, alloc.m_curr_extent_info_ptr_i));
-    
-    Uint32 size= alloc.calc_page_free_space(bits);  
-    
+
+    Uint32 size = alloc.calc_page_free_space(bits);
+
     ext.p->m_free_page_count[bits]++;
-    DEB_EXTENT_BITS(("(%u)disk_restart_page_bits:extent(%u), tab(%u,%u),"
-                     " page(%u,%u), bits: %u, new_count: %u",
-                     instance(),
+    DEB_EXTENT_BITS(
+        ("(%u)disk_restart_page_bits:extent(%u), tab(%u,%u),"
+         " page(%u,%u), bits: %u, new_count: %u",
+         instance(),
                      ext.p->m_extent_no,
                      tableId,
                      fragId,
@@ -4133,43 +5294,30 @@ Dbtup::disk_restart_page_bits(EmulatedJamBuffer* jamBuf,
                     __LINE__,
                     key->m_file_no,
                     key->m_page_no));
-    update_extent_pos(jamBuf,
-                      fragPtr.p,
-                      ext,
-                      EXTENT_SEARCH_MATRIX_COLS - 1,
-                      bits,
+    update_extent_pos(jamBuf,  fragPtr.p,
+                      ext,  EXTENT_SEARCH_MATRIX_COLS - 1,  bits,
                       size);
     ndbassert(ext.p->m_free_matrix_pos == RNIL);
-    DEB_EXTENT_BITS(("(%u)disk_restart_page_bits in tab(%u,%u):%u,"
-                     " page(%u,%u), bits: %u, ext.i: %u,"
-                     " extent_no: %u",
-                     instance(),
-                     tableId,
-                     fragId,
-                     create_table_version,
-                     key->m_file_no,
-                     key->m_page_no,
-                     bits,
-                     ext.i,
-                     ext.p->m_extent_no));
+    DEB_EXTENT_BITS(
+        ("(%u)disk_restart_page_bits in tab(%u,%u):%u,"
+         " page(%u,%u), bits: %u, ext.i: %u,"
+         " extent_no: %u",
+         instance(), tableId, fragId, create_table_version, key->m_file_no,
+         key->m_page_no, bits, ext.i, ext.p->m_extent_no));
   }
 }
 
-void
-Dbtup::disk_page_get_allocated(const Tablerec* tabPtrP,
-                               const Fragrecord * fragPtrP,
-                               Uint64 res[2])
-{
+void Dbtup::disk_page_get_allocated(const Tablerec *tabPtrP,
+                                    const Fragrecord *fragPtrP, Uint64 res[2]) {
   res[0] = res[1] = 0;
-  if (tabPtrP->m_no_of_disk_attributes)
-  {
+  if (tabPtrP->m_no_of_disk_attributes) {
     jam();
-    const Disk_alloc_info& alloc= fragPtrP->m_disk_alloc_info;
+    const Disk_alloc_info &alloc = fragPtrP->m_disk_alloc_info;
     Uint64 cnt = 0;
     Uint64 free = 0;
 
     {
-      Disk_alloc_info& tmp = const_cast<Disk_alloc_info&>(alloc);
+      Disk_alloc_info &tmp = const_cast<Disk_alloc_info &>(alloc);
       Local_fragment_extent_list list(c_extent_pool, tmp.m_extent_list);
       free = alloc.m_tot_free_space;
       cnt = list.getCount();

@@ -24,15 +24,12 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
+#include <BlockNumbers.h>
 #include <signaldata/TcIndx.hpp>
 #include <signaldata/TcKeyReq.hpp>
-#include <BlockNumbers.h>
 
-bool printTCINDXREF(FILE* output,
-                    const Uint32* theData,
-                    Uint32 len,
-                    Uint16 /*receiverBlockNo*/)
-{
+bool printTCINDXREF(FILE *output, const Uint32 *theData, Uint32 len,
+                    Uint16 /*receiverBlockNo*/) {
   
 //  const TcIndxRef * const sig = (TcIndxRef *) theData;
   printHex(output, theData, len, "Signal data:");

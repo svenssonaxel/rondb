@@ -26,23 +26,23 @@
 #ifndef NDBD_MALLOC_IMPL_H
 #define NDBD_MALLOC_IMPL_H
 
+#include <algorithm>
 #include "my_config.h"
 #include "util/require.h"
-#include <algorithm>
 #ifdef VM_TRACE
 //#ifndef NDBD_RANDOM_START_PAGE
 //#define NDBD_RANDOM_START_PAGE
 //#endif
 #endif
 
-#include <cstdint>
+#include <assert.h>
 #include <kernel_types.h>
 #include <Bitmask.hpp>
-#include <assert.h>
+#include <EventLogger.hpp>
+#include <Vector.hpp>
+#include <cstdint>
 #include "NdbSeqLock.hpp"
 #include "Pool.hpp"
-#include <Vector.hpp>
-#include <EventLogger.hpp>
 
 #define JAM_FILE_ID 291
 
@@ -86,20 +86,17 @@ extern Uint32 g_random_start_page_id;
 #define PAGE_REGION_MASK ((1 << BPP_2LOG) - 1)
 #define SPACE_PER_BMP_2LOG ((2 + BMW_2LOG) + BPP_2LOG)
 
-struct Alloc_page 
-{
+struct Alloc_page {
   Uint32 m_data[BITMAP_WORDS];
 };
 
-struct InitChunk
-{
+struct InitChunk {
   Uint32 m_cnt;
   Uint32 m_start;
-  Alloc_page* m_ptr;
+  Alloc_page *m_ptr;
 };
 
-struct Free_page_data 
-{
+struct Free_page_data {
   Uint32 m_list;
   Uint32 m_next;
   Uint32 m_prev;
@@ -113,8 +110,7 @@ struct Free_page_data
 /**
   Information of restriction and current usage of shared global page memory.
 */
-class Resource_limits
-{
+class Resource_limits {
   /**
    * Number of pages reserved for specific resource groups but currently
    * not in use.
@@ -196,7 +192,31 @@ class Resource_limits
       - Data memory
       - Disk page buffer memory
       - File buffers (REDO buffers)
-      - Undo log buffer
+      - 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Undo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+log
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+rl)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ buffer
 
     High prio memory are (can use up to 96% of shared global memory):
       - Transaction Memory
@@ -246,10 +266,78 @@ class Resource_limits
   void inc_overflow_reserved(Uint32 id, Uint32 cnt);
 
   /**
-   * Decrement number of pages this resource has extended the
-   * reserved area by through calls to alloc_emergency_page.
-   */
-  void dec_overflow_reserved(Uint32 id, Uint32 cnt);
+   * Decrement number of pages this resource 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+has
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+extended the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+rl);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   * reserved area by through calls to alloc_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+emergency_page.
+||||||| Common ancestor
+limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rl)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  */
+  void dec_overflow_reserved(Uint32 id, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cnt
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+rl
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
   /**
    * Get number of pages this resource has extended the
@@ -263,17 +351,94 @@ public:
   void get_resource_limit(Uint32 id, Resource_limit& rl) const;
   void init_resource_limit(Uint32 id,
                            Uint32 min,
-                           Uint32 max,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+get_memroot()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*get_memroot()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  Uint32 max,
                            Uint32 max_high_prio,
-                           Uint32 prio);
-  void init_resource_spare(Uint32 id, Uint32 pct);
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+get_page(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*get_page(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                Uint32 prio);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+init
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+get
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*get
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_resource_spare(Uint32 id, Uint32 pct);
 
   /**
-   * Get total number of allocated pages in global memory manager.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Get total number of allocated pages in global memory manager.
    */
   Uint32 get_allocated() const;
 
-  /**
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+alloc_page(Uint32 type,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*alloc_page(Uint32 type,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ /**
    * Get total number of reserved pages in global memory manager.
    */
   Uint32 get_reserved() const;
@@ -288,9 +453,33 @@ public:
    */
   Uint32 get_shared_in_use() const;
 
-  Uint32 get_free_reserved() const;
-  Uint32 get_free_shared() const;
   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+get
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+alloc
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*alloc
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_free_reserved() const;
+  Uint32 get_free_shared() const;
+
   /**
    * Get total number of pages in use in the global memory manager.
    */
@@ -340,7 +529,31 @@ public:
   /**
    * Increment number of pages in use in shared global memory.
    */
-  void inc_shared_in_use(Uint32 cnt);
+  void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+inc_shared_in_use(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const void*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cnt
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+y
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*y
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
   /**
    * Decrease number of free reserved pages.
@@ -419,8 +632,52 @@ public:
    */
   Uint32 get_reserved(Uint32 id);
   /**
-   * get_allocated is used by one DUMP command and in the resources table in
-   * ndbinfo.
+   * get_allocated is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+used
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+by
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ret,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ret,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ one DUMP command and in the resources table 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ret,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ret,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  * ndbinfo.
    */
   Uint32 get_allocated() const;
 
@@ -442,25 +699,186 @@ public:
    * currently at.
    */
   Uint32 get_free_shared() const;
-  Uint32 get_free_shared_nolock() const;
+  Uint32 get_free_shared_nolock(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+) const;
 
-  /**
-   * get_in_use is used by the resources ndbinfo table and by the above
+||||||| Common ancestor
+Uint32 id, Uint32 cnt)
+{
+=======
+Uint32 id,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+get_in_use
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+get_resource_in_use(id)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
++
+=======
+>>>>>>> MySQL 8.0.36
+ used by the resources ndbinfo table and by the above
    * mentioned DUMP 1000 command.
    */
-  Uint32 get_in_use() const;
+  Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+get_in_use()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+get_resource_spare(id)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const;
 
+||||||| Common ancestor
++
+=======
+>>>>>>> MySQL 8.0.36
   /**
-   * init initialises the global memory manager, this includes allocating the
-   * memory.
-   * map touches the memory, sets up the internal data structures of the global
+   * init 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+initialises
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32 cnt)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ global 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+memory
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+manager,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+this
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+inuse
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+includes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+>>>>>>> MySQL 8.0.36
+ allocating the
+   * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+memory.
+||||||| Common ancestor
+=======
+get_resource_in_use(id)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ + get_resource_spare(id) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
++
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ map touches the memory, sets up the internal data structures of the global
    * memory manager and locks the memory also if required.
    *
    * After initialising the global memory manager we initialize the memory pools
    * that can be used using a malloc-like interface.
    */
   bool init(Uint32 *watchCounter,
-            Uint32 pages,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rl
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      Uint32 pages,
             bool allow_alloc_less_than_requested = true);
   void map(Uint32 * watchCounter,
            bool memlock = false,
@@ -842,23 +1260,17 @@ void Resource_limits::inc_shared_in_use(Uint32 cnt)
   m_shared_in_use += cnt;
 }
 
-inline
-void Resource_limits::dec_free_reserved(Uint32 cnt)
-{
+inline void Resource_limits::dec_free_reserved(Uint32 cnt) {
   assert(m_free_reserved >= cnt);
   m_free_reserved -= cnt;
 }
 
-inline
-void Resource_limits::dec_in_use(Uint32 cnt)
-{
+inline void Resource_limits::dec_in_use(Uint32 cnt) {
   assert(m_in_use >= cnt);
   m_in_use -= cnt;
 }
 
-inline
-void Resource_limits::dec_resource_in_use(Uint32 id, Uint32 cnt)
-{
+inline void Resource_limits::dec_resource_in_use(Uint32 id, Uint32 cnt) {
   assert(m_limit[id - 1].m_curr >= cnt);
   m_limit[id - 1].m_curr -= cnt;
 }
@@ -885,31 +1297,22 @@ Uint32 Resource_limits::get_shared() const
   return allocated - reserved;
 }
 
-inline
-Uint32 Resource_limits::get_free_reserved() const
-{
-  return m_free_reserved;
-}
+inline Uint32 Resource_limits::get_free_reserved() const { return m_free_reserved; }
 
-inline
-Uint32 Resource_limits::get_free_shared() const
-{
+inline Uint32 Resource_limits::get_free_shared() const {
   Uint32 shared = m_shared;
   Uint32 shared_in_use = m_shared_in_use;
   /*
    * When called from get_free_shared_nolock ensure that total is not less
    * than used.
    */
-  if (unlikely(shared < shared_in_use))
-  {
+  if (unlikely(shared < shared_in_use)) {
     return 0;
   }
   return shared - shared_in_use;
 }
 
-inline
-Uint32 Resource_limits::get_in_use() const
-{
+inline Uint32 Resource_limits::get_in_use() const {
   return m_in_use;
 }
 
@@ -919,15 +1322,11 @@ Uint32 Resource_limits::get_reserved_in_use() const
   return m_reserved - m_free_reserved;
 }
 
-inline
-Uint32 Resource_limits::get_shared_in_use() const
-{
+inline Uint32 Resource_limits::get_shared_in_use() const {
   return m_shared_in_use;
 }
 
-inline
-Uint32 Resource_limits::get_max_page() const
-{
+inline Uint32 Resource_limits::get_max_page() const {
   return m_max_page;
 }
 
@@ -938,17 +1337,14 @@ Uint32 Resource_limits::get_resource_free(Uint32 id, bool use_spare) const
   const Resource_limit& rl = m_limit[id - 1];
   Uint32 spare = use_spare ? rl.m_spare : 0;
   Uint32 used_reserve = rl.m_max + spare;
-  if (used_reserve > rl.m_curr)
-  {
+  if (used_reserve > rl.m_curr) {
      return (used_reserve - rl.m_curr);
   }
   return 0;
 }
 
-inline
-Uint32
-Resource_limits::get_resource_free_reserved(Uint32 id, bool use_spare) const
-{
+inline Uint32
+Resource_limits::get_resource_free_reserved(Uint32 id, bool use_spare) const {
   require(id <= MM_RG_COUNT);
   const Resource_limit& rl = m_limit[id - 1];
   Uint32 spare = use_spare ? rl.m_spare : 0;
@@ -960,12 +1356,9 @@ Resource_limits::get_resource_free_reserved(Uint32 id, bool use_spare) const
   return 0;
 }
 
-inline
-Uint32 Resource_limits::get_resource_free_shared(Uint32 id) const
-{
-  const Uint32 free_shared = m_shared - m_shared_in_use;
+inline Uint32 Resource_limits::get_resource_free_shared(Uint32 id) const { const Uint32 free_shared = m_shared - m_shared_in_use;
   require(id <= MM_RG_COUNT);
-  const Resource_limit& rl = m_limit[id - 1];
+  const Resource_limit &rl = m_limit[id - 1];
 
   if (rl.m_prio_memory == Resource_limit::ULTRA_HIGH_PRIO_MEMORY)
   {
@@ -976,15 +1369,34 @@ Uint32 Resource_limits::get_resource_free_shared(Uint32 id) const
     if (rl.m_prio_memory == Resource_limit::VERY_HIGH_PRIO_MEMORY)
     {
       if (free_shared > m_ultra_prio_free_limit)
-      {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rl
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  {
         return (free_shared - m_ultra_prio_free_limit);
       }
       return 0;
     }
     else if (rl.m_prio_memory == Resource_limit::HIGH_PRIO_MEMORY)
     {
-      if (free_shared >= m_high_prio_free_limit)
-      {
+      if (free_shared >= m_high_prio_free_limit)     {
         return (free_shared - m_high_prio_free_limit);
       }
       return 0;
@@ -993,7 +1405,27 @@ Uint32 Resource_limits::get_resource_free_shared(Uint32 id) const
     {
       if (free_shared >= m_medium_prio_free_limit)
       {
-        return (free_shared - m_medium_prio_free_limit);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rl
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      return (free_shared - m_medium_prio_free_limit);
       }
       return 0;
     }
@@ -1005,46 +1437,34 @@ Uint32 Resource_limits::get_resource_free_shared(Uint32 id) const
   return 0;
 }
 
-inline
-Uint32 Resource_limits::get_resource_in_use(Uint32 id) const
-{
+inline Uint32 Resource_limits::get_resource_in_use(Uint32 id) const {
   require(id <= MM_RG_COUNT);
   return m_limit[id - 1].m_curr;
 }
 
-inline
-void Resource_limits::get_resource_limit(Uint32 id, Resource_limit& rl) const
-{
+inline void Resource_limits::get_resource_limit(Uint32 id,
+                                                Resource_limit &rl) const {
   require(id <= MM_RG_COUNT);
   rl = m_limit[id - 1];
 }
 
-inline
-Uint32 Resource_limits::get_resource_reserved(Uint32 id) const
-{
+inline Uint32 Resource_limits::get_resource_reserved(Uint32 id) const {
   require(id > 0);
   require(id <= MM_RG_COUNT);
   return m_limit[id - 1].m_min;
 }
 
-inline
-Uint32 Resource_limits::get_resource_spare(Uint32 id) const
-{
+inline Uint32 Resource_limits::get_resource_spare(Uint32 id) const {
   require(id > 0);
   require(id <= MM_RG_COUNT);
-  return m_limit[id - 1].m_spare;
-}
+  return m_limit[id - 1].m_spare; }
 
-inline
-void Resource_limits::inc_free_reserved(Uint32 cnt)
-{
+inline void Resource_limits::inc_free_reserved(Uint32 cnt) {
   m_free_reserved += cnt;
   assert(m_free_reserved >= cnt);
 }
 
-inline
-void Resource_limits::inc_in_use(Uint32 cnt)
-{
+inline void Resource_limits::inc_in_use(Uint32 cnt) {
   m_in_use += cnt;
   assert(m_in_use >= cnt);
 }
@@ -1056,27 +1476,74 @@ Resource_limits::get_stolen_reserved(Uint32 id) const
   return m_limit[id - 1].m_stolen_reserved;
 }
 
-inline
-void
-Resource_limits::inc_stolen_reserved(Uint32 id, Uint32 cnt)
-{
+inline void
+Resource_limits::inc_stolen_reserved(Uint32 id, Uint32 cnt) {
   assert((m_limit[id - 1].m_stolen_reserved + cnt) < m_reserved);
   m_limit[id - 1].m_stolen_reserved += cnt;
 }
 
-inline
-void
-Resource_limits::dec_stolen_reserved(Uint32 id, Uint32 cnt)
-{
+inline void
+Resource_limits::dec_stolen_reserved(Uint32 id, Uint32 cnt) {
   assert(m_limit[id - 1].m_stolen_reserved >= cnt);
   m_limit[id - 1].m_stolen_reserved -= cnt;
 }
 
 inline
 Uint32
-Resource_limits::get_overflow_reserved(Uint32 id) const
+Resource_limits::get_overflow_reserved(Uint32 id
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+, Uint32 cnt)
 {
-  return m_limit[id - 1].m_overflow_reserved;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+,
+           
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const
+{
+||||||| Common ancestor
+const Uint32 inuse = get_resource_in_use(id) +
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  return 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_limit[id
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                    get_resource_spare(id) +
+                     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                     Uint32 cnt) {
+  const Uint32 inuse =
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ - 1].m_overflow_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+reserved
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lent(id)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+in_use(id) + get_resource_spare(id) + get_resource_lent(id)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
 }
 
 inline
@@ -1113,8 +1580,7 @@ void Resource_limits::post_release_resource_pages(Uint32 id, Uint32 cnt)
   }
   Uint32 stolen_cnt = cnt;
   while (get_stolen_reserved(id) > 0 &&
-         stolen_cnt > 0)
-  {
+         stolen_cnt > 0) {
     inc_free_reserved(1);
     dec_stolen_reserved(id, 1);
     dec_resource_in_use(id, 1);
@@ -1122,7 +1588,27 @@ void Resource_limits::post_release_resource_pages(Uint32 id, Uint32 cnt)
     stolen_cnt--;
     if (stolen_cnt == 0)
     {
-      return;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rl
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  return;
     }
   }
   /**
@@ -1135,8 +1621,7 @@ void Resource_limits::post_release_resource_pages(Uint32 id, Uint32 cnt)
   const Uint32 inuse = get_resource_in_use(id);
   const Uint32 reserved = get_resource_reserved(id) +
                           get_resource_spare(id);
-  if ((inuse - cnt) < reserved)
-  {
+  if ((inuse - cnt) < reserved) {
     Uint32 res_cnt = reserved - inuse + cnt;
     if (res_cnt >= cnt)
     {
@@ -1145,7 +1630,27 @@ void Resource_limits::post_release_resource_pages(Uint32 id, Uint32 cnt)
     else
     {
       /**
-       * Parts of the memory will go into reserved memory and parts of it
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cnt)
+{
+=======
+cnt)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Parts of the memory will go into reserved memory and parts of it
        * will go into shared global memory.
        */
       Uint32 shared_cnt = cnt - res_cnt;
@@ -1165,24 +1670,18 @@ void Resource_limits::post_release_resource_pages(Uint32 id, Uint32 cnt)
   dec_in_use(cnt);
 }
 
-inline
-void Resource_limits::set_allocated(Uint32 cnt)
-{
+inline void Resource_limits::set_allocated(Uint32 cnt) {
   m_allocated = cnt;
 }
 
-inline
-void Resource_limits::set_shared()
-{
+inline void Resource_limits::set_shared() {
   if (m_allocated > m_reserved)
   {
     m_shared = m_allocated - m_reserved;
   }
 }
 
-inline
-void Resource_limits::set_prio_free_limits(Uint32 res)
-{
+inline void Resource_limits::set_prio_free_limits(Uint32 res) {
   Uint64 shared = m_shared;
   Uint64 ultra_prio_free_limit = shared * Uint64(ULTRA_PRIO_FREE_PCT);
   ultra_prio_free_limit /= 100;
@@ -1201,13 +1700,20 @@ void Resource_limits::set_prio_free_limits(Uint32 res)
 
   Uint64 low_prio_free_limit = shared * Uint64(LOW_PRIO_FREE_PCT);
   low_prio_free_limit /= 100;
-  low_prio_free_limit += 1;
-  m_low_prio_free_limit = Uint32(low_prio_free_limit);
-}
-
-inline
-void Resource_limits::set_max_page(Uint32 page)
+  low_prio_free_limit 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++= 1;
+||||||| Common ancestor
+page)
 {
+=======
+page)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ { m_low_prio_free_limit = Uint32(low_prio_free_limit); }
+
+inline void Resource_limits::set_max_page(Uint32 page) {
   m_max_page = page;
 }
 
@@ -1215,14 +1721,11 @@ void Resource_limits::set_max_page(Uint32 page)
  * Ndbd_mem_manager
  */
 
-inline
-void*
-Ndbd_mem_manager::get_page(Uint32 page_num) const
-{
+inline void *Ndbd_mem_manager::get_page(Uint32 page_num) const {
 #ifdef NDBD_RANDOM_START_PAGE
   page_num -= m_random_start_page_id;
 #endif
-  return (void*)(m_base_page + page_num);
+  return (void *)(m_base_page + page_num);
 }
 /**
  * get_valid_page returns page pointer if requested page is handled by
@@ -1245,17 +1748,13 @@ Ndbd_mem_manager::get_page(Uint32 page_num) const
  *
  * In any case one should strive to remove this function!
  */
-inline
-void*
-Ndbd_mem_manager::get_valid_page(Uint32 page_num) const
-{
+inline void *Ndbd_mem_manager::get_valid_page(Uint32 page_num) const {
 #ifdef NDBD_RANDOM_START_PAGE
   page_num -= m_random_start_page_id;
 #endif
   const Uint32 page_region_index = page_num & PAGE_REGION_MASK;
   if (unlikely(page_region_index == 0 ||
-               page_region_index == PAGE_REGION_MASK))
-  {
+               page_region_index == PAGE_REGION_MASK)) {
     /**
      * First page in region are used internally for bitmap.
      * Last page is region is reserved for no use.
@@ -1279,30 +1778,23 @@ Ndbd_mem_manager::get_valid_page(Uint32 page_num) const
   do {
     lock_value = m_mapped_pages_lock.read_lock();
 
-    Uint32 a = 0; /* inclusive lower limit */
+    Uint32 a = 0;                    /* inclusive lower limit */
     Uint32 z = m_mapped_pages_count; /* exclusive upper limit */
     page_is_mapped = false;
-    while (a < z)
-    {
+    while (a < z) {
       Uint32 i = (a + z) / 2;
-      if (page_num < m_mapped_pages[i].start)
-      {
+      if (page_num < m_mapped_pages[i].start) {
         z = i;
-      }
-      else if (page_num < m_mapped_pages[i].end)
-      {
+      } else if (page_num < m_mapped_pages[i].end) {
         page_is_mapped = true;
         break;
-      }
-      else
-      {
+      } else {
         a = i + 1;
       }
     }
   } while (!m_mapped_pages_lock.read_unlock(lock_value));
 
-  if (unlikely(!page_is_mapped))
-  {
+  if (unlikely(!page_is_mapped)) {
 #ifdef NDBD_RANDOM_START_PAGE
     g_eventLogger->info(
         "Warning: Ndbd_mem_manager::get_valid_page: unmapped page %u %u",
@@ -1318,53 +1810,40 @@ Ndbd_mem_manager::get_valid_page(Uint32 page_num) const
     return NULL;
   }
 
-  return (void*)(m_base_page + page_num);
+  return (void *)(m_base_page + page_num);
 }
 
-inline
-Free_page_data*
-Ndbd_mem_manager::get_free_page_data(Alloc_page* ptr, Uint32 idx)
-{
+inline Free_page_data *Ndbd_mem_manager::get_free_page_data(Alloc_page *ptr,
+                                                            Uint32 idx) {
   assert(idx & ((1 << BPP_2LOG) - 1));
   assert((idx & ((1 << BPP_2LOG) - 1)) != ((1 << BPP_2LOG) - 1));
-  
-  return (Free_page_data*)
-    (ptr->m_data + ((idx & ((BITMAP_WORDS >> FPD_2LOG) - 1)) << FPD_2LOG));
+
+  return (
+      Free_page_data *)(ptr->m_data +
+                        ((idx & ((BITMAP_WORDS >> FPD_2LOG) - 1)) << FPD_2LOG));
 }
 
-inline
-Uint32 Ndbd_mem_manager::get_page_zone(Uint32 page)
-{
-  if (page < ZONE_19_BOUND)
-  {
+inline Uint32 Ndbd_mem_manager::get_page_zone(Uint32 page) {
+  if (page < ZONE_19_BOUND) {
     return ZONE_19;
-  }
-  else if (page < ZONE_27_BOUND)
-  {
+  } else if (page < ZONE_27_BOUND) {
     return ZONE_27;
-  }
-  else if (page < ZONE_30_BOUND)
-  {
+  } else if (page < ZONE_30_BOUND) {
     return ZONE_30;
-  }
-  else
-  {
+  } else {
     return ZONE_32;
   }
 }
 
-inline
-void
-Ndbd_mem_manager::set(Uint32 first, Uint32 last)
-{
+inline void Ndbd_mem_manager::set(Uint32 first, Uint32 last) {
   /**
    * First and last page in a BPP region may not be available for external use.
    * First page is the bitmap page for the region.
    * Last page is always unused.
    */
   require(first & ((1 << BPP_2LOG) - 1));
-  require((first+1) & ((1 << BPP_2LOG) - 1));
-  Alloc_page * ptr = m_base_page;
+  require((first + 1) & ((1 << BPP_2LOG) - 1));
+  Alloc_page *ptr = m_base_page;
 #if ((SPACE_PER_BMP_2LOG < 32) && (SIZEOF_CHARP == 4)) || (SIZEOF_CHARP == 8)
   Uint32 bmp = first & ~((1 << BPP_2LOG) - 1);
   assert((first >> BPP_2LOG) == (last >> BPP_2LOG));
@@ -1381,16 +1860,13 @@ Ndbd_mem_manager::set(Uint32 first, Uint32 last)
 #endif
 }
 
-inline
-void
-Ndbd_mem_manager::clear(Uint32 first, Uint32 last)
-{
-  Alloc_page * ptr = m_base_page;
+inline void Ndbd_mem_manager::clear(Uint32 first, Uint32 last) {
+  Alloc_page *ptr = m_base_page;
 #if ((SPACE_PER_BMP_2LOG < 32) && (SIZEOF_CHARP == 4)) || (SIZEOF_CHARP == 8)
   Uint32 bmp = first & ~((1 << BPP_2LOG) - 1);
   assert((first >> BPP_2LOG) == (last >> BPP_2LOG));
   assert(bmp < m_resource_limits.get_max_page());
-  
+
   first -= bmp;
   last -= bmp;
   ptr += bmp;
@@ -1405,30 +1881,26 @@ Ndbd_mem_manager::clear(Uint32 first, Uint32 last)
 
 inline
 Uint32
-Ndbd_mem_manager::get_bit(Uint32 first)
-{
-  Alloc_page * ptr = m_base_page;
+Ndbd_mem_manager::get_bit(Uint32 first) {
+  Alloc_page *ptr = m_base_page;
 #if ((SPACE_PER_BMP_2LOG < 32) && (SIZEOF_CHARP == 4)) || (SIZEOF_CHARP == 8)
   Uint32 bmp = first & ~((1 << BPP_2LOG) - 1);
   assert(bmp < m_resource_limits.get_max_page());
-  
+
   first -= bmp;
   ptr += bmp;
 #endif
   return BitmaskImpl::get(BITMAP_WORDS, ptr->m_data, first);
 }
 
-inline
-Uint32
-Ndbd_mem_manager::check(Uint32 first, Uint32 last)
-{
+inline Uint32 Ndbd_mem_manager::check(Uint32 first, Uint32 last) {
   Uint32 ret = 0;
-  Alloc_page * ptr = m_base_page;
+  Alloc_page *ptr = m_base_page;
 #if ((SPACE_PER_BMP_2LOG < 32) && (SIZEOF_CHARP == 4)) || (SIZEOF_CHARP == 8)
   Uint32 bmp = first & ~((1 << BPP_2LOG) - 1);
   assert((first >> BPP_2LOG) == (last >> BPP_2LOG));
   assert(bmp < m_resource_limits.get_max_page());
-  
+
   first -= bmp;
   last -= bmp;
   ptr += bmp;
@@ -1440,4 +1912,4 @@ Ndbd_mem_manager::check(Uint32 first, Uint32 last)
 
 #undef JAM_FILE_ID
 
-#endif 
+#endif

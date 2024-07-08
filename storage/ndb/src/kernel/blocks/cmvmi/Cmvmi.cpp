@@ -23,36 +23,37 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#include "util/require.h"
 #include "Cmvmi.hpp"
+#include "util/require.h"
 
-#include <cstring>
+#include <NdbTick.h>
+#include <kernel_types.h>
+#include <portlib/NdbMem.h>
 #include <signal.h>
 #include <Configuration.hpp>
-#include <kernel_types.h>
 #include <NdbOut.hpp>
-#include <portlib/NdbMem.h>
-#include <NdbTick.h>
+#include <cstring>
 #include <util/ConfigValues.hpp>
 
-#include <TransporterRegistry.hpp>
-#include <SignalLoggerManager.hpp>
 #include <FastScheduler.hpp>
+#include <SignalLoggerManager.hpp>
+#include <TransporterRegistry.hpp>
 
-#define DEBUG(x) { ndbout << "CMVMI::" << x << endl; }
+#define DEBUG(x) \
+  { ndbout << "CMVMI::" << x << endl; }
 
-#include <signaldata/TestOrd.hpp>
-#include <signaldata/EventReport.hpp>
-#include <signaldata/TamperOrd.hpp>
-#include <signaldata/StartOrd.hpp>
-#include <signaldata/SetLogLevelOrd.hpp>
-#include <signaldata/EventSubscribeReq.hpp>
-#include <signaldata/DumpStateOrd.hpp>
-#include <signaldata/DbinfoScan.hpp>
-#include <signaldata/Sync.hpp>
 #include <signaldata/AllocMem.hpp>
-#include <signaldata/NodeStateSignalData.hpp>
+#include <signaldata/DbinfoScan.hpp>
+#include <signaldata/DumpStateOrd.hpp>
+#include <signaldata/EventReport.hpp>
+#include <signaldata/EventSubscribeReq.hpp>
 #include <signaldata/GetConfig.hpp>
+#include <signaldata/NodeStateSignalData.hpp>
+#include <signaldata/SetLogLevelOrd.hpp>
+#include <signaldata/StartOrd.hpp>
+#include <signaldata/Sync.hpp>
+#include <signaldata/TamperOrd.hpp>
+#include <signaldata/TestOrd.hpp>
 #include <signaldata/Activate.hpp>
 #include <signaldata/SetHostname.hpp>
 
@@ -97,10 +98,8 @@ Uint32 g_acc_pages_used[1 + MAX_NDBMT_LQH_WORKERS];
 extern void mt_init_receiver_cache();
 extern void mt_set_section_chunk_size();
 
-Cmvmi::Cmvmi(Block_context& ctx) :
-  SimulatedBlock(CMVMI, ctx)
-  ,subscribers(subscriberPool)
-{
+Cmvmi::Cmvmi(Block_context &ctx)
+    : SimulatedBlock(CMVMI, ctx), subscribers(subscriberPool) {
   BLOCK_CONSTRUCTOR(Cmvmi);
 
   Uint64 long_sig_buffer_size = globalData.theLongSignalMemory;
@@ -109,31 +108,30 @@ Cmvmi::Cmvmi(Block_context& ctx) :
    * aligned offset for theData
    */
   static_assert((sizeof(SectionSegment) % 8) == 0);
-  static_assert((offsetof(SectionSegment, theData) % 8) == 0); 
+  static_assert((offsetof(SectionSegment, theData) % 8) == 0);
 
   DEB_AUTOMATIC_MEMORY(("Allocating %llu MBytes for LongMessageBuffer",
                         long_sig_buffer_size / MBYTE64));
   long_sig_buffer_size= long_sig_buffer_size / sizeof(SectionSegment);
   Uint32 long_sig_segments = Uint32(long_sig_buffer_size);
-  g_sectionSegmentPool.setSize(long_sig_segments,
-                               true,true,true,CFG_DB_LONG_SIGNAL_BUFFER);
+  g_sectionSegmentPool.setSize(long_sig_segments, true, true, true,
+                               CFG_DB_LONG_SIGNAL_BUFFER);
 
   mt_init_receiver_cache();
   mt_set_section_chunk_size();
 
   // Add received signals
-  addRecSignal(GSN_NDB_TAMPER,  &Cmvmi::execNDB_TAMPER, true);
-  addRecSignal(GSN_SET_LOGLEVELORD,  &Cmvmi::execSET_LOGLEVELORD);
-  addRecSignal(GSN_EVENT_REP,  &Cmvmi::execEVENT_REP);
-  addRecSignal(GSN_STTOR,  &Cmvmi::execSTTOR);
-  addRecSignal(GSN_READ_CONFIG_REQ,  &Cmvmi::execREAD_CONFIG_REQ);
-  addRecSignal(GSN_TEST_ORD,  &Cmvmi::execTEST_ORD);
+  addRecSignal(GSN_NDB_TAMPER, &Cmvmi::execNDB_TAMPER, true);
+  addRecSignal(GSN_SET_LOGLEVELORD, &Cmvmi::execSET_LOGLEVELORD);
+  addRecSignal(GSN_EVENT_REP, &Cmvmi::execEVENT_REP);
+  addRecSignal(GSN_STTOR, &Cmvmi::execSTTOR);
+  addRecSignal(GSN_READ_CONFIG_REQ, &Cmvmi::execREAD_CONFIG_REQ);
+  addRecSignal(GSN_TEST_ORD, &Cmvmi::execTEST_ORD);
 
-  addRecSignal(GSN_TAMPER_ORD,  &Cmvmi::execTAMPER_ORD);
-  addRecSignal(GSN_STOP_ORD,  &Cmvmi::execSTOP_ORD);
-  addRecSignal(GSN_START_ORD,  &Cmvmi::execSTART_ORD);
-  addRecSignal(GSN_EVENT_SUBSCRIBE_REQ, 
-               &Cmvmi::execEVENT_SUBSCRIBE_REQ);
+  addRecSignal(GSN_TAMPER_ORD, &Cmvmi::execTAMPER_ORD);
+  addRecSignal(GSN_STOP_ORD, &Cmvmi::execSTOP_ORD);
+  addRecSignal(GSN_START_ORD, &Cmvmi::execSTART_ORD);
+  addRecSignal(GSN_EVENT_SUBSCRIBE_REQ, &Cmvmi::execEVENT_SUBSCRIBE_REQ);
   addRecSignal(GSN_CANCEL_SUBSCRIPTION_REQ,
                &Cmvmi::execCANCEL_SUBSCRIPTION_REQ);
 
@@ -166,33 +164,35 @@ Cmvmi::Cmvmi(Block_context& ctx) :
   subscriberPool.setSize(5);
   c_syncReqPool.setSize(5);
 
-  const ndb_mgm_configuration_iterator * db = m_ctx.m_config.getOwnConfigIterator();
-  for(unsigned j = 0; j<LogLevel::LOGLEVEL_CATEGORIES; j++){
+  const ndb_mgm_configuration_iterator *db =
+      m_ctx.m_config.getOwnConfigIterator();
+  for (unsigned j = 0; j < LogLevel::LOGLEVEL_CATEGORIES; j++) {
     Uint32 logLevel;
-    if(!ndb_mgm_get_int_parameter(db, CFG_MIN_LOGLEVEL+j, &logLevel)){
-      clogLevel.setLogLevel((LogLevel::EventCategory)j, 
-			    logLevel);
+    if (!ndb_mgm_get_int_parameter(db, CFG_MIN_LOGLEVEL + j, &logLevel)) {
+      clogLevel.setLogLevel((LogLevel::EventCategory)j, logLevel);
     }
   }
-  
-  ndb_mgm_configuration_iterator * iter = m_ctx.m_config.getClusterConfigIterator();
-  for(ndb_mgm_first(iter); ndb_mgm_valid(iter); ndb_mgm_next(iter)){
+
+  ndb_mgm_configuration_iterator *iter =
+      m_ctx.m_config.getClusterConfigIterator();
+  for (ndb_mgm_first(iter); ndb_mgm_valid(iter); ndb_mgm_next(iter)) {
     jam();
     Uint32 nodeId;
     Uint32 nodeType;
 
-    ndbrequire(!ndb_mgm_get_int_parameter(iter,CFG_NODE_ID, &nodeId));
-    ndbrequire(!ndb_mgm_get_int_parameter(iter,CFG_TYPE_OF_SECTION,&nodeType));
+    ndbrequire(!ndb_mgm_get_int_parameter(iter, CFG_NODE_ID, &nodeId));
+    ndbrequire(
+        !ndb_mgm_get_int_parameter(iter, CFG_TYPE_OF_SECTION, &nodeType));
 
-    switch(nodeType){
-    case NodeInfo::DB:
-      c_dbNodes.set(nodeId);
-      break;
-    case NodeInfo::API:
-    case NodeInfo::MGM:
-      break;
-    default:
-      ndbabort();
+    switch (nodeType) {
+      case NodeInfo::DB:
+        c_dbNodes.set(nodeId);
+        break;
+      case NodeInfo::API:
+      case NodeInfo::MGM:
+        break;
+      default:
+        ndbabort();
     }
     setNodeInfo(nodeId).m_type = nodeType;
   }
@@ -208,39 +208,35 @@ Cmvmi::Cmvmi(Block_context& ctx) :
   std::memset(g_acc_pages_used, 0, sizeof(g_acc_pages_used));
 }
 
-Cmvmi::~Cmvmi()
-{
-  m_shared_page_pool.clear();
-}
+Cmvmi::~Cmvmi() { m_shared_page_pool.clear(); }
 
-void Cmvmi::execNDB_TAMPER(Signal* signal) 
-{
+void Cmvmi::execNDB_TAMPER(Signal *signal) {
   jamEntry();
   SET_ERROR_INSERT_VALUE(signal->theData[0]);
-  if(ERROR_INSERTED(9999)){
+  if (ERROR_INSERTED(9999)) {
     CRASH_INSERTION(9999);
   }
 
-  if(ERROR_INSERTED(9998)){
-    while(true) NdbSleep_SecSleep(1);
+  if (ERROR_INSERTED(9998)) {
+    while (true) NdbSleep_SecSleep(1);
   }
 
-  if(ERROR_INSERTED(9997)){
+  if (ERROR_INSERTED(9997)) {
     ndbabort();
   }
 
 #ifndef _WIN32
-  if(ERROR_INSERTED(9996)){
-    simulate_error_during_shutdown= SIGSEGV;
+  if (ERROR_INSERTED(9996)) {
+    simulate_error_during_shutdown = SIGSEGV;
     ndbabort();
   }
 
-  if(ERROR_INSERTED(9995)){
-    simulate_error_during_shutdown= SIGSEGV;
+  if (ERROR_INSERTED(9995)) {
+    simulate_error_during_shutdown = SIGSEGV;
     kill(getpid(), SIGABRT);
   }
 
-  if(ERROR_INSERTED(9006)){
+  if (ERROR_INSERTED(9006)) {
     g_eventLogger->info("Activating error 9006 for SEGV of all nodes");
     /*
      * Disable this injected crash to generate core files. We can not use the
@@ -256,53 +252,28 @@ void Cmvmi::execNDB_TAMPER(Signal* signal)
   }
 #endif
 
-  if (signal->theData[0] == 9003)
-  {
+  if (signal->theData[0] == 9003) {
     // Migrated to TRPMAN
     CLEAR_ERROR_INSERT_VALUE;
-    sendSignal(TRPMAN_REF, GSN_NDB_TAMPER, signal, signal->getLength(),JBB);
+    sendSignal(TRPMAN_REF, GSN_NDB_TAMPER, signal, signal->getLength(), JBB);
   }
-  if (signal->theData[0] >= 9500 &&
-      signal->theData[0] <  9900)
-  {
+  if (signal->theData[0] >= 9500 && signal->theData[0] < 9900) {
     /* Subrange for TRPMAN */
-    sendSignal(TRPMAN_REF, GSN_NDB_TAMPER, signal, signal->getLength(),JBB);
+    sendSignal(TRPMAN_REF, GSN_NDB_TAMPER, signal, signal->getLength(), JBB);
   }
-}//execNDB_TAMPER()
+}  // execNDB_TAMPER()
 
-static Uint32 blocks[] =
-{
-  QMGR_REF,
-  NDBCNTR_REF,
-  DBTC_REF,
-  DBDIH_REF,
-  DBDICT_REF,
-  DBLQH_REF,
-  DBTUP_REF,
-  DBACC_REF,
-  NDBFS_REF,
-  BACKUP_REF,
-  DBUTIL_REF,
-  SUMA_REF,
-  TRIX_REF,
-  DBTUX_REF,
-  LGMAN_REF,
-  TSMAN_REF,
-  PGMAN_REF,
-  DBINFO_REF,
-  DBSPJ_REF,
-  TRPMAN_REF,
-  0
-};
+static Uint32 blocks[] = {
+    QMGR_REF,  NDBCNTR_REF, DBTC_REF,  DBDIH_REF,  DBDICT_REF, DBLQH_REF,
+    DBTUP_REF, DBACC_REF,   NDBFS_REF, BACKUP_REF, DBUTIL_REF, SUMA_REF,
+    TRIX_REF,  DBTUX_REF,   LGMAN_REF, TSMAN_REF,  PGMAN_REF,  DBINFO_REF,
+    DBSPJ_REF, TRPMAN_REF,  0};
 
-void
-Cmvmi::execSYNC_REQ(Signal* signal)
-{
+void Cmvmi::execSYNC_REQ(Signal *signal) {
   jamEntry();
-  SyncReq req = * CAST_CONSTPTR(SyncReq, signal->getDataPtr());
+  SyncReq req = *CAST_CONSTPTR(SyncReq, signal->getDataPtr());
   Ptr<SyncRecord> ptr;
-  if (!c_syncReqPool.seize(ptr))
-  {
+  if (!c_syncReqPool.seize(ptr)) {
     jam();
     SyncRecord tmp;
     ptr.p = &tmp;
@@ -319,31 +290,27 @@ Cmvmi::execSYNC_REQ(Signal* signal)
   ptr.p->m_prio = req.prio;
   ptr.p->m_error = 0;
 
-  SyncReq* out = CAST_PTR(SyncReq, signal->getDataPtrSend());
+  SyncReq *out = CAST_PTR(SyncReq, signal->getDataPtrSend());
   out->senderRef = reference();
   out->senderData = ptr.i;
   out->prio = ptr.p->m_prio;
   Uint32 i = 0;
-  for (i = 0; blocks[i] != 0; i++)
-  {
+  for (i = 0; blocks[i] != 0; i++) {
     sendSignal(blocks[i], GSN_SYNC_REQ, signal, SyncReq::SignalLength,
                JobBufferLevel(ptr.p->m_prio));
   }
   ptr.p->m_cnt = i;
 }
 
-void
-Cmvmi::execSYNC_CONF(Signal* signal)
-{
+void Cmvmi::execSYNC_CONF(Signal *signal) {
   jamEntry();
-  SyncConf conf = * CAST_CONSTPTR(SyncConf, signal->getDataPtr());
+  SyncConf conf = *CAST_CONSTPTR(SyncConf, signal->getDataPtr());
 
   Ptr<SyncRecord> ptr;
   ndbrequire(c_syncReqPool.getPtr(ptr, conf.senderData));
   ndbrequire(ptr.p->m_cnt > 0);
   ptr.p->m_cnt--;
-  if (ptr.p->m_cnt == 0)
-  {
+  if (ptr.p->m_cnt == 0) {
     jam();
 
     sendSYNC_REP(signal, ptr);
@@ -351,25 +318,21 @@ Cmvmi::execSYNC_CONF(Signal* signal)
   }
 }
 
-void
-Cmvmi::execSYNC_REF(Signal* signal)
-{
+void Cmvmi::execSYNC_REF(Signal *signal) {
   jamEntry();
-  SyncRef ref = * CAST_CONSTPTR(SyncRef, signal->getDataPtr());
+  SyncRef ref = *CAST_CONSTPTR(SyncRef, signal->getDataPtr());
 
   Ptr<SyncRecord> ptr;
   ndbrequire(c_syncReqPool.getPtr(ptr, ref.senderData));
   ndbrequire(ptr.p->m_cnt > 0);
   ptr.p->m_cnt--;
 
-  if (ptr.p->m_error == 0)
-  {
+  if (ptr.p->m_error == 0) {
     jam();
     ptr.p->m_error = ref.errorCode;
   }
 
-  if (ptr.p->m_cnt == 0)
-  {
+  if (ptr.p->m_cnt == 0) {
     jam();
 
     sendSYNC_REP(signal, ptr);
@@ -377,23 +340,17 @@ Cmvmi::execSYNC_REF(Signal* signal)
   }
 }
 
-void
-Cmvmi::sendSYNC_REP(Signal * signal, Ptr<SyncRecord> ptr)
-{
-  if (ptr.p->m_error == 0)
-  {
+void Cmvmi::sendSYNC_REP(Signal *signal, Ptr<SyncRecord> ptr) {
+  if (ptr.p->m_error == 0) {
     jam();
-    SyncConf* conf = CAST_PTR(SyncConf, signal->getDataPtrSend());
+    SyncConf *conf = CAST_PTR(SyncConf, signal->getDataPtrSend());
     conf->senderRef = reference();
     conf->senderData = ptr.p->m_senderData;
     sendSignal(ptr.p->m_senderRef, GSN_SYNC_CONF, signal,
-               SyncConf::SignalLength,
-               JobBufferLevel(ptr.p->m_prio));
-  }
-  else
-  {
+               SyncConf::SignalLength, JobBufferLevel(ptr.p->m_prio));
+  } else {
     jam();
-    SyncRef* ref = CAST_PTR(SyncRef, signal->getDataPtrSend());
+    SyncRef *ref = CAST_PTR(SyncRef, signal->getDataPtrSend());
     ref->senderRef = reference();
     ref->senderData = ptr.p->m_senderData;
     ref->errorCode = ptr.p->m_error;
@@ -402,25 +359,23 @@ Cmvmi::sendSYNC_REP(Signal * signal, Ptr<SyncRecord> ptr)
   }
 }
 
-void Cmvmi::execSET_LOGLEVELORD(Signal* signal) 
-{
-  SetLogLevelOrd * const llOrd = (SetLogLevelOrd *)&signal->theData[0];
+void Cmvmi::execSET_LOGLEVELORD(Signal *signal) {
+  SetLogLevelOrd *const llOrd = (SetLogLevelOrd *)&signal->theData[0];
   LogLevel::EventCategory category;
   Uint32 level;
   jamEntry();
 
   ndbrequire(llOrd->noOfEntries <= LogLevel::LOGLEVEL_CATEGORIES);
 
-  for(unsigned int i = 0; i<llOrd->noOfEntries; i++){
+  for (unsigned int i = 0; i < llOrd->noOfEntries; i++) {
     category = (LogLevel::EventCategory)(llOrd->theData[i] >> 16);
     level = llOrd->theData[i] & 0xFFFF;
-    
+
     clogLevel.setLogLevel(category, level);
   }
-}//execSET_LOGLEVELORD()
+}  // execSET_LOGLEVELORD()
 
-struct SavedEvent
-{
+struct SavedEvent {
   Uint32 m_len;
   Uint32 m_seq;
   Uint32 m_time;
@@ -433,9 +388,7 @@ struct SavedEvent
 
 Uint32 m_saved_event_sequence = 0;
 
-static
-struct SavedEventBuffer
-{
+static struct SavedEventBuffer {
   SavedEventBuffer() {
     m_read_pos = m_write_pos = 0;
     m_buffer_len = 0;
@@ -443,14 +396,12 @@ struct SavedEventBuffer
   }
 
   void init(Uint32 bytes) {
-    if (bytes < 128)
-    {
-      return; // min size...unless set to 0
+    if (bytes < 128) {
+      return;  // min size...unless set to 0
     }
     Uint32 words = bytes / 4;
     m_data = new Uint32[words];
-    if (m_data)
-    {
+    if (m_data) {
       m_buffer_len = words;
     }
   }
@@ -458,17 +409,17 @@ struct SavedEventBuffer
   Uint16 m_write_pos;
   Uint16 m_read_pos;
   Uint32 m_buffer_len;
-  Uint32 * m_data;
+  Uint32 *m_data;
 
   void alloc(Uint32 len);
   void purge();
-  void save(const Uint32 * theData, Uint32 len);
+  void save(const Uint32 *theData, Uint32 len);
 
   Uint32 num_free() const;
 
   Uint32 m_scan_pos;
   int startScan();
-  int scan(SavedEvent * dst, Uint32 filter[]);
+  int scan(SavedEvent *dst, Uint32 filter[]);
 
   /**
    * Get sequence number of entry located at current scan pos
@@ -476,18 +427,13 @@ struct SavedEventBuffer
   Uint32 getScanPosSeq() const;
 } m_saved_event_buffer[SAVE_BUFFER_CNT + /* add unknown here */ 1];
 
-void
-SavedEventBuffer::alloc(Uint32 len)
-{
+void SavedEventBuffer::alloc(Uint32 len) {
   assert(m_buffer_len > 0);
 
-  while (num_free() <= len)
-    purge();
+  while (num_free() <= len) purge();
 }
 
-Uint32
-SavedEventBuffer::num_free() const
-{
+Uint32 SavedEventBuffer::num_free() const {
   if (m_write_pos == m_read_pos)
     return m_buffer_len;
   else if (m_write_pos > m_read_pos)
@@ -496,10 +442,8 @@ SavedEventBuffer::num_free() const
     return m_read_pos - m_write_pos;
 }
 
-void
-SavedEventBuffer::purge()
-{
-  const Uint32 * ptr = m_data + m_read_pos;
+void SavedEventBuffer::purge() {
+  const Uint32 *ptr = m_data + m_read_pos;
   /* First word of SavedEvent is m_len.
    * One can not safely cast ptr to SavedEvent pointer since it may wrap if at
    * end of buffer.
@@ -511,30 +455,24 @@ SavedEventBuffer::purge()
   m_read_pos = (m_read_pos + len) % m_buffer_len;
 }
 
-void
-SavedEventBuffer::save(const Uint32 * theData, Uint32 len)
-{
-  if (m_buffer_len == 0)
-    return;
+void SavedEventBuffer::save(const Uint32 *theData, Uint32 len) {
+  if (m_buffer_len == 0) return;
 
   Uint32 total = len + SavedEvent::HeaderLength;
   alloc(total);
 
   SavedEvent s;
-  s.m_len = len; // size of SavedEvent
+  s.m_len = len;  // size of SavedEvent
   s.m_seq = m_saved_event_sequence++;
   s.m_time = (Uint32)time(0);
-  const Uint32 * src = (const Uint32*)&s;
-  Uint32 * dst = m_data + m_write_pos;
+  const Uint32 *src = (const Uint32 *)&s;
+  Uint32 *dst = m_data + m_write_pos;
 
   Uint32 remain = m_buffer_len - m_write_pos;
-  if (remain >= total)
-  {
+  if (remain >= total) {
     memcpy(dst, src, 4 * SavedEvent::HeaderLength);
-    memcpy(dst+SavedEvent::HeaderLength, theData, 4*len);
-  }
-  else
-  {
+    memcpy(dst + SavedEvent::HeaderLength, theData, 4 * len);
+  } else {
     memcpy(s.m_data, theData, 4 * len);
     memcpy(dst, src, 4 * remain);
     memcpy(m_data, src + remain, 4 * (total - remain));
@@ -542,23 +480,18 @@ SavedEventBuffer::save(const Uint32 * theData, Uint32 len)
   m_write_pos = (m_write_pos + total) % m_buffer_len;
 }
 
-int
-SavedEventBuffer::startScan()
-{
-  if (m_read_pos == m_write_pos)
-  {
+int SavedEventBuffer::startScan() {
+  if (m_read_pos == m_write_pos) {
     return 1;
   }
   m_scan_pos = m_read_pos;
   return 0;
 }
 
-int
-SavedEventBuffer::scan(SavedEvent* _dst, Uint32 filter[])
-{
+int SavedEventBuffer::scan(SavedEvent *_dst, Uint32 filter[]) {
   assert(m_scan_pos != m_write_pos);
-  Uint32 * dst = (Uint32*)_dst;
-  const Uint32 * ptr = m_data + m_scan_pos;
+  Uint32 *dst = (Uint32 *)_dst;
+  const Uint32 *ptr = m_data + m_scan_pos;
   /* First word of SavedEvent is m_len.
    * One can not safely cast ptr to SavedEvent pointer since it may wrap if at
    * end of buffer.
@@ -568,30 +501,24 @@ SavedEventBuffer::scan(SavedEvent* _dst, Uint32 filter[])
   const Uint32 data_len = ptr[len_off];
   require(data_len <= MAX_EVENT_REP_SIZE_WORDS);
   Uint32 total = data_len + SavedEvent::HeaderLength;
-  if (m_scan_pos + total <= m_buffer_len)
-  {
+  if (m_scan_pos + total <= m_buffer_len) {
     memcpy(dst, ptr, 4 * total);
-  }
-  else
-  {
+  } else {
     Uint32 remain = m_buffer_len - m_scan_pos;
     memcpy(dst, ptr, 4 * remain);
     memcpy(dst + remain, m_data, 4 * (total - remain));
   }
   m_scan_pos = (m_scan_pos + total) % m_buffer_len;
 
-  if (m_scan_pos == m_write_pos)
-  {
+  if (m_scan_pos == m_write_pos) {
     return 1;
   }
   return 0;
 }
 
-Uint32
-SavedEventBuffer::getScanPosSeq() const
-{
+Uint32 SavedEventBuffer::getScanPosSeq() const {
   assert(m_scan_pos != m_write_pos);
-  const Uint32 * ptr = m_data + m_scan_pos;
+  const Uint32 *ptr = m_data + m_scan_pos;
   /* First word of SavedEvent is m_len.
    * Second word of SavedEvent is m_seq.
    * One can not safely cast ptr to SavedEvent pointer since it may wrap if at
@@ -599,16 +526,14 @@ SavedEventBuffer::getScanPosSeq() const
    */
   static_assert(offsetof(SavedEvent, m_seq) % sizeof(Uint32) == 0);
   constexpr Uint32 seq_off = offsetof(SavedEvent, m_seq) / sizeof(Uint32);
-  if (m_scan_pos + seq_off < m_buffer_len)
-  {
+  if (m_scan_pos + seq_off < m_buffer_len) {
     return ptr[seq_off];
   }
   const Uint32 wrap_seq_off = m_scan_pos + seq_off - m_buffer_len;
   return m_data[wrap_seq_off];
 }
 
-void Cmvmi::execEVENT_REP(Signal* signal) 
-{
+void Cmvmi::execEVENT_REP(Signal *signal) {
   //-----------------------------------------------------------------------
   // This message is sent to report any types of events in NDB.
   // Based on the log level they will be either ignored or
@@ -616,19 +541,17 @@ void Cmvmi::execEVENT_REP(Signal* signal)
   // transferred to the management server for further distribution
   // to the graphical management interface.
   //-----------------------------------------------------------------------
-  EventReport * const eventReport = (EventReport *)&signal->theData[0]; 
+  EventReport *const eventReport = (EventReport *)&signal->theData[0];
   Ndb_logevent_type eventType = eventReport->getEventType();
-  Uint32 nodeId= eventReport->getNodeId();
-  if (nodeId == 0)
-  {
-    nodeId= refToNode(signal->getSendersBlockRef());
+  Uint32 nodeId = eventReport->getNodeId();
+  if (nodeId == 0) {
+    nodeId = refToNode(signal->getSendersBlockRef());
 
-    if (nodeId == 0)
-    {
+    if (nodeId == 0) {
       /* Event reporter supplied no node id,
        * assume it was local
        */
-      nodeId= getOwnNodeId();
+      nodeId = getOwnNodeId();
     }
 
     eventReport->setNodeId(nodeId);
@@ -639,8 +562,7 @@ void Cmvmi::execEVENT_REP(Signal* signal)
   Uint32 num_sections = signal->getNoOfSections();
   SectionHandle handle(this, signal);
   SegmentedSectionPtr segptr;
-  if (num_sections > 0)
-  {
+  if (num_sections > 0) {
     ndbrequire(num_sections == 1);
     ndbrequire(handle.getSection(segptr, 0));
   }
@@ -649,29 +571,25 @@ void Cmvmi::execEVENT_REP(Signal* signal)
    */
   Uint32 threshold;
   LogLevel::EventCategory eventCategory;
-  Logger::LoggerLevel severity;  
+  Logger::LoggerLevel severity;
   EventLoggerBase::EventTextFunction textF;
-  if (EventLoggerBase::event_lookup(eventType,eventCategory,threshold,severity,textF))
-  {
-    if (num_sections > 0)
-    {
+  if (EventLoggerBase::event_lookup(eventType, eventCategory, threshold,
+                                    severity, textF)) {
+    if (num_sections > 0) {
       releaseSections(handle);
     }
     return;
   }
-  
+
   Uint32 sig_length = signal->length();
   SubscriberPtr subptr;
-  for(subscribers.first(subptr); subptr.i != RNIL; subscribers.next(subptr))
-  {
+  for (subscribers.first(subptr); subptr.i != RNIL; subscribers.next(subptr)) {
     jam();
-    if(subptr.p->logLevel.getLogLevel(eventCategory) < threshold)
-    {
+    if (subptr.p->logLevel.getLogLevel(eventCategory) < threshold) {
       jam();
       continue;
     }
-    if (num_sections > 0)
-    {
+    if (num_sections > 0) {
       /**
        * Send only to nodes that are upgraded to a version that can handle
        * signal sections in EVENT_REP.
@@ -679,17 +597,10 @@ void Cmvmi::execEVENT_REP(Signal* signal)
        * sections in EVENT_REP since signal is too small for that.
        */
       Uint32 version = getNodeInfo(refToNode(subptr.p->blockRef)).m_version;
-      if (ndbd_send_node_bitmask_in_section(version))
-      {
-        sendSignalNoRelease(subptr.p->blockRef,
-                            GSN_EVENT_REP,
-                            signal,
-                            sig_length,
-                            JBB,
-                            &handle);
-      }
-      else
-      {
+      if (ndbd_send_node_bitmask_in_section(version)) {
+        sendSignalNoRelease(subptr.p->blockRef, GSN_EVENT_REP, signal,
+                            sig_length, JBB, &handle);
+      } else {
         /**
          * MGM server isn't ready to receive a long signal, we need to handle
          * it for at least infoEvent's and WarningEvent's, other reports we
@@ -697,26 +608,14 @@ void Cmvmi::execEVENT_REP(Signal* signal)
          * with upgrades of MGM server, so should normally not happen. But
          * still good to not mismanage it completely.
          */
-         if (eventType == NDB_LE_WarningEvent ||
-             eventType == NDB_LE_InfoEvent)
-         {
-           copy(&signal->theData[1], segptr);
-           Uint32 sz = segptr.sz > 24 ? 24 : segptr.sz;
-           sendSignal(subptr.p->blockRef,
-                      GSN_EVENT_REP,
-                      signal,
-                      sz,
-                      JBB);
-         }
-       }
-    }
-    else
-    {
-      sendSignal(subptr.p->blockRef,
-                 GSN_EVENT_REP,
-                 signal,
-                 sig_length,
-                 JBB);
+        if (eventType == NDB_LE_WarningEvent || eventType == NDB_LE_InfoEvent) {
+          copy(&signal->theData[1], segptr);
+          Uint32 sz = segptr.sz > 24 ? 24 : segptr.sz;
+          sendSignal(subptr.p->blockRef, GSN_EVENT_REP, signal, sz, JBB);
+        }
+      }
+    } else {
+      sendSignal(subptr.p->blockRef, GSN_EVENT_REP, signal, sig_length, JBB);
     }
   }
 
@@ -724,8 +623,7 @@ void Cmvmi::execEVENT_REP(Signal* signal)
   Uint32 *data = signal->theData;
   const Uint32 sz = (num_sections > 0) ? segptr.sz : signal->getLength();
   ndbrequire(sz <= MAX_EVENT_REP_SIZE_WORDS);
-  if (num_sections > 0)
-  {
+  if (num_sections > 0) {
     copy(&buf[0], segptr);
     data = &buf[0];
   }
@@ -735,29 +633,24 @@ void Cmvmi::execEVENT_REP(Signal* signal)
     saveBuf = NDB_ARRAY_SIZE(m_saved_event_buffer) - 1;
   m_saved_event_buffer[saveBuf].save(data, sz);
 
-  if(clogLevel.getLogLevel(eventCategory) < threshold)
-  {
-    if (num_sections > 0)
-    {
+  if (clogLevel.getLogLevel(eventCategory) < threshold) {
+    if (num_sections > 0) {
       releaseSections(handle);
     }
     return;
   }
 
   // Print the event info
-  g_eventLogger->log(eventReport->getEventType(), 
-                     data, sz, 0, 0);
-  
-  if (num_sections > 0)
-  {
+  g_eventLogger->log(eventReport->getEventType(), data, sz, 0, 0);
+
+  if (num_sections > 0) {
     releaseSections(handle);
   }
   return;
-}//execEVENT_REP()
+}  // execEVENT_REP()
 
-void
-Cmvmi::execEVENT_SUBSCRIBE_REQ(Signal * signal){
-  EventSubscribeReq * subReq = (EventSubscribeReq *)&signal->theData[0];
+void Cmvmi::execEVENT_SUBSCRIBE_REQ(Signal *signal) {
+  EventSubscribeReq *subReq = (EventSubscribeReq *)&signal->theData[0];
   Uint32 senderRef = signal->getSendersBlockRef();
   SubscriberPtr ptr;
   jamEntry();
@@ -766,24 +659,23 @@ Cmvmi::execEVENT_SUBSCRIBE_REQ(Signal * signal){
   /**
    * Search for subcription
    */
-  for(subscribers.first(ptr); ptr.i != RNIL; subscribers.next(ptr)){
-    if(ptr.p->blockRef == subReq->blockRef)
-      break;
+  for (subscribers.first(ptr); ptr.i != RNIL; subscribers.next(ptr)) {
+    if (ptr.p->blockRef == subReq->blockRef) break;
   }
-  
-  if(ptr.i == RNIL){
+
+  if (ptr.i == RNIL) {
     /**
      * Create a new one
      */
-    if (subscribers.seizeFirst(ptr) == false){
+    if (subscribers.seizeFirst(ptr) == false) {
       sendSignal(senderRef, GSN_EVENT_SUBSCRIBE_REF, signal, 1, JBB);
       return;
     }
     ptr.p->logLevel.clear();
-    ptr.p->blockRef = subReq->blockRef;    
+    ptr.p->blockRef = subReq->blockRef;
   }
-  
-  if(subReq->noOfEntries == 0){
+
+  if (subReq->noOfEntries == 0) {
     /**
      * Cancel subscription
      */
@@ -795,69 +687,64 @@ Cmvmi::execEVENT_SUBSCRIBE_REQ(Signal * signal){
     LogLevel::EventCategory category;
     Uint32 level = 0;
     ndbrequire(subReq->noOfEntries <= LogLevel::LOGLEVEL_CATEGORIES);
-    for(Uint32 i = 0; i<subReq->noOfEntries; i++){
+    for (Uint32 i = 0; i < subReq->noOfEntries; i++) {
       category = (LogLevel::EventCategory)(subReq->theData[i] >> 16);
       level = subReq->theData[i] & 0xFFFF;
       ptr.p->logLevel.setLogLevel(category, level);
-      DBUG_PRINT("info",("entry %d: level=%d, category= %d", i, level, category));
+      DBUG_PRINT("info",
+                 ("entry %d: level=%d, category= %d", i, level, category));
     }
   }
-  
+
   signal->theData[0] = ptr.i;
   sendSignal(senderRef, GSN_EVENT_SUBSCRIBE_CONF, signal, 1, JBB);
   DBUG_VOID_RETURN;
 }
 
-void
-Cmvmi::execCANCEL_SUBSCRIPTION_REQ(Signal *signal){
-  
+void Cmvmi::execCANCEL_SUBSCRIPTION_REQ(Signal *signal) {
   SubscriberPtr ptr;
   NodeId nodeId = signal->theData[0];
 
   subscribers.first(ptr);
-  while(ptr.i != RNIL){
+  while (ptr.i != RNIL) {
     Uint32 i = ptr.i;
     BlockReference blockRef = ptr.p->blockRef;
-    
+
     subscribers.next(ptr);
-    
-    if(refToNode(blockRef) == nodeId){
+
+    if (refToNode(blockRef) == nodeId) {
       subscribers.release(i);
     }
   }
 }
 
-void Cmvmi::sendSTTORRY(Signal* signal)
-{
+void Cmvmi::sendSTTORRY(Signal *signal) {
   jam();
   signal->theData[3] = 1;
   signal->theData[4] = 3;
   signal->theData[5] = 8;
   signal->theData[6] = 255;
   sendSignal(NDBCNTR_REF, GSN_STTORRY, signal, 7, JBB);
-}//Cmvmi::sendSTTORRY
-
+}  // Cmvmi::sendSTTORRY
 
 static Uint32 f_read_config_ref = 0;
 static Uint32 f_read_config_data = 0;
 
-void 
-Cmvmi::execREAD_CONFIG_REQ(Signal* signal)
-{
+void Cmvmi::execREAD_CONFIG_REQ(Signal *signal) {
   jamEntry();
 
-  const ReadConfigReq * req = (ReadConfigReq*)signal->getDataPtr();
+  const ReadConfigReq *req = (ReadConfigReq *)signal->getDataPtr();
 
   Uint32 ref = req->senderRef;
   Uint32 senderData = req->senderData;
 
-  const ndb_mgm_configuration_iterator * p = 
-    m_ctx.m_config.getOwnConfigIterator();
+  const ndb_mgm_configuration_iterator *p =
+      m_ctx.m_config.getOwnConfigIterator();
   ndbrequire(p != 0);
 
   {
-    void* ptr = m_ctx.m_mm.get_memroot();
-    m_shared_page_pool.set((GlobalPage*)ptr, ~0);
+    void *ptr = m_ctx.m_mm.get_memroot();
+    m_shared_page_pool.set((GlobalPage *)ptr, ~0);
   }
 
   Uint32 min_eventlog = (2 * MAX_EVENT_REP_SIZE_WORDS * 4) + 8;
@@ -866,10 +753,8 @@ Cmvmi::execREAD_CONFIG_REQ(Signal* signal)
   {
     Uint32 cnt = NDB_ARRAY_SIZE(m_saved_event_buffer);
     Uint32 split = (eventlog + (cnt / 2)) / cnt;
-    for (Uint32 i = 0; i < cnt; i++)
-    {
-      if (split < min_eventlog)
-        split = min_eventlog;
+    for (Uint32 i = 0; i < cnt; i++) {
+      if (split < min_eventlog) split = min_eventlog;
       m_saved_event_buffer[i].init(split);
     }
   }
@@ -878,28 +763,24 @@ Cmvmi::execREAD_CONFIG_REQ(Signal* signal)
                             &c_memusage_report_frequency);
 
   Uint32 late_alloc = 1;
-  ndb_mgm_get_int_parameter(p, CFG_DB_LATE_ALLOC,
-                            &late_alloc);
-  if (late_alloc)
-  {
+  ndb_mgm_get_int_parameter(p, CFG_DB_LATE_ALLOC, &late_alloc);
+  if (late_alloc) {
     jam();
     f_read_config_ref = ref;
     f_read_config_data = senderData;
 
-
-    AllocMemReq * req = CAST_PTR(AllocMemReq, signal->getDataPtrSend());
+    AllocMemReq *req = CAST_PTR(AllocMemReq, signal->getDataPtrSend());
     req->senderData = 0;
     req->senderRef = reference();
     req->requestInfo = AllocMemReq::RT_MAP;
-    if (m_ctx.m_config.lockPagesInMainMemory())
-    {
+    if (m_ctx.m_config.lockPagesInMainMemory()) {
       req->requestInfo |= AllocMemReq::RT_MEMLOCK;
     }
 
     req->bytes_hi = 0;
     req->bytes_lo = 0;
-    sendSignal(NDBFS_REF, GSN_ALLOC_MEM_REQ, signal,
-               AllocMemReq::SignalLength, JBB);
+    sendSignal(NDBFS_REF, GSN_ALLOC_MEM_REQ, signal, AllocMemReq::SignalLength,
+               JBB);
 
     /**
      * Assume this takes time...
@@ -907,9 +788,8 @@ Cmvmi::execREAD_CONFIG_REQ(Signal* signal)
      *   ndb_mgm -e "show" show starting instead of not-started
      */
     {
-      NodeStateRep * rep = CAST_PTR(NodeStateRep, signal->getDataPtrSend());
-      NodeState newState(NodeState::SL_STARTING, 0,
-                         NodeState::ST_ILLEGAL_TYPE);
+      NodeStateRep *rep = CAST_PTR(NodeStateRep, signal->getDataPtrSend());
+      NodeState newState(NodeState::SL_STARTING, 0, NodeState::ST_ILLEGAL_TYPE);
       rep->nodeState = newState;
       rep->nodeState.masterNodeId = 0;
       rep->nodeState.setNodeGroup(0);
@@ -921,38 +801,31 @@ Cmvmi::execREAD_CONFIG_REQ(Signal* signal)
 
   init_global_page_pool();
 
-  ReadConfigConf * conf = (ReadConfigConf*)signal->getDataPtrSend();
+  ReadConfigConf *conf = (ReadConfigConf *)signal->getDataPtrSend();
   conf->senderRef = reference();
   conf->senderData = senderData;
-  sendSignal(ref, GSN_READ_CONFIG_CONF, signal, 
-	     ReadConfigConf::SignalLength, JBB);
+  sendSignal(ref, GSN_READ_CONFIG_CONF, signal, ReadConfigConf::SignalLength,
+             JBB);
 }
 
-void
-Cmvmi::init_global_page_pool()
-{
+void Cmvmi::init_global_page_pool() {
   /**
    * This subroutine takes page from m_shared_page_pool and
    *   moves them into m_global_page_pool
    *   (that is currently used by pgman(dbtup) and restore
    */
-  void* ptr = m_ctx.m_mm.get_memroot();
-  m_global_page_pool.set((GlobalPage*)ptr, ~0);
+  void *ptr = m_ctx.m_mm.get_memroot();
+  m_global_page_pool.set((GlobalPage *)ptr, ~0);
 
   Resource_limit rl;
   ndbrequire(m_ctx.m_mm.get_resource_limit(RG_DISK_PAGE_BUFFER, rl));
-  while (rl.m_max)
-  {
+  while (rl.m_max) {
     Uint32 ptrI;
     Uint32 cnt = rl.m_max;
-    m_ctx.m_mm.alloc_pages(RG_DISK_PAGE_BUFFER,
-                           &ptrI,
-                           &cnt,
-                           1,
+    m_ctx.m_mm.alloc_pages(RG_DISK_PAGE_BUFFER, &ptrI, &cnt, 1,
                            Ndbd_mem_manager::NDB_ZONE_LE_30);
     ndbrequire(cnt);
-    for (Uint32 i = 0; i<cnt; i++)
-    {
+    for (Uint32 i = 0; i < cnt; i++) {
       Ptr<GlobalPage> pagePtr;
       ndbrequire(m_shared_page_pool.getPtr(pagePtr, ptrI + i));
       m_global_page_pool.release(pagePtr);
@@ -961,16 +834,14 @@ Cmvmi::init_global_page_pool()
   }
 }
 
-void Cmvmi::execSTTOR(Signal* signal)
-{
-  Uint32 theStartPhase  = signal->theData[1];
+void Cmvmi::execSTTOR(Signal *signal) {
+  Uint32 theStartPhase = signal->theData[1];
 
   jamEntry();
-  if (theStartPhase == 1){
+  if (theStartPhase == 1) {
     jam();
 
-    if (m_ctx.m_config.lockPagesInMainMemory())
-    {
+    if (m_ctx.m_config.lockPagesInMainMemory()) {
       jam();
       /**
        * Notify watchdog that we're locking memory...
@@ -978,35 +849,31 @@ void Cmvmi::execSTTOR(Signal* signal)
        */
       refresh_watch_dog(9);
       int res = NdbMem_MemLockAll(1);
-      if (res != 0)
-      {
+      if (res != 0) {
         char buf[100];
-        BaseString::snprintf(buf, sizeof(buf), 
-                             "Failed to memlock pages, error: %d (%s)",
-                             errno, strerror(errno));
+        BaseString::snprintf(buf, sizeof(buf),
+                             "Failed to memlock pages, error: %d (%s)", errno,
+                             strerror(errno));
         g_eventLogger->warning("%s", buf);
         warningEvent("%s", buf);
-      }
-      else
-      {
+      } else {
         g_eventLogger->info("Using locked memory");
       }
     }
-    
+
     /**
      * Install "normal" watchdog value
      */
     {
       Uint32 db_watchdog_interval = 0;
-      const ndb_mgm_configuration_iterator * p = 
-        m_ctx.m_config.getOwnConfigIterator();
-      ndb_mgm_get_int_parameter(p, CFG_DB_WATCHDOG_INTERVAL, 
+      const ndb_mgm_configuration_iterator *p =
+          m_ctx.m_config.getOwnConfigIterator();
+      ndb_mgm_get_int_parameter(p, CFG_DB_WATCHDOG_INTERVAL,
                                 &db_watchdog_interval);
       ndbrequire(db_watchdog_interval);
       update_watch_dog_timer(db_watchdog_interval);
       Uint32 kill_val = 0;
-      ndb_mgm_get_int_parameter(p, CFG_DB_WATCHDOG_IMMEDIATE_KILL, 
-                                &kill_val);
+      ndb_mgm_get_int_parameter(p, CFG_DB_WATCHDOG_IMMEDIATE_KILL, &kill_val);
       globalEmulatorData.theWatchDog->setKillSwitch((bool)kill_val);
     }
 
@@ -1019,34 +886,31 @@ void Cmvmi::execSTTOR(Signal* signal)
     signal->theData[3] = 0;
     signal->theData[4] = 0;
     execCONTINUEB(signal);
-    
+
     sendSTTORRY(signal);
     return;
   } else if (theStartPhase == 3) {
     jam();
     globalData.activateSendPacked = 1;
     sendSTTORRY(signal);
-  } else if (theStartPhase == 8){
+  } else if (theStartPhase == 8) {
 #ifdef ERROR_INSERT
-    if (ERROR_INSERTED(9004))
-    {
+    if (ERROR_INSERTED(9004)) {
       Uint32 tmp[25];
       Uint32 len = signal->getLength();
       memcpy(tmp, signal->theData, sizeof(tmp));
 
       Uint32 db = c_dbNodes.find(0);
-      if (db == getOwnNodeId())
-        db = c_dbNodes.find(db);
+      if (db == getOwnNodeId()) db = c_dbNodes.find(db);
 
-      DumpStateOrd * ord = (DumpStateOrd *)&signal->theData[0];
-      ord->args[0] = 9005; // Active 9004
+      DumpStateOrd *ord = (DumpStateOrd *)&signal->theData[0];
+      ord->args[0] = 9005;  // Active 9004
       ord->args[1] = db;
       sendSignal(TRPMAN_REF, GSN_DUMP_STATE_ORD, signal, 2, JBB);
       CLEAR_ERROR_INSERT_VALUE;
 
       memcpy(signal->theData, tmp, sizeof(tmp));
-      sendSignalWithDelay(reference(), GSN_STTOR,
-                          signal, 100, len);
+      sendSignalWithDelay(reference(), GSN_STTOR, signal, 100, len);
       return;
     }
 #endif
@@ -1056,55 +920,52 @@ void Cmvmi::execSTTOR(Signal* signal)
 }
 
 #ifdef VM_TRACE
-void
-modifySignalLogger(bool allBlocks, BlockNumber bno, 
-                   TestOrd::Command cmd, 
-                   TestOrd::SignalLoggerSpecification spec){
+void modifySignalLogger(bool allBlocks, BlockNumber bno, TestOrd::Command cmd,
+                        TestOrd::SignalLoggerSpecification spec) {
   SignalLoggerManager::LogMode logMode;
 
   /**
-   * Mapping between SignalLoggerManager::LogMode and 
+   * Mapping between SignalLoggerManager::LogMode and
    *                 TestOrd::SignalLoggerSpecification
    */
-  switch(spec){
-  case TestOrd::InputSignals:
-    logMode = SignalLoggerManager::LogIn;
-    break;
-  case TestOrd::OutputSignals:
-    logMode = SignalLoggerManager::LogOut;
-    break;
-  case TestOrd::InputOutputSignals:
-    logMode = SignalLoggerManager::LogInOut;
-    break;
-  default:
-    return;
-    break;
+  switch (spec) {
+    case TestOrd::InputSignals:
+      logMode = SignalLoggerManager::LogIn;
+      break;
+    case TestOrd::OutputSignals:
+      logMode = SignalLoggerManager::LogOut;
+      break;
+    case TestOrd::InputOutputSignals:
+      logMode = SignalLoggerManager::LogInOut;
+      break;
+    default:
+      return;
+      break;
   }
-  
-  switch(cmd){
-  case TestOrd::On:
-    globalSignalLoggers.logOn(allBlocks, bno, logMode);
-    break;
-  case TestOrd::Off:
-    globalSignalLoggers.logOff(allBlocks, bno, logMode);
-    break;
-  case TestOrd::Toggle:
-    globalSignalLoggers.logToggle(allBlocks, bno, logMode);
-    break;
-  case TestOrd::KeepUnchanged:
-    // Do nothing
-    break;
+
+  switch (cmd) {
+    case TestOrd::On:
+      globalSignalLoggers.logOn(allBlocks, bno, logMode);
+      break;
+    case TestOrd::Off:
+      globalSignalLoggers.logOff(allBlocks, bno, logMode);
+      break;
+    case TestOrd::Toggle:
+      globalSignalLoggers.logToggle(allBlocks, bno, logMode);
+      break;
+    case TestOrd::KeepUnchanged:
+      // Do nothing
+      break;
   }
   globalSignalLoggers.flushSignalLog();
 }
 #endif
 
-void
-Cmvmi::execTEST_ORD(Signal * signal){
+void Cmvmi::execTEST_ORD(Signal *signal) {
   jamEntry();
-  
+
 #ifdef VM_TRACE
-  TestOrd * const testOrd = (TestOrd *)&signal->theData[0];
+  TestOrd *const testOrd = (TestOrd *)&signal->theData[0];
 
   TestOrd::Command cmd;
 
@@ -1117,23 +978,23 @@ Cmvmi::execTEST_ORD(Signal * signal){
     testOrd->getTraceCommand(cmd, traceSpec);
     unsigned long traceVal = traceSpec;
     unsigned long currentTraceVal = globalSignalLoggers.getTrace();
-    switch(cmd){
-    case TestOrd::On:
-      currentTraceVal |= traceVal;
-      break;
-    case TestOrd::Off:
-      currentTraceVal &= (~traceVal);
-      break;
-    case TestOrd::Toggle:
-      currentTraceVal ^= traceVal;
-      break;
-    case TestOrd::KeepUnchanged:
-      // Do nothing
-      break;
+    switch (cmd) {
+      case TestOrd::On:
+        currentTraceVal |= traceVal;
+        break;
+      case TestOrd::Off:
+        currentTraceVal &= (~traceVal);
+        break;
+      case TestOrd::Toggle:
+        currentTraceVal ^= traceVal;
+        break;
+      case TestOrd::KeepUnchanged:
+        // Do nothing
+        break;
     }
     globalSignalLoggers.setTrace(currentTraceVal);
   }
-  
+
   {
     /**
      * Process Log command
@@ -1141,12 +1002,12 @@ Cmvmi::execTEST_ORD(Signal * signal){
     TestOrd::SignalLoggerSpecification logSpec;
     BlockNumber bno;
     unsigned int loggers = testOrd->getNoOfSignalLoggerCommands();
-    
-    if(loggers == (unsigned)~0){ // Apply command to all blocks
+
+    if (loggers == (unsigned)~0) {  // Apply command to all blocks
       testOrd->getSignalLoggerCommand(0, bno, cmd, logSpec);
       modifySignalLogger(true, bno, cmd, logSpec);
     } else {
-      for(unsigned int i = 0; i<loggers; i++){
+      for (unsigned int i = 0; i < loggers; i++) {
         testOrd->getSignalLoggerCommand(i, bno, cmd, logSpec);
         modifySignalLogger(false, bno, cmd, logSpec);
       }
@@ -1158,22 +1019,19 @@ Cmvmi::execTEST_ORD(Signal * signal){
      * Process test command
      */
     testOrd->getTestCommand(cmd);
-    switch(cmd){
-    case TestOrd::On:{
-      SET_GLOBAL_TEST_ON;
-    }
-    break;
-    case TestOrd::Off:{
-      SET_GLOBAL_TEST_OFF;
-    }
-    break;
-    case TestOrd::Toggle:{
-      TOGGLE_GLOBAL_TEST_FLAG;
-    }
-    break;
-    case TestOrd::KeepUnchanged:
-      // Do nothing
-      break;
+    switch (cmd) {
+      case TestOrd::On: {
+        SET_GLOBAL_TEST_ON;
+      } break;
+      case TestOrd::Off: {
+        SET_GLOBAL_TEST_OFF;
+      } break;
+      case TestOrd::Toggle: {
+        TOGGLE_GLOBAL_TEST_FLAG;
+      } break;
+      case TestOrd::KeepUnchanged:
+        // Do nothing
+        break;
     }
     globalSignalLoggers.flushSignalLog();
   }
@@ -1181,37 +1039,35 @@ Cmvmi::execTEST_ORD(Signal * signal){
 #endif
 }
 
-void Cmvmi::execSTOP_ORD(Signal* signal) 
-{
+void Cmvmi::execSTOP_ORD(Signal *signal) {
   jamEntry();
   globalData.theRestartFlag = perform_stop;
-}//execSTOP_ORD()
+}  // execSTOP_ORD()
 
-void
-Cmvmi::execSTART_ORD(Signal* signal) {
-  StartOrd * const startOrd = (StartOrd *)&signal->theData[0];
+void Cmvmi::execSTART_ORD(Signal *signal) {
+  StartOrd *const startOrd = (StartOrd *)&signal->theData[0];
   jamEntry();
-  
+
   Uint32 tmp = startOrd->restartInfo;
-  if(StopReq::getPerformRestart(tmp)){
+  if (StopReq::getPerformRestart(tmp)) {
     jam();
     /**
      *
      */
     g_eventLogger->info("Shutdown from START_ORD");
     NdbRestartType type = NRT_Default;
-    if(StopReq::getNoStart(tmp) && StopReq::getInitialStart(tmp))
+    if (StopReq::getNoStart(tmp) && StopReq::getInitialStart(tmp))
       type = NRT_NoStart_InitialStart;
-    if(StopReq::getNoStart(tmp) && !StopReq::getInitialStart(tmp))
+    if (StopReq::getNoStart(tmp) && !StopReq::getInitialStart(tmp))
       type = NRT_NoStart_Restart;
-    if(!StopReq::getNoStart(tmp) && StopReq::getInitialStart(tmp))
+    if (!StopReq::getNoStart(tmp) && StopReq::getInitialStart(tmp))
       type = NRT_DoStart_InitialStart;
-    if(!StopReq::getNoStart(tmp)&&!StopReq::getInitialStart(tmp))
+    if (!StopReq::getNoStart(tmp) && !StopReq::getInitialStart(tmp))
       type = NRT_DoStart_Restart;
     NdbShutdown(0, NST_Restart, type);
   }
 
-  if(globalData.theRestartFlag == system_started){
+  if (globalData.theRestartFlag == system_started) {
     jam();
     /**
      * START_ORD received when already started(ignored)
@@ -1219,8 +1075,8 @@ Cmvmi::execSTART_ORD(Signal* signal) {
     g_eventLogger->info("START_ORD received when already started(ignored)");
     return;
   }
-  
-  if(globalData.theRestartFlag == perform_stop){
+
+  if (globalData.theRestartFlag == perform_stop) {
     jam();
     /**
      * START_ORD received when stopping(ignored)
@@ -1228,15 +1084,12 @@ Cmvmi::execSTART_ORD(Signal* signal) {
     g_eventLogger->info("START_ORD received when stopping(ignored)");
     return;
   }
-  
-  if(globalData.theStartLevel == NodeState::SL_NOTHING)
-  {
+
+  if (globalData.theStartLevel == NodeState::SL_NOTHING) {
     jam();
 
-    for(unsigned int i = 1; i < MAX_NODES; i++ )
-    {
-      if (getNodeInfo(i).m_type == NodeInfo::MGM)
-      {
+    for (unsigned int i = 1; i < MAX_NODES; i++) {
+      if (getNodeInfo(i).m_type == NodeInfo::MGM) {
         jam();
         globalTransporterRegistry.do_connect(i);
       }
@@ -1247,35 +1100,29 @@ Cmvmi::execSTART_ORD(Signal* signal) {
     sendSignal(QMGR_REF, GSN_START_ORD, signal, 1, JBA);
     return;
   }
-  
-  if(globalData.theStartLevel == NodeState::SL_CMVMI)
-  {
+
+  if (globalData.theStartLevel == NodeState::SL_CMVMI) {
     jam();
-    globalData.theStartLevel  = NodeState::SL_STARTING;
+    globalData.theStartLevel = NodeState::SL_STARTING;
     globalData.theRestartFlag = system_started;
     /**
      * StartLevel 1
      *
      * Do Restart
      */
-    if (signal->getSendersBlockRef() == 0)
-    {
+    if (signal->getSendersBlockRef() == 0) {
       jam();
       g_eventLogger->info("Received second START_ORD as part of normal start");
-    }
-    else
-    {
+    } else {
       jam();
       g_eventLogger->info("Received second START_ORD from node %u",
                           refToNode(signal->getSendersBlockRef()));
     }
-    // Disconnect all nodes as part of the system restart. 
+    // Disconnect all nodes as part of the system restart.
     // We need to ensure that we are starting up
-    // without any connected nodes.   
-    for(unsigned int i = 1; i < MAX_NODES; i++ )
-    {
-      if (i != getOwnNodeId() && getNodeInfo(i).m_type != NodeInfo::MGM)
-      {
+    // without any connected nodes.
+    for (unsigned int i = 1; i < MAX_NODES; i++) {
+      if (i != getOwnNodeId() && getNodeInfo(i).m_type != NodeInfo::MGM) {
         globalTransporterRegistry.do_disconnect(i);
         globalTransporterRegistry.setIOState(i, HaltIO);
       }
@@ -1283,179 +1130,133 @@ Cmvmi::execSTART_ORD(Signal* signal) {
     g_eventLogger->info("Disconnect all non-MGM servers");
 
     CRASH_INSERTION(9994);
-    
+
     /**
      * Start running startphases
      */
     g_eventLogger->info("Start excuting the start phases");
-    sendSignal(NDBCNTR_REF, GSN_START_ORD, signal, 1, JBA);  
+    sendSignal(NDBCNTR_REF, GSN_START_ORD, signal, 1, JBA);
     return;
   }
   g_eventLogger->info("Received START_ORD in unexpected startLevel: %u",
                       globalData.theStartLevel);
-}//execSTART_ORD()
+}  // execSTART_ORD()
 
-void Cmvmi::execTAMPER_ORD(Signal* signal) 
-{
+void Cmvmi::execTAMPER_ORD(Signal *signal) {
   jamEntry();
   // TODO We should maybe introduce a CONF and REF signal
   // to be able to indicate if we really introduced an error.
 #ifdef ERROR_INSERT
-  TamperOrd* const tamperOrd = (TamperOrd*)&signal->theData[0];
+  TamperOrd *const tamperOrd = (TamperOrd *)&signal->theData[0];
   Uint32 errNo = tamperOrd->errorNo;
 
-  if (errNo == 0)
-  {
+  if (errNo == 0) {
     jam();
     signal->theData[0] = 0;
-    for (Uint32 i = 0; blocks[i] != 0; i++)
-    {
+    for (Uint32 i = 0; blocks[i] != 0; i++) {
       sendSignal(blocks[i], GSN_NDB_TAMPER, signal, 1, JBB);
     }
     return;
   }
 
   Uint32 tuserblockref = 0;
-  if (errNo < 1000)
-  {
+  if (errNo < 1000) {
     /*--------------------------------------------------------------------*/
     // Insert errors into QMGR.
     /*--------------------------------------------------------------------*/
     jam();
     tuserblockref = QMGR_REF;
-  }
-  else if (errNo < 2000)
-  {
+  } else if (errNo < 2000) {
     /*--------------------------------------------------------------------*/
     // Insert errors into NDBCNTR.
     /*--------------------------------------------------------------------*/
     jam();
     tuserblockref = NDBCNTR_REF;
-  }
-  else if (errNo < 3000)
-  {
+  } else if (errNo < 3000) {
     /*--------------------------------------------------------------------*/
     // Insert errors into NDBFS.
     /*--------------------------------------------------------------------*/
     jam();
     tuserblockref = NDBFS_REF;
-  }
-  else if (errNo < 4000)
-  {
+  } else if (errNo < 4000) {
     /*--------------------------------------------------------------------*/
     // Insert errors into DBACC.
     /*--------------------------------------------------------------------*/
     jam();
     tuserblockref = DBACC_REF;
-  }
-  else if (errNo < 5000)
-  {
+  } else if (errNo < 5000) {
     /*--------------------------------------------------------------------*/
     // Insert errors into DBTUP.
     /*--------------------------------------------------------------------*/
     jam();
     tuserblockref = DBTUP_REF;
-  }
-  else if (errNo < 6000)
-  {
+  } else if (errNo < 6000) {
     /*---------------------------------------------------------------------*/
     // Insert errors into DBLQH.
     /*---------------------------------------------------------------------*/
     jam();
     tuserblockref = DBLQH_REF;
-  }
-  else if (errNo < 7000)
-  {
+  } else if (errNo < 7000) {
     /*---------------------------------------------------------------------*/
     // Insert errors into DBDICT.
     /*---------------------------------------------------------------------*/
     jam();
     tuserblockref = DBDICT_REF;
-  }
-  else if (errNo < 8000)
-  {
+  } else if (errNo < 8000) {
     /*---------------------------------------------------------------------*/
     // Insert errors into DBDIH.
     /*--------------------------------------------------------------------*/
     jam();
     tuserblockref = DBDIH_REF;
-  }
-  else if (errNo < 9000)
-  {
+  } else if (errNo < 9000) {
     /*--------------------------------------------------------------------*/
     // Insert errors into DBTC.
     /*--------------------------------------------------------------------*/
     jam();
     tuserblockref = DBTC_REF;
-  }
-  else if (errNo < 10000)
-  {
+  } else if (errNo < 10000) {
     /*--------------------------------------------------------------------*/
     // Insert errors into CMVMI.
     /*--------------------------------------------------------------------*/
     jam();
     tuserblockref = CMVMI_REF;
-  }
-  else if (errNo < 11000)
-  {
+  } else if (errNo < 11000) {
     jam();
     tuserblockref = BACKUP_REF;
-  }
-  else if (errNo < 12000)
-  {
+  } else if (errNo < 12000) {
     jam();
     tuserblockref = PGMAN_REF;
-  }
-  else if (errNo < 13000)
-  {
+  } else if (errNo < 13000) {
     jam();
     tuserblockref = DBTUX_REF;
-  }
-  else if (errNo < 14000)
-  {
+  } else if (errNo < 14000) {
     jam();
     tuserblockref = SUMA_REF;
-  }
-  else if (errNo < 15000)
-  {
+  } else if (errNo < 15000) {
     jam();
     tuserblockref = DBDICT_REF;
-  }
-  else if (errNo < 16000)
-  {
+  } else if (errNo < 16000) {
     jam();
     tuserblockref = LGMAN_REF;
-  }
-  else if (errNo < 17000)
-  {
+  } else if (errNo < 17000) {
     jam();
     tuserblockref = TSMAN_REF;
-  }
-  else if (errNo < 18000)
-  {
+  } else if (errNo < 18000) {
     jam();
     tuserblockref = DBSPJ_REF;
-  }
-  else if (errNo < 19000)
-  {
+  } else if (errNo < 19000) {
     jam();
     tuserblockref = TRIX_REF;
-  }
-  else if (errNo < 20000)
-  {
+  } else if (errNo < 20000) {
     jam();
     tuserblockref = DBUTIL_REF;
-  }
-  else if (errNo < 30000)
-  {
+  } else if (errNo < 30000) {
     /*--------------------------------------------------------------------*/
     // Ignore errors in the 20000-range.
     /*--------------------------------------------------------------------*/
     jam();
     return;
-  }
-  else if (errNo < 40000)
-  {
+  } else if (errNo < 40000) {
     jam();
     /*--------------------------------------------------------------------*/
     // Redirect errors to master DIH in the 30000-range.
@@ -1470,9 +1271,7 @@ void Cmvmi::execTAMPER_ORD(Signal* signal)
     signal->theData[2] = 0;
     sendSignal(DBDIH_REF, GSN_DIHNDBTAMPER, signal, 3, JBB);
     return;
-  }
-  else if (errNo < 50000)
-  {
+  } else if (errNo < 50000) {
     jam();
 
     /**
@@ -1486,37 +1285,31 @@ void Cmvmi::execTAMPER_ORD(Signal* signal)
     return;
   }
 
-  ndbassert(tuserblockref != 0); // mapping missing ??
-  if (tuserblockref != 0)
-  {
+  ndbassert(tuserblockref != 0);  // mapping missing ??
+  if (tuserblockref != 0) {
     signal->theData[0] = errNo;
     sendSignal(tuserblockref, GSN_NDB_TAMPER, signal, signal->getLength(), JBB);
   }
 #endif
-}//execTAMPER_ORD()
+}  // execTAMPER_ORD()
 
 #ifdef VM_TRACE
 class RefSignalTest {
-public:
-  enum ErrorCode {
-    OK = 0,
-    NF_FakeErrorREF = 7
-  };
+ public:
+  enum ErrorCode { OK = 0, NF_FakeErrorREF = 7 };
   Uint32 senderRef;
   Uint32 senderData;
   Uint32 errorCode;
 };
 #endif
 
+#define check_block(block, val)              \
+  (((val) >= DumpStateOrd::_##block##Min) && \
+   ((val) <= DumpStateOrd::_##block##Max))
 
-#define check_block(block,val) \
-(((val) >= DumpStateOrd::_ ## block ## Min) && ((val) <= DumpStateOrd::_ ## block ## Max))
-
-int
-cmp_event_buf(const void * ptr0, const void * ptr1)
-{
-  Uint32 pos0 = * ((Uint32*)ptr0);
-  Uint32 pos1 = * ((Uint32*)ptr1);
+int cmp_event_buf(const void *ptr0, const void *ptr1) {
+  Uint32 pos0 = *((Uint32 *)ptr0);
+  Uint32 pos1 = *((Uint32 *)ptr1);
 
   Uint32 time0 = m_saved_event_buffer[pos0].getScanPosSeq();
   Uint32 time1 = m_saved_event_buffer[pos1].getScanPosSeq();
@@ -1533,83 +1326,54 @@ static Uint32 f_free_segment_pos = 0;
  * when sending DUMP_STATE_ORD to DBTC while TC_COMMIT_ACK is also
  * being in transit.
  */
-void
-Cmvmi::execTC_COMMIT_ACK(Signal* signal)
-{
+void Cmvmi::execTC_COMMIT_ACK(Signal *signal) {
   jamEntry();
   BlockReference ref = signal->theData[2];
   sendSignal(ref, GSN_TC_COMMIT_ACK, signal, 2, JBB);
 }
 
-void
-Cmvmi::execDUMP_STATE_ORD(Signal* signal)
-{
+void Cmvmi::execDUMP_STATE_ORD(Signal *signal) {
   jamEntry();
   Uint32 val = signal->theData[0];
-  if (val >= DumpStateOrd::OneBlockOnly)
-  {
-    if (check_block(Backup, val))
-    {
-      sendSignal(BACKUP_REF, GSN_DUMP_STATE_ORD, signal,
-                 signal->length(), JBB);
-    }
-    else if (check_block(TC, val))
-    {
-      sendSignal(DBTC_REF, GSN_DUMP_STATE_ORD, signal,
-                 signal->length(), JBB);
-    }
-    else if (check_block(LQH, val))
-    {
-      sendSignal(DBLQH_REF, GSN_DUMP_STATE_ORD, signal,
-                 signal->length(), JBB);
-    }
-    else if (check_block(CMVMI, val))
-    {
+  if (val >= DumpStateOrd::OneBlockOnly) {
+    if (check_block(Backup, val)) {
+      sendSignal(BACKUP_REF, GSN_DUMP_STATE_ORD, signal, signal->length(), JBB);
+    } else if (check_block(TC, val)) {
+      sendSignal(DBTC_REF, GSN_DUMP_STATE_ORD, signal, signal->length(), JBB);
+    } else if (check_block(LQH, val)) {
+      sendSignal(DBLQH_REF, GSN_DUMP_STATE_ORD, signal, signal->length(), JBB);
+    } else if (check_block(CMVMI, val)) {
       /**
        * Handle here since we are already in CMVMI, mostly used for
        * online config changes.
        */
-      DumpStateOrd * const & dumpState = (DumpStateOrd *)&signal->theData[0];
+      DumpStateOrd *const &dumpState = (DumpStateOrd *)&signal->theData[0];
       Uint32 arg = dumpState->args[0];
       Uint32 first_val = dumpState->args[1];
-      if (signal->length() > 0)
-      {
-        if (val == DumpStateOrd::SetSchedulerResponsiveness)
-        {
-          if (signal->length() != 2)
-          {
+      if (signal->length() > 0) {
+        if (val == DumpStateOrd::SetSchedulerResponsiveness) {
+          if (signal->length() != 2) {
             g_eventLogger->info(
                 "dump 103000 X, where X is between 0 and 10"
                 " to set transactional priority");
-          }
-          else if (arg == DumpStateOrd::SetSchedulerResponsiveness)
-          {
-            if (first_val > 10)
-            {
+          } else if (arg == DumpStateOrd::SetSchedulerResponsiveness) {
+            if (first_val > 10) {
               g_eventLogger->info(
                   "Trying to set SchedulerResponsiveness outside 0-10");
-            }
-            else
-            {
+            } else {
               g_eventLogger->info("Setting SchedulerResponsiveness to %u",
                                   first_val);
               Configuration *conf = globalEmulatorData.theConfiguration;
               conf->setSchedulerResponsiveness(first_val);
             }
           }
-        }
-        else if (val == DumpStateOrd::EnableEventLoggerDebug)
-        {
+        } else if (val == DumpStateOrd::EnableEventLoggerDebug) {
           g_eventLogger->info("Enable Debug level in node log");
           g_eventLogger->enable(Logger::LL_DEBUG);
-        }
-        else if (val == DumpStateOrd::DisableEventLoggerDebug)
-        {
+        } else if (val == DumpStateOrd::DisableEventLoggerDebug) {
           g_eventLogger->info("Disable Debug level in node log");
           g_eventLogger->disable(Logger::LL_DEBUG);
-        }
-        else if (val == DumpStateOrd::CmvmiRelayDumpStateOrd)
-        {
+        } else if (val == DumpStateOrd::CmvmiRelayDumpStateOrd) {
           /* MGMD have no transporter to API nodes.  To be able to send a
            * dump command to an API node MGMD send the dump signal via a
            * data node using CmvmiRelay command.  The first argument is the
@@ -1620,21 +1384,17 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
            */
           jam();
           const Uint32 length = signal->length();
-          if (length < 3)
-          {
+          if (length < 3) {
             // Not enough words for sending DUMP_STATE_ORD
             jam();
             return;
           }
           const Uint32 node_id = signal->theData[1];
           const Uint32 ref = numberToRef(CMVMI, node_id);
-          std::memmove(&signal->theData[0],
-                       &signal->theData[2],
+          std::memmove(&signal->theData[0], &signal->theData[2],
                        (length - 2) * sizeof(Uint32));
-          sendSignal(ref , GSN_DUMP_STATE_ORD, signal, length - 2, JBB);
-        }
-        else if (val == DumpStateOrd::CmvmiDummySignal)
-        {
+          sendSignal(ref, GSN_DUMP_STATE_ORD, signal, length - 2, JBB);
+        } else if (val == DumpStateOrd::CmvmiDummySignal) {
           /* Log in event logger that signal sent by dump command
            * CmvmiSendDummySignal is received.  Include information about
            * signal size and its sections and which node sent it.
@@ -1644,28 +1404,21 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
           const Uint32 num_secs = signal->getNoOfSections();
           SectionHandle handle(this, signal);
           SegmentedSectionPtr ptr[3];
-          for (Uint32 i = 0; i < num_secs; i++)
-          {
-              ndbrequire(handle.getSection(ptr[i], i));
+          for (Uint32 i = 0; i < num_secs; i++) {
+            ndbrequire(handle.getSection(ptr[i], i));
           }
-          char msg[24*4];
-          snprintf(msg,
-                   sizeof(msg),
+          char msg[24 * 4];
+          snprintf(msg, sizeof(msg),
                    "Receiving CmvmiDummySignal"
                    " (size %u+%u+%u+%u+%u) from %u to %u.",
-                   signal->getLength(),
-                   num_secs,
+                   signal->getLength(), num_secs,
                    (num_secs > 0) ? ptr[0].sz : 0,
                    (num_secs > 1) ? ptr[1].sz : 0,
-                   (num_secs > 2) ? ptr[2].sz : 0,
-                   node_id,
-                   getOwnNodeId());
+                   (num_secs > 2) ? ptr[2].sz : 0, node_id, getOwnNodeId());
           g_eventLogger->info("%s", msg);
           infoEvent("%s", msg);
           releaseSections(handle);
-        }
-        else if (val == DumpStateOrd::CmvmiSendDummySignal)
-        {
+        } else if (val == DumpStateOrd::CmvmiSendDummySignal) {
           /* Send a CmvmiDummySignal to specified node with specified size and
            * sections.  This is used to verify that messages with certain
            * signal sizes and sections can be sent and received.
@@ -1678,76 +1431,64 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
            *       #secs sec#1-len sec#2-len sec#3-len
            */
           jam();
-          if (signal->length() < 5)
-          {
+          if (signal->length() < 5) {
             // Not enough words to send a dummy signal
             jam();
             return;
           }
           const Uint32 node_id = signal->theData[2];
-          const Uint32 ref =
-            (getNodeInfo(node_id).m_type == NodeInfo::DB)
-            ? numberToRef(CMVMI, node_id)
-            : numberToRef(API_CLUSTERMGR, node_id);
+          const Uint32 ref = (getNodeInfo(node_id).m_type == NodeInfo::DB)
+                                 ? numberToRef(CMVMI, node_id)
+                                 : numberToRef(API_CLUSTERMGR, node_id);
           const Uint32 fill_word = signal->theData[3];
           const Uint32 frag_size = signal->theData[4];
-          if (frag_size != 0)
-          {
+          if (frag_size != 0) {
             // Fragmented signals not supported yet.
             jam();
             return;
           }
-          const Uint32 num_secs = (signal->length() > 5) ? signal->theData[5] : 0;
-          if (num_secs > 3)
-          {
+          const Uint32 num_secs =
+              (signal->length() > 5) ? signal->theData[5] : 0;
+          if (num_secs > 3) {
             jam();
             return;
           }
           Uint32 tot_len = signal->length();
           LinearSectionPtr ptr[3];
-          for (Uint32 i = 0; i < num_secs; i++)
-          {
+          for (Uint32 i = 0; i < num_secs; i++) {
             const Uint32 sec_len = signal->theData[6 + i];
             ptr[i].sz = sec_len;
             tot_len += sec_len;
           }
-          Uint32* sec_alloc = NULL;
-          Uint32* sec_data = &signal->theData[signal->length()];
-          if (tot_len > NDB_ARRAY_SIZE(signal->theData))
-          {
+          Uint32 *sec_alloc = NULL;
+          Uint32 *sec_data = &signal->theData[signal->length()];
+          if (tot_len > NDB_ARRAY_SIZE(signal->theData)) {
             sec_data = sec_alloc = new Uint32[tot_len];
           }
           signal->theData[0] = DumpStateOrd::CmvmiDummySignal;
           signal->theData[2] = getOwnNodeId();
-          for (Uint32 i = 0; i < tot_len; i++)
-          {
+          for (Uint32 i = 0; i < tot_len; i++) {
             sec_data[i] = fill_word;
           }
-          for (Uint32 i = 0; i < num_secs; i++)
-          {
+          for (Uint32 i = 0; i < num_secs; i++) {
             const Uint32 sec_len = signal->theData[6 + i];
             ptr[i].p = sec_data;
             sec_data += sec_len;
           }
-          char msg[24*4];
-          snprintf(msg,
-                   sizeof(msg),
+          char msg[24 * 4];
+          snprintf(msg, sizeof(msg),
                    "Sending CmvmiDummySignal"
                    " (size %u+%u+%u+%u+%u) from %u to %u.",
-                   signal->getLength(),
-                   num_secs,
+                   signal->getLength(), num_secs,
                    (num_secs > 0) ? ptr[0].sz : 0,
                    (num_secs > 1) ? ptr[1].sz : 0,
-                   (num_secs > 2) ? ptr[2].sz : 0,
-                   getOwnNodeId(),
-                   node_id);
+                   (num_secs > 2) ? ptr[2].sz : 0, getOwnNodeId(), node_id);
           infoEvent("%s", msg);
-          sendSignal(ref , GSN_DUMP_STATE_ORD, signal,
-                     signal->length(), JBB, ptr, num_secs);
+          sendSignal(ref, GSN_DUMP_STATE_ORD, signal, signal->length(), JBB,
+                     ptr, num_secs);
           delete[] sec_alloc;
         }
-        else if (val == DumpStateOrd::CmvmiSetMaxSendDelay)
-        {
+        else if (val == DumpStateOrd::CmvmiSetMaxSendDelay)     {
           jam();
           if (signal->length() != 2)
           {
@@ -1760,7 +1501,27 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
         else if (val == DumpStateOrd::CmvmiSetMinSendDelay)
         {
           jam();
-          if (signal->length() != 2)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+nodeTypeStr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*nodeTypeStr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       if (signal->length() != 2)
           {
             jam();
             return;
@@ -1781,13 +1542,13 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
         }
       }
     }
-    else if (check_block(THRMAN, val))
-    {
+    else if (check_block(THRMAN, val))   {
       sendSignal(THRMAN_REF, GSN_DUMP_STATE_ORD, signal,
                  signal->length(), JBB);
     }
     else if (check_block(TRIX, val))
-    {
+  ptr.i,
+  {
       sendSignal(TRIX_REF, GSN_DUMP_STATE_ORD, signal,
                  signal->length(), JBB);
     }
@@ -1805,7 +1566,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
    */
   DumpStateOrd * const & dumpState = (DumpStateOrd *)&signal->theData[0];
   Uint32 arg = dumpState->args[0];
-  if (arg == DumpStateOrd::CmvmiDumpConnections){
+  if (arg == DumpStateOrd::CmvmiDumpConnections) {
     for(unsigned int i = 1; i < MAX_NODES; i++ ){
       const char* nodeTypeStr = "";
       switch(getNodeInfo(i).m_type){
@@ -1822,21 +1583,52 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
 	nodeTypeStr = 0;
 	break;
       default:
-	nodeTypeStr = "<UNKNOWN>";
+	nodeTypeStr =
+          "<UNKNOWN>";
       }
 
-      if(nodeTypeStr == 0)
+      if(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodeTypeStr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"CmvmiLongSignalMemorySnapshot IGNORED"
+=======
+
+>>>>>>> MySQL 8.0.36
+ == 0)
 	continue;
 
-      infoEvent("Connection to %d (%s) %s", 
-                i, 
+      infoEvent("Connection to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%d
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+"CmvmiLongSignalMemorySnapshot
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(%s) %s", 
+      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+IGNORED"
+>>>>>>> MySQL 8.0.36
+          i, 
                 nodeTypeStr,
                 globalTransporterRegistry.getPerformStateString(i));
     }
   }
   
-  if (arg == DumpStateOrd::CmvmiDumpSubscriptions)
-  {
+  if (arg == DumpStateOrd::CmvmiDumpSubscriptions) {
     SubscriberPtr ptr;
     subscribers.first(ptr);  
     g_eventLogger->info("List subscriptions:");
@@ -1861,9 +1653,26 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
 
   if (arg == DumpStateOrd::CmvmiLongSignalMemorySnapshotStart)
   {
-#if defined VM_TRACE || defined ERROR_INSERT
+#if defined VM_TRACE || defined 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ERROR_INSERT
+||||||| Common ancestor
+=======
+cnt_same,
+>>>>>>> MySQL 8.0.36
     f_free_segment_pos = 0;
-    std::memset(f_free_segments, 0, sizeof(f_free_segments));
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+std::memset(f_free_segments,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cnt_same,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 0, sizeof(f_free_segments));
 #endif
   }
 
@@ -1893,7 +1702,8 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     Uint32 cnt_same = 0;
     for (Uint32 i = start; i < stop; i++)
     {
-      Uint32 prev = (i - 1);
+      Uint32 prev =
+        (i - 1);
       if (f_free_segments[prev] == f_free_segments[i])
         cnt_same++;
       else if (f_free_segments[prev] > f_free_segments[i])
@@ -1929,8 +1739,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
       // it decreased once...this is ok
       return;
     }
-    if (cnt_same >= (cnt_inc + cnt_dec))
-    {
+    if (cnt_same >= (cnt_inc + cnt_dec)) {
       // it was frequently the same...this is ok
       return;
     }
@@ -1945,8 +1754,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
 #endif
   }
 
-  if (arg == DumpStateOrd::CmvmiLongSignalMemorySnapshotCheck2)
-  {
+  if (arg == DumpStateOrd::CmvmiLongSignalMemorySnapshotCheck2) {
     g_eventLogger->info("CmvmiLongSignalMemorySnapshotCheck2");
 
 #if defined VM_TRACE || defined ERROR_INSERT
@@ -1954,8 +1762,54 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
       NDB_ARRAY_SIZE(f_free_segments);
 
     Uint32 poolsize = g_sectionSegmentPool.getSize();    
-    Uint32 orig_level = f_free_segments[orig_idx];
-    Uint32 orig_used = poolsize - orig_level;
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+buffOwners
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*buffOwners
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  Uint32 orig_level = f_free_segments[orig_idx];
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint64*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+orig_used
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+buffOwnersCount
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*buffOwnersCount
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = poolsize - orig_level;
     Uint32 curr_level = g_sectionSegmentPool.getNoOfFree();
     Uint32 curr_used = poolsize - curr_level;
 
@@ -2002,8 +1856,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
       {
         g_sectionSegmentPool.getPtrIgnoreAlloc(tmp);
         buffOwners[tmp.i] = tmp.p->m_ownerRef;
-        if (buffOwners[tmp.i] == 0)
-          zeroOwners++;
+        if (buffOwners[tmp.i] == 0) zeroOwners++;
         
         /* Expensive, ideally find a hacky way to iterate the freelist */
         if (!g_sectionSegmentPool.findId(tmp.i))
@@ -2019,11 +1872,9 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     
     Uint32 free = 0;
     Uint32 numOwners = 0;
-    for (Uint32 i=0; i < buffs; i++)
-    {
+    for (Uint32 i = 0; i < buffs; i++) {
       Uint32 owner = buffOwners[i];
-      if (owner == 0)
-      {
+      if (owner == 0) {
         free++;
       }
       else
@@ -2035,7 +1886,8 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
         for (; y < buffs; y++)
         {
           Uint32 pos = (start + y) % buffs;
-          if (buffOwnersCount[pos] == 0)
+       count,
+   if (buffOwnersCount[pos] == 0)
           {
             numOwners++;
             buffOwnersCount[pos] = (Uint64(owner) << 32 | 1);
@@ -2114,10 +1966,17 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
       {
         Uint32 node = refToNode(result_ref);
         if (node == 0 || 
-            node >= MAX_NODES)
-        {
-          g_eventLogger->info("Bad node in ref to DUMP %u : %u %u",
-                              DumpStateOrd::DumpPageMemory, node, result_ref);
+            node >= MAX_NODES)   {
+          g_eventLogger->info("Bad node in ref to DUMP %u : %u %u", id,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+id, rl.m_min, rl.m_max, rl.m_curr, rl.m_spare);
+=======
+ rl.m_min, rl.m_max, rl.m_curr, rl.m_spare);
+>>>>>>> MySQL 8.0.36
+            DumpStateOrd::DumpPageMemory, node, result_ref);
           return;
         }
       }
@@ -2128,8 +1987,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
 
     // DUMP 1000 0 0
     Uint32 id = signal->theData[1];
-    if (id == 0)
-    {
+    if (id == 0)   {
       infoEvent("Resource global total: %u used: %u",
                 m_ctx.m_mm.get_allocated(),
                 m_ctx.m_mm.get_in_use());
@@ -2140,8 +1998,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
                 m_ctx.m_mm.get_shared(),
                 m_ctx.m_mm.get_shared_in_use());
       id++;
-    }
-    Resource_limit rl;
+    } Resource_limit rl;
     for (; id <= RG_COUNT; id++)
     {
       if (!m_ctx.m_mm.get_resource_limit(id, rl))
@@ -2154,7 +2011,31 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
           rl.m_spare)
       {
         infoEvent("Resource %u min: %u max: %u curr: %u spare: %u"
-                  ", stolen: %u, overflow: %u, max_high_prio: %u"
+                  ", stolen: 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+overflow:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sig
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*sig
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ %u, max_high_prio: %u"
                   ", prio: %u",
                   id,
                   rl.m_min,
@@ -2207,8 +2088,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
 	m_ctx.m_config.getOwnConfigIterator();
       ndbrequire(p != 0);
       
-      if(!ndb_mgm_get_int_parameter(p, CFG_DB_STOP_ON_ERROR_INSERT, &val))
-      {
+      if(!ndb_mgm_get_int_parameter(p, CFG_DB_STOP_ON_ERROR_INSERT, &val)) {
         m_ctx.m_config.setRestartOnErrorInsert(val);
       }
     }
@@ -2229,8 +2109,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     Uint32 sec1[len1];
     for (i = 0; i < len0; i++)
       sec0[i] = i;
-    for (i = 0; i < len1; i++)
-      sec1[i] = 16 * i;
+    for (i = 0; i < len1; i++)     sec1[i] = 16 * i;
     Uint32* sig = signal->getDataPtrSend();
     sig[0] = reference();
     sig[1] = testType;
@@ -2248,8 +2127,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     sendSignal(reference(), GSN_TESTSIG, signal, 8, JBB, ptr, 2);
   }
 
-  if (arg == DumpStateOrd::DumpEventLog)
-  {
+  if (arg == DumpStateOrd::DumpEventLog) {
     /**
      * Array with m_saved_event_buffer indexes sorted by time and
      */
@@ -2261,8 +2139,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
      */
     for (Uint32 i = 0; i < NDB_ARRAY_SIZE(m_saved_event_buffer); i++)
     {
-      if (m_saved_event_buffer[i].startScan())
-        continue;
+      if (m_saved_event_buffer[i].startScan())     continue;
 
       sorted[cnt] = i;
       cnt++;
@@ -2278,8 +2155,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     EventReport * rep = CAST_PTR(EventReport, signal->getDataPtrSend());
     rep->setEventType(NDB_LE_SavedEvent);
     rep->setNodeId(getOwnNodeId());
-    while (cnt > 0)
-    {
+    while (cnt > 0) {
       jam();
 
       bool done = m_saved_event_buffer[sorted[0]].scan(&s, 0);
@@ -2347,11 +2223,10 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     Uint32 val = 6000;
     const ndb_mgm_configuration_iterator * p =
       m_ctx.m_config.getOwnConfigIterator();
-    ndb_mgm_get_int_parameter(p, CFG_DB_WATCHDOG_INTERVAL,
-                              &val);
+    ndb_mgm_get_int_parameter(p, CFG_DB_WATCHDOG_INTERVAL, AllocMemReq::SignalLength,
+                             &val);
 
-    if (signal->length() >= 2)
-    {
+    if (signal->length() >= 2) {
       val = signal->theData[1];
     }
     g_eventLogger->info("Cmvmi : Setting watchdog interval to %u",
@@ -2367,8 +2242,7 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     {
       val = signal->theData[1];
     }
-    g_eventLogger->info("Cmvmi : Setting ErrorHandlingError to %u",
-                        val);
+    g_eventLogger->info("Cmvmi : Setting ErrorHandlingError to %u", val);
     simulate_error_during_error_reporting = val;
   }
 #endif
@@ -2428,13 +2302,13 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     {
       execNDB_TAMPER(signal);
     }
-    else if (delay < 10)
-    {
+    else if (delay < 10)   {
       sendSignal(reference(), GSN_NDB_TAMPER, signal, 1, JBB);
     }
     else
     {
-      sendSignalWithDelay(reference(), GSN_NDB_TAMPER, signal, delay, 1);
+      sendSignalWithDelay(reference(), GSN_NDB_TAMPER, signal, delay,
+                        1);
     }
   }
 
@@ -2445,7 +2319,79 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     if (signal->getLength() > 1)
       mb = signal->theData[1];
 
-    Uint64 bytes = Uint64(mb) * 1024 * 1024;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint64
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendSignal(NDBFS_REF, GSN_FSCLOSEREQ, signal, 5, JBB);
+  }
+
+}
+
+void
+Cmvmi::execFSCLOSECONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(NDBFS_REF, GSN_FSCLOSEREQ, signal, 5, JBB);
+  }
+}
+
+void Cmvmi::execFSCLOSECONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bytes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint64(mb) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ERROR_INSERT
+
+void
+Cmvmi::execALLOC_MEM_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ERROR_INSERT
+
+void Cmvmi::execALLOC_MEM_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1024
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ * 1024;
     AllocMemReq * req = CAST_PTR(AllocMemReq, signal->getDataPtrSend());
     req->senderData = 666;
     req->senderRef = reference();
@@ -2486,7 +2432,29 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     FsOpenReq::setVersion(openReq->fileNumber, 1);
     FsOpenReq::setSuffix(openReq->fileNumber, FsOpenReq::S_FRAGLOG);
     openReq->fileFlags = FsOpenReq::OM_WRITEONLY | FsOpenReq::OM_CREATE |
-                         FsOpenReq::OM_TRUNCATE | FsOpenReq::OM_ZEROS_ARE_SPARSE;
+                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NodeState&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NodeState
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FsOpenReq::OM_TRUNCATE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+nodeState
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&nodeState
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ | FsOpenReq::OM_ZEROS_ARE_SPARSE;
 
     openReq->page_size = 0;
     openReq->file_size_hi = UINT32_MAX;
@@ -2497,19 +2465,90 @@ Cmvmi::execDUMP_STATE_ORD(Signal* signal)
     {
       jam();
       openReq->fileNumber[2] = i;
-      sendSignal(NDBFS_REF, GSN_FSOPENREQ, signal, FsOpenReq::SignalLength, JBB);
+      sendSignal(NDBFS_REF, GSN_FSOPENREQ, signal, FsOpenReq::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SignalLength, JBB);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SL_STARTING ?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SL_STARTING
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     }
     g_eventLogger->info("CMVMI : %u requests sent",
-                        numFiles);
-  }
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+nodeState.starting.startPhase : 0);
+=======
+      ? nodeState.starting.startPhase
+                           : 0);
+>>>>>>> MySQL 8.0.36
+               numFiles);
+    }
 
   if (signal->theData[0] == 668)
   {
-    jam();
+      jam();
 
     g_eventLogger->info("CMVMI : missing responses %u",
                         g_remaining_responses);
-    /* Check that all files were opened */
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+    Ndbinfo::pool_entry pools[] =
+=======
+
+      Ndbinfo::pool_entry pools[] = {{"Data memory",
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Check that all files 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+were
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+opened
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"Data
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+memory",
+=======
+                  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     ndbrequire(g_remaining_responses == 0);
   }
 #endif // ERROR_INSERT
@@ -2526,15 +2565,85 @@ Cmvmi::execFSOPENCONF(Signal* signal)
     jam();
     g_remaining_responses--;
     g_eventLogger->info("Waiting for %u responses",
-                        g_remaining_responses);
+                                                      g_remaining_responses);
   }
 
   if (g_remaining_responses > 0)
   {
-    // We don't close any files until all are open
+    // We don't close any files until 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+all
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+are
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CFG_DB_LONG_SIGNAL_BUFFER,0,0,0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                             {CFG_DB_LONG_SIGNAL_BUFFER, 0, 0,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+open
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+},
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0},
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     jam();
     g_eventLogger->info("CMVMI delaying CONF");
-    sendSignalWithDelay(reference(), GSN_FSOPENCONF, signal, 300, signal->getLength());
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sendSignalWithDelay(reference()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NULL
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                              {NULL
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, GSN_FSOPENCONF, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0,0,0
+// RONDB-624 todo: Glue these lines together ^v
+=======
+{0, 0, 0
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+300
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, signal->getLength());
   }
   else
   {
@@ -2600,10 +2709,9 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
   jamEntry();
 
   switch(req.tableId){
-  case Ndbinfo::RESOURCES_TABLEID:
-  {
-    jam();
-    Uint32 resource_id = cursor->data[0];
+    case Ndbinfo::RESOURCES_TABLEID: {
+      jam();
+      Uint32 resource_id = cursor->data[0];
     Resource_limit resource_limit;
 
     if (resource_id == 0)
@@ -2615,11 +2723,11 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
 
       Uint32 curr_used = m_ctx.m_mm.get_in_use();
       Uint32 max = m_ctx.m_mm.get_allocated();
-      row.write_uint32(max); // reserved
+      row.write_uint32(max);  // reserved
       row.write_uint32(curr_used); // current in use
       row.write_uint32(max); // max
-      row.write_uint32(0); // high water mark, TODO
-      row.write_uint32(0); // spare
+      row.write_uint32(0);   // high water mark, TODO
+      row.write_uint32(0);   // spare
       ndbinfo_send_row(signal, req, row, rl);
 
       resource_id++;
@@ -2627,32 +2735,45 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
     while(m_ctx.m_mm.get_resource_limit(resource_id, resource_limit))
     {
       jam();
-      Ndbinfo::Row row(signal, req);
-      row.write_uint32(getOwnNodeId()); // Node id
-      row.write_uint32(resource_id);
+        Ndbinfo::Row row(signal, req);
+        row.write_uint32(getOwnNodeId());  // Node id
+        row.write_uint32(resource_id);
 
       row.write_uint32(resource_limit.m_min);
-      row.write_uint32(resource_limit.m_curr);
+  {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+row.write_uint32(resource_limit.m_curr);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+      case ConfigSection::IntTypeId:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      case ConfigSection::IntTypeId:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       row.write_uint32(resource_limit.m_max);
       row.write_uint32(0); //TODO
-      row.write_uint32(resource_limit.m_spare);
-      ndbinfo_send_row(signal, req, row, rl);
+        row.write_uint32(resource_limit.m_spare);
+        ndbinfo_send_row(signal, req, row, rl);
       resource_id++;
 
-      if (rl.need_break(req))
-      {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, resource_id);
-        return;
+        if (rl.need_break(req)) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, resource_id);
+          return;
+        }
       }
+      break;
     }
-    break;
-  }
 
-  case Ndbinfo::NODES_TABLEID:
-  {
-    jam();
-    const NodeState& nodeState = getNodeState();
+    case Ndbinfo::NODES_TABLEID: {
+      jam();
+    const NodeState& nodeState =
+          getNodeState();
     const Uint32 start_level = nodeState.startLevel;
     const NDB_TICKS now = NdbTick_getCurrentTicks();
     const Uint64 uptime = NdbTick_Elapsed(m_start_time, now).seconds();
@@ -2665,7 +2786,7 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
     row.write_uint32(start_level);
     row.write_uint32(start_level == NodeState::SL_STARTING ?
                      nodeState.starting.startPhase : 0);
-    row.write_uint32(generation);
+      row.write_uint32(generation);
     ndbinfo_send_row(signal, req, row, rl);
     break;
   }
@@ -2700,14 +2821,46 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
     };
 
     static const size_t num_config_params =
-      sizeof(pools[0].config_params)/sizeof(pools[0].config_params[0]);
-    const Uint32 numPools = NDB_ARRAY_SIZE(pools);
+   Uint32 numSigs,
+  sizeof(pools[0].config_params)/sizeof(pools[0].config_params[0]);
+    const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 numPools
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 numSigs,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ = NDB_ARRAY_SIZE(pools);
     Uint32 pool = cursor->data[0];
     ndbrequire(pool < numPools);
     BlockNumber bn = blockToMain(number());
     while(pools[pool].poolname)
     {
-      jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sigData
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*sigData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jam();
       Ndbinfo::Row row(signal, req);
       row.write_uint32(getOwnNodeId());
       row.write_uint32(bn);           // block number
@@ -2718,35 +2871,168 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
       row.write_uint64(pools[pool].total);
       row.write_uint64(pools[pool].used_hi);
       row.write_uint64(pools[pool].entry_size);
-      for (size_t i = 0; i < num_config_params; i++)
-        row.write_uint32(pools[pool].config_params[i]);
+      for (size_t i = 0; i < num_config_params; i++)       row.write_uint32(pools[pool].config_params[i]);
       row.write_uint32(GET_RG(pools[pool].record_type));
       row.write_uint32(GET_TID(pools[pool].record_type));
       ndbinfo_send_row(signal, req, row, rl);
       pool++;
-      if (rl.need_break(req))
-      {
+      if (rl.need_break(req))   {
         jam();
         ndbinfo_send_scan_break(signal, req, rl, pool);
-        return;
-      }
-    }
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  return;
+||||||| Common ancestor
+numSigs << ")");
+
+=======
+numSigs
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ }
+||||||| Common ancestor
+*/
+=======
+>>>>>>> MySQL 8.0.36
     break;
   }
 
-  case Ndbinfo::CONFIG_VALUES_TABLEID:
-  {
-    jam();
-    Uint32 index = cursor->data[0];
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Todo
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ndbinfo::CONFIG_VALUES_TABLEID:
+||||||| Common ancestor
+:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+reading
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+||||||| Common ancestor
+in CONTINUEB */
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    Uint32 index 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= cursor->data[0];
 
-    char buf[512];
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendFragmentedSignal(rg,
+=======
+>>>>>>> MySQL 8.0.36
+   char buf[512];
     const ConfigValues* const values = m_ctx.m_config.get_own_config_values();
-    ConfigSection::Entry entry;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ConfigSection::Entry
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+<<
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+entry;
+||||||| Common ancestor
+=======
+")");
+
+>>>>>>> MySQL 8.0.36
     while (true)
-    {
-      /*
-        Iterate own configuration by index and
-        return the configured values
+ /* Linear send 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GSN_TESTSIG,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+||||||| Common ancestor
+=======
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Todo : Avoid reading from invalid stackptr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Iterate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+in
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+own
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+CONTINUEB
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+configuration
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*/
+>>>>>>> MySQL 8.0.36
+ by index and
+   sendFragmentedSignal(rg, GSN_TESTSIG, return the configured values
       */
       index = values->getNextEntry(index, &entry);
       if (index == 0)
@@ -2765,7 +3051,7 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
 
       Ndbinfo::Row row(signal, req);
       row.write_uint32(getOwnNodeId()); // Node id
-      row.write_uint32(entry.m_key); // config_param
+      row.write_uint32(entry.m_key);  // config_param
 
       switch(entry.m_type)
       {
@@ -2774,10 +3060,26 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
         break;
 
       case ConfigSection::Int64TypeId:
-        BaseString::snprintf(buf, sizeof(buf), "%llu", entry.m_int64);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+BaseString::snprintf(buf, sizeof(buf), "%llu", entry.m_int64);
         break;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+numSigs << ")");
+      Ptr<SectionSegment> segPtr;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+numSigs
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-      case ConfigSection::StringTypeId:
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case ConfigSection::StringTypeId:
         BaseString::snprintf(buf, sizeof(buf), "%s", entry.m_string);
         break;
 
@@ -2791,29 +3093,165 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
 
       if (rl.need_break(req))
       {
+||||||| Common ancestor
+ndbrequire(import(segPtr, sectionData, sectionWords));
+      SectionHandle handle(this, segPtr.i);
+      
+      sendFragmentedSignal(rg,
+                           GSN_TESTSIG,
+                           signal,
+=======
+>>>>>>> MySQL 8.0.36
         jam();
         ndbinfo_send_scan_break(signal, req, rl, index);
-        return;
-      }
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sigLength,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     }
     }
     break;
   }
 
-  case Ndbinfo::CONFIG_NODES_TABLEID:
-  {
-    jam();
-    ndb_mgm_configuration_iterator * iter = m_ctx.m_config.getClusterConfigIterator();
-    Uint32 row_num, sent_row_num = cursor->data[0];
+  case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ndbinfo::CONFIG_NODES_TABLEID:
+||||||| Common ancestor
+=======
+<<
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ")");
+ {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  JBB,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ Ptr<SectionSegment> segPtr;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-    for(row_num = 1, ndb_mgm_first(iter);
-        ndb_mgm_valid(iter);
+    ndb_mgm_configuration_iterator * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+iter
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ndbrequire(import(segPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+sectionData,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_ctx.m_config.getClusterConfigIterator();
+||||||| Common ancestor
+=======
+sectionWords));
+>>>>>>> MySQL 8.0.36
+    Uint32 row_num, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sent_row_num
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+SectionHandle
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+handle(this,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cursor->data[0];
+
+||||||| Common ancestor
+=======
+segPtr.i);
+
+>>>>>>> MySQL 8.0.36
+    for(row_num = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+sendFragmentedSignal(rg,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndb_mgm_first(iter);
+||||||| Common ancestor
+=======
+GSN_TESTSIG,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal, sigLength, JBB,     ndb_mgm_valid(iter);
         row_num++, ndb_mgm_next(iter))
     {
       if(row_num > sent_row_num)
       {
         Uint32 row_node_id, row_node_type;
         const char * hostname = nullptr;
-        Ndbinfo::Row row(signal, req);
+        Ndbinfo::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Row
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+testNodeFailureCleanupCallback(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+testNodeFailureCleanupCallback(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+row(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal, req);
         row.write_uint32(getOwnNodeId());
         ndb_mgm_get_int_parameter(iter, CFG_NODE_ID, & row_node_id);
         row.write_uint32(row_node_id);
@@ -2825,10 +3263,72 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal)
 
         if (rl.need_break(req))
         {
-          jam();
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sigData
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*sigData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jam();
           ndbinfo_send_scan_break(signal, req, rl, row_num);
           return;
-        }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+Cmvmi::testFragmentedCleanup(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Cmvmi::testFragmentedCleanup(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SectionHandle*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SectionHandle
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+handle,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*handle,
+                                 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    }
       }
     }
     break;
@@ -2846,8 +3346,7 @@ void
 Cmvmi::execNODE_START_REP(Signal* signal)
 {
 #ifdef ERROR_INSERT
-  if (ERROR_INSERTED(9002) && signal->theData[0] == getOwnNodeId())
-  {
+  if (ERROR_INSERTED(9002) && signal->theData[0] == getOwnNodeId()) {
     signal->theData[0] = 9001;
     execDUMP_STATE_ORD(signal);
   }
@@ -2865,19 +3364,29 @@ Cmvmi::startFragmentedSend(Signal* signal,
   Uint32* sigData = signal->getDataPtrSend();
   const Uint32 sigLength = 6;
   const Uint32 sectionWords = 240;
-  Uint32 sectionData[ sectionWords ];
+  Uint32 sectionData[sectionWords];
   
   for (Uint32 i = 0; i < sectionWords; i++)
-    sectionData[ i ] = i;
+    sectionData[i] = i;
   
-  const Uint32 secCount = 1; 
+  const Uint32 secCount = 1;
   LinearSectionPtr ptr[3];
   ptr[0].sz = sectionWords;
   ptr[0].p = &sectionData[0];
 
   for (Uint32 i = 0; i < numSigs; i++)
   {
-    sigData[0] = variant;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *sigData[0] = variant;
     sigData[1] = 31;
     sigData[2] = 0;
     sigData[3] = 1; // print
@@ -2893,12 +3402,7 @@ Cmvmi::startFragmentedSend(Signal* signal,
       /* Todo : Avoid reading from invalid stackptr in CONTINUEB */
       sendFragmentedSignal(rg,
                            GSN_TESTSIG,
-                           signal,
-                           sigLength,
-                           JBB,
-                           ptr,
-                           secCount,
-                           TheEmptyCallback,
+                           signal,    sigLength,    JBB,    ptr,    secCount,    TheEmptyCallback,
                            90); // messageSize
     }
     else
@@ -3013,7 +3517,27 @@ Cmvmi::testFragmentedCleanup(Signal* signal, SectionHandle* handle, Uint32 testT
       sigData[4] = 0;
       sigData[5] = sectionWords;
       
-      FragmentSendInfo fsi;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Callback*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Callback
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cbPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cbPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ FragmentSendInfo fsi;
       
       DEBUG("Sending first fragment to self");
       sendFirstFragment(fsi,
@@ -3050,12 +3574,11 @@ Cmvmi::testFragmentedCleanup(Signal* signal, SectionHandle* handle, Uint32 testT
     return;
   }
 
-  if (testType == 32)
-  {
+  if (testType == 32) {
     /* 'Remote side' trigger to clean up fragmented signal resources */
     BlockReference senderRef = signal->getSendersBlockRef();
     Uint32 sendingNode = refToNode(senderRef);
-    
+
     /* Start sending some linear and fragmented responses to the
      * sender, to exercise frag-send cleanup code when we execute
      * node-failure later
@@ -3068,7 +3591,31 @@ Cmvmi::testFragmentedCleanup(Signal* signal, SectionHandle* handle, Uint32 testT
     debugPrintFragmentCounts();
 
     Uint32 cbData= (((Uint32) 33) << 16) | variant;
-    Callback cb = { safe_cast(&Cmvmi::testNodeFailureCleanupCallback),
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Callback
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cb
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sigData
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*sigData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = { safe_cast(&Cmvmi::testNodeFailureCleanupCallback),
                     cbData };
 
     Callback* cbPtr = NULL;
@@ -3096,7 +3643,34 @@ Cmvmi::testFragmentedCleanup(Signal* signal, SectionHandle* handle, Uint32 testT
 
     if (! passCallback)
     {
-      DEBUG("Variant " << variant << " manually executing callback");
+      DEBUG("Variant " << variant << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+void
+Cmvmi::execTESTSIG(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Cmvmi::execTESTSIG(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+manually executing callback"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
       /* We call the callback inline here to continue processing */
       testNodeFailureCleanupCallback(signal, 
                                      cbData,
@@ -3176,7 +3750,7 @@ Cmvmi::testFragmentedCleanup(Signal* signal, SectionHandle* handle, Uint32 testT
     
     debugPrintFragmentCounts();
 
-    /* Callback will send a signal to self to clean up fragments that 
+      /* Callback will send a signal to self to clean up fragments that 
      * were sent to self before the send was cancelled.  
      * (Again, unnecessary in a 'real' situation
      */
@@ -3186,20 +3760,49 @@ Cmvmi::testFragmentedCleanup(Signal* signal, SectionHandle* handle, Uint32 testT
 
       testNodeFailureCleanupCallback(signal,
                                      cbData,
-                                     elementsCleaned);
-    }
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+p
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*p
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                              elementsCleaned);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
 
-    return;
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+  }
+
+  return;
   }
   
   if (testType == 34)
   {
-    /* Cleanup fragments which were sent before send was cancelled. */
+      /* Cleanup fragments which were sent before send was cancelled. */
     Uint32 elementsCleaned = simBlockNodeFailure(signal, getOwnNodeId());
     
     DEBUG("Elements cleaned " << elementsCleaned);
     
-    /* All FragInfo should be clear, may still be sending some
+      /* All FragInfo should be clear, may still be sending some
      * to other node(s)
      */
     debugPrintFragmentCounts();
@@ -3210,17 +3813,106 @@ Cmvmi::testFragmentedCleanup(Signal* signal, SectionHandle* handle, Uint32 testT
     {
       DEBUG("Re-executing with variant " << variant);
       Uint32* sigData = signal->getDataPtrSend();
-      sigData[0] = variant;
+      sigData[0] tmp = variant;
       sigData[1] = 30;
       sendSignal(reference(), GSN_TESTSIG, signal, 2, JBB);
-    }
-//    else
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+  }
+
+  else
 //    {
-//      // Infinite loop to test for leaks
+//      // Infinite 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+loop
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tmp,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+GSN_TESTSIG,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+test
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+for leaks
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tmp,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal->length(),
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 //       DEBUG("Back to zero");
-//       Uint32* sigData = signal->getDataPtrSend();
-//       sigData[0] = 0;
-//       sigData[1] = 30;
+//       Uint32* sigData = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->getDataPtrSend();
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal->length(),
+		   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+JBB,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB, &handle,
+>>>>>>> MySQL 8.0.36
+    sigData[0] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+//
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&handle,
+		  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+              
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       sigData[1] = 30;
 //       sendSignal(reference(), GSN_TESTSIG, signal, 2, JBB);
 //    }
   }
@@ -3251,7 +3943,19 @@ Cmvmi::execTESTSIG(Signal* signal){
     return;
   }
 
-  Uint32 ref = signal->theData[0];
+    Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ref
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+p
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*p
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = signal->theData[0];
   Uint32 testType = signal->theData[1];
   Uint32 fragmentLength = signal->theData[2];
   g_print = signal->theData[3];
@@ -3260,12 +3964,32 @@ Cmvmi::execTESTSIG(Signal* signal){
 
   SectionHandle handle(this, signal);
   
-  if(g_print){
+    if (g_print) {
     SignalLoggerManager::printSignalHeader(stdout, 
 					   signal->header,
 					   0,
-					   getOwnNodeId(),
-					   true);
+					   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+getOwnNodeId(),
+					
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tmp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tmp =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ true);
     ndbout_c("-- Fixed section --");
     for(i = 0; i<signal->length(); i++){
       fprintf(stdout, "H'0x%.8x ", signal->theData[i]);
@@ -3274,9 +3998,53 @@ Cmvmi::execTESTSIG(Signal* signal){
     }
     fprintf(stdout, "\n");
     
-    for(i = 0; i<handle.m_cnt; i++){
-      SegmentedSectionPtr ptr(0,0,0);
-      ndbout_c("-- Section %d --", i);
+    for(i = 0; i<handle.m_cnt; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i++){
+||||||| Common ancestor
+JBB,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SegmentedSectionPtr ptr(0,0,0);
+||||||| Common ancestor
+ptr,
+		 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+secs,
+		 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ndbout_c("-- Section %d --", 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragmentLength
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB, ptr, secs, fragmentLength
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+
       ndbrequire(handle.getSection(ptr, i));
       ndbrequire(ptr.p != 0);
       print(ptr, stdout);
@@ -3284,22 +4052,32 @@ Cmvmi::execTESTSIG(Signal* signal){
     }
   }
 
-  /**
-   * Validate length:s
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+  }
+
+ * Validate length:s
    */
-  for(i = 0; i<handle.m_cnt; i++){
+  for (i = 0; i <handle.m_cnt; i++) {
     SegmentedSectionPtr ptr;
     ndbrequire(handle.getSection(ptr, i));
     ndbrequire(ptr.p != 0);
     ndbrequire(ptr.sz == secSizes[i]);
-  }
+    }
 
-  /**
+    /**
    * Testing send with delay.
    */
   if (testType == 20) {
     if (signal->theData[4] == 0) {
       releaseSections(handle);
+
       return;
     }
     signal->theData[4]--;
@@ -3328,14 +4106,49 @@ Cmvmi::execTESTSIG(Signal* signal){
    */
   if (testType == 40)
   {
-    /* Fragmented signal sent from Api, we'll check it and return it */
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Fragmented
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+p
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*p
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal sent from Api, we'll check it and return it */
     Uint32 expectedVal = 0;
-    for (Uint32 s = 0; s < handle.m_cnt; s++)
-    {
+    for (Uint32 s = 0; s < handle.m_cnt; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+s++)
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+  }
+
+  {
       SectionReader sr(handle.m_ptr[s].i, getSectionSegmentPool());
+
       Uint32 received;
       while (sr.getWord(&received))
       {
+
         ndbrequire(received == expectedVal ++);
       }
     }
@@ -3349,24 +4162,96 @@ Cmvmi::execTESTSIG(Signal* signal){
   }
 
   if(signal->getSendersBlockRef() == ref){
-    /**
+      /**
      * Signal from API (not via NodeReceiverGroup)
      */
-    if((testType % 2) == 1){
+      if ((testType % 2) == 1) {
       signal->theData[4] = 1; // No further signals after this
-    } else {
-      // Change testType to UniCast, and set loopCount to the
-      // number of nodes.
+      } else {
+        // Change testType to UniCast, and set loopCount to the
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+// number
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+
+>>>>>>> MySQL 8.0.36
+ of nodes.
       signal->theData[1] --;
       signal->theData[4] = rg.m_nodes.count();
-    }
-  }
+   tmp, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+GSN_TESTSIG,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tmp,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal->length(),
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   
   switch(testType){
-  case 1:
-    /* Unicast to self */
-    sendSignal(ref, GSN_TESTSIG,  signal, signal->length(), JBB,
-	       &handle);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case 1:
+||||||| Common ancestor
+GSN_TESTSIG,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    /* Unicast to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+self */
+||||||| Common ancestor
+signal,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    sendSignal(ref, GSN_TESTSIG,  signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->length(),
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal->length(),
+		     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ JBB, &handle,
+	       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&handle);
+||||||| Common ancestor
+&handle,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+            
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     break;
   case 2:
     /* Multicast to all nodes */
@@ -3388,23 +4273,221 @@ Cmvmi::execTESTSIG(Signal* signal){
     
     if(testType == 3){
       /* Unicast linear sections to self */
-      sendSignal(ref, GSN_TESTSIG, signal, signal->length(), JBB, ptr, secs);
-    } else {
+        sendSignal(ref, GSN_TESTSIG, signal, signal->length(), JBB, ptr, secs);
+    } else 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
       /* Broadcast linear sections to all nodes */
-      sendSignal(rg, GSN_TESTSIG, signal, signal->length(), JBB, ptr, secs);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+return;
     }
-    for(Uint32 i = 0; i<secs; i++){
-      delete[] ptr[i].p;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  return;
+      }
+      sendSignal(ref, GSN_TESTSIG, signal, signal->length(), JBB);
+      return;
     }
-    releaseSections(handle);
-    break;
+    case 16: {
+      releaseSections(handle);
+      Uint32 count = signal->theData[8];
+      signal->theData[10] = count * rg.m_nodes.count();
+      for (i = 0; i < count; i++) {
+        sendSignal(rg, GSN_TESTSIG, signal, signal->length(), JBB);
+      }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  sendSignal(rg, GSN_TESTSIG, signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendSignal(ref, GSN_TESTSIG, signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+JBB,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+JBB);
+    return;
   }
-  /* Send fragmented segmented sections direct send */
-  case 5:
+  case 16:{
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return;
+    }
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ptr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+secs);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+releaseSections(handle);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+default:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 count = signal->theData[8];
+    signal->theData[10] = count * rg.m_nodes.count();
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  ndbabort();
+  }
+  return;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+}
+
+void Cmvmi::sendFragmentedComplete(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 i =
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+i =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i<secs;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+i<count;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ data,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+delete[]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendSignal(rg,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr[i].p;
+||||||| Common ancestor
+GSN_TESTSIG,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+releaseSections(handle);
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+break;
+||||||| Common ancestor
+return;
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+}
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  /* Send fragmented 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+segmented
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ndbabort();
+=======
+>>>>>>> MySQL 8.0.36
+ sections 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+direct
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+ send 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+return;
+}
+
+void
+Cmvmi::sendFragmentedComplete(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+5:
+||||||| Common ancestor
+data,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
   case 6:{
     
     NodeReceiverGroup tmp;
-    if(testType == 5){
+    if(testType == 5) {
       /* Unicast */
       tmp  = ref;
     } else {
@@ -3426,15 +4509,13 @@ Cmvmi::execTESTSIG(Signal* signal){
     int count = 1;
     while(fragSend.m_status != FragmentSendInfo::SendComplete){
       count++;
-      if (g_print)
-        ndbout_c("Sending fragment %d", count);
+      if (g_print)     ndbout_c("Sending fragment %d", count);
       sendNextSegmentedFragment(signal, fragSend);
     }
     break;
   }
   /* Send fragmented linear sections direct send */
-  case 7:
-  case 8:{
+    case 7: case 8:{
     LinearSectionPtr ptr[3];
     const Uint32 secs = handle.m_cnt;
     for(i = 0; i<secs; i++){
@@ -3449,16 +4530,38 @@ Cmvmi::execTESTSIG(Signal* signal){
     NodeReceiverGroup tmp;
     if(testType == 7){
       /* Unicast */
-      tmp  = ref;
+      tmp  =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ ref;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ calc_percent(dm_pages_used,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
     } else {
-      /* Multicast */
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/* Multicast */
       tmp = rg;
     }
 
     FragmentSendInfo fragSend;
     sendFirstFragment(fragSend,
 		      tmp,
-		      GSN_TESTSIG,
+		      GSN
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                     dm_pages
+// RONDB-624 todo: Glue these lines together ^v
+=======
+calc_percent(dm_pages_used, dm_pages
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_TESTSIG,
 		      signal,
 		      signal->length(),
 		      JBB,
@@ -3480,27 +4583,62 @@ Cmvmi::execTESTSIG(Signal* signal){
     releaseSections(handle);
     break;
   }
-  /* Test fragmented segmented send with callback */
+  /* Test fragmented segmented send with callback   */
   case 9:
   case 10:{
 
     Callback m_callBack;
-    m_callBack.m_callbackFunction = 
+    m_callBack.m_callbackFunction =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ calc_percent(acc_pages_used,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
       safe_cast(&Cmvmi::sendFragmentedComplete);
     
-    if(testType == 9){
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ if(testType == 9){
       /* Unicast */
       m_callBack.m_callbackData = 9;
       sendFragmentedSignal(ref,
 			   GSN_TESTSIG, signal, signal->length(), JBB, 
 			   &handle,
-			   m_callBack,
+			  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+calc_percent(acc_pages_used,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ m_callBack,
 			   fragmentLength);
     } else {
       /* Multicast */
-      m_callBack.m_callbackData = 10;
+      m_callBack.m_callbackData =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 10;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ calc_percent(tup_pages_used,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
       sendFragmentedSignal(rg,
-			   GSN_TESTSIG, signal, signal->length(), JBB, 
+			   GSN_TESTSIG, signal, signal->length(), 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+JBB, 
 			   &handle,
 			   m_callBack,
 			   fragmentLength);
@@ -3510,17 +4648,68 @@ Cmvmi::execTESTSIG(Signal* signal){
   /* Test fragmented linear send with callback */
   case 11:
   case 12:{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                      tup_pages_total);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+calc_percent(tup_pages_used, tup_pages_total);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 
     const Uint32 secs = handle.m_cnt;
     std::memset(g_test, 0, sizeof(g_test));
-    for(i = 0; i<secs; i++){
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+!= -1)
+=======
+!=
+>>>>>>> MySQL 8.0.36
+  for(i = 0; i<secs; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i++)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+      -1) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
       SegmentedSectionPtr sptr(0,0,0);
       ndbrequire(handle.getSection(sptr, i));
       Uint32* p = new Uint32[sptr.sz];
       copy(p, sptr);
       g_test[i].p = p;
-      g_test[i].sz = sptr.sz;
-    }
+      g_test[i].sz =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ sptr.sz;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ -1)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  {
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        -1) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     
     releaseSections(handle);
     
@@ -3549,12 +4738,25 @@ Cmvmi::execTESTSIG(Signal* signal){
   }
   /* Send fragmented segmented sections direct send no-release */
   case 13:
-  case 14:{
-    NodeReceiverGroup tmp;
+  case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+14:{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  } NodeReceiverGroup tmp;
     if(testType == 13){
       /* Unicast */
       tmp  = ref;
-    } else {
+      } else {
       /* Multicast */
       tmp = rg;
     }
@@ -3564,11 +4766,38 @@ Cmvmi::execTESTSIG(Signal* signal){
 		      tmp,
 		      GSN_TESTSIG,
 		      signal,
-		      signal->length(),
+		        signal->length(),
 		      JBB,
 		      &handle,
 		      true, // Don't release sections
-                      fragmentLength);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Cmvmi::reportDMUsage(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Cmvmi::reportDMUsage(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                   fragmentLength);
 
     int count = 1;
     while(fragSend.m_status != FragmentSendInfo::SendComplete){
@@ -3613,8 +4842,7 @@ Cmvmi::execTESTSIG(Signal* signal){
   return;
 }
 
-void
-Cmvmi::sendFragmentedComplete(Signal* signal, Uint32 data, Uint32 returnCode){
+void Cmvmi::sendFragmentedComplete(Signal *signal, Uint32 data, Uint32 returnCode){
   if (g_print)
     ndbout_c("sendFragmentedComplete: %d", data);
   if(data == 11 || data == 12){
@@ -3872,7 +5100,27 @@ void Cmvmi::execGET_CONFIG_REQ(Signal *signal)
                        signal,
                        GetConfigConf::SignalLength,
                        JBB,
-                       ptr,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+GetConfigReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+GetConfigReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                   ptr,
                        nSections,
                        TheEmptyCallback);
 }
@@ -3880,7 +5128,48 @@ void Cmvmi::execGET_CONFIG_REQ(Signal *signal)
 void Cmvmi::execSET_HOSTNAME_REQ(Signal *signal)
 {
   jamEntry();
-  /* Just route it to Qmgr that has more state to handle it. */
+  /* Just 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+route
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+v2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+?
+=======
+>>>>>>> MySQL 8.0.36
+ to Qmgr that 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+has more
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_ctx.m_config.m_clusterConfigPacked_v2.length() :
+=======
+v2 ? m_ctx.m_config.m_clusterConfigPacked_v2.length()
+>>>>>>> MySQL 8.0.36
+ state to handle 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_ctx.m_config.m_clusterConfigPacked_v1
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     : m_ctx.m_config.m_clusterConfigPacked_v1
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+. */
   ndbrequire(signal->getNoOfSections() == 1);
   SegmentedSectionPtr hostnameSection;
   {
@@ -3893,14 +5182,73 @@ void Cmvmi::execSET_HOSTNAME_REQ(Signal *signal)
   handle.m_cnt = 1;
   sendSignal(QMGR_REF,
              GSN_SET_HOSTNAME_REQ,
-             signal,
-             SetHostnameReq::SignalLength,
-             JBB,
+             signal, GetConfigRef::SignalLength,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SetHostnameReq::SignalLength,
+            
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  GetConfigRef::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ JBB,
              &handle);
 }
 /**
- * A node that was part of the configuration is activated such that
- * it can connect and become a part of the cluster. A deactivated
+ * A node that was part of the configuration is activated 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+such
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+v2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+||||||| Common ancestor
+?
+=======
+>>>>>>> MySQL 8.0.36
+ * it 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+can
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+v2 ?
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+connect and
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(Uint32*)(m_ctx.m_config.m_clusterConfigPacked_v2.get_data()) :
+=======
+(Uint32 *)(m_ctx.m_config.m_clusterConfigPacked_v2.get_data())
+>>>>>>> MySQL 8.0.36
+ become a part 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(Uint32*)(m_ctx.m_config.m_clusterConfigPacked_v1.get_data());
+=======
+     : (Uint32 *)(m_ctx.m_config.m_clusterConfigPacked_v1.get_data());
+>>>>>>> MySQL 8.0.36
+ the cluster. A deactivated
  * node cannot join the cluster.
  */
 void Cmvmi::execACTIVATE_REQ(Signal *signal)

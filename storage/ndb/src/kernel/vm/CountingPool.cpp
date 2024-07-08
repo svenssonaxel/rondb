@@ -25,24 +25,23 @@
 
 #ifdef TEST_COUNTINGPOOL
 
+#include "CountingPool.hpp"
 #include <ndb_global.h>
 #include <NdbTap.hpp>
-#include "CountingPool.hpp"
 #include "Pool.hpp"
 #include "RWPool.hpp"
+#include "WOPool.hpp"
 #include "test_context.hpp"
 
 #define JAM_FILE_ID 304
 
-struct record
-{
+struct record {
   int dummy;
 };
 
-template class CountingPool<RecordPool<RWPool<record> > >;
+template class CountingPool<RecordPool<RWPool<record>>>;
 
-TAPTEST(CountingPool)
-{
+TAPTEST(CountingPool) {
   (void)test_context(100);
   // Only compile test. See template instantiations above.
 
@@ -52,4 +51,3 @@ TAPTEST(CountingPool)
 }
 
 #endif
-

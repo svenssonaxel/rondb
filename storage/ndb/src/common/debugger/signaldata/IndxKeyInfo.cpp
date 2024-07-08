@@ -26,11 +26,8 @@
 
 #include <signaldata/IndxKeyInfo.hpp>
 
-bool printINDXKEYINFO(FILE* output,
-                      const Uint32* theData,
-                      Uint32 len,
-                      Uint16 /*receiverBlockNo*/)
-{
+bool printINDXKEYINFO(FILE *output, const Uint32 *theData, Uint32 len,
+                      Uint16 /*receiverBlockNo*/) {
 //  const IndxKeyInfo * const sig = (IndxKeyInfo *) theData;
   printHex(output, theData, len, "");
   return true;

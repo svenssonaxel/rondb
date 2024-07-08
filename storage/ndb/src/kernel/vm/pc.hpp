@@ -26,21 +26,20 @@
 #ifndef PC_H
 #define PC_H
 
-
-#include "Emulator.hpp"
-#include <NdbOut.hpp>
-#include <ndb_limits.h>
 #include <NdbThread.h>
+#include <ndb_limits.h>
+#include <NdbOut.hpp>
+#include "Emulator.hpp"
 
 #define JAM_FILE_ID 282
 
 /* Jam buffer pointer. */
 struct EmulatedJamBuffer;
-extern thread_local EmulatedJamBuffer* NDB_THREAD_TLS_JAM;
+extern thread_local EmulatedJamBuffer *NDB_THREAD_TLS_JAM;
 
 /* Thread self pointer. */
 struct thr_data;
-extern thread_local thr_data* NDB_THREAD_TLS_THREAD;
+extern thread_local thr_data *NDB_THREAD_TLS_THREAD;
 
 #define qt_likely likely
 #define qt_unlikely unlikely
@@ -83,19 +82,19 @@ extern thread_local Uint32 NDB_THREAD_TLS_RES_OWNER;
  * jamFileNames in Emulator.cpp.
  */
 #define _internal_thrjamLinenumber(jamBufferArg, lineNumber)  \
-  do { \
-    EmulatedJamBuffer* const jamBuffer = jamBufferArg; \
-    /* Make sure both file and line number are known at compile-time. */ \
+  do {                                                                       \
+    EmulatedJamBuffer *const jamBuffer = jamBufferArg;                       \
+    /* Make sure both file and line number are known at compile-time. */                        \
     constexpr Uint32 constJamFileId = (JAM_FILE_ID); \
-    constexpr Uint32 constLineNumber = (lineNumber); \
-    /* Statically check that file id fits in 14 bits. */ \
+    constexpr Uint32 constLineNumber = (lineNumber);                    \
+    /* Statically check that file id fits in 14 bits. */      \
     static_assert((constJamFileId & 0x3fff) == constJamFileId); \
     /* Statically check that file id does not collide with Empty jam type. */ \
-    static_assert(constJamFileId != 0x3fff); \
+    static_assert(constJamFileId != 0x3fff);    \
     /* Statically check that line number fits in 16 bits. */ \
     static_assert((constLineNumber & 0xffff) == constLineNumber); \
     /* Make sure the whole jam event is known at compile-time. */ \
-    constexpr JamEvent newJamEvent = JamEvent(constJamFileId, constLineNumber, \
+    constexpr JamEvent newJamEvent = JamEvent(constJamFileId, constLineNumber,                     \
                                               true); \
     /* Insert the event */ \
     jamBuffer->insertJamEvent(newJamEvent); \
@@ -166,7 +165,18 @@ extern thread_local Uint32 NDB_THREAD_TLS_RES_OWNER;
 #define jamBlock(block) _internal_jamBlockLinenumber((block), __LINE__)
 #define jamData(data) jamBlockData(this, (data))
 #define jamLine(data) jamData(data)
-#define _internal_jamLinenumber(line) _internal_jamBlockLinenumber(this, (line))
+#define _internal_jamLinenumber(line) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+\
+    thrjamLine(NDB_THREAD
+// RONDB-624 todo: Glue these lines together ^v
+=======
+thrjamLine(NDB_THREAD
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_internal_jamBlockLinenumber(this, (line))
 #define jam() _internal_jamLinenumber(__LINE__)
 
 #define jamEntry() jam()
@@ -198,38 +208,115 @@ extern thread_local Uint32 NDB_THREAD_TLS_RES_OWNER;
 #endif
 
 #ifndef NDB_OPT
-#define ptrCheck(ptr, limit, rec) if (ptr.i < (limit)) ptr.p = &rec[ptr.i]; else ptr.p = NULL
+#define ptrCheck(ptr, limit, rec) \
+  if (ptr.i < (limit))            \
+    ptr.p = &rec[ptr.i];          \
+  else                            \
+    ptr.p = NULL
 
 /**
- * Sets the p-value of a ptr-struct to be a pointer to record no i  
+ * Sets the p-value of a ptr-struct to be a pointer to record no i
  * (where i is the i-value of the ptr-struct)
  *
  * @param ptr    ptr-struct with a set i-value  (the p-value in this gets set)
  * @param limit  max no of records in rec
  * @param rec    pointer to first record in an array of records
  */
-#define ptrCheckGuardErr(ptr, limit, rec, error) {\
-  UintR TxxzLimit; \
-  TxxzLimit = (limit); \
-  UintR TxxxPtr; \
-  TxxxPtr = ptr.i; \
-  ptr.p = &rec[TxxxPtr]; \
-  if (TxxxPtr < (TxxzLimit)) { \
-    ; \
-  } else { \
-    progError(__LINE__, error, __FILE__); \
-  }}
+#define ptrCheckGuardErr(ptr, limit, rec, error) \
+  {                                              \
+    UintR TxxzLimit;                             \
+    TxxzLimit = (limit);                         \
+    UintR TxxxPtr;                               \
+    TxxxPtr = ptr.i;                             \
+    ptr.p = &rec[TxxxPtr];                       \
+    if (TxxxPtr < (TxxzLimit)) {                 \
+      ;                                          \
+    } else {                                     \
+      progError(__LINE__, error, __FILE__);      \
+    }                                            \
+  }
 #define ptrAss(ptr, rec) ptr.p = &rec[ptr.i]
 #define ptrNull(ptr) ptr.p = NULL
-#define ptrGuardErr(ptr, error) if (ptr.p == NULL) \
-    progError(__LINE__, error, __FILE__)
-#define arrGuardErr(ind, size, error) if ((ind) >= (size)) \
-    progError(__LINE__, error, __FILE__)
+#define ptrGuardErr(ptr, error) \
+  if (ptr.p == NULL) progError(__LINE__, error, __FILE_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LQH (4
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LQH 16
+
+/**
+* DIH allocates fragments in chunk for fast find of fragment record.
+* These parameters define chunk size and log of chunk
+// RONDB-624 todo: Glue these lines together ^v
+=======
+_)
+#define arrGuardErr(ind, size, error) \
+  if ((ind) >= (size)) progError(__LINE__, error, __FILE__)
 #else
 #define ptrCheck(ptr, limit, rec) ptr.p = &rec[ptr.i]
-#define ptrCheckGuardErr(ptr, limit, rec, error) ptr.p = &rec[ptr.i]
-#define ptrAss(ptr, rec) ptr.p = &rec[ptr.i]
-#define ptrNull(ptr) ptr.p = NULL
+#define ptrCheckGuardErr(ptr, limit, rec, error) ptr.p =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+size.
+*/
+#define
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rec[ptr.i]
+#define
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MAX_NDB_PARTITIONS
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NO_OF_FRAGS_PER_CHUNK 4
+#define
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ptrAss(ptr, rec) ptr.p = &rec[ptr.i]
+#define
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LOG_NO_OF_FRAGS_PER_CHUNK
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ptrNull(ptr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+16)
+
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+2
+
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ptr.p
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = NULL
 #define ptrGuardErr(ptr, error)
 #define arrGuardErr(ind, size, error)
 #endif
@@ -243,23 +330,35 @@ extern thread_local Uint32 NDB_THREAD_TLS_RES_OWNER;
 #ifdef ERROR_INSERT
 #define ERROR_INSERT_VARIABLE mutable UintR cerrorInsert, c_error_insert_extra
 #define ERROR_INSERTED(x) (unlikely(cerrorInsert == (x)))
-#define ERROR_INSERTED_CLEAR(x) (cerrorInsert == (x) ? (cerrorInsert = 0, true) : false)
+#define ERROR_INSERTED_CLEAR(x) \
+  (cerrorInsert == (x) ? (cerrorInsert = 0, true) : false)
 #define ERROR_INSERT_VALUE cerrorInsert
 #define ERROR_INSERT_EXTRA c_error_insert_extra
 #define SET_ERROR_INSERT_VALUE(x) cerrorInsert = x
-#define SET_ERROR_INSERT_VALUE2(x,y) cerrorInsert = x; c_error_insert_extra = y
+#define SET_ERROR_INSERT_VALUE2(x, y) \
+  cerrorInsert = x;                   \
+  c_error_insert_extra = y
 #define CLEAR_ERROR_INSERT_VALUE cerrorInsert = 0
 #define CLEAR_ERROR_INSERT_EXTRA c_error_insert_extra = 0
 #else
-#define ERROR_INSERT_VARIABLE typedef void * cerrorInsert // Will generate compiler error if used
+#define ERROR_INSERT_VARIABLE \
+  typedef void *cerrorInsert  // Will generate compiler error if used
 #define ERROR_INSERTED(x) false
 #define ERROR_INSERTED_CLEAR(x) false
 #define ERROR_INSERT_VALUE 0
 #define ERROR_INSERT_EXTRA Uint32(0)
-#define SET_ERROR_INSERT_VALUE(x) do { } while(0)
-#define SET_ERROR_INSERT_VALUE2(x,y) do { } while(0)
-#define CLEAR_ERROR_INSERT_VALUE do { } while(0)
-#define CLEAR_ERROR_INSERT_EXTRA do { } while(0)
+#define SET_ERROR_INSERT_VALUE(x) \
+  do {                            \
+  } while (0)
+#define SET_ERROR_INSERT_VALUE2(x, y) \
+  do {                                \
+  } while (0)
+#define CLEAR_ERROR_INSERT_VALUE \
+  do {                           \
+  } while (0)
+#define CLEAR_ERROR_INSERT_EXTRA \
+  do {                           \
+  } while (0)
 #endif
 
 #define DECLARE_DUMP0(BLOCK, CODE, DESC) if (arg == CODE)
@@ -283,7 +382,14 @@ extern thread_local Uint32 NDB_THREAD_TLS_RES_OWNER;
 // need large value.
 /* ------------------------------------------------------------------------- */
 #define NO_OF_FRAG_PER_NODE 1
-#define MAX_FRAG_PER_LQH (4 * MAX_NDB_PARTITIONS + 16)
+#define MAX_FRAG_PER_LQH 16
+
+/**
+ * DIH allocates fragments in chunk for fast find of fragment record.
+ * These parameters define chunk size and log of chunk size.
+ */
+#define NO_OF_FRAGS_PER_CHUNK 4
+#define LOG_NO_OF_FRAGS_PER_CHUNK 2
 
 /* ---------------------------------------------------------------- */
 // To avoid syncing too big chunks at a time we synch after writing
@@ -293,16 +399,14 @@ extern thread_local Uint32 NDB_THREAD_TLS_RES_OWNER;
 
 /* ------------------------------------------------------------------ */
 // We have these constants to ensure that we can easily change the
-// parallelism of node recovery and the amount of scan 
+// parallelism of node recovery and the amount of scan
 // operations needed for node recovery.
 /* ------------------------------------------------------------------ */
-#define ZMAX_PARALLEL_COPY_FRAGMENT_OPS 8
-#define DEF_NO_WORDS_OUTSTANDING_COPY_FRAGMENT 6000
-#define MAX_NO_WORDS_OUTSTANDING_COPY_FRAGMENT 48000
+#define MAX_NO_WORDS_OUTSTANDING_COPY_FRAGMENT 6000
 #define MAGIC_CONSTANT 56
-#define NODE_RECOVERY_SCAN_OP_RECORDS \
-         (4 + ((4*MAX_NO_WORDS_OUTSTANDING_COPY_FRAGMENT)/ \
-         ((MAGIC_CONSTANT + 2) * 5)))
+#define NODE_RECOVERY_SCAN_OP_RECORDS                  \
+  (4 + ((4 * MAX_NO_WORDS_OUTSTANDING_COPY_FRAGMENT) / \
+        ((MAGIC_CONSTANT + 2) * 5)))
 
 #ifdef NO_CHECKPOINT
 #define NO_LCP
@@ -323,68 +427,90 @@ extern thread_local Uint32 NDB_THREAD_TLS_RES_OWNER;
  * - ndbassert  - Only used when compiling VM_TRACE
  * - ndbrequire - Always checked
  *
- * If a ndbassert/ndbrequire fails, the system will 
+ * If a ndbassert/ndbrequire fails, the system will
  * shutdown and generate an error log
  *
  *
  * NOTE these may only be used within blocks
  */
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
-#define ndbassert(check) \
-  if(likely(check)){ \
-  } else {     \
-    jamNoBlock(); \
+#define ndbassert(check)                                        \
+  if (likely(check)) {                                          \
+  } else {                                                      \
+    jamNoBlock();                                               \
     progError(__LINE__, NDBD_EXIT_NDBASSERT, __FILE__, #check); \
   }
 #else
-#define ndbassert(check) do { } while(0)
+#define ndbassert(check) \
+  do {                   \
+  } while (0)
 #endif
 
-#define ndbrequireErr(check, error) \
-  if(likely(check)){ \
-  } else {     \
-    jamNoBlock(); \
-    progError(__LINE__, error, __FILE__, #check); \
+#define ndbrequireErr(check, error)               \
+  if (likely(check)) {                            \
+  } else {                                        \
+    jamNoBlock();                                 \
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZMAX_PARALLEL_COPY_FRAGMENT_OPS 8
+#define DEF
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+MAX
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   progError(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+__LINE__, error, __FILE__, #check); 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MAX_NO_WORDS_OUTSTANDING_COPY_FRAGMENT 48000
+#define MAGIC_CONSTANT
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+MAGIC_CONSTANT
+// RONDB-624 todo: Glue these lines together ^v
+=======
+\
+>>>>>>> MySQL 8.0.36
   }
 
-#define ndbrequire(check) \
-  ndbrequireErr(check, NDBD_EXIT_NDBREQUIRE)
+#define ndbrequire(check) ndbrequireErr(check, NDBD_EXIT_NDBREQUIRE)
 
-#define ndbabort() \
-  do { \
-    jamNoBlock(); \
+#define ndbabort()                                       \
+  do {                                                   \
+    jamNoBlock();                                        \
     progError(__LINE__, NDBD_EXIT_PRGERR, __FILE__, ""); \
   } while (false)
 
-#define CRASH_INSERTION(errorType) \
-  if (!ERROR_INSERTED((errorType))) { \
-  } else { \
-    jamNoBlock(); \
+#define CRASH_INSERTION(errorType)                         \
+  if (!ERROR_INSERTED((errorType))) {                      \
+  } else {                                                 \
+    jamNoBlock();                                          \
     progError(__LINE__, NDBD_EXIT_ERROR_INSERT, __FILE__); \
   }
 
-#define CRASH_INSERTION2(errorNum, condition) \
-  if (!(ERROR_INSERTED(errorNum) && condition)) { \
-  } else { \
-    jamNoBlock(); \
+#define CRASH_INSERTION2(errorNum, condition)              \
+  if (!(ERROR_INSERTED(errorNum) && condition)) {          \
+  } else {                                                 \
+    jamNoBlock();                                          \
     progError(__LINE__, NDBD_EXIT_ERROR_INSERT, __FILE__); \
   }
 
-#define CRASH_INSERTION3() \
-  { \
-    jamNoBlock(); \
+#define CRASH_INSERTION3()                                 \
+  {                                                        \
+    jamNoBlock();                                          \
     progError(__LINE__, NDBD_EXIT_ERROR_INSERT, __FILE__); \
   }
 #define MEMCOPY_PAGE(to, from, page_size_in_bytes) \
-  memcpy((void*)(to), (void*)(from), (size_t)(page_size_in_bytes));
+  memcpy((void *)(to), (void *)(from), (size_t)(page_size_in_bytes));
 #define MEMCOPY_NO_WORDS(to, from, no_of_words) \
-  memcpy((to), (void*)(from), (size_t)((no_of_words) << 2));
+  memcpy((to), (void *)(from), (size_t)((no_of_words) << 2));
 
 // Get the jam buffer for the current thread.
-inline EmulatedJamBuffer* getThrJamBuf()
-{
-  return NDB_THREAD_TLS_JAM;
-}
+inline EmulatedJamBuffer *getThrJamBuf() { return NDB_THREAD_TLS_JAM; }
 
 #undef JAM_FILE_ID
 

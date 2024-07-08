@@ -23,10 +23,58 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#include <record_types.hpp>
-#include <ndbd_malloc.hpp>
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<record_types
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"util/require
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"Rope
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+hpp>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+h"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+hpp"
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+#include 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<ndbd_malloc
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"Rope
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"DataBuffer
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.hpp>
 #include "util/require.h"
-#include "Rope.hpp"
+#include "
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Rope
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DataBuffer
+// RONDB-624 todo: Glue these lines together ^v
+=======
+util/require
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.h"
 
 #define JAM_FILE_ID 330
 
@@ -46,7 +94,31 @@ readRope(char* buf,
          char *obj_str,
          Uint32 obj_len)
 {
-  if (obj_str == nullptr ||
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+obj_str
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+buf,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*buf,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ nullptr ||
       rope_offset >= obj_len)
   {
     return 0;
@@ -75,7 +147,7 @@ LcConstRope::readBuffered(char* buf,
 }
 
 void
-LcConstRope::copy(char* buf, Uint32 size) const
+LcConstRope::copy(char *buf, Uint32 size) const
 {
   /* Assume that buffer is big enough */
   Uint32 offset = 0;
@@ -159,7 +231,31 @@ LcLocalRope::appendBuffer(const char * s, Uint32 len)
   {
     return false;
   }
-  if (m_string != nullptr)
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_string
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!= nullptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+buf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*buf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
   {
     memcpy(str, m_string, m_length);
   }
@@ -178,7 +274,19 @@ bool
 LcLocalRope::assign(const char * s, Uint32 len, Uint32 hash)
 {
   Uint32 alloc_len = ((len + 3) / 4) * 4;
-  char *str = (char*)lc_ndbd_pool_malloc(alloc_len + 1,
+  char 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*str
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dst
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = (char *)lc_ndbd_pool_malloc(alloc_len + 1,
                                          RG_SCHEMA_MEMORY,
                                          0,
                                          true);
@@ -212,8 +320,19 @@ LcLocalRope::compare(const char * str, Uint32 len) const
 }
 
 bool
-LcConstRope::equal(const LcConstRope& r2) const
-{
+LcConstRope::equal(const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LcConstRope&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ConstRope&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ConstRope
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &r2) const {
   if (m_length != r2.m_length)
   {
     return false;
@@ -241,7 +360,7 @@ int main(int argc, char ** argv) {
                            nullptr);
 
   char buffer_sml[32];
-  const char * a_string = "One Two Three Four Five Six Seven Eight Nine Ten";
+  const char *a_string = "One Two Three Four Five Six Seven Eight Nine Ten";
   LcRopeHandle h1, h2, h3, h4, h5, h6, h7;
   bool ok;
 
@@ -253,8 +372,8 @@ int main(int argc, char ** argv) {
     ok = lr1.assign(a_string);
     assert(ok);
     assert(lr1.size() == strlen(a_string) + 1);
-    assert(! lr1.empty());
-    assert(! lr1.compare(a_string));
+    assert(!lr1.empty());
+    assert(!lr1.compare(a_string));
     printf("LcLocalRope lr1 size: %d\n", lr1.size());
   }
   /* When the LocalRope goes out of scope, its head is copied back into the
@@ -264,16 +383,14 @@ int main(int argc, char ** argv) {
   printf("LcConstRope cr1 size: %d\n", cr1.size());
 
   /* Copy a zero-length rope */
-  {
-    LcLocalRope lr6(h6);
-  }
+  { LcLocalRope lr6(h6); }
   {
     LcConstRope cr6(h6);
     cr6.copy(buffer_sml, sizeof(buffer_sml));
   }
 
   /* Assign & copy a string that is exactly the size as a rope segment */
-  const char * str28 = "____V____X____V____X____VII";
+  const char *str28 = "____V____X____V____X____VII";
   char buf28[28];
   {
     LcLocalRope lr5(h5);
@@ -285,18 +402,18 @@ int main(int argc, char ** argv) {
   cr5.copy(buf28, sizeof(buf28));
 
   /* Test buffered-style reading from ConstRope
-  */
-  assert(! cr1.compare(a_string));
+   */
+  assert(!cr1.compare(a_string));
   Uint32 offset = 0;
   int nread = 0;
   printf(" --> START readBuffered TEST <--\n");
   printf("LcConstRope cr1 nread: %d offset: %d\n", nread, offset);
   nread = cr1.readBuffered(buffer_sml, 32, offset);
   printf("LcConstRope cr1 nread: %d offset: %d\n", nread, offset);
-  assert(! strncmp(a_string, buffer_sml, nread));
+  assert(!strncmp(a_string, buffer_sml, nread));
   nread = cr1.readBuffered(buffer_sml, 32, offset);
   printf("LcConstRope cr1 nread: %d offset: %d\n", nread, offset);
-  assert(! strncmp(a_string + offset - nread, buffer_sml, nread));
+  assert(!strncmp(a_string + offset - nread, buffer_sml, nread));
   /* All done: */
   assert(offset == cr1.size());
   /* Read once more; should return 0: */
@@ -305,7 +422,7 @@ int main(int argc, char ** argv) {
   printf(" --> END readBuffered TEST <--\n");
 
   /* Test buffered-style writing to LocalRope
-  */
+   */
   printf(" --> START appendBuffer TEST <--\n");
   {
     LcLocalRope lr2(h2);
@@ -338,7 +455,7 @@ int main(int argc, char ** argv) {
   printf(" --> END appendBuffer TEST <--\n");
 
   /* Test ConstRope::copy(LocalRope &)
-  */
+   */
   printf(" --> START LcConstRope::copy() TEST <--\n");
   LcConstRope cr2(h2);
   printf("h2.hashValue() = 0x%x, h3.hashValue() = 0x%x\n",

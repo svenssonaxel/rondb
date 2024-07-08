@@ -26,11 +26,8 @@
 
 #include <signaldata/TcKeyRef.hpp>
 
-bool printTCKEYREF(FILE* output,
-                   const Uint32* theData,
-                   Uint32 len,
-                   Uint16 /*receiverBlockNo*/)
-{
+bool printTCKEYREF(FILE *output, const Uint32 *theData, Uint32 len,
+                   Uint16 /*receiverBlockNo*/) {
   printHex(output, theData, len, "Signal data:");
   return true;
 }

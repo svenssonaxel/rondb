@@ -23,11 +23,10 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-
-#include "my_config.h"
-#include "util/require.h"
-#include "ndbd_malloc.hpp"
 #include "ndbd_malloc_impl.hpp"
+#include "my_config.h"
+#include "ndbd_malloc.hpp"
+#include "util/require.h"
 #include "ndbd_malloc.hpp"
 
 #include <time.h>
@@ -49,9 +48,14 @@
 #endif
 
 #ifdef DEBUG_MEM_ALLOC
-#define DEB_MEM_ALLOC(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_MEM_ALLOC(arglist)   \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_MEM_ALLOC(arglist) do { } while (0)
+#define DEB_MEM_ALLOC(arglist) \
+  do {                         \
+  } while (0)
 #endif
 
 #ifdef DEBUG_MEM_SHORT_RELEASE
@@ -71,17 +75,14 @@
 
 
 #ifdef _WIN32
-void *sbrk(int increment)
-{
-  return (void*)-1;
-}
+void *sbrk(int increment) { return (void *)-1; }
 #endif
 
 static int f_method_idx = 0;
 #ifdef NDBD_MALLOC_METHOD_SBRK
-static const char * f_method = "SMsm";
+static const char *f_method = "SMsm";
 #else
-static const char * f_method = "MSms";
+static const char *f_method = "MSms";
 #endif
 #define MAX_CHUNKS 10
 
@@ -99,12 +100,11 @@ extern void mt_mem_manager_unlock();
 #include <NdbOut.hpp>
 
 constexpr Uint32 Ndbd_mem_manager::zone_bound[ZONE_COUNT] =
-{ /* bound in regions */
-  ZONE_19_BOUND >> PAGES_PER_REGION_LOG,
-  ZONE_27_BOUND >> PAGES_PER_REGION_LOG,
-  ZONE_30_BOUND >> PAGES_PER_REGION_LOG,
-  ZONE_32_BOUND >> PAGES_PER_REGION_LOG
-};
+    {/* bound in regions */
+     ZONE_19_BOUND >> PAGES_PER_REGION_LOG,
+     ZONE_27_BOUND >> PAGES_PER_REGION_LOG,
+     ZONE_30_BOUND >> PAGES_PER_REGION_LOG,
+     ZONE_32_BOUND >> PAGES_PER_REGION_LOG};
 
 /*
  * Linux on ARM64 uses 64K as default memory page size.
@@ -126,9 +126,7 @@ static constexpr size_t ALLOC_PAGES_PER_SYSTEM_PAGE =
    Bug #32575486 NDBMTD CONSUMES ALL AVAILABLE MEMORY IN DEBUG ON SOLARIS
 */
 #if defined(VM_TRACE) && !defined(__sun) && !defined(__aarch64__)
-#if defined(_WIN32) || \
-    (defined(MADV_DONTDUMP) && \
-     defined(MAP_NORESERVE)) || \
+#if defined(_WIN32) || (defined(MADV_DONTDUMP) && defined(MAP_NORESERVE)) || \
     defined(MAP_GUARD)
 /*
  * Only activate use of do_virtual_alloc() if build platform allows reserving
@@ -165,39 +163,33 @@ static constexpr size_t ALLOC_PAGES_PER_SYSTEM_PAGE =
 //#define NDB_TEST_128TB_VIRTUAL_MEMORY
 #ifdef NDB_TEST_128TB_VIRTUAL_MEMORY
 
-static inline int
-log_and_fake_success(const char func[], int line,
-                     const char msg[], void* p, size_t s)
-{
+static inline int log_and_fake_success(const char func[], int line,
+                                       const char msg[], void *p, size_t s) {
   g_eventLogger->info("DEBUG: %s: %u: %s: p %p: len %zu", func, line, msg, p,
                       s);
   return 0;
 }
 
-#define NdbMem_ReserveSpace(x,y) \
+#define NdbMem_ReserveSpace(x, y) \
   log_and_fake_success(__func__, __LINE__, "NdbMem_ReserveSpace", (x), (y))
 
-#define NdbMem_PopulateSpace(x,y) \
+#define NdbMem_PopulateSpace(x, y) \
   log_and_fake_success(__func__, __LINE__, "NdbMem_PopulateSpace", (x), (y))
 
 #endif
 
-bool
-Ndbd_mem_manager::do_virtual_alloc(Uint32 pages,
-                                   InitChunk chunks[ZONE_COUNT],
-                                   Uint32* watchCounter,
-                                   Alloc_page** base_address)
-{
+bool Ndbd_mem_manager::do_virtual_alloc(Uint32 pages,
+                                        InitChunk chunks[ZONE_COUNT],
+                                        Uint32 *watchCounter,
+                                        Alloc_page **base_address) {
   require(pages % ALLOC_PAGES_PER_SYSTEM_PAGE == 0);
   require(pages > 0);
-  if (watchCounter)
-    *watchCounter = 9;
+  if (watchCounter) *watchCounter = 9;
   constexpr Uint32 max_regions = zone_bound[ZONE_COUNT - 1];
   constexpr Uint32 max_pages = max_regions << PAGES_PER_REGION_LOG;
   static_assert(max_regions == (max_pages >> PAGES_PER_REGION_LOG));
   static_assert(max_regions > 0);
-  if (pages > max_pages)
-  {
+  if (pages > max_pages) {
     return false;
   }
   const bool half_space = (pages <= (max_pages >> 1));
@@ -206,19 +198,14 @@ Ndbd_mem_manager::do_virtual_alloc(Uint32 pages,
   Uint32 page_count[ZONE_COUNT];
   Uint32 region_count[ZONE_COUNT];
   Uint32 prev_bound = 0;
-  for (int i = 0; i < ZONE_COUNT; i++)
-  {
+  for (int i = 0; i < ZONE_COUNT; i++) {
     Uint32 n = pages / (ZONE_COUNT - i);
-    if (half_space && n > (zone_bound[i] << (PAGES_PER_REGION_LOG - 1)))
-    {
+    if (half_space && n > (zone_bound[i] << (PAGES_PER_REGION_LOG - 1))) {
       n = zone_bound[i] << (PAGES_PER_REGION_LOG - 1);
-    }
-    else if (n > ((zone_bound[i] - prev_bound) << PAGES_PER_REGION_LOG))
-    {
+    } else if (n > ((zone_bound[i] - prev_bound) << PAGES_PER_REGION_LOG)) {
       n = (zone_bound[i] - prev_bound) << PAGES_PER_REGION_LOG;
     }
-    if (n % ALLOC_PAGES_PER_SYSTEM_PAGE != 0)
-    {
+    if (n % ALLOC_PAGES_PER_SYSTEM_PAGE != 0) {
       // Always assign whole system pages
       n -= n % ALLOC_PAGES_PER_SYSTEM_PAGE;
     }
@@ -234,23 +221,19 @@ Ndbd_mem_manager::do_virtual_alloc(Uint32 pages,
   /* Reserve big enough continuous address space */
   static_assert(ZONE_COUNT >= 2);
   const Uint32 highest_low = zone_bound[0] - region_count[0];
-  const Uint32 lowest_high = zone_bound[ZONE_COUNT - 2] +
-                             region_count[ZONE_COUNT - 1];
+  const Uint32 lowest_high =
+      zone_bound[ZONE_COUNT - 2] + region_count[ZONE_COUNT - 1];
   const Uint32 least_region_count = lowest_high - highest_low;
   Uint32 space_regions = max_regions;
   Alloc_page *space = nullptr;
   int rc = -1;
-  while (space_regions >= least_region_count)
-  {
-    if (watchCounter)
-      *watchCounter = 9;
+  while (space_regions >= least_region_count) {
+    if (watchCounter) *watchCounter = 9;
     rc = NdbMem_ReserveSpace(
-           (void**)&space,
-           (space_regions << PAGES_PER_REGION_LOG) * Uint64(32768));
-    if (watchCounter)
-      *watchCounter = 9;
-    if (rc == 0)
-    {
+        (void **)&space,
+        (space_regions << PAGES_PER_REGION_LOG) * Uint64(32768));
+    if (watchCounter) *watchCounter = 9;
+    if (rc == 0) {
       g_eventLogger->info(
           "%s: Reserved address space for %u 8GiB regions at %p.", __func__,
           space_regions, space);
@@ -258,8 +241,7 @@ Ndbd_mem_manager::do_virtual_alloc(Uint32 pages,
     }
     space_regions = (space_regions - 1 + least_region_count) / 2;
   }
-  if (rc == -1)
-  {
+  if (rc == -1) {
     g_eventLogger->info(
         "%s: Failed reserved address space for at least %u 8GiB regions.",
         __func__, least_region_count);
@@ -268,19 +250,15 @@ Ndbd_mem_manager::do_virtual_alloc(Uint32 pages,
 
 #ifdef NDBD_RANDOM_START_PAGE
   Uint32 range = highest_low;
-  for (int i = 0; i < ZONE_COUNT; i++)
-  {
+  for (int i = 0; i < ZONE_COUNT; i++) {
     Uint32 rmax = (zone_bound[i] << PAGES_PER_REGION_LOG) - page_count[i];
-    if (i > 0)
-    {
+    if (i > 0) {
       rmax -= zone_bound[i - 1] << PAGES_PER_REGION_LOG;
     }
-    if (half_space)
-    {
+    if (half_space) {
       rmax -= 1 << 17; /* lower half of region */
     }
-    if (range > rmax)
-    {
+    if (range > rmax) {
       rmax = range;
     }
   }
@@ -288,26 +266,25 @@ Ndbd_mem_manager::do_virtual_alloc(Uint32 pages,
 #endif
 
   Uint32 first_region[ZONE_COUNT];
-  for (int i = 0; i < ZONE_COUNT; i++)
-  {
+  for (int i = 0; i < ZONE_COUNT; i++) {
     first_region[i] = (i < ZONE_COUNT - 1)
-                      ? zone_bound[i]
-                      : MIN(first_region[0] + space_regions, max_regions);
+                          ? zone_bound[i]
+                          : MIN(first_region[0] + space_regions, max_regions);
     first_region[i] -= ((page_count[i] +
 #ifdef NDBD_RANDOM_START_PAGE
                          m_random_start_page_id +
 #endif
-                         ((1 << PAGES_PER_REGION_LOG) - 1))
-                        >> PAGES_PER_REGION_LOG);
+                         ((1 << PAGES_PER_REGION_LOG) - 1)) >>
+                        PAGES_PER_REGION_LOG);
 
     chunks[i].m_cnt = page_count[i];
-    chunks[i].m_ptr = space + ((first_region[i] - first_region[0])
-                                << PAGES_PER_REGION_LOG);
+    chunks[i].m_ptr =
+        space + ((first_region[i] - first_region[0]) << PAGES_PER_REGION_LOG);
 #ifndef NDBD_RANDOM_START_PAGE
     const Uint32 first_page = first_region[i] << PAGES_PER_REGION_LOG;
 #else
-    const Uint32 first_page = (first_region[i] << PAGES_PER_REGION_LOG) +
-                              m_random_start_page_id;
+    const Uint32 first_page =
+        (first_region[i] << PAGES_PER_REGION_LOG) + m_random_start_page_id;
 #endif
     const Uint32 last_page = first_page + chunks[i].m_cnt - 1;
     g_eventLogger->info("%s: Populated space with pages %u to %u at %p.",
@@ -315,125 +292,103 @@ Ndbd_mem_manager::do_virtual_alloc(Uint32 pages,
     require(last_page < (zone_bound[i] << PAGES_PER_REGION_LOG));
   }
   *base_address = space - first_region[0] * 8 * Uint64(32768);
-  if (watchCounter)
-    *watchCounter = 9;
+  if (watchCounter) *watchCounter = 9;
 #ifdef NDB_TEST_128TB_VIRTUAL_MEMORY
-  exit(0); // No memory mapped only faking no meaning to continue.
+  exit(0);  // No memory mapped only faking no meaning to continue.
 #endif
   return true;
 }
 #endif
 
-static
-bool
-do_malloc(Uint32 pages,
-          InitChunk* chunk,
-          Uint32 *watchCounter,
-          void * baseaddress)
-{
-  void * ptr = 0;
+static bool do_malloc(Uint32 pages, InitChunk *chunk, Uint32 *watchCounter,
+                      void *baseaddress) {
+  void *ptr = 0;
   Uint32 sz = pages;
 
 retry:
-  if (watchCounter)
-    *watchCounter = 9;
+  if (watchCounter) *watchCounter = 9;
 
   char method = f_method[f_method_idx];
-  switch(method){
-  case 0:
-    return false;
-  case 'S':
-  case 's':
-  {
-    ptr = 0;
-    while (ptr == 0)
-    {
-      if (watchCounter)
-        *watchCounter = 9;
+  switch (method) {
+    case 0:
+      return false;
+    case 'S':
+    case 's': {
+      ptr = 0;
+      while (ptr == 0) {
+        if (watchCounter) *watchCounter = 9;
 
-      ptr = mmap(nullptr,
+        ptr = mmap(nullptr,
                  sizeof(Alloc_page) * sz,
                  PROT_WRITE,
                  MAP_ANON | MAP_PRIVATE,
                  -1,
                  0);
-      
-      if (ptr == MAP_FAILED)
-      {
-	if (method == 'S')
-	{
-	  f_method_idx++;
-	  goto retry;
-	}
-	
-	ptr = 0;
-	sz = 1 + (9 * sz) / 10;
-	if (pages >= 32 && sz < 32)
-	{
-	  sz = pages;
-	  f_method_idx++;
-	  goto retry;
-	}
+
+        if (ptr == MAP_FAILED) {
+          if (method == 'S') {
+            f_method_idx++;
+            goto retry;
+          }
+
+          ptr = 0;
+          sz = 1 + (9 * sz) / 10;
+          if (pages >= 32 && sz < 32) {
+            sz = pages;
+            f_method_idx++;
+            goto retry;
+          }
+        } else if (UintPtr(ptr) < UintPtr(baseaddress)) {
+          /**
+           * Unusable memory :(
+           */
+          g_eventLogger->info(
+              "sbrk(%lluMb) => %p which is less than baseaddress!!",
+              Uint64((sizeof(Alloc_page) * sz) >> 20), ptr);
+          f_method_idx++;
+          goto retry;
+        }
       }
-      else if (UintPtr(ptr) < UintPtr(baseaddress))
-      {
-        /**
-         * Unusable memory :(
-         */
-        g_eventLogger->info(
-            "sbrk(%lluMb) => %p which is less than baseaddress!!",
-            Uint64((sizeof(Alloc_page) * sz) >> 20), ptr);
-        f_method_idx++;
-        goto retry;
-      }
+      break;
     }
-    break;
-  }
-  case 'M':
-  case 'm':
-  {
-    ptr = 0;
-    while (ptr == 0)
-    {
-      if (watchCounter)
-        *watchCounter = 9;
+    case 'M':
+    case 'm': {
+      ptr = 0;
+      while (ptr == 0) {
+        if (watchCounter) *watchCounter = 9;
 
-      ptr = NdbMem_AlignedAlloc(ALLOC_PAGES_PER_SYSTEM_PAGE *
-                                  sizeof(Alloc_page),
-                                sizeof(Alloc_page) * sz);
-      if (UintPtr(ptr) < UintPtr(baseaddress))
-      {
-        g_eventLogger->info(
-            "malloc(%lluMb) => %p which is less than baseaddress!!",
-            Uint64((sizeof(Alloc_page) * sz) >> 20), ptr);
-        free(ptr);
-        ptr = 0;
+        ptr = NdbMem_AlignedAlloc(
+            ALLOC_PAGES_PER_SYSTEM_PAGE * sizeof(Alloc_page),
+            sizeof(Alloc_page) * sz);
+        if (UintPtr(ptr) < UintPtr(baseaddress)) {
+          g_eventLogger->info(
+              "malloc(%lluMb) => %p which is less than baseaddress!!",
+              Uint64((sizeof(Alloc_page) * sz) >> 20), ptr);
+          free(ptr);
+          ptr = 0;
+        }
+
+        if (ptr == 0) {
+          if (method == 'M') {
+            f_method_idx++;
+            goto retry;
+          }
+
+          sz = 1 + (9 * sz) / 10;
+          if (pages >= 32 && sz < 32) {
+            f_method_idx++;
+            goto retry;
+          }
+        }
       }
-
-      if (ptr == 0)
-      {
-	if (method == 'M')
-	{
-	  f_method_idx++;
-	  goto retry;
-	}
-
-	sz = 1 + (9 * sz) / 10;
-	if (pages >= 32 && sz < 32)
-	{
-	  f_method_idx++;
-	  goto retry;
-	}
-      }
+      break;
     }
-    break;
+    default:
+      return false;
   }
-  default:
-    return false;
-  }
-  
+
   chunk->m_cnt = sz;
-  chunk->m_ptr = (Alloc_page*)ptr;
+  chunk->m_ptr = (Alloc_page *)ptr;
   const UintPtr align = sizeof(Alloc_page) - 1;
   /*
    * Ensure aligned to 32KB boundary.
@@ -441,32 +396,29 @@ retry:
    * NdbMem_PopulateSpace() in ndbd_alloc_touch_mem() need system page
    * alignment, typically 4KB or 8KB.
    */
-  if (UintPtr(ptr) & align)
-  {
+  if (UintPtr(ptr) & align) {
     chunk->m_cnt--;
-    chunk->m_ptr = (Alloc_page*)((UintPtr(ptr) + align) & ~align);
+    chunk->m_ptr = (Alloc_page *)((UintPtr(ptr) + align) & ~align);
   }
 
 #ifdef UNIT_TEST
   g_eventLogger->info("do_malloc(%d) -> %p %d", pages, ptr, chunk->m_cnt);
-  if (1)
-  {
+  if (1) {
     Uint32 sum = 0;
-    Alloc_page* page = chunk->m_ptr;
-    for (Uint32 i = 0; i<chunk->m_cnt; i++, page++)
-    {
-      page->m_data[0*1024] = 0;
-      page->m_data[1*1024] = 0;
-      page->m_data[2*1024] = 0;
-      page->m_data[3*1024] = 0;
-      page->m_data[4*1024] = 0;
-      page->m_data[5*1024] = 0;
-      page->m_data[6*1024] = 0;
-      page->m_data[7*1024] = 0;
+    Alloc_page *page = chunk->m_ptr;
+    for (Uint32 i = 0; i < chunk->m_cnt; i++, page++) {
+      page->m_data[0 * 1024] = 0;
+      page->m_data[1 * 1024] = 0;
+      page->m_data[2 * 1024] = 0;
+      page->m_data[3 * 1024] = 0;
+      page->m_data[4 * 1024] = 0;
+      page->m_data[5 * 1024] = 0;
+      page->m_data[6 * 1024] = 0;
+      page->m_data[7 * 1024] = 0;
     }
   }
 #endif
-  
+
   return true;
 }
 
@@ -474,8 +426,7 @@ retry:
  * Resource_limits
  */
 
-Resource_limits::Resource_limits()
-{
+Resource_limits::Resource_limits() {
   m_allocated = 0;
   m_free_reserved = 0;
   m_reserved = 0;
@@ -493,39 +444,33 @@ Resource_limits::Resource_limits()
 #ifndef VM_TRACE
 inline
 #endif
-void
-Resource_limits::check() const
-{
+    void
+    Resource_limits::check() const {
 #ifdef VM_TRACE
-  const Resource_limit* rl = m_limit;
+  const Resource_limit *rl = m_limit;
   Uint32 curr = 0;
   Uint32 spare = 0;
-  Uint32 sumres_alloc = 0; // includes spare and lent pages
+  Uint32 sumres_alloc = 0;  // includes spare and lent pages
   Uint32 shared_alloc = 0;
   Uint32 sumres = 0;
-  for (Uint32 i = 0; i < MM_RG_COUNT; i++)
-  {
+  for (Uint32 i = 0; i < MM_RG_COUNT; i++) {
     curr += rl[i].m_curr;
     Uint32 stolen_reserved = rl[i].m_stolen_reserved;
     spare += rl[i].m_spare;
     sumres += rl[i].m_min;
     Uint32 reserved = rl[i].m_min + rl[i].m_spare + stolen_reserved;
     const Uint32 res_alloc = rl[i].m_curr;
-    if (res_alloc > reserved)
-    {
+    if (res_alloc > reserved) {
       shared_alloc += (res_alloc - reserved);
       sumres_alloc += reserved;
-    }
-    else
-    {
+    } else {
       sumres_alloc += res_alloc;
     }
   }
 
-  if(!((curr == get_in_use()) &&
-       ((spare + sumres) == get_reserved()) &&
-       ((sumres + spare)== (sumres_alloc + get_free_reserved())) &&
-       (get_reserved() == sumres_alloc +
+  if (!((curr == get_in_use()) && ((spare + sumres) == get_reserved()) &&
+        ((sumres + spare)== (sumres_alloc + get_free_reserved())) &&
+        (get_reserved() == sumres_alloc +
                           get_free_reserved()) &&
        (get_shared_in_use() == shared_alloc)))
   {
@@ -541,20 +486,14 @@ Ndbd_mem_manager::check() const
   m_resource_limits.check();
 }
 
-void
-Resource_limits::dump() const
-{
+void Resource_limits::dump() const {
   g_eventLogger->info(
       "ri: global "
       "max_page: %u free_reserved: %u in_use: %u allocated: %u",
       m_max_page, m_free_reserved, m_in_use, m_allocated);
-  for (Uint32 i = 0; i < MM_RG_COUNT; i++)
-  {
-    if (m_limit[i].m_resource_id == 0 &&
-        m_limit[i].m_min == 0 &&
-        m_limit[i].m_curr == 0 &&
-        m_limit[i].m_max == 0)
-    {
+  for (Uint32 i = 0; i < MM_RG_COUNT; i++) {
+    if (m_limit[i].m_resource_id == 0 && m_limit[i].m_min == 0 &&
+        m_limit[i].m_curr == 0 && m_limit[i].m_max == 0) {
       continue;
     }
     g_eventLogger->info(
@@ -577,13 +516,11 @@ Resource_limits::dump() const
  * m_max = max alloc
  *
  */
-void
-Resource_limits::init_resource_limit(Uint32 id,
+void Resource_limits::init_resource_limit(Uint32 id,
                                      Uint32 min,
                                      Uint32 max,
                                      Uint32 max_high_prio,
-                                     Uint32 prio)
-{
+                                     Uint32 prio) {
   assert(id > 0);
   assert(id <= MM_RG_COUNT);
 
@@ -601,9 +538,7 @@ Resource_limits::init_resource_limit(Uint32 id,
   m_free_reserved += reserved;
 }
 
-void
-Resource_limits::init_resource_spare(Uint32 id, Uint32 pct)
-{
+void Resource_limits::init_resource_spare(Uint32 id, Uint32 pct) {
   require(pct <= 20); 
   require(m_limit[id - 1].m_max == m_limit[id - 1].m_min);
   Uint64 num_pages = m_limit[id - 1].m_max;
@@ -618,36 +553,27 @@ Resource_limits::init_resource_spare(Uint32 id, Uint32 pct)
  * Ndbd_mem_manager
  */
 
-int
-Ndbd_mem_manager::PageInterval::compare(const void* px, const void* py)
-{
-  const PageInterval* x = static_cast<const PageInterval*>(px);
-  const PageInterval* y = static_cast<const PageInterval*>(py);
+int Ndbd_mem_manager::PageInterval::compare(const void *px, const void *py) {
+  const PageInterval *x = static_cast<const PageInterval *>(px);
+  const PageInterval *y = static_cast<const PageInterval *>(py);
 
-  if (x->start < y->start)
-  {
+  if (x->start < y->start) {
     return -1;
   }
-  if (x->start > y->start)
-  {
+  if (x->start > y->start) {
     return +1;
   }
-  if (x->end < y->end)
-  {
+  if (x->end < y->end) {
     return -1;
   }
-  if (x->end > y->end)
-  {
+  if (x->end > y->end) {
     return +1;
   }
   return 0;
 }
 
-Uint32
-Ndbd_mem_manager::ndb_log2(Uint32 input)
-{
-  if (input > 65535)
-    return 16;
+Uint32 Ndbd_mem_manager::ndb_log2(Uint32 input) {
+  if (input > 65535) return 16;
   input = input | (input >> 8);
   input = input | (input >> 4);
   input = input | (input >> 2);
@@ -660,14 +586,12 @@ Ndbd_mem_manager::ndb_log2(Uint32 input)
 }
 
 Ndbd_mem_manager::Ndbd_mem_manager()
-: m_base_page(NULL),
-  m_dump_on_alloc_fail(false),
-  m_mapped_pages_count(0),
-  m_mapped_pages_new_count(0)
-{
+    : m_base_page(NULL),
+      m_dump_on_alloc_fail(false),
+      m_mapped_pages_count(0),
+      m_mapped_pages_new_count(0) {
   size_t system_page_size = NdbMem_GetSystemPageSize();
-  if (system_page_size > MAX_SYSTEM_PAGE_SIZE)
-  {
+  if (system_page_size > MAX_SYSTEM_PAGE_SIZE) {
     g_eventLogger->error(
         "Default system page size, %zu, is bigger than supported %zu\n",
         system_page_size, MAX_SYSTEM_PAGE_SIZE);
@@ -675,21 +599,18 @@ Ndbd_mem_manager::Ndbd_mem_manager()
   }
   memset(m_buddy_lists, 0, sizeof(m_buddy_lists));
 
-  if (sizeof(Free_page_data) != (4 * (1 << FPD_2LOG)))
-  {
+  if (sizeof(Free_page_data) != (4 * (1 << FPD_2LOG))) {
     g_eventLogger->error("Invalid build, ndbd_malloc_impl.cpp:%d", __LINE__);
     abort();
   }
   mt_mem_manager_init();
 }
 
-void*
-Ndbd_mem_manager::get_memroot() const
-{
+void *Ndbd_mem_manager::get_memroot() const {
 #ifdef NDBD_RANDOM_START_PAGE
-  return (void*)(m_base_page - m_random_start_page_id);
+  return (void *)(m_base_page - m_random_start_page_id);
 #else
-  return (void*)m_base_page;
+  return (void *)m_base_page;
 #endif
 }
 
@@ -703,9 +624,7 @@ Ndbd_mem_manager::get_memroot() const
  * m_spare = pages reserved for restart or special use
  *
  */
-void
-Ndbd_mem_manager::set_resource_limit(const Resource_limit& rl)
-{
+void Ndbd_mem_manager::set_resource_limit(const Resource_limit &rl) {
   require(rl.m_resource_id > 0);
   mt_mem_manager_lock();
   m_resource_limits.init_resource_limit(rl.m_resource_id,
@@ -739,15 +658,12 @@ Ndbd_mem_manager::get_reserved(Uint32 id)
   return 0;
 }
 
-bool
-Ndbd_mem_manager::get_resource_limit(Uint32 id, Resource_limit& rl) const
-{
+bool Ndbd_mem_manager::get_resource_limit(Uint32 id, Resource_limit &rl) const {
   /**
    * DUMP DumpPageMemory(1000) is agnostic about what resource groups exists.
    * Allowing use of any id.
    */
-  if (1 <= id && id <= MM_RG_COUNT)
-  {
+  if (1 <= id && id <= MM_RG_COUNT) {
     mt_mem_manager_lock();
     m_resource_limits.get_resource_limit(id, rl);
     mt_mem_manager_unlock();
@@ -756,130 +672,104 @@ Ndbd_mem_manager::get_resource_limit(Uint32 id, Resource_limit& rl) const
   return false;
 }
 
-bool
-Ndbd_mem_manager::get_resource_limit_nolock(Uint32 id, Resource_limit& rl) const
-{
+bool Ndbd_mem_manager::get_resource_limit_nolock(Uint32 id,
+                                                 Resource_limit &rl) const {
   assert(id > 0);
-  if (id <= MM_RG_COUNT)
-  {
+  if (id <= MM_RG_COUNT) {
     m_resource_limits.get_resource_limit(id, rl);
     return true;
   }
   return false;
 }
 
-Uint32
-Ndbd_mem_manager::get_allocated() const
-{
+Uint32 Ndbd_mem_manager::get_allocated() const {
   mt_mem_manager_lock();
   const Uint32 val = m_resource_limits.get_allocated();
   mt_mem_manager_unlock();
   return val;
 }
 
-Uint32
-Ndbd_mem_manager::get_reserved() const
-{
+Uint32 Ndbd_mem_manager::get_reserved() const {
   mt_mem_manager_lock();
   const Uint32 val = m_resource_limits.get_reserved();
   mt_mem_manager_unlock();
   return val;
 }
 
-Uint32
-Ndbd_mem_manager::get_shared() const
-{
+Uint32 Ndbd_mem_manager::get_shared() const {
   mt_mem_manager_lock();
   const Uint32 val = m_resource_limits.get_shared();
   mt_mem_manager_unlock();
   return val;
 }
 
-Uint32
-Ndbd_mem_manager::get_free_shared() const
-{
+Uint32 Ndbd_mem_manager::get_free_shared() const {
   mt_mem_manager_lock();
   const Uint32 val = m_resource_limits.get_free_shared();
   mt_mem_manager_unlock();
   return val;
 }
 
-Uint32
-Ndbd_mem_manager::get_free_shared_nolock() const
-{
+Uint32 Ndbd_mem_manager::get_free_shared_nolock() const {
   /* Used by mt_getSendBufferLevel for quick read. */
-  const Uint32 val = m_resource_limits.get_free_shared(); // racy
+  const Uint32 val = m_resource_limits.get_free_shared();  // racy
   return val;
 }
 
-Uint32
-Ndbd_mem_manager::get_in_use() const
-{
+Uint32 Ndbd_mem_manager::get_in_use() const {
   mt_mem_manager_lock();
   const Uint32 val = m_resource_limits.get_in_use();
   mt_mem_manager_unlock();
   return val;
 }
 
-Uint32
-Ndbd_mem_manager::get_reserved_in_use() const
-{
+Uint32 Ndbd_mem_manager::get_reserved_in_use() const {
   mt_mem_manager_lock();
   const Uint32 val = m_resource_limits.get_reserved_in_use();
   mt_mem_manager_unlock();
   return val;
 }
 
-Uint32
-Ndbd_mem_manager::get_shared_in_use() const
-{
+Uint32 Ndbd_mem_manager::get_shared_in_use() const {
   mt_mem_manager_lock();
   const Uint32 val = m_resource_limits.get_shared_in_use();
   mt_mem_manager_unlock();
   return val;
 }
 
-int
-cmp_chunk(const void * chunk_vptr_1, const void * chunk_vptr_2)
-{
-  InitChunk * ptr1 = (InitChunk*)chunk_vptr_1;
-  InitChunk * ptr2 = (InitChunk*)chunk_vptr_2;
-  if (ptr1->m_ptr < ptr2->m_ptr)
-    return -1;
-  if (ptr1->m_ptr > ptr2->m_ptr)
-    return 1;
+int cmp_chunk(const void *chunk_vptr_1, const void *chunk_vptr_2) {
+  InitChunk *ptr1 = (InitChunk *)chunk_vptr_1;
+  InitChunk *ptr2 = (InitChunk *)chunk_vptr_2;
+  if (ptr1->m_ptr < ptr2->m_ptr) return -1;
+  if (ptr1->m_ptr > ptr2->m_ptr) return 1;
   assert(false);
   return 0;
 }
 
-bool
-Ndbd_mem_manager::init(Uint32 *watchCounter,
+bool Ndbd_mem_manager::init(Uint32 *watchCounter,
                        Uint32 max_pages,
-                       bool alloc_less_memory)
-{
+                       bool alloc_less_memory) {
   assert(m_base_page == 0);
   assert(max_pages > 0);
   assert(m_resource_limits.get_allocated() == 0);
 
   DEB_MEM_ALLOC(("Allocating %u pages", max_pages));
 
-  if (watchCounter)
-    *watchCounter = 9;
+  if (watchCounter) *watchCounter = 9;
 
   Uint32 pages = max_pages;
   Uint32 max_page = 0;
-  
+
   const Uint64 pg = Uint64(sizeof(Alloc_page));
-  if (pages == 0)
-  {
+  if (pages == 0) {
     return false;
   }
 
 #if SIZEOF_CHARP == 4
-  Uint64 sum = (pg*pages); 
-  if (sum >= (Uint64(1) << 32))
-  {
-    g_eventLogger->error("Trying to allocate more that 4Gb with 32-bit binary!!");
+  Uint64 sum = (pg * pages);
+  if (sum >= (Uint64(1) << 32)) {
+    g_eventLogger->error(
+        "Trying to allocate more that 4Gb with 32-bit binary!!");
     return false;
   }
 #endif
@@ -894,10 +784,8 @@ Ndbd_mem_manager::init(Uint32 *watchCounter,
      * needed.
      */
     int zones_needed = 1;
-    for (zones_needed = 1; zones_needed <= ZONE_COUNT; zones_needed++)
-    {
-      if (pages < (zone_bound[zones_needed - 1] << PAGES_PER_REGION_LOG))
-        break;
+    for (zones_needed = 1; zones_needed <= ZONE_COUNT; zones_needed++) {
+      if (pages < (zone_bound[zones_needed - 1] << PAGES_PER_REGION_LOG)) break;
     }
     pages += ZONE_COUNT - zones_needed;
   }
@@ -907,23 +795,19 @@ Ndbd_mem_manager::init(Uint32 *watchCounter,
    * Always allocate even number of pages to cope with 64K system page size
    * on ARM.
    */
-  if (pages % ALLOC_PAGES_PER_SYSTEM_PAGE != 0)
-  {
+  if (pages % ALLOC_PAGES_PER_SYSTEM_PAGE != 0) {
     // Round up page count
-    pages = (pages / ALLOC_PAGES_PER_SYSTEM_PAGE + 1) *
-            ALLOC_PAGES_PER_SYSTEM_PAGE;
+    pages =
+        (pages / ALLOC_PAGES_PER_SYSTEM_PAGE + 1) * ALLOC_PAGES_PER_SYSTEM_PAGE;
   }
 
 #ifdef USE_DO_VIRTUAL_ALLOC
   {
     InitChunk chunks[ZONE_COUNT];
-    if (do_virtual_alloc(pages, chunks, watchCounter, &m_base_page))
-    {
-      for (int i = 0; i < ZONE_COUNT; i++)
-      {
+    if (do_virtual_alloc(pages, chunks, watchCounter, &m_base_page)) {
+      for (int i = 0; i < ZONE_COUNT; i++) {
         m_unmapped_chunks.push_back(chunks[i]);
-        DEB_MEM_ALLOC(("Adding one more chunk with %u pages",
-                       chunks[i].m_cnt));
+        DEB_MEM_ALLOC(("Adding one more chunk with %u pages", chunks[i].m_cnt));
         allocated += chunks[i].m_cnt;
       }
       require(allocated == pages);
@@ -932,8 +816,7 @@ Ndbd_mem_manager::init(Uint32 *watchCounter,
 #endif
 
 #ifdef NDBD_RANDOM_START_PAGE
-  if (m_base_page == NULL)
-  {
+  if (m_base_page == NULL) {
     /**
      * In order to find bad-users of page-id's
      *   we add a random offset to the page-id's returned
@@ -941,12 +824,11 @@ Ndbd_mem_manager::init(Uint32 *watchCounter,
      *   (since we at get_page don't know if it's a HI/LO page)
      */
     Uint32 max_rand_start = ZONE_19_BOUND - 1;
-    if (max_rand_start > pages)
-    {
+    if (max_rand_start > pages) {
       max_rand_start -= pages;
       if (max_rand_start > 0x10000)
         m_random_start_page_id =
-          0x10000 + (rand() % (max_rand_start - 0x10000));
+            0x10000 + (rand() % (max_rand_start - 0x10000));
       else if (max_rand_start)
         m_random_start_page_id = rand() % max_rand_start;
 
@@ -961,54 +843,45 @@ Ndbd_mem_manager::init(Uint32 *watchCounter,
   /**
    * Do malloc
    */
-  while (m_unmapped_chunks.size() < MAX_CHUNKS && allocated < pages)
-  {
+  while (m_unmapped_chunks.size() < MAX_CHUNKS && allocated < pages) {
     InitChunk chunk;
     memset(&chunk, 0, sizeof(chunk));
-    
-    if (do_malloc(pages - allocated, &chunk, watchCounter, m_base_page))
-    {
-      if (watchCounter)
-        *watchCounter = 9;
+
+    if (do_malloc(pages - allocated, &chunk, watchCounter, m_base_page)) {
+      if (watchCounter) *watchCounter = 9;
 
       m_unmapped_chunks.push_back(chunk);
       allocated += chunk.m_cnt;
       DEB_MEM_ALLOC(("malloc of a chunk of %u pages", chunk.m_cnt));
-      if (allocated < pages)
-      {
+      if (allocated < pages) {
         /* Add one more page for another chunk */
         pages += ALLOC_PAGES_PER_SYSTEM_PAGE;
       }
-    }
-    else
-    {
+    } else {
       break;
     }
   }
-  
-  if (allocated < m_resource_limits.get_reserved())
-  {
-    g_eventLogger->
-      error("Unable to alloc min memory from OS: min: %lldMb "
-            " allocated: %lldMb",
-            (Uint64)(sizeof(Alloc_page)*m_resource_limits.get_reserved()) >> 20,
-            (Uint64)(sizeof(Alloc_page)*allocated) >> 20);
+
+  if (allocated < m_resource_limits.get_reserved()) {
+    g_eventLogger->error(
+        "Unable to alloc min memory from OS: min: %lldMb "
+        " allocated: %lldMb",
+        (Uint64)(sizeof(Alloc_page) * m_resource_limits.get_reserved()) >>
+            20,
+        (Uint64)(sizeof(Alloc_page) * allocated) >> 20);
     return false;
-  }
-  else if (allocated < pages)
-  {
-    g_eventLogger->
-      warning("Unable to alloc requested memory from OS: min: %lldMb"
-              " requested: %lldMb allocated: %lldMb",
-              (Uint64)(sizeof(Alloc_page)*m_resource_limits.get_reserved())>>20,
-              (Uint64)(sizeof(Alloc_page)*max_pages)>>20,
-              (Uint64)(sizeof(Alloc_page)*allocated)>>20);
-    if (!alloc_less_memory)
-      return false;
+  } else if (allocated < pages) {
+    g_eventLogger->warning(
+        "Unable to alloc requested memory from OS: min: %lldMb"
+        " requested: %lldMb allocated: %lldMb",
+        (Uint64)(sizeof(Alloc_page) * m_resource_limits.get_reserved()) >>
+            20,
+        (Uint64)(sizeof(Alloc_page) * max_pages) >> 20,
+        (Uint64)(sizeof(Alloc_page) * allocated) >> 20);
+    if (!alloc_less_memory) return false;
   }
 
-  if (m_base_page == NULL)
-  {
+  if (m_base_page == NULL) {
     /**
      * Sort chunks...
      */
@@ -1018,8 +891,7 @@ Ndbd_mem_manager::init(Uint32 *watchCounter,
     m_base_page = m_unmapped_chunks[0].m_ptr;
   }
 
-  for (Uint32 i = 0; i<m_unmapped_chunks.size(); i++)
-  {
+  for (Uint32 i = 0; i < m_unmapped_chunks.size(); i++) {
     UintPtr start = UintPtr(m_unmapped_chunks[i].m_ptr) - UintPtr(m_base_page);
     start >>= (2 + BMW_2LOG);
     assert((Uint64(start) >> 32) == 0);
@@ -1028,14 +900,13 @@ Ndbd_mem_manager::init(Uint32 *watchCounter,
     assert((last64 >> 32) == 0);
     Uint32 last = Uint32(last64);
 
-    if (last > max_page)
-      max_page = last;
+    if (last > max_page) max_page = last;
   }
 
   g_eventLogger->info("Ndbd_mem_manager::init(%d) min: %lluMb initial: %lluMb",
                       alloc_less_memory,
-                      (pg*m_resource_limits.get_reserved())>>20,
-                      (pg*pages) >> 20);
+                      (pg * m_resource_limits.get_reserved()) >> 20,
+                      (pg * pages) >> 20);
 
   m_resource_limits.set_max_page(max_page);
   m_resource_limits.set_allocated(0);
@@ -1043,42 +914,35 @@ Ndbd_mem_manager::init(Uint32 *watchCounter,
   return true;
 }
 
-void
-Ndbd_mem_manager::map(Uint32 * watchCounter, bool memlock, Uint32 resources[])
-{
+void Ndbd_mem_manager::map(Uint32 *watchCounter, bool memlock,
+                           Uint32 resources[]) {
   require(watchCounter != nullptr);
   Uint32 limit = ~(Uint32)0;
   Uint32 sofar = 0;
 
-  if (resources != 0)
-  {
+  if (resources != 0) {
     /*
      * To reduce start up time, only touch memory needed for selected resources.
      * The rest of memory will be touched in a second call to map.
      */
     limit = 0;
-    for (Uint32 i = 0; resources[i] ; i++)
-    {
+    for (Uint32 i = 0; resources[i]; i++) {
       limit += m_resource_limits.get_resource_reserved(resources[i]);
     }
-    if (limit % ALLOC_PAGES_PER_SYSTEM_PAGE != 0)
-    {
-      limit += ALLOC_PAGES_PER_SYSTEM_PAGE -
-               (limit % ALLOC_PAGES_PER_SYSTEM_PAGE);
+    if (limit % ALLOC_PAGES_PER_SYSTEM_PAGE != 0) {
+      limit +=
+          ALLOC_PAGES_PER_SYSTEM_PAGE - (limit % ALLOC_PAGES_PER_SYSTEM_PAGE);
     }
   }
 
-  while (m_unmapped_chunks.size() && sofar < limit)
-  {
+  while (m_unmapped_chunks.size() && sofar < limit) {
     Uint32 remain = limit - sofar;
 
     unsigned idx = m_unmapped_chunks.size() - 1;
-    InitChunk * chunk = &m_unmapped_chunks[idx];
-    if (watchCounter)
-      *watchCounter = 9;
+    InitChunk *chunk = &m_unmapped_chunks[idx];
+    if (watchCounter) *watchCounter = 9;
 
-    if (chunk->m_cnt > remain)
-    {
+    if (chunk->m_cnt > remain) {
       /**
        * Split chunk
        */
@@ -1096,45 +960,37 @@ Ndbd_mem_manager::map(Uint32 * watchCounter, bool memlock, Uint32 resources[])
     }
 
     g_eventLogger->info("Touch Memory Starting, %u pages, page size = %d",
-                        chunk->m_cnt,
-                        (int)sizeof(Alloc_page));
+                        chunk->m_cnt, (int)sizeof(Alloc_page));
 
-    ndbd_alloc_touch_mem(chunk->m_ptr,
-                         chunk->m_cnt * sizeof(Alloc_page),
-                         watchCounter,
-                         true /* make_readwritable */);
+    ndbd_alloc_touch_mem(chunk->m_ptr, chunk->m_cnt * sizeof(Alloc_page),
+                         watchCounter, true /* make_readwritable */);
 
     g_eventLogger->info("Touch Memory Completed");
 
-    if (memlock)
-    {
+    if (memlock) {
       /**
        * memlock pages that I added...
        */
-      if (watchCounter)
-        *watchCounter = 9;
+      if (watchCounter) *watchCounter = 9;
 
       /**
        * Don't memlock everything in one go...
        *   cause then process won't be killable
        */
-      const Alloc_page * start = chunk->m_ptr;
+      const Alloc_page *start = chunk->m_ptr;
       Uint32 cnt = chunk->m_cnt;
       g_eventLogger->info("Lock Memory Starting, %u pages, page size = %d",
-                          chunk->m_cnt,
-                          (int)sizeof(Alloc_page));
+                          chunk->m_cnt, (int)sizeof(Alloc_page));
 
-      while (cnt > 32768) // 1G
+      while (cnt > 32768)  // 1G
       {
-        if (watchCounter)
-          *watchCounter = 9;
+        if (watchCounter) *watchCounter = 9;
 
         NdbMem_MemLock(start, 32768 * sizeof(Alloc_page));
         start += 32768;
         cnt -= 32768;
       }
-      if (watchCounter)
-        *watchCounter = 9;
+      if (watchCounter) *watchCounter = 9;
 
       NdbMem_MemLock(start, cnt * sizeof(Alloc_page));
 
@@ -1147,27 +1003,22 @@ Ndbd_mem_manager::map(Uint32 * watchCounter, bool memlock, Uint32 resources[])
 
     m_unmapped_chunks.erase(idx);
   }
-  
-  if (resources == 0 && memlock)
-  {
+
+  if (resources == 0 && memlock) {
     NdbMem_MemLockAll(1);
   }
 
   /* Note: calls to map() must be serialized by other means. */
   m_mapped_pages_lock.write_lock();
-  if (m_mapped_pages_new_count != m_mapped_pages_count)
-  {
+  if (m_mapped_pages_new_count != m_mapped_pages_count) {
     /* Do not support shrinking memory */
     require(m_mapped_pages_new_count > m_mapped_pages_count);
 
-    qsort(m_mapped_pages,
-          m_mapped_pages_new_count,
-          sizeof(m_mapped_pages[0]),
+    qsort(m_mapped_pages, m_mapped_pages_new_count, sizeof(m_mapped_pages[0]),
           PageInterval::compare);
 
     /* Validate no overlapping intervals */
-    for (Uint32 i = 1; i < m_mapped_pages_new_count; i++)
-    {
+    for (Uint32 i = 1; i < m_mapped_pages_new_count; i++) {
       require(m_mapped_pages[i - 1].end <= m_mapped_pages[i].start);
     }
 
@@ -1176,9 +1027,7 @@ Ndbd_mem_manager::map(Uint32 * watchCounter, bool memlock, Uint32 resources[])
   m_mapped_pages_lock.write_unlock();
 }
 
-void
-Ndbd_mem_manager::init_resource_spare(Uint32 id, Uint32 pct)
-{
+void Ndbd_mem_manager::init_resource_spare(Uint32 id, Uint32 pct) {
   mt_mem_manager_lock();
   m_resource_limits.init_resource_spare(id, pct);
   mt_mem_manager_unlock();
@@ -1186,9 +1035,7 @@ Ndbd_mem_manager::init_resource_spare(Uint32 id, Uint32 pct)
 
 #include <NdbOut.hpp>
 
-void
-Ndbd_mem_manager::grow(Uint32 start, Uint32 cnt)
-{
+void Ndbd_mem_manager::grow(Uint32 start, Uint32 cnt) {
   assert(cnt);
   Uint32 start_bmp = start >> BPP_2LOG;
   Uint32 last_bmp = (start + cnt - 1) >> BPP_2LOG;
@@ -1196,18 +1043,16 @@ Ndbd_mem_manager::grow(Uint32 start, Uint32 cnt)
 #if SIZEOF_CHARP == 4
   assert(start_bmp == 0 && last_bmp == 0);
 #endif
-  
-  if (start_bmp != last_bmp)
-  {
+
+  if (start_bmp != last_bmp) {
     Uint32 tmp = ((start_bmp + 1) << BPP_2LOG) - start;
     grow(start, tmp);
     grow((start_bmp + 1) << BPP_2LOG, cnt - tmp);
     return;
   }
 
-  for (Uint32 i = 0; i<m_used_bitmap_pages.size(); i++)
-    if (m_used_bitmap_pages[i] == start_bmp)
-    {
+  for (Uint32 i = 0; i < m_used_bitmap_pages.size(); i++)
+    if (m_used_bitmap_pages[i] == start_bmp) {
       /* m_mapped_pages should contain the ranges of allocated pages.
        * In release build there will typically be one big range.
        * In debug build there are typically four ranges, one per allocation
@@ -1222,12 +1067,9 @@ Ndbd_mem_manager::grow(Uint32 start, Uint32 cnt)
        * adjacent ranges are combined.
        */
       if (m_mapped_pages_new_count > 0 &&
-          m_mapped_pages[m_mapped_pages_new_count - 1].end == start)
-      {
+          m_mapped_pages[m_mapped_pages_new_count - 1].end == start) {
         m_mapped_pages[m_mapped_pages_new_count - 1].end = start + cnt;
-      }
-      else
-      {
+      } else {
         require(m_mapped_pages_new_count < NDB_ARRAY_SIZE(m_mapped_pages));
         m_mapped_pages[m_mapped_pages_new_count].start = start;
         m_mapped_pages[m_mapped_pages_new_count].end = start + cnt;
@@ -1236,33 +1078,29 @@ Ndbd_mem_manager::grow(Uint32 start, Uint32 cnt)
       goto found;
     }
 
-  if (start != (start_bmp << BPP_2LOG))
-  {
+  if (start != (start_bmp << BPP_2LOG)) {
     g_eventLogger->info(
         "ndbd_malloc_impl.cpp:%d:grow(%d, %d) %d!=%d not using %uMb"
         " - Unable to use due to bitmap pages missaligned!!",
         __LINE__, start, cnt, start, (start_bmp << BPP_2LOG),
         (cnt >> (20 - 15)));
-    g_eventLogger->error("ndbd_malloc_impl.cpp:%d:grow(%d, %d) not using %uMb"
-                         " - Unable to use due to bitmap pages missaligned!!",
-                         __LINE__, start, cnt,
-                         (cnt >> (20 - 15)));
+    g_eventLogger->error(
+        "ndbd_malloc_impl.cpp:%d:grow(%d, %d) not using %uMb"
+        " - Unable to use due to bitmap pages missaligned!!",
+        __LINE__, start, cnt, (cnt >> (20 - 15)));
 
     dump(false);
     return;
   }
-  
+
 #ifdef UNIT_TEST
   g_eventLogger->info("creating bitmap page %d", start_bmp);
 #endif
 
   if (m_mapped_pages_new_count > 0 &&
-      m_mapped_pages[m_mapped_pages_new_count - 1].end == start)
-  {
+      m_mapped_pages[m_mapped_pages_new_count - 1].end == start) {
     m_mapped_pages[m_mapped_pages_new_count - 1].end = start + cnt;
-  }
-  else
-  {
+  } else {
     require(m_mapped_pages_new_count < NDB_ARRAY_SIZE(m_mapped_pages));
     m_mapped_pages[m_mapped_pages_new_count].start = start;
     m_mapped_pages[m_mapped_pages_new_count].end = start + cnt;
@@ -1270,7 +1108,7 @@ Ndbd_mem_manager::grow(Uint32 start, Uint32 cnt)
   }
 
   {
-    Alloc_page* bmp = m_base_page + start;
+    Alloc_page *bmp = m_base_page + start;
     memset(bmp, 0, sizeof(Alloc_page));
     cnt--;
     start++;
@@ -1278,17 +1116,15 @@ Ndbd_mem_manager::grow(Uint32 start, Uint32 cnt)
   m_used_bitmap_pages.push_back(start_bmp);
 
 found:
-  if ((start + cnt) == ((start_bmp + 1) << BPP_2LOG))
-  {
-    cnt--; // last page is always marked as empty
+  if ((start + cnt) == ((start_bmp + 1) << BPP_2LOG)) {
+    cnt--;  // last page is always marked as empty
   }
 
-  if (cnt)
-  {
+  if (cnt) {
     mt_mem_manager_lock();
     const Uint32 allocated = m_resource_limits.get_allocated();
     m_resource_limits.set_allocated(allocated + cnt);
-    const Uint64 mbytes = ((Uint64(cnt)*32) + 1023) / 1024;
+    const Uint64 mbytes = ((Uint64(cnt) * 32) + 1023) / 1024;
     /**
      * grow first split large page ranges to ranges completely within
      * a BPP regions.
@@ -1296,36 +1132,21 @@ found:
      * boundary.
      */
     static_assert((ZONE_19_BOUND & ((1 << BPP_2LOG) - 1)) == 0);
-    if (start < ZONE_19_BOUND)
-    {
+    if (start < ZONE_19_BOUND) {
       require(start + cnt < ZONE_19_BOUND);
-      g_eventLogger->info("Adding %uMb to ZONE_19 (%u, %u)",
-                          (Uint32)mbytes,
-                          start,
-                          cnt);
-    }
-    else if (start < ZONE_27_BOUND)
-    {
+      g_eventLogger->info("Adding %uMb to ZONE_19 (%u, %u)", (Uint32)mbytes,
+                          start, cnt);
+    } else if (start < ZONE_27_BOUND) {
       require(start + cnt < ZONE_27_BOUND);
-      g_eventLogger->info("Adding %uMb to ZONE_27 (%u, %u)",
-                          (Uint32)mbytes,
-                          start,
-                          cnt);
-    }
-    else if (start < ZONE_30_BOUND)
-    {
+      g_eventLogger->info("Adding %uMb to ZONE_27 (%u, %u)", (Uint32)mbytes,
+                          start, cnt);
+    } else if (start < ZONE_30_BOUND) {
       require(start + cnt < ZONE_30_BOUND);
-      g_eventLogger->info("Adding %uMb to ZONE_30 (%u, %u)",
-                          (Uint32)mbytes,
-                          start,
-                          cnt);
-    }
-    else
-    {
-      g_eventLogger->info("Adding %uMb to ZONE_32 (%u, %u)",
-                          (Uint32)mbytes,
-                          start,
-                          cnt);
+      g_eventLogger->info("Adding %uMb to ZONE_30 (%u, %u)", (Uint32)mbytes,
+                          start, cnt);
+    } else {
+      g_eventLogger->info("Adding %uMb to ZONE_32 (%u, %u)", (Uint32)mbytes,
+                          start, cnt);
     }
     release(start, cnt);
     g_eventLogger->info("Now added %u pages to Global Memory Manager",
@@ -1335,23 +1156,19 @@ found:
   }
 }
 
-void
-Ndbd_mem_manager::release(Uint32 start, Uint32 cnt)
-{
+void Ndbd_mem_manager::release(Uint32 start, Uint32 cnt) {
   assert(start);
 #if defined VM_TRACE || defined ERROR_INSERT
   memset(m_base_page + start, 0xF5, cnt * sizeof(m_base_page[0]));
 #endif
 
-  set(start, start+cnt-1);
+  set(start, start + cnt - 1);
 
   Uint32 zone = get_page_zone(start);
   release_impl(zone, start, cnt);
 }
 
-void
-Ndbd_mem_manager::release_impl(Uint32 zone, Uint32 start, Uint32 cnt)
-{
+void Ndbd_mem_manager::release_impl(Uint32 zone, Uint32 start, Uint32 cnt) {
   assert(start);
 
 #if 0
@@ -1359,11 +1176,9 @@ Ndbd_mem_manager::release_impl(Uint32 zone, Uint32 start, Uint32 cnt)
          cnt, zone, start);
 #endif
 
-  Uint32 test = check(start-1, start+cnt);
-  if (test & 1)
-  {
-    Free_page_data *fd = get_free_page_data(m_base_page + start - 1,
-					    start - 1);
+  Uint32 test = check(start - 1, start + cnt);
+  if (test & 1) {
+    Free_page_data *fd = get_free_page_data(m_base_page + start - 1, start - 1);
     Uint32 sz = fd->m_size;
     Uint32 left = start - sz;
     require(fd->m_list == (ndb_log2(sz) - 1));
@@ -1373,9 +1188,8 @@ Ndbd_mem_manager::release_impl(Uint32 zone, Uint32 start, Uint32 cnt)
   }
 
   Uint32 right = start + cnt;
-  if (test & 2)
-  {
-    Free_page_data *fd = get_free_page_data(m_base_page+right, right);
+  if (test & 2) {
+    Free_page_data *fd = get_free_page_data(m_base_page + right, right);
     Uint32 sz = fd->m_size;
     require(fd->m_list == (ndb_log2(sz) - 1));
     remove_free_list(zone, right, fd->m_list);
@@ -1385,22 +1199,16 @@ Ndbd_mem_manager::release_impl(Uint32 zone, Uint32 start, Uint32 cnt)
   insert_free_list(zone, start, cnt);
 }
 
-void
-Ndbd_mem_manager::alloc(AllocZone zone,
-                        Uint32* ret,
-                        Uint32 *pages,
-                        Uint32 min)
-{
-  const Uint32 save = * pages;
+void Ndbd_mem_manager::alloc(AllocZone zone, Uint32 *ret, Uint32 *pages,
+                             Uint32 min) {
+  const Uint32 save = *pages;
 #if 0
   fprintf(stderr, "Request %u pages (min = %u) from zone %u\n",
           save, min, zone);
 #endif
-  for (Uint32 z = zone; ; z--)
-  {
+  for (Uint32 z = zone;; z--) {
     alloc_impl(z, ret, pages, min);
-    if (*pages)
-    {
+    if (*pages) {
 #if defined VM_TRACE || defined ERROR_INSERT
       Uint32 pages_allocated = *pages;
       Uint32 start = *ret;
@@ -1409,10 +1217,8 @@ Ndbd_mem_manager::alloc(AllocZone zone,
 #endif
       return;
     }
-    if (z == 0)
-    {
-      if (unlikely(m_dump_on_alloc_fail))
-      {
+    if (z == 0) {
+      if (unlikely(m_dump_on_alloc_fail)) {
         g_eventLogger->info(
             "Page allocation failed in %s: zone=%u pages=%u (at least %u)",
             __func__, zone, save, min);
@@ -1420,20 +1226,16 @@ Ndbd_mem_manager::alloc(AllocZone zone,
       }
       return;
     }
-    * pages = save;
+    *pages = save;
   }
 }
 
-void
-Ndbd_mem_manager::alloc_impl(Uint32 zone,
-                             Uint32* ret,
-                             Uint32 *pages,
-                             Uint32 min)
-{
+void Ndbd_mem_manager::alloc_impl(Uint32 zone, Uint32 *ret, Uint32 *pages,
+                                  Uint32 min) {
 #define TWO_MBYTE_LOG 6
   Uint32 i;
   Uint32 start;
-  Uint32 cnt = * pages;
+  Uint32 cnt = *pages;
   require(cnt > 0 && min > 0);
   Uint32 list = ndb_log2(cnt - 1);
   Uint32 min_list = ndb_log2(min - 1);
@@ -1455,51 +1257,210 @@ Ndbd_mem_manager::alloc_impl(Uint32 zone,
    * those consecutive if possible to avoid splitting up things like
    * REDO logs, malloc calls and so forth.
    */
-  while (i < 16)
-  {
-    if ((start = m_buddy_lists[zone][i]))
-    {
-/* ---------------------------------------------------------------- */
-/*       PROPER AMOUNT OF PAGES WERE FOUND. NOW SPLIT THE FOUND     */
-/*       AREA AND RETURN THE PART NOT NEEDED.                       */
-/* ---------------------------------------------------------------- */
+  while (i < 16) {
+    if ((start = m_buddy_lists[zone][i])) {
+      /* ---------------------------------------------------------------- */
+      /*       PROPER AMOUNT OF PAGES WERE FOUND. NOW SPLIT THE FOUND     */
+      /*       AREA AND RETURN THE PART NOT NEEDED.                       */
+      /* ---------------------------------------------------------------- */
       Uint32 sz = remove_free_list(zone, start, i);
       Uint32 extra = sz - cnt;
       if (sz > cnt)
-      {
-        /**
-         * We got more than requested for. Return the extra pages to the
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if (extra)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if (extra) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	insert_free_list(zone, start + cnt,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  insert_free_list(zone, start + cnt,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  /**
+        else 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ We 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+got
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+ more than requested for. Return 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	clear(start,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+clear(start,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ extra pages to the
          * free list. Since all bits in bitmap are set, we need not do
          * anything with the bitmap here.
          *
          * We set all bits in the bitmap, thus one can use the free bitmap
          * to verify that a used page is not a free page and thus quickly
          * find any use of pages that are in the free lists.
-         */
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cnt)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+cnt) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         insert_free_list(zone, start + cnt, extra);
         * pages = cnt;
-      }
-      else
-      {
+      } else {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  {
+||||||| Common ancestor
+  {
+	clear(start,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+clear(start,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
         /**
          * We didn't get all we requested (== cnt), we did however get
-         * something (== sz). We get all here.
+         * something (==
+             sz). We get all here.
          * We also get here when sz == cnt.
          * Bitmap is handled for both paths and we have already removed
-         * the pages from the free lists.
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Free_page_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Free_page_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fd_first
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fd_first
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ pages from the free lists.
          */
         * pages = sz;
-        cnt = sz;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Free_page_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Free_page_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+fd_last
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fd_last
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     cnt = sz;
       }
 #if 0
-      fprintf(stderr, "Allocate %u pages in zone %u, starting at %u\n",
-              cnt, zone, start);
+      fprintf(stderr, "Allocate %u pages in zone %u, starting at 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u\n",
+||||||| Common ancestor
+Free_page_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Free_page_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+fd
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+             cnt, zone, start);
 #endif
 
       clear(start, start+cnt-1);
       * ret = start;
       assert(m_resource_limits.get_in_use() + cnt <=
-             m_resource_limits.get_allocated());
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Free_page_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Free_page_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+fd
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        m_resource_limits.get_allocated());
       return;
     }
     if (first_up)
@@ -1513,29 +1474,163 @@ Ndbd_mem_manager::alloc_impl(Uint32 zone,
         i++;
       }
       else if ((i == (TWO_MBYTE_LOG - 1)) ||
-          (i == 15 && list >= TWO_MBYTE_LOG))
-      {
+          (i == 15 && list >= TWO_MBYTE_LOG))   {
         /**
          * We have searched and failed to find the number of pages
          * that were requested. We will prefer to deliver fewer pages
          * than requested rather than splitting up memory into fragments.
          * Splitting memory into fragments will hurt those allocations
          * that require consecutive memory and those will request 2 MBytes
-         * of consecutive memory to be able to handle 1 MByte chunks of
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Free_page_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Free_page_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fd
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ consecutive memory to be able to handle 1 MByte chunks of
          * memory allocations in various parts of RonDB.
          *
          * Thus before looking into the really large fragments we will
          * see if we can find a set of pages that are larger or equal to
          * the minimum requested number of pages.
          *
-         * Thus we search in 3 steps, let's say for example that we
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+on;
+}
+
+void
+Ndbd_mem_manager::lock()
+{
+=======
+on;
+}
+
+void Ndbd_mem_manager::lock()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Thus
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+we
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+mt_mem_manager_lock();
+}
+
+void
+Ndbd_mem_manager::unlock()
+{
+=======
+mt_mem_manager_lock(); }
+
+void Ndbd_mem_manager::unlock()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+search
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ in 3 steps, let's say for example that we
          * requested 16 consecutive pages with a minimum of 1 page.
-         * In this case list = 4 and min_list = 0.
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    * In this case list = 4 and min_list = 0.
          *
-         * We will first look into the lists with at least 16 pages,
-         * next into the list of 32 pages.
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+i,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*i,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    * We will first look into the lists with at least 16 pages,
+         * next into the list of 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+32 pages.
          *
-         * Next we will start with smaller lists and attempt the list
+         * Next we will
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bool locked,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ start with smaller lists and 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+attempt
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+locked,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ list
          * with 8 pages, 4 pages, 2 pages and finally we will check
          * the list with single pages.
          *
@@ -1551,9 +1646,7 @@ Ndbd_mem_manager::alloc_impl(Uint32 zone,
         first_down = true;
         require(list > 0); // Since list > min_list
         i = list - 1;
-      }
-      else
-      {
+      }   else   {
         i++;
       }
     }
@@ -1596,8 +1689,20 @@ Ndbd_mem_manager::alloc_impl(Uint32 zone,
 }
 
 void
-Ndbd_mem_manager::insert_free_list(Uint32 zone, Uint32 start, Uint32 size)
-{
+Ndbd_mem_manager::insert_free_list(Uint32 zone, Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+start
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+i
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*i
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                                         Uint32 size) {
   Uint32 list = ndb_log2(size) - 1;
   Uint32 last = start + size - 1;
 
@@ -1620,8 +1725,7 @@ Ndbd_mem_manager::insert_free_list(Uint32 zone, Uint32 start, Uint32 size)
   fd_last->m_prev = 0;
   fd_last->m_size = size;
   
-  if (head)
-  {
+  if (head) {
     Free_page_data* fd = get_free_page_data(m_base_page+head, head);
     assert(fd->m_prev == 0);
     assert(fd->m_list == list);
@@ -1632,8 +1736,7 @@ Ndbd_mem_manager::insert_free_list(Uint32 zone, Uint32 start, Uint32 size)
 }
 
 Uint32 
-Ndbd_mem_manager::remove_free_list(Uint32 zone, Uint32 start, Uint32 list)
-{
+Ndbd_mem_manager::remove_free_list(Uint32 zone, Uint32 start, Uint32 list) {
   Free_page_data* fd = get_free_page_data(m_base_page+start, start);
   Uint32 size = fd->m_size;
   Uint32 next = fd->m_next;
@@ -1673,20 +1776,16 @@ Ndbd_mem_manager::remove_free_list(Uint32 zone, Uint32 start, Uint32 list)
 void
 Ndbd_mem_manager::dump(bool locked) const
 {
-  if (!locked)
-    mt_mem_manager_lock();
+  if (!locked) mt_mem_manager_lock();
   g_eventLogger->info("Begin Ndbd_mem_manager::dump");
-  for (Uint32 zone = 0; zone < ZONE_COUNT; zone ++)
-  {
+  for (Uint32 zone = 0; zone < ZONE_COUNT; zone ++) {
     g_eventLogger->info("zone %u", zone);
     for (Uint32 i = 0; i<16; i++)
     {
       Uint32 head = m_buddy_lists[zone][i];
-      if (head == 0)
-        continue;
+      if (head == 0)     continue;
       g_eventLogger->info(" list: %d - ", i);
-      while(head)
-      {
+      while(head)   {
         Free_page_data* fd = get_free_page_data(m_base_page+head, head);
         g_eventLogger->info("[ i: %d prev %d next %d list %d size %d ] ", head,
                             fd->m_prev, fd->m_next, fd->m_list, fd->m_size);
@@ -1725,12 +1824,10 @@ Ndbd_mem_manager::alloc_page(Uint32 type,
                              AllocZone zone,
                              bool use_spare,
                              bool locked,
-                             bool use_max_part)
-{
+                             bool use_max_part) {
   Uint32 idx = type & RG_MASK;
   assert(idx && idx <= MM_RG_COUNT);
-  if (!locked)
-    mt_mem_manager_lock();
+  if (!locked) mt_mem_manager_lock();
 
   Uint32 cnt = 1;
   const Uint32 min = 1;
@@ -1738,8 +1835,7 @@ Ndbd_mem_manager::alloc_page(Uint32 type,
     m_resource_limits.get_resource_free_reserved(idx, use_spare);
   if (free_res < cnt)
   {
-    if (use_max_part)
-    {
+    if (use_max_part) {
       const Uint32 free_shr = m_resource_limits.get_resource_free_shared(idx);
       const Uint32 free = m_resource_limits.get_resource_free(idx, use_spare);
       if (free < min || (free_shr + free_res < min))
@@ -1822,7 +1918,29 @@ Ndbd_mem_manager::alloc_emergency_page(Uint32 type,
   void *page = alloc_page(type, i, zone, true, false);
   if (page != nullptr)
   {
-    if (!locked)
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+rl
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (!locked)
     {
       mt_mem_manager_unlock();
     }
@@ -1843,7 +1961,31 @@ Ndbd_mem_manager::alloc_emergency_page(Uint32 type,
       m_resource_limits.get_free_reserved() == 0)
   {
     /**
-     * Make sure that there is at least one page in either shared global
+     * Make sure that there is at least one page in 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+either
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Resource_limit&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Resource_limit
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+shared
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+rl
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&rl
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ global
      * memory or in the reserved memory.
      * If none is available, we can no longer proceed, we will have to
      * crash since we ran out of memory.
@@ -1883,7 +2025,35 @@ Ndbd_mem_manager::alloc_emergency_page(Uint32 type,
 }
 
 void
-Ndbd_mem_manager::release_page(Uint32 type, Uint32 i, bool locked)
+Ndbd_mem_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+manager::release_page(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+MALLOC)
+
+#include <Vector.hpp>
+#include <NdbHost.h>
+#include "portlib/ndb_stacktrace.h"
+#include "portlib/NdbTick.h"
+
+struct Chunk {
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+MALLOC)
+
+#include <NdbHost.h>
+#include <Vector.hpp>
+#include "portlib/NdbTick.h"
+#include "portlib/ndb_stacktrace.h"
+
+struct Chunk {
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+Uint32 type, Uint32 i, bool locked)
 {
   Uint32 idx = type & RG_MASK;
   assert(idx && idx <= MM_RG_COUNT);
@@ -1905,10 +2075,27 @@ Ndbd_mem_manager::release_page(Uint32 type, Uint32 i, bool locked)
 void
 Ndbd_mem_manager::alloc_pages(Uint32 type,
                               Uint32* i,
-                              Uint32 *cnt,
-                              Uint32 min,
+                              Uint32 *cnt,  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          Uint32 min,
                               AllocZone zone,
-                              bool locked)
+                  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+data_mem,
+                   Uint32 trans_mem,
+                   Uint32 data_mem2 = 0,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+data_mem,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          bool locked)
 {
   Uint32 idx = type & RG_MASK;
   assert(idx && idx <= MM_RG_COUNT);
@@ -1917,24 +2104,201 @@ Ndbd_mem_manager::alloc_pages(Uint32 type,
 
   Uint32 req = *cnt;
   const Uint32 free_res =
-    m_resource_limits.get_resource_free_reserved(idx, false);
+    m_resource_limits.get_resource_free_reserved(idx
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+trans_mem2 = 0);
+  ~Test_mem_manager();
+private:
+  Uint32 m_leaked_mem;
+};
+
+enum Resource_groups {
+  RG_DM = 1,
+  RG_TM = 2,
+  RG_QM = 3,
+  RG_DM2 = 4,
+  RG_TM2 = 5,
+  RG_QM2 = 6,
+};
+
+Test_mem_manager::Test_mem_manager(Uint32 tot_mem
+// RONDB-624 todo: Glue these lines together ^v
+=======
+trans_mem
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, false);
   if (free_res < req)
   {
     const Uint32 free = m_resource_limits.get_resource_free(idx, false);
     if (free < req)
     {
-      req = free;
-    }
-    const Uint32 free_shr = m_resource_limits.get_resource_free_shared(idx);
-    if (free_shr + free_res < req)
-    {
-      req = free_shr + free_res;
+      req = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free;
+||||||| Common ancestor
+data_mem,
+=======
+data_mem2 = 0,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 trans_mem2 = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+0);
+>>>>>>> MySQL 8.0.36
+  ~Test_mem_manager();
+
+ private:
+ const Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free_shr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+m_leaked_mem;
+};
+
+enum
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Resource_groups
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_resource_limits.get_resource_free_shared(idx);
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+  RG_DM = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+1,
+>>>>>>> MySQL 8.0.36
+ (free_shr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+RG_TM
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free_res
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+2,
+>>>>>>> MySQL 8.0.36
+ req)
+ RG_QM = 3,
+  RG_DM2 = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+4,
+>>>>>>> MySQL 8.0.36
+  RG_TM2 = 5,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+RG_QM2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free_shr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+6,
+};
+
+Test_mem_manager::Test_mem_manager(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tot_mem,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 trans
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32 data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_res;
     }
     if (req < min)
     {
       *cnt = 0;
       if (unlikely(m_dump_on_alloc_fail))
-      {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+data_mem2,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+trans_mem, Uint32 data_mem2,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         g_eventLogger->info(
             "Page allocation failed in %s: not enough free resource pages.",
             __func__);
@@ -4737,8 +5101,7 @@ static
 void
 bench_release_pool_malloc(void **ptrs)
 {
-  for (lc_uint32 i = 0; i < NUM_MALLOC_ROUNDS; i++)
-  {
+  for (lc_uint32 i = 0; i < NUM_MALLOC_ROUNDS; i++) {
     lc_ndbd_pool_free(ptrs[i]);
   }
 }
@@ -4747,8 +5110,7 @@ static
 void
 bench_release_split_malloc(void **ptrs)
 {
-  for (lc_uint32 i = 0; i < NUM_MALLOC_ROUNDS; i++)
-  {
+  for (lc_uint32 i = 0; i < NUM_MALLOC_ROUNDS; i++) {
     lc_ndbd_split_free(ptrs[i]);
   }
 }
@@ -4789,15 +5151,13 @@ bench_pool_malloc(void *arg)
   lc_uint32 thread_id = (lc_uint64)arg;
   void **ptrs = (void**)malloc(sizeof(void*) * NUM_MALLOC_ROUNDS);
   unsigned int seed = 1;
-  for (lc_uint32 i = 0; i < NUM_BENCH_ROUNDS; i++)
-  {
+  for (lc_uint32 i = 0; i < NUM_BENCH_ROUNDS; i++) {
     bench_alloc_pool_malloc(&seed, ptrs, thread_id);
     swap_all_ptrs(&seed, ptrs, NUM_MALLOC_ROUNDS);
     bench_release_pool_malloc(ptrs);
     if (i % 10 == 9)
     {
-      printf("Thread %u completed %u bench long rounds\n",
-             thread_id,
+      printf("Thread %u completed %u bench long rounds\n",     thread_id,
              i);
     }
   }
@@ -4813,8 +5173,7 @@ bench_split_malloc(void *arg)
   void **ptrs = (void**)malloc(sizeof(void*) * NUM_MALLOC_ROUNDS);
   void *mem_area = nullptr;
   unsigned int seed = 1;
-  for (lc_uint32 i = 0; i < NUM_BENCH_ROUNDS; i++)
-  {
+  for (lc_uint32 i = 0; i < NUM_BENCH_ROUNDS; i++) {
     bench_alloc_split_malloc(&mem_area, &seed, ptrs, thread_id);
     swap_all_ptrs(&seed, ptrs, NUM_MALLOC_ROUNDS);
     bench_release_split_malloc(ptrs);
@@ -4871,8 +5230,29 @@ bench_short_test()
                        "bench_split_malloc",
                        NDB_THREAD_PRIO_MEAN);
     alloc_thr_ptrs[i] = thr_ptr;
-  }
-  for (lc_uint32 i = 0; i < NUM_THREADS; i++)
+    }
+  for (lc_uint32 i = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ i 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+<
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ NUM_THREADS; i++)
   {
     void *dummy;
     NdbThread_WaitFor(alloc_thr_ptrs[i], &dummy);
@@ -4943,14 +5323,50 @@ test_get_array_pos()
   size_array[++i] = 262143;
   pos_array[i] = 8;
   size_array[++i] = 262144;
-  pos_array[i] = 8;
+  pos_array[i] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+8;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if (DEBUG)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  if (DEBUG) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   size_array[++i] = 262145;
   pos_array[i] = 9;
-  size_array[++i] = 1048575;
+  size_array[++i] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1048575;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    printf(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   pos_array[i] = 9;
   size_array[++i] = 1048576;
   pos_array[i] = 9;
-  size_array[++i] = 1048577;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+size_array[++i]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+printf("
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      "
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 1048577;
   pos_array[i] = 10;
   assert(i == 30);
   lc_uint32 pos;
@@ -4959,10 +5375,36 @@ test_get_array_pos()
   {
     pos = get_array_pos(size_array[i]);
     if (pos != pos_array[i])
-    {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
       error = i;
-      assert(false);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ }
+          }
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+assert(false);
       break;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    else
+          {
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      } else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     }
   }
   require(!error);
@@ -4971,10 +5413,34 @@ test_get_array_pos()
 static void
 lc_ndbd_malloc_test()
 {
-  /* Testing Logical Clocks memory pool for ndbmtd */
-  printf("Test Logical Clocks memory pool for ndbmtd\n");
-  init_lc_ndbd_memory_pool(12,
-                           NUM_THREADS,
+  /* Testing Logical Clocks memory pool for ndbmtd 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+  printf("Test Logical Clocks memory pool
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ for ndbmtd\n");
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+init_lc_ndbd_memory_pool(12,
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      else
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  } else                    NUM_THREADS,
                            NUM_THREADS/2,
                            nullptr,
                            nullptr);
@@ -4984,10 +5450,53 @@ lc_ndbd_malloc_test()
   simple_single_thread_long_small_test();
   printf("num_mallocs: %d\n", num_mallocs.load());
   many_malloc_single_thread_long_test();
-  printf("num_mallocs: %d\n", num_mallocs.load());
-  many_malloc_single_thread_long_test_random();
-  printf("num_mallocs: %d\n", num_mallocs.load());
-  many_malloc_single_thread_long_test_random();
+    printf("num_mallocs: %d\n", num_mallocs.load());
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+many_malloc_single_thread_long_test_random();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+      }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ printf("num_mallocs: 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%d\n",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+num_mallocs.load());
+||||||| Common ancestor
+  }
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+many_malloc_single_thread_long_test_random()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    break
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   } break
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   printf("num_mallocs: %d\n", num_mallocs.load());
   many_malloc_multi_thread_long_test_random();
   printf("num_mallocs: %d\n", num_mallocs.load());

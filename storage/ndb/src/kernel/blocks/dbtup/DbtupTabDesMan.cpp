@@ -25,10 +25,10 @@
 
 #define DBTUP_C
 #define DBTUP_TAB_DES_MAN_CPP
-#include "Dbtup.hpp"
-#include <RefConvert.hpp>
 #include <ndb_limits.h>
+#include <RefConvert.hpp>
 #include <pc.hpp>
+#include "Dbtup.hpp"
 
 #define JAM_FILE_ID 412
 
@@ -55,15 +55,11 @@
  * divides itself up into free list chunks.
  */
 
-Uint32
-Dbtup::getTabDescrOffsets(Uint32 noOfAttrs,
-                          Uint32 noOfCharsets,
-                          Uint32 noOfKeyAttr,
-                          Uint32 extraColumns,
-                          Uint32* offset)
-{
+Uint32 Dbtup::getTabDescrOffsets(Uint32 noOfAttrs, Uint32 noOfCharsets,
+                                 Uint32 noOfKeyAttr, Uint32 extraColumns,
+                                 Uint32 *offset) {
   // belongs to configure.in
-  unsigned sizeOfPointer = sizeof(CHARSET_INFO*);
+  unsigned sizeOfPointer = sizeof(CHARSET_INFO *);
   ndbrequire((sizeOfPointer & 0x3) == 0);
   sizeOfPointer = (sizeOfPointer >> 2);
   // do in layout order and return offsets (see DbtupMeta.cpp)
@@ -76,14 +72,12 @@ Dbtup::getTabDescrOffsets(Uint32 noOfAttrs,
   offset[3] = allocSize += noOfCharsets * sizeOfPointer;
   offset[4] = allocSize += noOfKeyAttr;
   offset[5] = allocSize += (noOfAttrs + extraColumns) * ZAD_SIZE;
-  offset[6] = allocSize += (noOfAttrs+1) >> 1;  // real order
+  offset[6] = allocSize += (noOfAttrs + 1) >> 1;  // real order
   // return number of words
   return allocSize;
 }
 
-Uint32
-Dbtup::getDynTabDescrOffsets(Uint32 MaskSize, Uint32* offset)
-{
+Uint32 Dbtup::getDynTabDescrOffsets(Uint32 MaskSize, Uint32 *offset) {
   // do in layout order and return offsets (see DbtupMeta.cpp)
   offset[0] = 0;
   offset[1] = MaskSize;
@@ -92,11 +86,8 @@ Dbtup::getDynTabDescrOffsets(Uint32 MaskSize, Uint32* offset)
   return allocSize;
 }
 
-void
-Dbtup::releaseTabDescr(Uint32* desc)
-{
-  if (desc != nullptr)
-  {
+void Dbtup::releaseTabDescr(Uint32* desc) {
+  if (desc != nullptr) {
     DEB_TAB_MALLOC(("(%u) releaseTabDescr(%p)",
                    instance(),
                    desc));
@@ -105,8 +96,7 @@ Dbtup::releaseTabDescr(Uint32* desc)
 }
 
 Uint32*
-Dbtup::allocTabDescr(Uint32 allocSize, Uint32 tableId)
-{
+Dbtup::allocTabDescr(Uint32 allocSize, Uint32 tableId) {
   /* ---------------------------------------------------------------- */
   /*       ALWAYS ALLOCATE A MULTIPLE OF 16 WORDS                     */
   /* ---------------------------------------------------------------- */

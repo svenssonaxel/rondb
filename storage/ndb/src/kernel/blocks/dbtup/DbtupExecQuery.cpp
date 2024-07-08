@@ -23,28 +23,27 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
-
 #define DBTUP_C
-#include <dblqh/Dblqh.hpp>
-#include <cstring>
-#include "Dbtup.hpp"
-#include <RefConvert.hpp>
 #include <ndb_limits.h>
-#include <pc.hpp>
+#include <portlib/ndb_prefetch.h>
 #include <AttributeDescriptor.hpp>
-#include "AttributeOffset.hpp"
 #include <AttributeHeader.hpp>
+#include <Checksum.hpp>
 #include <Interpreter.hpp>
-#include <signaldata/TupKey.hpp>
+#include <NdbSqlUtil.hpp>
+#include <RefConvert.hpp>
+#include <cstring>
+#include <dblqh/Dblqh.hpp>
+#include <pc.hpp>
 #include <signaldata/AttrInfo.hpp>
-#include <signaldata/TuxMaint.hpp>
+#include <signaldata/LqhKey.hpp>
 #include <signaldata/ScanFrag.hpp>
 #include <signaldata/TransIdAI.hpp>
-#include <signaldata/LqhKey.hpp>
-#include <NdbSqlUtil.hpp>
-#include <Checksum.hpp>
-#include <portlib/ndb_prefetch.h>
+#include <signaldata/TupKey.hpp>
+#include <signaldata/TuxMaint.hpp>
 #include "../dblqh/Dblqh.hpp"
+#include "AttributeOffset.hpp"
+#include "Dbtup.hpp"
 
 #define JAM_FILE_ID 422
 
@@ -73,75 +72,96 @@
 #endif
 
 #ifdef DEBUG_DISK
-#define DEB_DISK(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_DISK(arglist)        \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_DISK(arglist) do { } while (0)
+#define DEB_DISK(arglist) \
+  do {                    \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP
-#define DEB_LCP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP(arglist)         \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP(arglist) do { } while (0)
+#define DEB_LCP(arglist) \
+  do {                   \
+  } while (0)
 #endif
 
 #ifdef DEBUG_DELETE
-#define DEB_DELETE(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_DELETE(arglist)      \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_DELETE(arglist) do { } while (0)
+#define DEB_DELETE(arglist) \
+  do {                      \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP_SKIP_DELETE
-#define DEB_LCP_SKIP_DELETE(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP_SKIP_DELETE(arglist) \
+  do {                               \
+    g_eventLogger->info arglist;     \
+  } while (0)
 #else
-#define DEB_LCP_SKIP_DELETE(arglist) do { } while (0)
+#define DEB_LCP_SKIP_DELETE(arglist) \
+  do {                               \
+  } while (0)
 #endif
 
 #ifdef DEBUG_DELETE_NR
-#define DEB_DELETE_NR(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_DELETE_NR(arglist)   \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_DELETE_NR(arglist) do { } while (0)
+#define DEB_DELETE_NR(arglist) \
+  do {                         \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LCP_LGMAN
-#define DEB_LCP_LGMAN(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LCP_LGMAN(arglist)   \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LCP_LGMAN(arglist) do { } while (0)
+#define DEB_LCP_LGMAN(arglist) \
+  do {                         \
+  } while (0)
 #endif
 
 // #define TRACE_INTERPRETER
 
 /* For debugging */
-static void
-dump_hex(const Uint32 *p, Uint32 len)
-{
-  if(len > 2560)
-    len= 160;
-  if(len==0)
-    return;
-  for(;;)
-  {
-    if(len>=4)
+static void dump_hex(const Uint32 *p, Uint32 len) {
+  if (len > 2560) len = 160;
+  if (len == 0) return;
+  for (;;) {
+    if (len >= 4)
       g_eventLogger->info("%8p %08X %08X %08X %08X", p, p[0], p[1], p[2], p[3]);
-    else if(len>=3)
+    else if (len >= 3)
       g_eventLogger->info("%8p %08X %08X %08X", p, p[0], p[1], p[2]);
-    else if(len>=2)
+    else if (len >= 2)
       g_eventLogger->info("%8p %08X %08X", p, p[0], p[1]);
     else
       g_eventLogger->info("%8p %08X", p, p[0]);
-    if(len <= 4)
-      break;
-    len-= 4;
-    p+= 4;
+    if (len <= 4) break;
+    len -= 4;
+    p += 4;
   }
 }
 
-void Dbtup::copyAttrinfo(Uint32 expectedLen,
-                         Uint32 attrInfoIVal)
-{
-  ndbassert( expectedLen > 0 || attrInfoIVal == RNIL );
+void Dbtup::copyAttrinfo(Uint32 expectedLen, Uint32 attrInfoIVal) {
+  ndbassert(expectedLen > 0 || attrInfoIVal == RNIL);
 
-  if (expectedLen > 0)
-  {
+  if (expectedLen > 0) {
     ndbassert(attrInfoIVal != RNIL);
 
     /* Check length in section is as we expect */
@@ -158,9 +178,7 @@ void Dbtup::copyAttrinfo(Uint32 expectedLen,
   }
 }
 
-Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
-                           bool interpretedFlag)
-{
+Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId, bool interpretedFlag) {
   /* Get stored procedure */
   StoredProcPtr storedPtr;
   storedPtr.i = storedProcId;
@@ -172,15 +190,15 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
   SectionReader reader(attrinfoIVal, getSectionSegmentPool());
   const Uint32 readerLen = reader.getSize();
 
-  if (interpretedFlag)
-  {
+  if (interpretedFlag) {
     jam();
 
     // Read sectionPtr's
     reader.getWords(&cinBuffer[0], 5);
 
     // Read interpreted sections 0..3, up to the parameter section
-    const Uint32 readLen = cinBuffer[0] + cinBuffer[1] +
+    const Uint32 readLen =
+        cinBuffer[0] + cinBuffer[1] +
       cinBuffer[2] + cinBuffer[3];
     Uint32 *pos = &cinBuffer[5];
     reader.getWords(pos, readLen);
@@ -188,38 +206,30 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
 
     Uint32 paramOffs = 0;
     Uint32 paramLen = 0;
-    if (cinBuffer[4] == 0)
-    {
+    if (cinBuffer[4] == 0) {
       // No parameters supplied in this attrInfo
-    }
-    else if (storedPtr.p->storedParamNo == 0)
-    {
+    } else if (storedPtr.p->storedParamNo == 0) {
       // A single parameter, or the first of many, copy it out
       paramLen = cinBuffer[4];
       ndbrequire(reader.getWords(pos, paramLen));
       pos += paramLen;
       ndbassert(intmax_t{readerLen} == (pos - cinBuffer));
-    }
-    else
-    {
+    } else {
       // A set of parameters, skip up to the one specified by 'ParamNo'
-      for (uint i=0; i < storedPtr.p->storedParamNo; i++)
-      {
+      for (uint i = 0; i < storedPtr.p->storedParamNo; i++) {
         reader.getWord(pos);
         paramLen = *pos;
-        reader.step(paramLen-1);
+        reader.step(paramLen - 1);
         paramOffs += paramLen;
       }
       // Copy out the parameter specified
       reader.getWord(pos);
       paramLen = *pos;
-      reader.getWords(pos+1, paramLen-1);
+      reader.getWords(pos + 1, paramLen - 1);
       pos += paramLen;
     }
     cinBuffer[4] = paramLen;
-  }
-  else
-  {
+  } else {
     jam();
     ndbassert(storedPtr.p->storedParamNo == 0);
 
@@ -227,12 +237,12 @@ Uint32 Dbtup::copyAttrinfo(Uint32 storedProcId,
     reader.getWords(&cinBuffer[0], readerLen);
   }
 
-  // By convention we return total length of storedProc, not just what we copied.
+  // By convention we return total length of storedProc, not just what we
+  // copied.
   return readerLen;
 }
 
-void Dbtup::nextAttrInfoParam(Uint32 storedProcId)
-{
+void Dbtup::nextAttrInfoParam(Uint32 storedProcId) {
   jam();
 
   /* Get stored procedure */
@@ -245,12 +255,9 @@ void Dbtup::nextAttrInfoParam(Uint32 storedProcId)
   storedPtr.p->storedParamNo++;
 }
 
-void
-Dbtup::setInvalidChecksum(Tuple_header *tuple_ptr,
-                          const Tablerec * regTabPtr)
-{
-  if (regTabPtr->m_bits & Tablerec::TR_Checksum)
-  {
+void Dbtup::setInvalidChecksum(Tuple_header *tuple_ptr,
+                               const Tablerec *regTabPtr) {
+  if (regTabPtr->m_bits & Tablerec::TR_Checksum) {
     jam();
     /**
      * Set a magic checksum when tuple isn't supposed to be read.
@@ -259,20 +266,15 @@ Dbtup::setInvalidChecksum(Tuple_header *tuple_ptr,
   }
 }
 
-void
-Dbtup::updateChecksum(Tuple_header *tuple_ptr,
-                      const Tablerec *regTabPtr,
-                      Uint32 old_header,
-                      Uint32 new_header)
-{
+void Dbtup::updateChecksum(Tuple_header *tuple_ptr, const Tablerec *regTabPtr,
+                           Uint32 old_header, Uint32 new_header) {
   /**
    * This function is used when only updating the header bits in row.
    * We start by XOR:ing the old header, this negates the impact of the
    * old header since old_header ^ old_header = 0. Next we XOR with new
    * header to get the new checksum and finally we store the new checksum.
    */
-  if (regTabPtr->m_bits & Tablerec::TR_Checksum)
-  {
+  if (regTabPtr->m_bits & Tablerec::TR_Checksum) {
     Uint32 checksum = tuple_ptr->m_checksum;
     jam();
     checksum ^= old_header;
@@ -281,38 +283,44 @@ Dbtup::updateChecksum(Tuple_header *tuple_ptr,
   }
 }
 
-void
-Dbtup::setChecksum(Tuple_header* tuple_ptr,
-                   const Tablerec* regTabPtr)
-{
-  if (regTabPtr->m_bits & Tablerec::TR_Checksum)
-  {
+void Dbtup::setChecksum(Tuple_header *tuple_ptr, const Tablerec *regTabPtr) {
+  if (regTabPtr->m_bits & Tablerec::TR_Checksum) {
     jamDebug();
-    tuple_ptr->m_checksum= 0;
-    tuple_ptr->m_checksum= calculateChecksum(tuple_ptr, regTabPtr);
+    tuple_ptr->m_checksum = 0;
+    tuple_ptr->m_checksum = calculateChecksum(tuple_ptr, regTabPtr);
   }
 }
 
-Uint32
-Dbtup::calculateChecksum(Tuple_header* tuple_ptr,
-                         const Tablerec* regTabPtr)
-{
+Uint32 Dbtup::calculateChecksum(Tuple_header *tuple_ptr,
+                                const Tablerec *regTabPtr) {
   Uint32 checksum;
   Uint32 rec_size, *tuple_header;
-  rec_size= regTabPtr->m_offsets[MM].m_fix_header_size;
-  tuple_header= &tuple_ptr->m_header_bits;
+  rec_size = regTabPtr->m_offsets[MM].m_fix_header_size;
+  tuple_header = &tuple_ptr->m_header_bits;
   // includes tupVersion
-  //printf("%p - ", tuple_ptr);
+  // printf("%p - ", tuple_ptr);
 
   /**
    * We include every except the first word of the Tuple header
    * which is only used on copy tuples. We do however include
    * the header bits.
    */
-  checksum = computeXorChecksum(
-      tuple_header, (rec_size-Tuple_header::HeaderSize) + 1);
+  checksum = computeXorChecksum(tuple_header,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tuple_header,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         tuple_header,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (rec_size - Tuple_header::HeaderSize) + 1);
 
-  //printf("-> %.8x\n", checksum);
+  // printf("-> %.8x\n", checksum);
 
 #if 0
   if (var_sized) {
@@ -333,9 +341,8 @@ Dbtup::calculateChecksum(Tuple_header* tuple_ptr,
   return checksum;
 }
 
-int
-Dbtup::corruptedTupleDetected(KeyReqStruct *req_struct, Tablerec *regTabPtr)
-{
+int Dbtup::corruptedTupleDetected(KeyReqStruct *req_struct,
+                                  Tablerec *regTabPtr) {
   Uint32 checksum = calculateChecksum(req_struct->m_tuple_ptr, regTabPtr);
   Uint32 header_bits = req_struct->m_tuple_ptr->m_header_bits;
   Uint32 tableId = req_struct->fragPtrP->fragTableId;
@@ -349,13 +356,12 @@ Dbtup::corruptedTupleDetected(KeyReqStruct *req_struct, Tablerec *regTabPtr)
       ", tab(%u,%u), page(%u,%u)",
       checksum, header_bits, req_struct->m_tuple_ptr->m_checksum, tableId,
       fragId, page_id, page_idx);
-  if (c_crashOnCorruptedTuple && !ERROR_INSERTED(4036))
-  {
+  if (c_crashOnCorruptedTuple && !ERROR_INSERTED(4036)) {
     g_eventLogger->info(" Exiting.");
     ndbabort();
   }
   (void)ERROR_INSERTED_CLEAR(4036);
-  terrorCode= ZTUPLE_CORRUPTED_ERROR;
+  terrorCode = ZTUPLE_CORRUPTED_ERROR;
   tupkeyErrorLab(req_struct);
   return -1;
 }
@@ -363,10 +369,8 @@ Dbtup::corruptedTupleDetected(KeyReqStruct *req_struct, Tablerec *regTabPtr)
 /* ----------------------------------------------------------------- */
 /* -----------       INSERT_ACTIVE_OP_LIST            -------------- */
 /* ----------------------------------------------------------------- */
-bool 
-Dbtup::prepareActiveOpList(OperationrecPtr regOperPtr,
-                           KeyReqStruct* req_struct)
-{
+bool Dbtup::prepareActiveOpList(OperationrecPtr regOperPtr,
+                                KeyReqStruct *req_struct) {
   /**
    * We are executing in the LDM thread since this is a write operation.
    * Thus we are protected from concurrent write activity from other
@@ -393,92 +397,136 @@ Dbtup::prepareActiveOpList(OperationrecPtr regOperPtr,
   jam();
   OperationrecPtr prevOpPtr;
   ndbrequire(!regOperPtr.p->op_struct.bit_field.in_active_list);
-  req_struct->prevOpPtr.i= 
-    prevOpPtr.i= req_struct->m_tuple_ptr->m_operation_ptr_i;
-  regOperPtr.p->prevActiveOp= prevOpPtr.i;
-  regOperPtr.p->m_undo_buffer_space= 0;
+  req_struct->prevOpPtr.i = prevOpPtr.i =
+      req_struct->m_tuple_ptr->m_operation_ptr_i;
+  regOperPtr.p->prevActiveOp = prevOpPtr.i;
+  regOperPtr.p->m_undo_buffer_space = 0;
   ndbassert(!m_is_in_query_thread);
-  if (likely(prevOpPtr.i == RNIL))
-  {
+  if (likely(prevOpPtr.i == RNIL)) {
     return true;
-  }
-  else
-  {
+  } else {
     jam();
     jamLineDebug(Uint16(prevOpPtr.i));
     ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(prevOpPtr));
     req_struct->prevOpPtr.p = prevOpPtr.p;
 
-    regOperPtr.p->op_struct.bit_field.m_wait_log_buffer= 
-      prevOpPtr.p->op_struct.bit_field.m_wait_log_buffer;
-    regOperPtr.p->op_struct.bit_field.m_load_diskpage_on_commit= 
-      prevOpPtr.p->op_struct.bit_field.m_load_diskpage_on_commit;
+    regOperPtr.p->op_struct.bit_field.m_wait_log_buffer =
+        prevOpPtr.p->op_struct.bit_field.m_wait_log_buffer;
+    regOperPtr.p->op_struct.bit_field.m_load_diskpage_on_commit =
+        prevOpPtr.p->op_struct.bit_field.m_load_diskpage_on_commit;
     regOperPtr.p->op_struct.bit_field.m_load_extra_diskpage_on_commit= 
       prevOpPtr.p->op_struct.bit_field.m_load_extra_diskpage_on_commit;
-    regOperPtr.p->op_struct.bit_field.m_gci_written=
-      prevOpPtr.p->op_struct.bit_field.m_gci_written;
-    regOperPtr.p->op_struct.bit_field.m_tuple_existed_at_start=
-      prevOpPtr.p->op_struct.bit_field.m_tuple_existed_at_start;
-    regOperPtr.p->m_undo_buffer_space= prevOpPtr.p->m_undo_buffer_space;
+    regOperPtr.p->op_struct.bit_field.m_gci_written =
+        prevOpPtr.p->op_struct.bit_field.m_gci_written;
+    regOperPtr.p->op_struct.bit_field.m_tuple_existed_at_start =
+        prevOpPtr.p->op_struct.bit_field.m_tuple_existed_at_start;
+    regOperPtr.p->m_undo_buffer_space = prevOpPtr.p->m_undo_buffer_space;
     regOperPtr.p->m_uncommitted_used_space =
       prevOpPtr.p->m_uncommitted_used_space;
     // start with prev mask (matters only for UPD o UPD)
 
     regOperPtr.p->m_any_value = prevOpPtr.p->m_any_value;
 
-    prevOpPtr.p->op_struct.bit_field.m_wait_log_buffer= 0;
-    prevOpPtr.p->op_struct.bit_field.m_load_diskpage_on_commit= 0;
+    prevOpPtr.p->op_struct.bit_field.m_wait_log_buffer = 0;
+    prevOpPtr.p->op_struct.bit_field.m_load_diskpage_on_commit = 0;
     prevOpPtr.p->op_struct.bit_field.m_load_extra_diskpage_on_commit= 0;
 
-    if (prevOpPtr.p->tuple_state == TUPLE_PREPARED)
-    {
-      Uint32 op= regOperPtr.p->op_type;
-      Uint32 prevOp= prevOpPtr.p->op_type;
-      if (prevOp == ZDELETE)
-      {
-        if(op == ZINSERT)
+    if (prevOpPtr.p->tuple_state == TUPLE_PREPARED) {
+      Uint32 op = regOperPtr.p->op_type;
+      Uint32 prevOp = prevOpPtr.p->op_type;
+      if (prevOp == ZDELETE) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+if (op == ZINSERT)
         {
           // mark both
-          prevOpPtr.p->op_struct.bit_field.delete_insert_flag= true;
-          regOperPtr.p->op_struct.bit_field.delete_insert_flag= true;
+          prevOpPtr.p->op_struct.bit_field.delete_insert_flag = true;
+          regOperPtr.p->op_struct.bit_field.delete_insert_flag = true;
           return true;
+<<<<<<< RonDB // RONDB-624 todo
         }
-        else if (op == ZREFRESH)
-        {
+||||||| Common ancestor
+	}
+=======
+>>>>>>> MySQL 8.0.36
+        } else if (op == ZREFRESH) {
           /* ZREFRESH after Delete - ok */
           return true;
-        }
-        else
-        {
-          terrorCode= ZTUPLE_DELETED_ERROR;
+        } else {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  terrorCode = ZTUPLE_DELETED_ERROR;
           return false;
+<<<<<<< RonDB // RONDB-624 todo
         }
-      } 
-      else if(op == ZINSERT && prevOp != ZDELETE)
-      {
-        terrorCode= ZINSERT_ERROR;
+||||||| Common ancestor
+	}
+=======
+>>>>>>> MySQL 8.0.36
+        }
+      } else if (op == ZINSERT && prevOp != ZDELETE) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+terrorCode = ZINSERT_ERROR;
+<<<<<<< RonDB // RONDB-624 todo
+        return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	return
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
         return false;
-      }
-      else if (prevOp == ZREFRESH)
-      {
+      } else if (prevOp == ZREFRESH) {
         /* No operation after a ZREFRESH */
-        terrorCode= ZOP_AFTER_REFRESH_ERROR;
+        terrorCode = ZOP_AFTER_REFRESH_ERROR;
         return false;
       }
       return true;
-    }
-    else
-    {
-      terrorCode= ZMUST_BE_ABORTED_ERROR;
+    } else {
+      terrorCode = ZMUST_BE_ABORTED_ERROR;
       return false;
     }
   }
 }
 
-void
-Dbtup::insertActiveOpList(OperationrecPtr regOperPtr,
-                          KeyReqStruct* req_struct,
-                          Tuple_header *tuple_ptr)
+void Dbtup::insertActiveOpList(OperationrecPtr regOperPtr,
+                               KeyReqStruct *req_struct,
+                               Tuple_header *tuple_ptr)
 {
   /**
    * We have already prepared inserting ourselves into the list by
@@ -493,31 +541,25 @@ Dbtup::insertActiveOpList(OperationrecPtr regOperPtr,
   jamDataDebug(regOperPtr.i);
   regOperPtr.p->op_struct.bit_field.in_active_list = true;
   tuple_ptr->m_operation_ptr_i = regOperPtr.i;
-  if (unlikely(req_struct->prevOpPtr.i != RNIL))
-  {
+  if (unlikely(req_struct->prevOpPtr.i != RNIL)) {
     jam();
     req_struct->prevOpPtr.p->nextActiveOp = regOperPtr.i;
   }
 }
 
-bool
-Dbtup::setup_read(KeyReqStruct *req_struct,
-                  Operationrec* regOperPtr,
-                  Tablerec* regTabPtr,
-                  bool disk)
-{
+bool Dbtup::setup_read(KeyReqStruct *req_struct,
+                  Operationrec *regOperPtr,
+                  Tablerec *regTabPtr,
+                  bool disk) {
   OperationrecPtr currOpPtr;
-  currOpPtr.i= req_struct->m_tuple_ptr->m_operation_ptr_i;
+  currOpPtr.i = req_struct->m_tuple_ptr->m_operation_ptr_i;
   const Uint32 bits = req_struct->m_tuple_ptr->m_header_bits;
 
-  if (unlikely(req_struct->m_reorg != ScanFragReq::REORG_ALL))
-  {
+  if (unlikely(req_struct->m_reorg != ScanFragReq::REORG_ALL)) {
     ndbassert(req_struct->m_reorg != ScanFragReq::REORG_MOVED_COPY);
     const Uint32 moved = bits & Tuple_header::REORG_MOVE;
-    if (! ((req_struct->m_reorg == ScanFragReq::REORG_NOT_MOVED &&
-            moved == 0) ||
-          (req_struct->m_reorg == ScanFragReq::REORG_MOVED && moved != 0)))
-    {
+    if (!((req_struct->m_reorg == ScanFragReq::REORG_NOT_MOVED && moved == 0) ||
+          (req_struct->m_reorg == ScanFragReq::REORG_MOVED && moved != 0))) {
       /**
        * We're either scanning to only find moved rows (used when scanning
        * for rows to delete in reorg delete phase or we're scanning for
@@ -525,15 +567,13 @@ Dbtup::setup_read(KeyReqStruct *req_struct,
        * but it is done for normal scans in this phase.
        */
       jamDebug();
-      terrorCode= ZTUPLE_DELETED_ERROR;
+      terrorCode = ZTUPLE_DELETED_ERROR;
       return false;
     }
   }
-  if (likely(currOpPtr.i == RNIL))
-  {
+  if (likely(currOpPtr.i == RNIL)) {
     jamDebug();
-    if (regTabPtr->need_expand(disk))
-    {
+    if (regTabPtr->need_expand(disk)) {
       jamDebug();
       prepare_read(req_struct, regTabPtr, disk);
     }
@@ -541,8 +581,8 @@ Dbtup::setup_read(KeyReqStruct *req_struct,
   }
 
   do {
-    Uint32 savepointId= regOperPtr->savepointId;
-    bool dirty= req_struct->dirty_op;
+    Uint32 savepointId = regOperPtr->savepointId;
+    bool dirty = req_struct->dirty_op;
     Dblqh *ldm_lqh = nullptr;
     Dbtup *ldm_tup = this;
 
@@ -556,32 +596,40 @@ Dbtup::setup_read(KeyReqStruct *req_struct,
     ldm_lqh = c_lqh->m_ldm_instance_used;
     ldm_tup = m_ldm_instance_used;
 
-    const bool sameTrans= ldm_lqh->is_same_trans(currOpPtr.p->userpointer,
-        req_struct->trans_id1,
+    const bool sameTrans = ldm_lqh->is_same_trans(
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+                                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+currOpPtr.p->userpointer, 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+req_struct->trans_id1,
         req_struct->trans_id2);
     /**
      * Read committed in same trans reads latest copy
      */
-    if(dirty && !sameTrans)
-    {
+    if (dirty && !sameTrans) {
       jamDebug();
-      savepointId= 0;
-    }
-    else if(sameTrans)
-    {
+      savepointId = 0;
+    } else if (sameTrans) {
       // Use savepoint even in read committed mode
       jamDebug();
-      dirty= false;
+      dirty = false;
     }
 
     /* found == true indicates that savepoint is some state
      * within tuple's current transaction's uncommitted operations
      */
-    const bool found = ldm_tup->find_savepoint(currOpPtr,
+    const bool found =
+        ldm_tup->find_savepoint(currOpPtr,
         savepointId,
         jamBuffer());
 
-    const Uint32 currOp= currOpPtr.p->op_type;
+    const Uint32 currOp = currOpPtr.p->op_type;
 
     /* is_insert==true if tuple did not exist before its current
      * transaction
@@ -598,67 +646,58 @@ Dbtup::setup_read(KeyReqStruct *req_struct,
      *
      * Tuple does not exist in read's view
      */
-    if((found && currOp == ZDELETE) || 
-        ((dirty || !found) && is_insert))
-    {
+    if ((found && currOp == ZDELETE) || 
+        ((dirty || !found) && is_insert)) {
       /* Tuple not visible to this read operation */
       jamDebug();
-      terrorCode= ZTUPLE_DELETED_ERROR;
+      terrorCode = ZTUPLE_DELETED_ERROR;
       break;
     }
 
-    if(dirty || !found)
-    {
+    if (dirty || !found) {
       /* Read existing committed tuple */
       jamDebug();
-    }
-    else
-    {
+    } else {
       jamDebug();
-      req_struct->m_tuple_ptr=
-        get_copy_tuple(&currOpPtr.p->m_copy_tuple_location);
+      req_struct->m_tuple_ptr =
+          get_copy_tuple(&currOpPtr.p->m_copy_tuple_location);
     }
 
-    if (regTabPtr->need_expand(disk))
-    {
+    if (regTabPtr->need_expand(disk)) {
       jamDebug();
       prepare_read(req_struct, regTabPtr, disk);
     }
     return true;
-  } while(0);
+  } while (0);
 
   return false;
 }
 
-int
-Dbtup::load_diskpage(Signal* signal,
+int Dbtup::load_diskpage(Signal *signal,
                      Uint32 opRec,
                      Uint32 lkey1,
                      Uint32 lkey2,
-                     Uint32 flags)
-{
+                     Uint32 flags) {
   Ptr<Operationrec> operPtr;
 
   operPtr.i = opRec;
   ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(operPtr));
 
-  Operationrec *  regOperPtr= operPtr.p;
-  Fragrecord * regFragPtr= prepare_fragptr.p;
-  Tablerec* regTabPtr = prepare_tabptr.p;
+  Operationrec *regOperPtr = operPtr.p;
+  Fragrecord *regFragPtr = prepare_fragptr.p;
+  Tablerec *regTabPtr = prepare_tabptr.p;
 
-  if (Local_key::isInvalid(lkey1, lkey2))
-  {
+  if (Local_key::isInvalid(lkey1, lkey2)) {
     jam();
-    regOperPtr->op_struct.bit_field.m_wait_log_buffer= 1;
-    regOperPtr->op_struct.bit_field.m_load_diskpage_on_commit= 1;
-    if (unlikely((flags & 7) == ZREFRESH))
-    {
+    regOperPtr->op_struct.bit_field.m_wait_log_buffer = 1;
+    regOperPtr->op_struct.bit_field.m_load_diskpage_on_commit = 1;
+    if (unlikely((flags & 7) == ZREFRESH)) {
       jam();
       /* Refresh of previously nonexistent DD tuple.
        * No diskpage to load at commit time
        */
-      regOperPtr->op_struct.bit_field.m_wait_log_buffer= 0;
-      regOperPtr->op_struct.bit_field.m_load_diskpage_on_commit= 0;
+      regOperPtr->op_struct.bit_field.m_wait_log_buffer = 0;
+      regOperPtr->op_struct.bit_field.m_load_diskpage_on_commit = 0;
     }
 
     /* In either case return 1 for 'proceed' */
@@ -667,19 +706,18 @@ Dbtup::load_diskpage(Signal* signal,
 
   jam();
   ndbassert(Uint16(lkey2) == lkey2);
-  Uint16 page_idx= Uint16(lkey2);
-  Uint32 frag_page_id= lkey1;
-  regOperPtr->m_tuple_location.m_page_no= getRealpid(regFragPtr,
+  Uint16 page_idx = Uint16(lkey2);
+  Uint32 frag_page_id = lkey1;
+  regOperPtr->m_tuple_location.m_page_no = getRealpid(regFragPtr,
       frag_page_id);
-  regOperPtr->m_tuple_location.m_page_idx= page_idx;
+  regOperPtr->m_tuple_location.m_page_idx = page_idx;
 
   PagePtr page_ptr;
-  Uint32* tmp= get_ptr(&page_ptr, &regOperPtr->m_tuple_location, regTabPtr);
-  Tuple_header* ptr= (Tuple_header*)tmp;
+  Uint32 *tmp = get_ptr(&page_ptr, &regOperPtr->m_tuple_location, regTabPtr);
+  Tuple_header *ptr = (Tuple_header *)tmp;
 
   if (((flags & 7) == ZREAD) &&
-      ptr->m_header_bits & Tuple_header::DELETE_WAIT)
-  {
+      ptr->m_header_bits & Tuple_header::DELETE_WAIT) {
     jam();
     /**
      * Tuple is already deleted and must not be read at this point in
@@ -688,13 +726,32 @@ Dbtup::load_diskpage(Signal* signal,
      */
     return -(TUP_NO_TUPLE_FOUND);
   }
-  if (ptr->m_operation_ptr_i != RNIL)
-  {
+  if (ptr->m_operation_ptr_i != RNIL) {
     /**
      * There is a previous operation, we need to get the flag
      * m_load_extra_diskpage_on_commit from this operation
      * before proceeding with below code.
-     *
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req.m_callback.m_callbackFunction=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+req.m_callback.m_callbackFunction
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
      * This is handled in prepareActiveOpList, but this flag
      * is required to know whether to call load_extra_diskpage.
      */
@@ -719,8 +776,71 @@ Dbtup::load_diskpage(Signal* signal,
      * is set, this means that this is an operation that started with
      * an initial insert of a row. Any updates or re-inserts of this
      * row in the same transaction requires the page where the row is
-     * allocated to be read before the operation is started. This is
-     * necessary on variable sized disk rows since we need to check
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+res;
+}
+
+void
+Dbtup::disk_page_load_callback(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+res;
+}
+
+void Dbtup::disk_page_load_callback(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+allocated
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to be read before the operation is started. This is
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page_id);
+}
+
+int
+Dbtup::load_diskpage_scan(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+page_id);
+}
+
+int Dbtup::load_diskpage_scan(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+necessary
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+			  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ on variable sized disk rows since we need to check
      * if the row still fits on the page after performing this operation.
      */
     Page_cache_client::Request req;
@@ -735,10 +855,86 @@ Dbtup::load_diskpage(Signal* signal,
     if (ERROR_INSERTED(4022))
     {
       flags |= Page_cache_client::DELAY_REQ;
-      const NDB_TICKS now = NdbTick_getCurrentTicks();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regOperPtr->m_tuple_location.m_page_no=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regOperPtr->m_tuple_location.m_page_no
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+getRealpid(regFragPtr,
+						
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+>>>>>>> MySQL 8.0.36
+ const NDB_TICKS now = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NdbTick
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+frag_page
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   getRealpid(regFragPtr, frag_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_getCurrentTicks();
       req.m_delay_until_time = NdbTick_AddMilliseconds(now,(Uint64)3000);
     }
-    if (ERROR_INSERTED(4035) && (rand() % 13) == 0)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tmp=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tmp =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if (ERROR_INSERTED(4035) && (rand() % 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+13)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= 0)
     {
       // Disk access have to randomly wait max 16ms for a diskpage
       Uint64 delay = (Uint64)(rand() % 16) + 1;
@@ -748,22 +944,85 @@ Dbtup::load_diskpage(Signal* signal,
     }
 #endif
 
-    if (regOperPtr->op_struct.bit_field.m_load_extra_diskpage_on_commit)
-    {
+    if (regOperPtr->op_struct.bit_field.m_load_extra_diskpage_on_commit)   {
       /**
        * We will request 2 pages and need to ensure that the first page
        * isn't paged out while we are paging in the second page.
        */
-      jamDebug();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req.m_callback.m_callbackFunction=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+req.m_callback.m_callbackFunction
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ jamDebug();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       flags |= Page_cache_client::REF_REQ;
     }
     Page_cache_client pgman(this, c_pgman);
-    res= pgman.get_page(signal, req, flags);
+    res = pgman.get_page(signal, req, flags);
   }
 
-  switch(flags & 7)
+  switch(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+flags
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+7)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32 opRec,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   {
-    case ZREAD:
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+opRec,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ case ZREAD:
     case ZREAD_EX:
       break;
     case ZDELETE:
@@ -838,8 +1097,7 @@ void
 Dbtup::deref_disk_page(Signal *signal,
                        OperationrecPtr operPtr,
                        Fragrecord *regFragPtr,
-                       Tablerec *regTabPtr)
-{
+                       Tablerec *regTabPtr) {
   PagePtr page_ptr;
   Tuple_header* ptr;
   jamDebug();
@@ -930,8 +1188,7 @@ Dbtup::disk_page_load_extra_callback(Signal* signal,
 }
 
 int
-Dbtup::load_diskpage_scan(Signal* signal,
-                          Uint32 opRec,
+Dbtup::load_diskpage_scan(Signal *signal, Uint32 opRec,
                           Uint32 lkey1,
                           Uint32 lkey2,
                           Uint32 tux_flag,
@@ -1045,10 +1302,44 @@ Dbtup::disk_page_load_scan_callback(Signal* signal,
 
   The access of the fixed size part of the tuple is an almost certain
   CPU cache miss and so performing this as early as possible will
-  decrease the time for cache misses later in the process. Tests using
+  decrease the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+time for cache
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/* ----------------------------------------------------------------- */
+=======
+>>>>>>> MySQL 8.0.36
+ misses 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+later in the process. Tests using
   Sysbench indicates that this prefetch gains about 5% in performance.
 
-  See DblqhMain.cpp for more documentation of prepare_* methods.
+  See
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+-----------    INITIATE THE OPERATION RECORD       -------------- */
+ /* -----------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+=======
+----------------------------------------------------------------- */
+  /* -----------    INITIATE THE OPERATION RECORD       --------------
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ DblqhMain.cpp for 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+more
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+/* ----------------------------------------------------------------- */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ documentation of prepare_* methods.
  */
 
 void Dbtup::prepare_tab_pointers_acc(Uint32 table_id, Uint32 frag_id)
@@ -1126,7 +1417,7 @@ void Dbtup::prepare_scan_tux_TUPKEYREQ(Uint32 page_id, Uint32 page_idx)
   prepare_orig_local_key.m_page_no = page_id;
   prepare_orig_local_key.m_page_idx = page_idx;
 #endif
-  bool is_page_key = (!(Local_key::isInvalid(page_id, page_idx) ||
+  bool is_page_key =  (!(Local_key::isInvalid(page_id, page_idx) ||
         isCopyTuple(page_id, page_idx)));
 
   ndbrequire(is_page_key);
@@ -1149,9 +1440,64 @@ void Dbtup::prepare_scan_tux_TUPKEYREQ(Uint32 page_id, Uint32 page_idx)
   }
 }
 
-bool Dbtup::execTUPKEYREQ(Signal* signal,
-                          void *_lqhOpPtrP,
-                          void *_lqhScanPtrP)
+bool Dbtup::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+execTUPKEYREQ(Signal* signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+OP_NO_TRIGGERS) ?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+OP_NO_TRIGGERS)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TupKeyReq::OP_NO_TRIGGERS :
+=======
+                      ? TupKeyReq::OP_NO_TRIGGERS
+>>>>>>> MySQL 8.0.36
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(lqhOpPtrP->seqNoReplica
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                       : (lqhOpPtrP->seqNoReplica
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    void *_lqhOpPtrP,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0) ?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TupKeyReq::OP_PRIMARY_REPLICA
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                            ? TupKeyReq::OP_PRIMARY_REPLICA
+                                     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                void *_lqhScanPtrP)
 {
   Dblqh::TcConnectionrec *lqhOpPtrP = (Dblqh::TcConnectionrec*)_lqhOpPtrP;
   Dblqh::ScanRecord *lqhScanPtrP = (Dblqh::ScanRecord*)_lqhScanPtrP;
@@ -1165,7 +1511,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
   req_struct.m_lqh = c_lqh;
 
 #ifdef VM_TRACE
-  {
+ {
     bool error_found = false;
     Local_key key;
     key.m_page_no = tupKeyReq->keyRef1;
@@ -1195,38 +1541,38 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
 #endif
 
   /**
-   * DESIGN PATTERN DESCRIPTION
+  * DESIGN PATTERN DESCRIPTION
    * --------------------------
-   * The variable operPtr.p is located on the block object, it is located
+  * The variable operPtr.p is located on the block object, it is located
    * there to ensure that we can easily access it in many methods such
    * that we don't have to transport it through method calls. There are
-   * a number of references to structs that we store in this manner.
-   * Oftentimes they refer to the operation object, the table object,
-   * the fragment object and sometimes also a transaction object.
+  * a number of references to structs that we store in this manner.
+  * Oftentimes they refer to the operation object, the table object,
+  * the fragment object and sometimes also a transaction object.
    *
-   * Given that we both need access to the .i-value and the .p-value
+  * Given that we both need access to the .i-value and the .p-value
    * of all of those objects we store them on the block object to
    * avoid the need of transporting them from function to function.
    * This is an optimisation and obviously requires that one keeps
    * track of which variables are alive and which are not.
    * The function clear_global_variables used in debug mode ensures
    * that all pointer variables are cleared before an asynchronous
-   * signal is executed.
+  * signal is executed.
    *
-   * When we need to access data through the .p-value many times
-   * (more than one time), then it often pays off to declare a
-   * stack variable such as below regOperPtr. This helps the compiler
+  * When we need to access data through the .p-value many times
+  * (more than one time), then it often pays off to declare a
+  * stack variable such as below regOperPtr. This helps the compiler
    * to avoid having to constantly reload the .p-value from the
-   * block object after each store operation through a pointer.
+  * block object after each store operation through a pointer.
    *
-   * One has to take care though when doing this to ensure that
+  * One has to take care though when doing this to ensure that
    * one doesn't create a stack variable that creates too much
    * pressure on the register allocation in the method. This is
    * particularly important in large methods.
    *
    * The pattern is to define the variable as:
    * Operationrec * const regOperPtr = operPtr.p;
-   * This helps the compiler to understand that we won't change the
+  * This helps the compiler to understand that we won't change the
    * pointer here.
    */
   Operationrec * const regOperPtr= operPtr.p;
@@ -1349,16 +1695,16 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
      * --------------------------
      * This code segment is using a common design pattern in the
      * signal reception and signal sending code of performance
-     * critical functions such as execTUPKEYREQ.
+    * critical functions such as execTUPKEYREQ.
      * The idea is that at signal reception we need to transfer
-     * data from the signal object to state variables relating to
+    * data from the signal object to state variables relating to
      * the operation we are about to execute.
-     * The normal manner to do this would be to write:
+    * The normal manner to do this would be to write:
      * regOperPtr->savePointId = tupKeyReq->savePointId;
      * 
      * This normal manner would however not work so well due to
      * that the compiler has to issue assembler code that does
-     * a load operation immediately followed by a store operation.
+    * a load operation immediately followed by a store operation.
      * Many modern CPUs can hide parts of this deficiency in the
      * code, but only to a certain extent.
      *
@@ -1394,7 +1740,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
      * The naming pattern is to define the temporary variable as
      * const Uint32 name_of_variable_to_assign = x->name;
      * y->name_of_variable_to_assign = name_of_variable_to_assign.
-     * 
+    * 
      * In the case where the receiver of the data is a signal object
      * we use the pattern:
      * const Uint32 sig0 = x->name;
@@ -1479,10 +1825,10 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
       setup_fixed_part(&req_struct, regOperPtr, regTabPtr);
       /**
        * When coming here as a Query thread we must grab a mutex to ensure
-       * that the row version we see is written properly, once we have
+      * that the row version we see is written properly, once we have
        * retrieved the row version we need no more protection since the
        * next change either comes through an ABORT or a COMMIT operation
-       * and these are all exclusive access that first will ensure that no
+      * and these are all exclusive access that first will ensure that no
        * query threads are executing on the fragment before proceeding.
        */
       acquire_frag_mutex_read(regFragPtr, pageid, jamBuffer());
@@ -1532,11 +1878,11 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
        */
       returnTUPKEYCONF(signal, &req_struct, regOperPtr, TRANS_IDLE);
       return true;
-    }
+   }
     jamDebug();
     return false;
   }
-  /**
+ /**
    * DBQTUP can come here when executing restore, but query thread should
    * not arrive here.
    */
@@ -1570,7 +1916,7 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
   ndbassert(!isCopyTuple(pageid, pageidx));
   /**
    * Get pointer to tuple
-   */
+  */
   regOperPtr->m_tuple_location.m_page_no = loc_prepare_page_id;
   setup_fixed_tuple_ref_opt(&req_struct);
   setup_fixed_part(&req_struct, regOperPtr, regTabPtr);
@@ -1632,7 +1978,7 @@ do_insert:
          * committed yet, in this state the checksum isn't yet properly
          * set. Thus it makes no sense to verify it.
          */
-        if (tuple_ptr != nullptr &&
+       if (tuple_ptr != nullptr &&
             ((tuple_ptr->m_header_bits & Tuple_header::ALLOC) == 0) &&
             (regTabPtr->m_bits & Tablerec::TR_Checksum) &&
             (calculateChecksum(tuple_ptr, regTabPtr) != 0))
@@ -1643,9 +1989,9 @@ do_insert:
         /**
          * Prepare of INSERT operations is different dependent on whether the
          * row existed before or not (it can exist before if we had a DELETE
-         * operation before it in the same transaction). If the row didn't
+        * operation before it in the same transaction). If the row didn't
          * exist then no one can see the row until we have filled in the
-         * local key in DBACC which happens below in the call to accminupdate.
+        * local key in DBACC which happens below in the call to accminupdate.
          *
          * If the row existed before we need to grab a mutex to ensure that
          * concurrent key readers see a consistent view of the row. We need
@@ -1659,7 +2005,7 @@ do_insert:
          * trigger code. If the INSERT is aborted, the inserted row will
          * be visible to read operations from the same transaction for a
          * short time, but first of all reading rows concurrently with an
-         * INSERT does not deliver guaranteed results in the first place
+        * INSERT does not deliver guaranteed results in the first place
          * and second if the transaction aborts, it should not consider
          * the read value anyways. So it should be safe to release the
          * mutex and make the new row visible immediately after
@@ -1691,7 +2037,7 @@ do_insert:
         if (!regTabPtr->tuxCustomTriggers.isEmpty()) 
         {
           jam();
-          /**
+         /**
            * Ensure that no concurrent scans happens while I am
            * updating the TUX indexes.
            *
@@ -1764,7 +2110,7 @@ do_insert:
               regFragPtr, regTabPtr,
               &req_struct, disk_page != RNIL) == -1))
       {
-        return false;
+       return false;
       }
       /**
        * The lock on the TUP fragment is required to update header info on
@@ -1772,14 +2118,35 @@ do_insert:
        * handleUpdateReq and postpone updating the checksum under mutex
        * protection until after completing the call to handleUpdateReq.
        * This shortens the time we hold the mutex on the fragment part this
-       * row belongs to.
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regOperPtr,
+=======
+regOperPtr, regFragPtr,
+>>>>>>> MySQL 8.0.36
+ * row belongs to.
        *
        * We can execute other key reads from the query thread concurrently,
-       * thus we need to acquire a mutex while inserting the operation
+       * thus we need to acquire a mutex while inserting 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the operation
        * into the linked list of operations on the row.
        *
        * Scans will not run in parallel with parallel updates. So the lock
-       * on triggers is since we need to set the operation record in the
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ regFragPtr,
+                                               regTabPtr)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regTabPtr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  * on triggers is since we need to set the operation record in the
        * row header before executing the triggers. There is no need for the
        * lock though during execution of the immediate triggers.
        */
@@ -1850,13 +2217,13 @@ do_insert:
       if (unlikely(handleDeleteReq(signal, regOperPtr,
               regFragPtr, regTabPtr,
               &req_struct,
-              disk_page != RNIL) == -1))
+             disk_page != RNIL) == -1))
       {
         return false;
       }
 
       terrorCode = 0;
-      /**
+     /**
        * Prepare of DELETE operations only use shared access to fragments,
        * thus we need to insert the DELETE operation into the list of
        * of operations in a safe way to ensure that there is a well defined
@@ -1911,9 +2278,38 @@ do_refresh:
       jamDebug();
       c_lqh->upgrade_to_exclusive_frag_access_no_return();
       if (unlikely(handleRefreshReq(signal, operPtr,
-              prepare_fragptr, regTabPtr,
+           Operationrec *regOperPtr,
+  prepare_fragptr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regTabPtr,
+||||||| Common ancestor
+ Operationrec* regOperPtr,
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
               &req_struct, disk_page != RNIL) == -1))
-      {
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regTabPtr)
+=======
+*regTabPtr) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
         return false;
       }
       if (tuple_ptr)
@@ -1926,12 +2322,67 @@ do_refresh:
         jam();
         operPtr.p->op_struct.bit_field.in_active_list = true;
       }
-#if defined(VM_TRACE) || defined(ERROR_INSERT)
+<<<<<<< RonDB // RONDB-624 todo
+#if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+void
+Dbtup::setup_lcp_read_copy_tuple(KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+void Dbtup::setup_lcp_read_copy_tuple(KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+defined(VM
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_TRACE) || defined(ERROR_INSERT)
       /* Verify that we didn't mess up the checksum */
       if (tuple_ptr != nullptr &&
-          ((tuple_ptr->m_header_bits & Tuple_header::ALLOC) == 0) &&
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Operationrec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regOperPtr,
+=======
+*regOperPtr,
+>>>>>>> MySQL 8.0.36
+     ((tuple_ptr->m_header_bits & Tuple_header::ALLOC) == 0) &&
           (regTabPtr->m_bits & Tablerec::TR_Checksum) &&
-          (calculateChecksum(tuple_ptr, regTabPtr) != 0))
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(calculateChecksum(tuple_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *regTabPtr) != 0))
       {
         ndbabort();
       }
@@ -1994,8 +2445,7 @@ Dbtup::setup_lcp_read_copy_tuple(KeyReqStruct* req_struct,
   req_struct->attr_descr= tab_descr;
 
   bool disk = false;
-  if (regTabPtr->need_expand(disk))
-  {
+  if (regTabPtr->need_expand(disk)) {
     jam();
     prepare_read(req_struct, regTabPtr, disk);
   }
@@ -2005,8 +2455,18 @@ Dbtup::setup_lcp_read_copy_tuple(KeyReqStruct* req_struct,
 /* ------------------------ CONFIRM REQUEST ----------------------- */
 /* ---------------------------------------------------------------- */
 inline
-void Dbtup::returnTUPKEYCONF(Signal* signal,
-                             KeyReqStruct *req_struct,
+void Dbtup::returnTUPKEYCONF(Signal *signal,
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regOperPtr,
+=======
+                              Operationrec *regOperPtr,
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  KeyReqStruct *req_struct,
                              Operationrec * regOperPtr,
                              TransState trans_state)
 {
@@ -2018,82 +2478,82 @@ void Dbtup::returnTUPKEYCONF(Signal* signal,
    * shown useful by using the perf tool. So not an obvious prefetch.
    */
   NDB_PREFETCH_WRITE(regOperPtr);
-  TupKeyConf * tupKeyConf= (TupKeyConf *)signal->getDataPtrSend();  
+  TupKeyConf *tupKeyConf = (TupKeyConf *)signal->getDataPtrSend();
 
   Uint32 Rcreate_rowid = req_struct->m_use_rowid;
-  Uint32 RuserPointer= regOperPtr->userpointer;
-  Uint32 RnumFiredTriggers= req_struct->num_fired_triggers;
+  Uint32 RuserPointer = regOperPtr->userpointer;
+  Uint32 RnumFiredTriggers = req_struct->num_fired_triggers;
   const Uint32 RnoExecInstructions = req_struct->no_exec_instructions;
-  Uint32 log_size= req_struct->log_size;
-  Uint32 read_length= req_struct->read_length;
-  Uint32 last_row= req_struct->last_row;
+  Uint32 log_size = req_struct->log_size;
+  Uint32 read_length = req_struct->read_length;
+  Uint32 last_row = req_struct->last_row;
 
-  tupKeyConf->userPtr= RuserPointer;
-  tupKeyConf->readLength= read_length;
-  tupKeyConf->writeLength= log_size;
-  tupKeyConf->numFiredTriggers= RnumFiredTriggers;
-  tupKeyConf->lastRow= last_row;
+  tupKeyConf->userPtr = RuserPointer;
+  tupKeyConf->readLength = read_length;
+  tupKeyConf->writeLength = log_size;
+  tupKeyConf->numFiredTriggers = RnumFiredTriggers;
+  tupKeyConf->lastRow = last_row;
   tupKeyConf->rowid = Rcreate_rowid;
   tupKeyConf->noExecInstructions = RnoExecInstructions;
   set_tuple_state(regOperPtr, TUPLE_PREPARED);
   set_trans_state(regOperPtr, trans_state);
 }
 
-
 #define MAX_READ (MIN(sizeof(signal->theData), MAX_SEND_MESSAGE_BYTESIZE))
 
 /* ---------------------------------------------------------------- */
 /* ----------------------------- READ  ---------------------------- */
 /* ---------------------------------------------------------------- */
-int Dbtup::handleReadReq(Signal* signal,
-                         // UNUSED, is member of req_struct
+int Dbtup::handleReadReq(
+    Signal *signal,
+    // UNUSED, is member of req_struct
                          Operationrec* _regOperPtr,
-                         Tablerec* regTabPtr,
-                         KeyReqStruct* req_struct)
-{
+                         Tablerec *regTabPtr, KeyReqStruct *req_struct) {
   Uint32 *dst;
   Uint32 dstLen, start_index;
-  const BlockReference sendBref= req_struct->rec_blockref;
+  const BlockReference sendBref = req_struct->rec_blockref;
   const Uint32 node = refToNode(sendBref);
-  if(node != 0 && node != getOwnNodeId())
-  {
-    start_index= 25;
-  }
-  else
-  {
+  if (node != 0 && node != getOwnNodeId()) {
+    start_index = 25;
+  } else {
     jamDebug();
     /**
      * execute direct
      */
-    start_index= AttrInfo::HeaderLength;  //3;
+    start_index = AttrInfo::HeaderLength;  // 3;
   }
-  dst= &signal->theData[start_index];
-  dstLen= (MAX_READ / 4) - start_index;
-  if (!req_struct->interpreted_exec)
-  {
+  dst = &signal->theData[start_index];
+  dstLen = (MAX_READ / 4) - start_index;
+  if (!req_struct->interpreted_exec) {
     jamDebug();
-    int ret = readAttributes(req_struct,
-                             &cinBuffer[0],
-                             req_struct->attrinfo_len,
-                             dst,
-                             dstLen);
-    if (likely(ret >= 0))
-    {
-      /* ------------------------------------------------------------------------- */
+    int ret = readAttributes(req_struct, &cinBuffer[0],
+                             req_struct->attrinfo_len, dst, dstLen);
+    if (likely(ret >= 0)) {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+/* -------------------------------------------------------------------------
+       */
       // We have read all data into coutBuffer. Now send it to the API.
-      /* ------------------------------------------------------------------------- */
+      /* -------------------------------------------------------------------------
+       */
       jamDebug();
-      const Uint32 TnoOfDataRead= (Uint32) ret;
+      const Uint32 TnoOfDataRead = (Uint32)ret;
       sendReadAttrinfo(signal, req_struct, TnoOfDataRead);
       return 0;
-    }
-    else
-    {
+    } else {
       terrorCode = Uint32(-ret);
     }
-  }
-  else
-  {
+  } else {
     return interpreterStartLab(signal, req_struct);
   }
 
@@ -2102,30 +2562,26 @@ int Dbtup::handleReadReq(Signal* signal,
   return -1;
 }
 
-static
-Uint32
-get_reorg_flag(Dbtup::KeyReqStruct * req_struct,
-               Dbtup::Fragrecord::FragState state)
-{
+static Uint32 get_reorg_flag(Dbtup::KeyReqStruct *req_struct,
+                             Dbtup::Fragrecord::FragState state) {
   Uint32 reorg = req_struct->m_reorg;
-  switch(state){
-  case Dbtup::Fragrecord::FS_FREE:
-  case Dbtup::Fragrecord::FS_REORG_NEW:
-  case Dbtup::Fragrecord::FS_REORG_COMMIT_NEW:
-  case Dbtup::Fragrecord::FS_REORG_COMPLETE_NEW:
-    return 0;
-  case Dbtup::Fragrecord::FS_REORG_COMMIT:
-  case Dbtup::Fragrecord::FS_REORG_COMPLETE:
-    if (reorg != ScanFragReq::REORG_NOT_MOVED)
+  switch (state) {
+    case Dbtup::Fragrecord::FS_FREE:
+    case Dbtup::Fragrecord::FS_REORG_NEW:
+    case Dbtup::Fragrecord::FS_REORG_COMMIT_NEW:
+    case Dbtup::Fragrecord::FS_REORG_COMPLETE_NEW:
       return 0;
-    break;
-  case Dbtup::Fragrecord::FS_ONLINE:
-    if (reorg != ScanFragReq::REORG_MOVED &&
-        reorg != ScanFragReq::REORG_MOVED_COPY)
+    case Dbtup::Fragrecord::FS_REORG_COMMIT:
+    case Dbtup::Fragrecord::FS_REORG_COMPLETE:
+      if (reorg != ScanFragReq::REORG_NOT_MOVED) return 0;
+      break;
+    case Dbtup::Fragrecord::FS_ONLINE:
+      if (reorg != ScanFragReq::REORG_MOVED &&
+          reorg != ScanFragReq::REORG_MOVED_COPY)
+        return 0;
+      break;
+    default:
       return 0;
-    break;
-  default:
-    return 0;
   }
 
   return Dbtup::Tuple_header::REORG_MOVE;
@@ -2134,39 +2590,42 @@ get_reorg_flag(Dbtup::KeyReqStruct * req_struct,
 /* ---------------------------------------------------------------- */
 /* ---------------------------- UPDATE ---------------------------- */
 /* ---------------------------------------------------------------- */
-int Dbtup::handleUpdateReq(Signal* signal,
-                           Operationrec* operPtrP,
-                           Fragrecord* regFragPtr,
-                           Tablerec* regTabPtr,
-                           KeyReqStruct* req_struct,
-                           bool disk) 
-{
+int Dbtup::handleUpdateReq(Signal *signal, Operationrec *operPtrP,
+                           Fragrecord *regFragPtr, Tablerec *regTabPtr,
+                           KeyReqStruct *req_struct,
+                           bool disk) {
   Tuple_header *dst;
-  Tuple_header *base= req_struct->m_tuple_ptr, *org;
-  ChangeMask * change_mask_ptr;
-  if (unlikely((dst= alloc_copy_tuple(regTabPtr,
-            &operPtrP->m_copy_tuple_location)) == 0))
-  {
-    terrorCode= ZNO_COPY_TUPLE_MEMORY_ERROR;
+  Tuple_header *base = req_struct->m_tuple_ptr, *org;
+  ChangeMask *change_mask_ptr;
+  if (unlikely((dst = alloc_copy_tuple(
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        regTabPtr, 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+&operPtrP->m_copy_tuple_location)) == 0)) {
+    terrorCode = ZNO_COPY_TUPLE_MEMORY_ERROR;
     goto error;
   }
 
   Uint32 tup_version;
   change_mask_ptr = get_change_mask_ptr(regTabPtr, dst);
-  if (likely(operPtrP->is_first_operation()))
-  {
+  if (likely(operPtrP->is_first_operation())) {
     jamDebug();
-    org= req_struct->m_tuple_ptr;
-    tup_version= org->get_tuple_version();
+    org = req_struct->m_tuple_ptr;
+    tup_version = org->get_tuple_version();
     clear_change_mask_info(regTabPtr, change_mask_ptr);
-  }
-  else
-  {
+  } else {
     jam();
-    Operationrec* prevOp= req_struct->prevOpPtr.p;
-    tup_version= prevOp->op_struct.bit_field.tupVersion;
-    Uint32 * rawptr = get_copy_tuple_raw(&prevOp->m_copy_tuple_location);
-    org= get_copy_tuple(rawptr);
+    Operationrec *prevOp = req_struct->prevOpPtr.p;
+    tup_version = prevOp->op_struct.bit_field.tupVersion;
+    Uint32 *rawptr = get_copy_tuple_raw(&prevOp->m_copy_tuple_location);
+    org = get_copy_tuple(rawptr);
     copy_change_mask_info(regTabPtr,
         change_mask_ptr,
         get_change_mask_ptr(rawptr));
@@ -2177,31 +2636,28 @@ int Dbtup::handleUpdateReq(Signal* signal,
    * Any updates made to the row and checksum is performed by the LDM
    * thread and thus protected by being in the same thread.
    */
-  req_struct->m_tuple_ptr= org;
+  req_struct->m_tuple_ptr = org;
   if (unlikely((regTabPtr->m_bits & Tablerec::TR_Checksum) &&
-        (calculateChecksum(req_struct->m_tuple_ptr, regTabPtr) != 0)))
-  {
+        (calculateChecksum(req_struct->m_tuple_ptr, regTabPtr) != 0))) {
     jam();
     return corruptedTupleDetected(req_struct, regTabPtr);
   }
 
-  req_struct->m_tuple_ptr= dst;
+  req_struct->m_tuple_ptr = dst;
   union {
     Uint32 sizes[4];
     Uint64 cmp[2];
   };
 
   disk = disk || (org->m_header_bits & Tuple_header::DISK_INLINE);
-  if (regTabPtr->need_expand(disk))
-  {
+  if (regTabPtr->need_expand(disk)) {
     jamDebug();
     expand_tuple(req_struct, sizes, org, regTabPtr, disk);
-    if (disk && operPtrP->m_undo_buffer_space == 0)
-    {
+    if (disk && operPtrP->m_undo_buffer_space == 0) {
       jam();
       operPtrP->op_struct.bit_field.m_wait_log_buffer = 1;
       operPtrP->op_struct.bit_field.m_load_diskpage_on_commit = 1;
-      operPtrP->m_undo_buffer_space= 
+      operPtrP->m_undo_buffer_space =
         (sizeof(Dbtup::Disk_undo::Update_Free) >> 2) + sizes[DD] - 1;
       jamDataDebug(operPtrP->m_undo_buffer_space);
 
@@ -2212,55 +2668,48 @@ int Dbtup::handleUpdateReq(Signal* signal,
               instance(),
               __LINE__,
               operPtrP->m_undo_buffer_space));
-        terrorCode= lgman.alloc_log_space(operPtrP->m_undo_buffer_space,
+        terrorCode =
+            lgman.alloc_log_space(operPtrP->m_undo_buffer_space,
             true,
             !req_struct->m_nr_copy_or_redo,
             jamBuffer());
       }
-      if(unlikely(terrorCode))
-      {
+      if (unlikely(terrorCode)) {
         jam();
-        operPtrP->m_undo_buffer_space= 0;
+        operPtrP->m_undo_buffer_space = 0;
         goto error;
       }
     }
-  }
-  else
-  {
-    memcpy(dst, org, 4*regTabPtr->m_offsets[MM].m_fix_header_size);
+  } else {
+    memcpy(dst, org, 4 * regTabPtr->m_offsets[MM].m_fix_header_size);
     req_struct->m_tuple_ptr->m_header_bits |= Tuple_header::COPY_TUPLE;
   }
 
-  tup_version= (tup_version + 1) & ZTUP_VERSION_MASK;
-  operPtrP->op_struct.bit_field.tupVersion= tup_version;
+  tup_version = (tup_version + 1) & ZTUP_VERSION_MASK;
+  operPtrP->op_struct.bit_field.tupVersion = tup_version;
 
   req_struct->optimize_options = 0;
 
-  if (!req_struct->interpreted_exec)
-  {
+  if (!req_struct->interpreted_exec) {
     jamDebug();
 
-    if (unlikely(regTabPtr->m_bits & Tablerec::TR_ExtraRowAuthorBits))
-    {
+    if (unlikely(regTabPtr->m_bits & Tablerec::TR_ExtraRowAuthorBits)) {
       jam();
       Uint32 attrId =
-        regTabPtr->getExtraAttrId<Tablerec::TR_ExtraRowAuthorBits>();
+          regTabPtr->getExtraAttrId<Tablerec::TR_ExtraRowAuthorBits>();
 
       store_extra_row_bits(attrId, regTabPtr, dst, /* default */ 0, false);
     }
-    int retValue = updateAttributes(req_struct,
+    int retValue =
+        updateAttributes(req_struct,
         &cinBuffer[0],
         req_struct->attrinfo_len);
-    if (unlikely(retValue < 0))
-    {
+    if (unlikely(retValue < 0)) {
       terrorCode = Uint32(-retValue);
       goto error;
     }
-  }
-  else
-  {
-    if (unlikely(interpreterStartLab(signal, req_struct) == -1))
-      return -1;
+  } else {
+    if (unlikely(interpreterStartLab(signal, req_struct) == -1)) return -1;
   }
 
   update_change_mask_info(regTabPtr,
@@ -2273,41 +2722,71 @@ int Dbtup::handleUpdateReq(Signal* signal,
        * optimize varpart of tuple,  move varpart of tuple from
        * big-free-size page list into small-free-size page list
        */
-      if(base->m_header_bits & Tuple_header::VAR_PART)
-      {
+      if (base->m_header_bits & Tuple_header::VAR_PART) {
         jam();
         optimize_var_part(req_struct, base, operPtrP,
             regFragPtr, regTabPtr);
       }
       break;
     case AttributeHeader::OPTIMIZE_MOVE_FIXPART:
-      //TODO: move fix part of tuple
+      // TODO: move fix part of tuple
       break;
     default:
       break;
   }
 
-  if (regTabPtr->need_shrink())
-  {
+  if (regTabPtr->need_shrink()) {
     jamDebug();
-    shrink_tuple(req_struct, sizes+2, regTabPtr, disk);
+    shrink_tuple(req_struct, sizes + 2, regTabPtr, disk);
     if (cmp[0] != cmp[1] &&
         ((handle_size_change_after_update(signal,
                                           req_struct,
-                                          base,
-                                          operPtrP,
-                                          regFragPtr,
-                                          regTabPtr,
-                                          sizes)) != 0))
+                                        base, operPtrP, regFragPtr,
+                                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+operPtrP,
+                                      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+operPtrP,
+							
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regFragPtr,
+                                      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regFragPtr,
+							
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regTabPtr,
+                                      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regTabPtr,
+							
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                            regTabPtr, sizes)) != 0))
     {
       goto error;
     }
   }
 
-  if (req_struct->m_reorg != ScanFragReq::REORG_ALL)
-  {
+  if (req_struct->m_reorg != ScanFragReq::REORG_ALL) {
     req_struct->m_tuple_ptr->m_header_bits |=
-      get_reorg_flag(req_struct, regFragPtr->fragStatus);
+        get_reorg_flag(req_struct, regFragPtr->fragStatus);
   }
 
   req_struct->m_tuple_ptr->set_tuple_version(tup_version);
@@ -2341,77 +2820,69 @@ error:
    tabDesc     Array of table descriptors
    order       Array of indexes into tabDesc, dynfix followed by dynvar
  */
-static
-Uint32*
-expand_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
-                const Uint32* src,
+static Uint32 *expand_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
+                const Uint32 *src,
                 Uint32 row_len,
-                const Uint32 * tabDesc,
-                const Uint16* order,
+                const Uint32 *tabDesc,
+                const Uint16 *order,
                 Uint32 dynvar,
                 Uint32 dynfix,
-                Uint32 max_bmlen)
-{
+                Uint32 max_bmlen) {
   /* Copy the bitmap, zeroing out any words not stored in the row. */
-  Uint32 *dst_bm_ptr= (Uint32*)dst->m_dyn_data_ptr;
-  Uint32 bm_len = row_len ? (* src & Dbtup::DYN_BM_LEN_MASK) : 0;
+  Uint32 *dst_bm_ptr = (Uint32 *)dst->m_dyn_data_ptr;
+  Uint32 bm_len = row_len ? (*src & Dbtup::DYN_BM_LEN_MASK) : 0;
 
   assert(bm_len <= max_bmlen);
 
-  if(bm_len > 0)
-    memcpy(dst_bm_ptr, src, 4*bm_len);
-  if(bm_len < max_bmlen)
+  if (bm_len > 0) memcpy(dst_bm_ptr, src, 4 * bm_len);
+  if (bm_len < max_bmlen)
     std::memset(dst_bm_ptr + bm_len, 0, 4 * (max_bmlen - bm_len));
 
   /**
    * Store max_bmlen for homogenous code in DbtupRoutines
    */
-  Uint32 tmp = (* dst_bm_ptr);
-  * dst_bm_ptr = (tmp & ~(Uint32)Dbtup::DYN_BM_LEN_MASK) | max_bmlen;
+  Uint32 tmp = (*dst_bm_ptr);
+  *dst_bm_ptr = (tmp & ~(Uint32)Dbtup::DYN_BM_LEN_MASK) | max_bmlen;
 
-  char *src_off_start= (char*)(src + bm_len);
-  assert((UintPtr(src_off_start)&3) == 0);
-  Uint16 *src_off_ptr= (Uint16*)src_off_start;
+  char *src_off_start = (char *)(src + bm_len);
+  assert((UintPtr(src_off_start) & 3) == 0);
+  Uint16 *src_off_ptr = (Uint16 *)src_off_start;
 
   /*
      Prepare the variable-sized dynamic attributes, copying out data from the
      source row for any that are not NULL.
    */
-  Uint32 no_attr= dst->m_dyn_len_offset;
-  Uint16* dst_off_ptr= dst->m_dyn_offset_arr_ptr;
-  Uint16* dst_len_ptr= dst_off_ptr + no_attr;
-  Uint16 this_src_off= row_len ? * src_off_ptr++ : 0;
+  Uint32 no_attr = dst->m_dyn_len_offset;
+  Uint16 *dst_off_ptr = dst->m_dyn_offset_arr_ptr;
+  Uint16 *dst_len_ptr = dst_off_ptr + no_attr;
+  Uint16 this_src_off = row_len ? *src_off_ptr++ : 0;
   /* We need to reserve room for the offsets written by shrink_tuple+padding.*/
-  Uint16 dst_off= 4 * (max_bmlen + ((dynvar+2)>>1));
-  char *dst_ptr= (char*)dst_bm_ptr + dst_off;
-  for(Uint32 i= 0; i<dynvar; i++)
-  {
-    Uint16 j= order[dynfix+i];
-    Uint32 max_len= 4 *AttributeDescriptor::getSizeInWords(tabDesc[j]);
+  Uint16 dst_off = 4 * (max_bmlen + ((dynvar + 2) >> 1));
+  char *dst_ptr = (char *)dst_bm_ptr + dst_off;
+  for (Uint32 i = 0; i < dynvar; i++) {
+    Uint16 j = order[dynfix + i];
+    Uint32 max_len = 4 * AttributeDescriptor::getSizeInWords(tabDesc[j]);
     Uint32 len;
-    Uint32 pos = AttributeOffset::getNullFlagPos(tabDesc[j+1]);
-    if(bm_len > (pos >> 5) && BitmaskImpl::get(bm_len, src, pos))
-    {
-      Uint16 next_src_off= *src_off_ptr++;
-      len= next_src_off - this_src_off;
-      memcpy(dst_ptr, src_off_start+this_src_off, len);
-      this_src_off= next_src_off;
+    Uint32 pos = AttributeOffset::getNullFlagPos(tabDesc[j + 1]);
+    if (bm_len > (pos >> 5) && BitmaskImpl::get(bm_len, src, pos)) {
+      Uint16 next_src_off = *src_off_ptr++;
+      len = next_src_off - this_src_off;
+      memcpy(dst_ptr, src_off_start + this_src_off, len);
+      this_src_off = next_src_off;
+    } else {
+      len = 0;
     }
-    else
-    {
-      len= 0;
-    }
-    dst_off_ptr[i]= dst_off;
-    dst_len_ptr[i]= dst_off+len;
-    dst_off+= max_len;
-    dst_ptr+= max_len;
+    dst_off_ptr[i] = dst_off;
+    dst_len_ptr[i] = dst_off + len;
+    dst_off += max_len;
+    dst_ptr += max_len;
   }
   /*
      The fixed-size data is stored 32-bit aligned after the variable-sized
      data.
    */
-  char *src_ptr= src_off_start+this_src_off;
-  src_ptr= (char *)(ALIGN_WORD(src_ptr));
+  char *src_ptr = src_off_start + this_src_off;
+  src_ptr = (char *)(ALIGN_WORD(src_ptr));
 
   /*
      Prepare the fixed-size dynamic attributes, copying out data from the
@@ -2420,46 +2891,37 @@ expand_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
      dynamic part of the row. This is true both for the stored/shrunken and
      for the expanded form.
    */
-  for(Uint32 i= dynfix; i>0; )
-  {
+  for (Uint32 i = dynfix; i > 0;) {
     i--;
-    Uint16 j= order[i];
-    Uint32 fix_size= 4*AttributeDescriptor::getSizeInWords(tabDesc[j]);
-    dst_off_ptr[dynvar+i]= dst_off;
+    Uint16 j = order[i];
+    Uint32 fix_size = 4 * AttributeDescriptor::getSizeInWords(tabDesc[j]);
+    dst_off_ptr[dynvar + i] = dst_off;
     /* len offset array is not used for fixed size. */
-    Uint32 pos = AttributeOffset::getNullFlagPos(tabDesc[j+1]);
-    if(bm_len > (pos >> 5) && BitmaskImpl::get(bm_len, src, pos))
-    {
-      assert((UintPtr(dst_ptr)&3) == 0);
+    Uint32 pos = AttributeOffset::getNullFlagPos(tabDesc[j + 1]);
+    if (bm_len > (pos >> 5) && BitmaskImpl::get(bm_len, src, pos)) {
+      assert((UintPtr(dst_ptr) & 3) == 0);
       memcpy(dst_ptr, src_ptr, fix_size);
-      src_ptr+= fix_size;
+      src_ptr += fix_size;
     }
-    dst_off+= fix_size;
-    dst_ptr+= fix_size;
+    dst_off += fix_size;
+    dst_ptr += fix_size;
   }
 
   return (Uint32 *)dst_ptr;
 }
 
-static
-Uint32*
-shrink_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
-                Uint32 *dst_ptr,
-                const Dbtup::Tablerec* tabPtrP,
-                const Uint32 * tabDesc,
-                const Uint16* order,
-                Uint32 dynvar,
-                Uint32 dynfix,
-                Uint32 ind)
-{
+static Uint32 *shrink_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
+                               Uint32 *dst_ptr, const Dbtup::Tablerec *tabPtrP,
+                               const Uint32 *tabDesc, const Uint16 *order,
+                               Uint32 dynvar, Uint32 dynfix, Uint32 ind) {
   /**
    * Now build the dynamic part, if any.
    * First look for any trailing all-NULL words of the bitmap; we do
    * not need to store those.
    */
-  assert((UintPtr(dst->m_dyn_data_ptr)&3) == 0);
-  char *dyn_src_ptr= dst->m_dyn_data_ptr;
-  Uint32 bm_len = tabPtrP->m_offsets[ind].m_dyn_null_words; // In words
+  assert((UintPtr(dst->m_dyn_data_ptr) & 3) == 0);
+  char *dyn_src_ptr = dst->m_dyn_data_ptr;
+  Uint32 bm_len = tabPtrP->m_offsets[ind].m_dyn_null_words;  // In words
 
   /* If no dynamic variables, store nothing. */
   assert(bm_len);
@@ -2468,50 +2930,45 @@ shrink_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
      * clear bm-len bits, so they won't incorrect indicate
      *   a non-zero map
      */
-    * ((Uint32 *)dyn_src_ptr) &= ~Uint32(Dbtup::DYN_BM_LEN_MASK);
+    *((Uint32 *)dyn_src_ptr) &= ~Uint32(Dbtup::DYN_BM_LEN_MASK);
 
-    Uint32 *bm_ptr= (Uint32 *)dyn_src_ptr + bm_len - 1;
-    while(*bm_ptr == 0)
-    {
+    Uint32 *bm_ptr = (Uint32 *)dyn_src_ptr + bm_len - 1;
+    while (*bm_ptr == 0) {
       bm_ptr--;
       bm_len--;
-      if(bm_len == 0)
-        break;
+      if (bm_len == 0) break;
     }
   }
 
-  if (bm_len)
-  {
+  if (bm_len) {
     /**
      * Copy the bitmap, counting the number of variable sized
      * attributes that are not NULL on the way.
      */
-    Uint32 *dyn_dst_ptr= dst_ptr;
-    Uint32 dyn_var_count= 0;
-    const Uint32 *src_bm_ptr= (Uint32 *)(dyn_src_ptr);
-    Uint32 *dst_bm_ptr= (Uint32 *)dyn_dst_ptr;
+    Uint32 *dyn_dst_ptr = dst_ptr;
+    Uint32 dyn_var_count = 0;
+    const Uint32 *src_bm_ptr = (Uint32 *)(dyn_src_ptr);
+    Uint32 *dst_bm_ptr = (Uint32 *)dyn_dst_ptr;
 
     /* ToDo: Put all of the dynattr code inside if(bm_len>0) { ... },
      * split to separate function. */
-    Uint16 dyn_dst_data_offset= 0;
-    const Uint32 *dyn_bm_var_mask_ptr= tabPtrP->dynVarSizeMask[ind];
-    for(Uint16 i= 0; i< bm_len; i++)
-    {
-      Uint32 v= src_bm_ptr[i];
-      dyn_var_count+= BitmaskImpl::count_bits(v & *dyn_bm_var_mask_ptr++);
-      dst_bm_ptr[i]= v;
+    Uint16 dyn_dst_data_offset = 0;
+    const Uint32 *dyn_bm_var_mask_ptr = tabPtrP->dynVarSizeMask[ind];
+    for (Uint16 i = 0; i < bm_len; i++) {
+      Uint32 v = src_bm_ptr[i];
+      dyn_var_count += BitmaskImpl::count_bits(v & *dyn_bm_var_mask_ptr++);
+      dst_bm_ptr[i] = v;
     }
 
     Uint32 tmp = *dyn_dst_ptr;
     assert(bm_len <= Dbtup::DYN_BM_LEN_MASK);
-    * dyn_dst_ptr = (tmp & ~(Uint32)Dbtup::DYN_BM_LEN_MASK) | bm_len;
-    dyn_dst_ptr+= bm_len;
-    dyn_dst_data_offset= 2*dyn_var_count + 2;
+    *dyn_dst_ptr = (tmp & ~(Uint32)Dbtup::DYN_BM_LEN_MASK) | bm_len;
+    dyn_dst_ptr += bm_len;
+    dyn_dst_data_offset = 2 * dyn_var_count + 2;
 
-    Uint16 *dyn_src_off_array= dst->m_dyn_offset_arr_ptr;
-    Uint16 *dyn_src_lenoff_array=
-      dyn_src_off_array + dst->m_dyn_len_offset;
-    Uint16* dyn_dst_off_array = (Uint16*)dyn_dst_ptr;
+    Uint16 *dyn_src_off_array = dst->m_dyn_offset_arr_ptr;
+    Uint16 *dyn_src_lenoff_array = dyn_src_off_array + dst->m_dyn_len_offset;
+    Uint16 *dyn_dst_off_array = (Uint16 *)dyn_dst_ptr;
 
     /**
      * Copy over the variable sized not-NULL attributes.
@@ -2519,39 +2976,38 @@ shrink_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
      * we store one additional offset to be able to easily compute the
      * data length as the difference between offsets.
      */
-    Uint16 off_idx= 0;
-    for(Uint32 i= 0; i<dynvar; i++)
-    {
+    Uint16 off_idx = 0;
+    for (Uint32 i = 0; i < dynvar; i++) {
       /**
        * Note that we must use the destination (shrunken) bitmap here,
        * as the source (expanded) bitmap may have been already clobbered
        * (by offset data).
        */
-      Uint32 attrDesc2 = tabDesc[order[dynfix+i]+1];
+      Uint32 attrDesc2 = tabDesc[order[dynfix + i] + 1];
       Uint32 pos = AttributeOffset::getNullFlagPos(attrDesc2);
-      if (bm_len > (pos >> 5) && BitmaskImpl::get(bm_len, dst_bm_ptr, pos))
-      {
-        dyn_dst_off_array[off_idx++]= dyn_dst_data_offset;
-        Uint32 dyn_src_off= dyn_src_off_array[i];
-        Uint32 dyn_len= dyn_src_lenoff_array[i] - dyn_src_off;
+      if (bm_len > (pos >> 5) && BitmaskImpl::get(bm_len, dst_bm_ptr, pos)) {
+        dyn_dst_off_array[off_idx++] = dyn_dst_data_offset;
+        Uint32 dyn_src_off = dyn_src_off_array[i];
+        Uint32 dyn_len = dyn_src_lenoff_array[i] - dyn_src_off;
         memmove(((char *)dyn_dst_ptr) + dyn_dst_data_offset,
             dyn_src_ptr + dyn_src_off,
             dyn_len);
-        dyn_dst_data_offset+= dyn_len;
+        dyn_dst_data_offset += dyn_len;
       }
     }
     /* If all dynamic attributes are NULL, we store nothing. */
-    dyn_dst_off_array[off_idx]= dyn_dst_data_offset;
-    assert(dyn_dst_off_array + off_idx == (Uint16*)dyn_dst_ptr+dyn_var_count);
+    dyn_dst_off_array[off_idx] = dyn_dst_data_offset;
+    assert(dyn_dst_off_array + off_idx ==
+           (Uint16 *)dyn_dst_ptr + dyn_var_count);
 
-    char *dynvar_end_ptr= ((char *)dyn_dst_ptr) + dyn_dst_data_offset;
-    char *dyn_dst_data_ptr= (char *)(ALIGN_WORD(dynvar_end_ptr));
+    char *dynvar_end_ptr = ((char *)dyn_dst_ptr) + dyn_dst_data_offset;
+    char *dyn_dst_data_ptr = (char *)(ALIGN_WORD(dynvar_end_ptr));
 
     /**
      * Zero out any padding bytes. Might not be strictly necessary,
      * but seems cleaner than leaving random stuff in there.
      */
-    std::memset(dynvar_end_ptr, 0, dyn_dst_data_ptr-dynvar_end_ptr);
+    std::memset(dynvar_end_ptr, 0, dyn_dst_data_ptr - dynvar_end_ptr);
 
     /* *
      * Copy over the fixed-sized not-NULL attributes.
@@ -2559,23 +3015,20 @@ shrink_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
      * overwriting not-yet-copied data, as the data is also stored in
      * reverse order.
      */
-    for(Uint32 i= dynfix; i > 0; )
-    {
+    for (Uint32 i = dynfix; i > 0;) {
       i--;
-      Uint16 j= order[i];
-      Uint32 attrDesc2 = tabDesc[j+1];
+      Uint16 j = order[i];
+      Uint32 attrDesc2 = tabDesc[j + 1];
       Uint32 pos = AttributeOffset::getNullFlagPos(attrDesc2);
-      if(bm_len > (pos >>5 ) && BitmaskImpl::get(bm_len, dst_bm_ptr, pos))
-      {
-        Uint32 fixsize=
-          4*AttributeDescriptor::getSizeInWords(tabDesc[j]);
+      if (bm_len > (pos >> 5) && BitmaskImpl::get(bm_len, dst_bm_ptr, pos)) {
+        Uint32 fixsize = 4 * AttributeDescriptor::getSizeInWords(tabDesc[j]);
         memmove(dyn_dst_data_ptr,
-            dyn_src_ptr + dyn_src_off_array[dynvar+i],
+            dyn_src_ptr + dyn_src_off_array[dynvar + i],
             fixsize);
         dyn_dst_data_ptr += fixsize;
       }
     }
-    dst_ptr = (Uint32*)dyn_dst_data_ptr;
+    dst_ptr = (Uint32 *)dyn_dst_data_ptr;
     assert((UintPtr(dst_ptr) & 3) == 0);
   }
   return (Uint32 *)dst_ptr;
@@ -2584,36 +3037,45 @@ shrink_dyn_part(Dbtup::KeyReqStruct::Var_data *dst,
 /* ---------------------------------------------------------------- */
 /* ----------------------------- INSERT --------------------------- */
 /* ---------------------------------------------------------------- */
-void
-Dbtup::prepare_initial_insert(KeyReqStruct *req_struct, 
-                              Operationrec* regOperPtr,
-                              Tablerec* regTabPtr,
-                              bool is_refresh)
-{
-  Uint32 disk_undo = ((regTabPtr->m_no_of_disk_attributes > 0) &&
-      !is_refresh) ? 
-    sizeof(Dbtup::Disk_undo::Alloc) >> 2 : 0;
-  regOperPtr->m_undo_buffer_space= disk_undo;
+void Dbtup::prepare_initial_insert(KeyReqStruct *req_struct,
+                              Operationrec *regOperPtr,
+                                                           Tablerec *regTabPtr, bool is_refresh) {
+  Uint32 disk_undo = ((regTabPtr->m_no_of_disk_attributes > 0) && !is_refresh)
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!is_refresh)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                 !is_refresh)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     ? sizeof(Dbtup::Disk_undo::Alloc) >> 2
+                         : 0;
+  regOperPtr->m_undo_buffer_space = disk_undo;
   jamDebug();
   jamDataDebug(regOperPtr->m_undo_buffer_space);
 
-  req_struct->check_offset[MM]= regTabPtr->get_check_offset(MM);
-  req_struct->check_offset[DD]= regTabPtr->get_check_offset(DD);
+  req_struct->check_offset[MM] = regTabPtr->get_check_offset(MM);
+  req_struct->check_offset[DD] = regTabPtr->get_check_offset(DD);
 
   Uint16* order = regTabPtr->m_real_order_descriptor;
   Uint32 *tab_descr = regTabPtr->tabDescriptor;
-  req_struct->attr_descr = tab_descr; 
+  req_struct->attr_descr = tab_descr;
 
   Uint32 bits = Tuple_header::COPY_TUPLE;
-  bits |= disk_undo ? (Tuple_header::DISK_ALLOC|Tuple_header::DISK_INLINE) : 0;
+  bits |=
+      disk_undo ? (Tuple_header::DISK_ALLOC | Tuple_header::DISK_INLINE) : 0;
   req_struct->m_tuple_ptr->m_header_bits= bits;
 
-  Uint32 *ptr= req_struct->m_tuple_ptr->get_end_of_fix_part_ptr(regTabPtr);
-  Var_part_ref* ref = req_struct->m_tuple_ptr->get_var_part_ref_ptr(regTabPtr);
+  Uint32 *ptr = req_struct->m_tuple_ptr->get_end_of_fix_part_ptr(regTabPtr);
+  Var_part_ref *ref = req_struct->m_tuple_ptr->get_var_part_ref_ptr(regTabPtr);
 
-  if (regTabPtr->m_bits & Tablerec::TR_ForceVarPart)
-  {
-    ref->m_page_no = RNIL; 
+  if (regTabPtr->m_bits & Tablerec::TR_ForceVarPart) {
+    ref->m_page_no = RNIL;
     ref->m_page_idx = Tup_varsize_page::END_OF_FREE_LIST;
   }
 
@@ -2623,8 +3085,7 @@ Dbtup::prepare_initial_insert(KeyReqStruct *req_struct,
     const Uint32 num_vars= regTabPtr->m_attributes[ind].m_no_of_varsize;
     const Uint32 num_dyns= regTabPtr->m_attributes[ind].m_no_of_dynamic;
 
-    if (ind == DD)
-    {
+    if (ind == DD) {
       jamDebug();
       Uint32 disk_fix_header_size =
         regTabPtr->m_offsets[DD].m_fix_header_size;
@@ -2650,47 +3111,69 @@ Dbtup::prepare_initial_insert(KeyReqStruct *req_struct,
         jamDebug();
         dst->m_data_ptr= (char*)(((Uint16*)ptr)+num_vars+1);
         dst->m_offset_array_ptr= req_struct->var_pos_array[ind];
-        dst->m_var_len_offset= num_vars;
-        dst->m_max_var_offset= regTabPtr->m_offsets[ind].m_max_var_offset;
+        dst->m_var_len_offset = num_vars;
+        dst->m_max_var_offset = regTabPtr->m_offsets[ind].m_max_var_offset;
 
-        Uint32 pos= 0;
+        Uint32 pos = 0;
         Uint16 *pos_ptr = req_struct->var_pos_array[ind];
         Uint16 *len_ptr = pos_ptr + num_vars;
-        for (Uint32 i = 0; i < num_vars; i++)
-        {
-          * pos_ptr++ = pos;
-          * len_ptr++ = pos;
-          pos += AttributeDescriptor::getSizeInBytes(
-              tab_descr[*order++]);
+        for (Uint32 i = 0; i < num_vars; i++)   {
+          *pos_ptr++ = pos;
+          *len_ptr++ = pos;
+          pos +=
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AttributeDescriptor::getSizeInBytes(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+tab_descr[*order++]);
           jamDebug();
           jamDataDebug(pos);
         }
 
         // Disk/dynamic part is 32-bit aligned
-        ptr = ALIGN_WORD(dst->m_data_ptr+pos);
-        ndbassert(ptr == ALIGN_WORD(dst->m_data_ptr + 
+        ptr = ALIGN_WORD(dst->m_data_ptr + pos);
+        ndbassert(ptr == ALIGN_WORD(dst->m_data_ptr +
               regTabPtr->m_offsets[ind].m_max_var_offset));
       }
 
-      if (num_dyns)
-      {
+      if (num_dyns)   {
         const Uint32 num_dynvar= regTabPtr->m_attributes[ind].m_no_of_dyn_var;
         const Uint32 num_dynfix= regTabPtr->m_attributes[ind].m_no_of_dyn_fix;
         jam();
         /* Prepare empty dynamic part. */
-        dst->m_dyn_data_ptr= (char *)ptr;
-        dst->m_dyn_offset_arr_ptr= req_struct->var_pos_array[ind]+2*num_vars;
-        dst->m_dyn_len_offset= num_dynvar+num_dynfix;
-        dst->m_max_dyn_offset= regTabPtr->m_offsets[ind].m_max_dyn_offset;
+        dst->m_dyn_data_ptr = (char *)ptr;
+        dst->m_dyn_offset_arr_ptr = req_struct->var_pos_array[ind]+ 2 *num_vars;
+        dst->m_dyn_len_offset = num_dynvar +num_dynfix;
+        dst->m_max_dyn_offset = regTabPtr->m_offsets[ind].m_max_dyn_offset;
 
-        ptr = expand_dyn_part(dst,
+     ptr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      expand_dyn_part(dst,
             0,
             0,
-            (Uint32*)tab_descr,
+            (Uint32 *)tab_descr,
             order,
             num_dynvar,
             num_dynfix,
-            regTabPtr->m_offsets[ind].m_dyn_null_words);
+          mm_dynfix, regTabPtr->m_offsets[ind].m_dyn_null_words);
         order += (num_dynvar + num_dynfix);
       }
 
@@ -2706,24 +3189,43 @@ Dbtup::prepare_initial_insert(KeyReqStruct *req_struct,
   *req_struct->m_tuple_ptr->get_mm_gci(regTabPtr) = 0;
 
   // Set all null bits
-  std::memset(req_struct->m_tuple_ptr->m_null_bits+
-      regTabPtr->m_offsets[MM].m_null_offset, 0xFF,
-      4*regTabPtr->m_offsets[MM].m_null_words);
-  std::memset(req_struct->m_disk_ptr->m_null_bits+
-      regTabPtr->m_offsets[DD].m_null_offset, 0xFF,
-      4*regTabPtr->m_offsets[DD].m_null_words);
+  std::memset(req_struct->m_tuple_ptr->m_null_bits +
+      regTabPtr->m_offsets[MM].m_null_offset,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        0xFF, 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+4 * regTabPtr->m_offsets[MM].m_null_words);
+  std::memset(req_struct->m_disk_ptr->m_null_bits +
+      regTabPtr->m_offsets[DD].m_null_offset,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        0xFF, 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+4 * regTabPtr->m_offsets[DD].m_null_words);
 }
 
-int Dbtup::handleInsertReq(Signal* signal,
+int Dbtup::handleInsertReq(Signal *signal,
     Ptr<Operationrec> regOperPtr,
     FragrecordPtr fragPtr,
-    Tablerec* regTabPtr,
+    Tablerec *regTabPtr,
     KeyReqStruct *req_struct,
-    Local_key ** accminupdateptr,
-    bool is_refresh)
-{
+    Local_key **accminupdateptr,
+    bool is_refresh) {
   Uint32 tup_version = 1;
-  Fragrecord* regFragPtr = fragPtr.p;
+  Fragrecord *regFragPtr = fragPtr.p;
   Uint32 *ptr = nullptr;
   Tuple_header *dst;
   Tuple_header *base = req_struct->m_tuple_ptr;
@@ -2737,7 +3239,7 @@ int Dbtup::handleInsertReq(Signal* signal,
       regTabPtr->m_attributes[MM].m_no_of_dynamic);
   bool varalloc = vardynsize || regTabPtr->m_bits & Tablerec::TR_ForceVarPart;
   bool rowid = req_struct->m_use_rowid;
-  bool update_acc = false; 
+  bool update_acc = false;
   Uint32 real_page_id = regOperPtr.p->m_tuple_location.m_page_no;
   Uint32 frag_page_id = req_struct->frag_page_id;
 
@@ -2747,75 +3249,80 @@ int Dbtup::handleInsertReq(Signal* signal,
   };
   cmp[0] = cmp[1] = 0;
 
-  if (ERROR_INSERTED(4014))
-  {
+  if (ERROR_INSERTED(4014)) {
     dst = 0;
     goto trans_mem_error;
   }
 
   dst = alloc_copy_tuple(regTabPtr, &regOperPtr.p->m_copy_tuple_location);
 
-  if (unlikely(dst == nullptr))
-  {
+  if (unlikely(dst == nullptr)) {
     goto trans_mem_error;
   }
-  tuple_ptr= req_struct->m_tuple_ptr = dst;
+  tuple_ptr = req_struct->m_tuple_ptr = dst;
   set_change_mask_info(regTabPtr, get_change_mask_ptr(regTabPtr, dst));
 
-  if (mem_insert)
-  {
+  if (mem_insert) {
     jamDebug();
     prepare_initial_insert(req_struct, regOperPtr.p, regTabPtr, is_refresh);
-  }
-  else
-  {
-    Operationrec* prevOp= req_struct->prevOpPtr.p;
+  } else {
+    Operationrec *prevOp = req_struct->prevOpPtr.p;
     ndbassert(prevOp->op_type == ZDELETE);
-    tup_version= prevOp->op_struct.bit_field.tupVersion + 1;
+    tup_version = prevOp->op_struct.bit_field.tupVersion + 1;
 
-    if(unlikely(!prevOp->is_first_operation()))
-    {
+    if (unlikely(!prevOp->is_first_operation())) {
       jam();
-      org= get_copy_tuple(&prevOp->m_copy_tuple_location);
-    }
-    else
-    {
+      org = get_copy_tuple(&prevOp->m_copy_tuple_location);
+    } else {
       jamDebug();
     }
-    if (regTabPtr->need_expand())
-    {
+    if (regTabPtr->need_expand()) {
       jamDebug();
       expand_tuple(req_struct, sizes, org, regTabPtr, !disk_insert);
-      std::memset(req_struct->m_disk_ptr->m_null_bits+
-          regTabPtr->m_offsets[DD].m_null_offset, 0xFF,
-          4*regTabPtr->m_offsets[DD].m_null_words);
+      std::memset(req_struct->m_disk_ptr->m_null_bits +
+          regTabPtr->m_offsets[DD].m_null_offset,
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        0xFF, 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+4 * regTabPtr->m_offsets[DD].m_null_words);
 
-      Uint32 bm_size_in_bytes= 4*(regTabPtr->m_offsets[MM].m_dyn_null_words);
-      if (bm_size_in_bytes)
-      {
-        Uint32* ptr = 
-          (Uint32*)req_struct->m_var_data[MM].m_dyn_data_ptr;
+      Uint32 bm_size_in_bytes = 4 * (regTabPtr->m_offsets[MM].m_dyn_null_words);
+      if (bm_size_in_bytes) {
+        Uint32 *ptr = (Uint32 *)req_struct->m_var_data[MM].m_dyn_data_ptr;
         std::memset(ptr, 0, bm_size_in_bytes);
-        * ptr = bm_size_in_bytes >> 2;
+        *ptr = bm_size_in_bytes >> 2;
       }
-    } 
-    else
-    {
+    } else {
       jamDebug();
-      memcpy(dst, org, 4*regTabPtr->m_offsets[MM].m_fix_header_size);
+      memcpy(dst, org, 4 * regTabPtr->m_offsets[MM].m_fix_header_size);
       tuple_ptr->m_header_bits |= Tuple_header::COPY_TUPLE;
     }
     std::memset(tuple_ptr->m_null_bits+
-        regTabPtr->m_offsets[MM].m_null_offset, 0xFF,
-        4*regTabPtr->m_offsets[MM].m_null_words);
+        regTabPtr->m_offsets[MM].m_null_offset,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        0xFF, 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+4 * regTabPtr->m_offsets[MM].m_null_words);
   }
 
   int res;
-  if (disk_insert)
-  {
+  if (disk_insert) {
     jamDebug();
-    if (ERROR_INSERTED(4015))
-    {
+    if (ERROR_INSERTED(4015)) {
       terrorCode = 1501;
       goto log_space_error;
     }
@@ -2827,78 +3334,70 @@ int Dbtup::handleInsertReq(Signal* signal,
             instance(),
             __LINE__,
             regOperPtr.p->m_undo_buffer_space));
-      res= lgman.alloc_log_space(regOperPtr.p->m_undo_buffer_space,
+      res = lgman.alloc_log_space(regOperPtr.p->m_undo_buffer_space,
           true,
           !req_struct->m_nr_copy_or_redo,
           jamBuffer());
       jamDebug();
       jamDataDebug(regOperPtr.p->m_undo_buffer_space);
     }
-    if (unlikely(res))
-    {
+    if (unlikely(res)) {
       jam();
-      terrorCode= res;
+      terrorCode = res;
       goto log_space_error;
     }
   }
 
-  regOperPtr.p->op_struct.bit_field.tupVersion=
-    tup_version & ZTUP_VERSION_MASK;
+  regOperPtr.p->op_struct.bit_field.tupVersion =
+      tup_version & ZTUP_VERSION_MASK;
   tuple_ptr->set_tuple_version(tup_version);
 
-  if (ERROR_INSERTED(4016))
-  {
+  if (ERROR_INSERTED(4016)) {
     terrorCode = ZAI_INCONSISTENCY_ERROR;
     goto update_error;
   }
 
-  if (regTabPtr->m_bits & Tablerec::TR_ExtraRowAuthorBits)
-  {
+  if (regTabPtr->m_bits & Tablerec::TR_ExtraRowAuthorBits) {
     jamDebug();
     Uint32 attrId =
-      regTabPtr->getExtraAttrId<Tablerec::TR_ExtraRowAuthorBits>();
+        regTabPtr->getExtraAttrId<Tablerec::TR_ExtraRowAuthorBits>();
 
     store_extra_row_bits(attrId, regTabPtr, tuple_ptr, /* default */ 0, false);
   }
 
-  if (!(is_refresh ||
-        regTabPtr->m_default_value_location.isNull()))
-  {
+  if (!(is_refresh || regTabPtr->m_default_value_location.isNull())) {
     jamDebug();
     Uint32 default_values_len;
     /* Get default values ptr + len for this table */
-    Uint32* default_values = get_default_ptr(regTabPtr, default_values_len);
+    Uint32 *default_values = get_default_ptr(regTabPtr, default_values_len);
     ndbrequire(default_values_len != 0 && default_values != NULL);
     /*
      * Update default values into row first,
      * next update with data received from the client.
      */
-    if(unlikely((res = updateAttributes(req_struct, default_values,
-              default_values_len)) < 0))
-    {
+    if (unlikely((res = updateAttributes(req_struct, default_values,
+              default_values_len)) < 0)) {
       jam();
       terrorCode = Uint32(-res);
       goto update_error;
     }
   }
 
-  if (unlikely(req_struct->interpreted_exec))
-  {
+  if (unlikely(req_struct->interpreted_exec)) {
     jam();
 
     /* Interpreted insert only processes the finalUpdate section */
-    const Uint32 RinitReadLen= cinBuffer[0];
-    const Uint32 RexecRegionLen= cinBuffer[1];
-    const Uint32 RfinalUpdateLen= cinBuffer[2];
-    //const Uint32 RfinalRLen= cinBuffer[3];
-    //const Uint32 RsubLen= cinBuffer[4];
+    const Uint32 RinitReadLen = cinBuffer[0];
+    const Uint32 RexecRegionLen = cinBuffer[1];
+    const Uint32 RfinalUpdateLen = cinBuffer[2];
+    // const Uint32 RfinalRLen= cinBuffer[3];
+    // const Uint32 RsubLen= cinBuffer[4];
 
     const Uint32 offset = 5 + RinitReadLen + RexecRegionLen;
     req_struct->log_size = 0;
 
     if (unlikely((res = updateAttributes(req_struct, &cinBuffer[offset],
-              RfinalUpdateLen)) < 0))
-    {
+              RfinalUpdateLen)) < 0)) {
       jam();
       terrorCode = Uint32(-res);
       goto update_error;
@@ -2909,8 +3408,12 @@ int Dbtup::handleInsertReq(Signal* signal,
      * propagation
      */
     req_struct->log_size = RfinalUpdateLen;
-    MEMCOPY_NO_WORDS(&clogMemBuffer[0],
-        &cinBuffer[offset],
+    MEMCOPY_NO_WORDS(&clogMemBuffer[0], &cinBuffer[offset], RfinalUpdateLen);
+
+    if (unlikely(sendLogAttrinfo(signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&cinBuffer[offset],
         RfinalUpdateLen);
 
     if (unlikely(sendLogAttrinfo(signal,
@@ -2922,58 +3425,58 @@ int Dbtup::handleInsertReq(Signal* signal,
       goto update_error;
     }
   }
+||||||| Common ancestor
+             &cinBuffer[offset],
+                     RfinalUpdateLen);
+
+    if (unlikely(sendLogAttrinfo(signal,
+                                 req_struct,
+                                 RfinalUpdateLen,
+=======
+req_struct, RfinalUpdateLen,
+>>>>>>> MySQL 8.0.36
   else
   {
     /* Normal insert */
     if (unlikely((res = updateAttributes(req_struct, &cinBuffer[0],
-              req_struct->attrinfo_len)) < 0))
-    {
+              req_struct->attrinfo_len)) < 0)) {
       jam();
       terrorCode = Uint32(-res);
       goto update_error;
     }
   }
 
-  if (ERROR_INSERTED(4017))
-  {
+  if (ERROR_INSERTED(4017)) {
     goto null_check_error;
   }
   if (unlikely(checkNullAttributes(req_struct,
           regTabPtr,
-          is_refresh) == false))
-  {
+          is_refresh) == false)) {
     goto null_check_error;
   }
 
-  if (req_struct->m_is_lcp)
-  {
+  if (req_struct->m_is_lcp) {
     jam();
-    sizes[2+MM] = req_struct->m_lcp_varpart_len;
-  }
-  else if (regTabPtr->need_shrink())
-  {
+    sizes[2 + MM] = req_struct->m_lcp_varpart_len;
+  } else if (regTabPtr->need_shrink()) {
     jamDebug();
-    shrink_tuple(req_struct, sizes+2, regTabPtr, true);
+    shrink_tuple(req_struct, sizes + 2, regTabPtr, true);
   }
 
-  if (ERROR_INSERTED(4025))
-  {
+  if (ERROR_INSERTED(4025)) {
     goto mem_error;
   }
 
-  if (ERROR_INSERTED(4026))
-  {
+  if (ERROR_INSERTED(4026)) {
     CLEAR_ERROR_INSERT_VALUE;
     goto mem_error;
   }
 
-  if (ERROR_INSERTED(4027) && (rand() % 100) > 25)
-  {
+  if (ERROR_INSERTED(4027) && (rand() % 100) > 25) {
     goto mem_error;
   }
 
-  if (ERROR_INSERTED(4028) && (rand() % 100) > 25)
-  {
+  if (ERROR_INSERTED(4028) && (rand() % 100) > 25) {
     CLEAR_ERROR_INSERT_VALUE;
     goto mem_error;
   }
@@ -2981,75 +3484,244 @@ int Dbtup::handleInsertReq(Signal* signal,
   /**
    * Alloc memory
    */
-  if(mem_insert)
-  {
+  if (mem_insert) {
     terrorCode = 0;
-    if (!rowid)
-    {
-      if (ERROR_INSERTED(4018))
-      {
-        goto mem_error;
+    if (!rowid) {
+      if (ERROR_INSERTED(4018)) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+goto mem_error;
       }
 
-      if (!varalloc)
-      {
-        jam();
-        ptr= alloc_fix_rec(jamBuffer(),
-            &terrorCode,
-            regFragPtr,
+      if (!varalloc) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+jam();
+        ptr = alloc_fix_rec(jamBuffer(), &terrorCode, regFragPtr, regTabPtr,
+         &terrorCode,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regFragPtr,
             regTabPtr,
-            &regOperPtr.p->m_tuple_location,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   &terrorCode,
+             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+          regFragPtr,
+			   regTabPtr,
+			   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+&regOperPtr.p->m_tuple_location,
             &frag_page_id);
-      } 
-      else 
-      {
+      } else {
         jam();
-        regOperPtr.p->m_tuple_location.m_file_no= sizes[2+MM];
-        ptr= alloc_var_row(&terrorCode,
-            regFragPtr, regTabPtr,
-            sizes[2+MM],
-            &regOperPtr.p->m_tuple_location,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        jam();
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam();
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+regOperPtr.p->m_tuple_location.m_file_no = sizes[2 + MM];
+        ptr = alloc_var_row(&terrorCode, regFragPtr, regTabPtr, sizes[2 + MM],
+       regFragPtr, regTabPtr,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sizes[2+MM],
+         
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  regFragPtr, regTabPtr,
+			   sizes[2+MM],
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   &regOperPtr.p->m_tuple_location,
             &frag_page_id,
             false);
       }
-      if (unlikely(ptr == 0))
-      {
-        goto mem_error;
+      if (unlikely(ptr == 0)) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+goto mem_error;
       }
       req_struct->m_use_rowid = true;
-    }
-    else
-    {
+    } else {
       regOperPtr.p->m_tuple_location = req_struct->m_row_id;
-      if (ERROR_INSERTED(4019))
-      {
-        terrorCode = ZROWID_ALLOCATED;
+      if (ERROR_INSERTED(4019)) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+terrorCode = ZROWID_ALLOCATED;
         goto alloc_rowid_error;
       }
 
-      if (!varalloc)
-      {
-        jam();
-        ptr= alloc_fix_rowid(&terrorCode,
-            regFragPtr,
-            regTabPtr,
-            &regOperPtr.p->m_tuple_location,
+      if (!varalloc) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+jam();
+        ptr = alloc_fix_rowid(&terrorCode, regFragPtr, regTabPtr,
+        regFragPtr,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regTabPtr,
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     regFragPtr,
+			     regTabPtr,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     &regOperPtr.p->m_tuple_location,
             &frag_page_id);
-      } 
-      else 
-      {
+      } else {
         jam();
-        regOperPtr.p->m_tuple_location.m_file_no= sizes[2+MM];
-        ptr= alloc_var_row(&terrorCode,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        jam();
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam();
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+regOperPtr.p->m_tuple_location.m_file_no = sizes[2 + MM];
+        ptr = alloc_var_row(&terrorCode, regFragPtr, regTabPtr, sizes[2 + MM],
             regFragPtr, regTabPtr,
-            sizes[2+MM],
-            &regOperPtr.p->m_tuple_location,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sizes[2+MM],
+           
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    regFragPtr, regTabPtr,
+			     sizes[2+MM],
+			    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &regOperPtr.p->m_tuple_location,
             &frag_page_id,
             true);
       }
-      if (unlikely(ptr == 0))
-      {
-        jam();
+      if (unlikely(ptr == 0)) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+jam();
         goto alloc_rowid_error;
       }
     }
@@ -3065,20 +3737,17 @@ int Dbtup::handleInsertReq(Signal* signal,
     real_page_id = regOperPtr.p->m_tuple_location.m_page_no;
     update_acc = true; /* Will be updated later once success is known */
 
-    base = (Tuple_header*)ptr;
+    base = (Tuple_header *)ptr;
     regOperPtr.p->op_struct.bit_field.in_active_list = true;
-    base->m_operation_ptr_i= regOperPtr.i;
+    base->m_operation_ptr_i = regOperPtr.i;
     ndbassert(!m_is_in_query_thread);
 
 #ifdef DEBUG_DELETE
     char *insert_str;
-    if (req_struct->m_is_lcp)
-    {
-      insert_str = (char*)"LCP_INSERT";
-    }
-    else
-    {
-      insert_str = (char*)"INSERT";
+    if (req_struct->m_is_lcp) {
+      insert_str = (char *)"LCP_INSERT";
+    } else {
+      insert_str = (char *)"INSERT";
     }
     DEB_DELETE(("(%u)%s: tab(%u,%u) row(%u,%u)",
           instance(),
@@ -3094,17 +3763,16 @@ int Dbtup::handleInsertReq(Signal* signal,
      * a new row since they record state for the rowid and not for the record
      * as such. So we need to know state of rowid in LCP scans.
      */
-    Uint32 old_header_keep =
-      base->m_header_bits &
-      (Tuple_header::LCP_SKIP | Tuple_header::LCP_DELETE);
-    base->m_header_bits= Tuple_header::ALLOC |
-      (sizes[2+MM] > 0 ? Tuple_header::VAR_PART : 0) |
-      old_header_keep;
+    Uint32 old_header_keep = base->m_header_bits &
+      (Tuple_header::LCP_SKIP |
+                                                    Tuple_header::LCP_DELETE);
+    base->m_header_bits = Tuple_header::ALLOC |
+                          (sizes[2 + MM] > 0 ? Tuple_header::VAR_PART : 0) |
+                          old_header_keep;
     if ((regTabPtr->m_bits & Tablerec::TR_UseVarSizedDiskData) != 0)
     {
       jam();
-      if (disk_insert)
-      {
+      if (disk_insert)   {
         jam();
         /**
          * If mem_insert is true and disk_insert isn't true, this means
@@ -3120,25 +3788,23 @@ int Dbtup::handleInsertReq(Signal* signal,
       Local_key tmp;
       Uint32 size =
         ((regTabPtr->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0) ?
-        1 : (sizes[2+DD] + 1);
+        1 : (sizes[2 + DD] + 1);
 
       jamDebug();
       jamDataDebug(size);
 
-      if (ERROR_INSERTED(4021))
-      {
+      if (ERROR_INSERTED(4021)) {
         terrorCode = 1601;
         goto disk_prealloc_error;
       }
 
 
-      int ret= disk_page_prealloc(signal,
+      int ret = disk_page_prealloc(signal,
           fragPtr,
           regTabPtr,
           &tmp,
           size);
-      if (unlikely(ret < 0))
-      {
+      if (unlikely(ret < 0)) {
         jam();
         terrorCode = -ret;
         goto disk_prealloc_error;
@@ -3147,8 +3813,8 @@ int Dbtup::handleInsertReq(Signal* signal,
       jamDebug();
       jamDataDebug(tmp.m_file_no);
       jamDataDebug(tmp.m_page_no);
-      regOperPtr.p->op_struct.bit_field.m_disk_preallocated= 1;
-      tmp.m_page_idx= size;
+      regOperPtr.p->op_struct.bit_field.m_disk_preallocated = 1;
+      tmp.m_page_idx = size;
       /**
        * We update the disk row reference both in the allocated row and
        * in the allocated copy row. The allocated row reference is used
@@ -3165,7 +3831,7 @@ int Dbtup::handleInsertReq(Signal* signal,
       ref.m_page_no = frag_page_id;
 
       ndbrequire(ref.m_page_idx < Tup_page::DATA_WORDS);
-      Tuple_header* disk_ptr= req_struct->m_disk_ptr;
+      Tuple_header *disk_ptr = req_struct->m_disk_ptr;
       DEB_DISK(("(%u) set_base_record(%u,%u).%u on row(%u,%u)",
             instance(),
             tmp.m_file_no,
@@ -3177,10 +3843,9 @@ int Dbtup::handleInsertReq(Signal* signal,
       disk_ptr->set_base_record_ref(ref);
     }
 
-    if (req_struct->m_reorg != ScanFragReq::REORG_ALL)
-    {
+    if (req_struct->m_reorg != ScanFragReq::REORG_ALL) {
       req_struct->m_tuple_ptr->m_header_bits |=
-        get_reorg_flag(req_struct, regFragPtr->fragStatus);
+          get_reorg_flag(req_struct, regFragPtr->fragStatus);
     }
 
     setChecksum(req_struct->m_tuple_ptr, regTabPtr);
@@ -3195,12 +3860,9 @@ int Dbtup::handleInsertReq(Signal* signal,
      * be set when we commit the change.
      */
     release_frag_mutex(regFragPtr, frag_page_id, jamBuffer());
-  }
-  else 
-  {
+  } else {
     /* ! mem_insert */
-    if (ERROR_INSERTED(4020))
-    {
+    if (ERROR_INSERTED(4020)) {
       c_lqh->upgrade_to_exclusive_frag_access();
       goto size_change_error;
     }
@@ -3212,8 +3874,7 @@ int Dbtup::handleInsertReq(Signal* signal,
             regOperPtr.p,
             regFragPtr,
             regTabPtr,
-            sizes) != 0))
-    {
+            sizes) != 0)) {
       goto size_change_error;
     }
     req_struct->m_use_rowid = false;
@@ -3224,10 +3885,8 @@ int Dbtup::handleInsertReq(Signal* signal,
      */
     m_base_header_bits &= ~(Uint32)Tuple_header::FREE;
 
-    if (req_struct->m_reorg != ScanFragReq::REORG_ALL)
-    {
-      m_base_header_bits |=
-        get_reorg_flag(req_struct, regFragPtr->fragStatus);
+    if (req_struct->m_reorg != ScanFragReq::REORG_ALL) {
+      m_base_header_bits |= get_reorg_flag(req_struct, regFragPtr->fragStatus);
     }
 
     /**
@@ -3235,8 +3894,8 @@ int Dbtup::handleInsertReq(Signal* signal,
      *   No need to protect this checksum write, we only perform it here for
      *   non-first inserts since first insert operations are handled above
      *   while holding the mutex. For non-first operations the row is not
-     *   visible to other threads at this time, copy rows are not even visible to
-     *   TUP scans, thus no need to protect it here. The row becomes visible
+     *   visible to other threads at this time, copy rows are not even visible
+     * to TUP scans, thus no need to protect it here. The row becomes visible
      *   when inserted into the active list after returning from this call.
      */
     setChecksum(req_struct->m_tuple_ptr, regTabPtr);
@@ -3246,8 +3905,7 @@ int Dbtup::handleInsertReq(Signal* signal,
    * new record if necessary
    * Failures in disk alloc will skip this part
    */
-  if (update_acc)
-  {
+  if (update_acc) {
     /* Acc stores the local key with the frag_page_id rather
      * than the real_page_id
      */
@@ -3256,11 +3914,9 @@ int Dbtup::handleInsertReq(Signal* signal,
 
     Local_key accKey = regOperPtr.p->m_tuple_location;
     accKey.m_page_no = frag_page_id;
-    ** accminupdateptr = accKey;
-  }
-  else
-  {
-    * accminupdateptr = 0; // No accminupdate should be performed
+    **accminupdateptr = accKey;
+  } else {
+    *accminupdateptr = 0;  // No accminupdate should be performed
   }
 
   set_tuple_state(regOperPtr.p, TUPLE_PREPARED);
@@ -3273,24 +3929,22 @@ size_change_error:
 
 trans_mem_error:
   jam();
-  terrorCode= ZNO_COPY_TUPLE_MEMORY_ERROR;
+  terrorCode = ZNO_COPY_TUPLE_MEMORY_ERROR;
   regOperPtr.p->m_undo_buffer_space = 0;
-  if (mem_insert)
-    regOperPtr.p->m_tuple_location.setNull();
+  if (mem_insert) regOperPtr.p->m_tuple_location.setNull();
   regOperPtr.p->m_copy_tuple_location.setNull();
   tupkeyErrorLab(req_struct);
   return -1;
 
 null_check_error:
   jam();
-  terrorCode= ZNO_ILLEGAL_NULL_ATTR;
+  terrorCode = ZNO_ILLEGAL_NULL_ATTR;
   goto update_error;
 
 mem_error:
   jam();
-  if (terrorCode == 0)
-  {
-    terrorCode= ZMEM_NOMEM_ERROR;
+  if (terrorCode == 0) {
+    terrorCode = ZMEM_NOMEM_ERROR;
   }
   goto update_error;
 
@@ -3301,13 +3955,11 @@ alloc_rowid_error:
   jam();
 update_error:
   jam();
-  if (mem_insert)
-  {
+  if (mem_insert) {
     regOperPtr.p->m_tuple_location.setNull();
   }
 exit_error:
-  if (!regOperPtr.p->m_tuple_location.isNull())
-  {
+  if (!regOperPtr.p->m_tuple_location.isNull()) {
     jam();
     /* Memory allocated, abort insert, releasing memory if appropriate */
     signal->theData[0] = regOperPtr.i;
@@ -4671,26 +5323,179 @@ int Dbtup::interpreterNextLab(Signal* signal,
           step = argLen;
           s2 = (char*)&TcurrentProgram[TprogramCounter+1];
         }
-        else if (opCode == Interpreter::BRANCH_ATTR_OP_PARAM)
+        else if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+opCode
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+== Interpreter::BRANCH_ATTR_OP_PARAM)
         {
           // Compare ATTR with a parameter
-          jamDebug();
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Operationrec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regOperPtr,
+=======
+*regOperPtr,
+>>>>>>> MySQL 8.0.36
+     jamDebug();
           ndbassert(req_struct != nullptr);
-          ndbassert(req_struct->operPtrP != nullptr);
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbassert(req_struct->operPtrP
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Fragrecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!= nullptr);
 
           const Uint32 paramNo = Interpreter::getBranchCol_ParamNo(ins2);
-          const Uint32 *paramPos = subroutineProg;
+          const Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regFragPtr,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regFragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*paramPos
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= subroutineProg;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regTabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regTabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
           const Uint32 *paramptr = lookupInterpreterParameter(paramNo,
-                                                              paramPos);
-          if (unlikely(paramptr == nullptr))
-          {
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                         paramPos);
+          if (unlikely(paramptr == nullptr))         {
             jam();
             terrorCode = 99; // TODO
-            tupkeyErrorLab(req_struct);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Operationrec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+prevOp=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*prevOp =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   tupkeyErrorLab(req_struct);
             return -1;
           }
 
-          argLen = AttributeHeader::getByteSize(* paramptr);
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+argLen
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+org
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*org
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = AttributeHeader::getByteSize(* paramptr);
           step = 0;
           s2 = (char*)(paramptr + 1);
         }
@@ -4704,9 +5509,26 @@ int Dbtup::interpreterNextLab(Signal* signal,
           const Uint32 firstAttrWords = attrLen+1;
           assert(tmpAreaSz >= 2*firstAttrWords);
           Int32 TnoDataR = readAttributes(req_struct,
-                                          &attr2Id, 1,
-                                          &tmpArea[firstAttrWords],
-                                          tmpAreaSz-firstAttrWords);
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regOperPtr->m_undo_buffer_space=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regOperPtr->m_undo_buffer_space
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+=
+>>>>>>> MySQL 8.0.36
+                         &attr2Id, 1,
+                                          &tmpArea[firstAttrWords],                      tmpAreaSz-firstAttrWords);
           if (unlikely(TnoDataR < 0))
           {
             jam();
@@ -4732,7 +5554,37 @@ int Dbtup::interpreterNextLab(Signal* signal,
                * rounding down
                */
               Uint32 bitFieldAttrLen= (AttributeDescriptor::getArraySize(Tattr2Desc1)
-                                       + 7) / 8;
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+-1;
+}
+
+int
+Dbtup::handleRefreshReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+-1;
+}
+
+int Dbtup::handleRefreshReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                      + 7)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ / 8;
               argLen= bitFieldAttrLen;
             }
             s2 = (char*)&tmpArea[firstAttrWords+1];
@@ -4792,16 +5644,35 @@ int Dbtup::interpreterNextLab(Signal* signal,
             {
               // NULL like NULL is true (has no practical use)
               res1 =  r1_null && r2_null ? 0 : -1;
-            }
-            else
-            {
+            }         else         {
               jam();
-              if (unlikely(sqlType.m_like == 0))
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+origTuple
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*origTuple
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        if (unlikely(sqlType.m_like == 0))
               {
                 return TUPKEY_abort(req_struct, 40);
               }
               res1 = (*sqlType.m_like)(cs, s1, attrLen, s2, argLen);
-            }
+         regTabPtr,
+   }
           }
           else
           {
@@ -4847,17 +5718,65 @@ int Dbtup::interpreterNextLab(Signal* signal,
           break;
         case Interpreter::GT:
           res = (res1 < 0);
-          break;
-        case Interpreter::GE:
-          res = (res1 <= 0);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+res = handleInsertReq(signal,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+res = handleInsertReq(signal, regOperPtr, regFragPtr, regTabPtr,
+                            req_struct, &accminupdateptr, true);
+
+      if (unlikely(res == -1)) {
+        jam();
+        return -1;
+      }
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    break;
+ regOperPtr.p->op_type = ZREFRESH;
+    } else {
+     case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Interpreter::GE:
+||||||| Common ancestor
+=======
+jam();
+>>>>>>> MySQL 8.0.36
+      refresh_case = Operationrec::RF_MULTI_EXIST;
+      // g_eventLogger->info("case 4");
+  res = (res1 <= 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0);
           break;
         case Interpreter::LIKE:
           res = (res1 == 0);
           break;
         case Interpreter::NOT_LIKE:
-          res = (res1 == 1);
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regOperPtr,
+                            regFragPtr,
+                            regTabPtr,
+=======
+/**
+       * This is multi-update + INSERT/UPDATE + REFRESH
+       */
+      res = handleUpdateReq(signal, regOperPtr.p, regFragPtr.p, regTabPtr,
+>>>>>>> MySQL 8.0.36
+     res = (res1 == 1);
           break;
-        case Interpreter::AND_EQ_MASK:
+        case Interpreter::AND_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+EQ_MASK:
           res = (res1 == 0);
           break;
         case Interpreter::AND_NE_MASK:
@@ -4877,7 +5796,37 @@ int Dbtup::interpreterNextLab(Signal* signal,
             attrId >> 16, attrLen, s1, attrLen, argLen, s2, argLen, res1, res);
 #endif
         if (res)
-          TprogramCounter = brancher(theInstruction, TprogramCounter);
+          TprogramCounter = brancher(theInstruction,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+struct,
+                            &accminupdateptr,
+                            true);
+
+      if (unlikely(res == -1))
+      {
+        jam();
+        return -1;
+      }
+
+      regOperPtr.p->op_type = ZREFRESH;
+    }
+    else
+    {
+      jam();
+      refresh_case = Operationrec::RF_MULTI_EXIST;
+      // g_eventLogger->info("case 4");
+      /**
+       * This is multi-update + INSERT/UPDATE + REFRESH
+       */
+      res = handleUpdateReq(signal, regOperPtr.p, regFragPtr.p,
+                            regTabPtr, req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ TprogramCounter);
         else 
 	{
           Uint32 tmp = ((step + 3) >> 2) + 1;
@@ -4894,11 +5843,41 @@ int Dbtup::interpreterNextLab(Signal* signal,
 	if (tmpHabitant != attrId)
         {
 	  Int32 TnoDataR= readAttributes(req_struct,
-					  &attrId, 1,
-					  tmpArea, tmpAreaSz);
+					  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&attrId,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1,
+					
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*regTabPtr,
+>>>>>>> MySQL 8.0.36
+  tmpArea, tmpAreaSz);
 	  
-	  if (unlikely(TnoDataR < 0))
-          {
+	  if (unlikely(TnoDataR 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+< 0))
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Tablerec* regTabPtr,
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      {
 	    jam();
             terrorCode = Uint32(-TnoDataR);
 	    tupkeyErrorLab(req_struct);
@@ -5177,9 +6156,34 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
         /**
          * Need to set pointer to disk page as preparation for size
          * changes that might occur. In this case we need to check
-         * free and used of the disk page to see if we need to select
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtup::interpreterStartLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtup::interpreterStartLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free and used of the disk page to see if we need to select
          * a new disk page.
-         */
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  */
         req_struct->m_disk_page_ptr.p =
           (Page*)m_global_page_pool.getPtr(req_struct->m_disk_page_ptr.i);
       }
@@ -5212,8 +6216,23 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
       // Fix diskpart
       req_struct->m_disk_ptr = (Tuple_header*)dst_ptr;
       memcpy(dst_ptr, src_ptr, 4*disk_fix_header_size);
-      sizes[DD] = src_len;
-      src_ptr += disk_fix_header_size;
+      sizes[DD] = src_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+len;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SIZE)))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SIZE))) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    src_ptr += disk_fix_header_size;
       dst_ptr += disk_fix_header_size;
       if (bits & Tuple_header::DISK_VAR_PART)
       {
@@ -5221,8 +6240,25 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
         ndbrequire(tabPtrP->m_bits & Tablerec::TR_UseVarSizedDiskData);
         if ((num_vars + num_dyns) > 0)
         {
-          if (! (bits & Tuple_header::DISK_INLINE))
-          {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+    /* ---------------------------------------------------------------- */
+    // We start by checking consistency. We must have the first five
+    // words of the ATTRINFO to give us the length of the regions. The
+    // size of these regions must be the same as the total ATTRINFO
+    // length and finally the total length must be within the limits.
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  /* ---------------------------------------------------------------- */
+    // We start by checking consistency. We must have the first five
+    // words of the ATTRINFO to give us the length of the regions. The
+    // size of these regions must be the same as the total ATTRINFO
+    // length and finally the total length must be within the limits.
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          if (! (bits & Tuple_header::DISK_INLINE))       {
             jamDebug();
             PagePtr pagePtr;
             flex_len = src_len - disk_fix_header_size;
@@ -5265,16 +6301,46 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
             req_struct->m_disk_ptr);
         ndbrequire(req_struct->m_disk_ptr->m_base_record_page_idx <
             Tup_page::DATA_WORDS);
-      }
-    }
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+RinstructionCounter
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ + RexecRegionLen   }
     else
     {
-      if (bits & Tuple_header::VAR_PART)
+      if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bits & Tuple_header::VAR_PART)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
       {
-        jamDebug();
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  jamDebug();
         if (! (bits & Tuple_header::COPY_TUPLE))
         {
-          jamDebug();
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      jamDebug();
           /* This is for the initial expansion of a stored row. */
           const Var_part_ref* var_ref = src->get_var_part_ref_ptr(tabPtrP);
           Ptr<Page> var_page;
@@ -5305,8 +6371,48 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
             flex_len= flex_data[flex_len-1];
           }
           sizes[MM]= flex_len;
-          step= 0;
-          req_struct->m_varpart_page_ptr[MM] = var_page;
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regTabPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regTabPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ step= 0;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   req_struct->m_varpart_page_ptr[MM] = var_page;
         }
         else
         {
@@ -5318,13 +6424,35 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
           req_struct->m_varpart_page_ptr[MM] = req_struct->m_page_ptr;
           sizes[MM]= flex_len;
           jamDebug();
-          jamDataDebug(flex_len);
+          jamDataDebug(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+flex_len);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
         }
-      }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  }
     }
     Uint32 dyn_len = flex_len;
     const Uint32 *dyn_data = flex_data;
-    if (num_vars)
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  if (num_vars)
     {
       jamDebug();
       ndbrequire(flex_data != nullptr);
@@ -5471,7 +6599,31 @@ Dbtup::dump_tuple(const KeyReqStruct* req_struct, const Tablerec* tabPtrP)
 }
 
 void
-Dbtup::prepare_read(KeyReqStruct* req_struct, 
+Dbtup::prepare_read(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, 
 		    Tablerec* tabPtrP,
                     bool disk)
 {
@@ -5491,15 +6643,37 @@ Dbtup::prepare_read(KeyReqStruct* req_struct,
    * then definitely there is either a varsized or dynamic in-memory
    * column and similarly for the disk part.
    */
-  for (Uint32 ind = 0; ind < 2; ind++)
-  {
+  for (Uint32 ind = 0; ind < 2; ind++) {
     KeyReqStruct::Var_data* dst= &req_struct->m_var_data[ind];
     Uint16 num_vars= tabPtrP->m_attributes[ind].m_no_of_varsize;
     Uint16 num_dyns= tabPtrP->m_attributes[ind].m_no_of_dynamic;
     /**
      * Pointer to and length of the dynamic part of the row, this
      * consists of the variable sized columns with fixed length
-     * parts and the dynamic parts. We call the variable flex*
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+parts and the dynamic parts. We call the variable
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TprogramCounter)
+{        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TprogramCounter)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+flex*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
      * since they are the flexible part of the row.
      */
     Uint32 flex_len = 0;
@@ -5537,29 +6711,195 @@ Dbtup::prepare_read(KeyReqStruct* req_struct,
                               disk_len);
         req_struct->m_disk_ptr = (Tuple_header*)src_ptr;
         flex_data = src_ptr + disk_fix_header_size;
-        /**
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtup::interpreterNextLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtup::interpreterNextLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      /**
          * Move past the fixed size columns to set src_ptr to point to
-         * where the varsized columns start.
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+where the varsized columns start.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
          */
         ndbrequire(disk_len >= disk_fix_header_size);
         flex_len = disk_len - disk_fix_header_size;
-      }
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
       else
       {
         thrjam(req_struct->jamBuffer);
         /**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+logMemory,
+                              Uint32* mainProgram,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*logMemory, Uint32 *mainProgram,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
          * On COPY tuples the disk data columns comes immediately after
-         * the in-memory columns. The address was calculated in the first
-         * loop and thus src_ptr already points to the first set of disk
-         * data columns.
+         * the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in-memory
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 TmainProgLen,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32 TmainProgLen, Uint32 *subroutineProg,
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ columns. The address was calculated in the first
+         * loop and thus src_ptr already points to the first set 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+disk
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+subroutineProg,
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TsubroutineLen,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 *tmpArea,
+  * data columns.
          */
-        ndbrequire(bits & Tuple_header::COPY_TUPLE);
-        src_ptr += disk_fix_header_size;
+        ndbrequire(bits & 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Tuple_header::COPY_TUPLE);
+        src_ptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 TsubroutineLen,
+			      Uint32 * tmpArea,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ += disk_fix_header_size;
         if (bits & Tuple_header::DISK_VAR_PART)
-        {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TcurrentProgram=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*TcurrentProgram =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
           thrjam(req_struct->jamBuffer);
           Varpart_copy* vp = (Varpart_copy*)src_ptr;
-          flex_len = vp->m_len;
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ flex_len
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RnoOfInstructions
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&RnoOfInstructions
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = vp->m_len;
           flex_data = vp->m_data;
           src_ptr++;
         }
@@ -5579,32 +6919,251 @@ Dbtup::prepare_read(KeyReqStruct* req_struct,
                        req_struct->m_disk_page_ptr.p->m_page_no,
                        key.m_page_idx,
                        bits & Tuple_header::DISK_INLINE ? 1 : 0,
-                       req_struct->m_disk_page_ptr.p->m_table_id,
-                       req_struct->m_disk_page_ptr.p->m_fragment_id,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+           
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+---------------------------------------------------------------- */
+	// Read an attribute from the tuple into a register.
+	// While
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+attribute we
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ req_struct->m_disk_page_ptr.p->m_table_id,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+an array
+// RONDB-624 todo: Glue these lines together ^v
+=======
+jamDebug();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+it fits in
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+register.
+	/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+	{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+          // Read an attribute from the tuple into a register.
+          // While reading an attribute we allow the attribute to be an array
+          // as long as it fits in the 64 bits of the register.
+          /* ---------------------------------------------------------------- */
+          {
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         req_struct->m_disk_page_ptr.p->m_fragment_id,
                        req_struct->m_disk_page_ptr.p->m_create_table_version,
-                       req_struct->frag_page_id,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+2)
+=======
+2) {
+>>>>>>> MySQL 8.0.36
+                  req_struct->frag_page_id,
                        req_struct->m_disk_ptr->m_base_record_page_no,
                        req_struct->m_disk_ptr->m_base_record_page_idx);
         ndbrequire(req_struct->m_disk_ptr->m_base_record_page_idx <
-                   Tup_page::DATA_WORDS);
-      }
-      if (unlikely((bits & Tuple_header::DISK_VAR_PART) == 0))
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Tup_page::DATA_WORDS
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(Int64*)(TregMemBuffer+theRegister+2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ *(Int64 *)(TregMemBuffer + theRegister + 2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    }
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if (unlikely((bits & Tuple_header::DISK_VAR_PART) == 0)) {
       {
-        thrjamDebug(req_struct->jamBuffer);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    thrjamDebug(req_struct->jamBuffer);
         ndbrequire((tabPtrP->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0);
         dst->m_max_var_offset = 0;
         dst->m_dyn_part_len = 0;
-#if defined(VM_TRACE) || defined(ERROR_INSERT)
-        std::memset(dst, 0, sizeof(* dst));
+#if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+defined(VM_TRACE)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bit
+// RONDB-624 todo: Glue these lines together ^v
+=======
+bit
+              //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ || defined(ERROR_INSERT)
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+------------------------------------------------------------- */
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+-------------------------------------------------------------
+>>>>>>> MySQL 8.0.36
+  std::memset(dst, 0, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sizeof(*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TregMemBuffer[theRegister]=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+dst));
 #endif
-        return;
+||||||| Common ancestor
+0x60;
+=======
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    TregMemBuffer[theRegister+3]= TregMemBuffer[theRegister+2]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  */
+              TregMemBuffer[theRegister] = 0x60;
+              TregMemBuffer[theRegister + 3] = TregMemBuffer[theRegister + 2]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
       }
     }
     else
-    {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  {
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
       /* ind == MM */
-      if (num_vars == 0 && num_dyns == 0)
-      {
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if (num_vars == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+1)
+=======
+1) {
+>>>>>>> MySQL 8.0.36
+ && num_dyns == 0)
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+{
+	  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
         thrjamDebug(req_struct->jamBuffer);
         continue;
       }
@@ -5613,21 +7172,233 @@ Dbtup::prepare_read(KeyReqStruct* req_struct,
         thrjamDebug(req_struct->jamBuffer);
         dst->m_max_var_offset = 0;
         dst->m_dyn_part_len = 0;
-#if defined(VM_TRACE) || defined(ERROR_INSERT)
-        std::memset(dst, 0, sizeof(* dst));
+#if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+defined(VM_TRACE)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+ || defined(ERROR_INSERT)
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+std::memset(dst,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0, sizeof(* dst)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
 #endif
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         continue;
       }
       if (! (bits & Tuple_header::COPY_TUPLE))
       {
-        thrjamDebug(req_struct->jamBuffer);
-        Ptr<Page> tmp;
-        Var_part_ref* var_ref = ptr->get_var_part_ref_ptr(tabPtrP);
-        flex_data= get_ptr(&tmp, * var_ref);
-        flex_len= get_len(&tmp, * var_ref);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    thrjamDebug(req_struct->jamBuffer);
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tupkeyErrorLab(req_struct);
+	    return -1;
+	  }
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    Ptr<Page> tmp;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+tupkeyErrorLab(req_struct);
+>>>>>>> MySQL 8.0.36
+   Var_part_ref* var_ref = ptr->get_var_part_ref_ptr(tabPtrP);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+flex_data=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+get_ptr(&tmp, *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+------------------------------------------------------------- */
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+-1;
+>>>>>>> MySQL 8.0.36
+ var_ref);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+flex_len=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+from
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+get_len(&tmp,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+the
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+* var_ref);
 
-        /* If the original tuple was grown,
-         * the old size is stored at the end. */
+||||||| Common ancestor
+read attribute
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+here is
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+not
+// RONDB-624 todo: Glue these lines together ^v
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+{
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+//
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+If
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+allowed
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+and
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+original
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+will
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tuple
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+lead
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+was grown,
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+to a system
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+       *
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+/
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/
+              // Any other return value from the read attribute here is not
+              // allowed and will lead to a system crash.
+              /* -------------------------------------------------------------
+               */
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ the old size is stored at the end. */
         if (bits & Tuple_header::MM_GROWN)
         {
           /**
@@ -5640,7 +7411,8 @@ Dbtup::prepare_read(KeyReqStruct* req_struct,
         }
       }
       else
-      {
+ {
+     {
         thrjam(req_struct->jamBuffer); // Read Copy tuple
         Varpart_copy* vp = (Varpart_copy*)src_ptr;
         flex_len = vp->m_len;
@@ -5661,8 +7433,33 @@ Dbtup::prepare_read(KeyReqStruct* req_struct,
 #ifdef TUP_DATA_VALIDATION
       thrjam(req_struct->jamBuffer);
       thrjamLine(req_struct->jamBuffer, num_vars);
-      for (Uint16 i = 0; i < (num_vars + 1); i++)
-        thrjamLine(req_struct->jamBuffer, ((Uint16*)flex_data)[i]);
+      for (Uint16 i = 0
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+) {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ i < (num_vars + 1); i++)
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+		/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  /*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ thrjamLine(req_struct->jamBuffer, ((Uint16*)flex_data)[i]);
 #endif
     }
     else
@@ -5672,15 +7469,39 @@ Dbtup::prepare_read(KeyReqStruct* req_struct,
 #endif
       varstart = 0;
       varlen = 0;
-      dynstart = flex_data;
+      dynstart =
+                  flex_data;
     }
 
     dst->m_data_ptr= varstart;
     dst->m_offset_array_ptr = (Uint16*)flex_data;
-    dst->m_var_len_offset = 1;
+    dst->m_var_len_offset = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     dst->m_max_var_offset = varlen;
 
-    Uint32 dynlen = Uint32(flex_len - (dynstart - flex_data));
+    Uint32 dynlen = Uint32(flex_len 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+		/* ------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  /* ------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+- (dynstart - flex_data));
     ndbassert((ptrdiff_t)flex_len >= (dynstart - flex_data));
     dst->m_dyn_data_ptr= (char*)dynstart;
     dst->m_dyn_part_len= dynlen;
@@ -5689,111 +7510,857 @@ Dbtup::prepare_read(KeyReqStruct* req_struct,
 
 void
 Dbtup::shrink_tuple(KeyReqStruct* req_struct, Uint32 sizes[2],
-		    const Tablerec* tabPtrP, bool disk)
+<<<<<<< RonDB // RONDB-624 todo
+		  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+		TdataWritten += Tlen;
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  const Tablerec* tabPtrP, bool 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+disk)
 {
+||||||| Common ancestor
+}
+              else
+=======
+          TdataWritten += Tlen;
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   ndbassert(tabPtrP->need_shrink());
   ndbassert(req_struct->is_expanded);
   Tuple_header* ptr= req_struct->m_tuple_ptr;
-  ndbassert(ptr->m_header_bits & Tuple_header::COPY_TUPLE);
-  
+  ndbassert(ptr->m_header_bits & 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Tuple_header::COPY_TUPLE);
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ else 
   const Uint16* order= tabPtrP->m_real_order_descriptor;
   const Uint32 * tabDesc = req_struct->attr_descr;
   
   Uint32 *dst_ptr= ptr->get_end_of_fix_part_ptr(tabPtrP);
 
   /**
-   * shrink_tuple is called when there is disk attributes and/or
-   * when there is a variable sized in-memory part. Thus we could
-   * come here without a variable sized part.
+   * shrink_tuple is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+called
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ when there is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+disk attributes and/or
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+   * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+ there is a variable sized in-memory part. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Thus
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+ we could
+  } else {
+ * come here without a variable sized 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+part.
+||||||| Common ancestor
+{
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
    */
   sizes[MM] = 0;
-  sizes[DD] = 0;
+  sizes[DD] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+||||||| Common ancestor
+}
+	  }
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
   /**
-   * No need to copy the fixed size memory parts, those are
-   * already in the correct position.
+   * No need to copy 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else {
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ fixed size memory parts, those 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+are
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ * already in the correct position.
    */
   for (Uint32 ind = 0; ind < 2; ind++)
   {
     Uint16 num_fix= tabPtrP->m_attributes[ind].m_no_of_fixsize;
-    Uint16 num_vars= tabPtrP->m_attributes[ind].m_no_of_varsize;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+	*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+num_vars
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(Int64*)(TregMemBuffer+theRegister+2)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         *(Int64 *)(TregMemBuffer + theRegister + 2) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= tabPtrP->m_attributes[ind].m_no_of_varsize;
     Uint16 num_dyns= tabPtrP->m_attributes[ind].m_no_of_dynamic;
-    if (ind == DD)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+	*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+>>>>>>> MySQL 8.0.36
+          *(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ind
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Int64*)(TregMemBuffer+theRegister+2)= * 
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Int64 *)(TregMemBuffer + theRegister + 2) =
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DD
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(TcurrentProgram+TprogramCounter
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      *(TcurrentProgram + TprogramCounter
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
     {
       Uint16 dd_tot = tabPtrP->m_no_of_disk_attributes;
-      if (!(disk && dd_tot))
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  if (!(disk
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+2 ]= * (TcurrentProgram
+// RONDB-624 todo: Glue these lines together ^v
+=======
+2]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&& dd_tot))
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
++
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       {
         jamDebug();
-        break;
-      }
-      Uint32 * src_ptr = (Uint32*)req_struct->m_disk_ptr;
-      req_struct->m_disk_ptr = (Tuple_header*)dst_ptr;
-      Uint32 disk_fix_header_size = tabPtrP->m_offsets[DD].m_fix_header_size;
-      sizes[DD] = disk_fix_header_size;
-      memmove(dst_ptr, src_ptr, 4 * disk_fix_header_size);
-      dst_ptr += disk_fix_header_size;
-      if ((tabPtrP->m_bits & Tablerec::TR_UseVarSizedDiskData) != 0)
+ *(TcurrentProgram + TprogramCounter++);
+     break;
+     TregMemBuffer[theRegister 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
++
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 3] =
+    Uint32 * src_ptr = (Uint32*)req_struct->m_disk_ptr;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct->m_disk_ptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*(TcurrentProgram
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
++
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (Tuple_header*)dst_ptr;
+      Uint32 disk_fix_header_size = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtrP->m_offsets[DD].m_fix_header_size;
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TregMemBuffer[theRegister + 3
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+]= * (TcurrentProgram
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sizes[DD]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
++
+=======
+break;
+
+>>>>>>> MySQL 8.0.36
+ = disk_fix_header_size;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+memmove(dst_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+case
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+src_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Interpreter::ADD_REG_REG:
+>>>>>>> MySQL 8.0.36
+ 4 * disk_fix_header_size);
+      dst_ptr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+jamDebug();
+>>>>>>> MySQL 8.0.36
+ disk_fix_header_size;
+      if ((tabPtrP->m_bits & 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Tablerec::TR_UseVarSizedDiskData)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ != 0)
       {
-        jamDebug();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    jamDebug();
         ptr->m_header_bits |= Tuple_header::DISK_VAR_PART;
-      }
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    TprogramCounter++);
+	break;
+
+      case Interpreter::ADD_REG_REG:
+	jamDebug();
+	{
+	  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    }
       else
       {
         jamDebug();
       }
     }
     order += num_fix;
-    if (num_vars || num_dyns)
-    {
-      jamDebug();
-      Varpart_copy* vp = (Varpart_copy*)dst_ptr;
-      Uint32* varstart = vp->m_data;
-      dst_ptr = vp->m_data;
 
-      if (num_vars)
+     if (num_vars || num_dyns) {
+    {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jamDebug();
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      Varpart_copy* vp = (Varpart_copy*)dst_ptr;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(Int64
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         *(Int64 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+* varstart = vp->m_data;
+      dst_ptr = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+vp->m_data
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0x60
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0x60;
+            } else {
+              return TUPKEY_abort(req_struct, 20)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+	  }
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(num_vars)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       {
-        jamDebug();
-        Uint16* src_off_ptr= req_struct->var_pos_array[ind];
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  break;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jamDebug();
+||||||| Common ancestor
+TUPKEY_abort(req_struct, 20);
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+break;
+	}
+
+=======
+}
+
+>>>>>>> MySQL 8.0.36
+     Uint16* src_off_ptr= req_struct->var_pos_array[ind];
         Uint16* dst_off_ptr= (Uint16*)dst_ptr;
         char*  dst_data_ptr= (char*)(dst_off_ptr + num_vars + 1);
         char* src_data_ptr = (char*)req_struct->m_var_data[ind].m_data_ptr;
-        ndbassert((ind == DD) || (src_data_ptr == dst_data_ptr));
-        Uint32 off= 0;
-        for (Uint32 i = 0; i < num_vars; i++)
-        {
-          /**
+
+         ndbassert((ind == DD) || (src_data_ptr == dst_data_ptr)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        Uint32 off= 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        for (Uint32 i = 0; 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+< num_vars; i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(Int64*)(TregMemBuffer
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         *(Int64 *)(TregMemBuffer 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+++)
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
            * var_pos_array has one index for main memory part and
            * the second is the disk columns part.
-           *
-           * Each var_pos_array has 2 parts, the first is index by the
-           * index of the varsize column, the second is the index
-           * plus the number of varsize columns. These were initialised
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+0)
+=======
+0) {
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+continue;
+	}
+=======
+continue;
+>>>>>>> MySQL 8.0.36
+       * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Each
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+  } else {
+>>>>>>> MySQL 8.0.36
+ var_pos_array has 2 parts, the first is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+index
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ by the
+           * index 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0)
+=======
+0) {
+>>>>>>> MySQL 8.0.36
+ the varsize column, the second is the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+index
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+continue;
+	}
+=======
+continue;
+>>>>>>> MySQL 8.0.36
+       * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+plus
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+  } else {
+>>>>>>> MySQL 8.0.36
+ the number of varsize columns. These were 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+initialised
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
            * to the position of the start of the column (both of them),
            * starting at position 0.
            *
-           * When updating the varsize column we set the index plus
+           * When updating the varsize column we set the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+index
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ plus
            * num_vars to instead be position of the end of the varsize
-           * column. Thus var_pos_array[num_vars + i] - var_pos_array[i]
-           * is the length of the column. For NULL values both are set
+ {
+          * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+column. Thus var_pos_array[num_vars +
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ i] - var_pos_array[i]
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     * is the length of the column. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+For
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NULL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+values
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ both are set
            * to the position of the column and thus length is 0.
            *
            * Seems a bit complicated manner to calculate length, but it
-           * means that we retain the position of the column.
+           * means that we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+retain
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ the position of the column.
            *
-           * In the stored row we store the offset of each varsize column,
-           * starting at 0, in addition we store the total length of all
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ In the stored row we store the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+offset
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ of each varsize column,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   * starting at 0, in addition we store the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+total
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+length
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ all
            * varsize column as an extra length information.
            */
           const char* data_ptr= src_data_ptr + *src_off_ptr;
           Uint32 len= src_off_ptr[num_vars] - *src_off_ptr;
           * dst_off_ptr++= off;
+
           memmove(dst_data_ptr, data_ptr, len);
-          off += len;
-          src_off_ptr++;
-          dst_data_ptr += len;
-          jamDebug();
-          jamDataDebug(len);
-        }
+  {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+off
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ += len;
+       {
+   src_off_ptr++;
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  dst_data_ptr +=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ len;
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jamDebug();
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jamDataDebug(len);
+||||||| Common ancestor
+else
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ else {
+      }
         *dst_off_ptr= off;
         dst_ptr = ALIGN_WORD(dst_data_ptr);
         order += num_vars; // Point to first dynfix entry
@@ -5802,23 +8369,149 @@ Dbtup::shrink_tuple(KeyReqStruct* req_struct, Uint32 sizes[2],
       if (num_dyns)
       {
         jamDebug();
-        Uint16 num_dynvar= tabPtrP->m_attributes[ind].m_no_of_dyn_var;
+  {
+      Uint16 num_dynvar= 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtrP->m_attributes[ind].m_no_of_dyn_var;
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
         Uint16 num_dynfix= tabPtrP->m_attributes[ind].m_no_of_dyn_fix;
-        KeyReqStruct::Var_data* dst = &req_struct->m_var_data[ind];
+    {
+    KeyReqStruct::Var_data* dst = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&req_struct->m_var_data[ind];
+||||||| Common ancestor
+ {
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
         dst_ptr = shrink_dyn_part(dst,
-                                  dst_ptr,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ else {
+                dst_ptr,
                                   tabPtrP,
-                                  tabDesc,
-                                  order,
-                                  num_dynvar,
+                        {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  tabDesc,
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+               {
+                   order,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ else {
+                num_dynvar,
                                   num_dynfix,
-                                  ind);
-        order += (num_dynfix + num_dynvar);
-      }
+                      {
+            ind);
+        order += 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(num_dynfix
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ + num_dynvar);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
       Uint32 varpart_len_words = Uint32(dst_ptr - varstart);
-      ndbassert(varpart_len_words <= MAX_EXPANDED_TUPLE_SIZE_IN_WORDS);
-      vp->m_len = varpart_len_words;
-      if (ind == MM)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  ndbassert(varpart_len_words <= MAX_EXPANDED_TUPLE_SIZE_IN_WORDS);
+      vp->m_len = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+varpart_len_words;
+||||||| Common ancestor
+else
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ else {
+    if (ind == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MM)
+||||||| Common ancestor
+ {
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
       {
         sizes[MM] = varpart_len_words;
         if (varpart_len_words != 0)
@@ -5827,22 +8520,83 @@ Dbtup::shrink_tuple(KeyReqStruct* req_struct, Uint32 sizes[2],
           jamDataDebug(varpart_len_words);
           ptr->m_header_bits |= Tuple_header::VAR_PART;
         }
-        else if ((ptr->m_header_bits & Tuple_header::VAR_PART) == 0)
-        {
+        else if ((ptr->m_header_bits & Tuple_header::VAR_PART) == 0) {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+{
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
           jamDebug();
-          /*
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+0))
+=======
+0)) {
+>>>>>>> MySQL 8.0.36
+   /*
            * No varpart present.
            * And this is not an update where the dynamic column is set to null.
            * So skip storing the var part altogether.
            */
           ndbassert(((Uint32*) vp) == ptr->get_end_of_fix_part_ptr(tabPtrP));
           dst_ptr= (Uint32*)vp;
-        }
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbSqlUtil::Type&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NdbSqlUtil::Type
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sqlType
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&sqlType
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  }
         else
         {
           jamDebug();
-          /*
-           * varpart_len is now 0, but tuple already had a varpart.
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ /*
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+s1
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*s1
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  * varpart_len is now 0, but tuple already had a varpart.
            * It will be released at commit time.
            */
         }
@@ -5857,24 +8611,126 @@ Dbtup::shrink_tuple(KeyReqStruct* req_struct, Uint32 sizes[2],
       ndbassert(varpart_len_words < 0x2000);
     }
   }
-  req_struct->is_expanded= false;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct->is_expanded=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bitFieldAttrLen=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+bitFieldAttrLen
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+false;
 }
 
 void
 Dbtup::validate_page(TablerecPtr regTabPtr, Var_page* p)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(AttributeDescriptor::getArraySize(TattrDesc1)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 {
   /* ToDo: We could also do some checks here for any dynamic part. */
-  Uint32 mm_vars= regTabPtr.p->m_attributes[MM].m_no_of_varsize;
-  Uint32 fix_sz= regTabPtr.p->m_offsets[MM].m_fix_header_size + 
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+(AttributeDescriptor::getArraySize(TattrDesc1)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+mm_vars=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
++
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regTabPtr.p->m_attributes[MM].m_no_of_varsize;
+||||||| Common ancestor
+=======
+7)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ / 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+8;
+>>>>>>> MySQL 8.0.36
+ fix_sz= regTabPtr.p->m_offsets[MM].m_fix_header_size + 
     Tuple_header::HeaderSize;
     
-  if(mm_vars == 0)
-    return;
-  
-  for(Uint32 F= 0; F < MAX_FRAG_PER_LQH; F++)
-  {
-    FragrecordPtr fragPtr;
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
 
+||||||| Common ancestor
+=======
+attrLen
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if(mm_vars == 0)
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ + 7) / 8;
+=======
+bitFieldAttrLen;
+>>>>>>> MySQL 8.0.36
+  return;
+  
+  for(Uint32 F= 0; F 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+< MAX_FRAG_PER_LQH;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+attrLen= bitFieldAttrLen;
+=======
+}
+
+>>>>>>> MySQL 8.0.36
+ F++)
+  {
+    FragrecordPtr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragPtr;
+
+||||||| Common ancestor
+}
+
+	//
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     fragPtr.i = c_lqh->m_ldm_instance_used->getNextTupFragrec(regTabPtr.i, F);
     if (fragPtr.i == RNIL64)
       continue;
@@ -5882,7 +8738,29 @@ Dbtup::validate_page(TablerecPtr regTabPtr, Var_page* p)
     ndbrequire(c_fragment_pool.getPtr(fragPtr));
     for(Uint32 P= 0; P<fragPtr.p->noOfPages; P++)
     {
-      Uint32 real= getRealpid(fragPtr.p, P);
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+s2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*s2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ real= getRealpid(fragPtr.p, P);
       Var_page* page= (Var_page*)c_page_pool.getPtr(real);
 
       for(Uint32 i=1; i<page->high_index; i++)
@@ -5897,7 +8775,7 @@ Dbtup::validate_page(TablerecPtr regTabPtr, Var_page* p)
 	  {
 	    ndbrequire(len == fix_sz + 1);
             Local_key tmp;
-            Var_part_ref* vpart = reinterpret_cast<Var_part_ref*>(part);
+          }  Var_part_ref* vpart = reinterpret_cast<Var_part_ref*>(part);
             vpart->copyout(&tmp);
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
             ndbrequire(!"Looking for test coverage - found it!");
@@ -5933,7 +8811,7 @@ Dbtup::validate_page(TablerecPtr regTabPtr, Var_page* p)
 	{
 	  
 	}
-      }
+        }
       if(p == 0 && page->high_index > 1)
 	page->reorg((Var_page*)ctemp_page);
     }
@@ -5947,7 +8825,18 @@ Dbtup::validate_page(TablerecPtr regTabPtr, Var_page* p)
 
 int
 Dbtup::handle_size_change_after_update(Signal *signal,
-                                       KeyReqStruct* req_struct,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }                           KeyReqStruct* req_struct,
 				       Tuple_header* org,
 				       Operationrec* regOperPtr,
 				       Fragrecord* regFragPtr,
@@ -5980,7 +8869,7 @@ Dbtup::handle_size_change_after_update(Signal *signal,
       continue;
     }
     jam();
-    if (ind == DD)
+      if (ind == DD)
     {
       jamDebug();
       /**
@@ -6002,9 +8891,41 @@ Dbtup::handle_size_change_after_update(Signal *signal,
        * It only affects the page header information. The variables we
        * can change here are:
        * 1) uncommitted_used_space
-       *    We need this variable to preallocate area on the page.
-       *    This variable is changed only when we increase the row size
-       *    on the same page or dropping a row due to moving the row
+       *   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+bitFieldAttrLen=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+bitFieldAttrLen
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(AttributeDescriptor::getArraySize(Tattr2Desc1)
+=======
+=
+>>>>>>> MySQL 8.0.36
+ need this variable to preallocate area on the page.
+       *    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+This variable is changed only when we increase the row size
+       * 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(AttributeDescriptor::getArraySize(Tattr2Desc1)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   on the same page or dropping a row due to moving the row
        *    to a new page.
        * 2) m_restart_seq
        *    The number of the restart that the page was last written.
@@ -6022,7 +8943,7 @@ Dbtup::handle_size_change_after_update(Signal *signal,
        * The free_space variable is read, but this is only updated during
        * commit of a transaction.
        */
-      if ((regTabPtr->m_bits & Tablerec::TR_UseVarSizedDiskData) != 0)
+        if ((regTabPtr->m_bits & Tablerec::TR_UseVarSizedDiskData) != 0)
       {
         PagePtr diskPagePtr = req_struct->m_disk_page_ptr;
         Uint32 free = diskPagePtr.p->free_space;
@@ -6037,31 +8958,121 @@ Dbtup::handle_size_change_after_update(Signal *signal,
                    used,
                    new_size,
                    sizes[DD],
-                   disk_alloc_flag,
-                   disk_reorg_flag));
-        jamDataDebug(free);
-        jamDataDebug(used);
-        if (unlikely(disk_alloc_flag || disk_reorg_flag))
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+=======
+  } else {
+>>>>>>> MySQL 8.0.36
+   disk_alloc_flag,
+             jamDebug();
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+disk_reorg_flag));
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    jamDataDebug(free);
+||||||| Common ancestor
+jamDebug();
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        jamDataDebug(used)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    if (unlikely(disk_alloc_flag || disk_reorg_flag))
         {
           jamDebug();
-          ndbrequire(regOperPtr->m_uncommitted_used_space == 0);
-          /**
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(regOperPtr->m_uncommitted_used_space
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+	}
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  }
+>>>>>>> MySQL 8.0.36
+ == 0);
+        } else /**
            * disk_alloc_flag true:
            * We started the transaction without a row in this position.
            * Thus this must be a multi-row operation that either
            * re-inserts the row or updates the row with a new size.
            *
            * In this case we have allocated the row in a page which we
-           * have access to, thus we can either change the size used by
-           * this page or move the row to a new page.
+           * have access 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to, thus we can either change the size used by
+||||||| Common ancestor
+}
+         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }         * this page or move the row to a new page.
            *
            * disk_reorg_flag true:
            * We have already previously moved to a new disk page.
            * Thus we need to check if the new page is large enough
            * handle also the new size of the row. This is very
-           * similar to the handling of a row operation that starts
-           * with an initial insert operation.
-           *
+           * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+similar to the handling of a row operation
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ that starts
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ * with an initial insert operation.
+||||||| Common ancestor
+else
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  } else        *
            * One difference is that the size of the new page is found
            * in the copy row. Another difference is that diskPagePtr
            * refers to the original page and thus using
@@ -6073,15 +9084,50 @@ Dbtup::handle_size_change_after_update(Signal *signal,
           Local_key key;
           PagePtr used_pagePtr;
           const Uint32 *disk_ref =
-            req_struct->m_tuple_ptr->get_disk_ref_ptr(regTabPtr);
-          memcpy(&key, disk_ref, sizeof(key));
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req_struct->m_tuple_ptr->get_disk_ref_ptr(regTabPtr);
+         
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ memcpy(&key, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+disk_ref,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ sizeof(key));
           jamDataDebug(key.m_file_no);
           jamDataDebug(key.m_page_no);
           if (disk_reorg_flag)
-          {
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
             jamDebug();
-            /**
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+cmpZero= 
+              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+cmpZero
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =         /**
              * We are not using diskPagePtr, need to recalculate
+
              * some variables and set use_pagePtr to new disk page.
              */
             used_pagePtr.i = regOperPtr->m_disk_extra_callback_page;
@@ -6123,17 +9169,202 @@ Dbtup::handle_size_change_after_update(Signal *signal,
               /**
                * We also need to update the size allocated that is stored
                * in the local key of the disk row reference. When DISK_ALLOC
-               * is set (an initial insert is the first operation on the row).
-               * There is no need to set it in the disk row reference stored
-               * in the in-memory row that will become the row. We set it
-               * anyways for consistency.
-               *
-               * Need to set the checksum using the entire row, this happens
-               * with exclusive access, so it is safe to set a new checksum.
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+attrId)
+=======
+attrId) {
+>>>>>>> MySQL 8.0.36
+      * is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (an initial insert is the first operation on the row).
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+0))
+=======
+0)) {
+>>>>>>> MySQL 8.0.36
+        * There 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ no need to set it in the disk row reference stored
+               * in the in-memory row that will become the row.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ We set it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+isNULL())
+// RONDB-624 todo: Glue these lines together ^v
+=======
+isNULL()) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   * anyways for consistency.
+||||||| Common ancestor
+TprogramCounter);
+	}
+=======
+TprogramCounter);
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  } else {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+||||||| Common ancestor
+{
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Interpreter::BRANCH_ATTR_NE_NULL:
+=======
+Interpreter::BRANCH_ATTR_NE_NULL: {
+>>>>>>> MySQL 8.0.36
+ * Need to set the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+checksum
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jamDebug();
+	Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    jamDebug();
+          Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ using the entire row, this happens
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+attrId)
+=======
+attrId) {
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    * with exclusive access, so it is safe to set a new 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+checksum.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+0)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
               */
               disk_page_dirty_header(signal,
-                                     regFragPtr,
-                                     key,
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(ah.isNULL())
+=======
+(ah.isNULL()) {
+>>>>>>> MySQL 8.0.36
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+++;
+	}
+=======
+ TprogramCounter++;
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+  } else {
+>>>>>>> MySQL 8.0.36
+  regFragPtr,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                               key,
                                      used_pagePtr,
                                      add);
               key.m_page_idx = new_size;
@@ -6144,20 +9375,150 @@ Dbtup::handle_size_change_after_update(Signal *signal,
               {
                 jam();
                 memcpy(org->get_disk_ref_ptr(regTabPtr),
-                       &key,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TprogramCounter);
+#endif
+	RstackPtr++;
+	if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  TprogramCounter);
+#endif
+          RstackPtr++;
+>>>>>>> MySQL 8.0.36
+          if (RstackPtr < 32) &key,
                        sizeof(key));
-                setChecksum(org, regTabPtr);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TsubroutineLen)
+=======
+TsubroutineLen) {
+>>>>>>> MySQL 8.0.36
+              setChecksum(org, regTabPtr);
               }
-            }
-            else
-            {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+} else {
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+	}
+=======
+}
+>>>>>>> MySQL 8.0.36
+    else
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+  } else {
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
               jamDebug();
               /**
                * We follow the principle that we never return any preallocated
-               * storage. This would create problems if we roll back one or
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+0)
+=======
+0) {
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    * storage. This would create problems 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0)
+=======
+0) {
+>>>>>>> MySQL 8.0.36
+ we roll back one or
                * more operations. We cannot safely allocate storage later in
-               * the process and we cannot abort already prepared operations.
-               * Thus we avoid returning memory here.
+               * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+	}
+=======
+}
+>>>>>>> MySQL 8.0.36
+ process and we cannot abort already prepared 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+operations.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  } else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       * Thus we avoid returning memory here.
                */
             }
           }
@@ -6166,30 +9527,335 @@ Dbtup::handle_size_change_after_update(Signal *signal,
             jamDebug();
             ndbrequire(add > 0);
             /**
-             * We grew out of the current page, we need to allocate a new page
-             * and deallocate the current page.
-             * We deallocate after allocating from a new page. Finally
+             * We 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+grew
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+out
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+src,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*src,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ of the current page, we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+need
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+order)
+{
+=======
+*order) {
+>>>>>>> MySQL 8.0.36
+ allocate 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+a
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dst_ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst_ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ page
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst_off_ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst_off_ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst_len_ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst_len_ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    * and 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+deallocate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+src_off_ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*src_off_ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ current page.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+src_ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*src_ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         * We deallocate after allocating from a new page. Finally
              * we also need to update the disk reference in the copy row.
              */
             /* Add extra word to handle possible directory size increase.*/
             new_size++;
             Local_key new_key;
             jamDebug();
-            int ret = disk_page_prealloc(signal,
-                                         prepare_fragptr,
-                                         regTabPtr,
-                                         &new_key,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ALIGN_WORD(dst_ptr);
+}
+
+void
+Dbtup::expand_tuple(KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ALIGN_WORD(dst_ptr);
+}
+
+void Dbtup::expand_tuple(KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    int ret = disk_page_prealloc(signal,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+src,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*src,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtrP,
+		   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tabPtrP,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                          prepare_fragptr,
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                            regTabPtr,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Var_part_ref*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Var_part_ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+var_ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*var_ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                   &new_key,
                                          new_size);
             if (unlikely(ret < 0))
             {
               jam();
               terrorCode = -ret;
-              return ret;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+KeyReqStruct::Var_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyReqStruct::Var_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         return ret;
             }
             jamDebug();
             jamDataDebug(new_key.m_file_no);
             jamDataDebug(new_key.m_page_no);
-            new_key.m_page_idx = new_size;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+KeyReqStruct::Var_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyReqStruct::Var_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     new_key.m_page_idx = new_size;
             memcpy(req_struct->m_tuple_ptr->get_disk_ref_ptr(regTabPtr),
                    &new_key,
                    sizeof(new_key));
@@ -6214,7 +9880,27 @@ Dbtup::handle_size_change_after_update(Signal *signal,
             disk_page_abort_prealloc_callback_1(signal,
                                                 regFragPtr,
                                                 used_pagePtr,
-                                                curr_size,
+                                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Varpart_copy*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Varpart_copy
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+vp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*vp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     curr_size,
                                                 0);
           }
           return 0;
@@ -6232,7 +9918,27 @@ Dbtup::handle_size_change_after_update(Signal *signal,
           jamDataDebug(new_size);
           jamDataDebug(curr_size);
           jamDataDebug(regOperPtr->m_uncommitted_used_space);
-          DEB_REORG(("(%u) key(%u,%u,%u), new_size: %u, curr_size: %u"
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+varstart
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*varstart
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  DEB_REORG(("(%u) key(%u,%u,%u), new_size: %u, curr_size: %u"
                      ", add: %d, uncommitted_used_space: %u",
                      instance(),
                      key.m_file_no,
@@ -6288,8 +9994,72 @@ Dbtup::handle_size_change_after_update(Signal *signal,
             jamDebug();
             /**
              * The row will no longer fit in the original page. Thus we have
-             * to move the row to a new page. We set the DISK_REORG flag.
-             */
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req_struct,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtrP)
+{
+=======
+*tabPtrP) {
+>>>>>>> MySQL 8.0.36
+ move the row to a new page. We set the DISK_REORG flag.
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     */
             jam();
             ndbrequire(add > 0);
             Uint32 undo_len = sizeof(Dbtup::Disk_undo::Alloc) >> 2;
@@ -6316,11 +10086,128 @@ Dbtup::handle_size_change_after_update(Signal *signal,
             /**
              * There are two ways to get here. The first is by starting with
              * a UPDATE that includes updating the disk part of the row. It
-             * could be this operation or a previous operation. In both cases
-             * we allocated log space for an UNDO of the UPDATE operation
-             * as part of expand_tuple which happens before coming to this
-             * part of the code which happens after completing the updates
-             * on the row.
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+disk_len);
+#endif
+}
+
+void
+Dbtup::prepare_read(KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+disk_len);
+#endif
+}
+
+void Dbtup::prepare_read(KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+could be this operation or a previous operation.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+In both cases
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Tablerec *tabPtrP,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tabPtrP,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   * we allocated log space for an UNDO of the UPDATE operation
+             * as part of expand_tuple which happens 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+before
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Var_part_ref*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Var_part_ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+coming
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+var_ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*var_ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to this
+             * part of the code which happens after completing the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+updates
+||||||| Common ancestor
+KeyReqStruct::Var_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyReqStruct::Var_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+            * on the row.
              *
              * The second variant is to get here starting with a DELETE
              * operation on the row followed by an INSERT of the row
@@ -6331,9 +10218,71 @@ Dbtup::handle_size_change_after_update(Signal *signal,
              *
              * Thus in both cases we have allocated log space for the UNDO
              * of the free of this disk row. The size of this UNDO will be
-             * based on the size of the row at start of the transaction.
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Varpart_copy*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Varpart_copy
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+vp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*vp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    * based on the size of the row at start of the transaction.
              * This is the size set at in initial UPDATE operation in
-             * expand_tuple which is thus large enough. The size of the
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+varstart;
+=======
+*varstart;
+>>>>>>> MySQL 8.0.36
+      * expand_tuple which is thus large enough. The size 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+dynstart;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dynstart;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
              * allocated log space after an initial DELETE operation is
              * larger than required. We could free this space up here, but
              * it will only be of any help in extreme overload situations.
@@ -6342,7 +10291,18 @@ Dbtup::handle_size_change_after_update(Signal *signal,
              * always the same size and the state DISK_REORG will always
              * have an additional log space allocated for this purpose.
              * If we follow up this operation with a subsequent DELETE
-             * operation we will free this extra log space and free the
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
++
+// RONDB-624 todo: Glue these lines together ^v
+=======
++
+      //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ * operation we will free this extra log space and free the
              * new disk row and remove the DISK_REORG flag.
              */
             ndbrequire(regOperPtr->m_undo_buffer_space > 0);
@@ -6365,13 +10325,42 @@ Dbtup::handle_size_change_after_update(Signal *signal,
                * row if we commit whatever type of operations happens
                * after this.
                */
-              jam();
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    jam();
               Int32 overflow_space = -regOperPtr->m_uncommitted_used_space;
               ndbrequire(diskPagePtr.p->m_restart_seq == globalData.m_restart_seq);
               disk_page_dirty_header(signal,
                                      regFragPtr,
-                                     key,
-                                     diskPagePtr,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                req_struct->m_disk_page_ptr.p->m_page_no,
+                          key.m_page_idx,
+                          bits & Tuple_header::DISK_INLINE ? 1 : 0,
+                          req_struct->m_disk_page_ptr.p->m_table_id,
+=======
+req_struct->m_disk_page_ptr.p->m_page_no, key.m_page_idx,
+>>>>>>> MySQL 8.0.36
+          bits & Tuple_header::DISK_INLINE ? 1 : 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+key,
+||||||| Common ancestor
+=======
+0,
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req_struct->m_disk_page_ptr.p->m_fragment_id,
+=======
+req_struct->m_disk_page_ptr.p->m_table_id,
+>>>>>>> MySQL 8.0.36
+          req_struct->m_disk_page_ptr.p->m_fragment_id,
+           diskPagePtr,
                                      overflow_space);
               regOperPtr->m_uncommitted_used_space = 0;
             }
@@ -6379,14 +10368,245 @@ Dbtup::handle_size_change_after_update(Signal *signal,
             /* Add extra word to handle possible directory size increase.*/
             new_size++;
             int ret = disk_page_prealloc(signal,
-                                         prepare_fragptr,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+false;
+}
+
+void
+Dbtup::shrink_tuple(KeyReqStruct*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+false;
+}
+
+void Dbtup::shrink_tuple(KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tabPtrP,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tabPtrP,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+KeyReqStruct::Var_data*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyReqStruct::Var_data
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          prepare_fragptr,
                                          regTabPtr,
-                                         &new_key,
-                                         new_size);
-            if (unlikely(ret < 0))
-            {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+src_off_ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*src_off_ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Varpart_copy*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Varpart_copy
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+vp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*vp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    &new_key,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+varstart
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*varstart
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint16*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint16
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst_off_ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst_off_ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          new_size);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char* 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst_data_ptr=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst_data_ptr =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    if (unlikely(ret < 0))
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char* 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+src_data_ptr= dst_data_ptr;
+=======
+*src_data_ptr = dst_data_ptr;
+>>>>>>> MySQL 8.0.36
+    {
               jam();
-              terrorCode = -ret;
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+terrorCode
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+data_ptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*data_ptr 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= -ret;
               /**
                * Need to release log space since only recalled through
                * setting DISK_REORG bit. This bit is only set in a
@@ -6394,13 +10614,23 @@ Dbtup::handle_size_change_after_update(Signal *signal,
                * when the entire transaction is aborted.
                */
               Uint32 undo_insert_len = sizeof(Dbtup::Disk_undo::Alloc) >> 2;
-              Logfile_client lgman(this,
-                                   c_lgman,
+ order,
+             Logfile_client lgman(this,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+order, mm_dynvar,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ mm_dynvar,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  c_lgman,
                                    regFragPtr->m_logfile_group_id);
               lgman.free_log_space(undo_insert_len, jamBuffer());
               return ret;
-            }
-            jamDebug();
+            }         jamDebug();
             jamDataDebug(new_key.m_file_no);
             jamDataDebug(new_key.m_page_no);
             bits |= Tuple_header::DISK_REORG;
@@ -6413,22 +10643,112 @@ Dbtup::handle_size_change_after_update(Signal *signal,
                        " (%u,%u), new_size: %u, undo_buffer_space: %u",
                        instance(),
                        req_struct->fragPtrP->fragTableId,
-                       req_struct->fragPtrP->fragmentId,
-                       regOperPtr->m_tuple_location.m_page_no,
+                       req_struct->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragPtrP->fragmentId,
+||||||| Common ancestor
+is_expanded= false;
+
+}
+
+void
+Dbtup::validate_page(Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+is_expanded = false;
+}
+
+void Dbtup::validate_page(Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regTabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regTabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Var_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Var_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+p)
+{
+=======
+*p) {
+>>>>>>> MySQL 8.0.36
+                    regOperPtr->m_tuple_location.m_page_no,
                        regOperPtr->m_tuple_location.m_page_idx,
                        new_key.m_file_no,
                        new_key.m_page_no,
                        new_size,
-                       regOperPtr->m_undo_buffer_space));
-          }
-        }
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Var_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Var_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+page=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*page =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       regOperPtr->m_undo_buffer_space));
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+i++)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+i++) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  }
+||||||| Common ancestor
+{
+	Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
       }
       return 0;
     }
     Ptr<Page> pagePtr = req_struct->m_varpart_page_ptr[MM];
     Var_page* pageP= (Var_page*)pagePtr.p;
     Var_part_ref *refptr= org->get_var_part_ref_ptr(regTabPtr);
-    ndbassert(! (bits & Tuple_header::COPY_TUPLE));
+    ndbassert(!(bits & Tuple_header::COPY_TUPLE));
 
     Local_key ref;
     refptr->copyout(&ref);
@@ -6441,11 +10761,43 @@ Dbtup::handle_size_change_after_update(Signal *signal,
       {
         jamDebug();
         ndbrequire(c_page_pool.getPtr(pagePtr, ref.m_page_no));
-        pageP = (Var_page*)pagePtr.p;
+        pageP = (Var_page *)pagePtr.p;
       }
       alloc = pageP->get_entry_len(idx);
-    }
-    else
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+} 
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+else
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   } else {
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  else
     {
       jamDebug();
       alloc = 0;
@@ -6455,7 +10807,7 @@ Dbtup::handle_size_change_after_update(Signal *signal,
     {
       jamDebug();
       /* Was grown before, so must fetch real original size from last word. */
-      Uint32 *old_var_part= pageP->get_ptr(idx);
+      Uint32 *old_var_part = pageP->get_ptr(idx);
       ndbassert(alloc>0);
       orig_size= old_var_part[alloc-1];
     }
@@ -6464,21 +10816,143 @@ Dbtup::handle_size_change_after_update(Signal *signal,
     {
       jamDebug();
 #ifdef VM_TRACE
-      if(!pageP->get_entry_chain(idx))
+      if (!pageP->get_entry_chain(idx))
         ndbout << *pageP << endl;
 #endif
       ndbassert(pageP->get_entry_chain(idx));
     }
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
 
-    Uint32 needed= sizes[2+MM];
+int
+Dbtup::handle_size_change_after_update(KeyReqStruct* req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
 
-    if(needed <= alloc)
-    {
+int Dbtup::handle_size_change_after_update(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+needed=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+KeyReqStruct
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sizes[2+MM];
+
+||||||| Common ancestor
+=======
+*req_struct,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tuple_header*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tuple_header
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  if(needed <= alloc)
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+org,
+				      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*org,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Operationrec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Operationrec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regOperPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regOperPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       jam();
-      continue;
-    }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Fragrecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    continue;
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regFragPtr,
+				      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regFragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
     /**
-     * Reallocation of the variable sized part of the row is intruding
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regTabPtr,
+				      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regTabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   * Reallocation of the variable sized part of the row is intruding
      * on all readers from the query thread. It reorganises the rows
      * visible to the readers and it can even reorganise an entire
      * page.
@@ -6491,7 +10965,31 @@ Dbtup::handle_size_change_after_update(Signal *signal,
      * of the variable sized part of the row. In addition there should
      * not be any space at the end of the page. This should be rare
      * enough such that we can simply upgrade ourselves to use an
-     * exclusive fragment access during the time we perform this
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Var_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Var_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+exclusive
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pageP=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*pageP =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ fragment access during the time we perform this
      * reallocation of the variable sized part.
      *
      * An alternative approach is to never touch the varsized pages until
@@ -6539,11 +11037,9 @@ Dbtup::handle_size_change_after_update(Signal *signal,
      * pageP is not initialised and points to garbage.
      */
     bool require_exclusive_access =
-      alloc == 0 ||
-      pageP->free_space < add ||
-      !pageP->is_space_behind_entry(oldref.m_page_idx, add);
-    if (require_exclusive_access)
-    {
+        alloc == 0 || pageP->free_space < add ||
+        !pageP->is_space_behind_entry(oldref.m_page_idx, add);
+    if (require_exclusive_access) {
       jam();
       DEB_ELEM_COUNT(("(%u) realloc_var_part tab(%u,%u), var_lkey: (%u,%u),"
                       " alloc: %u, needed: %u",
@@ -6555,26 +11051,25 @@ Dbtup::handle_size_change_after_update(Signal *signal,
                       alloc,
                       needed));
       c_lqh->upgrade_to_exclusive_frag_access();
-      Uint32 *new_var_part=realloc_var_part(&terrorCode,
-                                            regFragPtr, regTabPtr, pagePtr,
-                                            refptr, alloc, needed);
-      if (unlikely(new_var_part==NULL))
-      {
+      Uint32 *new_var_part = realloc_var_part(
+          &terrorCode, regFragPtr, regTabPtr, pagePtr, refptr, alloc, needed);
+      if (unlikely(new_var_part == NULL)) {
         jam();
         c_lqh->reset_old_fragment_lock_status();
         return -1;
       }
       /* Mark the tuple grown, store the original length at the end. */
       DEB_LCP(("tab(%u,%u), row_id(%u,%u), set MM_GROWN",
-              req_struct->fragPtrP->fragTableId,
-              req_struct->fragPtrP->fragmentId,
-              regOperPtr->m_tuple_location.m_page_no,
-              regOperPtr->m_tuple_location.m_page_idx));
-      org->m_header_bits= bits |
+               req_struct->fragPtrP->fragTableId,
+               req_struct->fragPtrP->fragmentId,
+               regOperPtr->m_tuple_location.m_page_no,
+               regOperPtr->m_tuple_location.m_page_idx));
+      org->m_header_bits =
+          bits |
                           Tuple_header::MM_GROWN |
                           Tuple_header::VAR_PART;
       m_base_header_bits = org->m_header_bits;
-      new_var_part[needed-1]= orig_size;
+      new_var_part[needed - 1] = orig_size;
 
       /**
        * Here we can change both header bits and the reference to the varpart,
@@ -6590,9 +11085,7 @@ Dbtup::handle_size_change_after_update(Signal *signal,
        */
       setChecksum(org, regTabPtr);
       c_lqh->downgrade_from_exclusive_frag_access();
-    }
-    else
-    {
+    } else {
       jamDebug();
       /**
        * Growing the entry in the page requires not exclusive access.
@@ -6610,24 +11103,20 @@ Dbtup::handle_size_change_after_update(Signal *signal,
       regFragPtr->m_varWordsFree -= pageP->free_space;
       pageP->grow_entry(oldref.m_page_idx, add);
       update_free_page_list(regFragPtr, pagePtr);
-      m_base_header_bits= bits |
-                          Tuple_header::MM_GROWN |
-                          Tuple_header::VAR_PART;
-      new_var_part[needed-1]= orig_size;
+      m_base_header_bits =
+          bits |
+                          Tuple_header::MM_GROWN | Tuple_header::VAR_PART;
+      new_var_part[needed - 1] = orig_size;
     }
   }
   return 0;
 }
 
-int
-Dbtup::optimize_var_part(KeyReqStruct* req_struct,
-                         Tuple_header* org,
-                         Operationrec* regOperPtr,
-                         Fragrecord* regFragPtr,
-                         Tablerec* regTabPtr)
-{
+int Dbtup::optimize_var_part(KeyReqStruct *req_struct, Tuple_header *org,
+                             Operationrec *regOperPtr, Fragrecord *regFragPtr,
+                             Tablerec *regTabPtr) {
   jam();
-  Var_part_ref* refptr = org->get_var_part_ref_ptr(regTabPtr);
+  Var_part_ref *refptr = org->get_var_part_ref_ptr(regTabPtr);
 
   Local_key ref;
   refptr->copyout(&ref);
@@ -6636,42 +11125,32 @@ Dbtup::optimize_var_part(KeyReqStruct* req_struct,
   Ptr<Page> pagePtr;
   ndbrequire(c_page_pool.getPtr(pagePtr, ref.m_page_no));
 
-  Var_page* pageP = (Var_page*)pagePtr.p;
+  Var_page *pageP = (Var_page *)pagePtr.p;
   Uint32 var_part_size = pageP->get_entry_len(idx);
 
   /**
    * if the size of page list_index is MAX_FREE_LIST,
    * we think it as full page, then need not optimize
    */
-  if (pageP->list_index != MAX_FREE_LIST)
-  {
+  if (pageP->list_index != MAX_FREE_LIST) {
     jam();
     /*
-     * optimize var part of tuple by moving varpart, 
+     * optimize var part of tuple by moving varpart,
      * then we possibly reclaim free pages
      */
-    move_var_part(regFragPtr,
-                  regTabPtr,
-                  pagePtr,
-                  refptr,
-                  var_part_size,
-                  org);
+    move_var_part(regFragPtr, regTabPtr, pagePtr, refptr, var_part_size, org);
   }
 
   return 0;
 }
 
-int
-Dbtup::nr_update_gci(Uint64 fragPtrI,
-                     const Local_key* key,
-                     Uint32 gci,
-                     bool tuple_exists)
-{
+int Dbtup::nr_update_gci(Uint64 fragPtrI, const Local_key *key, Uint32 gci,
+                         bool tuple_exists) {
   FragrecordPtr fragPtr;
-  fragPtr.i= fragPtrI;
+  fragPtr.i = fragPtrI;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
   TablerecPtr tablePtr;
-  tablePtr.i= fragPtr.p->fragTableId;
+  tablePtr.i = fragPtr.p->fragTableId;
   ptrCheckGuard(tablePtr, cnoOfTablerec, tablerec);
 
   /**
@@ -6692,30 +11171,25 @@ Dbtup::nr_update_gci(Uint64 fragPtrI,
    */
   jamDebug();
   ndbrequire(!m_is_in_query_thread);
-  if (tablePtr.p->m_bits & Tablerec::TR_RowGCI || true)
-  {
+  if (tablePtr.p->m_bits & Tablerec::TR_RowGCI || true) {
     Local_key tmp = *key;
     PagePtr pagePtr;
 
     pagePtr.i = getRealpidCheck(fragPtr.p, tmp.m_page_no);
-    if (unlikely(pagePtr.i == RNIL))
-    {
+    if (unlikely(pagePtr.i == RNIL)) {
       jam();
       ndbassert(!tuple_exists);
       return 0;
     }
 
     c_page_pool.getPtr(pagePtr);
-    
-    Tuple_header* ptr = (Tuple_header*)
-      ((Fix_page*)pagePtr.p)->get_ptr(tmp.m_page_idx, 0);
 
-    if (tuple_exists)
-    {
+    Tuple_header *ptr =
+        (Tuple_header *)((Fix_page *)pagePtr.p)->get_ptr(tmp.m_page_idx, 0);
+
+    if (tuple_exists) {
       ndbrequire(!(ptr->m_header_bits & Tuple_header::FREE));
-    }
-    else
-    {
+    } else {
       ndbrequire(ptr->m_header_bits & Tuple_header::FREE);
     }
     update_gci(fragPtr.p, tablePtr.p, ptr, gci);
@@ -6723,26 +11197,22 @@ Dbtup::nr_update_gci(Uint64 fragPtrI,
   return 0;
 }
 
-int
-Dbtup::nr_read_pk(Uint64 fragPtrI, 
-		  const Local_key* key, Uint32* dst, bool& copy)
-{
-  
+int Dbtup::nr_read_pk(Uint64 fragPtrI, const Local_key *key, Uint32 *dst,
+                      bool &copy) {
   FragrecordPtr fragPtr;
-  fragPtr.i= fragPtrI;
+  fragPtr.i = fragPtrI;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
   TablerecPtr tablePtr;
-  tablePtr.i= fragPtr.p->fragTableId;
+  tablePtr.i = fragPtr.p->fragTableId;
   ptrCheckGuard(tablePtr, cnoOfTablerec, tablerec);
 
   Local_key tmp = *key;
-  
+
   ndbrequire(!m_is_in_query_thread);
   PagePtr pagePtr;
   /* Mutex protection only required here for query threads. */
   pagePtr.i = getRealpidCheck(fragPtr.p, tmp.m_page_no);
-  if (unlikely(pagePtr.i == RNIL))
-  {
+  if (unlikely(pagePtr.i == RNIL)) {
     jam();
     dst[0] = 0;
     return 0;
@@ -6750,63 +11220,55 @@ Dbtup::nr_read_pk(Uint64 fragPtrI,
 
   c_page_pool.getPtr(pagePtr);
   KeyReqStruct req_struct(this);
-  Uint32* ptr= ((Fix_page*)pagePtr.p)->get_ptr(key->m_page_idx, 0);
-  
+  Uint32 *ptr = ((Fix_page *)pagePtr.p)->get_ptr(key->m_page_idx, 0);
+
   req_struct.m_lqh = c_lqh;
   req_struct.m_page_ptr = pagePtr;
-  req_struct.m_tuple_ptr = (Tuple_header*)ptr;
+  req_struct.m_tuple_ptr = (Tuple_header *)ptr;
   Uint32 bits = req_struct.m_tuple_ptr->m_header_bits;
 
   int ret = 0;
   copy = false;
-  if (! (bits & Tuple_header::FREE))
-  {
-    if (bits & Tuple_header::ALLOC)
-    {
+  if (!(bits & Tuple_header::FREE)) {
+    if (bits & Tuple_header::ALLOC) {
       OperationrecPtr opPtr;
       opPtr.i = req_struct.m_tuple_ptr->m_operation_ptr_i;
       ndbrequire(m_curr_tup->c_operation_pool.getValidPtr(opPtr));
       ndbassert(!opPtr.p->m_copy_tuple_location.isNull());
-      req_struct.m_tuple_ptr=
-        get_copy_tuple(&opPtr.p->m_copy_tuple_location);
+      req_struct.m_tuple_ptr = get_copy_tuple(&opPtr.p->m_copy_tuple_location);
       copy = true;
     }
     Uint32 *tab_descr = tablePtr.p->tabDescriptor;
-    req_struct.check_offset[MM]= tablePtr.p->get_check_offset(MM);
+    req_struct.check_offset[MM] = tablePtr.p->get_check_offset(MM);
     req_struct.check_offset[DD]= tablePtr.p->get_check_offset(DD);
-    req_struct.attr_descr= tab_descr;
+    req_struct.attr_descr = tab_descr;
 
-    if (tablePtr.p->need_expand())
-      prepare_read(&req_struct, tablePtr.p, false);
-    
-    const Uint32* attrIds = tablePtr.p->readKeyArray;
-    const Uint32 numAttrs= tablePtr.p->noOfKeyAttr;
+    if (tablePtr.p->need_expand()) prepare_read(&req_struct, tablePtr.p, false);
+
+    const Uint32 *attrIds = tablePtr.p->readKeyArray;
+    const Uint32 numAttrs = tablePtr.p->noOfKeyAttr;
     // read pk attributes from original tuple
-    
+
     req_struct.tablePtrP = tablePtr.p;
     req_struct.fragPtrP = fragPtr.p;
-    
+
     // do it
-    ret = readAttributes(&req_struct,
-			 attrIds,
-			 numAttrs,
-			 dst,
-			 ZNIL);
-    
+    ret = readAttributes(&req_struct, attrIds, numAttrs, dst, ZNIL);
+
     // done
     if (likely(ret >= 0)) {
       // remove headers
-      Uint32 n= 0;
-      Uint32 i= 0;
+      Uint32 n = 0;
+      Uint32 i = 0;
       while (n < numAttrs) {
-	const AttributeHeader ah(dst[i]);
-	Uint32 size= ah.getDataSize();
-	ndbrequire(size != 0);
-	for (Uint32 j= 0; j < size; j++) {
-	  dst[i + j - n]= dst[i + j + 1];
-	}
-	n+= 1;
-	i+= 1 + size;
+        const AttributeHeader ah(dst[i]);
+        Uint32 size = ah.getDataSize();
+        ndbrequire(size != 0);
+        for (Uint32 j = 0; j < size; j++) {
+          dst[i + j - n] = dst[i + j + 1];
+        }
+        n += 1;
+        i += 1 + size;
       }
       ndbrequire((int)i == ret);
       ret -= numAttrs;
@@ -6814,27 +11276,22 @@ Dbtup::nr_read_pk(Uint64 fragPtrI,
       return ret;
     }
   }
-    
-  if (tablePtr.p->m_bits & Tablerec::TR_RowGCI)
-  {
+
+  if (tablePtr.p->m_bits & Tablerec::TR_RowGCI) {
     dst[ret] = *req_struct.m_tuple_ptr->get_mm_gci(tablePtr.p);
-  }
-  else
-  {
+  } else {
     dst[ret] = 0;
   }
   return ret;
 }
 
-int
-Dbtup::nr_delete(Signal* signal, Uint32 senderData,
-		 Uint64 fragPtrI, const Local_key* key, Uint32 gci)
-{
+int Dbtup::nr_delete(Signal *signal, Uint32 senderData, Uint64 fragPtrI,
+                     const Local_key *key, Uint32 gci) {
   FragrecordPtr fragPtr;
-  fragPtr.i= fragPtrI;
+  fragPtr.i = fragPtrI;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
   TablerecPtr tablePtr;
-  tablePtr.i= fragPtr.p->fragTableId;
+  tablePtr.i = fragPtr.p->fragTableId;
   ptrCheckGuard(tablePtr, cnoOfTablerec, tablerec);
 
   ndbrequire(!m_is_in_query_thread);
@@ -6844,16 +11301,15 @@ Dbtup::nr_delete(Signal* signal, Uint32 senderData,
    * concurrency from query threads that will bother us at this point in
    * time.
    */
-  Local_key tmp = * key;
-  tmp.m_page_no= getRealpid(fragPtr.p, tmp.m_page_no); 
-  
-  PagePtr pagePtr;
-  Tuple_header* ptr= (Tuple_header*)get_ptr(&pagePtr, &tmp, tablePtr.p);
+  Local_key tmp = *key;
+  tmp.m_page_no = getRealpid(fragPtr.p, tmp.m_page_no);
 
-  if (!tablePtr.p->tuxCustomTriggers.isEmpty()) 
-  {
+  PagePtr pagePtr;
+  Tuple_header *ptr = (Tuple_header *)get_ptr(&pagePtr, &tmp, tablePtr.p);
+
+  if (!tablePtr.p->tuxCustomTriggers.isEmpty()) {
     jam();
-    TuxMaintReq* req = (TuxMaintReq*)signal->getDataPtrSend();
+    TuxMaintReq *req = (TuxMaintReq *)signal->getDataPtrSend();
     req->tableId = fragPtr.p->fragTableId;
     req->fragId = fragPtr.p->fragmentId;
     req->pageId = tmp.m_page_no;
@@ -6862,17 +11318,15 @@ Dbtup::nr_delete(Signal* signal, Uint32 senderData,
     req->opInfo = TuxMaintReq::OpRemove;
     removeTuxEntries(signal, tablePtr.p);
   }
-  
+
   Local_key disk;
   memcpy(&disk, ptr->get_disk_ref_ptr(tablePtr.p), sizeof(disk));
 
-  Uint32 lcpScan_ptr_i= fragPtr.p->m_lcp_scan_op;
+  Uint32 lcpScan_ptr_i = fragPtr.p->m_lcp_scan_op;
   Uint32 bits = ptr->m_header_bits;
   if (lcpScan_ptr_i != RNIL &&
-      ! (bits & (Tuple_header::LCP_SKIP |
-                 Tuple_header::LCP_DELETE |
-                 Tuple_header::ALLOC)))
-  {
+      !(bits & (Tuple_header::LCP_SKIP | Tuple_header::LCP_DELETE |
+                Tuple_header::ALLOC))) {
     /**
      * We are performing a node restart currently, at the same time we
      * are also running a LCP on the fragment. This can happen when the
@@ -6888,10 +11342,7 @@ Dbtup::nr_delete(Signal* signal, Uint32 senderData,
     ScanOpPtr scanOp;
     scanOp.i = lcpScan_ptr_i;
     ndbrequire(c_scanOpPool.getValidPtr(scanOp));
-    if (is_rowid_in_remaining_lcp_set(pagePtr.p,
-                                      fragPtr.p,
-                                      *key,
-                                      *scanOp.p,
+    if (is_rowid_in_remaining_lcp_set(pagePtr.p, fragPtr.p, *key, *scanOp.p,
                                       0))
     {
       KeyReqStruct req_struct(jamBuffer(), KRS_PREPARE);
@@ -6899,9 +11350,8 @@ Dbtup::nr_delete(Signal* signal, Uint32 senderData,
       req_struct.fragPtrP = fragPtr.p;
       Operationrec oprec;
       Tuple_header *copy;
-      if ((copy = alloc_copy_tuple(tablePtr.p,
-                                   &oprec.m_copy_tuple_location)) == 0)
-      {
+      if ((copy = alloc_copy_tuple(tablePtr.p, &oprec.m_copy_tuple_location)) ==
+          0) {
         /**
          * We failed to allocate the copy record, this is a critical error,
          * we will fail with an error message instruction to increase
@@ -6911,27 +11361,18 @@ Dbtup::nr_delete(Signal* signal, Uint32 senderData,
         BaseString::snprintf(buf, sizeof(buf),
                              "Out of memory when allocating copy tuple for"
                              " LCP keep list, increase SharedGlobalMemory");
-        progError(__LINE__,
-                  NDBD_EXIT_RESOURCE_ALLOC_ERROR,
-                  buf);
+        progError(__LINE__, NDBD_EXIT_RESOURCE_ALLOC_ERROR, buf);
       }
       req_struct.m_tuple_ptr = ptr;
       oprec.m_tuple_location = tmp;
       oprec.op_type = ZDELETE;
-      DEB_LCP_SKIP_DELETE(("(%u)nr_delete: tab(%u,%u), row(%u,%u),"
-                           " handle_lcp_keep_commit"
-                           ", set LCP_SKIP, bits: %x",
-                           instance(),
-                           fragPtr.p->fragTableId,
-                           fragPtr.p->fragmentId,
-                           key->m_page_no,
-                           key->m_page_idx,
-                           bits));
-      handle_lcp_keep_commit(key,
-                             &req_struct,
-                             &oprec,
-                             fragPtr.p,
-                             tablePtr.p);
+      DEB_LCP_SKIP_DELETE(
+          ("(%u)nr_delete: tab(%u,%u), row(%u,%u),"
+           " handle_lcp_keep_commit"
+           ", set LCP_SKIP, bits: %x",
+           instance(), fragPtr.p->fragTableId, fragPtr.p->fragmentId,
+           key->m_page_no, key->m_page_idx, bits));
+      handle_lcp_keep_commit(key, &req_struct, &oprec, fragPtr.p, tablePtr.p);
       jamDebug();
       acquire_frag_mutex(fragPtr.p, key->m_page_no, jamBuffer());
       ptr->m_header_bits |= Tuple_header::LCP_SKIP;
@@ -6955,32 +11396,26 @@ Dbtup::nr_delete(Signal* signal, Uint32 senderData,
   fragPtr.p->m_row_count--;
   fragPtr.p->m_lcp_changed_rows++;
 
-  DEB_DELETE_NR(("(%u)nr_delete, tab(%u,%u) row(%u,%u), gci: %u"
-                 ", row_count: %llu",
-                 instance(),
-                 fragPtr.p->fragTableId,
-                 fragPtr.p->fragmentId,
-                 key->m_page_no,
-                 key->m_page_idx,
-                 *ptr->get_mm_gci(tablePtr.p),
-                 fragPtr.p->m_row_count));
+  DEB_DELETE_NR((
+      "(%u)nr_delete, tab(%u,%u) row(%u,%u), gci: %u"
+      ", row_count: %llu",
+      instance(), fragPtr.p->fragTableId, fragPtr.p->fragmentId, key->m_page_no,
+      key->m_page_idx, *ptr->get_mm_gci(tablePtr.p), fragPtr.p->m_row_count));
 
   /**
    * No query threads active when restore and copy fragment process
    * is active. Thus no need to lock mutex here.
    */
   if (tablePtr.p->m_attributes[MM].m_no_of_varsize +
-      tablePtr.p->m_attributes[MM].m_no_of_dynamic)
-  {
+      tablePtr.p->m_attributes[MM].m_no_of_dynamic) {
     jam();
     free_var_rec(fragPtr.p, tablePtr.p, &tmp, pagePtr);
   } else {
     jam();
-    free_fix_rec(fragPtr.p, tablePtr.p, &tmp, (Fix_page*)pagePtr.p);
+    free_fix_rec(fragPtr.p, tablePtr.p, &tmp, (Fix_page *)pagePtr.p);
   }
 
-  if (tablePtr.p->m_no_of_disk_attributes)
-  {
+  if (tablePtr.p->m_no_of_disk_attributes) {
     jam();
     Ptr<GlobalPage> diskPagePtr;
     int res;
@@ -6990,61 +11425,53 @@ Dbtup::nr_delete(Signal* signal, Uint32 senderData,
     Uint32 size_len;
 
     /**
-     * 1) get page
-     * 2) alloc log buffer
-     * 3) get log buffer
-     * 4) delete tuple
-     */
-    Page_cache_client::Request preq;
-    preq.m_page = disk;
-    preq.m_table_id = fragPtr.p->fragTableId;
-    preq.m_fragment_id = fragPtr.p->fragmentId;
-    preq.m_callback.m_callbackData = senderData;
-    preq.m_callback.m_callbackFunction =
-      safe_cast(&Dbtup::nr_delete_page_callback);
-    int flags = Page_cache_client::COMMIT_REQ;
-    
-#ifdef ERROR_INSERT
-    if (ERROR_INSERTED(4023) || ERROR_INSERTED(4024))
-    {
-      int rnd = rand() % 100;
-      int slp = 0;
-      if (ERROR_INSERTED(4024))
-      {
-	slp = 3000;
-      }
-      else if (rnd > 90)
-      {
-	slp = 3000;
-      }
-      else if (rnd > 70)
-      {
-	slp = 100;
-      }
-
-      g_eventLogger->info("rnd: %d slp: %d", rnd, slp);
-
-      if (slp)
-      {
-	flags |= Page_cache_client::DELAY_REQ;
-        const NDB_TICKS now = NdbTick_getCurrentTicks();
-        preq.m_delay_until_time = NdbTick_AddMilliseconds(now,(Uint64)slp);
-      }
-    }
-#endif
-    {
-      Page_cache_client pgman(this, c_pgman);
-      res = pgman.get_page(signal, preq, flags);
-      diskPagePtr = pgman.m_ptr;
-      if (res == 0)
-      {
-        goto timeslice;
-      }
-      /**
-       * We are processing node recovery and need to process a disk
-       * data page, if this fails we cannot proceed with node recovery.
+       * 1) get page
+       * 2) alloc log buffer
+       * 3) get log buffer
+       * 4) delete tuple
        */
-      ndbrequire(res > 0);
+      Page_cache_client::Request preq;
+      preq.m_page = disk;
+      preq.m_table_id = fragPtr.p->fragTableId;
+      preq.m_fragment_id = fragPtr.p->fragmentId;
+      preq.m_callback.m_callbackData = senderData;
+      preq.m_callback.m_callbackFunction =
+          safe_cast(&Dbtup::nr_delete_page_callback);
+      int flags = Page_cache_client::COMMIT_REQ;
+
+#ifdef ERROR_INSERT
+      if (ERROR_INSERTED(4023) || ERROR_INSERTED(4024)) {
+        int rnd = rand() % 100;
+        int slp = 0;
+        if (ERROR_INSERTED(4024)) {
+          slp = 3000;
+        } else if (rnd > 90) {
+          slp = 3000;
+        } else if (rnd > 70) {
+          slp = 100;
+        }
+
+        g_eventLogger->info("rnd: %d slp: %d", rnd, slp);
+
+        if (slp) {
+          flags |= Page_cache_client::DELAY_REQ;
+          const NDB_TICKS now = NdbTick_getCurrentTicks();
+          preq.m_delay_until_time = NdbTick_AddMilliseconds(now, (Uint64)slp);
+        }
+      }
+#endif
+      {
+        Page_cache_client pgman(this, c_pgman);
+        res = pgman.get_page(signal, preq, flags);
+        diskPagePtr = pgman.m_ptr;
+        if (res == 0) {
+          goto timeslice;
+        }
+        /**
+         * We are processing node recovery and need to process a disk
+         * data page, if this fails we cannot proceed with node recovery.
+         */
+        ndbrequire(res > 0);
 
       if ((tablePtr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
       {
@@ -7070,32 +11497,26 @@ Dbtup::nr_delete(Signal* signal, Uint32 senderData,
         CallbackPtr cptr;
         cptr.m_callbackIndex = NR_DELETE_LOG_BUFFER_CALLBACK;
         cptr.m_callbackData = senderData;
-        res= lgman.get_log_buffer(signal, sz, &cptr);
+        res = lgman.get_log_buffer(signal, sz, &cptr);
       }
-    } // Unlock the LGMAN lock
+    }  // Unlock the LGMAN lock
 
-    PagePtr disk_page((Tup_page*)diskPagePtr.p, diskPagePtr.i);
+    PagePtr disk_page((Tup_page *)diskPagePtr.p, diskPagePtr.i);
     disk_page_set_dirty(disk_page, fragPtr.p);
 
-    switch(res){
-    case 0:
-      signal->theData[2] = disk_page.i;
-      goto timeslice;
-    case -1:
-      ndbrequire("NOT YET IMPLEMENTED" == 0);
-      break;
+    switch (res) {
+      case 0:
+        signal->theData[2] = disk_page.i;
+        goto timeslice;
+      case -1:
+        ndbrequire("NOT YET IMPLEMENTED" == 0);
+        break;
     }
-    disk_page_free(signal,
-                   tablePtr.p,
-                   fragPtr.p,
-		   &disk,
-                   *(PagePtr*)&disk_page,
-                   gci,
-                   key,
-                   sz);
+    disk_page_free(signal, tablePtr.p, fragPtr.p, &disk, *(PagePtr *)&disk_page,
+                   gci, key, sz);
     return 0;
   }
-  
+
   return 0;
 
 timeslice:
@@ -7103,13 +11524,12 @@ timeslice:
   return 1;
 }
 
-void
-Dbtup::nr_delete_page_callback(Signal* signal, 
-			       Uint32 userpointer, Uint32 page_id)//unused
+void Dbtup::nr_delete_page_callback(Signal *signal, Uint32 userpointer,
+                                    Uint32 page_id)  // unused
 {
   Ptr<GlobalPage> gpage;
   ndbrequire(m_global_page_pool.getPtr(gpage, page_id));
-  PagePtr pagePtr((Tup_page*)gpage.p, gpage.i);
+  PagePtr pagePtr((Tup_page *)gpage.p, gpage.i);
   Dblqh::Nr_op_info op;
   op.m_ptr_i = userpointer;
   jam();
@@ -7119,18 +11539,18 @@ Dbtup::nr_delete_page_callback(Signal* signal,
   c_lqh->get_nr_op_info(&op, page_id);
 
   FragrecordPtr fragPtr;
-  fragPtr.i= op.m_tup_frag_ptr_i;
+  fragPtr.i = op.m_tup_frag_ptr_i;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
   disk_page_set_dirty(pagePtr, fragPtr.p);
 
   Ptr<Tablerec> tablePtr;
   tablePtr.i = fragPtr.p->fragTableId;
   ptrCheckGuard(tablePtr, cnoOfTablerec, tablerec);
-  
+
   Uint32 sz;
   if ((tablePtr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
   {
-    sz = (sizeof(Dbtup::Disk_undo::Update_Free) >> 2) + 
+    sz = (sizeof(Dbtup::Disk_undo::Update_Free) >> 2) +
       tablePtr.p->m_offsets[DD].m_fix_header_size - 1;
   }
   else
@@ -7152,40 +11572,32 @@ Dbtup::nr_delete_page_callback(Signal* signal,
     D("Logfile_client - nr_delete_page_callback");
     res= lgman.get_log_buffer(signal, sz, &cb);
   }
-  switch(res){
-  case 0:
-    jam();
-    return;
-  case -1:
-    ndbrequire("NOT YET IMPLEMENTED" == 0);
-    break;
+  switch (res) {
+    case 0:
+      jam();
+      return;
+    case -1:
+      ndbrequire("NOT YET IMPLEMENTED" == 0);
+      break;
   }
   jam();
-  disk_page_free(signal,
-                 tablePtr.p, fragPtr.p,
-		 &op.m_disk_ref,
-                 pagePtr,
-                 op.m_gci_hi,
-                 &op.m_row_id,
-                 sz);
-  
+  disk_page_free(signal, tablePtr.p, fragPtr.p, &op.m_disk_ref, pagePtr,
+                 op.m_gci_hi, &op.m_row_id, sz);
+
   c_lqh->nr_delete_complete(signal, &op);
   return;
 }
 
-void
-Dbtup::nr_delete_log_buffer_callback(Signal* signal, 
-				    Uint32 userpointer, 
-				    Uint32 unused)
-{
+void Dbtup::nr_delete_log_buffer_callback(Signal *signal, Uint32 userpointer,
+                                          Uint32 unused) {
   Dblqh::Nr_op_info op;
   op.m_ptr_i = userpointer;
   jam();
   jamData(userpointer);
   c_lqh->get_nr_op_info(&op, RNIL);
-  
+
   FragrecordPtr fragPtr;
-  fragPtr.i= op.m_tup_frag_ptr_i;
+  fragPtr.i = op.m_tup_frag_ptr_i;
   ndbrequire(c_fragment_pool.getPtr(fragPtr));
 
   Ptr<Tablerec> tablePtr;
@@ -7200,14 +11612,14 @@ Dbtup::nr_delete_log_buffer_callback(Signal* signal,
   if ((tablePtr.p->m_bits & Tablerec::TR_UseVarSizedDiskData) == 0)
   {
     jam();
-    sz = (sizeof(Dbtup::Disk_undo::Update_Free) >> 2) + 
+    sz = (sizeof(Dbtup::Disk_undo::Update_Free) >> 2) +
       tablePtr.p->m_offsets[DD].m_fix_header_size - 1;
   }
   else
   {
     jam();
     Uint32 page_idx = op.m_disk_ref.m_page_idx;
-    Uint32 entry_len = ((Var_page*)pagePtr.p)->get_entry_len(page_idx);
+    Uint32 entry_len = ((Var_page *)pagePtr.p)->get_entry_len(page_idx);
     sz = (sizeof(Dbtup::Disk_undo::Update_Free) >> 2) +
            (entry_len - 1);
   }
@@ -7215,14 +11627,8 @@ Dbtup::nr_delete_log_buffer_callback(Signal* signal,
   /**
    * reset page no
    */
-  disk_page_free(signal,
-                 tablePtr.p,
-                 fragPtr.p,
-		 &op.m_disk_ref,
-                 pagePtr,
-                 op.m_gci_hi,
-                 &op.m_row_id,
-                 sz);
-  
+  disk_page_free(signal, tablePtr.p, fragPtr.p, &op.m_disk_ref, pagePtr,
+                 op.m_gci_hi, &op.m_row_id, sz);
+
   c_lqh->nr_delete_complete(signal, &op);
 }

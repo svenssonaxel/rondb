@@ -25,8 +25,8 @@
 
 #define DBTUP_C
 #define DBTUP_VAR_ALLOC_CPP
-#include "Dbtup.hpp"
 #include "../dblqh/Dblqh.hpp"
+#include "Dbtup.hpp"
 
 #define JAM_FILE_ID 405
 
@@ -40,31 +40,30 @@
 #define DEB_ELEM_COUNT(arglist) do { } while (0)
 #endif
 
-void Dbtup::init_list_sizes(void)
-{
-  c_min_list_size[0]= 200;
-  c_max_list_size[0]= 499;
+void Dbtup::init_list_sizes(void) {
+  c_min_list_size[0] = 200;
+  c_max_list_size[0] = 499;
 
-  c_min_list_size[1]= 500;
-  c_max_list_size[1]= 999;
+  c_min_list_size[1] = 500;
+  c_max_list_size[1] = 999;
 
-  c_min_list_size[2]= 1000;
-  c_max_list_size[2]= 4079;
+  c_min_list_size[2] = 1000;
+  c_max_list_size[2] = 4079;
 
-  c_min_list_size[3]= 4080;
-  c_max_list_size[3]= 7783;
+  c_min_list_size[3] = 4080;
+  c_max_list_size[3] = 7783;
 
   /* The last free list must guarantee space for biggest possible column
    * size.
    * Assume varsize may take up the whole row (a slight exaggeration).
    */
   static_assert(MAX_EXPANDED_TUPLE_SIZE_IN_WORDS <= 7784);
-  c_min_list_size[4]= 7784;
-  c_max_list_size[4]= 8159;
+  c_min_list_size[4] = 7784;
+  c_max_list_size[4] = 8159;
 
   static_assert(MAX_FREE_LIST == 5);
-  c_min_list_size[5]= 0;
-  c_max_list_size[5]= 199;
+  c_min_list_size[5] = 0;
+  c_max_list_size[5] = 199;
 }
 
 Uint32*
@@ -99,11 +98,86 @@ Dbtup::alloc_var_part(Uint32 * err,
     jam();
   }  
   /*
-    First we remove the current free space on this page from fragment total.
+    First we remove the current free space on this page from 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragment total.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+allocated
+*/
+Uint32* Dbtup::alloc_var_rec(Uint32 * err,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+allocated
+*/
+Uint32 *Dbtup::alloc_var_rec(Uint32 *err, Fragrecord *fragPtr, Tablerec *tabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     Then we calculate a new free space value for the page. Finally we call
-    update_free_page_list() which adds this new value to the fragment total.
-  */
-  ndbassert(fragPtr->m_varWordsFree >= ((Var_page*)pagePtr.p)->free_space);
+    update_free_page_list() which adds this new value to the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragment
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Fragrecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+total.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+alloc_size, Local_key *key,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+   Tablerec* tabPtr,
+			 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbassert(fragPtr->m_varWordsFree
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  Uint32 alloc_size,
+			   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ >= 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+((Var_page*)pagePtr.p)->free_space);
+||||||| Common ancestor
+Local_key* key,
+			 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   fragPtr->m_varWordsFree -= ((Var_page*)pagePtr.p)->free_space;
 
   bool upgrade_exclusive = false;
@@ -120,23 +194,127 @@ Dbtup::alloc_var_part(Uint32 * err,
     upgrade_exclusive = true;
     c_lqh->upgrade_to_exclusive_frag_access();
   }
-  Uint32 idx= ((Var_page*)pagePtr.p)
-    ->alloc_record(alloc_size, (Var_page*)ctemp_page, Var_page::CHAIN);
+  Uint32 idx= ((Var_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page*)pagePtr.p)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+part_ref*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+part_ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+dst
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*dst
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  ->alloc_record(alloc_size, (Var_page*)ctemp_page, Var_page::CHAIN);
 
-  if (upgrade_exclusive)
-  {
+  if (upgrade_exclusive) {
     c_lqh->downgrade_from_exclusive_frag_access();
   }
 
   fragPtr->m_varElemCount++;
-  DEB_ELEM_COUNT(("(%u) Inc m_varElemCount: now %llu tab(%u,%u),"
-                  " line: %u, called from %u",
+  DEB_ELEM_COUNT(("(%u) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Inc m_varElemCount: now %llu tab(%u,%u),"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+!= 0))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+!=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+           0)) {
+>>>>>>> MySQL 8.0.36
+              " line: %u, called from %u",
                   instance(),
                   fragPtr->m_varElemCount,
-                  fragPtr->fragTableId,
-                  fragPtr->fragmentId,
-                  __LINE__,
-                  from_line));
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+* err,
+=======
+*err, Fragrecord *fragPtr,
+>>>>>>> MySQL 8.0.36
+     fragPtr->fragTableId,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragPtr->fragmentId,
+||||||| Common ancestor
+fragPtr,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtr,
+		     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      __LINE__,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Local_key*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Local_key
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+key)
+{
+=======
+*key) {
+>>>>>>> MySQL 8.0.36
+           from_line));
   key->m_page_no = pagePtr.i;
   key->m_page_idx = idx;
   
@@ -158,28 +336,86 @@ void Dbtup::free_var_part(Fragrecord* fragPtr,
   if (key->m_page_no != RNIL)
   {
     ndbrequire(c_page_pool.getPtr(pagePtr, key->m_page_no));
-    ndbassert(fragPtr->m_varWordsFree >= ((Var_page*)pagePtr.p)->free_space);
-    fragPtr->m_varWordsFree -= ((Var_page*)pagePtr.p)->free_space;
-    ((Var_page*)pagePtr.p)->free_record(key->m_page_idx, Var_page::CHAIN);
+    ndbassert(fragPtr->m_varWordsFree >= ((Var_page *)pagePtr.p)->free_space);
+    fragPtr->m_varWordsFree -= ((Var_page *)pagePtr.p)->free_space;
+    ((Var_page *)pagePtr.p)->free_record(key->m_page_idx, Var_page::CHAIN);
     ndbassert(fragPtr->m_varElemCount > 0);
     fragPtr->m_varElemCount--;
     DEB_ELEM_COUNT(("(%u) Dec m_varElemCount: now %llu tab(%u,%u),"
                     " line: %u",
-                    instance(),
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtup::free_var_part(Fragrecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtup::free_var_part(Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   instance()
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fragPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                     fragPtr->m_varElemCount,
-                    fragPtr->fragTableId,
-                    fragPtr->fragmentId,
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+tabPtr,
+=======
+*tabPtr,
+>>>>>>> MySQL 8.0.36
+             fragPtr->fragTableId,
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Local_key*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Local_key
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+key)
+{
+=======
+*key) {
+>>>>>>> MySQL 8.0.36
+      fragPtr->fragmentId,
                     __LINE__));
 
     ndbassert(pagePtr.p->free_space <= Var_page::DATA_WORDS);
-    if (pagePtr.p->free_space == Var_page::DATA_WORDS - 1)
-    {
+    if (pagePtr.p->free_space == Var_page::DATA_WORDS - 1) {
       jam();
       Uint32 idx = pagePtr.p->list_index;
       Local_Page_list list(c_page_pool, fragPtr->free_var_page_array[idx]);
       list.remove(pagePtr);
       returnCommonArea(pagePtr.i, 1);
-      fragPtr->noOfVarPages --;
+      fragPtr->noOfVarPages--;
     } else {
       jam();
       // Adds the new free space value for the page to the fragment total.
@@ -206,25 +442,21 @@ void Dbtup::free_var_part(Fragrecord* fragPtr,
   RETURN VALUES
     Returns true if deallocation was successful otherwise false
 */
-void Dbtup::free_var_rec(Fragrecord* fragPtr,
-			 Tablerec* tabPtr,
-			 Local_key* key,
-			 Ptr<Page> pagePtr)
-{
+void Dbtup::free_var_rec(Fragrecord *fragPtr, Tablerec *tabPtr, Local_key *key,
+                         Ptr<Page> pagePtr) {
   /**
    * TODO free fix + var part
    */
-  Uint32 *ptr = ((Fix_page*)pagePtr.p)->get_ptr(key->m_page_idx, 0);
-  Tuple_header* tuple = (Tuple_header*)ptr;
+  Uint32 *ptr = ((Fix_page *)pagePtr.p)->get_ptr(key->m_page_idx, 0);
+  Tuple_header *tuple = (Tuple_header *)ptr;
 
   Local_key ref;
-  Var_part_ref * varref = tuple->get_var_part_ref_ptr(tabPtr);
+  Var_part_ref *varref = tuple->get_var_part_ref_ptr(tabPtr);
   varref->copyout(&ref);
 
-  free_fix_rec(fragPtr, tabPtr, key, (Fix_page*)pagePtr.p);
+  free_fix_rec(fragPtr, tabPtr, key, (Fix_page *)pagePtr.p);
 
-  if (ref.m_page_no != RNIL)
-  {
+  if (ref.m_page_no != RNIL) {
     jam();
     ndbrequire(c_page_pool.getPtr(pagePtr, ref.m_page_no));
     free_var_part(fragPtr, pagePtr, ref.m_page_idx);
@@ -232,12 +464,11 @@ void Dbtup::free_var_rec(Fragrecord* fragPtr,
   return;
 }
 
-void
-Dbtup::free_var_part(Fragrecord* fragPtr, PagePtr pagePtr, Uint32 page_idx)
-{
-  ndbassert(fragPtr->m_varWordsFree >= ((Var_page*)pagePtr.p)->free_space);
-  fragPtr->m_varWordsFree -= ((Var_page*)pagePtr.p)->free_space;
-  ((Var_page*)pagePtr.p)->free_record(page_idx, Var_page::CHAIN);
+void Dbtup::free_var_part(Fragrecord *fragPtr, PagePtr pagePtr,
+                          Uint32 page_idx) {
+  ndbassert(fragPtr->m_varWordsFree >= ((Var_page *)pagePtr.p)->free_space);
+  fragPtr->m_varWordsFree -= ((Var_page *)pagePtr.p)->free_space;
+  ((Var_page *)pagePtr.p)->free_record(page_idx, Var_page::CHAIN);
   ndbassert(fragPtr->m_varElemCount > 0);
   fragPtr->m_varElemCount--;
 
@@ -245,12 +476,43 @@ Dbtup::free_var_part(Fragrecord* fragPtr, PagePtr pagePtr, Uint32 page_idx)
                   " line: %u",
                   instance(),
                   fragPtr->m_varElemCount,
-                  fragPtr->fragTableId,
-                  fragPtr->fragmentId,
-                  __LINE__));
+                  fragPtr->fragTableId, Fragrecord *fragPtr,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragPtr->fragmentId,
+||||||| Common ancestor
+      Fragrecord* fragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pagePtr,
+			Var_part_ref*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+pagePtr,
+                                Var_part_ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+refptr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*refptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              __LINE__));
   ndbassert(pagePtr.p->free_space <= Var_page::DATA_WORDS);
-  if (pagePtr.p->free_space == Var_page::DATA_WORDS - 1)
-  {
+  if (pagePtr.p->free_space == Var_page::DATA_WORDS - 1) {
     jam();
     Uint32 idx = pagePtr.p->list_index;
     Local_Page_list list(c_page_pool, fragPtr->free_var_page_array[idx]);
@@ -284,7 +546,7 @@ Dbtup::realloc_var_part(Uint32 * err,
   if (oldsz && pageP->free_space >= add)
   {
     jam();
-    new_var_ptr= pageP->get_ptr(oldref.m_page_idx);
+    new_var_ptr = pageP->get_ptr(oldref.m_page_idx);
     {
       if(0) printf("extra reorg");
       jam();
@@ -309,16 +571,63 @@ Dbtup::realloc_var_part(Uint32 * err,
     ndbassert(fragPtr->m_varWordsFree >= pageP->free_space);
     fragPtr->m_varWordsFree -= pageP->free_space;
 
-    pageP->grow_entry(oldref.m_page_idx, add);
-    // Adds the new free space value for the page to the fragment total.
-    update_free_page_list(fragPtr, pagePtr);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ pageP->grow_entry(oldref.m_page_idx, add);
+    // Adds the new free space value for the page to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+PagePtr pagePtr,
+              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ the fragment total.
+  PagePtr pagePtr, update_free_page_list(fragPtr, pagePtr);
   }
   else
   {
     jam();
-    Local_key newref;
-    new_var_ptr = alloc_var_part(err,
-                                 fragPtr,
+   Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Local_key
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+size,
+>>>>>>> MySQL 8.0.36
+ newref;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new_var_ptr = alloc_var_part(err,
+||||||| Common ancestor
+Uint32 size,
+=======
+>>>>>>> MySQL 8.0.36
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Var_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Var_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pageP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*pageP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     fragPtr,
                                  tabPtr,
                                  newsz,
                                  &newref,
@@ -333,7 +642,7 @@ Dbtup::realloc_var_part(Uint32 * err,
       Uint32 *src = pageP->get_ptr(oldref.m_page_idx);
       ndbassert(oldref.m_page_no != newref.m_page_no);
       ndbassert(pageP->get_entry_len(oldref.m_page_idx) == oldsz);
-      memcpy(new_var_ptr, src, 4*oldsz);
+      memcpy(new_var_ptr, src, 4 *oldsz);
       free_var_part(fragPtr, pagePtr, oldref.m_page_idx);
     }
 
@@ -523,9 +832,8 @@ Dbtup::get_empty_var_page(Fragrecord* fragPtr,
 /* ------------------------------------------------------------------------ */
 // Check if the page needs to go to a new free page list.
 /* ------------------------------------------------------------------------ */
-void Dbtup::update_free_page_list(Fragrecord* fragPtr,
-                                  Ptr<Page> pagePtr)
-{
+void Dbtup::update_free_page_list(Fragrecord *fragPtr,
+                                  Ptr<Page> pagePtr) {
   Uint32 free_space, list_index;
   free_space= pagePtr.p->free_space;
   list_index= pagePtr.p->list_index;
@@ -552,8 +860,7 @@ void Dbtup::update_free_page_list(Fragrecord* fragPtr,
 	This can only happen for the free list with least guaranteed 
 	free space.
 
-        Put in on MAX_FREE_LIST-list (i.e full pages)
-      */
+        Put in on MAX_FREE_LIST-list (i.e full pages)     */
       jam();
       ndbrequire(new_list_index == 0);
       new_list_index = MAX_FREE_LIST;
@@ -585,7 +892,22 @@ Uint32 Dbtup::calculate_free_list_impl(Uint32 free_space_size) const
   return 0;
 }
 
-Uint32 Dbtup::calculate_free_list_for_alloc(Uint32 alloc_size) const
+Uint32 Dbtup::calculate_free_list_for_alloc(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Fragrecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+alloc_size) const
 {
   ndbassert(alloc_size <= MAX_EXPANDED_TUPLE_SIZE_IN_WORDS);
   for (Uint32 i = 0; i < MAX_FREE_LIST; i++)
@@ -595,7 +917,17 @@ Uint32 Dbtup::calculate_free_list_for_alloc(Uint32 alloc_size) const
     {
       jam();
       return i;
-    }
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+fragPtr,
+                                 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*fragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
   }
   /* Allocation too big, last free list page should always have space for
    * biggest possible allocation.
@@ -661,7 +993,26 @@ Dbtup::alloc_var_row(Uint32 * err,
     if (unlikely(alloc_var_part(err,
                                 fragPtr,
                                 tabPtr,
-                                alloc_size,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtup::calculate_used_var_words(Fragrecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtup::calculate_used_var_words(Fragrecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+fragPtr)
+{
+=======
+*fragPtr) {
+>>>>>>> MySQL 8.0.36
+          alloc_size,
                                 &varref,
                                 __LINE__,
                                 true) == 0))
@@ -671,32 +1022,163 @@ Dbtup::alloc_var_row(Uint32 * err,
   }
   Uint32 *ptr;
   if (!use_rowid)
-  {
-    ptr = alloc_fix_rec(jamBuffer(), err, fragPtr, tabPtr, key,
-                         out_frag_page_id);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
+    ptr = 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+Dbtup::
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*Dbtup::
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+alloc_fix_rec(jamBuffer(), err,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ fragPtr, tabPtr, key,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ Fragrecord *fragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ out_frag_page_id);
+||||||| Common ancestor
+fragPtr,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
   }
   else
   {
-    ptr = alloc_fix_rowid(err, fragPtr, tabPtr, key, out_frag_page_id);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr = alloc_fix_rowid(err, fragPtr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Tablerec*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Tablerec
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *tabPtr,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ key, out_frag_page_id);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ Uint32 alloc_size,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   }
-  if (unlikely(ptr == 0))
+  if (unlikely(ptr == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0))
   {
-    if (alloc_size)
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   if (alloc_size)
+||||||| Common ancestor
+alloc_size,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
     {
       PagePtr pagePtr;
-      ndbrequire(c_page_pool.getPtr(pagePtr, varref.m_page_no));
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        Local_key
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*key, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(c
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+out
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*out
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_page_pool.getPtr(pagePtr, varref.m_page_no));
       free_var_part(fragPtr, pagePtr, varref.m_page_idx);
     }
     return 0;
   }
-  Tuple_header* tuple = (Tuple_header*)ptr;
-  Var_part_ref* dst = (Var_part_ref*)tuple->get_var_part_ref_ptr(tabPtr);
-  if (likely(alloc_size))
-  {
+  Tuple_header *tuple = (Tuple_header *)ptr;
+  Var_part_ref *dst = (Var_part_ref *)tuple->get_var_part_ref_ptr(tabPtr);
+  if (likely(alloc_size
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+))
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+, &varref) != 0))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+, &varref) !=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+             0)) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
     dst->assign(&varref);
-  }
-  else
-  {
+  } else {
     varref.m_page_no = RNIL;
     dst->assign(&varref);
   }

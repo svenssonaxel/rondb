@@ -22,26 +22,26 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#include "util/require.h"
 #include "lgman.hpp"
-#include "diskpage.hpp"
-#include <signaldata/FsRef.hpp>
+#include <signaldata/CallbackSignal.hpp>
+#include <signaldata/CreateFilegroupImpl.hpp>
+#include <signaldata/DbinfoScan.hpp>
+#include <signaldata/DropFilegroupImpl.hpp>
+#include <signaldata/DumpStateOrd.hpp>
+#include <signaldata/FsCloseReq.hpp>
 #include <signaldata/FsConf.hpp>
 #include <signaldata/FsOpenReq.hpp>
-#include <signaldata/FsCloseReq.hpp>
-#include <signaldata/CreateFilegroupImpl.hpp>
-#include <signaldata/DropFilegroupImpl.hpp>
 #include <signaldata/FsReadWriteReq.hpp>
-#include <signaldata/LCP.hpp>
-#include <signaldata/SumaImpl.hpp>
-#include <signaldata/LgmanContinueB.hpp>
+#include <signaldata/FsRef.hpp>
 #include <signaldata/GetTabInfo.hpp>
+#include <signaldata/LCP.hpp>
+#include <signaldata/LgmanContinueB.hpp>
 #include <signaldata/NodeFailRep.hpp>
-#include <signaldata/DbinfoScan.hpp>
-#include <signaldata/CallbackSignal.hpp>
+#include <signaldata/SumaImpl.hpp>
 #include <signaldata/UndoLogLevel.hpp>
-#include <signaldata/DumpStateOrd.hpp>
 #include "dbtup/Dbtup.hpp"
+#include "diskpage.hpp"
+#include "util/require.h"
 
 #include <EventLogger.hpp>
 
@@ -73,21 +73,36 @@
 #endif
 
 #ifdef DEBUG_LGMAN_EXTRA
-#define DEB_LGMAN_EXTRA(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LGMAN_EXTRA(arglist)       \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LGMAN_EXTRA(arglist) do { } while (0)
+#define DEB_LGMAN_EXTRA(arglist) \
+  do {                     \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LGMAN_LCP
-#define DEB_LGMAN_LCP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LGMAN_LCP(arglist)   \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LGMAN_LCP(arglist) do { } while (0)
+#define DEB_LGMAN_LCP(arglist) \
+  do {                         \
+  } while (0)
 #endif
 
 #ifdef DEBUG_UNDO_SPACE
-#define DEB_UNDO_SPACE(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_UNDO_SPACE(arglist)  \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_UNDO_SPACE(arglist) do { } while (0)
+#define DEB_UNDO_SPACE(arglist) \
+  do {                          \
+  } while (0)
 #endif
 
 #ifdef DEBUG_UNDO_BUFFER
@@ -97,9 +112,14 @@
 #endif
 
 #ifdef DEBUG_DROP_LG
-#define DEB_DROP_LG(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_DROP_LG(arglist)     \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_DROP_LG(arglist) do { } while (0)
+#define DEB_DROP_LG(arglist) \
+  do {                       \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LGMAN_SPLIT
@@ -973,10 +993,30 @@ Lgman::execCONTINUEB(Signal* signal)
       m_logfile_group_list.first(lg_ptr);
       if (signal->theData[1] == 1 && !lg_ptr.p->m_applied)
       {
-        /**
+         /**
          * The variable m_applied is set the first UNDO log record which is
          * applied, we signal if an UNDO log record was applied in the
-         * CONTINUEB signal to execute the next UNDO log record.
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+& ctx) :
+=======
+&ctx)
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SimulatedBlock(LGMAN,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  : SimulatedBlock(LGMAN,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    * CONTINUEB signal to execute the next UNDO log record.
          */
         jam();
         lg_ptr.p->m_applied = true;
@@ -1017,7 +1057,31 @@ Lgman::execCONTINUEB(Signal* signal)
     jam();
     Ptr<Logfile_group> lg_ptr;
     ndbrequire(m_logfile_group_pool.getPtr(lg_ptr, ptrI));
-    if ((lg_ptr.p->m_state & Logfile_group::LG_THREAD_MASK) ||
+    if ((lg_ptr.p->m_state 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CallbackEntry&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CallbackEntry
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Logfile
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ce = m
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&ce = m
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_group::LG_THREAD_MASK) ||
         lg_ptr.p->m_outstanding_fs > 0)
     {
       jam();
@@ -1034,8 +1098,7 @@ Lgman::execCONTINUEB(Signal* signal)
   client_unlock(number(), __LINE__, this);
 }
 
-void
-Lgman::execNODE_FAILREP(Signal* signal)
+void Lgman::execNODE_FAILREP(Signal* signal)
 {
   jamEntry();
   NodeFailRep * rep = (NodeFailRep*)signal->getDataPtr();
@@ -1071,7 +1134,7 @@ Lgman::execNODE_FAILREP(Signal* signal)
 }
 
 void
-Lgman::execDUMP_STATE_ORD(Signal* signal){
+Lgman::execDUMP_STATE_ORD(Signal *signal){
   jamNoBlock();  /* Due to bug#20135976 */
   if (signal->theData[0] == DumpStateOrd::LgmanDumpUndoStateClusterLog || 
       signal->theData[0] == DumpStateOrd::LgmanDumpUndoStateLocalLog)
@@ -1080,19 +1143,112 @@ Lgman::execDUMP_STATE_ORD(Signal* signal){
                              DumpStateOrd::LgmanDumpUndoStateClusterLog);
     char tmp[1024];
     Ptr<Logfile_group> ptr;
-    m_logfile_group_list.first(ptr);
+      m_logfile_group_list.first(ptr);
     while(!ptr.isNull())
     {
-      BaseString::snprintf(tmp, sizeof(tmp),
-                           "lfg %u state: %x fs: %u lsn "
+      BaseString::snprintf(tmp, sizeof(tmp), "lfg %u state: %x fs: %u lsn "
                            " [ next: %llu s(req): %llu s:ed: %llu lcp: %llu"
-                           " req: %llu ] "
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ReadConfigConf::SignalLength,
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ReadConfigConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ " req:
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+execSTTOR(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+execSTTOR(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%llu
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ] "
                            " waiters: %d %d",
                            ptr.p->m_logfile_group_id, ptr.p->m_state,
                            ptr.p->m_outstanding_fs,
                            ptr.p->m_next_lsn, ptr.p->m_last_sync_req_lsn,
-                           ptr.p->m_last_synced_lsn, ptr.p->m_last_lcp_lsn,
-                           ptr.p->m_max_sync_req_lsn,
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendSTTORRY(signal);
+}
+
+void
+Lgman::sendSTTORRY(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSTTORRY(signal);
+}
+
+void Lgman::sendSTTORRY(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+                ptr.p->m_last_synced_lsn, ptr.p->m_last_lcp_lsn,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+JBB);
+}
+
+void
+Lgman::execCONTINUEB(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+JBB);
+}
+
+void Lgman::execCONTINUEB(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+            ptr.p->m_max_sync_req_lsn,
                            !ptr.p->m_log_buffer_waiters.isEmpty(),
                            !ptr.p->m_log_sync_waiters.isEmpty());
       if (clusterLog)
@@ -1104,7 +1260,18 @@ Lgman::execDUMP_STATE_ORD(Signal* signal){
                            " free_buffer_words: %u free_log_words: %llu",
                            ptr.p->m_callback_buffer_words,
                            ptr.p->m_free_buffer_words,
-                           ptr.p->m_free_log_words);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }                    ptr.p->m_free_log_words);
       if (clusterLog)
         infoEvent("%s", tmp);
       g_eventLogger->info("%s", tmp);
@@ -1136,7 +1303,31 @@ Lgman::execDUMP_STATE_ORD(Signal* signal){
                              waiter.p->m_sync_lsn);
         if (clusterLog)
           infoEvent("%s", tmp);
-        g_eventLogger->info("%s", tmp);
+        g_eventLogger->info(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"%s",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tmp
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
         while (!waiter.isNull())
         {
@@ -1224,15 +1415,72 @@ Lgman::execDBINFO_SCANREQ(Signal *signal)
       Uint64 total = Uint64(4) * calc_total_log_space(ptr);
       Uint64 high = 0; // TODO
 
-      Ndbinfo::Row row(signal, req);
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ptr.p->m_outstanding_fs,
+=======
+ptr.p->m_outstanding_fs, ptr.p->m_next_lsn,
+>>>>>>> MySQL 8.0.36
+ Ndbinfo::Row row(signal, req);
       row.write_uint32(getOwnNodeId());
       row.write_uint32(1); // log type, 1 = DD-UNDO
-      row.write_uint32(ptr.p->m_logfile_group_id); // log id
+      row.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+write
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+p->m_next
+// RONDB-624 todo: Glue these lines together ^v
+=======
+p->m_last_sync_req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_uint32(ptr.p->m_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+logfile_group
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+last_sync_req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+last_synced
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_id); // log id
       row.write_uint32(0); // log part
 
-      row.write_uint64(total);          // total allocated
+      row.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+write
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+p->m_last_synced
+// RONDB-624 todo: Glue these lines together ^v
+=======
+p->m_last_lcp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_uint64(total);  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        // total allocated
       row.write_uint64((total-free));   // currently in use
-      row.write_uint64(high);           // in use high water mark
+      row.write
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr.p->m_last_lcp_lsn,
+                           ptr.p->m_max_sync_req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ptr.p->m_max_sync_req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_uint64(high);           // in use high water mark
       ndbinfo_send_row(signal, req, row, rl);
 
       // move to next
@@ -1267,8 +1515,31 @@ Lgman::execDBINFO_SCANREQ(Signal *signal)
     {
       jam();
 
-      Uint32 currentBucket = iter.bucket;
-      Ptr<Logfile_group> ptr = iter.curr;
+      Uint32 currentBucket = iter.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bucket;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+isEmpty())
+// RONDB-624 todo: Glue these lines together ^v
+=======
+isEmpty()) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+Ptr<Logfile_group> ptr = iter.curr;
 
       Uint64 free = ptr.p->m_free_buffer_words*4;
       Uint64 total = ptr.p->m_total_buffer_words*4;
@@ -1286,23 +1557,107 @@ Lgman::execDBINFO_SCANREQ(Signal *signal)
       ndbinfo_send_row(signal, req, row, rl);
 
       // move to next
-      if (m_logfile_group_hash.next(iter) == false)
-      {
-        jam(); // no more...
+      if (m_logfile_group_hash.next(iter) == false) {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+{
+	Ptr<Log_waiter>
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Ptr<Log_waiter>
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      jam();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+	  list(m_log_waiter_pool, ptr.p->m_log_sync_waiters);
+	list.first(waiter);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+list(m_log_waiter_pool,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ // no more...
         break;
       }
       else if (iter.bucket == currentBucket)
       {
-        jam();
-        continue; // we need to iterate an entire bucket
-      }
-      else if (rl.need_break(req))
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       jam(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   "  m_last_synced_lsn: %llu head(waiters %x
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ptr.p->m_log_sync_waiters
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+continue; //
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+list.first(waiter);
+>>>>>>> MySQL 8.0.36
+ we need to iterate an entire bucket
+ BaseString::snprintf(
+     }
+      else 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tmp,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(rl.need_break(req))
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr.p->m_last_synced_lsn,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sizeof(tmp),
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, iter.bucket);
-        return;
+       " jam();
+ m_last_synced_lsn: %llu head(waiters 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    ndbinfo_send_scan_break(signal, req, rl, iter.bucket);
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+            waiter.i,
+=======
+%x).m_sync_lsn: %llu",
+>>>>>>> MySQL 8.0.36
+   return;
       }
-    }
+   ptr.p->m_last_synced_lsn, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
     break;
   }
 
@@ -1310,7 +1665,16 @@ Lgman::execDBINFO_SCANREQ(Signal *signal)
     break;
   }
 
-  ndbinfo_send_scan_conf(signal, req, rl);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+waiter.i,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ndbinfo_send_scan_conf(signal, req, rl);
 }
 
 /**
@@ -1366,15 +1730,34 @@ Lgman::execCREATE_FILEGROUP_IMPL_REQ(Signal* signal){
       DEB_UNDO_BUFFER(("Undo buffer from command: %llu MBytes",
                        undo_log_buffer_size / MBYTE64));
     }
-    else
-    {
+    else {
       jam();
       undo_log_buffer_size = globalData.theUndoBuffer;
       DEB_UNDO_BUFFER(("Undo buffer from config: %llu MBytes",
                        undo_log_buffer_size / MBYTE64));
     }
     if (unlikely(ERROR_INSERTED(15001)) ||
-        !alloc_logbuffer_memory(ptr, undo_log_buffer_size))
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Ndbinfo::ScanCursor*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Ndbinfo::ScanCursor
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cursor
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*cursor
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      !alloc_logbuffer_memory(ptr, undo_log_buffer_size))
     {
       jam();
       err= CreateFilegroupImplRef::OutOfLogBufferMemory;
@@ -1382,7 +1765,7 @@ Lgman::execCREATE_FILEGROUP_IMPL_REQ(Signal* signal){
       break;
     }
     
-    m_logfile_group_hash.add(ptr);
+      m_logfile_group_hash.add(ptr);
     m_logfile_group_list.addLast(ptr);
 
     if ((getNodeState().getNodeRestartInProgress() &&
@@ -1403,10 +1786,21 @@ Lgman::execCREATE_FILEGROUP_IMPL_REQ(Signal* signal){
     else
     {
       jam();
-      /* This is create case, the version will be NDB_DISK_V2 */
-      ptr.p->m_ndb_version = g_v2 ? NDB_DISK_V2 : 0;
+       /* This is create case, the version will be NDB_DISK_V2 */
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr.p->m_ndb_version = g_v2 ? NDB_DISK_V2 : 0;
 
-      /* Start UNDO log level reporting thread */
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  } /* Start UNDO log level reporting thread */
       ptr.p->m_last_log_level_reported = 0;
       send_level_report_thread(signal, ptr);
     }
@@ -1415,7 +1809,18 @@ Lgman::execCREATE_FILEGROUP_IMPL_REQ(Signal* signal){
     DEB_DROP_LG(("Undo log created"));
 
     CreateFilegroupImplConf* conf= 
-      (CreateFilegroupImplConf*)signal->getDataPtr();
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  } (CreateFilegroupImplConf*)signal->getDataPtr();
     conf->senderData = senderData;
     conf->senderRef = reference();
     sendSignal(senderRef, GSN_CREATE_FILEGROUP_IMPL_CONF, signal,
@@ -1468,17 +1873,45 @@ Lgman::execDROP_FILEGROUP_IMPL_REQ(Signal* signal)
       signal->theData[0] = LgmanContinueB::DROP_FILEGROUP;
       signal->theData[1] = ptr.i;
       signal->theData[2] = req.senderRef;
-      signal->theData[3] = req.senderData;
-      sendSignal(reference(), GSN_CONTINUEB, signal, 4, JBB);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->theData[3] = req.senderData;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }   sendSignal(reference(), GSN_CONTINUEB, signal, 4, JBB);
       return;
     case DropFilegroupImplReq::Abort:
-      jam();
+        jam();
       break;
     default:
       ndbabort();
-    }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
   } while(0);
+||||||| Common ancestor
+}
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   if (errorCode)
   {
     jam();
@@ -1489,7 +1922,7 @@ Lgman::execDROP_FILEGROUP_IMPL_REQ(Signal* signal)
     ref->errorCode = errorCode;
     sendSignal(req.senderRef, GSN_DROP_FILEGROUP_IMPL_REF, signal,
 	       DropFilegroupImplRef::SignalLength, JBB);
-  }
+    }
   else
   {
     jam();
@@ -1527,9 +1960,54 @@ Lgman::drop_filegroup_drop_files(Signal* signal,
   Local_undofile_list metalist(m_file_pool, ptr.p->m_meta_files);
   if (metalist.first(file_ptr))
   {
-    jam();
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+void
+Lgman::execCREATE_FILEGROUP_IMPL_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Lgman::execCREATE_FILEGROUP_IMPL_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
     metalist.remove(file_ptr);
-    list.addLast(file_ptr);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CreateFilegroupImplReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFilegroupImplReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ list.addLast(file_ptr);
     file_ptr.p->m_create.m_senderRef = ref;
     file_ptr.p->m_create.m_senderData = data;
     create_file_abort(signal, ptr, file_ptr);
@@ -1575,8 +2053,7 @@ Lgman::execCREATE_FILE_IMPL_REQ(Signal* signal)
   CreateFileImplRef::ErrorCode err = CreateFileImplRef::NoError;
   SectionHandle handle(this, signal);
   do {
-    if (!m_logfile_group_hash.find(ptr, req->filegroup_id))
-    {
+    if (!m_logfile_group_hash.find(ptr, req->filegroup_id)) {
       jam();
       err = CreateFileImplRef::InvalidFilegroup;
       break;
@@ -1605,21 +2082,97 @@ Lgman::execCREATE_FILE_IMPL_REQ(Signal* signal)
       Uint32 senderRef = req->senderRef;
       Uint32 senderData = req->senderData;
       if (find_file_by_id(file_ptr, ptr.p->m_meta_files, req->file_id))
-      {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CreateFilegroupImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFilegroupImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         jam();
 	file_ptr.p->m_create.m_senderRef = senderRef;
 	file_ptr.p->m_create.m_senderData = senderData;
 	create_file_abort(signal, ptr, file_ptr);
       }
       else
-      {
-	CreateFileImplConf* conf= (CreateFileImplConf*)signal->getDataPtr();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  {
+	CreateFileImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CreateFilegroupImplRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFilegroupImplRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+conf
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= (CreateFileImplConf*)signal->getDataPtr();
         jam();
 	conf->senderData = senderData;
 	conf->senderRef = reference();
 	sendSignal(senderRef, GSN_CREATE_FILE_IMPL_CONF, signal,
 		   CreateFileImplConf::SignalLength, JBB);
-      }
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Lgman::execDROP_FILEGROUP_IMPL_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Lgman::execDROP_FILEGROUP_IMPL_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+     }
       return;
     }
     default: // prepare
@@ -1627,8 +2180,7 @@ Lgman::execCREATE_FILE_IMPL_REQ(Signal* signal)
       break;
     }
     
-    if (!m_file_pool.seize(file_ptr))
-    {
+    if (!m_file_pool.seize(file_ptr)) {
       jam();
       err = CreateFileImplRef::OutOfFileRecords;
       break;
@@ -1637,13 +2189,12 @@ Lgman::execCREATE_FILE_IMPL_REQ(Signal* signal)
     ndbrequire(handle.m_cnt > 0);
     
     if (ERROR_INSERTED(15000) ||
-        (sizeof(void*) == 4 && req->file_size_hi & 0xFFFFFFFF))
-    {
+        (sizeof(void*) == 4 && req->file_size_hi & 0xFFFFFFFF)) {
       jam();
       err = CreateFileImplRef::FileSizeTooLarge;
       break;
     }
-    
+
     Uint64 sz = (Uint64(req->file_size_hi) << 32) + req->file_size_lo;
     if (sz < 1024*1024)
     {
@@ -1654,7 +2205,7 @@ Lgman::execCREATE_FILE_IMPL_REQ(Signal* signal)
 
     new (file_ptr.p) Undofile(req, ptr.i);
 
-    Local_undofile_list tmp(m_file_pool, ptr.p->m_meta_files);
+    Local_undofile_list tmp(m_file_pool,   ptr.p->m_meta_files);
     tmp.addLast(file_ptr);
 
     /**
@@ -1666,7 +2217,7 @@ Lgman::execCREATE_FILE_IMPL_REQ(Signal* signal)
     m_ctx.m_mm.alloc_pages(RG_TRANSACTION_MEMORY, &ptrI, &cnt, 1);
     if (cnt == 0)
     {
-      jam();
+        jam();
       err = CreateFileImplRef::OutOfMemory;
       break;
     }
@@ -1676,21 +2227,53 @@ Lgman::execCREATE_FILE_IMPL_REQ(Signal* signal)
   } while(0);
 
   releaseSections(handle);
-  CreateFileImplRef* ref= (CreateFileImplRef*)signal->getDataPtr();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CreateFileImplRef*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DropFilegroupImplRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DropFilegroupImplRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *ref= (CreateFileImplRef*)signal->getDataPtr();
   ref->senderData = senderData;
   ref->senderRef = reference();
   ref->errorCode = err;
   sendSignal(senderRef, GSN_CREATE_FILE_IMPL_REF, signal,
-	     CreateFileImplRef::SignalLength, JBB);
+             CreateFileImplRef::SignalLength, JBB);
 }
 
 void
 Lgman::open_file(Signal* signal,
-                 Ptr<Undofile> file_ptr,
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DropFilegroupImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DropFilegroupImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      Ptr<Undofile> file_ptr,
 		 Uint32 requestInfo,
 		 SectionHandle * handle)
 {
-  FsOpenReq* req = (FsOpenReq*)signal->getDataPtrSend();
+  FsOpenReq* req =   (FsOpenReq*)signal->getDataPtrSend();
   req->userReference = reference();
   req->userPointer = file_ptr.i;
   
@@ -1704,8 +2287,29 @@ Lgman::open_file(Signal* signal,
   {
     jam();
     req->fileFlags |= FsOpenReq::OM_DIRECT;
-    if (!c_o_direct_sync_flag)
-    {
+    if (!c_o_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+direct_sync_flag)
+||||||| Common ancestor
+files(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+files(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   {
+||||||| Common ancestor
+signal,
+				
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
       jam();
       req->fileFlags |= FsOpenReq::OM_SYNC;
     }
@@ -1763,7 +2367,31 @@ Lgman::open_file(Signal* signal,
     req->fileFlags |= FsOpenReq::OM_ENCRYPT_KEY;
   }
 
-  sendSignal(NDBFS_REF, GSN_FSOPENREQ, signal, FsOpenReq::SignalLength, JBB,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sendSignal(NDBFS_REF,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CreateFileImplReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFileImplReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GSN_FSOPENREQ,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal, FsOpenReq::SignalLength, JBB,
 	     handle);
 }
 
@@ -1777,22 +2405,258 @@ Lgman::open_file(Signal* signal,
  * change since they are owned at this moment by the NDB file system thread.
  */
 Uint32
-Lgman::execFSWRITEREQ(const FsReadWriteReq* req) const /* called direct cross threads from Ndbfs */
+Lgman::execFSWRITEREQ(const FsReadWriteReq* req) const /* called direct 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cross
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CreateFileImplReq::Commit:
+=======
+CreateFileImplReq::Commit: {
+>>>>>>> MySQL 8.0.36
+ threads from Ndbfs 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
 {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    jam();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   jamNoBlock();
-  Ptr<Undofile> ptr;
+  Ptr<Undofile> 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ jam()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   ndbrequire(
+            find_file_by_id(file_ptr, ptr.p->m_meta_files, req->file_id))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   Ptr<GlobalPage> page_ptr;
   
-  ndbrequire(m_file_pool.getPtr(ptr, req->userPointer));
-  ndbrequire(req->getFormatFlag(req->operationFlag) ==
-               req->fsFormatSharedPage);
-  ndbrequire(m_shared_page_pool.getPtr(page_ptr,
-                                       req->data.sharedPage.pageNumber));
-  Uint32 init_zero = req->data.zeroPageIndicator.initZero;
-  /**
-   * This code is executed when creating a new UNDO logfile group.
-   * In this case we always use the new v2 format.
-   *
+    file_ptr.p->m_create.m_senderRef = req->senderRef;
+        file_ptr.p->m_create.m_senderData = req->senderData;
+        create_file_commit(signal, ptr, file_ptr);
+        return;
+      }
+      case CreateFileImplReq::Abort: {
+        Uint32 senderRef = req->senderRef;
+        Uint32 senderData = req->senderData;
+        if (m_file_pool.getPtr(ptr, req->userPointer)) {
+          jam();
+  ndbrequire(req->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+getFormatFlag(req->operationFlag)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_create.m_senderRef = req->senderRef;
+=======
+m_create.m_senderRef = senderRef;
+>>>>>>> MySQL 8.0.36
+ ==
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req->senderData;
+=======
+senderData;
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+create_file_commit(signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    create_file_abort(signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  req->fsFormatSharedPage);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(m_shared_page_pool.getPtr(page_ptr,
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    return;
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+case
+// RONDB-624 todo: Glue these lines together ^v
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CreateFileImplReq::Abort:
+=======
+{
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFileImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+senderRef
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req->senderRef;
+=======
+(CreateFileImplConf *)signal->getDataPtr();
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 senderData = req->senderData;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    req->data.sharedPage.pageNumber)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ if (find_file_by_id(file_ptr, ptr.p->m_meta_files, req->file_id)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+jam(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+init_zero = req
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   {
+        jam();
+	file_ptr.p->m_create.m_senderRef = senderRef;
+	file_ptr.p
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+data.zeroPageIndicator.initZero
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_create.m_senderData = senderData
+// RONDB-624 todo: Glue these lines together ^v
+=======
+senderData = senderData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+||||||| Common ancestor
+file_ptr);
+=======
+>>>>>>> MySQL 8.0.36
+   * This code 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+executed when creating a new UNDO logfile group.
+   * In this
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    else
+      {
+	CreateFileImplConf* conf= (CreateFileImplConf*)signal->getDataPtr();
+=======
+conf->senderRef = reference();
+>>>>>>> MySQL 8.0.36
+ case we always use the new v2 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+format.
+||||||| Common ancestor
+jam();
+	conf->senderData =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  *
+||||||| Common ancestor
+senderData;
+	conf->senderRef = reference();
+	sendSignal(senderRef,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(senderRef,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
    * For testing purposes we can get the old format using an
    * error insert code or by changing the false below to true.
    */
@@ -1830,13 +2694,86 @@ Lgman::execFSWRITEREQ(const FsReadWriteReq* req) const /* called direct cross th
     memset(page_ptr.p, 0, sizeof(File_formats::Undofile::Undo_page_v2));
     if (v2)
     {
-      File_formats::Undofile::Undo_page_v2* page_v2 = 
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+File_formats::Undofile::Undo_page_v2*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CreateFileImplRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFileImplRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page_v2 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= 
         (File_formats::Undofile::Undo_page_v2*)page_ptr.p;
       page_v2->m_page_header.m_page_lsn_hi = 0;
-      page_v2->m_page_header.m_page_lsn_lo = 0;
+      page_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+v2->m_page_header.m_page_lsn_lo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+file(Signal* signal,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+file(Signal *signal, Ptr<Undofile> file_ptr,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 0;
       page_v2->m_words_used = 1;
-      page_v2->m_checksum = 0;
-      page_v2->m_ndb_version = NDB_DISK_V2;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page_v2->m_checksum
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Ptr<Undofile> file_ptr,
+		
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 0;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FsOpenReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FsOpenReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page_v2->m_ndb_version
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = NDB_DISK_V2;
       page_v2->m_unused[0] = 0;
       page_v2->m_unused[1] = 0;
       page_v2->m_unused[2] = 0;
@@ -1860,13 +2797,91 @@ Lgman::execFSWRITEREQ(const FsReadWriteReq* req) const /* called direct cross th
   }
   else
   {
-    if (init_zero == 0)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if (init
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+file_ptr.p->m
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  file_ptr.p->m_state = Undofile::FS_CREATING;
+      break;
+    case CreateFileImplReq::Open:
+      jam();
+      req->fileFlags |= FsOpenReq::OM_CHECK_SIZE;
+      file_ptr.p->m
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_zero == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0)
     {
-      return 2;
-    }
-    memset(page_ptr.p, 0, sizeof(File_formats::Undofile::Undo_page_v2));
-    if (v2)
-    {
+      return 2
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Undofile::FS_CREATING;
+    break;
+  case CreateFileImplReq::Open:
+    jam()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Undofile::FS_OPENING
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req->fileFlags |= FsOpenReq::OM_CHECK_SIZE;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  break;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+memset(page_ptr.p, 0, sizeof(File_formats::Undofile:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+file_ptr.p->m_state = Undofile:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+default
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+:
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Undo_page_v2));
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FS_OPENING;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if (v2)
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+break;
+  default:
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  {
       File_formats::Undofile::Undo_page_v2* page_v2 = 
         (File_formats::Undofile::Undo_page_v2*)page_ptr.p;
       page_v2->m_page_header.m_page_lsn_hi = 0;
@@ -1934,14 +2949,37 @@ Lgman::execFSOPENREF(Signal* signal)
 #define HEAD 0
 #define TAIL 1
 
-void
-Lgman::execFSOPENCONF(Signal* signal)
+void Lgman::execFSOPENCONF(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const FsReadWriteReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const FsReadWriteReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
 {
   jamEntry();
   Ptr<Undofile> file_ptr;
 
   FsConf* conf = (FsConf*)signal->getDataPtr();
-  
+
   Uint32 fd = conf->filePointer;
   ndbrequire(m_file_pool.getPtr(file_ptr, conf->userPointer));
 
@@ -1970,7 +3008,27 @@ Lgman::execFSOPENCONF(Signal* signal)
     Ptr<Logfile_group> lg_ptr;
     ndbrequire(m_logfile_group_pool.getPtr(lg_ptr, file_ptr.p->m_logfile_group_ptr_i));
     file_ptr.p->m_state = Undofile::FS_OUTSTANDING |
-                          Undofile::FS_READ_ZERO_PAGE;
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+File_formats::Undofile::Zero_page_v2*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+File_formats::Undofile::Zero_page_v2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+page_v2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*page_v2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          Undofile::FS_READ_ZERO_PAGE;
     lg_ptr.p->m_outstanding_fs = 1;
 
     FsReadWriteReq* req= (FsReadWriteReq*)signal->getDataPtrSend();
@@ -2004,7 +3062,31 @@ Lgman::completed_zero_page_read(Signal *signal, Ptr<Undofile> file_ptr)
   ndbrequire(m_shared_page_pool.getPtr(page_ptr, file_ptr.p->m_zero_page_i));
 
   /* Get NDB version that created the UNDO log file */
-  File_formats::Zero_page_header *zp =
+  File_formats::Zero_page_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+header
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+v2*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+v2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*zp
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page_v2
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*page_v2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
     (File_formats::Zero_page_header*)page_ptr.p;
 
   if (lg_ptr.p->m_ndb_version != zp->m_ndb_version)
@@ -2027,14 +3109,60 @@ Lgman::completed_zero_page_read(Signal *signal, Ptr<Undofile> file_ptr)
     progError(__LINE__, NDBD_EXIT_NDBREQUIRE, buf);
     /**
      * This is the first logfile opened in a restart.
-     * Now that we know the version that we wrote the logfile group
+     * Now that we know the version that we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+wrote
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+File_formats::Undofile::Undo_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+File_formats::Undofile::Undo_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ logfile group
      * we need to update the free words in the logfile group.
      * We also are ready now to set the version on the logfile
      * group to ensure that all future reads and writes of this
      * logfile group will use the right format.
      *
      * All files in a logfile group must use the same format.
-     * We don't allow mixed formats as we do with tablespaces.
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+File_formats::Undofile::Undo_page_v2*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+File_formats::Undofile::Undo_page_v2
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We don't
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page_v2 = 
+=======
+*page_v2 =
+>>>>>>> MySQL 8.0.36
+ allow mixed formats as we do with tablespaces.
      */
     lg_ptr.p->m_ndb_version = zp->m_ndb_version;
     reinit_logbuffer_words(lg_ptr);
@@ -2074,10 +3202,35 @@ Lgman::find_file_by_id(Ptr<Undofile>& ptr,
   return false;
 }
 
-void
-Lgman::create_file_commit(Signal* signal, 
-			  Ptr<Logfile_group> lg_ptr, 
-			  Ptr<Undofile> file_ptr)
+void Lgman::create_file_commit(Signal *signal, 
+			  Ptr<Logfile_group> lg_ptr
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+;
+  FsRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+;
+  FsRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+			
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  Ptr<Undofile> file_ptr)
 {
   Uint32 senderRef = file_ptr.p->m_create.m_senderRef;
   Uint32 senderData = file_ptr.p->m_create.m_senderData;
@@ -2091,7 +3244,27 @@ Lgman::create_file_commit(Signal* signal,
     Local_undofile_list meta(m_file_pool, lg_ptr.p->m_meta_files);
     first= free_list.isEmpty();
     meta.remove(file_ptr);
-    if(!first)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CreateFileImplRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFileImplRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if(!first)
     {
       jam();
       /**
@@ -2100,8 +3273,52 @@ Lgman::create_file_commit(Signal* signal,
       Ptr<Undofile> curr;
       ndbrequire(m_file_pool.getPtr(curr, lg_ptr.p->m_file_pos[HEAD].m_ptr_i));
       if(free_list.next(curr))
-      {
-        jam();
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+1
+
+void
+Lgman::execFSOPENCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+1
+
+void Lgman::execFSOPENCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  {
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FsConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FsConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
         free_list.insertBefore(file_ptr, curr);
       }
       else
@@ -2137,13 +3354,56 @@ Lgman::create_file_commit(Signal* signal,
   file_ptr.p->m_online.m_outstanding = 0;
   
   Uint64 add= file_ptr.p->m_file_size - 1;
-  lg_ptr.p->m_free_log_words += add * get_undo_page_words(lg_ptr);
+  lg_ptr.p->m_free_log_words += add * get_undo_page_words(
+          lg_ptr);
   lg_ptr.p->m_total_log_space = calc_total_log_space(lg_ptr);
   calculate_space_limit(lg_ptr);
-  DEB_LGMAN(("Line(%u): free_log_words: %llu, total_log_space: %llu",
-             __LINE__,
-             lg_ptr.p->m_free_log_words,
-             lg_ptr.p->m_total_log_space));
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ DEB_LGMAN(("Line(%u):
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= Undofile::FS_OUTSTANDING |
+=======
+=
+>>>>>>> MySQL 8.0.36
+ free_log_words: %llu, total_log_space: %llu",
+      Undofile::FS_OUTSTANDING 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      __LINE__,
+        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+|
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       lg_ptr.p->m_free_log_words,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FsReadWriteReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  FsReadWriteReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        lg_ptr.p->m_total_log_space));
 
   if(first)
   {
@@ -2152,6 +3412,7 @@ Lgman::create_file_commit(Signal* signal,
     Buffer_idx tmp= { file_ptr.i, 0 };
     lg_ptr.p->m_file_pos[HEAD] = lg_ptr.p->m_file_pos[TAIL] = tmp;
     
+
     /**
      * Init log tail pointer
      */
@@ -2174,8 +3435,7 @@ Lgman::create_file_abort(Signal* signal,
 			 Ptr<Logfile_group> lg_ptr, 
 			 Ptr<Undofile> file_ptr)
 {
-  if (file_ptr.p->m_fd == RNIL)
-  {
+  if (file_ptr.p->m_fd == RNIL) {
     jam();
     ((FsConf*)signal->getDataPtr())->userPointer = file_ptr.i;
     execFSCLOSECONF(signal);
@@ -2256,7 +3516,29 @@ Lgman::Logfile_group::Logfile_group(const CreateFilegroupImplReq* req)
    * produced, but keep it for now as it is easiest.
    */
   m_total_log_space = 0;
-  m_next_lsn = 1;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_next_lsn
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CreateFileImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFileImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= 1;
   m_last_synced_lsn = 0;
   m_last_sync_req_lsn = 0;
   m_max_sync_req_lsn = 0;
@@ -2264,7 +3546,31 @@ Lgman::Logfile_group::Logfile_group(const CreateFilegroupImplReq* req)
   m_file_pos[0].m_ptr_i= m_file_pos[1].m_ptr_i = RNIL;
 
   m_free_log_words = 0;
-  m_total_buffer_words = 0;
+  m_total_buffer_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+words
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+id(Ptr<Undofile>&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+id(Ptr<Undofile>
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&ptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 0;
   m_free_buffer_words = 0;
   m_callback_buffer_words = 0;
 
@@ -2281,8 +3587,7 @@ Lgman::Logfile_group::Logfile_group(const CreateFilegroupImplReq* req)
 }
 
 bool
-Lgman::alloc_logbuffer_memory(Ptr<Logfile_group> ptr, Uint64 bytes)
-{
+Lgman::alloc_logbuffer_memory(Ptr<Logfile_group> ptr, Uint64 bytes) {
   Uint64 pages64= (((bytes + 3) >> 2) + File_formats::NDB_PAGE_SIZE_WORDS - 1)
     / File_formats::NDB_PAGE_SIZE_WORDS;
   Uint32 pages = Uint32(pages64);
@@ -2296,8 +3601,7 @@ Lgman::alloc_logbuffer_memory(Ptr<Logfile_group> ptr, Uint64 bytes)
       Uint32 ptrI;
       Uint32 cnt = pages > 64 ? 64 : pages;
       m_ctx.m_mm.alloc_pages(RG_TRANSACTION_MEMORY, &ptrI, &cnt, 1);
-      if (cnt)
-      {
+      if (cnt)   {
         jam();
 	Buffer_idx range;
 	range.m_ptr_i= ptrI;
@@ -2315,9 +3619,7 @@ Lgman::alloc_logbuffer_memory(Ptr<Logfile_group> ptr, Uint64 bytes)
           break;
         }
 	pages -= range.m_idx;
-      }
-      else
-      {
+      }   else   {
         jam();
 	break;
       }
@@ -2383,7 +3685,29 @@ Lgman::init_logbuffer_pointers(Ptr<Logfile_group> lg_ptr)
     jam();
     tmp[0] = *it.data;
     ndbrequire(map.next(it));
-    tmp[1] = *it.data;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CreateFileImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFileImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ tmp[1] 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= *it.data;
     pages += range.m_idx;
   }
   
@@ -2391,9 +3715,7 @@ Lgman::init_logbuffer_pointers(Ptr<Logfile_group> lg_ptr)
     lg_ptr.p->m_free_buffer_words = pages * get_undo_page_words(lg_ptr);
 }
 
-void
-Lgman::reinit_logbuffer_words(Ptr<Logfile_group> lg_ptr)
-{
+void Lgman::reinit_logbuffer_words(Ptr<Logfile_group> lg_ptr) {
   Page_map map(m_data_buffer_pool, lg_ptr.p->m_buffer_pages);
   Page_map::Iterator it;
   union {
@@ -2427,7 +3749,29 @@ Lgman::reinit_logbuffer_words(Ptr<Logfile_group> lg_ptr)
  * to be flushed, by ensuring that we wait for 2 GCPs when we write a
  * LCP UNDO log entry before we call sync_lsn, by ensuring that we don't
  * even use sync_lsn for DROP TABLE of fragments. Finally when we call
- * SYNC_PAGE_CACHE_REQ for a fragment we will always start with the
+ * SYNC_PAGE_CACHE_REQ for a fragment we will always start 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+with
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CreateFileImplConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFileImplConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+||||||| Common ancestor
+conf=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
  * most recently updated page, so normally there would be at most one
  * extra page written per fragment LCP. Also hot pages will generate
  * some extra log pages being wasted, but there is a limit on the amount
@@ -2435,8 +3779,55 @@ Lgman::reinit_logbuffer_words(Ptr<Logfile_group> lg_ptr)
  *
  * We use a heuristic to calculate the space we save for handling
  * LCPs and writing of dirty pages during node restarts.
+<<<<<<< RonDB // RONDB-624 todo
  *
- * During node restart we save 25% of the log space for fragment
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void
+Lgman::execDROP_FILE_IMPL_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Lgman::execDROP_FILE_IMPL_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+During
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ node restart we save 25% of the log 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+space
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CreateFilegroupImplReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFilegroupImplReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+for fragment
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
  * copy operations and during normal operation we save 33% of the
  * log space for sync_lsn's.
  *
@@ -2480,9 +3871,31 @@ Lgman::compute_free_file_pages(Ptr<Logfile_group> ptr,
   if (head.m_ptr_i == tail.m_ptr_i && head.m_idx < tail.m_idx)
   {
     thrjam(jamBuf);
-    pages += tail.m_idx - head.m_idx;
+    pages += tail.m_idx - 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+head.m_idx;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+1)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+1) /
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   }
-  else
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
+||||||| Common ancestor
+/
+// RONDB-624 todo: Glue these lines together ^v
+=======
+            
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   {
     thrjam(jamBuf);
     Ptr<Undofile> file;
@@ -2493,12 +3906,12 @@ Lgman::compute_free_file_pages(Ptr<Logfile_group> ptr,
     {
       thrjam(jamBuf);
       pages += (file.p->m_file_size - head.m_idx - 1);
-      if(!list.next(file))
-      {
+      if(!list.next(file)) {
         thrjam(jamBuf);
 	list.first(file);
       }
       head.m_idx = 0;
+
     } while(file.i != tail.m_ptr_i);
     
     pages += tail.m_idx - head.m_idx;
@@ -2525,7 +3938,19 @@ Lgman::free_logbuffer_memory(Ptr<Logfile_group> ptr)
     ndbrequire(map.next(it));
     tmp[1] = *it.data;
     
-    m_ctx.m_mm.release_pages(RG_TRANSACTION_MEMORY, range.m_ptr_i, range.m_idx);
+    m_ctx.m_mm.release_pages(RG_TRANSACTION_MEMORY,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+                                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ range.m_ptr_i,
+                                 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  range.m_idx);
     map.next(it);
   }
   map.release();
@@ -2692,8 +4117,7 @@ Lgman::force_log_sync(Signal* signal,
 {
   Uint64 force_lsn = lsn_hi; force_lsn <<= 32; force_lsn += lsn_lo;
 
-  if(ptr.p->m_last_sync_req_lsn < force_lsn)
-  {
+  if(ptr.p->m_last_sync_req_lsn < force_lsn) {
     jam();
     /**
      * Do force
@@ -2721,7 +4145,27 @@ Lgman::force_log_sync(Signal* signal,
       {
         File_formats::Undofile::Undo_page_v2 *page_v2 =
           (File_formats::Undofile::Undo_page_v2*)undo;
-        jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CreateFileImplReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CreateFileImplReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     jam();
         page_v2->m_ndb_version = NDB_DISK_V2;
         page_v2->m_checksum = 0;
         page_v2->m_unused[0] = 0;
@@ -2739,9 +4183,54 @@ Lgman::force_log_sync(Signal* signal,
       ndbrequire(ptr.p->m_free_buffer_words > free);
       ptr.p->m_free_log_words -= free;
       ptr.p->m_free_buffer_words -= free;
-      DEB_LGMAN(("Line(%u): free_log_words: %llu, change: %u",
+      DEB_LGMAN(("Line(%u): free_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+log_words:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+client(SimulatedBlock*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+client(SimulatedBlock
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%llu
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+block
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*block
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+change: %u",
                  __LINE__,
-                 ptr.p->m_free_log_words,
+             
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+                               Lgman*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Lgman
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+lgman,
+=======
+*lgman,
+>>>>>>> MySQL 8.0.36
+   ptr.p->m_free_log_words,
                  free));
       
       validate_logfile_group(ptr, "force_log_sync", jamBuffer());
@@ -2760,13 +4249,64 @@ Lgman::force_log_sync(Signal* signal,
          *
          * If file operations are already ongoing we will start a new
          * file operation immediately when returning from the
-         * outstanding ones.
-         */
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+code
+}
+
+int
+Logfile_client::sync_lsn(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+code
+}
+
+int Logfile_client::sync_lsn(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+outstanding
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ones.
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Request*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Request
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     */
         flush_log(signal, ptr, 2, false);
       }
     }
-    else if (ptr.p->m_outstanding_fs == 0)
-    {
+    else if (ptr.p->m_outstanding_fs == 0) {
       /**
        * No need to flush last page, but could still be useful
        * to flush any logs waiting to be flushed to shorten the
@@ -2781,16 +4321,37 @@ void
 Lgman::process_log_sync_waiters(Signal* signal, Ptr<Logfile_group> ptr)
 {
   Local_log_waiter_list 
-    list(m_log_waiter_pool, ptr.p->m_log_sync_waiters);
+    list(m_log_waiter_pool,
+                                        ptr.p->m_log_sync_waiters);
 
   if(list.isEmpty())
   {
-    jam();
+    jam(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
+||||||| Common ancestor
+m_client_block);
+	return -1;
+=======
+m_client_block);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     return;
-  }
+   return -1;
 
   bool removed= false;
-  Ptr64<Log_waiter> waiter;
+  Ptr64<Log_waiter> 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+waiter;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+
   ndbrequire(list.first(waiter));
   Uint32 logfile_group_id = ptr.p->m_logfile_group_id;
 
@@ -2849,7 +4410,16 @@ Lgman::get_log_buffer(Ptr<Logfile_group> ptr,
   ndbrequire(total_free >= sz);
   Uint32 pos= ptr.p->m_pos[PRODUCER].m_current_pos.m_idx;
   Uint32 undo_page_words = get_undo_page_words(ptr);
-  ndbrequire(undo_page_words >= pos);
+ signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(undo_page_words >=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+4,
+>>>>>>> MySQL 8.0.36
+ pos);
   Uint32 free = undo_page_words - pos;
 
   if(sz <= free)
@@ -2857,7 +4427,27 @@ Lgman::get_log_buffer(Ptr<Logfile_group> ptr,
 next:
     thrjam(jamBuf);
     // fits this page wo/ problem
-    ndbrequire(total_free >= sz);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(total_free
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+>=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+4,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ sz);
     ptr.p->m_free_buffer_words = total_free - sz;
     ptr.p->m_pos[PRODUCER].m_current_pos.m_idx = pos + sz;
     Uint32* record = get_undo_data_ptr((Uint32*)page, ptr, jamBuf) + pos;
@@ -2865,7 +4455,28 @@ next:
     DEB_LGMAN_EXTRA(("UNDO Page pos moved to: %u", (pos + sz)));
     return record;
   }
-  thrjam(jamBuf);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+void
+Lgman::force_log_sync(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+void Lgman::force_log_sync(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ thrjam(jamBuf);
   
   /**
    * It didn't fit page...fill page with a NOOP log entry
@@ -2895,7 +4506,45 @@ next:
   /**
    * Update free space with extra NOOP
    */
-  ndbrequire(ptr.p->m_free_log_words >= free);
+  ndbrequire(ptr.p->m_free_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+log_words
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+>=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+undo=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*undo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+	(File_formats::Undofile::Undo_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+          (File_formats::Undofile::Undo_page *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   ptr.p->m_free_log_words -= free;
   if (free > 0)
   {
@@ -2967,13 +4616,39 @@ Logfile_client::get_log_buffer(Signal* signal,
     Uint32 free_buffer = ptr.p->m_free_buffer_words;
     if (free_buffer >= (sz + callback_buffer +
                         FREE_BUFFER_MARGIN(m_lgman, ptr)) &&
-        ptr.p->m_log_buffer_waiters.isEmpty())
-    {
+        ptr.p->m_log_buffer_waiters.isEmpty()) {
       jamBlock(m_client_block);
       ptr.p->m_callback_buffer_words = callback_buffer + sz;
       DEB_CALLBACK_WORDS(("(%u)1: callback_buffer_words: %u",
                           blockToInstance(m_block),
-                          ptr.p->m_callback_buffer_words));
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Lgman::process_log_sync_waiters(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Lgman::process_log_sync_waiters(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          ptr.p->m_callback_buffer_words));
       return 1;
     }
     
@@ -3010,8 +4685,7 @@ operator<<(NdbOut& out, const Lgman::Buffer_idx& pos)
 }
 
 NdbOut&
-operator<<(NdbOut& out, const Lgman::Logfile_group::Position& pos)
-{
+operator<<(NdbOut& out, const Lgman::Logfile_group::Position& pos) {
   out << "[ (" 
       << pos.m_current_page.m_ptr_i << " "
       << pos.m_current_page.m_idx << ") ("
@@ -3021,8 +4695,8 @@ operator<<(NdbOut& out, const Lgman::Logfile_group::Position& pos)
 }
 
 void
-Lgman::flush_log(Signal* signal,
-                 Ptr<Logfile_group> ptr,
+Lgman::flush_log(Signal* signal, Uint32 sz,
+  Ptr<Logfile_group> ptr,
                  Uint32 force,
                  bool issue_continueb)
 {
@@ -3031,11 +4705,34 @@ Lgman::flush_log(Signal* signal,
  
   jamEntry();
 
-  if (consumer.m_current_page == producer.m_current_page)
-  {
+  if (consumer.m_current_page == producer.m_current_page) {
     jam();
     /**
-     * Producer and consumer is in the same page range AND
+     * Producer and 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+consumer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+record
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*record
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ in the same page range AND
      * Producer and consumer has same amount of pages left
      * in range. This means we're only at the beginning of
      * the UNDO log.
@@ -3044,7 +4741,37 @@ Lgman::flush_log(Signal* signal,
 
 #if 0
     if (force)
-    {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+File_formats::Undofile::Undo_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+File_formats::Undofile::Undo_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+undo=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*undo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       g_eventLogger->info("force: %d ptr.p->m_file_pos[HEAD].m_ptr_i= %x",
 	       force, ptr.p->m_file_pos[HEAD].m_ptr_i);
       g_eventLogger->info("consumer.m_current_page: %d %d producer.m_current_page: %d %d",
@@ -3073,14 +4800,46 @@ Lgman::flush_log(Signal* signal,
           jam();
           signal->theData[0] = LgmanContinueB::FLUSH_LOG;
           signal->theData[1] = ptr.i;
-          signal->theData[2] = force + 1;
-          sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+Lgman::next_page(Logfile_group*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Lgman::next_page(Logfile_group
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     signal->theData[2] = force + 1;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptrP,
+         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ptrP,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 i,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sendSignalWithDelay(reference(),
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+i,
+=======
+>>>>>>> MySQL 8.0.36
+ GSN_CONTINUEB, signal, 
                               force ? 10 : 100, 3);
         }
         return;
-      }
-      else
-      {
+      }     else     {
         jam();
 	GlobalPage *page = m_shared_page_pool.getPtr(pos.m_ptr_i);
 
@@ -3089,10 +4848,48 @@ Lgman::flush_log(Signal* signal,
 	  g_eventLogger->info("LGMAN: force flush %d %d outstanding: %u"
                               " isEmpty(): %u",
                               pos.m_idx, ptr.p->m_free_buffer_words,
-                              ptr.p->m_outstanding_fs,
-                              ptr.p->m_log_buffer_waiters.isEmpty());
+                              ptr.p->m_outstanding_fs, Uint32 sz,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr.p->m_log_buffer_waiters.isEmpty());
 	
-	ndbrequire(pos.m_idx); // don't flush empty page...
+	ndbrequire(pos.m_idx);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Uint32 sz, 
+			   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ // don't flush 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+empty
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SimulatedBlock::CallbackPtr*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SimulatedBlock::CallbackPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+page...
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+callback)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*callback) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 	Uint64 lsn= ptr.p->m_next_lsn - 1;
 	
 	File_formats::Undofile::Undo_page* undo= 
@@ -3100,9 +4897,31 @@ Lgman::flush_log(Signal* signal,
 	undo->m_page_header.m_page_lsn_lo = (Uint32)(lsn & 0xFFFFFFFF);
 	undo->m_page_header.m_page_lsn_hi = (Uint32)(lsn >> 32);
         undo->m_words_used = get_undo_page_words(ptr) - free;
-        if (ptr.p->m_ndb_version >= NDB_DISK_V2)
+        if (ptr.p->m_ndb_version >=
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ NDB_DISK_V2)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ (sz + callback_buffer +
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
         {
-          File_formats::Undofile::Undo_page_v2 *page_v2 =
+    (sz + callback_buffer 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   File
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         FREE
+// RONDB-624 todo: Glue these lines together ^v
+=======
++ FREE
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_formats::Undofile::Undo_page_v2 *page_v2 =
             (File_formats::Undofile::Undo_page_v2*)undo;
           jam();
           page_v2->m_ndb_version = NDB_DISK_V2;
@@ -3112,9 +4931,49 @@ Lgman::flush_log(Signal* signal,
           page_v2->m_unused[2] = 0;
           page_v2->m_unused[3] = 0;
           page_v2->m_unused[4] = 0;
-          page_v2->m_unused[5] = 0;
-        }
+          page_v2->m_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+unused[5]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+block);
+	return
+// RONDB-624 todo: Glue these lines together ^v
+=======
+block);
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= 0;
+||||||| Common ancestor
+-1;
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ return -1;
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
 	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 	/**
 	 * Update free space with extra NOOP
 	 */
@@ -3124,26 +4983,178 @@ Lgman::flush_log(Signal* signal,
 	ptr.p->m_free_buffer_words -= free;
         DEB_LGMAN(("Line(%u): free_log_words: %llu, change: %u",
                    __LINE__,
-                   ptr.p->m_free_log_words,
-                   free));
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+return -1;
+}
+
+NdbOut&
+operator<<(NdbOut&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return -1;
+}
+
+NdbOut &operator<<(NdbOut
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+out,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&out,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Lgman::Buffer_idx&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Lgman::Buffer_idx
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+pos)
+{
+=======
+&pos) {
+>>>>>>> MySQL 8.0.36
+             ptr.p->m_free_log_words,
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+out;
+}
+
+NdbOut&
+operator<<(NdbOut&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+out;
+}
+
+NdbOut &operator<<(NdbOut
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+out,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&out,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Lgman::Logfile_group::Position&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Lgman::Logfile_group::Position
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+pos
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&pos
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+));
          
 	validate_logfile_group(ptr, "force_log_flush", jamBuffer());
 	
 	next_page(ptr.p, PRODUCER, jamBuffer());
-	ptr.p->m_pos[PRODUCER].m_current_pos.m_idx = 0;
+	ptr.p->m_pos[PRODUCER].m_current_pos.m_idx
+      = 0;
 	producer = ptr.p->m_pos[PRODUCER];
 	// break through
       }
     }
-    else
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+out;
+}
+
+void
+Lgman::flush_log(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+out;
+}
+
+void Lgman::flush_log(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
     {
       jam();
-      ptr.p->m_state &= ~(Uint32)Logfile_group::LG_FLUSH_THREAD;
+      ptr.p->m_state &=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ~(Uint32)Logfile_group::LG_FLUSH_THREAD;
       return;
     }
-  }
   
-  bool full= false;
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ force,
+ 
+  bool 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+full=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+false;
+||||||| Common ancestor
+force,
+=======
+>>>>>>> MySQL 8.0.36
   Uint32 tot= 0;
   while(!(consumer.m_current_page == producer.m_current_page) && !full)
   {
@@ -3152,8 +5163,7 @@ Lgman::flush_log(Signal* signal,
 
     Uint32 cnt; // pages written
     Uint32 page= consumer.m_current_pos.m_ptr_i;
-    if(consumer.m_current_page.m_ptr_i == producer.m_current_page.m_ptr_i)
-    {
+    if(consumer.m_current_page.m_ptr_i == producer.m_current_page.m_ptr_i)   {
       /**
        * In same range
        */
@@ -3183,11 +5193,64 @@ Lgman::flush_log(Signal* signal,
 	if(cnt == tmp)
 	{
 	  jam();
-	  /**
-	   * Entire chunk is written
-	   *   move to next
+<<<<<<< RonDB // RONDB-624 todo
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	force =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+	 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0;
+=======
+>>>>>>> MySQL 8.0.36
+  * Entire chunk 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+force
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+written
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+= 0;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+	   *   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+move to next
 	   */
-	  ptr.p->m_pos[CONSUMER].m_current_page.m_idx= 0;
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  ptr.p->m_pos[CONSUMER].m_current_page.m_idx= 0;
 	  next_page(ptr.p, CONSUMER, jamBuffer());
 	  consumer = ptr.p->m_pos[CONSUMER];
  	}
@@ -3224,11 +5287,21 @@ Lgman::flush_log(Signal* signal,
 	ptr.p->m_pos[CONSUMER].m_current_page.m_idx= 0;
 	next_page(ptr.p, CONSUMER, jamBuffer());
 	consumer = ptr.p->m_pos[CONSUMER];
-      }
-      else
-      {
+      } else {
+        jam();
+<<<<<<< RonDB // RONDB-624 todo
 	jam();
-	/**
+	/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        jam();
+	GlobalPage 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        GlobalPage 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+*
 	 * Failed to write entire chunk...
 	 */
 	full= true;
@@ -3268,7 +5341,43 @@ Lgman::flush_log(Signal* signal,
  * Overloaded UNDO buffer creates waiters for buffer space.
  * As in direct return from Logfile_client::get_log_buffer()
  * the FREE_BUFFER_MARGIN allows for a possible NOOP entry
- * when the logged entry does not fit on current page.
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+	File_formats::Undofile::Undo_page*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        File_formats::Undofile::Undo_page
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+undo=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*undo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ logged entry does not fit on current page.
  *
  * In non-MT case the entry is added in same time-slice.
  * In MT case callback is via signals.  Here the problem is
@@ -3288,24 +5397,163 @@ Lgman::process_log_buffer_waiters(Signal* signal, Ptr<Logfile_group> ptr)
   if (list.isEmpty())
   {
     jam();
-    ptr.p->m_state &= ~(Uint32)Logfile_group::LG_WAITERS_THREAD;
+    ptr.p->m_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+state
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+unused[1]
+// RONDB-624 todo: Glue these lines together ^v
+=======
+unused[1] = 0;
+          page_v2->m_unused[2] = 0;
+          page_v2->m_unused[3] = 0;
+          page_v2->m_unused[4] = 0;
+          page_v2->m_unused[5]
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &= ~(Uint32)Logfile_group::LG_WAITERS_THREAD;
     return;
   }
   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
   bool removed= false;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  page_v2->m_unused[2] = 0;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+<<<<<<< RonDB // RONDB-624 todo
   Ptr64<Log_waiter> waiter;
   ndbrequire(list.first(waiter));
   Uint32 sz  = waiter.p->m_size;
-  Uint32 logfile_group_id = ptr.p->m_logfile_group_id;
-  if (sz + callback_buffer + FREE_BUFFER_MARGIN(this, ptr) < free_buffer)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+          page_v2->m_unused[3] = 0;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+  Uint32 logfile_group_id = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr.p->m_logfile_group_id;
+||||||| Common ancestor
+     page_v2->m_unused[4] = 0;
+=======
+   /**
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  if (sz + callback_buffer 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
++
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FREE_BUFFER_MARGIN(this,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   page_v2->m_unused[5] =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Update free space with extra
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptr)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+0;
+=======
+NOOP
+>>>>>>> MySQL 8.0.36
+ < free_buffer)
   {
-    jam();
-    removed= true;
-    Uint32 block = waiter.p->m_block;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+	
+	/**
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ */
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+	 *
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Update free
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+removed=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+extra
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
+||||||| Common ancestor
+NOOP
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+	ndbrequire(ptr.p->m_free_log_words
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndbrequire(ptr.p->m_free_log_words
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   Uint32 block = waiter.p->m_block;
     CallbackPtr & callback = waiter.p->m_callback;
     ptr.p->m_callback_buffer_words += sz;
-    DEB_CALLBACK_WORDS(("2: callback_buffer_words: %u",
-                        ptr.p->m_callback_buffer_words));
+    DEB_CALLBACK_WORDS(("2: callback_buffer_words: %u",      ptr.p->m_callback_buffer_words));
     sendCallbackConf(signal, block, callback, logfile_group_id,
                      LgmanContinueB::PROCESS_LOG_BUFFER_WAITERS, 0);
 
@@ -3375,11 +5623,35 @@ Lgman::write_log_pages(Signal* signal, Ptr<Logfile_group> ptr,
   Buffer_idx head= ptr.p->m_file_pos[HEAD];
   Buffer_idx tail= ptr.p->m_file_pos[TAIL];
   ndbrequire(m_file_pool.getPtr(filePtr, head.m_ptr_i));
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+	}
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   
   if(filePtr.p->m_online.m_outstanding > 0)
-  {
-    jam();
-    return 0;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+  }
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+  } else return 0;
   }
   
   Uint32 sz= filePtr.p->m_file_size - 1; // skip zero
@@ -3399,10 +5671,76 @@ Lgman::write_log_pages(Signal* signal, Ptr<Logfile_group> ptr,
   if (head.m_idx == 0)
   {
     /**
-     * The first write in a file is always just one page. The reason is that
+     * The first write in a file is always 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+just
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tmp)
+=======
+tmp) {
+>>>>>>> MySQL 8.0.36
+ one page. The reason is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam();
+	/**
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam();
+        /**
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
      * we want the restart logic to sort the UNDO log files to be easy. We
-     * need to add a recommendation that the UNDO log should have at least
-     * 2 files if possible and also to be of reasonably large size.
+     * need to add a recommendation that the UNDO 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+log
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+should
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ have 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+at
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+ least
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	jam();
+	/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+jam();
+        /*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+* 2 files if possible and also to be of reasonably large size.
      *
      * If we allow larger writes of the first page we also need to adapt the
      * file sort logic during restarts to look further into the file before
@@ -3411,8 +5749,7 @@ Lgman::write_log_pages(Signal* signal, Ptr<Logfile_group> ptr,
     jam();
     pages = 1;
   }
-  if (pages > MAX_UNDO_PAGES_OUTSTANDING)
-  {
+  if (pages > MAX_UNDO_PAGES_OUTSTANDING) {
     /**
      * We will never write more than 16 MBytes per write. If more is
      * available it will have to wait until we come back after this
@@ -3425,15 +5762,33 @@ Lgman::write_log_pages(Signal* signal, Ptr<Logfile_group> ptr,
      * needed). See above comment on O_DIRECT and why no fsync calls
      * are needed.
      */
-    jam();
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void
+Lgman::process_log_buffer_waiters(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Lgman::process_log_buffer_waiters(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jam();
     pages = MAX_UNDO_PAGES_OUTSTANDING;
   }
 
   if (ptr.p->m_ndb_version >= NDB_DISK_V2)
   {
     jam();
-    for (Uint32 i = 0; i < pages; i++)
-    {
+    for (Uint32 i = 0; i < pages; i++)   {
       /**
        * Ensure that all pages are written using the V2 format and
        * ensure that it cannot be interpreted as some future version.
@@ -3459,7 +5814,29 @@ Lgman::write_log_pages(Signal* signal, Ptr<Logfile_group> ptr,
     }
   }
 
-  FsReadWriteReq* req= (FsReadWriteReq*)signal->getDataPtrSend();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CallbackAck*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CallbackAck
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+FsReadWriteReq*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ack
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ack
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ req= (FsReadWriteReq*)signal->getDataPtrSend();
   req->filePointer = filePtr.p->m_fd;
   req->userReference = reference();
   req->userPointer = filePtr.i;
@@ -3485,7 +5862,32 @@ Lgman::write_log_pages(Signal* signal, Ptr<Logfile_group> ptr,
     ptr.p->m_file_pos[HEAD] = head;  
 
     sendSignal(NDBFS_REF, GSN_FSWRITEREQ, signal, 
-               FsReadWriteReq::FixedLength + 1, JBA);
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+512
+
+Uint32
+Lgman::write_log_pages(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+512
+
+Uint32 Lgman::write_log_pages(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         FsReadWriteReq::FixedLength + 1, JBA);
 
     ptr.p->m_outstanding_fs++;
     filePtr.p->m_online.m_outstanding = max;
@@ -3578,8 +5980,7 @@ Lgman::execFSWRITECONF(Signal* signal)
   Uint32 cnt= lg_ptr.p->m_outstanding_fs;
   ndbrequire(cnt);
   
-  if(lg_ptr.p->m_next_reply_ptr_i == file_ptr.i)
-  {
+  if(lg_ptr.p->m_next_reply_ptr_i == file_ptr.i) {
     jam();
     Uint32 tot= 0;
     Uint64 lsn = 0;
@@ -3599,9 +6000,33 @@ Lgman::execFSWRITECONF(Signal* signal)
 	lsn = file_ptr.p->m_online.m_lsn;
 	
 	if((state & Undofile::FS_MOVE_NEXT) && !files.next(file_ptr))
-        {
-          jam();
-	  files.first(file_ptr);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(File_formats::Undofile::Undo_page_v2*)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  (File_formats::Undofile::Undo_page_v2 *)m_shared_page_pool.getPtr(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+	
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_shared_page_pool.getPtr(pageId
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    pageId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  files.first(file_ptr);
         }
       }
     }
@@ -3619,7 +6044,27 @@ Lgman::execFSWRITECONF(Signal* signal)
       process_log_sync_waiters(signal, lg_ptr);
     }
 
-    if(! (lg_ptr.p->m_state & Logfile_group::LG_WAITERS_THREAD))
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+FsReadWriteReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FsReadWriteReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if(! (lg_ptr.p->m_state & Logfile_group::LG_WAITERS_THREAD))
     {
       jam();
       process_log_buffer_waiters(signal, lg_ptr);
@@ -3682,7 +6127,59 @@ Lgman::exec_lcp_frag_ord(Signal* signal,
     undo[3] |= (File_formats::Undofile::UNDO_NEXT_LSN << 16);
     Uint32 *dst= get_log_buffer(lg_ptr,
                                 size_entry,
-                                client_block->jamBuffer());
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+max;
+}
+
+void
+Lgman::execFSWRITEREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+max;
+}
+
+void Lgman::execFSWRITEREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ndbabort();
+}
+
+void
+Lgman::execFSWRITECONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndbabort();
+}
+
+void Lgman::execFSWRITECONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+    client_block->jamBuffer());
     memcpy(dst, undo, sizeof(undo));
     ndbrequire(lg_ptr.p->m_free_log_words >= size_entry);
     lg_ptr.p->m_free_log_words -= (size_entry);
@@ -3699,8 +6196,30 @@ Lgman::exec_lcp_frag_ord(Signal* signal,
                    table_id,
                    frag_id,
                    lcp_id,
-                   local_lcp_id,
-                   entry));
+                   local_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+lcp_id,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptr))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ptr)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          jam();
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ entry));
+||||||| Common ancestor
+jam();
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
     validate_logfile_group(lg_ptr, "execLCP_FRAG_ORD",
                            client_block->jamBuffer());
   }
@@ -3752,7 +6271,31 @@ Lgman::level_report_thread(Signal *signal, Ptr<Logfile_group> lg_ptr)
       ndbrequire(total_bytes > space_limit_bytes);
       total_bytes -= space_limit_bytes;
       free_level =
-        Uint64(100) - ((Uint64(100) * free_bytes) / total_bytes);
+        Uint64(100) - ((Uint64(100) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SimulatedBlock*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       SimulatedBlock
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+free
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+client
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*client
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_bytes) / total_bytes);
     }
     ndbassert(lg_ptr.p->m_total_log_space == calc_total_log_space(lg_ptr));
     if (lg_ptr.p->m_last_log_level_reported != Uint32(free_level) ||
@@ -3763,7 +6306,29 @@ Lgman::level_report_thread(Signal *signal, Ptr<Logfile_group> lg_ptr)
       DEB_UNDO_SPACE(("UNDO log level reached %u percent",
                       Uint32(free_level)));
       g_eventLogger->debug("UNDO log level reached %u percent",
-                          Uint32(free_level));
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+File_formats::Undofile::UNDO_LOCAL_LCP :
+=======
+ ? File_formats::Undofile::UNDO_LOCAL_LCP
+>>>>>>> MySQL 8.0.36
+                  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32(free
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+File_formats::Undofile::UNDO_LOCAL_LCP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   : File_formats::Undofile::UNDO_LOCAL_LCP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_level));
       lg_ptr.p->m_last_log_level_reported = Uint32(free_level);
       UndoLogLevelRep *rep = (UndoLogLevelRep*)signal->getDataPtrSend();
       rep->levelUsed = Uint32(free_level);
@@ -3831,8 +6396,7 @@ Lgman::cut_log_tail(Signal* signal, Ptr<Logfile_group> lg_ptr)
 	free= tmp.m_idx - tail.m_idx; 
 	lg_ptr.p->m_free_log_words += free * get_undo_page_words(lg_ptr);
         DEB_LGMAN(("Line(%u): free_log_words: %llu",
-                   __LINE__,
-                   lg_ptr.p->m_free_log_words));
+                   __LINE__, lg_ptr.p->m_free_log_words));
 	lg_ptr.p->m_file_pos[TAIL] = tmp;
       }
       else
@@ -3840,8 +6404,7 @@ Lgman::cut_log_tail(Signal* signal, Ptr<Logfile_group> lg_ptr)
         jam();
 	free= filePtr.p->m_file_size - tail.m_idx - 1;
 	lg_ptr.p->m_free_log_words += free * get_undo_page_words(lg_ptr);
-        DEB_LGMAN(("Line(%u): free_log_words: %llu",
-                   __LINE__,
+        DEB_LGMAN(("Line(%u): free_log_words: %llu", __LINE__,
                    lg_ptr.p->m_free_log_words));
 	
 	Ptr<Undofile> next = filePtr;
@@ -3899,8 +6462,7 @@ Lgman::execSUB_GCP_COMPLETE_REP(Signal* signal)
   return; // NOT IMPLEMENTED YET
   
   signal->theData[0] = LgmanContinueB::FILTER_LOG;
-  while(!ptr.isNull())
-  {
+  while(!ptr.isNull()) {
     jam();
     signal->theData[1] = ptr.i;
     sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
@@ -3972,7 +6534,31 @@ Lgman::alloc_log_space(Uint32 ref,
 }
 
 int
-Lgman::free_log_space(Uint32 ref,
+Lgman::free_log_space(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ref
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                       Uint32 words,
                       EmulatedJamBuffer *jamBuf)
 {
@@ -3982,7 +6568,7 @@ Lgman::free_log_space(Uint32 ref,
   key.m_logfile_group_id= ref;
   Ptr<Logfile_group> lg_ptr;
   Uint64 words_64 = Uint64(words);
-  if(m_logfile_group_hash.find(lg_ptr, key))
+  if (m_logfile_group_hash.find(lg_ptr, key))
   {
     thrjam(jamBuf);
     lg_ptr.p->m_free_log_words += words_64;
@@ -3994,13 +6580,57 @@ Lgman::free_log_space(Uint32 ref,
     return 0;
   }
   ndbabort();
-  return -1;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-1;
 }
 
 Uint64
-Logfile_client::add_entry_complex(const Change* src,
-                                  Uint32 cnt,
-                                  bool is_update,
+Logfile_client::add_entry_complex(const
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+ Change* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+src,
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+jam();
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+jam();
+	free=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+free =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                    Uint32 cnt,                bool is_update,
                                   Uint32 alloc_size,
                                   bool var_disk)
 {
@@ -4008,21 +6638,78 @@ Logfile_client::add_entry_complex(const Change* src,
   require(cnt == 3);
   Uint32 remaining_page_space =
     m_lgman->get_remaining_page_space(m_logfile_group_id);
-  for(Uint32 i= 0; i<cnt; i++)
+  for(Uint32 i= 0; i<cnt; i++) {
   {
     tot += src[i].len;
-  }
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
   require(alloc_size >= tot);
   DEB_CALLBACK_WORDS(("(%u)tot: %u, alloc_size: %u, remaining_page_space: %u",
-                      blockToInstance(m_block),
+            {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  blockToInstance(m_block),
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
                       tot,
-                      alloc_size,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+ done = false;
+>>>>>>> MySQL 8.0.36
+               alloc_size,
                       remaining_page_space));
   if (tot <= remaining_page_space ||
       remaining_page_space < (4 + 2 + 4))
   {
     /**
-     * Header is 3 + 1 words, we need to make sure that the size of the first
+     * Header is 3 + 1 words, we need to make 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sure
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+}
+
+void
+Lgman::execSUB_GCP_COMPLETE_REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Lgman::execSUB_GCP_COMPLETE_REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ the size of the first
      * part is at least 2 words long. The reason is that the UNDO_FREE_PART
      * will expect to find the record in the free list. The free list
      * uses the first word of the record. Since the UNDO_UPDATE_PART is
@@ -4030,9 +6717,20 @@ Logfile_client::add_entry_complex(const Change* src,
      * doesn't overwrite the next reference. To ensure that we don't
      * run into problems if we later on decide for a double linked list
      * we will protect 4 more words. Thus we will skip the remainder of
-     * the page if we don't have at least space to fit a 4 word header
-     * plus 2 words to protect free list information and 4 extra words
-     * of protection for future use (either longer headers or more
+     * the page if we don't have at least space to fit 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+a 4 word header
+     * plus 2 words to protect free list information and 4
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+bool abortable,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ extra words
+  bool abortable,  * of protection for future use (either longer headers or more
      * free list information to protect.
      */
     jamBlock(m_client_block);
@@ -4042,7 +6740,7 @@ Logfile_client::add_entry_complex(const Change* src,
   log_buf_print((const Uint32*)src[1].ptr, src[1].len);
 #endif
   Lgman::Logfile_group key;
-  key.m_logfile_group_id= m_logfile_group_id;
+  key.m_logfile_group_id = m_logfile_group_id;
   Ptr<Lgman::Logfile_group> lg_ptr;
   require(m_lgman->m_logfile_group_hash.find(lg_ptr, key));
   Uint32 callback_buffer = lg_ptr.p->m_callback_buffer_words;
@@ -4052,8 +6750,7 @@ Logfile_client::add_entry_complex(const Change* src,
                    sz_first_part,
                    remaining_page_space));
   lg_ptr.p->m_callback_buffer_words = callback_buffer - alloc_size;
-  DEB_CALLBACK_WORDS(("(%u)3: callback_buffer_words: %u",
-                      blockToInstance(m_block),
+  DEB_CALLBACK_WORDS(("(%u)3: callback_buffer_words: %u",      blockToInstance(m_block),
                       lg_ptr.p->m_callback_buffer_words));
   /**
    * This record is split into two records, thus we use a bit more header
@@ -4074,18 +6771,54 @@ Logfile_client::add_entry_complex(const Change* src,
     jamBlock(m_client_block);
     Uint64 diff = Uint64(alloc_size - tot) - Uint64(extra_overhead);
     lg_ptr.p->m_free_log_words += diff;
-    DEB_LGMAN(("Line(%u): free_log_words: %llu, change: +%llu",
-               __LINE__,
+    DEB_LGMAN(("Line(%u): free_log_words: %llu, change: +%llu", __LINE__,
                lg_ptr.p->m_free_log_words,
                diff));
   }
-  else
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Change*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Change
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
   {
-    jamBlock(m_client_block);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+src,
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*src,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 cnt,
+ jamBlock(m_client_block);
     Uint64 diff = Uint64(extra_overhead) - Uint64(alloc_size - tot);
     lg_ptr.p->m_free_log_words -= diff;
-    DEB_LGMAN(("Line(%u): free_log_words: %llu, change: -%llu",
-               __LINE__,
+    DEB_LGMAN(("Line(%u): free_log_words: %llu, change: 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-%llu",
+               
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   Uint32 cnt,
+                                  bool is
+// RONDB-624 todo: Glue these lines together ^v
+=======
+               bool is
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+__LINE__,
                lg_ptr.p->m_free_log_words,
                diff));
   }
@@ -4138,34 +6871,70 @@ Logfile_client::add_entry_complex(const Change* src,
     memcpy(&update_var_part, src[0].ptr, 3*4);
     update_var_part.m_tot_len = src[1].len;
     Uint32 tot_part_len = sz_last_part + in_page_header_size;
-    if (is_update)
-    {
+    if (is_update) {
+      type_length = (Dbtup::Disk_undo::UNDO_FIRST_UPDATE_VAR_PART << 16 |
+                     tot_part_len);
+    } else {
       type_length =
-        (Dbtup::Disk_undo::UNDO_FIRST_UPDATE_VAR_PART << 16 | tot_part_len);
+          (Dbtup::Disk_undo::UNDO_FREE_VAR_PART << 16 | tot_part_len);
     }
-    else
-    {
-      type_length =
-        (Dbtup::Disk_undo::UNDO_FREE_VAR_PART << 16 | tot_part_len);
-    }
-    Logfile_client::Change c[3] =
-    {
-      { &update_var_part, 4},
-      { src[1].ptr, sz_last_part},
-      { &type_length, 1}
-    };
-    jamBlock(m_client_block);
-    return add_entry_simple(c,
-                            3,
+    Logfile_client::Change c[3] = {{ &update_var_part, 4},
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sz_last_part},
+||||||| Common ancestor
+sz_first_part},
+=======
+>>>>>>> MySQL 8.0.36
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return add
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+add
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       {src[1].ptr, sz
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_first_part},
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       3,
                             tot_part_len,
                             false);
+||||||| Common ancestor
+3,
+=======
+>>>>>>> MySQL 8.0.36
   }
   // !var_disk
   Uint32 type_length;
   if (is_update)
   {
-    type_length =
-      (Dbtup::Disk_undo::UNDO_FIRST_UPDATE_PART << 16 | remaining_page_space);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+type_length
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{&type_length, 1}};
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+||||||| Common ancestor
+=======
+jamBlock(m_client_block);
+>>>>>>> MySQL 8.0.36
+    add_entry_simple(c, 3, (Dbtup::Disk_undo::UNDO_FIRST_UPDATE_PART << 16 | remaining_page_space);
   }
   else
   {
@@ -4183,53 +6952,43 @@ Logfile_client::add_entry_complex(const Change* src,
                    3,
                    remaining_page_space,
                    false);
-  Uint32 *offset_ptr = (Uint32*)src[1].ptr;
+  Uint32 *offset_ptr = (Uint32 *)src[1].ptr;
   const void *first_part_ptr = (const void *)&offset_ptr[sz_first_part];
   Dbtup::Disk_undo::UpdatePart update_part;
-  memcpy(&update_part, src[0].ptr, 3*4);
+  memcpy(&update_part, src[0].ptr, 3 * 4);
   Uint32 offset = sz_first_part;
   Uint32 sz_last_part = 5 + src[1].len - sz_first_part;
   update_part.m_offset = offset;
   update_part.m_type_length =
-    ((Dbtup::Disk_undo::UNDO_UPDATE_PART << 16) | sz_last_part);
+      ((Dbtup::Disk_undo::UNDO_UPDATE_PART << 16) | sz_last_part);
   {
-    Logfile_client::Change c[3] =
-    {
-      { &update_part, 4},
-      { first_part_ptr, src[1].len - sz_first_part},
-      { &update_part.m_type_length, 1}
-    };
+    Logfile_client::Change c[3] = {{&update_part, 4},
+                                   {first_part_ptr, src[1].len - sz_first_part},
+                                   {&update_part.m_type_length, 1}};
     jamBlock(m_client_block);
     return add_entry_simple(c, 3, sz_last_part, false);
   }
 }
 
-Uint64
-Logfile_client::get_latest_lsn()
-{
+Uint64 Logfile_client::get_latest_lsn() {
   Lgman::Logfile_group key;
-  key.m_logfile_group_id= m_logfile_group_id;
+  key.m_logfile_group_id = m_logfile_group_id;
   Ptr<Lgman::Logfile_group> lg_ptr;
   require(m_lgman->m_logfile_group_hash.find(lg_ptr, key));
   Uint64 next_lsn = lg_ptr.p->m_next_lsn;
-  if (next_lsn > 0)
-  {
+  if (next_lsn > 0) {
     next_lsn--;
   }
   return next_lsn;
 }
 
-Uint64
-Logfile_client::add_entry_simple(const Change* src,
-                                 Uint32 cnt,
-                                 Uint32 alloc_size,
-                                 bool update_callback_buffer_words)
-{
-  Uint32 i, tot= 0;
+Uint64 Logfile_client::add_entry_simple(const Change *src, Uint32 cnt,
+                                        Uint32 alloc_size,
+                                        bool update_callback_buffer_words) {
+  Uint32 i, tot = 0;
   jamBlock(m_client_block);
   jamBlockLine(m_client_block, cnt);
-  for(i= 0; i<cnt; i++)
-  {
+  for (i = 0; i < cnt; i++) {
     tot += src[i].len;
   }
   require(tot <= alloc_size);
@@ -4237,32 +6996,28 @@ Logfile_client::add_entry_simple(const Change* src,
   Uint32 *dst;
   jamBlock(m_client_block);
   Lgman::Logfile_group key;
-  key.m_logfile_group_id= m_logfile_group_id;
+  key.m_logfile_group_id = m_logfile_group_id;
   Ptr<Lgman::Logfile_group> lg_ptr;
   require(m_lgman->m_logfile_group_hash.find(lg_ptr, key));
   {
     jamBlock(m_client_block);
     Uint32 callback_buffer = lg_ptr.p->m_callback_buffer_words;
     Uint64 next_lsn = lg_ptr.p->m_next_lsn;
-    dst= m_lgman->get_log_buffer(lg_ptr, tot, m_client_block->jamBuffer());
-    for(i= 0; i<cnt; i++)
-    {
-      memcpy(dst, src[i].ptr, 4*src[i].len);
+    dst = m_lgman->get_log_buffer(lg_ptr, tot, m_client_block->jamBuffer());
+    for (i = 0; i < cnt; i++) {
+      memcpy(dst, src[i].ptr, 4 * src[i].len);
       dst += src[i].len;
     }
     *(dst - 1) |= (File_formats::Undofile::UNDO_NEXT_LSN << 16);
-    m_lgman->validate_logfile_group(lg_ptr,
-                                    (const char*)0,
+    m_lgman->validate_logfile_group(lg_ptr, (const char *)0,
                                     m_client_block->jamBuffer());
     DEB_CALLBACK_WORDS(("(%u)callback_buffer: %u, alloc_size: %u, update: %u",
                         blockToInstance(m_block),
                         callback_buffer,
                         alloc_size,
                         update_callback_buffer_words));
-    if (update_callback_buffer_words)
-    {
-      if (unlikely(! (alloc_size <= callback_buffer)))
-      {
+    if (update_callback_buffer_words) {
+      if (unlikely(!(alloc_size <= callback_buffer))) {
         jamBlock(m_client_block);
         abort();
       }
@@ -4276,10 +7031,8 @@ Logfile_client::add_entry_simple(const Change* src,
                            blockToInstance(m_block),
                            lg_ptr.p->m_callback_buffer_words));
       lg_ptr.p->m_free_log_words += (alloc_size - tot);
-      DEB_LGMAN(("Line(%u): free_log_words: %llu, change: %d",
-                 __LINE__,
-                 lg_ptr.p->m_free_log_words,
-                 int(alloc_size - tot)));
+      DEB_LGMAN(("Line(%u): free_log_words: %llu, change: %d", __LINE__,
+                 lg_ptr.p->m_free_log_words, int(alloc_size - tot)));
     }
     lg_ptr.p->m_next_lsn = next_lsn + 1;
     return next_lsn;
@@ -4319,22 +7072,19 @@ Logfile_client::add_entry_simple(const Change* src,
  * to read and write to. We also have set up the necessary data structures
  * around log file groups and log files.
  */
-void
-Lgman::execSTART_RECREQ(Signal* signal)
-{
+void Lgman::execSTART_RECREQ(Signal *signal) {
   jamEntry();
   m_latest_lcp = signal->theData[0];
   m_latest_local_lcp = signal->theData[1];
-  
+
   Ptr<Logfile_group> lg_ptr;
   m_logfile_group_list.first(lg_ptr);
 
-  if (lg_ptr.i != RNIL)
-  {
-    infoEvent("LGMAN: Applying undo to LCP: [%d,%d]",
-              m_latest_lcp, m_latest_local_lcp);
-    g_eventLogger->info("LGMAN: Applying undo to LCP: [%d,%d]",
-                        m_latest_lcp, m_latest_local_lcp);
+  if (lg_ptr.i != RNIL) {
+    infoEvent("LGMAN: Applying undo to LCP: [%d,%d]", m_latest_lcp,
+              m_latest_local_lcp);
+    g_eventLogger->info("LGMAN: Applying undo to LCP: [%d,%d]", m_latest_lcp,
+                        m_latest_local_lcp);
     find_log_head(signal, lg_ptr);
     return;
   }
@@ -4347,17 +7097,14 @@ Lgman::execSTART_RECREQ(Signal* signal)
   sendSignal(DBLQH_REF, GSN_START_RECCONF, signal, 1, JBB);
 }
 
-void
-Lgman::find_log_head(Signal* signal, Ptr<Logfile_group> lg_ptr)
-{
-  ndbrequire(lg_ptr.p->m_state & 
+void Lgman::find_log_head(Signal *signal, Ptr<Logfile_group> lg_ptr) {
+  ndbrequire(lg_ptr.p->m_state &
              (Logfile_group::LG_STARTING | Logfile_group::LG_SORTING));
 
-  if (lg_ptr.p->m_meta_files.isEmpty() && lg_ptr.p->m_files.isEmpty())
-  {
+  if (lg_ptr.p->m_meta_files.isEmpty() && lg_ptr.p->m_files.isEmpty()) {
     jam();
     /**
-     * Logfile_group wo/ any files 
+     * Logfile_group wo/ any files
      * This means we're done obviously
      */
     lg_ptr.p->m_state &= ~(Uint32)Logfile_group::LG_STARTING;
@@ -4370,42 +7117,39 @@ Lgman::find_log_head(Signal* signal, Ptr<Logfile_group> lg_ptr)
   }
 
   lg_ptr.p->m_state = Logfile_group::LG_SORTING;
-  
+
   /**
    * Read first page from each undofile (1 file at a time...)
    */
   Local_undofile_list files(m_file_pool, lg_ptr.p->m_meta_files);
   Ptr<Undofile> file_ptr;
   files.first(file_ptr);
-  
-  if (!file_ptr.isNull())
-  {
+
+  if (!file_ptr.isNull()) {
     jam();
     /**
      * Use log buffer memory when reading
      */
     Uint32 page_id = lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_ptr_i;
-    file_ptr.p->m_online.m_outstanding= page_id;
-    
-    FsReadWriteReq* req= (FsReadWriteReq*)signal->getDataPtrSend();
+    file_ptr.p->m_online.m_outstanding = page_id;
+
+    FsReadWriteReq *req = (FsReadWriteReq *)signal->getDataPtrSend();
     req->filePointer = file_ptr.p->m_fd;
     req->userReference = reference();
     req->userPointer = file_ptr.i;
-    req->varIndex = 1; // skip zero page
+    req->varIndex = 1;  // skip zero page
     req->numberOfPages = 1;
     req->data.sharedPage.pageNumber = page_id;
     req->operationFlag = 0;
     req->setFormatFlag(req->operationFlag, FsReadWriteReq::fsFormatSharedPage);
-    
+
     sendSignal(NDBFS_REF, GSN_FSREADREQ, signal,
-	       FsReadWriteReq::FixedLength + 1, JBA);
+               FsReadWriteReq::FixedLength + 1, JBA);
 
     lg_ptr.p->m_outstanding_fs++;
     file_ptr.p->m_state |= Undofile::FS_OUTSTANDING;
     return;
-  }
-  else
-  {
+  } else {
     jam();
     /**
      * All files have read first page
@@ -4419,14 +7163,15 @@ Lgman::find_log_head(Signal* signal, Ptr<Logfile_group> lg_ptr)
      */
     lg_ptr.p->m_state = Logfile_group::LG_SEARCHING;
     file_ptr.p->m_state = Undofile::FS_SEARCHING;
-    lg_ptr.p->m_file_pos[TAIL].m_idx = 1;                   // left page
+    lg_ptr.p->m_file_pos[TAIL].m_idx = 1;  // left page
     lg_ptr.p->m_file_pos[HEAD].m_idx = file_ptr.p->m_file_size;
-    lg_ptr.p->m_file_pos[HEAD].m_ptr_i = ((file_ptr.p->m_file_size - 1) >> 1) + 1;
-    
-    Uint32 page_id = lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_ptr_i;
-    file_ptr.p->m_online.m_outstanding= page_id;
+    lg_ptr.p->m_file_pos[HEAD].m_ptr_i =
+        ((file_ptr.p->m_file_size - 1) >> 1) + 1;
 
-    FsReadWriteReq* req= (FsReadWriteReq*)signal->getDataPtrSend();
+    Uint32 page_id = lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_ptr_i;
+    file_ptr.p->m_online.m_outstanding = page_id;
+
+    FsReadWriteReq *req = (FsReadWriteReq *)signal->getDataPtrSend();
     req->filePointer = file_ptr.p->m_fd;
     req->userReference = reference();
     req->userPointer = file_ptr.i;
@@ -4435,38 +7180,35 @@ Lgman::find_log_head(Signal* signal, Ptr<Logfile_group> lg_ptr)
     req->data.sharedPage.pageNumber = page_id;
     req->operationFlag = 0;
     req->setFormatFlag(req->operationFlag, FsReadWriteReq::fsFormatSharedPage);
-    
-    sendSignal(NDBFS_REF, GSN_FSREADREQ, signal, 
-	       FsReadWriteReq::FixedLength + 1, JBA);
-    
+
+    sendSignal(NDBFS_REF, GSN_FSREADREQ, signal,
+               FsReadWriteReq::FixedLength + 1, JBA);
+
     lg_ptr.p->m_outstanding_fs++;
     file_ptr.p->m_state |= Undofile::FS_OUTSTANDING;
     return;
   }
 }
 
-void
-Lgman::execFSREADCONF(Signal* signal)
-{
+void Lgman::execFSREADCONF(Signal *signal) {
   jamEntry();
   client_lock(number(), __LINE__, this);
 
   Ptr<Undofile> file_ptr;
   Ptr<Logfile_group> lg_ptr;
-  FsConf* conf = (FsConf*)signal->getDataPtr();
-  
+  FsConf *conf = (FsConf *)signal->getDataPtr();
+
   ndbrequire(m_file_pool.getPtr(file_ptr, conf->userPointer));
-  ndbrequire(m_logfile_group_pool.getPtr(lg_ptr,
-                                         file_ptr.p->m_logfile_group_ptr_i));
+  ndbrequire(
+      m_logfile_group_pool.getPtr(lg_ptr, file_ptr.p->m_logfile_group_ptr_i));
 
   ndbrequire(file_ptr.p->m_state & Undofile::FS_OUTSTANDING);
   file_ptr.p->m_state &= ~(Uint32)Undofile::FS_OUTSTANDING;
-  
-  Uint32 cnt= lg_ptr.p->m_outstanding_fs;
+
+  Uint32 cnt = lg_ptr.p->m_outstanding_fs;
   ndbrequire(cnt);
- 
-  if (file_ptr.p->m_state == Undofile::FS_READ_ZERO_PAGE)
-  {
+
+  if (file_ptr.p->m_state == Undofile::FS_READ_ZERO_PAGE) {
     jam();
     ndbrequire(cnt == 1);
     lg_ptr.p->m_outstanding_fs = 0;
@@ -4481,33 +7223,29 @@ Lgman::execFSREADCONF(Signal* signal)
    */
   jam();
   if ((file_ptr.p->m_state & Undofile::FS_EXECUTING) ==
-           Undofile::FS_EXECUTING)
-  {
+             Undofile::FS_EXECUTING) {
     jam();
-    
-    if (lg_ptr.p->m_next_reply_ptr_i == file_ptr.i)
-    {
+
+    if (lg_ptr.p->m_next_reply_ptr_i == file_ptr.i) {
       jam();
-      Uint32 tot= 0;
+      Uint32 tot = 0;
       Local_undofile_list files(m_file_pool, lg_ptr.p->m_files);
-      while (cnt && ! (file_ptr.p->m_state & Undofile::FS_OUTSTANDING))
-      {
+      while (cnt && !(file_ptr.p->m_state & Undofile::FS_OUTSTANDING)) {
         jam();
-	Uint32 state= file_ptr.p->m_state;
-	Uint32 pages= file_ptr.p->m_online.m_outstanding;
-	ndbrequire(pages);
-	file_ptr.p->m_online.m_outstanding= 0;
-	file_ptr.p->m_state &= ~(Uint32)Undofile::FS_MOVE_NEXT;
-	tot += pages;
-	cnt--;
-	
-	if ((state & Undofile::FS_MOVE_NEXT) && !files.prev(file_ptr))
-        {
+        Uint32 state = file_ptr.p->m_state;
+        Uint32 pages = file_ptr.p->m_online.m_outstanding;
+        ndbrequire(pages);
+        file_ptr.p->m_online.m_outstanding = 0;
+        file_ptr.p->m_state &= ~(Uint32)Undofile::FS_MOVE_NEXT;
+        tot += pages;
+        cnt--;
+
+        if ((state & Undofile::FS_MOVE_NEXT) && !files.prev(file_ptr)) {
           jam();
-	  files.last(file_ptr);
+          files.last(file_ptr);
         }
       }
-      
+
       lg_ptr.p->m_outstanding_fs = cnt;
       lg_ptr.p->m_pos[PRODUCER].m_current_pos.m_idx += tot;
       lg_ptr.p->m_next_reply_ptr_i = file_ptr.i;
@@ -4515,14 +7253,24 @@ Lgman::execFSREADCONF(Signal* signal)
     client_unlock(number(), __LINE__, this);
     return;
   }
-  
+
   lg_ptr.p->m_outstanding_fs = cnt - 1;
 
   Ptr<GlobalPage> page_ptr;
-  ndbrequire(m_shared_page_pool.getPtr(page_ptr,
-                                       file_ptr.p->m_online.m_outstanding));
-  File_formats::Undofile::Undo_page_v2* page = 
-    (File_formats::Undofile::Undo_page_v2*)page_ptr.p;
+  ndbrequire(
+      m_shared_page_pool.getPtr(page_ptr, file_ptr.p->m_online.m_outstanding));
+  File_formats::Undofile::Undo_page
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+_v2*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ *page =
+      (File_formats::Undofile::Undo_page_v2*)page_ptr.p;
   if (page->m_page_header.m_page_type == File_formats::PT_Unallocated)
   {
     jam();
@@ -4548,35 +7296,35 @@ Lgman::execFSREADCONF(Signal* signal)
   lsn <<= 32;
   lsn += page->m_page_header.m_page_lsn_lo;
 
-  switch(file_ptr.p->m_state){
-  case Undofile::FS_SORTING:
-    jam();
-    break;
-  case Undofile::FS_SEARCHING:
-    jam();
-    find_log_head_in_file(signal, lg_ptr, file_ptr, lsn);
-    client_unlock(number(), __LINE__, this);
-    return;
-  case Undofile::FS_SEARCHING_END:
-    jam();
-    find_log_head_end_check(signal, lg_ptr, file_ptr, lsn);
-    client_unlock(number(), __LINE__, this);
-    return;
-  case Undofile::FS_SEARCHING_FINAL_READ:
-    jam();
-    find_log_head_complete(signal, lg_ptr, file_ptr);
-    client_unlock(number(), __LINE__, this);
-    return;
-  default:
-  case Undofile::FS_EXECUTING:
-  case Undofile::FS_CREATING:
-  case Undofile::FS_DROPPING:
-  case Undofile::FS_ONLINE:
-  case Undofile::FS_OPENING:
-  case Undofile::FS_EMPTY:
-    jam();
-    jamLine(file_ptr.p->m_state);
-    ndbabort();
+  switch (file_ptr.p->m_state) {
+    case Undofile::FS_SORTING:
+      jam();
+      break;
+    case Undofile::FS_SEARCHING:
+      jam();
+      find_log_head_in_file(signal, lg_ptr, file_ptr, lsn);
+      client_unlock(number(), __LINE__, this);
+      return;
+    case Undofile::FS_SEARCHING_END:
+      jam();
+      find_log_head_end_check(signal, lg_ptr, file_ptr, lsn);
+      client_unlock(number(), __LINE__, this);
+      return;
+    case Undofile::FS_SEARCHING_FINAL_READ:
+      jam();
+      find_log_head_complete(signal, lg_ptr, file_ptr);
+      client_unlock(number(), __LINE__, this);
+      return;
+    default:
+    case Undofile::FS_EXECUTING:
+    case Undofile::FS_CREATING:
+    case Undofile::FS_DROPPING:
+    case Undofile::FS_ONLINE:
+    case Undofile::FS_OPENING:
+    case Undofile::FS_EMPTY:
+      jam();
+      jamLine(file_ptr.p->m_state);
+      ndbabort();
   }
 
   /**
@@ -4590,33 +7338,29 @@ Lgman::execFSREADCONF(Signal* signal)
   file_ptr.p->m_state = Undofile::FS_EXECUTING;
   file_ptr.p->m_online.m_lsn = lsn;
   file_ptr.p->m_start_lsn = lsn;
-  
+
   /**
    * Insert into m_files in sorted order
    */
   {
-    Local_undofile_list meta(m_file_pool, lg_ptr.p->m_meta_files);  
+    Local_undofile_list meta(m_file_pool, lg_ptr.p->m_meta_files);
     Local_undofile_list files(m_file_pool, lg_ptr.p->m_files);
     meta.remove(file_ptr);
 
-    Ptr<Undofile> loop;  
+    Ptr<Undofile> loop;
     files.first(loop);
-    while (!loop.isNull() && loop.p->m_online.m_lsn <= lsn)
-    {
+    while (!loop.isNull() && loop.p->m_online.m_lsn <= lsn) {
       jam();
       files.next(loop);
     }
-    
-    if (loop.isNull())
-    {
+
+    if (loop.isNull()) {
       /**
        * File has highest lsn, add last
        */
       jam();
       files.addLast(file_ptr);
-    }
-    else
-    {
+    } else {
       jam();
       /**
        * Insert file in correct position in file list
@@ -4627,10 +7371,8 @@ Lgman::execFSREADCONF(Signal* signal)
   find_log_head(signal, lg_ptr);
   client_unlock(number(), __LINE__, this);
 }
-  
-void
-Lgman::execFSREADREF(Signal* signal)
-{
+
+void Lgman::execFSREADREF(Signal *signal) {
   jamEntry();
   SimulatedBlock::execFSREADREF(signal);
   ndbabort();
@@ -4644,38 +7386,29 @@ Lgman::execFSREADREF(Signal* signal)
  * LSN is greater than the highest found so far, then we move forward
  * in the binary search, otherwise we will move backwards.
  */
-void
-Lgman::find_log_head_in_file(Signal* signal, 
-                             Ptr<Logfile_group> lg_ptr, 
-                             Ptr<Undofile> file_ptr,
-                             Uint64 last_lsn)
-{ 
-  Uint32 curr= lg_ptr.p->m_file_pos[HEAD].m_ptr_i;
-  Uint32 head= lg_ptr.p->m_file_pos[HEAD].m_idx;
-  Uint32 tail= lg_ptr.p->m_file_pos[TAIL].m_idx;
+void Lgman::find_log_head_in_file(Signal *signal, Ptr<Logfile_group> lg_ptr,
+                                  Ptr<Undofile> file_ptr, Uint64 last_lsn) {
+  Uint32 curr = lg_ptr.p->m_file_pos[HEAD].m_ptr_i;
+  Uint32 head = lg_ptr.p->m_file_pos[HEAD].m_idx;
+  Uint32 tail = lg_ptr.p->m_file_pos[TAIL].m_idx;
 
   ndbrequire(head > tail);
   Uint32 diff = head - tail;
-  
+
   if (DEBUG_SEARCH_LOG_HEAD)
-    printf("tail: %d(%lld) head: %d last: %d(%lld) -> ", 
-	   tail, file_ptr.p->m_online.m_lsn,
-	   head, curr, last_lsn);
-  if (last_lsn > file_ptr.p->m_online.m_lsn)
-  {
+    printf("tail: %d(%lld) head: %d last: %d(%lld) -> ", tail,
+           file_ptr.p->m_online.m_lsn, head, curr, last_lsn);
+  if (last_lsn > file_ptr.p->m_online.m_lsn) {
     /**
      * Move forward in binary search since page LSN is higher than the largest
      * LSN found so far.
      */
     jam();
-    if (DEBUG_SEARCH_LOG_HEAD)
-      printf("moving tail ");
-    
+    if (DEBUG_SEARCH_LOG_HEAD) printf("moving tail ");
+
     file_ptr.p->m_online.m_lsn = last_lsn;
     lg_ptr.p->m_file_pos[TAIL].m_idx = tail = curr;
-  }
-  else
-  {
+  } else {
     /**
      * A page with lower LSN than the highest is found, this means that the
      * page wasn't written in this log lap. This means that we're now close
@@ -4683,14 +7416,12 @@ Lgman::find_log_head_in_file(Signal* signal,
      * left in the log file.
      */
     jam();
-    if (DEBUG_SEARCH_LOG_HEAD)
-      printf("moving head ");
+    if (DEBUG_SEARCH_LOG_HEAD) printf("moving head ");
 
     lg_ptr.p->m_file_pos[HEAD].m_idx = head = curr;
   }
-  
-  if (diff > 1)
-  {
+
+  if (diff > 1) {
     jam();
     // We need to find more pages to be sure...
     lg_ptr.p->m_file_pos[HEAD].m_ptr_i = curr = ((head + tail) >> 1);
@@ -4700,9 +7431,9 @@ Lgman::find_log_head_in_file(Signal* signal,
                           file_ptr.p->m_online.m_lsn, head, curr);
 
     Uint32 page_id = lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_ptr_i;
-    file_ptr.p->m_online.m_outstanding= page_id;
-    
-    FsReadWriteReq* req= (FsReadWriteReq*)signal->getDataPtrSend();
+    file_ptr.p->m_online.m_outstanding = page_id;
+
+    FsReadWriteReq *req = (FsReadWriteReq *)signal->getDataPtrSend();
     req->filePointer = file_ptr.p->m_fd;
     req->userReference = reference();
     req->userPointer = file_ptr.i;
@@ -4711,15 +7442,15 @@ Lgman::find_log_head_in_file(Signal* signal,
     req->data.sharedPage.pageNumber = page_id;
     req->operationFlag = 0;
     req->setFormatFlag(req->operationFlag, FsReadWriteReq::fsFormatSharedPage);
-    
-    sendSignal(NDBFS_REF, GSN_FSREADREQ, signal, 
-	       FsReadWriteReq::FixedLength + 1, JBA);
-    
+
+    sendSignal(NDBFS_REF, GSN_FSREADREQ, signal,
+               FsReadWriteReq::FixedLength + 1, JBA);
+
     lg_ptr.p->m_outstanding_fs++;
     file_ptr.p->m_state |= Undofile::FS_OUTSTANDING;
     return;
   }
-  
+
   ndbrequire(diff == 1);
   /**
    * We have found the end of the UNDO log through a binary search of the
@@ -4752,7 +7483,7 @@ Lgman::find_log_head_in_file(Signal* signal,
   lg_ptr.p->m_next_lsn = (file_ptr.p->m_online.m_lsn + 1);
   lg_ptr.p->m_last_read_lsn = file_ptr.p->m_online.m_lsn;
   lg_ptr.p->m_last_synced_lsn = file_ptr.p->m_online.m_lsn;
-  
+
   /**
    * Set HEAD and TAIL position to use when we start logging again.
    * We might have to change those during the check of the end of
@@ -4761,11 +7492,10 @@ Lgman::find_log_head_in_file(Signal* signal,
    */
   lg_ptr.p->m_file_pos[HEAD].m_ptr_i = file_ptr.i;
   lg_ptr.p->m_file_pos[HEAD].m_idx = tail;
-  
+
   lg_ptr.p->m_file_pos[TAIL].m_ptr_i = file_ptr.i;
   lg_ptr.p->m_file_pos[TAIL].m_idx = tail - 1;
   lg_ptr.p->m_next_reply_ptr_i = file_ptr.i;
-
 
   file_ptr.p->m_state = Undofile::FS_SEARCHING_END;
 
@@ -4775,30 +7505,25 @@ Lgman::find_log_head_in_file(Signal* signal,
   find_log_head_end_check(signal, lg_ptr, file_ptr, last_lsn);
 }
 
-void
-Lgman::find_log_head_end_check(Signal* signal,
-                               Ptr<Logfile_group> lg_ptr,
-                               Ptr<Undofile> file_ptr,
-                               Uint64 last_lsn)
-{
+void Lgman::find_log_head_end_check(Signal *signal, Ptr<Logfile_group> lg_ptr,
+                                    Ptr<Undofile> file_ptr, Uint64 last_lsn) {
   Uint32 curr = file_ptr.p->m_online.m_current_scan_index;
   Uint32 scanned_pages = file_ptr.p->m_online.m_current_scanned_pages;
 
-  if (last_lsn > file_ptr.p->m_online.m_lsn)
-  {
+  if (last_lsn > file_ptr.p->m_online.m_lsn) {
     /**
      * We did actually find a written page after the end which the binary
      * search found. We need to record this as the new end of the UNDO
      * log.
      */
     jam();
-    if (file_ptr.p->m_online.m_binary_search_end)
-    {
+    if (file_ptr.p->m_online.m_binary_search_end) {
       jam();
       file_ptr.p->m_online.m_binary_search_end = false;
-      g_eventLogger->info("LGMAN: Found written page after end found by binary"
-                          " search, binary search head found: %u",
-                          lg_ptr.p->m_file_pos[HEAD].m_idx);
+      g_eventLogger->info(
+          "LGMAN: Found written page after end found by binary"
+          " search, binary search head found: %u",
+          lg_ptr.p->m_file_pos[HEAD].m_idx);
     }
     lg_ptr.p->m_file_pos[HEAD].m_idx = curr;
     lg_ptr.p->m_file_pos[TAIL].m_idx = curr - 1;
@@ -4818,13 +7543,12 @@ Lgman::find_log_head_end_check(Signal* signal,
   file_ptr.p->m_online.m_current_scan_index = curr;
   file_ptr.p->m_online.m_current_scanned_pages = scanned_pages;
   if ((curr < file_ptr.p->m_file_size) &&
-      (scanned_pages <= MAX_UNDO_PAGES_OUTSTANDING))
-  {
+      (scanned_pages <= MAX_UNDO_PAGES_OUTSTANDING)) {
     jam();
     Uint32 page_id = lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_ptr_i;
-    file_ptr.p->m_online.m_outstanding= page_id;
+    file_ptr.p->m_online.m_outstanding = page_id;
 
-    FsReadWriteReq* req= (FsReadWriteReq*)signal->getDataPtrSend();
+    FsReadWriteReq *req = (FsReadWriteReq *)signal->getDataPtrSend();
     req->filePointer = file_ptr.p->m_fd;
     req->userReference = reference();
     req->userPointer = file_ptr.i;
@@ -4849,10 +7573,10 @@ Lgman::find_log_head_end_check(Signal* signal,
    * we reread the last page in the UNDO log that we found.
    */
   Uint32 page_id = lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_ptr_i;
-  file_ptr.p->m_online.m_outstanding= page_id;
+  file_ptr.p->m_online.m_outstanding = page_id;
   curr = lg_ptr.p->m_file_pos[HEAD].m_idx;
 
-  FsReadWriteReq* req= (FsReadWriteReq*)signal->getDataPtrSend();
+  FsReadWriteReq *req = (FsReadWriteReq *)signal->getDataPtrSend();
   req->filePointer = file_ptr.p->m_fd;
   req->userReference = reference();
   req->userPointer = file_ptr.i;
@@ -4862,8 +7586,8 @@ Lgman::find_log_head_end_check(Signal* signal,
   req->operationFlag = 0;
   req->setFormatFlag(req->operationFlag, FsReadWriteReq::fsFormatSharedPage);
 
-  sendSignal(NDBFS_REF, GSN_FSREADREQ, signal,
-             FsReadWriteReq::FixedLength + 1, JBA);
+  sendSignal(NDBFS_REF, GSN_FSREADREQ, signal, FsReadWriteReq::FixedLength + 1,
+             JBA);
 
   lg_ptr.p->m_outstanding_fs++;
   file_ptr.p->m_state = Undofile::FS_SEARCHING_FINAL_READ;
@@ -4871,11 +7595,8 @@ Lgman::find_log_head_end_check(Signal* signal,
   return;
 }
 
-void
-Lgman::find_log_head_complete(Signal *signal,
-                              Ptr<Logfile_group> lg_ptr,
-                              Ptr<Undofile> file_ptr)
-{
+void Lgman::find_log_head_complete(Signal *signal, Ptr<Logfile_group> lg_ptr,
+                                   Ptr<Undofile> file_ptr) {
   Uint32 head = lg_ptr.p->m_file_pos[HEAD].m_idx;
   /**
    * END_OF_UNDO_LOG_FOUND
@@ -4892,41 +7613,37 @@ Lgman::find_log_head_complete(Signal *signal,
   {
     Uint64 total = 0;
     Local_undofile_list files(m_file_pool, lg_ptr.p->m_files);
-    if (head == 1)
-    {
+    if (head == 1) {
       jam();
       /**
        * HEAD is first page in a file...
        *   -> TAIL should be last page in previous file
        */
       Ptr<Undofile> prev = file_ptr;
-      if (!files.prev(prev))
-      {
+      if (!files.prev(prev)) {
         jam();
-	files.last(prev);
+        files.last(prev);
       }
       lg_ptr.p->m_file_pos[TAIL].m_ptr_i = prev.i;
       lg_ptr.p->m_file_pos[TAIL].m_idx = prev.p->m_file_size - 1;
       lg_ptr.p->m_next_reply_ptr_i = prev.i;
     }
-    
-    SimulatedBlock* fs = globalData.getBlock(NDBFS);
+
+    SimulatedBlock *fs = globalData.getBlock(NDBFS);
     infoEvent("LGMAN: Undo head - %s page: %d lsn: %lld",
-	      fs->get_filename(file_ptr.p->m_fd), 
-	      head, file_ptr.p->m_online.m_lsn);
+              fs->get_filename(file_ptr.p->m_fd), head,
+              file_ptr.p->m_online.m_lsn);
     g_eventLogger->info("LGMAN: Undo head - %s page: %d lsn: %lld",
-                        fs->get_filename(file_ptr.p->m_fd),
-                        head, file_ptr.p->m_online.m_lsn);
-    
+                        fs->get_filename(file_ptr.p->m_fd), head,
+                        file_ptr.p->m_online.m_lsn);
+
     total += (Uint64)file_ptr.p->m_file_size;
 
-    for (files.prev(file_ptr); !file_ptr.isNull(); files.prev(file_ptr))
-    {
-      infoEvent("   - next - %s(%lld)", 
-		fs->get_filename(file_ptr.p->m_fd), 
-		file_ptr.p->m_online.m_lsn);
+    for (files.prev(file_ptr); !file_ptr.isNull(); files.prev(file_ptr)) {
+      infoEvent("   - next - %s(%lld)", fs->get_filename(file_ptr.p->m_fd),
+                file_ptr.p->m_online.m_lsn);
 
-      g_eventLogger->info("   - next - %s(%lld)", 
+      g_eventLogger->info("   - next - %s(%lld)",
                           fs->get_filename(file_ptr.p->m_fd),
                           file_ptr.p->m_online.m_lsn);
       total += (Uint64)file_ptr.p->m_file_size;
@@ -4937,10 +7654,9 @@ Lgman::find_log_head_complete(Signal *signal,
      * to be applied.
      */
     g_eventLogger->info("LGMAN: Total number of pages in Undo log: %lld",
-            total);
-
+                        total);
   }
-  
+
   /**
    * Start next logfile group
    */
@@ -4950,29 +7666,25 @@ Lgman::find_log_head_complete(Signal *signal,
   sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
 }
 
-void
-Lgman::init_run_undo_log(Signal* signal)
-{
+void Lgman::init_run_undo_log(Signal *signal) {
   /**
    * Perform initial sorting of logfile groups
    */
   Ptr<Logfile_group> group;
-  Logfile_group_list& list= m_logfile_group_list;
+  Logfile_group_list &list = m_logfile_group_list;
   Logfile_group_list::Head tmpHead;
   bool found_any = false;
   {
     Local_logfile_group_list tmp(m_logfile_group_pool, tmpHead);
 
     list.first(group);
-    while (!group.isNull())
-    {
+    while (!group.isNull()) {
       jam();
-      Ptr<Logfile_group> lg_ptr= group;
+      Ptr<Logfile_group> lg_ptr = group;
       list.next(group);
       list.remove(lg_ptr);
 
-      if (lg_ptr.p->m_state & Logfile_group::LG_ONLINE)
-      {
+      if (lg_ptr.p->m_state & Logfile_group::LG_ONLINE) {
         /**
          * No logfiles in group
          */
@@ -4994,8 +7706,9 @@ Lgman::init_run_undo_log(Signal* signal)
         lg_ptr.p->m_pos[PRODUCER].m_current_page.m_idx = 0;
 
         Uint32 page = lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_ptr_i;
-        File_formats::Undofile::Undo_page* pageP =
-          (File_formats::Undofile::Undo_page*)m_shared_page_pool.getPtr(page);
+        File_formats::Undofile::Undo_page *pageP =
+            (File_formats::Undofile::Undo_page *)m_shared_page_pool.getPtr(
+                page);
 
         lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_idx = pageP->m_words_used;
         lg_ptr.p->m_pos[PRODUCER].m_current_pos.m_idx = 1;
@@ -5010,40 +7723,34 @@ Lgman::init_run_undo_log(Signal* signal)
       signal->theData[0] = LgmanContinueB::READ_UNDO_LOG;
       signal->theData[1] = lg_ptr.i;
       sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-    
+
       /**
        * Insert in correct position in list of logfile_group's
        */
       Ptr<Logfile_group> pos;
-      for (tmp.first(pos); !pos.isNull(); tmp.next(pos))
-      {
+      for (tmp.first(pos); !pos.isNull(); tmp.next(pos)) {
         jam();
-        if (lg_ptr.p->m_last_read_lsn >= pos.p->m_last_read_lsn)
-        {
+        if (lg_ptr.p->m_last_read_lsn >= pos.p->m_last_read_lsn) {
           break;
         }
       }
-    
-      if (pos.isNull())
-      {
+
+      if (pos.isNull()) {
         jam();
         tmp.addLast(lg_ptr);
-      }
-      else
-      {
+      } else {
         jam();
         tmp.insertBefore(lg_ptr, pos);
       }
-    
+
       lg_ptr.p->m_state =
-        Logfile_group::LG_EXEC_THREAD | Logfile_group::LG_READ_THREAD;
+          Logfile_group::LG_EXEC_THREAD | Logfile_group::LG_READ_THREAD;
     }
   }
   ndbassert(list.isEmpty());
   list.appendList(tmpHead);
 
-  if (found_any == false)
-  {
+  if (found_any == false) {
     /**
      * No logfilegroup had any logfiles
      */
@@ -5052,24 +7759,19 @@ Lgman::init_run_undo_log(Signal* signal)
     sendSignal(DBLQH_REF, GSN_START_RECCONF, signal, 1, JBB);
     return;
   }
-  
-  if (isNdbMtLqh())
-  {
-    for (unsigned int i = 0; i <= getLqhWorkers(); i++)
-    {
-      m_pending_undo_records[i] = 0; //initialize
+
+  if (isNdbMtLqh()) {
+    for (unsigned int i = 0; i <= getLqhWorkers(); i++) {
+      m_pending_undo_records[i] = 0;  // initialize
     }
   }
   execute_undo_record(signal);
 }
 
-void
-Lgman::read_undo_log(Signal* signal, Ptr<Logfile_group> lg_ptr)
-{
-  Uint32 cnt, free= lg_ptr.p->m_free_buffer_words;
+void Lgman::read_undo_log(Signal *signal, Ptr<Logfile_group> lg_ptr) {
+  Uint32 cnt, free = lg_ptr.p->m_free_buffer_words;
 
-  if (! (lg_ptr.p->m_state & Logfile_group::LG_EXEC_THREAD))
-  {
+  if (!(lg_ptr.p->m_state & Logfile_group::LG_EXEC_THREAD)) {
     jam();
     /**
      * Logfile_group is done...
@@ -5078,20 +7780,18 @@ Lgman::read_undo_log(Signal* signal, Ptr<Logfile_group> lg_ptr)
     stop_run_undo_log(signal);
     return;
   }
-  
-  if (free <= get_undo_page_words(lg_ptr))
-  {
+
+  if (free <= get_undo_page_words(lg_ptr)) {
     signal->theData[0] = LgmanContinueB::READ_UNDO_LOG;
     signal->theData[1] = lg_ptr.i;
     sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 100, 2);
     return;
   }
 
-  Logfile_group::Position producer= lg_ptr.p->m_pos[PRODUCER];
-  Logfile_group::Position consumer= lg_ptr.p->m_pos[CONSUMER];
+  Logfile_group::Position producer = lg_ptr.p->m_pos[PRODUCER];
+  Logfile_group::Position consumer = lg_ptr.p->m_pos[CONSUMER];
 
-  if (producer.m_current_page.m_idx == 0)
-  {
+  if (producer.m_current_page.m_idx == 0) {
     jam();
     /**
      * zero pages left in range -> switch range
@@ -5099,88 +7799,79 @@ Lgman::read_undo_log(Signal* signal, Ptr<Logfile_group> lg_ptr)
     Lgman::Page_map::Iterator it;
     Page_map map(m_data_buffer_pool, lg_ptr.p->m_buffer_pages);
     Uint32 sz = map.getSize();
-    Uint32 pos= (producer.m_current_page.m_ptr_i + sz - 2) % sz;
+    Uint32 pos = (producer.m_current_page.m_ptr_i + sz - 2) % sz;
     map.position(it, pos);
     union {
       Uint32 _tmp[2];
       Lgman::Buffer_idx range;
     };
-    _tmp[0] = *it.data; map.next(it); _tmp[1] = *it.data;
+    _tmp[0] = *it.data;
+    map.next(it);
+    _tmp[1] = *it.data;
     producer.m_current_page.m_ptr_i = pos;
     producer.m_current_page.m_idx = range.m_idx;
     producer.m_current_pos.m_ptr_i = range.m_ptr_i + range.m_idx;
   }
-  
+
   if (producer.m_current_page.m_ptr_i == consumer.m_current_page.m_ptr_i &&
-      producer.m_current_pos.m_ptr_i > consumer.m_current_pos.m_ptr_i)
-  {
+      producer.m_current_pos.m_ptr_i > consumer.m_current_pos.m_ptr_i) {
     jam();
-    Uint32 max= 
-      producer.m_current_pos.m_ptr_i - consumer.m_current_pos.m_ptr_i - 1;
+    Uint32 max =
+        producer.m_current_pos.m_ptr_i - consumer.m_current_pos.m_ptr_i - 1;
     ndbrequire(free >= max * get_undo_page_words(lg_ptr));
-    cnt= read_undo_pages(signal, lg_ptr, producer.m_current_pos.m_ptr_i, max);
-    ndbrequire(cnt <= max);    
-    producer.m_current_pos.m_ptr_i -= cnt;
-    producer.m_current_page.m_idx -= cnt;
-  } 
-  else
-  {
-    jam();
-    Uint32 max= producer.m_current_page.m_idx;
-    ndbrequire(free >= max * get_undo_page_words(lg_ptr));
-    cnt= read_undo_pages(signal, lg_ptr, producer.m_current_pos.m_ptr_i, max);
+    cnt = read_undo_pages(signal, lg_ptr, producer.m_current_pos.m_ptr_i, max);
     ndbrequire(cnt <= max);
     producer.m_current_pos.m_ptr_i -= cnt;
     producer.m_current_page.m_idx -= cnt;
-  } 
-  
+  } else {
+    jam();
+    Uint32 max = producer.m_current_page.m_idx;
+    ndbrequire(free >= max * get_undo_page_words(lg_ptr));
+    cnt = read_undo_pages(signal, lg_ptr, producer.m_current_pos.m_ptr_i, max);
+    ndbrequire(cnt <= max);
+    producer.m_current_pos.m_ptr_i -= cnt;
+    producer.m_current_page.m_idx -= cnt;
+  }
+
   ndbrequire(free >= cnt * get_undo_page_words(lg_ptr));
   free -= (cnt * get_undo_page_words(lg_ptr));
   lg_ptr.p->m_free_buffer_words = free;
-  lg_ptr.p->m_pos[PRODUCER] = producer;  
+  lg_ptr.p->m_pos[PRODUCER] = producer;
 
   signal->theData[0] = LgmanContinueB::READ_UNDO_LOG;
   signal->theData[1] = lg_ptr.i;
 
-  if (free > get_undo_page_words(lg_ptr))
-  {
+  if (free > get_undo_page_words(lg_ptr)) {
     jam();
     sendSignal(reference(), GSN_CONTINUEB, signal, 2, JBB);
-  }
-  else
-  {
+  } else {
     jam();
     sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 100, 2);
   }
 }
 
-Uint32
-Lgman::read_undo_pages(Signal* signal, Ptr<Logfile_group> lg_ptr, 
-		       Uint32 pageId, Uint32 pages)
-{
+Uint32 Lgman::read_undo_pages(Signal *signal, Ptr<Logfile_group> lg_ptr,
+                              Uint32 pageId, Uint32 pages) {
   ndbrequire(pages);
   Ptr<Undofile> filePtr;
-  Buffer_idx tail= lg_ptr.p->m_file_pos[TAIL];
+  Buffer_idx tail = lg_ptr.p->m_file_pos[TAIL];
   ndbrequire(m_file_pool.getPtr(filePtr, tail.m_ptr_i));
-  
-  if (filePtr.p->m_online.m_outstanding > 0)
-  {
+
+  if (filePtr.p->m_online.m_outstanding > 0) {
     jam();
     return 0;
   }
 
-  Uint32 max= tail.m_idx;
+  Uint32 max = tail.m_idx;
 
-  FsReadWriteReq* req= (FsReadWriteReq*)signal->getDataPtrSend();
+  FsReadWriteReq *req = (FsReadWriteReq *)signal->getDataPtrSend();
   req->filePointer = filePtr.p->m_fd;
   req->userReference = reference();
   req->userPointer = filePtr.i;
   req->operationFlag = 0;
   req->setFormatFlag(req->operationFlag, FsReadWriteReq::fsFormatSharedPage);
 
-
-  if (max > pages)
-  {
+  if (max > pages) {
     jam();
     tail.m_idx -= pages;
 
@@ -5188,57 +7879,53 @@ Lgman::read_undo_pages(Signal* signal, Ptr<Logfile_group> lg_ptr,
     req->numberOfPages = pages;
     req->data.sharedPage.pageNumber = pageId - pages;
     lg_ptr.p->m_file_pos[TAIL] = tail;
-    
+
     if (DEBUG_UNDO_EXECUTION)
       g_eventLogger->info("a reading from file: %d page(%d-%d) into (%d-%d)",
                           lg_ptr.i, 1 + tail.m_idx, 1 + tail.m_idx + pages - 1,
                           pageId - pages, pageId - 1);
 
-    sendSignal(NDBFS_REF, GSN_FSREADREQ, signal, 
-	       FsReadWriteReq::FixedLength + 1, JBA);
-    
+    sendSignal(NDBFS_REF, GSN_FSREADREQ, signal,
+               FsReadWriteReq::FixedLength + 1, JBA);
+
     lg_ptr.p->m_outstanding_fs++;
     filePtr.p->m_state |= Undofile::FS_OUTSTANDING;
     filePtr.p->m_online.m_outstanding = pages;
     max = pages;
-  }
-  else
-  {
+  } else {
     jam();
 
     ndbrequire(tail.m_idx - max == 0);
     req->varIndex = 1;
     req->numberOfPages = max;
     req->data.sharedPage.pageNumber = pageId - max;
-    
+
     if (DEBUG_UNDO_EXECUTION)
       g_eventLogger->info("b reading from file: %d page(%d-%d) into (%d-%d)",
                           lg_ptr.i, 1, 1 + max - 1, pageId - max, pageId - 1);
 
-    sendSignal(NDBFS_REF, GSN_FSREADREQ, signal, 
-	       FsReadWriteReq::FixedLength + 1, JBA);
-    
+    sendSignal(NDBFS_REF, GSN_FSREADREQ, signal,
+               FsReadWriteReq::FixedLength + 1, JBA);
+
     lg_ptr.p->m_outstanding_fs++;
     filePtr.p->m_online.m_outstanding = max;
     filePtr.p->m_state |= Undofile::FS_OUTSTANDING | Undofile::FS_MOVE_NEXT;
-    
+
     Ptr<Undofile> prev = filePtr;
     {
       Local_undofile_list files(m_file_pool, lg_ptr.p->m_files);
-      if (!files.prev(prev))
-      {
-	jam();
-	files.last(prev);
+      if (!files.prev(prev)) {
+        jam();
+        files.last(prev);
       }
     }
     if (DEBUG_UNDO_EXECUTION)
       g_eventLogger->info("changing file from %d to %d", filePtr.i, prev.i);
 
-    tail.m_idx= prev.p->m_file_size - 1;
-    tail.m_ptr_i= prev.i;
+    tail.m_idx = prev.p->m_file_size - 1;
+    tail.m_ptr_i = prev.i;
     lg_ptr.p->m_file_pos[TAIL] = tail;
-    if (max < pages && filePtr.i != prev.i)
-    {
+    if (max < pages && filePtr.i != prev.i) {
       jam();
       max += read_undo_pages(signal, lg_ptr, pageId - max, pages - max);
     }
@@ -5246,61 +7933,44 @@ Lgman::read_undo_pages(Signal* signal, Ptr<Logfile_group> lg_ptr,
   return max;
 }
 
-bool
-Lgman::wait_pending(Uint64 lsn, const Uint32* ptr, Uint32 len)
-{
+bool Lgman::wait_pending(Uint64 lsn, const Uint32 *ptr, Uint32 len) {
   assert(m_serial_record.ptr == NULL);
-  if (m_pending_undo_records[0] != 0)
-  {
+  if (m_pending_undo_records[0] != 0) {
     jam();
-    if (DEBUG_UNDO_EXECUTION)
-    {
+    if (DEBUG_UNDO_EXECUTION) {
       g_eventLogger->info("LGMAN undo PAUSED- Serial");
     }
     // save serial undo record
     m_serial_record.lsn = lsn;
     memcpy(m_serial_record.ptr_array, ptr - len + 1, len << 2);
     m_serial_record.ptr = m_serial_record.ptr_array + len - 1;
-    ndbrequire((m_serial_record.ptr >= m_serial_record.ptr_array) &&
-               (m_serial_record.ptr < (m_serial_record.ptr_array +
-                   MAX_UNDO_DATA)));
+    ndbrequire(
+        (m_serial_record.ptr >= m_serial_record.ptr_array) &&
+        (m_serial_record.ptr < (m_serial_record.ptr_array + MAX_UNDO_DATA)));
     return true;
   }
   return false;
 }
 
 #ifdef VM_TRACE
-class TransientStackBuff
-{
-public:
+class TransientStackBuff {
+ public:
   Uint32 my_data[MAX_UNDO_DATA];
 
-  TransientStackBuff(const Uint32* data, const Uint32 len)
-  {
-    assert(len<= MAX_UNDO_DATA);
+  TransientStackBuff(const Uint32 *data, const Uint32 len) {
+    assert(len <= MAX_UNDO_DATA);
     memcpy(my_data, data, len << 2);
   }
 
-  const Uint32* getPtr() const
-  {
-    return my_data;
-  }
+  const Uint32 *getPtr() const { return my_data; }
 
-  void zap()
-  {
-    memset(my_data, 0xff, (MAX_UNDO_DATA) << 2);
-  }
+  void zap() { memset(my_data, 0xff, (MAX_UNDO_DATA) << 2); }
 
-  ~TransientStackBuff()
-  {
-    zap();
-  }
+  ~TransientStackBuff() { zap(); }
 };
 #endif
 
-void
-Lgman::execute_undo_record(Signal* signal)
-{
+void Lgman::execute_undo_record(Signal *signal) {
   /**
    * This code isn't prepared to handle more than one logfile group.
    * To support multiple logfile groups one needs to adapt this code
@@ -5308,9 +7978,8 @@ Lgman::execute_undo_record(Signal* signal)
    */
 
   Uint64 lsn;
-  const Uint32* ptr = NULL;
-  if (isNdbMtLqh())
-  {
+  const Uint32 *ptr = NULL;
+  if (isNdbMtLqh()) {
     Uint32 block_reference = signal->getSendersBlockRef();
     BlockInstance block_instance = refToInstance(block_reference);
 
@@ -5318,10 +7987,8 @@ Lgman::execute_undo_record(Signal* signal)
      * block_instance is 0 for DbtupProxy, non-zero for DBTUP instances
      * operating from LDM threads.
      */
-    if (refToMain(block_reference) == DBTUP)
-    {
-      if (block_instance)
-      {
+    if (refToMain(block_reference) == DBTUP) {
+      if (block_instance) {
         // CONTINUEB sent from LDM
 
         /**
@@ -5338,71 +8005,63 @@ Lgman::execute_undo_record(Signal* signal)
          *  of processing of at least one undo log record.
          */
 
-        bool resume = (m_pending_undo_records[block_instance] == MAX_PENDING_UNDO_RECORDS);
+        bool resume = (m_pending_undo_records[block_instance] ==
+                       MAX_PENDING_UNDO_RECORDS);
         Uint32 count_processed = signal->theData[2];
-        DEB_LGMAN(("LGMAN: Applied from LDM(%u) count:%u",
-                    block_instance, count_processed));
+        DEB_LGMAN(("LGMAN: Applied from LDM(%u) count:%u", block_instance,
+                   count_processed));
         ndbassert((count_processed != 0) &&
                   (count_processed <= MAX_PENDING_UNDO_RECORDS));
-        ndbrequire(abs(m_pending_undo_records[block_instance]) <= MAX_PENDING_UNDO_RECORDS);
+        ndbrequire(abs(m_pending_undo_records[block_instance]) <=
+                   MAX_PENDING_UNDO_RECORDS);
         ndbrequire(abs(m_pending_undo_records[0]) <=
-                       MAX_NDBMT_LQH_WORKERS * MAX_PENDING_UNDO_RECORDS);
-        m_pending_undo_records[0] -= count_processed; // decrement total_pending
+                   MAX_NDBMT_LQH_WORKERS * MAX_PENDING_UNDO_RECORDS);
+        m_pending_undo_records[0] -=
+            count_processed;  // decrement total_pending
         m_pending_undo_records[block_instance] -= count_processed;
 
-        if (DEBUG_UNDO_EXECUTION)
-        {
+        if (DEBUG_UNDO_EXECUTION) {
           g_eventLogger->info("<m_pending_undo_records>");
-          for (Uint32 i = 0; i <= getLqhWorkers(); i++)
-          {
+          for (Uint32 i = 0; i <= getLqhWorkers(); i++) {
             g_eventLogger->info("[%d]:%d", i, m_pending_undo_records[i]);
           }
           g_eventLogger->info("</m_pending_undo_records>");
         }
-        if (m_serial_record.ptr)
-        {
+        if (m_serial_record.ptr) {
           jam();
-          if (m_pending_undo_records[0] != 0)
-          {
+          if (m_pending_undo_records[0] != 0) {
             // wait for zero pending records.
             return;
           }
-        }
-        else if (!resume)
-        {
+        } else if (!resume) {
           return;
         }
         DEB_LGMAN(("LGMAN: Undo RESUMED"));
-      }
-      else
-      {
+      } else {
         // CONTINUEB from TUPProxy
         jam();
         DEB_LGMAN(("LGMAN: CONTINUEB from DBTUP(0)"));
         Uint32 ldm_tup_instance = signal->theData[2];
-        ndbrequire(ldm_tup_instance <
-                   NDB_ARRAY_SIZE(m_pending_undo_records));
+        ndbrequire(ldm_tup_instance < NDB_ARRAY_SIZE(m_pending_undo_records));
 
-        if (ldm_tup_instance)
-        {
+        if (ldm_tup_instance) {
           /**
            * Undo record has been sent to an LDM.
            * Pending count needs to be incremented.
            */
           m_pending_undo_records[0] += 1;
           m_pending_undo_records[ldm_tup_instance] += 1;
-          ndbrequire(abs(m_pending_undo_records[ldm_tup_instance]) <= MAX_PENDING_UNDO_RECORDS);
-          if (DEBUG_UNDO_EXECUTION)
-          {
+          ndbrequire(abs(m_pending_undo_records[ldm_tup_instance]) <=
+                     MAX_PENDING_UNDO_RECORDS);
+          if (DEBUG_UNDO_EXECUTION) {
             g_eventLogger->info("<m_pending_undo_records>");
-            for (Uint32 i = 0; i <= getLqhWorkers(); i++)
-            {
+            for (Uint32 i = 0; i <= getLqhWorkers(); i++) {
               g_eventLogger->info("[%d]:%d", i, m_pending_undo_records[i]);
             }
             g_eventLogger->info("</m_pending_undo_records>");
           }
-          if (m_pending_undo_records[ldm_tup_instance] == MAX_PENDING_UNDO_RECORDS)
-          {
+          if (m_pending_undo_records[ldm_tup_instance] ==
+              MAX_PENDING_UNDO_RECORDS) {
             // do not fetch next log record
             DEB_LGMAN(("LGMAN: Undo PAUSED, Max. reached"));
             return;
@@ -5412,111 +8071,104 @@ Lgman::execute_undo_record(Signal* signal)
     }
   }
 
-  if (m_serial_record.ptr)
-  {
+  if (m_serial_record.ptr) {
     ptr = m_serial_record.ptr;
     lsn = m_serial_record.lsn;
     m_serial_record.ptr = NULL;
-  }
-  else
-  {
+  } else {
     ptr = get_next_undo_record(&lsn);
   }
 
-  if(ptr)
-  {
+  if (ptr) {
     /* Report progress information while the log is applied.
      * Progress reported at intervals of 30,000 records.
      */
     m_records_applied++;
-    if((m_records_applied % 30000) == 0)
-    {
-      g_eventLogger->info("LGMAN: Applying Undo log - %llu pages"
-                          " completed, applied %llu records, reached"
-                          " LSN %llu", m_pages_applied,
-                          m_records_applied, lsn);
+    if ((m_records_applied % 30000) == 0) {
+      g_eventLogger->info(
+          "LGMAN: Applying Undo log - %llu pages"
+          " completed, applied %llu records, reached"
+          " LSN %llu",
+          m_pages_applied, m_records_applied, lsn);
     }
-    Uint32 len= (* ptr) & 0xFFFF;
-    Uint32 type= (* ptr) >> 16;
-    Uint32 mask= type & (~((Uint32)File_formats::Undofile::UNDO_NEXT_LSN));
+    Uint32 len = (*ptr) & 0xFFFF;
+    Uint32 type = (*ptr) >> 16;
+    Uint32 mask = type & (~((Uint32)File_formats::Undofile::UNDO_NEXT_LSN));
     DEB_LGMAN(("LGMAN type:%u", mask));
 
-    switch(mask){
-    case File_formats::Undofile::UNDO_END:
-      jam();
-      if (isNdbMtLqh() && wait_pending(lsn, ptr, len))
-      {
-        // wait for pending records to complete
-        return;
-      }
-      g_eventLogger->info("LGMAN: Stop UNDO log execution at LSN %llu,"
-                          " found END record",
-                          lsn);
-      g_eventLogger->info("LGMAN: Undo log replay complete: Applied %llu"
-                          " pages to sync with last LCP", m_pages_applied);
-      stop_run_undo_log(signal);
-      return;
-    case File_formats::Undofile::UNDO_LOCAL_LCP:
-    case File_formats::Undofile::UNDO_LOCAL_LCP_FIRST:
-    case File_formats::Undofile::UNDO_LCP:
-    case File_formats::Undofile::UNDO_LCP_FIRST:
-    {
-      jam();
-      if (isNdbMtLqh() && wait_pending(lsn, ptr, len))
-      {
-        // wait for pending records to complete
-        return;
-      }
-      Uint32 lcp = * (ptr - len + 1);
-      Uint32 local_lcp;
-      if (mask == File_formats::Undofile::UNDO_LOCAL_LCP_FIRST ||
-          mask == File_formats::Undofile::UNDO_LOCAL_LCP)
-      {
+    switch (mask) {
+      case File_formats::Undofile::UNDO_END:
         jam();
-        local_lcp = * (ptr - len + 2);
-      }
-      else
-      {
-        local_lcp = 0;
-      }
+        if (isNdbMtLqh() && wait_pending(lsn, ptr, len)) {
+          // wait for pending records to complete
+          return;
+        }
+        g_eventLogger->info(
+            "LGMAN: Stop UNDO log execution at LSN %llu,"
+            " found END record",
+            lsn);
+        g_eventLogger->info(
+            "LGMAN: Undo log replay complete: Applied %llu"
+            " pages to sync with last LCP",
+            m_pages_applied);
+        stop_run_undo_log(signal);
+        return;
+      case File_formats::Undofile::UNDO_LOCAL_LCP:
+      case File_formats::Undofile::UNDO_LOCAL_LCP_FIRST:
+      case File_formats::Undofile::UNDO_LCP:
+      case File_formats::Undofile::UNDO_LCP_FIRST: {
+        jam();
+        if (isNdbMtLqh() && wait_pending(lsn, ptr, len)) {
+          // wait for pending records to complete
+          return;
+        }
+        Uint32 lcp = *(ptr - len + 1);
+        Uint32 local_lcp;
+        if (mask == File_formats::Undofile::UNDO_LOCAL_LCP_FIRST ||
+            mask == File_formats::Undofile::UNDO_LOCAL_LCP) {
+          jam();
+          local_lcp = *(ptr - len + 2);
+        } else {
+          local_lcp = 0;
+        }
 
-      if ((lcp < m_latest_lcp) ||
-          (lcp == m_latest_lcp && local_lcp < m_latest_local_lcp) ||
-          (lcp == m_latest_lcp &&  local_lcp == m_latest_local_lcp &&
-           (mask == File_formats::Undofile::UNDO_LCP_FIRST ||
-            mask == File_formats::Undofile::UNDO_LOCAL_LCP_FIRST)))
-      {
+        if ((lcp < m_latest_lcp) ||
+            (lcp == m_latest_lcp && local_lcp < m_latest_local_lcp) ||
+            (lcp == m_latest_lcp && local_lcp == m_latest_local_lcp &&
+             (mask == File_formats::Undofile::UNDO_LCP_FIRST ||
+              mask == File_formats::Undofile::UNDO_LOCAL_LCP_FIRST))) {
+          jam();
+          g_eventLogger->info(
+              "LGMAN: Stop UNDO log execution at LSN %llu,"
+              " found LCP record",
+              lsn);
+          g_eventLogger->info(
+              "LGMAN: Undo log replay complete: Applied %llu"
+              " pages to sync with last LCP",
+              m_pages_applied);
+          stop_run_undo_log(signal);
+          return;
+        }
+      } break;
+      case File_formats::Undofile::UNDO_TUP_DROP:
         jam();
-        g_eventLogger->info("LGMAN: Stop UNDO log execution at LSN %llu,"
-                            " found LCP record",
-                            lsn);
-        g_eventLogger->info("LGMAN: Undo log replay complete: Applied %llu"
-                            " pages to sync with last LCP",m_pages_applied);
-	stop_run_undo_log(signal);
-	return;
-      }
-    }
-    break;
-    case File_formats::Undofile::UNDO_TUP_DROP:
-      jam();
-      if (isNdbMtLqh() && wait_pending(lsn, ptr, len))
-      {
-        // wait for pending records to complete
-        return;
-      }
-      break;
-    case File_formats::Undofile::UNDO_TUP_ALLOC:
-    case File_formats::Undofile::UNDO_TUP_UPDATE:
-    case File_formats::Undofile::UNDO_TUP_FREE:
-    case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_PART:
-    case File_formats::Undofile::UNDO_TUP_UPDATE_PART:
-    case File_formats::Undofile::UNDO_TUP_FREE_PART:
+        if (isNdbMtLqh() && wait_pending(lsn, ptr, len)) {
+          // wait for pending records to complete
+          return;
+        }
+        break;
+      case File_formats::Undofile::UNDO_TUP_ALLOC:
+      case File_formats::Undofile::UNDO_TUP_UPDATE:
+      case File_formats::Undofile::UNDO_TUP_FREE:
+      case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_PART:
+      case File_formats::Undofile::UNDO_TUP_UPDATE_PART:
+      case File_formats::Undofile::UNDO_TUP_FREE_PART:
     case File_formats::Undofile::UNDO_TUP_FREE_VAR_PART:
     case File_formats::Undofile::UNDO_TUP_UPDATE_VAR_PART:
     case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_VAR_PART:
-      break;
-    default:
-      ndbabort();
+        break;
+      default:
+        ndbabort();
     }
     /**
      * If we've reached here, it means we have decided to send the undo record
@@ -5527,7 +8179,7 @@ Lgman::execute_undo_record(Signal* signal)
       jamLine(mask);
 #ifdef VM_TRACE
       /* Test that TUP does not rely on us keeping ptr valid */
-      TransientStackBuff tsb((ptr-len) + 1, len);
+      TransientStackBuff tsb((ptr - len) + 1, len);
       ptr = (tsb.getPtr() + len) - 1;
 #endif
       Dbtup_client tup(this, m_tup);
@@ -5546,61 +8198,52 @@ Lgman::execute_undo_record(Signal* signal)
  * Move back one page in the file position of the currently
  * executing UNDO log. Change to previous file if needed.
  */
-void Lgman::update_consumer_file_pos(Ptr<Logfile_group> lg_ptr)
-{
+void Lgman::update_consumer_file_pos(Ptr<Logfile_group> lg_ptr) {
   Buffer_idx consumer_file_pos = lg_ptr.p->m_consumer_file_pos;
-  if (consumer_file_pos.m_idx == 1)
-  {
+  if (consumer_file_pos.m_idx == 1) {
     /* We switch to a new file now */
     jam();
     Ptr<Undofile> filePtr;
     ndbrequire(m_file_pool.getPtr(filePtr, consumer_file_pos.m_ptr_i));
     Ptr<Undofile> prev = filePtr;
     Local_undofile_list files(m_file_pool, lg_ptr.p->m_files);
-    if(!files.prev(prev))
-    {
+    if (!files.prev(prev)) {
       jam();
       files.last(prev);
     }
     consumer_file_pos.m_ptr_i = prev.i;
     consumer_file_pos.m_idx = prev.p->m_file_size - 1;
-  }
-  else
-  {
+  } else {
     jam();
     consumer_file_pos.m_idx--;
   }
   lg_ptr.p->m_consumer_file_pos = consumer_file_pos;
 }
 
-const Uint32*
-Lgman::get_next_undo_record(Uint64 * this_lsn)
-{
+const Uint32 *Lgman::get_next_undo_record(Uint64 *this_lsn) {
   Ptr<Logfile_group> lg_ptr;
   m_logfile_group_list.first(lg_ptr);
 
-  Logfile_group::Position consumer= lg_ptr.p->m_pos[CONSUMER];
-  if (lg_ptr.p->m_pos[PRODUCER].m_current_pos.m_idx < 2)
-  {
+  Logfile_group::Position consumer = lg_ptr.p->m_pos[CONSUMER];
+  if (lg_ptr.p->m_pos[PRODUCER].m_current_pos.m_idx < 2) {
     jam();
     /**
      * Wait for fetching pages...
      */
     return 0;
   }
-  
+
   Uint32 pos = consumer.m_current_pos.m_idx;
   Uint32 page = consumer.m_current_pos.m_ptr_i;
-  
-  File_formats::Undofile::Undo_page* pageP=(File_formats::Undofile::Undo_page*)
-    m_shared_page_pool.getPtr(page);
+
+  File_formats::Undofile::Undo_page *pageP =
+      (File_formats::Undofile::Undo_page *)m_shared_page_pool.getPtr(page);
 
   Ptr<Undofile> filePtr;
-  ndbrequire(m_file_pool.getPtr(filePtr,
-                                lg_ptr.p->m_consumer_file_pos.m_ptr_i));
+  ndbrequire(
+      m_file_pool.getPtr(filePtr, lg_ptr.p->m_consumer_file_pos.m_ptr_i));
 
-  if (lg_ptr.p->m_last_read_lsn == (Uint64)1)
-  {
+  if (lg_ptr.p->m_last_read_lsn == (Uint64)1) {
     /**
      * End of log, we hadn't concluded any LCPs before the crash.
      * So we find the end of the log by noting that we expect this LSN
@@ -5613,15 +8256,14 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
      * handle.
      */
     jam();
-    get_undo_data_ptr((Uint32*)pageP, lg_ptr, jamBuffer())[0] =
-      (File_formats::Undofile::UNDO_END << 16) | 1 ;
+    get_undo_data_ptr((Uint32 *)pageP, lg_ptr, jamBuffer())[0] =
+        (File_formats::Undofile::UNDO_END << 16) | 1;
     pageP->m_page_header.m_page_lsn_hi = 0;
     pageP->m_page_header.m_page_lsn_lo = 0;
-    lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_idx= pageP->m_words_used = 1;
-    if (lg_ptr.p->m_ndb_version >= NDB_DISK_V2)
-    {
+    lg_ptr.p->m_pos[CONSUMER].m_current_pos.m_idx = pageP->m_words_used = 1;
+    if (lg_ptr.p->m_ndb_version >= NDB_DISK_V2) {
       File_formats::Undofile::Undo_page_v2 *page_v2 =
-        (File_formats::Undofile::Undo_page_v2*)pageP;
+          (File_formats::Undofile::Undo_page_v2 *)pageP;
       jam();
       page_v2->m_ndb_version = NDB_DISK_V2;
       page_v2->m_checksum = 0;
@@ -5633,7 +8275,7 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
       page_v2->m_unused[5] = 0;
     }
     this_lsn = 0;
-    return get_undo_data_ptr((Uint32*)pageP, lg_ptr, jamBuffer());
+    return get_undo_data_ptr((Uint32 *)pageP, lg_ptr, jamBuffer());
   }
 
   /**
@@ -5655,8 +8297,7 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
   bool ignore_page = false;
   bool new_page = false;
 
-  if (page_position == pos)
-  {
+  if (page_position == pos) {
     jam();
     /**
      * This is the first log entry in a new page, we need to
@@ -5665,8 +8306,7 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
     Uint64 page_lsn = pageP->m_page_header.m_page_lsn_hi;
     page_lsn <<= 32;
     page_lsn += pageP->m_page_header.m_page_lsn_lo;
-    if (page_lsn != (lg_ptr.p->m_last_read_lsn - 1))
-    {
+    if (page_lsn != (lg_ptr.p->m_last_read_lsn - 1)) {
       jam();
       /**
        * The page LSN wasn't the expected one. We need to verify that
@@ -5684,8 +8324,7 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
       ndbassert(page_lsn < (lg_ptr.p->m_last_read_lsn - 1));
       ndbrequire(page_lsn < (lg_ptr.p->m_last_read_lsn - 1) ||
                  page_lsn == lg_ptr.p->m_last_read_lsn);
-      if (filePtr.p->m_start_lsn <= page_lsn)
-      {
+      if (filePtr.p->m_start_lsn <= page_lsn) {
         /**
          * A normal page, continue as usual.
          * However given that we now have skipped over a few pages we need to
@@ -5694,32 +8333,31 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
          */
         jam();
         lg_ptr.p->m_last_read_lsn = page_lsn + 1;
-        SimulatedBlock* fs = globalData.getBlock(NDBFS);
-        g_eventLogger->info("LGMAN: Continue applying log records in written"
-                            "page: %u in the file %s",
-                            lg_ptr.p->m_consumer_file_pos.m_idx,
-                            fs->get_filename(filePtr.p->m_fd));
-      }
-      else
-      {
+        SimulatedBlock *fs = globalData.getBlock(NDBFS);
+        g_eventLogger->info(
+            "LGMAN: Continue applying log records in written"
+            "page: %u in the file %s",
+            lg_ptr.p->m_consumer_file_pos.m_idx,
+            fs->get_filename(filePtr.p->m_fd));
+      } else {
         jam();
-        if (lg_ptr.p->m_applied)
-        {
+        if (lg_ptr.p->m_applied) {
           /**
            * We need to crash since we found a not OK page after an UNDO log
            * record have already been applied.
            */
-          SimulatedBlock* fs = globalData.getBlock(NDBFS);
+          SimulatedBlock *fs = globalData.getBlock(NDBFS);
           g_eventLogger->info("LGMAN: File %s have wrong pageLSN in page: %u",
                               fs->get_filename(filePtr.p->m_fd),
                               lg_ptr.p->m_consumer_file_pos.m_idx);
           progError(__LINE__, NDBD_EXIT_SR_UNDOLOG);
         }
-        SimulatedBlock* fs = globalData.getBlock(NDBFS);
-        g_eventLogger->info("LGMAN: Ignoring log records in unwritten page: "
-                            "%u in the file %s",
-                            lg_ptr.p->m_consumer_file_pos.m_idx,
-                            fs->get_filename(filePtr.p->m_fd));
+        SimulatedBlock *fs = globalData.getBlock(NDBFS);
+        g_eventLogger->info(
+            "LGMAN: Ignoring log records in unwritten page: "
+            "%u in the file %s",
+            lg_ptr.p->m_consumer_file_pos.m_idx,
+            fs->get_filename(filePtr.p->m_fd));
         ignore_page = true;
         new_page = true;
       }
@@ -5729,34 +8367,31 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
    * Read the UNDO record
    */
   Uint32 *record = NULL;
-  if (!ignore_page)
-  {
+  if (!ignore_page) {
     jam();
-    record = get_undo_data_ptr((Uint32*)pageP, lg_ptr, jamBuffer())
-             + (pos - 1);
-    ndbrequire(record < &((Uint32*)pageP)[GLOBAL_PAGE_SIZE_WORDS]);
-    Uint32 len= (* record) & 0xFFFF;
+    record =
+        get_undo_data_ptr((Uint32 *)pageP, lg_ptr, jamBuffer()) + (pos - 1);
+    ndbrequire(record < &((Uint32 *)pageP)[GLOBAL_PAGE_SIZE_WORDS]);
+    Uint32 len = (*record) & 0xFFFF;
     ndbrequire(len);
-    Uint32 *prev= record - len;
+    Uint32 *prev = record - len;
     Uint64 lsn = 0;
 
-    if (((* record) >> 16) & (File_formats::Undofile::UNDO_NEXT_LSN))
-    {
+    if (((*record) >> 16) & (File_formats::Undofile::UNDO_NEXT_LSN)) {
       /* This was a Type 1 record, previous LSN is -1 of current */
       jam();
       lsn = lg_ptr.p->m_last_read_lsn - 1;
       ndbrequire((Int64)lsn >= 0);
-    }
-    else
-    {
+    } else {
       /**
        * This was a Type 2 record, previous LSN given by LSNs in the UNDO
        * log record, see UNDO log record layout in beginning of file.
        */
       ndbrequire(pos >= 3);
       jam();
-      lsn += * (prev - 1); lsn <<= 32;
-      lsn += * (prev - 0);
+      lsn += *(prev - 1);
+      lsn <<= 32;
+      lsn += *(prev - 0);
       len += 2;
       ndbrequire((Int64)lsn >= 0);
     }
@@ -5771,8 +8406,7 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
    * if necessary.
    */
 
-  if (new_page)
-  {
+  if (new_page) {
     /**
      * Switching to next page in our backwards scan of UNDO log pages.
      *
@@ -5785,38 +8419,35 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
     ndbrequire(lg_ptr.p->m_pos[PRODUCER].m_current_pos.m_idx);
     lg_ptr.p->m_pos[PRODUCER].m_current_pos.m_idx--;
 
-    if(consumer.m_current_page.m_idx)
-    {
+    if (consumer.m_current_page.m_idx) {
       jam();
       consumer.m_current_page.m_idx--;   // left in range
-      consumer.m_current_pos.m_ptr_i--; // page
-    }
-    else
-    {
+      consumer.m_current_pos.m_ptr_i--;  // page
+    } else {
       jam();
       // 0 pages left in range...switch range
       Lgman::Page_map::Iterator it;
       Page_map map(m_data_buffer_pool, lg_ptr.p->m_buffer_pages);
       Uint32 sz = map.getSize();
       Uint32 tmp = (consumer.m_current_page.m_ptr_i + sz - 2) % sz;
-      
+
       map.position(it, tmp);
       union {
-	Uint32 _tmp[2];
-	Lgman::Buffer_idx range;
+        Uint32 _tmp[2];
+        Lgman::Buffer_idx range;
       };
-      
+
       _tmp[0] = *it.data;
       map.next(it);
       _tmp[1] = *it.data;
-      
-      consumer.m_current_page.m_idx = range.m_idx - 1; // left in range
-      consumer.m_current_page.m_ptr_i = tmp;           // pos in map
 
-      consumer.m_current_pos.m_ptr_i = range.m_ptr_i + range.m_idx - 1; // page
+      consumer.m_current_page.m_idx = range.m_idx - 1;  // left in range
+      consumer.m_current_page.m_ptr_i = tmp;            // pos in map
+
+      consumer.m_current_pos.m_ptr_i = range.m_ptr_i + range.m_idx - 1;  // page
     }
 
-    if(DEBUG_UNDO_EXECUTION)
+    if (DEBUG_UNDO_EXECUTION)
       g_eventLogger->info("reading from %d", consumer.m_current_pos.m_ptr_i);
 
     lg_ptr.p->m_free_buffer_words += get_undo_page_words(lg_ptr);
@@ -5842,8 +8473,8 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
      */
     update_consumer_file_pos(lg_ptr);
 
-    pageP=(File_formats::Undofile::Undo_page*)
-      m_shared_page_pool.getPtr(consumer.m_current_pos.m_ptr_i);
+    pageP = (File_formats::Undofile::Undo_page *)m_shared_page_pool.getPtr(
+        consumer.m_current_pos.m_ptr_i);
 
     consumer.m_current_pos.m_idx = pageP->m_words_used;
 
@@ -5889,35 +8520,27 @@ Lgman::get_next_undo_record(Uint64 * this_lsn)
   return record;
 }
 
-void
-Lgman::stop_run_undo_log(Signal* signal)
-{
+void Lgman::stop_run_undo_log(Signal *signal) {
   bool running = false, outstanding = false;
   Ptr<Logfile_group> lg_ptr;
   m_logfile_group_list.first(lg_ptr);
-  while (!lg_ptr.isNull())
-  {
+  while (!lg_ptr.isNull()) {
     jam();
     /**
      * Mark exec thread as completed
      */
     lg_ptr.p->m_state &= ~(Uint32)Logfile_group::LG_EXEC_THREAD;
 
-    if (lg_ptr.p->m_state & Logfile_group::LG_READ_THREAD)
-    {
+    if (lg_ptr.p->m_state & Logfile_group::LG_READ_THREAD) {
       jam();
       /**
        * Thread is still running...wait for it to complete
        */
       running = true;
-    }
-    else if (lg_ptr.p->m_outstanding_fs)
-    {
+    } else if (lg_ptr.p->m_outstanding_fs) {
       jam();
-      outstanding = true; // a FSREADREQ is outstanding...wait for it
-    }
-    else if (lg_ptr.p->m_state != Logfile_group::LG_ONLINE)
-    {
+      outstanding = true;  // a FSREADREQ is outstanding...wait for it
+    } else if (lg_ptr.p->m_state != Logfile_group::LG_ONLINE) {
       jam();
       /**
        * Fix log TAIL
@@ -5927,8 +8550,8 @@ Lgman::stop_run_undo_log(Signal* signal)
 
       init_logbuffer_pointers(lg_ptr);
 
-      Buffer_idx head= lg_ptr.p->m_file_pos[HEAD];
-      Buffer_idx tail= head;
+      Buffer_idx head = lg_ptr.p->m_file_pos[HEAD];
+      Buffer_idx tail = head;
       /**
        * At this point the UNDO log file is empty. We still though has to
        * respect the log head. The reason is that we need to continue
@@ -5947,15 +8570,13 @@ Lgman::stop_run_undo_log(Signal* signal)
        * page 0 in all log files).
        */
       {
-        Buffer_idx head= lg_ptr.p->m_file_pos[HEAD];
+        Buffer_idx head = lg_ptr.p->m_file_pos[HEAD];
         Ptr<Undofile> file;
         ndbrequire(m_file_pool.getPtr(file, head.m_ptr_i));
-        if (head.m_idx == file.p->m_file_size - 1)
-        {
+        if (head.m_idx == file.p->m_file_size - 1) {
           jam();
           Local_undofile_list files(m_file_pool, lg_ptr.p->m_files);
-          if(!files.next(file))
-          {
+          if (!files.next(file)) {
             jam();
             files.first(file);
           }
@@ -5967,18 +8588,19 @@ Lgman::stop_run_undo_log(Signal* signal)
         lg_ptr.p->m_tail_pos[1] = head;
         lg_ptr.p->m_file_pos[TAIL] = head;
       }
-      
-      lg_ptr.p->m_free_log_words = (Uint64)get_undo_page_words(lg_ptr) *
-	(Uint64)compute_free_file_pages(lg_ptr, jamBuffer());
+
+      lg_ptr.p->m_free_log_words =
+          (Uint64)get_undo_page_words(lg_ptr) *
+          (Uint64)compute_free_file_pages(lg_ptr, jamBuffer());
       lg_ptr.p->m_total_log_space = lg_ptr.p->m_free_log_words;
       calculate_space_limit(lg_ptr);
       DEB_LGMAN(("Line(%u): free_log_words: %llu, total_log_space: %llu",
-                 __LINE__,
-                 lg_ptr.p->m_free_log_words,
+                 __LINE__, lg_ptr.p->m_free_log_words,
                  lg_ptr.p->m_total_log_space));
       lg_ptr.p->m_next_reply_ptr_i = lg_ptr.p->m_file_pos[HEAD].m_ptr_i;
-      
-      validate_logfile_group(lg_ptr, "completed UNDO log execution", jamBuffer());
+
+      validate_logfile_group(lg_ptr, "completed UNDO log execution",
+                             jamBuffer());
       lg_ptr.p->m_state |= Logfile_group::LG_FLUSH_THREAD;
       signal->theData[0] = LgmanContinueB::FLUSH_LOG;
       signal->theData[1] = lg_ptr.i;
@@ -5986,49 +8608,45 @@ Lgman::stop_run_undo_log(Signal* signal)
       sendSignal(reference(), GSN_CONTINUEB, signal, 3, JBB);
 
       {
-        SimulatedBlock* fs = globalData.getBlock(NDBFS);
+        SimulatedBlock *fs = globalData.getBlock(NDBFS);
         Ptr<Undofile> hf, tf;
         ndbrequire(m_file_pool.getPtr(tf, tail.m_ptr_i));
-        ndbrequire(m_file_pool.getPtr(hf,  lg_ptr.p->m_file_pos[HEAD].m_ptr_i));
+        ndbrequire(m_file_pool.getPtr(hf, lg_ptr.p->m_file_pos[HEAD].m_ptr_i));
         infoEvent("LGMAN: Logfile group: %d ", lg_ptr.p->m_logfile_group_id);
         g_eventLogger->info("LGMAN: Logfile group: %d ",
                             lg_ptr.p->m_logfile_group_id);
-        infoEvent("  head: %s page: %d",
-                  fs->get_filename(hf.p->m_fd),
+        infoEvent("  head: %s page: %d", fs->get_filename(hf.p->m_fd),
                   lg_ptr.p->m_file_pos[HEAD].m_idx);
-        g_eventLogger->info("  head: %s page: %d",
-                            fs->get_filename(hf.p->m_fd),
+        g_eventLogger->info("  head: %s page: %d", fs->get_filename(hf.p->m_fd),
                             lg_ptr.p->m_file_pos[HEAD].m_idx);
-        infoEvent("  tail: %s page: %d",
-		  fs->get_filename(tf.p->m_fd), tail.m_idx);
-        g_eventLogger->info("  tail: %s page: %d",
-                            fs->get_filename(tf.p->m_fd), tail.m_idx);
+        infoEvent("  tail: %s page: %d", fs->get_filename(tf.p->m_fd),
+                  tail.m_idx);
+        g_eventLogger->info("  tail: %s page: %d", fs->get_filename(tf.p->m_fd),
+                            tail.m_idx);
       }
     }
-    
+
     m_logfile_group_list.next(lg_ptr);
   }
-  
-  if (running)
-  {
+
+  if (running) {
     jam();
     return;
   }
-  
-  if (outstanding)
-  {
+
+  if (outstanding) {
     jam();
     signal->theData[0] = LgmanContinueB::STOP_UNDO_LOG;
     sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 100, 1);
     return;
   }
-  
+
   infoEvent("LGMAN: Flushing page cache after undo completion");
   g_eventLogger->info("LGMAN: Flushing page cache after undo completion");
 
   /**
    * START FLUSH PGMAN CACHE
-   * 
+   *
    * Start flushing pages (a form of a local LCP)
    *
    * As part of a restart we want to ensure that we don't need to replay
@@ -6037,23 +8655,20 @@ Lgman::stop_run_undo_log(Signal* signal)
    * END_LCPREQ to PGMAN.
    */
 
-  EndLcpReq* req= (EndLcpReq*)signal->getDataPtr();
+  EndLcpReq *req = (EndLcpReq *)signal->getDataPtr();
   req->senderData = 0;
   req->senderRef = reference();
   req->backupId = m_latest_lcp;
-  sendSignal(PGMAN_REF, GSN_END_LCPREQ, signal, 
-	     EndLcpReq::SignalLength, JBB);
+  sendSignal(PGMAN_REF, GSN_END_LCPREQ, signal, EndLcpReq::SignalLength, JBB);
 }
 
-void
-Lgman::execEND_LCPCONF(Signal* signal)
-{
+void Lgman::execEND_LCPCONF(Signal *signal) {
   {
     Dbtup_client tup(this, m_tup);
     tup.disk_restart_undo(signal, 0, File_formats::Undofile::UNDO_END, 0, 0);
     jamEntry();
   }
-  
+
   /**
    * END_FLUSH_PGMAN_CACHE
    *
@@ -6069,22 +8684,18 @@ Lgman::execEND_LCPCONF(Signal* signal)
   undo[3] = (File_formats::Undofile::UNDO_LOCAL_LCP_FIRST << 16);
   undo[3] |= (sizeof(undo) >> 2);
   undo[3] |= File_formats::Undofile::UNDO_NEXT_LSN << 16;
-  
+
   Ptr<Logfile_group> lg_ptr;
   ndbrequire(m_logfile_group_list.first(lg_ptr));
 
-  Uint64 next_lsn= lg_ptr.p->m_next_lsn;
-  Uint32 *dst= get_log_buffer(lg_ptr,
-                              sizeof(undo) >> 2,
-                              jamBuffer());
+  Uint64 next_lsn = lg_ptr.p->m_next_lsn;
+  Uint32 *dst = get_log_buffer(lg_ptr, sizeof(undo) >> 2, jamBuffer());
   memcpy(dst, undo, sizeof(undo));
   ndbrequire(lg_ptr.p->m_free_log_words >= (sizeof(undo) >> 2));
   lg_ptr.p->m_free_log_words -= (sizeof(undo) >> 2);
-  DEB_LGMAN(("Line(%u): free_log_words: %llu", __LINE__,
-             lg_ptr.p->m_free_log_words));
-  DEB_LGMAN_LCP(("Fake LCP at lsn: %llu: lcp(%u,%u)",
-                 next_lsn,
-                 m_latest_lcp,
+  DEB_LGMAN(
+      ("Line(%u): free_log_words: %llu", __LINE__, lg_ptr.p->m_free_log_words));
+  DEB_LGMAN_LCP(("Fake LCP at lsn: %llu: lcp(%u,%u)", next_lsn, m_latest_lcp,
                  m_latest_local_lcp));
 
   lg_ptr.p->m_next_lsn = next_lsn + 1;
@@ -6094,12 +8705,11 @@ Lgman::execEND_LCPCONF(Signal* signal)
   lg_ptr.p->m_last_log_level_reported = 0;
   send_level_report_thread(signal, lg_ptr);
 
-  while(m_logfile_group_list.next(lg_ptr))
-  {
+  while (m_logfile_group_list.next(lg_ptr)) {
     jam();
     lg_ptr.p->m_last_synced_lsn = next_lsn;
   }
-  
+
   validate_logfile_group(lg_ptr, "flushed PGMAN", jamBuffer());
 
   infoEvent("LGMAN: Flushing complete");
@@ -6110,62 +8720,53 @@ Lgman::execEND_LCPCONF(Signal* signal)
 }
 
 #ifdef VM_TRACE
-void 
-Lgman::validate_logfile_group(Ptr<Logfile_group> lg_ptr,
-                              const char * heading,
-                              EmulatedJamBuffer *jamBuf)
-{
-  do 
-  {
-    if (lg_ptr.p->m_file_pos[HEAD].m_ptr_i == RNIL)
-    {
+void Lgman::validate_logfile_group(Ptr<Logfile_group> lg_ptr,
+                                   const char *heading,
+                                   EmulatedJamBuffer *jamBuf) {
+  do {
+    if (lg_ptr.p->m_file_pos[HEAD].m_ptr_i == RNIL) {
       thrjam(jamBuf);
       break;
     }
-    
+
     Uint32 pages = compute_free_file_pages(lg_ptr, jamBuf);
-    
-    Uint32 group_pages = 
-      ((lg_ptr.p->m_free_log_words + get_undo_page_words(lg_ptr) - 1) /
-        get_undo_page_words(lg_ptr)) ;
+
+    Uint32 group_pages =
+        ((lg_ptr.p->m_free_log_words + get_undo_page_words(lg_ptr) - 1) /
+         get_undo_page_words(lg_ptr));
     Uint32 last = lg_ptr.p->m_free_log_words % get_undo_page_words(lg_ptr);
-    
-    if(! (pages >= group_pages))
-    {
-      ndbout << heading << " Tail: " << lg_ptr.p->m_file_pos[TAIL] 
-	     << " Head: " << lg_ptr.p->m_file_pos[HEAD] 
-	     << " free: " << group_pages << "(" << last << ")" 
-	     << " found: " << pages;
-      for(Uint32 i = 0; i<2; i++)
-      {
-	ndbout << " - " << lg_ptr.p->m_tail_pos[i];
+
+    if (!(pages >= group_pages)) {
+      ndbout << heading << " Tail: " << lg_ptr.p->m_file_pos[TAIL]
+             << " Head: " << lg_ptr.p->m_file_pos[HEAD]
+             << " free: " << group_pages << "(" << last << ")"
+             << " found: " << pages;
+      for (Uint32 i = 0; i < 2; i++) {
+        ndbout << " - " << lg_ptr.p->m_tail_pos[i];
       }
       ndbout << endl;
-      
+
       ndbrequire(pages >= group_pages);
     }
-  } while(0);
+  } while (0);
 }
 #endif
 
-void Lgman::execGET_TABINFOREQ(Signal* signal)
-{
+void Lgman::execGET_TABINFOREQ(Signal *signal) {
   jamEntry();
 
-  if(!assembleFragments(signal))
-  {
+  if (!assembleFragments(signal)) {
     return;
   }
 
-  GetTabInfoReq * const req = (GetTabInfoReq *)&signal->theData[0];
+  GetTabInfoReq *const req = (GetTabInfoReq *)&signal->theData[0];
 
   const Uint32 reqType = req->requestType & (~GetTabInfoReq::LongSignalConf);
-  BlockReference retRef= req->senderRef;
-  Uint32 senderData= req->senderData;
-  Uint32 tableId= req->tableId;
+  BlockReference retRef = req->senderRef;
+  Uint32 senderData = req->senderData;
+  Uint32 tableId = req->tableId;
 
-  if(reqType == GetTabInfoReq::RequestByName)
-  {
+  if (reqType == GetTabInfoReq::RequestByName) {
     jam();
     SectionHandle handle(this, signal);
     releaseSections(handle);
@@ -6175,37 +8776,33 @@ void Lgman::execGET_TABINFOREQ(Signal* signal)
   }
 
   Logfile_group key;
-  key.m_logfile_group_id= tableId;
+  key.m_logfile_group_id = tableId;
   Ptr<Logfile_group> lg_ptr;
   m_logfile_group_hash.find(lg_ptr, key);
 
-  if (lg_ptr.p->m_logfile_group_id != tableId)
-  {
+  if (lg_ptr.p->m_logfile_group_id != tableId) {
     jam();
 
     sendGET_TABINFOREF(signal, req, GetTabInfoRef::InvalidTableId);
     return;
   }
 
-
   GetTabInfoConf *conf = (GetTabInfoConf *)&signal->theData[0];
 
-  conf->senderData= senderData;
-  conf->tableId= tableId;
-  conf->freeWordsHi= (Uint32)(lg_ptr.p->m_free_log_words >> 32);
-  conf->freeWordsLo= (Uint32)(lg_ptr.p->m_free_log_words & 0xFFFFFFFF);
-  conf->tableType= DictTabInfo::LogfileGroup;
-  conf->senderRef= reference();
-  sendSignal(retRef, GSN_GET_TABINFO_CONF, signal,
-	     GetTabInfoConf::SignalLength, JBB);
+  conf->senderData = senderData;
+  conf->tableId = tableId;
+  conf->freeWordsHi = (Uint32)(lg_ptr.p->m_free_log_words >> 32);
+  conf->freeWordsLo = (Uint32)(lg_ptr.p->m_free_log_words & 0xFFFFFFFF);
+  conf->tableType = DictTabInfo::LogfileGroup;
+  conf->senderRef = reference();
+  sendSignal(retRef, GSN_GET_TABINFO_CONF, signal, GetTabInfoConf::SignalLength,
+             JBB);
 }
 
-void Lgman::sendGET_TABINFOREF(Signal* signal,
-			       GetTabInfoReq * req,
-			       GetTabInfoRef::ErrorCode errorCode)
-{
+void Lgman::sendGET_TABINFOREF(Signal *signal, GetTabInfoReq *req,
+                               GetTabInfoRef::ErrorCode errorCode) {
   jamEntry();
-  GetTabInfoRef * const ref = (GetTabInfoRef *)&signal->theData[0];
+  GetTabInfoRef *const ref = (GetTabInfoRef *)&signal->theData[0];
   /**
    * The format of GetTabInfo Req/Ref is the same
    */

@@ -23,10 +23,10 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#include <signaldata/PackedSignal.hpp>
-#include <signaldata/LqhKey.hpp>
-#include <signaldata/FireTrigOrd.hpp>
 #include <debugger/DebuggerNames.hpp>
+#include <signaldata/FireTrigOrd.hpp>
+#include <signaldata/LqhKey.hpp>
+#include <signaldata/PackedSignal.hpp>
 
 #include <EventLogger.hpp>
 
@@ -54,7 +54,7 @@ Uint32 packedSignalLength(Uint32 signalType)
   {
     return LqhKeyConf::SignalLength;
   }
-  case ZREMOVE_MARKER:
+    case ZREMOVE_MARKER:
   {
     return 3;
   }
@@ -139,7 +139,7 @@ printPACKED_SIGNAL(FILE * output,
     case ZLQHKEYCONF:
     case ZREMOVE_MARKER:
     case ZFIRE_TRIG_REQ:
-    case ZFIRE_TRIG_CONF:
+      case ZFIRE_TRIG_CONF:
     {
       i += packedSignalLength(signalType);
       break;
@@ -153,10 +153,29 @@ printPACKED_SIGNAL(FILE * output,
     }
   }
   // Print each signal separately
-  for (int i = -1; i < numberOfSignals; i++)
+    for (int i = -1; i < numberOfSignals; i++)
   {
     // Reverse the print order if we are in signal memory dump.
-    int idx = globalIsInCrashlog ? (numberOfSignals - i - 2) : i;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+int
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ idx 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+ globalIsInCrashlog ? (numberOfSignals - i - 2) : i;
     /**
      * Print the main signal when idx == -1 and the packed signals when
      * 0 <= idx < numberOfSignals. We handle the special case idx == -1 inside
@@ -165,10 +184,10 @@ printPACKED_SIGNAL(FILE * output,
     if (idx == -1) // Print the main signal
     {
       printHex(output, theData, len, "Signal data:");
-    }
+      }
     if (idx == (globalIsInCrashlog ? numberOfSignals - 1 : 0))
     {
-      fprintf(output, "  -------- Begin Packed Signals --------\n");
+        fprintf(output, "  -------- Begin Packed Signals --------\n");
     }
     if (0 <= idx) // Print a packed signal
     {
@@ -177,25 +196,91 @@ printPACKED_SIGNAL(FILE * output,
       Uint32 signalLength = packedSignalLength(signalType);
       const char* signalName =
         packedSignalName(signalType, theData[offset] & 1);
-      // If you change the print format, then update the legend in
+      // If you change the print format, then 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+update
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+case
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+legend
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ZLQHKEYCONF:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+case ZLQHKEYCONF:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ in
       // ErrorReporter::WriteMessage to match.
-      fprintf(output, "  ----------- Packed signal %d -----------\n", idx);
-      fprintf(output, "  length: %u, r.sn: \"%s\"\n", signalLength, signalName);
+        fprintf(output, "  ----------- Packed signal %d -----------\n", idx);
+        fprintf(output, "  length: %u, r.sn: \"%s\"\n", signalLength,
+                signalName);
       switch (signalType)
       {
       case ZCOMMIT:
       case ZCOMPLETE:
-      case ZCOMMITTED:
-      case ZCOMPLETED:
+        case ZCOMMITTED:   case ZCOMPLETED:
       case ZLQHKEYCONF:
       {
         printHex(output, &theData[offset], signalLength, "  Signal data:");
         break;
       }
-      case ZREMOVE_MARKER:
-      {
-        // Skip first word!
-        printHex(output, &theData[offset + 1], signalLength - 1,
+      case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZREMOVE_MARKER:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ receiverBlockNo, getBlockName(receiverBlockNo,""), signalLength);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ receiverBlockNo, getBlockName(receiverBlockNo, ""),
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      signalLength);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  // Skip first 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+word!
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  } else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        printHex(output,
+                  &theData[offset + 1], signalLength - 1,
                  "  Signal data:");
         break;
       }
@@ -206,7 +291,7 @@ printPACKED_SIGNAL(FILE * output,
       }
       default:
       {
-        fprintf(output, "  ----------- Packed signal %d -----------\n", idx);
+          fprintf(output, "  ----------- Packed signal %d -----------\n", idx);
         fprintf(output, "  Unknown signal type H\'%.8x.\n", signalType);
         fprintf(output,
                 "  There might be more packed signals with indices higher than"
@@ -229,81 +314,71 @@ printPACKED_SIGNAL(FILE * output,
   return true;
 }
 
-bool
-PackedSignal::verify(const Uint32* data, Uint32 len, Uint32 receiverBlockNo, 
-                     Uint32 typesExpected, Uint32 commitLen)
-{
+bool PackedSignal::verify(const Uint32 *data, Uint32 len,
+                          Uint32 receiverBlockNo, Uint32 typesExpected,
+                          Uint32 commitLen) {
   Uint32 pos = 0;
   bool bad = false;
 
-  if (unlikely(len > 25))
-  {
+  if (unlikely(len > 25)) {
     g_eventLogger->info("Bad PackedSignal length : %u", len);
     bad = true;
-  }
-  else
-  {
-    while ((pos < len) && ! bad)
-    {
+  } else {
+    while ((pos < len) && !bad) {
       Uint32 sigType = data[pos] >> 28;
-      if (unlikely(((1 << sigType) & typesExpected) == 0))
-      {
+      if (unlikely(((1 << sigType) & typesExpected) == 0)) {
         g_eventLogger->info(
             "Unexpected sigtype in packed signal: %u at pos %u. Expected : %u",
             sigType, pos, typesExpected);
         bad = true;
         break;
       }
-      switch (sigType)
-      {
-      case ZCOMMIT:
-        assert(commitLen > 0);
-        pos += commitLen;
-        break;
-      case ZCOMPLETE:
-        pos+= 3;
-        break;
-      case ZCOMMITTED:
-        pos+= 3;
-        break;
-      case ZCOMPLETED:
-        pos+= 3;
-        break;
-      case ZLQHKEYCONF:
-        pos+= LqhKeyConf::SignalLength;
-        break;
-      case ZREMOVE_MARKER:
-        pos+= 3;
-        break;
-      case ZFIRE_TRIG_REQ:
-        pos+= FireTrigReq::SignalLength;
-        break;
-      case ZFIRE_TRIG_CONF:
-        pos+= FireTrigConf::SignalLength;
-        break;
-      default :
-        g_eventLogger->info("Unrecognised signal type %u at pos %u", sigType,
-                            pos);
-        bad = true;
-        break;
+      switch (sigType) {
+        case ZCOMMIT:
+          assert(commitLen > 0);
+          pos += commitLen;
+          break;
+        case ZCOMPLETE:
+          pos += 3;
+          break;
+        case ZCOMMITTED:
+          pos += 3;
+          break;
+        case ZCOMPLETED:
+          pos += 3;
+          break;
+        case ZLQHKEYCONF:
+          pos += LqhKeyConf::SignalLength;
+          break;
+        case ZREMOVE_MARKER:
+          pos += 3;
+          break;
+        case ZFIRE_TRIG_REQ:
+          pos += FireTrigReq::SignalLength;
+          break;
+        case ZFIRE_TRIG_CONF:
+          pos += FireTrigConf::SignalLength;
+          break;
+        default:
+          g_eventLogger->info("Unrecognised signal type %u at pos %u", sigType,
+                              pos);
+          bad = true;
+          break;
       }
     }
-    
-    if (likely(pos == len))
-    {
+
+    if (likely(pos == len)) {
       /* Looks ok */
       return true;
     }
-    
-    if (!bad)
-    {
+
+    if (!bad) {
       g_eventLogger->info(
-          "Packed signal component length (%u) != total length (%u)",
-          pos, len);
+          "Packed signal component length (%u) != total length (%u)", pos, len);
     }
   }
 
   printPACKED_SIGNAL(stderr, data, len, receiverBlockNo);
-  
+
   return false;
 }

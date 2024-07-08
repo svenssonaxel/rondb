@@ -26,89 +26,115 @@
 //#define DBTC_MAIN
 #define DBTC_C
 
-#include "Dbtc.hpp"
-#include <RefConvert.hpp>
-#include <ndb_limits.h>
-#include <ndb_rand.h>
 #include <NdbSpin.h>
+#include <
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cstring>
+#include "md5_hash.hpp"
+#include <
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndb_limits.h>
+#include <ndb_rand.h>
+#include <
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+RefConvert.hpp>
+#include <cstring>
+#include "Dbtc.hpp"
+#include "md5_hash.hpp"
 
-#include <signaldata/DiGetNodes.hpp>
-#include <signaldata/EventReport.hpp>
-#include <signaldata/TcKeyReq.hpp>
-#include <signaldata/TcKeyConf.hpp>
-#include <signaldata/TcKeyRef.hpp>
-#include <signaldata/KeyInfo.hpp>
-#include <signaldata/AttrInfo.hpp>
-#include <signaldata/TransIdAI.hpp>
-#include <signaldata/TcRollbackRep.hpp>
-#include <signaldata/NodeFailRep.hpp>
-#include <signaldata/ReadNodesConf.hpp>
-#include <signaldata/NFCompleteRep.hpp>
-#include <signaldata/LqhKey.hpp>
-#include <signaldata/TcCommit.hpp>
-#include <signaldata/TcContinueB.hpp>
-#include <signaldata/TcKeyFailConf.hpp>
 #include <signaldata/AbortAll.hpp>
-#include <signaldata/DihScanTab.hpp>
-#include <signaldata/ScanFrag.hpp>
-#include <signaldata/ScanTab.hpp>
-#include <signaldata/PrepDropTab.hpp>
-#include <signaldata/DropTab.hpp>
-#include <signaldata/AlterTab.hpp>
-#include <signaldata/AlterTable.hpp>
-#include <signaldata/CreateTrig.hpp>
-#include <signaldata/CreateTrigImpl.hpp>
-#include <signaldata/DropTrig.hpp>
-#include <signaldata/DropTrigImpl.hpp>
-#include <signaldata/FireTrigOrd.hpp>
-#include <signaldata/TrigAttrInfo.hpp>
-#include <signaldata/CreateIndx.hpp>
-#include <signaldata/CreateIndxImpl.hpp>
-#include <signaldata/DropIndx.hpp>
-#include <signaldata/DropIndxImpl.hpp>
 #include <signaldata/AlterIndx.hpp>
 #include <signaldata/AlterIndxImpl.hpp>
+#include <signaldata/AlterTab.hpp>
+#include <signaldata/AlterTable.hpp>
+#include <signaldata/AttrInfo.hpp>
+#include <signaldata/CreateIndx.hpp>
+#include <signaldata/CreateIndxImpl.hpp>
+#include <signaldata/CreateTrig.hpp>
+#include <signaldata/CreateTrigImpl.hpp>
+#include <signaldata/DiGetNodes.hpp>
+#include <signaldata/DihScanTab.hpp>
+#include <signaldata/DisconnectRep.hpp>
+#include <signaldata/DropIndx.hpp>
+#include <signaldata/DropIndxImpl.hpp>
+#include <signaldata/DropTab.hpp>
+#include <signaldata/DropTrig.hpp>
+#include <signaldata/DropTrigImpl.hpp>
+#include <signaldata/DumpStateOrd.hpp>
+#include <signaldata/EventReport.hpp>
+#include <signaldata/FireTrigOrd.hpp>
+#include <signaldata/KeyInfo.hpp>
+#include <signaldata/LqhKey.hpp>
+#include <signaldata/NFCompleteRep.hpp>
+#include <signaldata/NodeFailRep.hpp>
+#include <signaldata/PrepDropTab.hpp>
+#include <signaldata/ReadNodesConf.hpp>
+#include <signaldata/ScanFrag.hpp>
 #include <signaldata/ScanTab.hpp>
 #include <signaldata/SystemError.hpp>
-#include <signaldata/DumpStateOrd.hpp>
-#include <signaldata/DisconnectRep.hpp>
+#include <signaldata/TcCommit.hpp>
+#include <signaldata/TcContinueB.hpp>
 #include <signaldata/TcHbRep.hpp>
+#include <signaldata/TcKeyConf.hpp>
+#include <signaldata/TcKeyFailConf.hpp>
+#include <signaldata/TcKeyRef.hpp>
+#include <signaldata/TcKeyReq.hpp>
+#include <signaldata/TcRollbackRep.hpp>
+#include <signaldata/TransIdAI.hpp>
+#include <signaldata/TrigAttrInfo.hpp>
+
+#include <AttributeDescriptor.hpp>
 #include <signaldata/Abort.hpp>
 
-#include <signaldata/PrepDropTab.hpp>
-#include <signaldata/DropTab.hpp>
-#include <signaldata/TcIndx.hpp>
-#include <signaldata/IndxKeyInfo.hpp>
-#include <signaldata/IndxAttrInfo.hpp>
-#include <signaldata/PackedSignal.hpp>
-#include <signaldata/SignalDroppedRep.hpp>
-#include <signaldata/LqhTransReq.hpp>
-#include <signaldata/TakeOverTcConf.hpp>
 #include <AttributeHeader.hpp>
-#include <signaldata/DictTabInfo.hpp>
-#include <AttributeDescriptor.hpp>
-#include <SectionReader.hpp>
 #include <KeyDescriptor.hpp>
+#include <SectionReader.hpp>
+#include <signaldata/DictTabInfo.hpp>
+#include <signaldata/DropTab.hpp>
+#include <signaldata/IndxAttrInfo.hpp>
+#include <signaldata/IndxKeyInfo.hpp>
+#include <signaldata/LqhTransReq.hpp>
+#include <signaldata/PackedSignal.hpp>
+#include <signaldata/PrepDropTab.hpp>
+#include <signaldata/SignalDroppedRep.hpp>
+#include <signaldata/TakeOverTcConf.hpp>
+#include <signaldata/TcIndx.hpp>
 
-#include <NdbOut.hpp>
 #include <DebuggerNames.hpp>
+#include <NdbOut.hpp>
 #include <signaldata/CheckNodeGroups.hpp>
 
-#include <signaldata/RouteOrd.hpp>
 #include <signaldata/GCP.hpp>
+#include <signaldata/RouteOrd.hpp>
 
+#include <signaldata/CreateTab.hpp>
 #include <signaldata/DbinfoScan.hpp>
 #include <signaldata/TransIdAI.hpp>
-#include <signaldata/CreateTab.hpp>
 
-#include <TransporterRegistry.hpp> // error 8035
 #include <EventLogger.hpp>
+#include <TransporterRegistry.hpp>  // error 8035
 
+#include <kernel/Interpreter.hpp>
 #include <signaldata/CreateFKImpl.hpp>
 #include <signaldata/DropFKImpl.hpp>
-#include <signaldata/CommitReq.hpp>
+#include <
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signaldata/CommitReq.hpp>
 #include <kernel/Interpreter.hpp>
-#include <signaldata/TuxBound.hpp>
+#include <
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+kernel/Interpreter.hpp>
+#include <
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+signaldata/TuxBound.hpp>
 #include "../dbdih/Dbdih.hpp"
 #include "portlib/mt-asm.h"
 #include <util/rondb_hash.hpp>
@@ -134,28 +160,37 @@
 //#define DEBUG_HASH 1
 //#define DEBUG_ACTIVE_NODES 1
 #endif
-
 #define TC_TIME_SIGNAL_DELAY 50
 
 // Use DEBUG to print messages that should be
 // seen only when we debug the product
 //#define USE_TC_DEBUG
 #ifdef USE_TC_DEBUG
-#define DEBUG(x) ndbout << "DBTC: "<< x << endl;
+#define DEBUG(x) ndbout << "DBTC: " << x << endl;
 #else
 #define DEBUG(x)
 #endif
 
 #ifdef DEBUG_ACTIVE_NODES
-#define DEB_ACTIVE_NODES(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_ACTIVE_NODES(arglist) \
+  do {                            \
+    g_eventLogger->info arglist;  \
+  } while (0)
 #else
-#define DEB_ACTIVE_NODES(arglist) do { } while (0)
+#define DEB_ACTIVE_NODES(arglist) \
+  do {                            \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LQH_TRANS_CMA
-#define DEB_LQH_TRANS_CMA(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_LQH_TRANS_CMA(arglist)     \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_LQH_TRANS_CMA(arglist) do { } while (0)
+#define DEB_LQH_TRANS_CMA(arglist) \
+  do {                       \
+  } while (0)
 #endif
 
 #ifdef DEBUG_LQH_TRANS
@@ -213,69 +248,119 @@
 #endif
 
 #ifdef DEBUG_EXEC_WRITE_COUNT
-#define DEB_EXEC_WRITE_COUNT(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_EXEC_WRITE_COUNT(arglist) \
+  do {                                \
+    g_eventLogger->info arglist;      \
+  } while (0)
 #else
-#define DEB_EXEC_WRITE_COUNT(arglist) do { } while (0)
+#define DEB_EXEC_WRITE_COUNT(arglist) \
+  do {                                \
+  } while (0)
 #endif
 
 #ifdef VM_TRACE
-NdbOut &
-operator<<(NdbOut& out, Dbtc::ConnectionState state){
-  switch(state){
-  case Dbtc::CS_CONNECTED: out << "CS_CONNECTED"; break;
-  case Dbtc::CS_DISCONNECTED: out << "CS_DISCONNECTED"; break;
-  case Dbtc::CS_STARTED: out << "CS_STARTED"; break;
-  case Dbtc::CS_RECEIVING: out << "CS_RECEIVING"; break;
-  case Dbtc::CS_RESTART: out << "CS_RESTART"; break;
-  case Dbtc::CS_ABORTING: out << "CS_ABORTING"; break;
-  case Dbtc::CS_RELEASE: out << "CS_RELEASE"; break;
-  case Dbtc::CS_COMPLETING: out << "CS_COMPLETING"; break;
-  case Dbtc::CS_COMPLETE_SENT: out << "CS_COMPLETE_SENT"; break;
-  case Dbtc::CS_PREPARE_TO_COMMIT: out << "CS_PREPARE_TO_COMMIT"; break;
-  case Dbtc::CS_COMMIT_SENT: out << "CS_COMMIT_SENT"; break;
-  case Dbtc::CS_START_COMMITTING: out << "CS_START_COMMITTING"; break;
-  case Dbtc::CS_COMMITTING: out << "CS_COMMITTING"; break;
-  case Dbtc::CS_REC_COMMITTING: out << "CS_REC_COMMITTING"; break;
-  case Dbtc::CS_WAIT_ABORT_CONF: out << "CS_WAIT_ABORT_CONF"; break;
-  case Dbtc::CS_WAIT_COMPLETE_CONF: out << "CS_WAIT_COMPLETE_CONF"; break;
-  case Dbtc::CS_WAIT_COMMIT_CONF: out << "CS_WAIT_COMMIT_CONF"; break;
-  case Dbtc::CS_FAIL_ABORTING: out << "CS_FAIL_ABORTING"; break;
-  case Dbtc::CS_FAIL_ABORTED: out << "CS_FAIL_ABORTED"; break;
-  case Dbtc::CS_FAIL_PREPARED: out << "CS_FAIL_PREPARED"; break;
-  case Dbtc::CS_FAIL_COMMITTING: out << "CS_FAIL_COMMITTING"; break;
-  case Dbtc::CS_FAIL_COMMITTED: out << "CS_FAIL_COMMITTED"; break;
-  case Dbtc::CS_FAIL_COMPLETED: out << "CS_FAIL_COMPLETED"; break;
-  case Dbtc::CS_START_SCAN: out << "CS_START_SCAN"; break;
-  case Dbtc::CS_SEND_FIRE_TRIG_REQ: out << "CS_SEND_FIRE_TRIG_REQ"; break;
-  case Dbtc::CS_WAIT_FIRE_TRIG_REQ: out << "CS_WAIT_FIRE_TRIG_REQ"; break;
+NdbOut &operator<<(NdbOut &out, Dbtc::ConnectionState state) {
+  switch (state) {
+    case Dbtc::CS_CONNECTED:
+      out << "CS_CONNECTED";
+      break;
+    case Dbtc::CS_DISCONNECTED:
+      out << "CS_DISCONNECTED";
+      break;
+    case Dbtc::CS_STARTED:
+      out << "CS_STARTED";
+      break;
+    case Dbtc::CS_RECEIVING:
+      out << "CS_RECEIVING";
+      break;
+    case Dbtc::CS_RESTART:
+      out << "CS_RESTART";
+      break;
+    case Dbtc::CS_ABORTING:
+      out << "CS_ABORTING";
+      break;
+    case Dbtc::CS_RELEASE: out << "CS_RELEASE"; break;
+  case Dbtc::CS_COMPLETING:
+      out << "CS_COMPLETING";
+      break;
+    case Dbtc::CS_COMPLETE_SENT:
+      out << "CS_COMPLETE_SENT";
+      break;
+    case Dbtc::CS_PREPARE_TO_COMMIT:
+      out << "CS_PREPARE_TO_COMMIT";
+      break;
+    case Dbtc::CS_COMMIT_SENT:
+      out << "CS_COMMIT_SENT";
+      break;
+    case Dbtc::CS_START_COMMITTING:
+      out << "CS_START_COMMITTING";
+      break;
+    case Dbtc::CS_COMMITTING:
+      out << "CS_COMMITTING";
+      break;
+    case Dbtc::CS_REC_COMMITTING:
+      out << "CS_REC_COMMITTING";
+      break;
+    case Dbtc::CS_WAIT_ABORT_CONF:
+      out << "CS_WAIT_ABORT_CONF";
+      break;
+    case Dbtc::CS_WAIT_COMPLETE_CONF:
+      out << "CS_WAIT_COMPLETE_CONF";
+      break;
+    case Dbtc::CS_WAIT_COMMIT_CONF:
+      out << "CS_WAIT_COMMIT_CONF";
+      break;
+    case Dbtc::CS_FAIL_ABORTING:
+      out << "CS_FAIL_ABORTING";
+      break;
+    case Dbtc::CS_FAIL_ABORTED:
+      out << "CS_FAIL_ABORTED";
+      break;
+    case Dbtc::CS_FAIL_PREPARED:
+      out << "CS_FAIL_PREPARED";
+      break;
+    case Dbtc::CS_FAIL_COMMITTING:
+      out << "CS_FAIL_COMMITTING";
+      break;
+    case Dbtc::CS_FAIL_COMMITTED:
+      out << "CS_FAIL_COMMITTED";
+      break;
+    case Dbtc::CS_FAIL_COMPLETED:
+      out << "CS_FAIL_COMPLETED";
+      break;
+    case Dbtc::CS_START_SCAN:
+      out << "CS_START_SCAN";
+      break;
+    case Dbtc::CS_SEND_FIRE_TRIG_REQ:
+      out << "CS_SEND_FIRE_TRIG_REQ";
+      break;
+    case Dbtc::CS_WAIT_FIRE_TRIG_REQ:
+      out << "CS_WAIT_FIRE_TRIG_REQ";
+      break;
 
-  default:
-    out << "Unknown: " << (int)state; break;
+    default:
+      out << "Unknown: " << (int)state;
+      break;
   }
   return out;
 }
-NdbOut &
-operator<<(NdbOut& out, Dbtc::OperationState state){
+NdbOut &operator<<(NdbOut &out, Dbtc::OperationState state) {
   out << (int)state;
   return out;
 }
-NdbOut &
-operator<<(NdbOut& out, Dbtc::AbortState state){
+NdbOut &operator<<(NdbOut &out, Dbtc::AbortState state) {
   out << (int)state;
   return out;
 }
-NdbOut &
-operator<<(NdbOut& out, Dbtc::ReturnSignal state){
+NdbOut &operator<<(NdbOut &out, Dbtc::ReturnSignal state) {
   out << (int)state;
   return out;
 }
-NdbOut &
-operator<<(NdbOut& out, Dbtc::ScanRecord::ScanState state){
+NdbOut &operator<<(NdbOut &out, Dbtc::ScanRecord::ScanState state) {
   out << (int)state;
   return out;
 }
-NdbOut &
-operator<<(NdbOut& out, Dbtc::ScanFragRec::ScanFragState state){
+NdbOut &operator<<(NdbOut &out, Dbtc::ScanFragRec::ScanFragState state) {
   out << (int)state;
   return out;
 }
@@ -284,32 +369,26 @@ operator<<(NdbOut& out, Dbtc::ScanFragRec::ScanFragState state){
 extern Uint32 ErrorSignalReceive;
 extern Uint32 ErrorMaxSegmentsToSeize;
 
-void
-Dbtc::updateBuddyTimer(ApiConnectRecordPtr apiPtr)
-{
+void Dbtc::updateBuddyTimer(ApiConnectRecordPtr apiPtr) {
   jam();
   ApiConnectRecordPtr buddyApiPtr;
   buddyApiPtr.i = apiPtr.p->buddyPtr;
 
-  if (unlikely(buddyApiPtr.i == RNIL))
-  {
+  if (unlikely(buddyApiPtr.i == RNIL)) {
     jam();
     return;
   }
-  if (unlikely(!c_apiConnectRecordPool.getValidPtr(buddyApiPtr)))
-  {
+  if (unlikely(!c_apiConnectRecordPool.getValidPtr(buddyApiPtr))) {
     jam();
     apiPtr.p->buddyPtr = RNIL;
     return;
   }
-  if (unlikely(getApiConTimer(buddyApiPtr) == 0))
-  {
+  if (unlikely(getApiConTimer(buddyApiPtr) == 0)) {
     jam();
     return;
   }
   if (unlikely((apiPtr.p->transid[0] != buddyApiPtr.p->transid[0]) ||
-               (apiPtr.p->transid[1] != buddyApiPtr.p->transid[1])))
-  {
+               (apiPtr.p->transid[1] != buddyApiPtr.p->transid[1]))) {
     jam();
     // Not a buddy anymore since not the same transid
     apiPtr.p->buddyPtr = RNIL;
@@ -319,25 +398,15 @@ Dbtc::updateBuddyTimer(ApiConnectRecordPtr apiPtr)
   setApiConTimer(buddyApiPtr, ctcTimer, __LINE__);
 }
 
-static
-inline
-bool
-tc_testbit(Uint32 flags, Uint32 flag)
-{
+static inline bool tc_testbit(Uint32 flags, Uint32 flag) {
   return (flags & flag) != 0;
 }
 
-static
-inline
-void
-tc_clearbit(Uint32 & flags, Uint32 flag)
-{
+static inline void tc_clearbit(Uint32 &flags, Uint32 flag) {
   flags &= ~(Uint32)flag;
 }
 
-inline static void
-prefetch_api_record_7(Uint32* api_ptr)
-{
+inline static void prefetch_api_record_7(Uint32 *api_ptr) {
   NDB_PREFETCH_WRITE(api_ptr);
   NDB_PREFETCH_WRITE(api_ptr + 16);
   NDB_PREFETCH_WRITE(api_ptr + 32);
@@ -347,8 +416,7 @@ prefetch_api_record_7(Uint32* api_ptr)
   NDB_PREFETCH_WRITE(api_ptr + 96);
 }
 
-void Dbtc::execCONTINUEB(Signal* signal) 
-{
+void Dbtc::execCONTINUEB(Signal *signal) {
   UintR tcase;
 
   jamEntry();
@@ -363,22 +431,22 @@ void Dbtc::execCONTINUEB(Signal* signal)
 #endif
   switch (tcase) {
 #ifdef DEBUG_QUERY_THREAD_USAGE
-  case TcContinueB::ZQUERY_THREAD_USAGE:
+    case TcContinueB::ZQUERY_THREAD_USAGE:
   {
-    jam();
+      jam();
     query_thread_usage(signal);
-    return;
+      return;
   }
 #endif
   case TcContinueB::ZCHECK_GCP_FINISHED:
   {
-    jam();
+      jam();
     checkGcpFinished(signal);
-    return;
+      return;
   }
   case TcContinueB::ZCHECK_TO_ABORT_HANDLING:
   {
-    jam();
+      jam();
     ApiConnectRecordPtr apiConnectptr;
     apiConnectptr.i = signal->theData[1];
     ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
@@ -391,28 +459,27 @@ void Dbtc::execCONTINUEB(Signal* signal)
     apiConnectptr.p->check_fail_data_process_ongoing = false;
     check_tc_hbrep(signal, apiConnectptr);
     checkFailData_abort(signal, apiConnectptr);
-    return;
+      return;
   }
-  case TcContinueB::ZCHECK_TO_COMMIT_HANDLING:
-  {
-    jam();
-    ApiConnectRecordPtr apiConnectptr;
-    apiConnectptr.i = signal->theData[1];
-    ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
-    tcConnectptr.i = signal->theData[2];
-    ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
+  case TcContinueB::ZCHECK_TO_COMMIT_HANDLING: {
+      jam();
+      ApiConnectRecordPtr apiConnectptr;
+      apiConnectptr.i = signal->theData[1];
+      ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
+      tcConnectptr.i = signal->theData[2];
+      ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
     ndbrequire(apiConnectptr.p->finish_trans_counter > 0);
     apiConnectptr.p->finish_trans_counter--;
     ndbrequire(!apiConnectptr.p->send_fail_data_process_ongoing &&
-               apiConnectptr.p->check_fail_data_process_ongoing);
+                 apiConnectptr.p->check_fail_data_process_ongoing);
     apiConnectptr.p->check_fail_data_process_ongoing = false;
     check_tc_hbrep(signal, apiConnectptr);
     checkFailData_commit(signal, apiConnectptr);
-    return;
-  }
-  case TcContinueB::ZCHECK_TO_COMPLETE_HANDLING:
+      return;
+    }
+    case TcContinueB::ZCHECK_TO_COMPLETE_HANDLING:
   {
-    jam();
+      jam();
     ApiConnectRecordPtr apiConnectptr;
     apiConnectptr.i = signal->theData[1];
     ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
@@ -423,9 +490,10 @@ void Dbtc::execCONTINUEB(Signal* signal)
     ndbrequire(!apiConnectptr.p->send_fail_data_process_ongoing &&
                apiConnectptr.p->check_fail_data_process_ongoing);
     apiConnectptr.p->check_fail_data_process_ongoing = false;
-    check_tc_hbrep(signal, apiConnectptr);
+    check_tc_hbrep(signal,
+                            apiConnectptr);
     checkFailData_complete(signal, apiConnectptr);
-    return;
+      return;
   }
   case TcContinueB::ZSEND_TO_ABORT_HANDLING:
   {
@@ -433,10 +501,10 @@ void Dbtc::execCONTINUEB(Signal* signal)
     ApiConnectRecordPtr apiConnectptr;
     apiConnectptr.i = signal->theData[1];
     ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
-    tcConnectptr.i = signal->theData[2];
+      tcConnectptr.i = signal->theData[2];
     ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
     ndbrequire(apiConnectptr.p->finish_trans_counter > 0);
-    apiConnectptr.p->finish_trans_counter--;
+      apiConnectptr.p->finish_trans_counter--;
     /**
      * We can only handle one thread at a time that acts on the transaction.
      * There are thus three possible states, no process is ongoing and we
@@ -457,18 +525,17 @@ void Dbtc::execCONTINUEB(Signal* signal)
      * the process of sending, but want to ensure that our state
      * checking works ok.
      */
-    ndbrequire(apiConnectptr.p->send_fail_data_process_ongoing &&
+      ndbrequire(apiConnectptr.p->send_fail_data_process_ongoing &&
                !apiConnectptr.p->check_fail_data_process_ongoing);
     apiConnectptr.p->send_fail_data_process_ongoing = false;
     check_tc_hbrep(signal, apiConnectptr);
     toAbortHandlingLab(signal, apiConnectptr);
-    return;
-  }
-  case TcContinueB::ZSEND_TO_COMMIT_HANDLING:
-  {
-    jam();
-    ApiConnectRecordPtr apiConnectptr;
-    apiConnectptr.i = signal->theData[1];
+      return;
+    }
+    case TcContinueB::ZSEND_TO_COMMIT_HANDLING: {
+      jam();
+      ApiConnectRecordPtr apiConnectptr;
+      apiConnectptr.i = signal->theData[1];
     ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
     tcConnectptr.i = signal->theData[2];
     ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
@@ -476,7 +543,7 @@ void Dbtc::execCONTINUEB(Signal* signal)
     apiConnectptr.p->finish_trans_counter--;
     ndbrequire(apiConnectptr.p->send_fail_data_process_ongoing &&
                !apiConnectptr.p->check_fail_data_process_ongoing);
-    apiConnectptr.p->send_fail_data_process_ongoing = false;
+     apiConnectptr.p->send_fail_data_process_ongoing = false;
     check_tc_hbrep(signal, apiConnectptr);
     toCommitHandlingLab(signal, apiConnectptr);
     return;
@@ -489,20 +556,30 @@ void Dbtc::execCONTINUEB(Signal* signal)
     ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
     tcConnectptr.i = signal->theData[2];
     ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
-    ndbrequire(apiConnectptr.p->finish_trans_counter > 0);
-    apiConnectptr.p->finish_trans_counter--;
+      ndbrequire(apiConnectptr.p->finish_trans_counter > 0);
+      apiConnectptr.p->finish_trans_counter--;
     ndbrequire(apiConnectptr.p->send_fail_data_process_ongoing &&
-               !apiConnectptr.p->check_fail_data_process_ongoing);
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  } !apiConnectptr.p->check_fail_data_process_ongoing);
     apiConnectptr.p->send_fail_data_process_ongoing = false;
     check_tc_hbrep(signal, apiConnectptr);
     toCompleteHandlingLab(signal, apiConnectptr);
     return;
-  }
-  case TcContinueB::ZSEND_SETUP_FAIL_DATA:
-  {
-    jam();
-    ApiConnectRecordPtr apiConnectptr;
-    apiConnectptr.i = signal->theData[1];
+    }
+    case TcContinueB::ZSEND_SETUP_FAIL_DATA: {
+      jam();
+      ApiConnectRecordPtr apiConnectptr;
+      apiConnectptr.i = signal->theData[1];
     ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
     tcConnectptr.i = signal->theData[2];
     ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
@@ -516,8 +593,8 @@ void Dbtc::execCONTINUEB(Signal* signal)
       ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
       if (type == ZABORT_SETUP)
       {
-        jam();
-        apiConnectptr.p->returnsignal = RS_TCROLLBACKREP;
+          jam();
+          apiConnectptr.p->returnsignal = RS_TCROLLBACKREP;
         apiConnectptr.p->returncode = ZNODEFAIL_BEFORE_COMMIT;
         toAbortHandlingLab(signal, apiConnectptr);
         return;
@@ -534,10 +611,9 @@ void Dbtc::execCONTINUEB(Signal* signal)
         toCompleteHandlingLab(signal, apiConnectptr);
       }
     }
-    return;
-  }
-  case TcContinueB::ZRELEASE_SEIZED_INDEX_OPS:
-  {
+      return;
+    }
+    case TcContinueB::ZRELEASE_SEIZED_INDEX_OPS: {
     jam();
     LocalTcIndexOperation_dllist::Head seize_index_head;
     Uint32 size_head = sizeof(seize_index_head);
@@ -548,7 +624,18 @@ void Dbtc::execCONTINUEB(Signal* signal)
            size_head);
     releaseAllSeizedIndexOperations(signal,
                                     &seize_index_head,
-                                    loop_count,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }         loop_count,
                                     true);
     return;
   }
@@ -564,8 +651,30 @@ void Dbtc::execCONTINUEB(Signal* signal)
            size_head);
     releaseFiredTriggerData(signal,
                             &triggers_head,
-                            loop_count,
-                            true);
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+%u:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"
+            "%u:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        loop_count,
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+instance(),
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    instance(),             true);
     return;
   }
   case TcContinueB::ZRELEASE_TRANS_RESOURCES:
@@ -587,9 +696,8 @@ void Dbtc::execCONTINUEB(Signal* signal)
     check_tc_hbrep(signal, apiConnectptr);
     releaseAbortResources(signal, apiConnectptr, false);
     return;
-  }
-  case TcContinueB::ZRELEASE_TAKE_OVER:
-  {
+    }
+    case TcContinueB::ZRELEASE_TAKE_OVER: {
     jam();
     ApiConnectRecordPtr apiConnectptr;
     apiConnectptr.i = signal->theData[1];
@@ -603,7 +711,7 @@ void Dbtc::execCONTINUEB(Signal* signal)
     jam();
     ApiConnectRecordPtr apiConnectptr;
     apiConnectptr.i = signal->theData[1];
-    ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
+      ndbrequire(c_apiConnectRecordPool.getValidPtr(apiConnectptr));
     remove_takeover_transaction(signal, apiConnectptr);
     return;
   }
@@ -614,19 +722,84 @@ void Dbtc::execCONTINUEB(Signal* signal)
   case TcContinueB::ZRETURN_FROM_QUEUED_DELIVERY:
     jam();
     ndbabort();
-    return;
-  case TcContinueB::ZCOMPLETE_TRANS_AT_TAKE_OVER:
-    jam();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TcContinueB::ZCOMPLETE_TRANS_AT_TAKE_OVER:
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ else
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ jam();
     tcNodeFailptr.i = Tdata0;
     ptrCheckGuard(tcNodeFailptr, 1, tcFailRecord);
     completeTransAtTakeOverLab(signal, Tdata1);
     return;
   case TcContinueB::ZCONTINUE_TIME_OUT_CONTROL:
     jam();
-    timeOutLoopStartLab(signal, Tdata0);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execDIGETNODESREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execDIGETNODESREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+timeOutLoopStartLab(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal,
+                             Tdata0);
     return;
-  case TcContinueB::ZNODE_TAKE_OVER_COMPLETED:
-    jam();
+  case TcContinueB::ZNODE_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TAKE_OVER_COMPLETED:
+||||||| Common ancestor
+NODEREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NODEREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jam();
     tcNodeFailptr.i = 0;
     ptrAss(tcNodeFailptr, tcFailRecord);
     nodeTakeOverCompletedLab(signal, Tdata0, 0);
@@ -648,7 +821,27 @@ void Dbtc::execCONTINUEB(Signal* signal)
       return;
     }
     check_tc_hbrep(signal, apiConnectptr);
-    tcConnectptr.i = Tdata1;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execREAD_NODESREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execREAD_NODESREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  tcConnectptr.i = Tdata1;
     ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
     ndbrequire(apiConnectptr.p->counter > 0);
     apiConnectptr.p->counter--;
@@ -666,7 +859,27 @@ void Dbtc::execCONTINUEB(Signal* signal)
       jam();
       setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
       return;
-    }
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+KeyDescriptor*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+KeyDescriptor
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+desc
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*desc
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     check_tc_hbrep(signal, apiConnectptr);
     tcConnectptr.i = Tdata1;
     ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
@@ -691,10 +904,27 @@ void Dbtc::execCONTINUEB(Signal* signal)
       const Uint32 report_interval = 5000;
       const Uint32 len = c_counters.build_continueB(signal);
       signal->theData[0] = TcContinueB::ZTRANS_EVENT_REP;
-      sendSignalWithDelay(cownref, GSN_CONTINUEB, signal, report_interval, len);
+      sendSignalWithDelay(cownref, GSN_CONTINUEB, signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+report_interval,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+TcSchVerConf::SignalLength,
+>>>>>>> MySQL 8.0.36
+ len);
     }
     return;
-  case TcContinueB::ZCONTINUE_TIME_OUT_FRAG_CONTROL:
+  case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TcContinueB::ZCONTINUE_TIME_OUT_FRAG_CONTROL:
+||||||| Common ancestor
+TcSchVerConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
     jam();
     timeOutLoopStartFragLab(signal, Tdata0);
     return;
@@ -714,7 +944,29 @@ void Dbtc::execCONTINUEB(Signal* signal)
     apiConnectptr.p->counter--;
     tcConnectptr.i = Tdata1;
     abort015Lab(signal, apiConnectptr);
-    return;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Dbtc::execPREP_DROP_TAB_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Dbtc::execPREP_DROP_TAB_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+   return;
   }
   case TcContinueB::ZHANDLE_FAILED_API_NODE_REMOVE_MARKERS:
     jam();
@@ -739,10 +991,29 @@ void Dbtc::execCONTINUEB(Signal* signal)
     transPtr.i = Tdata0;
     c_apiConnectRecordPool.getPtr(transPtr);
 #ifdef ERROR_INSERT
-    if (ERROR_INSERTED(8082))
-    {
+    if (ERROR_INSERTED(8082))   {
       /* Max of 100000 TRIGGER_PENDING TcContinueBs to 
-       * single ApiConnectRecord
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+PrepDropTabRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PrepDropTabRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  * single ApiConnectRecord
        * See testBlobs -bug 45768
        */
       if (++transPtr.p->continueBCount > 100000)
@@ -751,14 +1022,82 @@ void Dbtc::execCONTINUEB(Signal* signal)
       }
     }
 #endif
-    /* Check that ConnectRecord is for the same Trans Id */
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+PrepDropTabConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+PrepDropTabConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Check
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conf =
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ that ConnectRecord is for the same Trans Id */
     if (likely((transPtr.p->transid[0] == Tdata1) &&
                (transPtr.p->transid[1] == Tdata2)))
     {
-      ndbrequire(tc_testbit(transPtr.p->m_flags,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DropTabReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DropTabReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   ndbrequire(tc_testbit(transPtr.p->m_flags,
                             ApiConnectRecord::TF_TRIGGER_PENDING));
       tc_clearbit(transPtr.p->m_flags, ApiConnectRecord::TF_TRIGGER_PENDING);
-      /* Try executing triggers now */
+      /* Try 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+executing
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DropTabRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DropTabRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+triggers
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ now */
       executeTriggers(signal, &transPtr);
     }
     return;
@@ -767,9 +1106,33 @@ void Dbtc::execCONTINUEB(Signal* signal)
   {
     jam();
     ApiConnectRecordPtr apiConnectptr;
-    apiConnectptr.i = Tdata0;
+    apiConnectptr.i = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Tdata0;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal, DropTabRef::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     c_apiConnectRecordPool.getPtr(apiConnectptr);
-    sendtckeyconf(signal, Tdata1, apiConnectptr);
+    sendtckeyconf(signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Tdata1,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DropTabRef::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ apiConnectptr);
     return;
   }
   case TcContinueB::ZSEND_FIRE_TRIG_REQ:
@@ -780,7 +1143,27 @@ void Dbtc::execCONTINUEB(Signal* signal)
     c_apiConnectRecordPool.getPtr(apiConnectptr);
     {
       if (unlikely(! (apiConnectptr.p->transid[0] == Tdata1 &&
-                      apiConnectptr.p->transid[1] == Tdata2 &&
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal, DropTabRef::SignalLength,
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+DropTabRef::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           apiConnectptr.p->transid[1] == Tdata2 &&
                       apiConnectptr.p->isExecutingDeferredTriggers())))
       {
         warningReport(signal, 29, 0);
@@ -806,9 +1189,35 @@ void Dbtc::execCONTINUEB(Signal* signal)
     jam();
     ApiConnectRecordPtr apiConnectptr;
     apiConnectptr.i = Tdata0;
-    if (unlikely(! c_apiConnectRecordPool.getValidPtr(apiConnectptr) ||
-                 ! (apiConnectptr.p->transid[0] == Tdata1 &&
-                    apiConnectptr.p->transid[1] == Tdata2 &&
+    if (unlikely(! c_apiConnectRecordPool.getValidPtr(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&api_ptr,
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ||
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+             ! (apiConnectptr.p->transid[0] == Tdata1 &&
+                    apiConnectptr.p->transid[1] == Tdata2
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&api_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ &&
                     apiConnectptr.p->apiConnectstate == CS_START_SCAN)))
     {
       jam();
@@ -927,8 +1336,7 @@ void Dbtc::execCONTINUEB(Signal* signal)
     ndbrequire(pool_index < c_transient_pool_count);
     if (!c_transient_pools_shrinking.get(pool_index))
     {
-#if defined(VM_TRACE) || defined(ERROR_INSERT)
-      ndbabort();
+#if defined(VM_TRACE) || defined(ERROR_INSERT)     ndbabort();
 #endif
       break;
     }
@@ -955,10 +1363,32 @@ void Dbtc::execDIGETNODESREF(Signal* signal, ApiConnectRecordPtr const apiConnec
   releaseAtErrorLab(signal, apiConnectptr);
 }
 
-void Dbtc::execINCL_NODEREQ(Signal* signal) 
+void Dbtc::execINCL_NODEREQ(Signal*signal) 
 {
   jamEntry();
-  tblockref = signal->theData[0];
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+AlterTabReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AlterTabReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tblockref
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = signal->theData[0];
   hostptr.i = signal->theData[1];
   ptrCheckGuard(hostptr, chostFilesize, hostRecord);
   hostptr.p->hostStatus = HS_ALIVE;
@@ -970,7 +1400,7 @@ void Dbtc::execINCL_NODEREQ(Signal* signal)
   signal->theData[0] = hostptr.i;
   signal->theData[1] = cownref;
 
-  if (ERROR_INSERTED(8039))
+    if (ERROR_INSERTED(8039))
   {
     CLEAR_ERROR_INSERT_VALUE;
     Uint32 save = signal->theData[0];
@@ -1006,9 +1436,35 @@ void Dbtc::execTC_SCHVERREQ(Signal* signal)
   tabptr.p->set_storedTable((bool)req->tableLogged);
   BlockReference retRef = req->senderRef;
   tabptr.p->tableType = (Uint8)req->tableType;
-  BlockReference retPtr = req->senderData;
-  Uint32 noOfKeyAttr = req->noOfPrimaryKeys;
+  BlockReference retPtr = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req->senderData;
+  Uint32 noOfKeyAttr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ }
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+req->noOfPrimaryKeys;
   tabptr.p->singleUserMode = (Uint8)req->singleUserMode;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ else
+      {
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   Uint32 userDefinedPartitioning = (Uint8)req->userDefinedPartition;
   ndbrequire(noOfKeyAttr <= MAX_ATTRIBUTES_IN_INDEX);
 
@@ -1121,7 +1577,7 @@ Dbtc::execPREP_DROP_TAB_REQ(Signal* signal)
     return;
   }
   
-  tabPtr.p->set_dropping(true);
+    tabPtr.p->set_dropping(true);
   tabPtr.p->set_prepared(false);
 
   PrepDropTabConf* conf = (PrepDropTabConf*)signal->getDataPtrSend();
@@ -1140,14 +1596,14 @@ Dbtc::execDROP_TAB_REQ(Signal* signal)
   DropTabReq* req = (DropTabReq*)signal->getDataPtr();
   
   TableRecordPtr tabPtr;
-  tabPtr.i = req->tableId;
+    tabPtr.i = req->tableId;
   ptrCheckGuard(tabPtr, ctabrecFilesize, tableRecord);
   
   Uint32 senderRef = req->senderRef;
   Uint32 senderData = req->senderData;
   DropTabReq::RequestType rt = (DropTabReq::RequestType)req->requestType;
 
-  if(!tabPtr.p->get_enabled() && rt == DropTabReq::OnlineDropTab){
+    if(!tabPtr.p->get_enabled() && rt == DropTabReq::OnlineDropTab){
     jam();
     DropTabRef* ref = (DropTabRef*)signal->getDataPtrSend();
     ref->senderRef = reference();
@@ -1159,13 +1615,34 @@ Dbtc::execDROP_TAB_REQ(Signal* signal)
     return;
   }
 
-  if(!tabPtr.p->get_dropping() && rt == DropTabReq::OnlineDropTab){
+    if(!tabPtr.p->get_dropping() && rt == DropTabReq::OnlineDropTab){
     jam();
     DropTabRef* ref = (DropTabRef*)signal->getDataPtrSend();
     ref->senderRef = reference();
     ref->senderData = senderData;
-    ref->tableId = tabPtr.i;
-    ref->errorCode = DropTabRef::DropWoPrep;
+    ref->tableId = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtr.i;
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ ref->errorCode 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ DropTabRef::DropWoPrep;
     sendSignal(senderRef, GSN_DROP_TAB_REF, signal,
 	       DropTabRef::SignalLength, JBB);
     return;
@@ -1175,17 +1652,73 @@ Dbtc::execDROP_TAB_REQ(Signal* signal)
   tabPtr.p->set_prepared(false);
   tabPtr.p->set_dropping(false);
   
-  DropTabConf * conf = (DropTabConf*)signal->getDataPtrSend();
+  DropTabConf 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AlterTabConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+AlterTabConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *conf = (DropTabConf*)signal->getDataPtrSend();
   conf->tableId = tabPtr.i;
   conf->senderRef = reference();
   conf->senderData = senderData;
   sendSignal(senderRef, GSN_DROP_TAB_CONF, signal,
-	     PrepDropTabConf::SignalLength, JBB);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ AlterTabConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+PrepDropTabConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+AlterTabConf::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ JBB);
 }
 
 void Dbtc::scan_for_read_backup(Signal *signal,
                                 Uint32 start_api_ptr,
-                                Uint32 senderData,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execREAD_CONFIG_REQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execREAD_CONFIG_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ senderData,
                                 Uint32 senderRef)
 {
   Uint32 loop_count = 0;
@@ -1201,8 +1734,7 @@ void Dbtc::scan_for_read_backup(Signal *signal,
     loop_count += NDB_ARRAY_SIZE(ptrs);
     for (Uint32 i = 0; i < ptr_cnt; i++)
     {
-      if (!Magic::match(ptrs[i].p->m_magic, ApiConnectRecord::TYPE_ID))
-      {
+      if (!Magic::match(ptrs[i].p->m_magic, ApiConnectRecord::TYPE_ID))     {
         continue;
       }
       ApiConnectRecordPtr const& apiConnectptr = ptrs[i];
@@ -1210,7 +1742,27 @@ void Dbtc::scan_for_read_backup(Signal *signal,
       switch (regApiPtr->apiConnectstate)
       {
         case CS_STARTED:
-        {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execSTTOR(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execSTTOR(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    {
           if (regApiPtr->tcConnect.isEmpty())
           {
             /**
@@ -1221,7 +1773,7 @@ void Dbtc::scan_for_read_backup(Signal *signal,
           }
           else
           {
-            /* Transaction is ongoing, set delayed commit flag. */
+            /* Transaction is ongoing, set delayed commit flag.   */
             jam();
             regApiPtr->m_flags |= ApiConnectRecord::TF_LATE_COMMIT;
           }
@@ -1231,8 +1783,8 @@ void Dbtc::scan_for_read_backup(Signal *signal,
         {
           /**
            * Transaction is still ongoing and hasn't started commit, we will
-           * set delayed commit flag.
-           */
+             * set delayed commit flag.
+             */
           jam();
           regApiPtr->m_flags |= ApiConnectRecord::TF_LATE_COMMIT;
           break;
@@ -1241,7 +1793,28 @@ void Dbtc::scan_for_read_backup(Signal *signal,
         {
           jam();
           /**
-           * The transaction is either:
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ * The
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ transaction 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ either:
            * 1) Committing
            * 2) Scanning
            * 3) Aborting
@@ -1258,7 +1831,31 @@ void Dbtc::scan_for_read_backup(Signal *signal,
       }
     }
   }
-  if (api_ptr == RNIL)
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+api_ptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ RNIL)
   {
     jam();
     /**
@@ -1279,7 +1876,17 @@ void Dbtc::scan_for_read_backup(Signal *signal,
   sendSignal(cownref, GSN_CONTINUEB, signal, 4, JBB);
 }
 
-void Dbtc::execALTER_TAB_REQ(Signal * signal)
+void Dbtc::execALTER_TAB_REQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ *signal)
 {
   const AlterTabReq* req = (const AlterTabReq*)signal->getDataPtr();
   const Uint32 senderRef = req->senderRef;
@@ -1295,8 +1902,8 @@ void Dbtc::execALTER_TAB_REQ(Signal * signal)
   ptrCheckGuard(tabPtr, ctabrecFilesize, tableRecord);
 
   switch (requestType) {
-  case AlterTabReq::AlterTablePrepare:
-    jam();
+    case AlterTabReq::AlterTablePrepare:
+      jam();
     if (AlterTableReq::getReadBackupFlag(req->changeMask))
     {
       if ((tabPtr.p->m_flags & TableRecord::TR_READ_BACKUP) != 0)
@@ -1309,11 +1916,31 @@ void Dbtc::execALTER_TAB_REQ(Signal * signal)
          */
         D("Prepare to change ReadBackup Flag, already set for table"
           << tabPtr.i);
-      }
+        }
       else
       {
         /**
-         * Table have not set the Read Backup flag yet. We will set
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::ndbsttorry010Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::ndbsttorry010Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       * Table have not set the Read Backup flag yet. We will set
          * it in a safe manner. We do this by first ensuring that
          * all current ongoing transactions delay their report of
          * commit (we do this since we don't know which transactions
@@ -1330,7 +1957,31 @@ void Dbtc::execALTER_TAB_REQ(Signal * signal)
          * the only transactions that are not delayed is the ones
          * that was committing already when we came here. These
          * have time until we're back here to commit to complete
-         * that phase. So would be a very extreme case and possibly
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::startphase1x010Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::startphase1x010Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ phase. So would be a very extreme case and possibly
          * even impossible case that not all these transactions
          * are completed yet.
          *
@@ -1363,8 +2014,28 @@ void Dbtc::execALTER_TAB_REQ(Signal * signal)
     }
     break;
   case AlterTabReq::AlterTableCommit:
-    jam();
-    if (AlterTableReq::getReadBackupFlag(req->changeMask))
+    jam(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   if (AlterTableReq::getReadBackupFlag(req->changeMask))
     {
       if ((tabPtr.p->m_flags & TableRecord::TR_READ_BACKUP) != 0)
       {
@@ -1398,8 +2069,7 @@ void Dbtc::execALTER_TAB_REQ(Signal * signal)
 /* ***************************************************************************/
 /*                                START / RESTART                            */
 /* ***************************************************************************/
-void Dbtc::execREAD_CONFIG_REQ(Signal* signal) 
-{
+void Dbtc::execREAD_CONFIG_REQ(Signal *signal) {
   const ReadConfigReq * req = (ReadConfigReq*)signal->getDataPtr();
   Uint32 ref = req->senderRef;
   Uint32 senderData = req->senderData;
@@ -1447,7 +2117,7 @@ void Dbtc::execREAD_CONFIG_REQ(Signal* signal)
   cDbHbInterval = (val < 10) ? 10 : val;
 
   val = 3000;
-  ndb_mgm_get_int_parameter(p, CFG_DB_TRANSACTION_INACTIVE_TIMEOUT, &val);
+  ndb_mgm_get_int_parameter(p,   CFG_DB_TRANSACTION_INACTIVE_TIMEOUT, &val);
   set_appl_timeout_value(val);
 
   val = 1;
@@ -1515,7 +2185,30 @@ void Dbtc::execSTTOR(Signal* signal)
        * DBTC blocks gets STTOR in parallel, but only the first instance
        * is allowed to initialise the static variables for Round Robin
        * groups. Before we set m_inited_rr_groups to true we first
-       * assign all other variables and perform a memory barrier to
+       * assign all 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+other
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::execAPI_FAILREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execAPI_FAILREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+variables
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ and perform a memory barrier to
        * ensure that other blocks see the changes in the correct order.
        *
        * If another thread arrives before completion of the initialisation
@@ -1547,15 +2240,33 @@ void Dbtc::execSTTOR(Signal* signal)
       DEB_RR_INIT(("(%u) RR Groups inited", instance()));
     }
     fill_distr_references(&m_distribution_handle);
-    calculate_distribution_signal(&m_distribution_handle);
-    if (first_instance)
-    {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ calculate_distribution_signal(&m_distribution_handle);
+    if (first_instance)   {
       print_static_distr_info(&m_distribution_handle);
     }
     startphase1x010Lab(signal);
     return;
-  }
-  case 7:
+  } case 7:
   {
     jam();
     signal->theData[0] = TcContinueB::ZCHECK_GCP_FINISHED;
@@ -1640,14 +2351,33 @@ void Dbtc::execNDB_STTOR(Signal* signal)
   default:
     jam();
     break;
-  }//switch
+ << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}//switch
+||||||| Common ancestor
+=======
+apiConnectptr.p->ndbapiBlockref
+>>>>>>> MySQL 8.0.36
   ndbsttorry010Lab(signal);
   return;
 }//Dbtc::execNDB_STTOR()
 
 void Dbtc::ndbsttorry010Lab(Signal* signal) 
 {
-  signal->theData[0] = cownref;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->theData[0]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<< apiConnectptr.p->ndbapiBlockref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = cownref;
   sendSignal(c_sttor_ref, GSN_NDB_STTORRY, signal, 1, JBB);
 }//Dbtc::ndbsttorry010Lab()
 
@@ -1724,9 +2454,52 @@ void Dbtc::intstartphase1x010Lab(Signal* signal, NodeId nodeId)
 }//Dbtc::intstartphase1x010Lab()
 
 /*****************************************************************************/
-/*                         I N T S T A R T P H A S E 3 X                     */
+/*       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CS_START_SCAN:
+=======
+CS_START_SCAN: {
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+    /*********************************************************************/
+      // The api record was performing a scan operation. We need to check
+      // on the scan state. Since completing a scan process might involve
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+/*********************************************************************/
+=======
+  // sending several signals we will increase the loop count by 64.
+      /*********************************************************************/
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        I N T S T A R T P H A S E 3 X                     */
 /*****************************************************************************/
-void Dbtc::intstartphase3x010Lab(Signal* signal) 
+void Dbtc::intstartphase3x010Lab
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+// The api record was performing a scan operation. We need to check 
+    // on the scan state. Since completing a scan process might involve
+    // sending several signals we will increase the loop count by 64.
+    /*********************************************************************/
+    jam
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal* signal) 
 {
   signal->theData[0] = cownref;
   sendSignal(cndbcntrblockref, GSN_READ_NODESREQ, signal, 1, JBB);
@@ -1756,7 +2529,7 @@ void Dbtc::execREAD_NODESCONF(Signal* signal)
   con_lineNodes = 0;
   arrGuard(csystemnodes, MAX_NDB_NODES);
   guard0 = csystemnodes - 1;
-  arrGuard(guard0, MAX_NDB_NODES);       // Check not zero nodes
+  arrGuard(guard0, MAX_NDB_NODES);         // Check not zero nodes
 
   for (unsigned i = 1; i < MAX_NDB_NODES; i++) {
     jam();
@@ -1773,11 +2546,59 @@ void Dbtc::execREAD_NODESCONF(Signal* signal)
                          instance(),
                          hostptr.i));
         hostptr.p->hostStatus = HS_DEAD;
-      } else {
+      }
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+
+void
+Dbtc::handleFailedApiNode(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+
+void Dbtc::handleFailedApiNode(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+UintR TapiFailedNode,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
         jam();
         con_lineNodes++;
-        DEB_NODE_STATUS(("(%u) Node: %u now alive",
-                         instance(),
+        DEB_NODE_STATUS(("(%u) Node: %u 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+now alive",
+                     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+UintR TapiFailedNode, 
+                     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    instance(),
                          hostptr.i));
         hostptr.p->hostStatus = HS_ALIVE;
         c_alive_nodes.set(i);
@@ -1786,8 +2607,21 @@ void Dbtc::execREAD_NODESCONF(Signal* signal)
   }//for
 
   ndb_mgm_configuration_iterator *p_iter =
-    ndb_mgm_create_configuration_iterator(m_ctx.m_config.getClusterConfig(),
-                                          CFG_SECTION_NODE);
+    ndb_mgm_create_configuration_iterator(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+m_ctx.m_config.getClusterConfig(),
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&api_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                                  CFG_SECTION_NODE);
   for (ndb_mgm_first(p_iter);
        ndb_mgm_valid(p_iter);
        ndb_mgm_next(p_iter))
@@ -1796,10 +2630,40 @@ void Dbtc::execREAD_NODESCONF(Signal* signal)
     Uint32 location_domain_id = 0;
     Uint32 nodeId = 0;
     Uint32 nodeType = 0;
-    ndbrequire(!ndb_mgm_get_int_parameter(p_iter, CFG_NODE_ID, &nodeId) &&
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                        ptrs,
+                                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&api_ptr, ptrs,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ndbrequire(!ndb_mgm_get_int_parameter(p_iter, CFG_NODE_ID, &nodeId) &&
                nodeId != 0);
     ndbrequire(!ndb_mgm_get_int_parameter(p_iter,
-                                          CFG_TYPE_OF_SECTION,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                 CFG_TYPE_OF_SECTION,
                                           &nodeType));
     jamLine(Uint16(nodeId));
     if (nodeType != NODE_TYPE_DB)
@@ -1823,10 +2687,43 @@ void Dbtc::execREAD_NODESCONF(Signal* signal)
     m_my_location_domain_id = Town_hostptr.p->m_location_domain_id;
   }
   ndbsttorry010Lab(signal);
-}//Dbtc::execREAD_NODESCONF()
+}  // Dbtc::execREAD_NODESCONF()
 
+<<<<<<< RonDB // RONDB-624 todo
 /*****************************************************************************/
-/*                     A P I _ F A I L R E Q                                 */
+/*                     A P I _ F A I
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void
+Dbtc::removeMarkerForFailedAPI(Signal* signal, 
+                           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::removeMarkerForFailedAPI(Signal *signal, NodeId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+L
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+nodeId,
+>>>>>>> MySQL 8.0.36
+ R E 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Q
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NodeId nodeId,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                 */
 // An API node has failed for some reason. We need to disconnect all API 
 // connections to the API node. This also includes 
 /*****************************************************************************/
@@ -1888,7 +2785,24 @@ Dbtc::set_api_fail_state(Uint32 TapiFailedNode, bool apiNodeFailed, ApiConnectRe
 
 bool Dbtc::handleFailedApiConnection(Signal *signal,
                                      Uint32 *TloopCount,
-                                     Uint32 TapiFailedNode,
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+apiConnectPtr.p->commitAckMarker == iter.curr.i)
+=======
+apiConnectPtr.p->commitAckMarker == iter.curr.i) {
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	jam();
+=======
+  jam();
+>>>>>>> MySQL 8.0.36
+                     Uint32 TapiFailedNode,
                                      bool apiNodeFailed,
                                      ApiConnectRecordPtr const apiConnectptr)
 {
@@ -1921,9 +2835,28 @@ bool Dbtc::handleFailedApiConnection(Signal *signal,
            << "  apiNode = " << refToNode(apiConnectptr.p->ndbapiBlockref) 
            << endl;
     LocalTcConnectRecord_fifo tcConList(tcConnectRecord,
-                                        apiConnectptr.p->tcConnect);
-    if (tcConList.last(tcConnectptr))
-    {
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::handleApiFailState(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::handleApiFailState(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                            apiConnectptr.p->tcConnect);
+    if (tcConList.last(tcConnectptr)) {
       jam();
       ndbout << "  tcConnectptr.i = " << tcConnectptr.i << endl
              << "  tcConnectstate = " << tcConnectptr.p->tcConnectstate 
@@ -1947,7 +2880,7 @@ bool Dbtc::handleFailedApiConnection(Signal *signal,
   {
     /*********************************************************************/
     // These states do not need any special handling. 
-    // Simply continue with the next.
+     // Simply continue with the next.
     /*********************************************************************/
     jam();
     break;
@@ -1979,9 +2912,54 @@ bool Dbtc::handleFailedApiConnection(Signal *signal,
     // that the API node has failed.
     // Also we will increase the number of outstanding api records to 
     // wait for before we can respond with API_FAILCONF.
-    /*********************************************************************/
-    jam();
-    set_api_fail_state(TapiFailedNode, apiNodeFailed, apiConnectptr.p);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*********************************************************************/
+||||||| Common ancestor
+case NodeState::SL_SINGLEUSER:
+	      break;
+	    default:
+	      errCode = ZWRONG_STATE;
+	      break;
+	    }
+=======
+case NodeState::SL_SINGLEUSER:
+              break;
+            default:
+              errCode = ZWRONG_STATE;
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        if (errCode)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+break;
+          }
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        {
+              g
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      if (errCode) {
+            g
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_api_fail_state(TapiFailedNode, apiNodeFailed, apiConnectptr.p);
     break;
   case CS_START_SCAN:
   {
@@ -2057,8 +3035,28 @@ Dbtc::handleFailedApiNode(Signal* signal,
     Uint32 ptr_cnt =
         c_apiConnectRecordPool.getUncheckedPtrs(&api_ptr,
                                                 ptrs,
-                                                NDB_ARRAY_SIZE(ptrs));
-    loop_count += NDB_ARRAY_SIZE(ptrs);
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+handleFailedApiConnection(signal,
+=======
+handleFailedApiConnection(
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                               NDB_ARRAY_SIZE(ptrs));
+    loop_count +=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ NDB_ARRAY_SIZE(ptrs);
     for (Uint32 i = 0; i < ptr_cnt; i++)
     {
       jam();
@@ -2149,11 +3147,51 @@ Dbtc::removeMarkerForFailedAPI(Signal* signal,
         // Perform SimulatedBlock level cleanup before sending
         // API_FAILCONF
         /********************************************************************/
-        Callback cb = {safe_cast(&Dbtc::apiFailBlockCleanupCallback),
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbtc::signalErrorRefuseLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::signalErrorRefuseLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       Callback cb = {safe_cast(&Dbtc::apiFailBlockCleanupCallback),
                        nodeId};
         simBlockNodeFailure(signal, nodeId, cb);
       }
-      checkPoolShrinkNeed(DBTC_COMMIT_ACK_MARKER_TRANSIENT_POOL_INDEX,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::sendSignalErrorRefuseLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::sendSignalErrorRefuseLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    checkPoolShrinkNeed(DBTC_COMMIT_ACK_MARKER_TRANSIENT_POOL_INDEX,
                           m_commitAckMarkerPool);
       return;
     }
@@ -2167,9 +3205,50 @@ Dbtc::removeMarkerForFailedAPI(Signal* signal,
        */
       ApiConnectRecordPtr apiConnectPtr;
       apiConnectPtr.i = iter.curr.p->apiConnectPtr;
-      if (c_apiConnectRecordPool.getValidPtr(apiConnectPtr) &&
-          !apiConnectPtr.isNull() &&
-          apiConnectPtr.p->commitAckMarker == iter.curr.i)
+      if (c_apiConnectRecordPool.getValidPtr(apiConnectPtr) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal, 4,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+4,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  !apiConnectPtr.isNull() &&
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::abortBeginErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::abortBeginErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      apiConnectPtr.p->commitAckMarker == iter.curr.i)
       {
 	jam();
         /**
@@ -2219,7 +3298,33 @@ Dbtc::removeMarkerForFailedAPI(Signal* signal,
   signal->theData[0] = TcContinueB::ZHANDLE_FAILED_API_NODE_REMOVE_MARKERS;
   signal->theData[1] = nodeId;
   signal->theData[2] = iter.bucket;
-  sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);
+  sendSignal(cownref, GSN_CONTINUEB, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+	       signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal, 4,
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+3,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+4,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ JBB);
 }
 
 void Dbtc::handleApiFailState(Signal* signal, UintR TapiConnectptr)
@@ -2239,13 +3344,21 @@ void Dbtc::handleApiFailState(Signal* signal, UintR TapiConnectptr)
     capiConnectClosing[TfailedApiNode]--;
     if (capiConnectClosing[TfailedApiNode] == 0)
     {
-      jam();
+        jam();
 
       /**
        * Perform block-level cleanups (e.g assembleFragments...)
        */
       Callback cb = {safe_cast(&Dbtc::apiFailBlockCleanupCallback),
-                     TfailedApiNode};
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(tcConnectptr.p->tcConnectstate)
+=======
+(tcConnectptr.p->tcConnectstate) {
+>>>>>>> MySQL 8.0.36
+                TfailedApiNode};
       simBlockNodeFailure(signal, TfailedApiNode, cb);
     }
   }//if
@@ -2288,15 +3401,15 @@ void Dbtc::execTCSEIZEREQ(Signal* signal)
 	if(!local)
 	  {
 	    switch(sl){
-	    case NodeState::SL_STARTING:
+	      case NodeState::SL_STARTING:
 	      errCode = ZSYSTEM_NOT_STARTED_ERROR;
 	      break;
-	    case NodeState::SL_STOPPING_1:
+	      case NodeState::SL_STOPPING_1:
 	    case NodeState::SL_STOPPING_2:
               if (getNodeState().getSingleUserMode())
                 break;
               [[fallthrough]];
-            case NodeState::SL_STOPPING_3:
+              case NodeState::SL_STOPPING_3:
             case NodeState::SL_STOPPING_4:
               if(getNodeState().stopping.systemShutdown)
 		errCode = ZCLUSTER_SHUTDOWN_IN_PROGRESS;
@@ -2315,30 +3428,231 @@ void Dbtc::execTCSEIZEREQ(Signal* signal)
               signal->theData[0] = tapiPointer;
               signal->theData[1] = errCode;
               sendSignal(tapiBlockref, GSN_TCSEIZEREF, signal, 2, JBB);
-              return;
-            }
-	  }//if (!(sl == SL_SINGLEUSER))
-      } //if
-    }
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  systemErrorLab(signal, __LINE__)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+jam()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+        }
+	 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+return;
+
+  case 39:
+    jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ }//if (!(sl == SL_SINGLEUSER))
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  } //if
+||||||| Common ancestor
+return;
+
+  case 40:
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  jam();
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+<<<<<<< RonDB // RONDB-624 todo
   } 
   
   if (ERROR_INSERTED(8078) || ERROR_INSERTED(8079))
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    systemErrorLab(signal, __LINE__);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
   {
-    /* Clear testing of API_FAILREQ behaviour */
-    CLEAR_ERROR_INSERT_VALUE;
-  };
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  /*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+return;
+
+  case
+// RONDB-624 todo: Glue these lines together ^v
+=======
+case
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Clear
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+42:
+=======
+39:
+>>>>>>> MySQL 8.0.36
+ testing of API_FAILREQ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+behaviour */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ CLEAR_ERROR_INSERT_VALUE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+systemErrorLab(signal, __LINE__)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+jam()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+};
 
   ApiConnectRecordPtr apiConnectptr;
-  if (likely(seizeApiConnect(signal, apiConnectptr)))
-  {
+  if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  return;
+
+  case 44:
     jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (likely(seizeApiConnect(signal, apiConnectptr)))
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+  {
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+;
+    return;
+
+  case 45:
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+;
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  return;
+<<<<<<< RonDB // RONDB-624 todo
     apiConnectptr.p->ndbapiConnect = tapiPointer;
-    apiConnectptr.p->ndbapiBlockref = tapiBlockref;
-    signal->theData[0] = apiConnectptr.p->ndbapiConnect;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    systemErrorLab(signal, __LINE__);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p->ndbapiBlockref
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+return;
+
+  case 46:
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+case 40:
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = tapiBlockref;
+    signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+->theData[0]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+, __LINE__);
+    return;
+
+  case 47:
+    jam();
+    terrorCode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+, __LINE__);
+      return;
+
+    case 42:
+      jam();
+      systemErrorLab(signal, __LINE__);
+      return;
+
+    case 44:
+      jam();
+      systemErrorLab(signal, __LINE__);
+      return;
+
+    case 45:
+      jam();
+      systemErrorLab(signal, __LINE__);
+      return;
+
+    case 46:
+      jam();
+      systemErrorLab(signal, __LINE__);
+      return;
+
+    case 47:
+      jam();
+      terrorCode
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = apiConnectptr.p->ndbapiConnect;
     signal->theData[1] = apiConnectptr.i;
     signal->theData[2] = reference();
     sendSignal(tapiBlockref, GSN_TCSEIZECONF, signal, 3, JBB);
-    return;
+      return;
   }
   ndbrequire(terrorCode != ZOK);
 
@@ -2358,7 +3672,7 @@ void Dbtc::execTCRELEASEREQ(Signal* signal)
   BlockReference tapiBlockref;     /* SENDER BLOCK REFERENCE*/
 
   jamEntry();
-  tapiPointer = signal->theData[0]; /* REQUEST SENDERS CONNECT RECORD POINTER*/
+  tapiPointer = signal->theData[0];   /* REQUEST SENDERS CONNECT RECORD POINTER*/
   tapiBlockref = signal->theData[1];/* SENDERS BLOCK REFERENCE*/
   tuserpointer = signal->theData[2];
   ApiConnectRecordPtr apiConnectptr;
@@ -2366,35 +3680,87 @@ void Dbtc::execTCRELEASEREQ(Signal* signal)
   if (unlikely(!c_apiConnectRecordPool.getValidPtr(apiConnectptr)))
   {
     jam();
-    ndbassert(false);
-    signal->theData[0] = tuserpointer;
-    signal->theData[1] = ZINVALID_CONNECTION;
+    ndbassert(false)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    signal->theData[0] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tuserpointer;
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  signal->theData[1] = ZINVALID_CONNECTION;
     signal->theData[2] = __LINE__;
     sendSignal(tapiBlockref, GSN_TCRELEASEREF, signal, 3, JBB);
     return;
-  }
+      }
   if (apiConnectptr.p->apiConnectstate == CS_DISCONNECTED ||
       apiConnectptr.p->apiFailState == ApiConnectRecord::AFS_API_DISCONNECTED)
   {
     jam();
-    signal->theData[0] = tuserpointer;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  signal->theData[0] 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+          terrorCode 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+= tuserpointer;
     sendSignal(tapiBlockref, GSN_TCRELEASECONF, signal, 1, JBB);
   }
   else
   {
     if (tapiBlockref == apiConnectptr.p->ndbapiBlockref)
-    {
-      Uint32 dummy_loop_count = 0;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+terrorCode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  terrorCode =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    Uint32 dummy_loop_count = 0;
       Uint32 dummy_api_node = 0;
       /**
-       * It isn't ok to receive a signal from a node that we're still
+  {
+     * It isn't ok to receive a signal from a node that we're still
        * handling the API node failure, this must be some type of bug.
        * It is ok to receive multiple TCRELEASEREQ on the same connection.
        * We will handle it according to its state.
        */
       ndbrequire(apiConnectptr.p->apiFailState == ApiConnectRecord::AFS_API_OK);
       bool handled = handleFailedApiConnection(signal,
-                                               &dummy_loop_count,
+                       }
+
+                        &dummy_loop_count,
                                                dummy_api_node,
                                                false,
                                                apiConnectptr);
@@ -2408,14 +3774,101 @@ void Dbtc::execTCRELEASEREQ(Signal* signal)
        * In most cases it will be immediately returned to
        * free list.
        *
-       * NOTE: The NDB API can still get TRANSID_AI from LQHs and TCKEYCONF
-       * from this TC on old Transaction ID's. So it is vital that the
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//switch
+}
+
+static
+inline
+bool
+compare_transid(Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  // switch
+}
+
+static inline bool compare_transid(Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NOTE:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+val0,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*val0,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+The
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NDB
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+val1)
+{
+=======
+*val1) {
+>>>>>>> MySQL 8.0.36
+ API can still get TRANSID_AI from LQHs and TCKEYCONF
+       * from this TC on old Transaction ID's. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+So
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::execKEYINFO(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execKEYINFO(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ is vital that the
        * NDB API does validate the signals before processing them.
        */
       jam();
       signal->theData[0] = tuserpointer;
-      sendSignal(tapiBlockref,
-                 GSN_TCRELEASECONF, signal, 1, JBB);
+      sendSignal(tapiBlockref, signal->theData + 1) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GSN_TCRELEASECONF,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+==
+>>>>>>> MySQL 8.0.36
+ signal, 1, JBB);
     }
     else
     {
@@ -2425,7 +3878,17 @@ void Dbtc::execTCRELEASEREQ(Signal* signal)
       signal->theData[1] = ZINVALID_CONNECTION;
       signal->theData[2] = __LINE__;
       signal->theData[3] = tapiBlockref;      
-      signal->theData[4] = apiConnectptr.p->ndbapiBlockref;      
+      signal->theData[4] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p->ndbapiBlockref;  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+return;  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  return;  
       sendSignal(tapiBlockref, GSN_TCRELEASEREF, signal, 5, JBB);
     }//if
   }//if
@@ -2454,7 +3917,8 @@ void Dbtc::sendSignalErrorRefuseLab(Signal* signal, ApiConnectRecordPtr const ap
   if (apiConnectptr.p->apiConnectstate != CS_DISCONNECTED) {
     jam();
     /* Force state print */
-    printState(signal, 12, apiConnectptr, true);
+    printState(signal, 12,
+                                      apiConnectptr, true);
     signal->theData[0] = apiConnectptr.p->ndbapiConnect;
     signal->theData[1] = signal->theData[ttransid_ptr];
     signal->theData[2] = signal->theData[ttransid_ptr + 1];
@@ -2462,10 +3926,9 @@ void Dbtc::sendSignalErrorRefuseLab(Signal* signal, ApiConnectRecordPtr const ap
     sendSignal(apiConnectptr.p->ndbapiBlockref, GSN_TCROLLBACKREP, 
 	       signal, 4, JBB);
   }
-}//Dbtc::sendSignalErrorRefuseLab()
+}  // Dbtc::sendSignalErrorRefuseLab()
 
-void Dbtc::abortBeginErrorLab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
-{
+void Dbtc::abortBeginErrorLab(Signal *signal, ApiConnectRecordPtr const apiConnectptr) {
   apiConnectptr.p->transid[0] = signal->theData[ttransid_ptr];
   apiConnectptr.p->transid[1] = signal->theData[ttransid_ptr + 1];
   abortErrorLab(signal, apiConnectptr);
@@ -2504,7 +3967,32 @@ void Dbtc::printState(Signal* signal, int place, ApiConnectRecordPtr const apiCo
       " abortState = %d"
       " apiScanRec = %u"
       " returncode = %u "
-      "tckeyrec = %u"
+      "tckeyrec 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::execATTRINFO(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execATTRINFO(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       " returnsignal = %d"
       " apiFailState = %u",
       place, apiConnectptr.i, apiConnectptr.p->apiConnectstate, ctcTimer,
@@ -2514,14 +4002,61 @@ void Dbtc::printState(Signal* signal, int place, ApiConnectRecordPtr const apiCo
       apiConnectptr.p->lqhkeyreqrec, apiConnectptr.p->cascading_scans_count,
       apiConnectptr.p->m_executing_trigger_ops, apiConnectptr.p->abortState,
       apiConnectptr.p->apiScanRec, apiConnectptr.p->returncode,
-      apiConnectptr.p->tckeyrec, apiConnectptr.p->returnsignal,
+ signal->theData + 1) ==
+  apiConnectptr.p->tckeyrec, apiConnectptr.p->returnsignal,
       apiConnectptr.p->apiFailState);
 
-  if (apiConnectptr.p->cachePtr != RNIL)
-  {
+  if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(apiConnectptr.p->cachePtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ signal->theData+1)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+==
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ RNIL) {
     jam();
-    CacheRecordPtr cachePtr;
-    cachePtr.i = apiConnectptr.p->cachePtr;
+    CacheRecordPtr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cachePtr;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+length="<<Tlength
+// RONDB-624 todo: Glue these lines together ^v
+=======
+length="
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    cachePtr.i = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    << " transid("<<hex<<signal->theData[1]<<", "<<signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    << Tlength << " transid(" << hex << signal->theData[1] << ", "
+          << signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->cachePtr;
     bool success = true;
     if (cachePtr.i == Uint32(~0))
     {
@@ -2531,13 +4066,62 @@ void Dbtc::printState(Signal* signal, int place, ApiConnectRecordPtr const apiCo
     {
       success = c_cacheRecordPool.getValidPtr(cachePtr);
     }
-    if (success)
-    {
+    if (success)   {
       jam();
-      CacheRecord * const regCachePtr = cachePtr.p;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+if (ERROR_INSERTED(8015))
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if (ERROR_INSERTED(8015)) {
+      CLEAR_ERROR_INSERT_VALUE;
+      return;
+    }  // if
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+if (ERROR_INSERTED(8016)) {
+>>>>>>> MySQL 8.0.36
+ CacheRecord * const regCachePtr = cachePtr.p;
       g_eventLogger->info(
-          "currReclenAi = %u"
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}//if
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    "currReclenAi = %u"
           " attrlength = %u"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ if (ERROR_INSERTED(8016))
+    {
+      CLEAR_ERROR_INSERT_VALUE;
+      return;
+    }//if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+// if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
           " tableref = %u"
           " keylen = %u",
           regCachePtr->currReclenAi, regCachePtr->attrlength,
@@ -2610,8 +4194,32 @@ Dbtc::TCKEY_abort(Signal* signal, int place, ApiConnectRecordPtr const apiConnec
 	       signal, 4, JBB);
     /**
      * Abort already in progress
-     * Receiving a startFlag in this state is a protocol
-     * error. We crash in development builds.
+     * Receiving a startFlag in this state is a 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+protocol
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+length="<<Tlength
+// RONDB-624 todo: Glue these lines together ^v
+=======
+length="
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     * error. We crash in development 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+builds.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ <<", TattrlengthRemain="<<TattrlengthRemain
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ << Tlength << ", TattrlengthRemain=" << TattrlengthRemain
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
      */
     return;
   }
@@ -2641,13 +4249,13 @@ Dbtc::TCKEY_abort(Signal* signal, int place, ApiConnectRecordPtr const apiConnec
     wrongSchemaVersionErrorLab(signal, apiConnectptr);
     return;
 
-  case 9:
+    case 9:
     jam();
     terrorCode = ZSTATE_ERROR;
     releaseAtErrorLab(signal, apiConnectptr);
     return;
 
-  case 10:
+    case 10:
     jam();
     systemErrorLab(signal, __LINE__);
     return;
@@ -2671,15 +4279,15 @@ Dbtc::TCKEY_abort(Signal* signal, int place, ApiConnectRecordPtr const apiConnec
     case OS_WAIT_KEYINFO:
       jam();
       printState(signal, 8, apiConnectptr);
-      terrorCode = ZSTATE_ERROR;
+        terrorCode = ZSTATE_ERROR;
       abortErrorLab(signal, apiConnectptr);
-      return;
-    default:
-      jam();
-      /********************************************************************/
-      /*       MISMATCH BETWEEN STATE ON API CONNECTION AND THIS          */
-      /*       PARTICULAR TC CONNECT RECORD. THIS MUST BE CAUSED BY NDB   */
-      /*       INTERNAL ERROR.                                            */
+        return;
+      default:
+        jam();
+        /********************************************************************/
+        /*       MISMATCH BETWEEN STATE ON API CONNECTION AND THIS          */
+        /*       PARTICULAR TC CONNECT RECORD. THIS MUST BE CAUSED BY NDB   */
+        /*       INTERNAL ERROR.                                            */
       /********************************************************************/
       systemErrorLab(signal, __LINE__);
       return;
@@ -2727,9 +4335,55 @@ Dbtc::TCKEY_abort(Signal* signal, int place, ApiConnectRecordPtr const apiConnec
     appendToSectionErrorLab(signal, apiConnectptr);
     return;
 
-  case 25:
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::hash(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::hash(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 25:
     jam();
-    warningHandlerLab(signal, __LINE__);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+UintR* 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UintR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+warningHandlerLab(signal, __LINE__)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Tdata32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*Tdata32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
     return;
 
   case 26:
@@ -2793,7 +4447,8 @@ Dbtc::TCKEY_abort(Signal* signal, int place, ApiConnectRecordPtr const apiConnec
 
   case 38:
     jam();
-    systemErrorLab(signal, __LINE__);
+    systemErrorLab(signal,
+                          __LINE__);
     return;
 
   case 39:
@@ -2821,20 +4476,70 @@ Dbtc::TCKEY_abort(Signal* signal, int place, ApiConnectRecordPtr const apiConnec
     systemErrorLab(signal, __LINE__);
     return;
 
-  case 46:
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case 46:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+const Uint32 *src,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     jam();
     systemErrorLab(signal, __LINE__);
     return;
 
   case 47:
     jam();
-    terrorCode = apiConnectptr.p->returncode;
-    releaseAtErrorLab(signal, apiConnectptr);
+    terrorCode = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p->returncode;
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+src,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  releaseAtErrorLab(signal, apiConnectptr);
     return;
 
   case 48:
     jam();
-    terrorCode = ZCOMMIT_TYPE_ERROR;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TableRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TableRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+terrorCode
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tabPtrP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*tabPtrP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = ZCOMMIT_TYPE_ERROR;
     releaseAtErrorLab(signal, apiConnectptr);
     return;
 
@@ -2906,8 +4611,7 @@ start_failure:
       terrorCode  = ZCLUSTER_IN_SINGLEUSER_MODE;
       break;
     case NodeState::SL_STOPPING_1:
-      if (getNodeState().getSingleUserMode())
-      {
+      if (getNodeState().getSingleUserMode())     {
         terrorCode  = ZCLUSTER_IN_SINGLEUSER_MODE;
         break;
       }
@@ -2959,15 +4663,71 @@ start_failure:
     jam();
     /* Function not implemented yet */
     terrorCode = 4003;
-    abortErrorLab(signal, apiConnectptr);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::initApiConnectRec(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::initApiConnectRec(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  abortErrorLab(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal, apiConnectptr);
     return;
-  }
-  case 64:
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+regApiPtr,
+>>>>>>> MySQL 8.0.36
+ 64:
   {
     jam();
     /* Invalid distribution key */
-    terrorCode = ZBAD_DIST_KEY;
-    abortErrorLab(signal, apiConnectptr);
+    terrorCode = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZBAD_DIST_KEY;
+||||||| Common ancestor
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ abortErrorLab(signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regApiPtr,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ apiConnectptr);
     return;
   }
   case 65:
@@ -3030,8 +4790,7 @@ void Dbtc::execKEYINFO(Signal* signal)
   }//if
   ttransid_ptr = 1;
   if (unlikely(compare_transid(apiConnectptr.p->transid,
-                               signal->theData+1) == false))
-  {
+                               signal->theData+1) == false)) {
     jam();
     warningHandlerLab(signal, __LINE__);
     return;
@@ -3052,7 +4811,35 @@ void Dbtc::execKEYINFO(Signal* signal)
     jam();
     /****************************************************************>*/
     /*       MOST LIKELY CAUSED BY A MISSED SIGNAL. SEND REFUSE AND   */
-    /*       SET STATE TO ABORTING.                                   */
+    /*       SET STATE TO ABORTING.               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+int
+Dbtc::seizeTcRecord(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+int Dbtc::seizeTcRecord(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                   */
     /****************************************************************>*/
     printState(signal, 11, apiConnectptr);
     signalErrorRefuseLab(signal, apiConnectptr);
@@ -3062,14 +4849,104 @@ void Dbtc::execKEYINFO(Signal* signal)
     /****************************************************************>*/
     /*       MOST LIKELY CAUSED BY A MISSED SIGNAL. SEND REFUSE AND   */
     /*       SET STATE TO ABORTING. SINCE A TRANSACTION WAS STARTED   */
-    /*       WE ALSO NEED TO ABORT THIS TRANSACTION.                  */
+    /
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::seizeTcRecord()
+
+int
+Dbtc::seizeCacheRecord(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ Dbtc::seizeTcRecord()
+
+int Dbtc::seizeCacheRecord(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CacheRecordPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CacheRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+cachePtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&cachePtr,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  WE ALSO NEED TO ABORT THIS TRANSACTION.                  */
     /****************************************************************>*/
     terrorCode = ZSIGNAL_ERROR;
     printState(signal, 2, apiConnectptr);
     abortErrorLab(signal, apiConnectptr);
     return;
   default:
-    jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CacheRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CacheRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ jam(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regCachePtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regCachePtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
     ndbabort();
     return;
   }//switch
@@ -3182,11 +5059,32 @@ void Dbtc::execATTRINFO(Signal* signal)
   {
     jam();
     DEBUG("Drop ATTRINFO, wrong transid, length="<<Tlength
-          << " transid("<<hex<<signal->theData[1]<<", "<<signal->theData[2]);
+          << " transid(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"<<hex<<signal->theData[1]<<",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"<<
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal->theData[2]);
     return;
   }//if
-  if (Tlength < 4)
-  {
+  if (Tlength < 4) {
     ndbassert(false);
     DEBUG("Drop ATTRINFO, wrong length = " << Tlength);
     warningHandlerLab(signal, __LINE__);
@@ -3248,7 +5146,7 @@ void Dbtc::execATTRINFO(Signal* signal)
       /* OPERATION HAVE BEEN RECEIVED. THIS MEANS THAT WE CAN NOW REUSE */
       /* THE API CONNECT RECORD. HOWEVER IF PREPARE OR COMMIT HAVE BEEN */
       /* RECEIVED THEN IT IS NOT ALLOWED TO RECEIVE ANY FURTHER          */
-      /* OPERATIONS.                                                     */
+       /* OPERATIONS.                                                     */
       /****************************************************************>*/
       if (TcompRECEIVING)
       {
@@ -3289,7 +5187,29 @@ void Dbtc::execATTRINFO(Signal* signal)
     case CS_RELEASE:
       jam();
       /* JUST IGNORE THE SIGNAL*/
-      // DEBUG("Drop ATTRINFO, CS_ABORTING");
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+== true))
+=======
+==
+>>>>>>> MySQL 8.0.36
+ // DEBUG("Drop ATTRINFO, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CS_ABORTING");
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                 true)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       return;
     case CS_CONNECTED:
       jam();
@@ -3300,17 +5220,53 @@ void Dbtc::execATTRINFO(Signal* signal)
       jam();
       /****************************************************************>*/
       /*       MOST LIKELY CAUSED BY A MISSED SIGNAL. SEND REFUSE AND   */
-      /*       SET STATE TO ABORTING. SINCE A TRANSACTION WAS STARTED   */
+      /*     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+true)
+=======
+true) {
+>>>>>>> MySQL 8.0.36
+  SET STATE TO ABORTING. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SINCE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+
+	/*------------------------------------------------------------------
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    /*------------------------------------------------------------------
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ A TRANSACTION WAS STARTED   */
       /*       WE ALSO NEED TO ABORT THIS TRANSACTION.                  */
       /****************************************************************>*/
       terrorCode = ZSIGNAL_ERROR;
       printState(signal, 1, apiConnectptr);
       abortErrorLab(signal, apiConnectptr);
-      return;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+break
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  } break
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
     default:
       jam();
-      /****************************************************************>*/
-      /*       SIGNAL RECEIVED IN AN UNEXPECTED STATE. WE IGNORE SIGNAL */
+        /****************************************************************>*/
+      /*       SIGNAL RECEIVED IN AN UNEXPECTED STATE. WE IGNORE SIGNAL   */
       /*       SINCE WE DO NOT REALLY KNOW WHERE THE ERROR OCCURRED.    */
       /****************************************************************>*/
       DEBUG("Drop ATTRINFO, illegal state="<<regApiPtr->apiConnectstate);
@@ -3349,10 +5305,32 @@ void Dbtc::hash(Signal* signal, CacheRecord * const regCachePtr)
     ndbassert( keyInfoSection.p != NULL );
 
     Tdata32= &keyInfoSection.p->theData[0];
-  }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+== false)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+==
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   else
   {
-    /* Copy segmented keyinfo into linear space in the signal */
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+=======
+      false) {
+>>>>>>> MySQL 8.0.36
+ Copy segmented keyinfo into linear space in the signal */
     Tdata32= signal->theData;
     copy(Tdata32, keyInfoSection);
   }
@@ -3410,12 +5388,12 @@ Dbtc::handle_special_hash(Uint32 dstHash[4],
   const bool hasCharAttr = tabPtrP->hasCharAttr;
   const bool compute_distkey = distr && (tabPtrP->noOfDistrKeys > 0);
   
-  const Uint32 *hashInput;
+  const Uint32   *hashInput;
   Uint32 inputLen = 0;
   Uint32 keyPartLen[MAX_ATTRIBUTES_IN_INDEX];
   Uint32 * keyPartLenPtr;
 
-  /* Normalise KeyInfo into workspace if necessary */
+  /* Normalise KeyInfo into workspace if necessary   */
   if(hasCharAttr || (compute_distkey && hasVarKeys))
   {
     hashInput = workspace;
@@ -3425,8 +5403,7 @@ Dbtc::handle_special_hash(Uint32 dstHash[4],
                              workspace,
                              sizeof(workspace) >> 2,
                              keyPartLenPtr);
-    if (unlikely(inputLen == 0))
-    {
+    if (unlikely(inputLen == 0)) {
       goto error;
     }
   } 
@@ -3616,7 +5593,31 @@ Dbtc::seizeCacheRecord(Signal* signal, CacheRecordPtr& cachePtr, ApiConnectRecor
 }//Dbtc::seizeCacheRecord()  
 
 void
-Dbtc::releaseCacheRecord(ApiConnectRecordPtr transPtr, CacheRecord* regCachePtr)
+Dbtc::releaseCacheRecord(ApiConnectRecordPtr transPtr, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CacheRecord*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regCachePtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TOptionalDataPtr = (Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*TOptionalDataPtr = (Uint32 *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
 {
   ApiConnectRecord * const regApiPtr = transPtr.p;
   CacheRecordPtr cachePtr;
@@ -3658,10 +5659,36 @@ Dbtc::dump_trans(ApiConnectRecordPtr transPtr)
         i++, tcConnectptr.i, tcConnectptr.p->operation,
         tcConnectptr.p->tcConnectstate, tcConnectptr.p->triggeringOperation,
         tcConnectptr.p->m_special_op_flags,
-        tcConnectptr.p->currentTriggerId == RNIL
-            ? RNIL
+        tcConnectptr.p->currentTriggerId == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+2 );
+      ndbrequire(handle.getSection(attrInfoSection,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+2);
+      ndbrequire(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  ? RNIL
             : (Uint32)trigPtr.p->triggerType,
-        tcConnectptr.p->apiConnect);
+        tcConnectptr.p->apiConnect
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                         TcKeyReq::AttrInfoSectionNum)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+handle.getSection(attrInfoSection, TcKeyReq::AttrInfoSectionNum)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   } while (tcConList.next(tcConnectptr));
 }
 
@@ -3685,9 +5712,30 @@ Dbtc::hasOp(ApiConnectRecordPtr transPtr, Uint32 opPtrI)
 /*****************************************************************************/
 /*                               T C K E Y R E Q                             */
 /* AFTER HAVING ESTABLISHED THE CONNECT, THE APPLICATION BLOCK SENDS AN      */
-/* OPERATION REQUEST TO TC. ALL NECESSARY INFORMATION TO CARRY OUT REQUEST   */
+/* OPERATION REQUEST TO TC. ALL NECESSARY INFORMATION TO CARRY OUT REQUEST   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
 /* IS FURNISHED IN PARAMETERS. TC STORES THIS INFORMATION AND ENQUIRES       */
-/* FROM DIH ABOUT THE NODES WHICH MAY HAVE THE REQUESTED DATA                */
+/* FROM DIH ABOUT THE NODES WHICH MAY HAVE THE REQUESTED
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&TOptionalDataPtr[TkeyIndex],
+                           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DATA
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+&TOptionalDataPtr[TkeyIndex],
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                */
 /*****************************************************************************/
 void Dbtc::execTCKEYREQ(Signal* signal) 
 {
@@ -3696,7 +5744,8 @@ void Dbtc::execTCKEYREQ(Signal* signal)
     jam();
     return;
   }
-  Uint32 sendersBlockRef = signal->getSendersBlockRef();
+  Uint32 sendersBlockRef =
+          signal->getSendersBlockRef();
   UintR compare_transid1, compare_transid2;
   const TcKeyReq * const tcKeyReq = (TcKeyReq *)signal->getDataPtr();
   UintR Treqinfo;
@@ -3713,19 +5762,16 @@ void Dbtc::execTCKEYREQ(Signal* signal)
   ttransid_ptr = 6;
   ApiConnectRecordPtr apiConnectptr;
   apiConnectptr.i = TapiIndex;
-  if (unlikely(!c_apiConnectRecordPool.getValidPtr(apiConnectptr)))
-  {
+  if (unlikely(!c_apiConnectRecordPool.getValidPtr(apiConnectptr))) {
     jam();
     releaseSections(handle);
     warningHandlerLab(signal, __LINE__);
     return;
   }//if
 #ifdef ERROR_INSERT
-  if (ERROR_INSERTED(8079))
-  {
+  if (ERROR_INSERTED(8079)) {
     /* Test that no signals received after API_FAILREQ */
-    if (refToNode(sendersBlockRef) == c_lastFailedApi)
-    {
+    if (refToNode(sendersBlockRef) == c_lastFailedApi) {
       /* Signal from API node received *after* API_FAILREQ */
       ndbabort();
     }
@@ -3805,14 +5851,45 @@ void Dbtc::execTCKEYREQ(Signal* signal)
      *
      * This is used to ensure that dirty reads after a write in the same
      * execution batch are always scheduled towards the LDM thread and will
-     * not be scheduled towards a query thread.
-     */
+       * not be scheduled towards a query thread.
+       */
     DEB_EXEC_WRITE_COUNT(("(%u) write_count = %u, zero exec_count",
                           instance(),
                           regApiPtr->m_write_count));
-    regApiPtr->m_exec_count = 0;
-    regApiPtr->m_simple_read_count = 0;
-    Uint32 flags = regApiPtr->m_flags;
+    regApiPtr->m_exec_count = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  }
+ regApiPtr->m_simple_read_count = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+    Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+flags
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = regApiPtr->m_flags;
     flags &= ~ApiConnectRecord::TF_EXEC_FLAG;
     flags &= ~ApiConnectRecord::TF_SINGLE_EXEC_FLAG;
     if (TexecFlag)
@@ -3898,8 +5975,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
       compare_transid2 = regApiPtr->transid[1] ^ transId2;
       jam();
       compare_transid1 = compare_transid1 | compare_transid2;
-      if (unlikely(compare_transid1 != 0))
-      {
+      if (unlikely(compare_transid1 != 0))     {
         releaseSections(handle);
         TCKEY_abort(signal, 1, apiConnectptr);
 	return;
@@ -3932,12 +6008,56 @@ void Dbtc::execTCKEYREQ(Signal* signal)
      * again.
      *
      * These exec flags can arrive in several states, both states with
-     * CS_ABORTING, but also in the state CS_RELEASE which is the final
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::tckeyreq050Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::tckeyreq050Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CS_ABORTING
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, but also in the state CS_RELEASE which is the final
      * state of releasing the transaction resources, thus no wait for
      * signals from other threads and nodes. This state ensures that
      * we can avoid handling timeouts before completing the abort.
      *
-     * Receiving a start flag when the previous transaction isn't
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CacheRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CacheRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  * Receiving a start flag when the previous transaction isn't
      * completed is a protocol error.
      */
     if (likely(regApiPtr->abortState == AS_IDLE))
@@ -3945,8 +6065,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
       if (likely(TstartFlag == 1))
       {
         if (unlikely(getAllowStartTransaction(refToNode(sendersBlockRef),
-                          tabSingleUserMode) == false))
-        {
+                          tabSingleUserMode) == false))       {
           releaseSections(handle);
           TCKEY_abort(signal, TexecFlag ? 60 : 57, apiConnectptr);
           return;
@@ -3977,8 +6096,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
         releaseSections(handle);
         return;
       }//if
-    }
-    else
+    } else
     {
       //----------------------------------------------------------------------
       // Previous transaction is still aborting
@@ -3995,8 +6113,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
         TCKEY_abort(signal, 2, apiConnectptr);
         return;
       }
-      else if(TexecFlag)
-      {
+      else if(TexecFlag)   {
         TCKEY_abort(signal, 59, apiConnectptr);
         return;
       }
@@ -4011,8 +6128,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
   case CS_RELEASE:
   {
     releaseSections(handle);
-    if (TstartFlag == 1)
-    {
+    if (TstartFlag == 1)   {
       TCKEY_abort(signal, 2, apiConnectptr);
       return;
     }
@@ -4027,8 +6143,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
   case CS_START_COMMITTING:
   case CS_SEND_FIRE_TRIG_REQ:
   case CS_WAIT_FIRE_TRIG_REQ:
-    if(isIndexOpReturn || isExecutingTrigger)
-    {
+    if(isIndexOpReturn || isExecutingTrigger) {
       jam();
       break;
     }
@@ -4050,20 +6165,17 @@ void Dbtc::execTCKEYREQ(Signal* signal)
     TCKEY_abort(signal, 55, apiConnectptr);
     return;
   }//switch
-  if (unlikely(ERROR_INSERTED(8120) || (TtabIndex >= TtabMaxIndex)))
-  {
+  if (unlikely(ERROR_INSERTED(8120) || (TtabIndex >= TtabMaxIndex))) {
     releaseSections(handle);
     TCKEY_abort(signal, 7, apiConnectptr);
     return;
   }
-  if (ERROR_INSERTED(8121))
-  {
+  if (ERROR_INSERTED(8121)) {
     releaseSections(handle);
     TCKEY_abort(signal, 0, apiConnectptr);
     return;
   }
-  if (ERROR_INSERTED(8122))
-  {
+  if (ERROR_INSERTED(8122)) {
     releaseSections(handle);
     TCKEY_abort(signal, TexecFlag ? 60 : 57, apiConnectptr);
     return;
@@ -4080,8 +6192,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
     TCKEY_abort(signal, 59, apiConnectptr);
     return;
   }
-  if (ERROR_INSERTED(8126))
-  {
+  if (ERROR_INSERTED(8126)) {
     releaseSections(handle);
     TCKEY_abort(signal, 55, apiConnectptr);
     return;
@@ -4103,11 +6214,11 @@ void Dbtc::execTCKEYREQ(Signal* signal)
   if (regApiPtr->apiCopyRecord == RNIL)
   {
     ndbrequire(TstartFlag == 1);
-    if (unlikely(!seizeApiConnectCopy(signal, apiConnectptr.p)))
-    {
+    if (unlikely(!seizeApiConnectCopy(signal, apiConnectptr.p)))   {
       jam();
       releaseSections(handle);
-      terrorCode = ZSEIZE_API_COPY_ERROR;
+      terrorCode =
+        ZSEIZE_API_COPY_ERROR;
       abortErrorLab(signal, apiConnectptr);
       return;
     }
@@ -4237,8 +6348,19 @@ void Dbtc::execTCKEYREQ(Signal* signal)
     if (handle.getSection(attrInfoSec, TcKeyReq::AttrInfoSectionNum))
       TattrLen= attrInfoSec.sz;
 
-    if (TcKeyReq::getDeferredConstraints(Treqinfo))
-    {
+    if (TcKeyReq::getDeferredConstraints(Treqinfo)) {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+  {
+	for
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    for
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
       regApiPtr->m_flags |= ApiConnectRecord::TF_DEFERRED_CONSTRAINTS;
     }
 
@@ -4380,8 +6502,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
 
   regCachePtr->m_no_hash = false;
 
-  if (unlikely(TOperationType == ZUNLOCK))
-  {
+  if (unlikely(TOperationType == ZUNLOCK)) {
     /* Unlock op has distribution key containing
      * LQH nodeid and fragid
      */
@@ -4422,20 +6543,42 @@ void Dbtc::execTCKEYREQ(Signal* signal)
 
     regCachePtr->keyInfoSectionI= keyInfoSection.i;
   
-    if (regCachePtr->attrlength != 0)
-    {
+    if (regCachePtr->attrlength != 0) {
       ndbassert( handle.m_cnt == 2 );
       ndbrequire(handle.getSection(attrInfoSection,
                                    TcKeyReq::AttrInfoSectionNum));
       regCachePtr->attrInfoSectionI= attrInfoSection.i;
     }
-    else
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::attrinfoDihReceivedLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::attrinfoDihReceivedLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
     {
       ndbassert( handle.m_cnt == 1 );
     }
 
     /* Detach sections from the handle, we are now responsible
-     * for always freeing them before returning
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                                 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   * for always freeing them before returning
      * For a long TcKeyReq, they will be freed at the end
      * of the processing this signal.
      */
@@ -4524,10 +6667,33 @@ void Dbtc::execTCKEYREQ(Signal* signal)
         regTcPtr->commitAckMarker = regApiPtr->commitAckMarker;
       else
       {
-        jamDebug();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::packLqhkeyreq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::packLqhkeyreq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      jamDebug();
         CommitAckMarkerPtr tmp;
         if (ERROR_INSERTED(8087))
-        {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       {
           CLEAR_ERROR_INSERT_VALUE;
           TCKEY_abort(signal, 56, apiConnectptr);
           return;
@@ -4535,44 +6701,317 @@ void Dbtc::execTCKEYREQ(Signal* signal)
 
         if (unlikely(!m_commitAckMarkerPool.seize(tmp)))
         {
-          TCKEY_abort(signal, 56, apiConnectptr);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     TCKEY_abort(signal, 56, apiConnectptr);
           return;
         }
-        else
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::sendlqhkeyreq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::sendlqhkeyreq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      else
         {
-          regTcPtr->commitAckMarker = tmp.i;
+          regTcPtr->commitAckMarker
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = tmp.i;
           regApiPtr->commitAckMarker = tmp.i;
           tmp.p->transid1      = transId1;
           tmp.p->transid2      = transId2;
-          tmp.p->apiNodeId     = refToNode(regApiPtr->ndbapiBlockref);
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ tmp.p->apiNodeId     = refToNode(regApiPtr->ndbapiBlockref);
           tmp.p->apiConnectPtr = TapiIndex;
 #if defined VM_TRACE || defined ERROR_INSERT
 	  {
 	    CommitAckMarkerPtr check;
 	    ndbrequire(!m_commitAckMarkerHash.find(check, *tmp.p));
           }
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
 #endif
           DEB_LQH_TRANS_CMA(("(%u) Insert trans(H'%.8x,H'%.8x) into "
-                         "CommitAckMarker::TCKEYREQ",
-                         instance(),
-                         transId1,
-                         transId2));
+           
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+//if
+  if (ERROR_INSERTED(8007)) {
+    if (regApiPtr->apiConnectstate == CS_STARTED)
+    {
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+            "CommitAckMarker::TCKEYREQ",
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    CLEAR_ERROR_INSERT_VALUE;
+      return;
+    }//if
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ }//if
+=======
+if
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(ERROR_INSERTED(8008))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(ERROR_INSERTED(8007))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CS_START_COMMITTING)
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CS_STARTED)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       instance(),
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(ERROR_INSERTED(8009))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(ERROR_INSERTED(8008))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CS_STARTED)
+=======
+CS_START_COMMITTING) {
+>>>>>>> MySQL 8.0.36
+  transId1,
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+  CLEAR_ERROR_INSERT_VALUE;
+>>>>>>> MySQL 8.0.36
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(ERROR_INSERTED(8010))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(ERROR_INSERTED(8009))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transId2)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CS_START_COMMITTING
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CS_STARTED
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
           m_commitAckMarkerHash.add(tmp);
         }
       }
-      regApiPtr->num_commit_ack_markers++;
-    }
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+//if
+#endif
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    // if
+  if (ERROR_INSERTED(8010)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     
-    UintR Toperationsize = coperationsize;
-    /* -------------------------------------------------------------------- 
-     *   THIS IS A TEMPORARY TABLE, DON'T UPDATE coperationsize. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tc_testbit(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+regApiPtr->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+num
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m
+// RONDB-624 todo: Glue these lines together ^v
+=======
+apiConnectstate == CS
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+commit_ack_markers++;
+||||||| Common ancestor
+flags,
+=======
+START_COMMITTING)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
+   }
+   return;
+ 
+   } UintR 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Toperationsize
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+if
+>>>>>>> MySQL 8.0.36
+ coperationsize;
+ }   /* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+--------------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+=======
+if
+#endif
+>>>>>>> MySQL 8.0.36
+  Uint32 Tdeferred =
+ *   THIS IS 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+A
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+tc_testbit(regApiPtr->m_flags,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ TEMPORARY TABLE, DON'T UPDATE coperationsize. 
      *   THIS VARIABLE CONTROLS THE INTERVAL BETWEEN LCP'S AND 
      *   TEMP TABLES DON'T PARTICIPATE.
      * -------------------------------------------------------------------- */
     if (localTabptr.p->get_storedTable()) {
       coperationsize = ((Toperationsize + TattrLen) + TkeyLength) + 17;
-    }
-    c_counters.cwriteCount++;
+    }   c_counters.cwriteCount++;
     switch (TOperationType) {
     case ZUPDATE:
     case ZINSERT:
@@ -4582,8 +7021,7 @@ void Dbtc::execTCKEYREQ(Signal* signal)
       jamDebug();
       regApiPtr->m_write_count++;
       if (unlikely(regApiPtr->m_flags &
-                   ApiConnectRecord::TF_DEFERRED_CONSTRAINTS))
-      {
+                   ApiConnectRecord::TF_DEFERRED_CONSTRAINTS))   {
         /**
          * Allow slave applier to ignore m_max_writes_per_trans
          */
@@ -4633,7 +7071,27 @@ void Dbtc::execTCKEYREQ(Signal* signal)
     /* ---------------------------------------------------------------------
      *       PREPARE TRANSACTION IS NOT IMPLEMENTED YET.
      * ---------------------------------------------------------------------
-     *       ELSIF (TREQINFO => 3) (*) 1 = 1 THEN                
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+LqhKeyReq::setNoTriggersFlag(Tdata10,
+=======
+LqhKeyReq::setNoTriggersFlag(
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  ELSIF 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+!!
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  Tdata10, !!
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(TREQINFO => 3) (*) 1 = 1 THEN                
      * IF PREPARE TRANSACTION THEN
      *   API_CONNECTPTR:API_CONNECTSTATE = REC_PREPARING
      * SET STATE TO PREPARING
@@ -4664,13 +7122,72 @@ void Dbtc::execTCKEYREQ(Signal* signal)
   {
     jam();
     /* --------------------------------------------------------------------
-     * THE TCKEYREQ DIDN'T CONTAIN ALL KEY DATA,
-     * SAVE STATE AND WAIT FOR KEYINFO
+     * THE TCKEYREQ DIDN'T CONTAIN 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ALL KEY DATA,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= regCachePtr->tableref +
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SAVE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+regCachePtr->tableref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+STATE AND WAIT FOR
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
++
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ KEYINFO
      * --------------------------------------------------------------------*/
     setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
     regCachePtr->save1 = 8;
-    regTcPtr->tcConnectstate = OS_WAIT_KEYINFO;
-    return;
+    regTcPtr->tcConnectstate = OS_WAIT_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+KEYINFO;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+READ) ?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+READ)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+reference() : regApiPtr->ndbapiBlockref
+// RONDB-624 todo: Glue these lines together ^v
+=======
+         ? reference()
+             : regApiPtr->ndbapiBlockref
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+;
   }//if
   
   return;
@@ -4680,8 +7197,7 @@ static
 void
 handle_reorg_trigger(DiGetNodesConf * conf)
 {
-  if (conf->reqinfo & DiGetNodesConf::REORG_MOVING)
-  {
+  if (conf->reqinfo & DiGetNodesConf::REORG_MOVING) {
     conf->fragId = conf->nodes[MAX_REPLICAS];
     conf->reqinfo = conf->nodes[MAX_REPLICAS+1];
     conf->instanceKey = conf->nodes[MAX_REPLICAS+2];
@@ -4730,8 +7246,7 @@ Dbtc::check_own_location_domain(Uint16 *nodes,
     Tnode_hostptr.i = node;
     ptrCheckGuard(Tnode_hostptr, chostFilesize, hostRecord);
     if (my_location_domain_id ==
-        Tnode_hostptr.p->m_location_domain_id)
-    {
+        Tnode_hostptr.p->m_location_domain_id) {
       jam();
       loc_nodes[loc_node_count++] = node;
     }
@@ -4804,10 +7319,50 @@ void Dbtc::tckeyreq050Lab(Signal* signal,
   req->only_readable_nodes = (regTcPtr->operation == ZREAD);
   req->jamBufferPtr = jamBuffer();
 
-  if (localTabptr.p->m_flags & TableRecord::TR_FULLY_REPLICATED)
+  if (localTabptr.p->m_flags & 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TableRecord::TR_FULLY_REPLICATED)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+     }
+// RONDB-624 todo: Glue these lines together ^v
+=======
+     } else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   {
-    if (regTcPtr->operation == ZREAD)
-    {
+    if (regTcPtr->operation == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZREAD)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   jam();
+            Uint32 signal_size = 0;
+            for (Uint32 i = 0; i < handle.m_cnt; i++) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+          signal_size += handle.m_ptr[i].sz;
+            }
+            signal_size += (LqhKeyReq::FixedSignalLength + nextPos);
+            if (signal_size > MAX_SIZE_SINGLE_SIGNAL) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
+<<<<<<< RonDB // RONDB-624 todo
       /**
        * inform DIH if TreadAny is even relevant...so it does not have to loop
        *   unless really needing to...
@@ -4822,7 +7377,25 @@ void Dbtc::tckeyreq050Lab(Signal* signal,
     else if (Tspecial_op_flags & TcConnectRecord::SOF_REORG_COPY)
     {
       /**
-       * We want DIH to return the first new fragment, this is a copy
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+            jam();
+            Uint32 signal_size = 0;
+            for (Uint32 i = 0; i < handle.m_cnt; i++)
+            {
+              signal_size += handle.m_ptr[i].sz;
+            }
+            signal_size += (LqhKeyReq::FixedSignalLength + nextPos);
+            if (signal_size > MAX_SIZE_SINGLE_SIGNAL)
+            {
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     * We want DIH to return the first new fragment, this is a copy
        * of the row, it has been read from a main fragment and needs
        * to be copied to the new fragments. We get the first new
        * fragment and trust the fully replicated triggers to ensure
@@ -4910,7 +7483,22 @@ void Dbtc::tckeyreq050Lab(Signal* signal,
   UintR Tdata3 = conf->nodes[0];
   UintR Tdata4 = conf->nodes[1];
   UintR Tdata5 = conf->nodes[2];
-  UintR Tdata6 = conf->nodes[3];
+  UintR 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Tdata6
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::packLqhkeyreq040Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::packLqhkeyreq040Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= conf->nodes[3];
 
   regCachePtr->fragmentid = Tdata1;
   Uint32 tnodeinfo = Tdata2;
@@ -4921,7 +7509,15 @@ void Dbtc::tckeyreq050Lab(Signal* signal,
   regTcPtr->tcNodedata[3] = Tdata6;
 
   regTcPtr->lqhInstanceKey = instanceKey;
-  if (likely(Tdata3 != 0))
+  if (likely(Tdata3
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                               BlockReference TBRef,
+=======
+*signal, BlockReference TBRef,
+>>>>>>> MySQL 8.0.36
+ != 0))
   {
     regTcPtr->recBlockNo = get_query_block_no(Tdata3);
   }
@@ -8079,9 +10675,30 @@ err8055:
 /*   IS PREPARED TO RECEIVE A NEW TRANSACTION.                               */
 /*===========================================================================*/
 void Dbtc::copyApi(Signal *signal,
-                   ApiConnectRecordPtr copyPtr,
-                   ApiConnectRecordPtr regApiPtr)
-{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                 ApiConnectRecordPtr copyPtr,
+                   ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ regApiPtr) {
   UintR TndbapiConnect = regApiPtr.p->ndbapiConnect;
   UintR Ttransid1 = regApiPtr.p->transid[0];
   UintR Ttransid2 = regApiPtr.p->transid[1];
@@ -8120,12 +10737,54 @@ void Dbtc::copyApi(Signal *signal,
   Uint32 loop_count = 0;
   releaseAllSeizedIndexOperations(signal,
                                   &regApiPtr.p->theSeizedIndexOperations,
-                                  loop_count,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::releaseDirtyRead(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::releaseDirtyRead(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    loop_count,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
                                   true);
 
   ndbassert(!tc_testbit(regApiPtr.p->m_flags,
                         (ApiConnectRecord::TF_INDEX_OP_RETURN |
-                         ApiConnectRecord::TF_TRIGGER_PENDING)));
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TcConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TcConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regTcPtr)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regTcPtr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                     ApiConnectRecord::TF_TRIGGER_PENDING)));
 
   if (tc_testbit(regApiPtr.p->m_flags, ApiConnectRecord::TF_LATE_COMMIT))
   {
@@ -8150,7 +10809,25 @@ void Dbtc::copyApi(Signal *signal,
        *   timeout is already reset to 0 above so it won't be found
        *   by timeOutLoopStartLab
        */
-      regApiPtr.p->apiConnectstate = CS_COMMITTING;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbtc::unlinkReadyTcCon(ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::unlinkReadyTcCon(ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     regApiPtr.p->apiConnectstate = CS_COMMITTING;
       
       /**
        * save marker for sendApiCommitSignal
@@ -8175,7 +10852,7 @@ void Dbtc::unlinkApiConnect(Ptr<GcpRecord> gcpPtr,
   apiConList.remove(regApiPtr);
 }
 
-void Dbtc::complete010Lab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
+void Dbtc::complete010Lab(Signal *signal, ApiConnectRecordPtr const apiConnectptr)
 {
   TcConnectRecordPtr localTcConnectptr;
   localTcConnectptr.p = tcConnectptr.p;
@@ -8193,11 +10870,53 @@ void Dbtc::complete010Lab(Signal* signal, ApiConnectRecordPtr const apiConnectpt
     Tcount += sendCompleteLqh(signal, localTcConnectptr.p, apiConnectptr.p);
     apiConnectptr.p->finish_trans_counter++;
     if (tcConList.next(localTcConnectptr))
-    {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TpackDataPtr;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*TpackDataPtr;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       if (Tcount < ZMAX_COMMIT_PER_RT_BREAK &&
           !ERROR_INSERTED(8112)) 
       {
-        jamDebug();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TsigDataPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*TsigDataPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jamDebug();
         continue;
       }
       else
@@ -8286,20 +11005,51 @@ Dbtc::sendCompleteLqh(Signal* signal,
   {
     memcpy(&signal->theData[0], &Tdata[0], len << 2);
     BlockReference lqhRef = numberToRef(DBLQH, instanceNo, Tnode);
-    sendSignal(lqhRef, GSN_COMPLETE, signal, 3, JBB);
+    sendSignal(lqhRef, GSN_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+COMPLETE,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+REP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+REP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal, 3, JBB);
     return ret;
   }
                           
   struct PackedWordsContainer * container = &Thostptr.p->lqh_pack[instanceNo];
 
-  if (container->noOfPackedWords > 22)
-  {
+  if (container->noOfPackedWords > 22) {
     jamDebug();
     sendPackedSignal(signal, container);
   }
   else
   {
-    jamDebug();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SignalDroppedRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SignalDroppedRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rep
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jamDebug();
     ret = 1;
     updatePackedList(signal, Thostptr.p, Thostptr.i);
   }
@@ -8319,6 +11069,7 @@ Uint32
 getTcConnectRecordDeferredFlag(Uint32 pass)
 {
   switch(pass & TriggerPreCommitPass::TPCP_PASS_MAX){
+
   case TriggerPreCommitPass::UK_PASS_0:
   case TriggerPreCommitPass::UK_PASS_1:
     return Dbtc::TcConnectRecord::SOF_DEFERRED_UK_TRIGGER;
@@ -8352,6 +11103,7 @@ Dbtc::sendFireTrigReq(Signal* signal,
                       Ptr<ApiConnectRecord> regApiPtr)
 {
   ndbrequire(regApiPtr.p->apiConnectstate != CS_WAIT_FIRE_TRIG_REQ);
+
   TcConnectRecordPtr localTcConnectptr;
 
   setApiConTimer(regApiPtr, ctcTimer, __LINE__);
@@ -8366,34 +11118,125 @@ Dbtc::sendFireTrigReq(Signal* signal,
   Uint32 Tlqhkeyreqrec = regApiPtr.p->lqhkeyreqrec;
   const Uint32 pass = regApiPtr.p->m_pre_commit_pass;
   const Uint32 passflag = getTcConnectRecordDeferredFlag(pass);
-  Uint32 prevOpPtrI = RNIL;
+  Uint32 prevOpPtrI 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL;
 
+||||||| Common ancestor
+=======
+}
+
+>>>>>>> MySQL 8.0.36
   /**
    * We iterate over a range of Operation records, sending
-   * FIRE_TRIG_REQ for them if appropriate
+     * FIRE_TRIG_REQ for them if appropriate
    *
    * We only iterate a few at a time, and we only send a few
    * signals at a time, and have a limit on the max
    * outstanding
+
    *
    * CONTINUEB is used for real-time breaks.
    * FIRE_TRIG_CONF is used to wake the iteration when the
    * max outstanding limit is reached
-   */
+     */
   Uint32 currentFireTrigReqs = regApiPtr.p->m_outstanding_fire_trig_req;
-  const Uint32 ProcessingUnitsLimit = 16; /* Avoid excessive work and fan-out */
+  const Uint32 ProcessingUnitsLimit = 16;   /* Avoid excessive work and fan-out */
   ndbassert(currentFireTrigReqs <= MaxOutstandingFireTrigReqPerTrans);
-  Uint32 concurrentLimit =
-    MaxOutstandingFireTrigReqPerTrans - currentFireTrigReqs;
+  Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+concurrentLimit =
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TcKeyReq::getExecuteFlag(truncatedTcKeyReq->requestInfo) ?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    TcKeyReq::getExecuteFlag(truncatedTcKeyReq->requestInfo)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-  LocalTcConnectRecord_fifo tcConList(tcConnectRecord, regApiPtr.p->tcConnect);
+    MaxOutstandingFireTrigReqPerTrans - 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+currentFireTrigReqs;
+
+||||||| Common ancestor
+ApiConnectRecord::TF_EXEC_FLAG : 0;
+
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  LocalTcConnectRecord_fifo 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcConList(tcConnectRecord,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ DEBUG(" Execute flag set to " <<
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   ?
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regApiPtr.p->tcConnect);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tc_testbit(regApiPtr->m_flags,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord::TF_EXEC_FLAG
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   tcConnectRecord.getPtr(localTcConnectptr);
 
   for (Uint32 i = 0;
-       prevOpPtrI != TlastOpPtrI &&
-         i < ProcessingUnitsLimit &&
-         concurrentLimit > 0 &&
-         (regApiPtr.p->m_executing_trigger_ops <
+      : 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+prevOpPtrI
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+0;
+
+>>>>>>> MySQL 8.0.36
+ != TlastOpPtrI &&
+   DEBUG(" Execute flag set to "
+ i < ProcessingUnitsLimit &&
+        << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+concurrentLimit > 0 &&
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+tc_testbit(regApiPtr->m_flags,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    (regApiPtr.p->m_executing_trigger_ops <
           MaxExecutingTriggerOpsPerTrans);
        i++)
   {
@@ -8403,32 +11246,74 @@ Dbtc::sendFireTrigReq(Signal* signal,
       jam();
       tc_clearbit(flags, passflag);
       if (unlikely(! (localTcConnectptr.p->tcConnectstate == OS_PREPARED)))
+
       {
         g_eventLogger->info(
             "op: 0x%x trans [ 0x%.8x 0x%.8x ] state: %u (TopPtrI: %x)",
             localTcConnectptr.i, regApiPtr.p->transid[0],
+
             regApiPtr.p->transid[1], localTcConnectptr.p->tcConnectstate,
-            TopPtrI);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ScanTabRef*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  ScanTabRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ref=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ref =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       TopPtrI);
         dump_trans(regApiPtr);
       }
 
       ndbrequire(localTcConnectptr.p->tcConnectstate == OS_PREPARED);
       localTcConnectptr.p->tcConnectstate = OS_FIRE_TRIG_REQ;
       localTcConnectptr.p->m_special_op_flags = flags;
-      i += sendFireTrigReqLqh(signal, localTcConnectptr, pass, regApiPtr.p);
+      i += sendFireTrigReqLqh(signal, localTcConnectptr, pass,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ regApiPtr.p);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       Tlqhkeyreqrec++;
       currentFireTrigReqs++;
-      concurrentLimit--;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   concurrentLimit--;
     }
 
     prevOpPtrI = localTcConnectptr.i;
 
-    /**
+     /**
      * next TcConnectRecord can go beyond the TlastOpPtrI.
-     * However at this point, apiConnectState will go over to
+       * However at this point, apiConnectState will go over to
      * CS_WAIT_FIRE_TRIG_REQ.
-     * After reaching this state, this method will not be called.
-     * So no need to check next TcConnectRecord going out of range.
+       * After reaching this state, this method will not be called.
+       * So no need to check next TcConnectRecord going out of range.
      */
     tcConList.next(localTcConnectptr);
     regApiPtr.p->m_firstTcConnectPtrI_FT = localTcConnectptr.i;
@@ -8440,7 +11325,10 @@ Dbtc::sendFireTrigReq(Signal* signal,
   ndbassert(regApiPtr.p->m_outstanding_fire_trig_req <=
             MaxOutstandingFireTrigReqPerTrans);
 
-  if (prevOpPtrI == TlastOpPtrI)
+  if (prevOpPtrI == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TlastOpPtrI)
   {
     /**
      * All sent, now wait for FIRE_TRIG_CONF
@@ -8453,8 +11341,61 @@ Dbtc::sendFireTrigReq(Signal* signal,
     regApiPtr.p->m_pre_commit_pass = getNextDeferredPass(pass);
 
     /**
-     * Check if we are already finished...
-     */
+     * Check if we are already finished..
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+!c_theIndexOperationPool.getValidPtr(indexOpPtr)))
+    {
+      jam();
+      // Missing or invalid index operation - ignore
+      break;
+    }
+    TcIndexOperation* indexOp = indexOpPtr.p;
+
+    /* No more TransIdAI will arrive, abort */
+    ApiConnectRecordPtr apiConnectptr;
+    apiConnectptr.i = indexOp->connectionIndex;
+    if (unlikely(apiConnectptr.i == RNIL ||
+                 !c_apiConnectRecordPool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  !c_theIndexOperationPool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+getValidPtr(apiConnectptr)))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+getValidPtr(indexOpPtr))) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    jam();
+        // Missing or invalid index operation - ignore
+        break;
+      }
+      TcIndexOperation *indexOp = indexOpPtr.p;
+
+      /* No more TransIdAI will arrive, abort */
+      ApiConnectRecordPtr apiConnectptr;
+      apiConnectptr.i = indexOp->connectionIndex;
+      if (unlikely(apiConnectptr.i == RNIL ||
+                   !c_apiConnectRecordPool.getValidPtr(apiConnectptr))) {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
     checkWaitFireTrigConfDone(signal, regApiPtr);
     return;
   }
@@ -8465,7 +11406,7 @@ Dbtc::sendFireTrigReq(Signal* signal,
      * fan-out limit, use immediate CONTINUEB to send more.
      * When sendFireTrigReq resumes sending from execFireTrigConf (limit=1),
      * it is enough to send one req at a time, no need to continueB.
-     */
+       */
     jam();
     regApiPtr.p->lqhkeyreqrec++; // prevent early completion
     signal->theData[0] = TcContinueB::ZSEND_FIRE_TRIG_REQ;
@@ -8531,9 +11472,44 @@ Dbtc::sendFireTrigReqLqh(Signal* signal,
   Tdata[0] |= (ZFIRE_TRIG_REQ << 28);
   UintR Tindex = container->noOfPackedWords;
   container->noOfPackedWords = Tindex + len;
-  Thostptr.p->lqh_pack_mask.set(instanceNo);
-  UintR* TDataPtr = &container->packedWords[Tindex];
-  memcpy(TDataPtr, Tdata, len << 2);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execLQHKEYCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execLQHKEYCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Thostptr.p->lqh_pack_mask.set(instanceNo
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  UintR* TDataPtr =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ &container->packedWords[Tindex];
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ CAST_CONSTPTR(LqhKeyConf,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+  memcpy(TDataPtr, Tdata, len << 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+2);
   return ret;
 }
 
@@ -8542,7 +11518,16 @@ Dbtc::checkWaitFireTrigConfDone(Signal* signal,
                                Ptr<ApiConnectRecord> apiPtr)
 {
   jam();
-  ndbassert(apiPtr.p->apiConnectstate == CS_WAIT_FIRE_TRIG_REQ);
+  ndbassert(apiPtr.p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                          signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CAST_CONSTPTR(LqhKeyConf, signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->apiConnectstate == CS_WAIT_FIRE_TRIG_REQ);
 
   if ( apiPtr.p->m_outstanding_fire_trig_req == 0 &&  // All FireTrigReq sent
        apiPtr.p->lqhkeyreqrec == apiPtr.p->lqhkeyconfrec &&  // Any CONTINUEBs done
@@ -8633,8 +11618,7 @@ Dbtc::execFIRE_TRIG_CONF(Signal* signal)
   regApiPtr.p->m_outstanding_fire_trig_req--;
 
   // Resume sending FireTrigReq if possible.
-  if (TapiConnectstate == CS_SEND_FIRE_TRIG_REQ)
-  {
+  if (TapiConnectstate == CS_SEND_FIRE_TRIG_REQ) {
     jam();
     if (resumeSearch)
     {
@@ -8661,15 +11645,34 @@ Dbtc::execFIRE_TRIG_REF(Signal* signal)
   jamEntry();
   if (unlikely(!tcConnectRecord.getValidPtr(localTcConnectptr)))
   {
-    warningReport(signal, 28, localTcConnectptr.i);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TcConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TcConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ warningReport(signal, 28, localTcConnectptr.i);
     return;
   }
   apiConnectptr.i = localTcConnectptr.p->apiConnect;
-  if (unlikely(localTcConnectptr.p->tcConnectstate != OS_FIRE_TRIG_REQ))
-  {
+  if (unlikely(localTcConnectptr.p->tcConnectstate != OS_FIRE_TRIG_REQ)) {
     warningReport(signal, 28, localTcConnectptr.i);
     return;
-  }//if
+  }  // if
   if (unlikely(!c_apiConnectRecordPool.getValidPtr(apiConnectptr)))
   {
     warningReport(signal, 28, localTcConnectptr.i);
@@ -8698,27 +11701,160 @@ Dbtc::execFIRE_TRIG_REF(Signal* signal)
 }
 
 /**
- * The NDB API has now reported that it has heard about the commit of
+ * The NDB API has now reported that it has 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+heard
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ about 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the commit of
  * transaction, this means that we're ready to remove the commit ack
  * markers, both here in DBTC and in all the participating DBLQH's.
- */
+||||||| Common ancestor
+if (ERROR_INSERTED(8003)) {
+    if (regApiPtr.p->apiConnectstate == CS_STARTED) {
+      CLEAR_ERROR_INSERT_VALUE;
+      return;
+    }//if
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ }//if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 void
-Dbtc::execTC_COMMIT_ACK(Signal* signal)
+Dbtc::execTC_COMMIT_ACK(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+8004))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+8003))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal)
 {
-  jamEntry();
+  jamEntry(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regApiPtr.p->apiConnectstate == CS_RECEIVING
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regApiPtr.p->apiConnectstate == CS_STARTED
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
 
   CommitAckMarker key;
   key.transid1 = signal->theData[0];
-  key.transid2 = signal->theData[1];
+  key.transid2 = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->theData[1];
 
-  CommitAckMarkerPtr removedMarker;
+||||||| Common ancestor
+}//if
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CommitAckMarkerPtr removedMarker;
   DEB_LQH_TRANS_CMA(("(%u) Remove trans(H'%.8x,H'%.8x) from "
-                 "CommitAckMarker::TC_COMMIT_ACK",
-                 instance(),
+||||||| Common ancestor
+}//if
+  if (ERROR_INSERTED(8005)) {
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if (regApiPtr.p->apiConnectstate == CS_REC_COMMITTING) {
+      CLEAR_ERROR_INSERT_VALUE;
+=======
+if
+>>>>>>> MySQL 8.0.36
+  }    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"CommitAckMarker::TC_COMMIT_ACK",
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+return;
+    }//if
+=======
+//
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ }//if
+=======
+if
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(ERROR_INSERTED(8006))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(ERROR_INSERTED(8004)) {
+    if (regApiPtr.p->apiConnectstate == CS_RECEIVING) {
+      CLEAR_ERROR_INSERT_VALUE;
+      return;
+    }  // if
+  }    // if
+  if (ERROR_INSERTED(8005)) {
+    if (regApiPtr.p->apiConnectstate == CS_REC_COMMITTING) {
+      CLEAR_ERROR_INSERT_VALUE;
+      return;
+    }  // if
+  }    // if
+  if (ERROR_INSERTED(8006))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        instance(),
                  key.transid1,
                  key.transid2));
-  if (!m_commitAckMarkerHash.remove(removedMarker, key))
-  {
+  if (!m_commitAckMarkerHash.remove(removedMarker, key)) {
     jam();
     warningHandlerLab(signal, __LINE__);
     return;
@@ -8743,8 +11879,7 @@ Dbtc::sendRemoveMarkers(Signal* signal,
   LocalCommitAckMarkerBuffer commitAckMarkers(pool, marker->theDataBuffer);
   CommitAckMarkerBuffer::DataBufferIterator iter;
   bool next_flag = commitAckMarkers.first(iter);
-  while (next_flag)
-  {
+  while (next_flag) {
     jam();
     Uint32 dataWord = *iter.data;
     NodeId nodeId = dataWord >> 16;
@@ -8768,14 +11903,34 @@ Dbtc::sendRemoveMarker(Signal* signal,
                        Uint32 instanceKey,
                        Uint32 transid1, 
                        Uint32 transid2,
-                       Uint32 removed_by_fail_api){
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(!commitAckMarker.p->insert_in_commit_ack_marker(this,
+=======
+(!commitAckMarker.p->insert_in_commit_ack_marker(
+>>>>>>> MySQL 8.0.36
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  Uint32 removed_by_fail_api){
   /**
    * Seize host ptr
    */
   HostRecordPtr hostPtr;
   const UintR ThostFilesize = chostFilesize;
   hostPtr.i = nodeId;
-  ptrCheckGuard(hostPtr, ThostFilesize, hostRecord);
+  ptrCheckGuard(hostPtr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+this,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ThostFilesize, hostRecord);
 
   Uint32 Tdata[3];
   Tdata[0] = removed_by_fail_api;
@@ -8801,8 +11956,7 @@ Dbtc::sendRemoveMarker(Signal* signal,
   } else {
     jam();
     updatePackedList(signal, hostPtr.p, hostPtr.i);
-  }
-  
+  } 
   UintR  numWord = container->noOfPackedWords;
   UintR* dataPtr = &container->packedWords[numWord];
 
@@ -8877,7 +12031,31 @@ void Dbtc::execCOMPLETED(Signal* signal)
 #ifdef ERROR_INSERT
   if (ERROR_INSERTED(8031))
   {
-    systemErrorLab(signal, __LINE__);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+systemErrorLab
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  ( 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal, __LINE__
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ regLockTcPtr->operation == ZREAD 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(regLockTcPtr->operation == ZREAD
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   }
   if (ERROR_INSERTED(8019))
   {
@@ -8892,7 +12070,29 @@ void Dbtc::execCOMPLETED(Signal* signal)
   if (ERROR_INSERTED(8043))
   {
     CLEAR_ERROR_INSERT_VALUE;
-    sendSignalWithDelay(cownref, GSN_COMPLETED, signal, 2000, 3);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sendSignalWithDelay(cownref,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GSN_COMPLETED,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regLockTcPtr->commitAckMarker ==
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(regLockTcPtr->commitAckMarker ==
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal, 2000, 3);
     return;
   }
   if (ERROR_INSERTED(8044))
@@ -8979,19 +12179,61 @@ void Dbtc::execCOMPLETED(Signal* signal)
       send_complete_loop(signal,
                          localApiConnectptr,
                          localApiConnectptr.p->nextTcOperation,
-                         __LINE__);
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Local_TcFiredTriggerData_fifo
+=======
+Local_TcFiredTriggerData_fifo list(c_theFiredTriggerPool,
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+list(c_theFiredTriggerPool,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                                
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   __LINE__);
       localApiConnectptr.p->nextTcOperation = RNIL;
     }
 
     /*-------------------------------------------------------*/
     // We have not sent all COMPLETE requests yet. We could be
-    // in the state that all sent are COMPLETED but we are
-    // still waiting for a CONTINUEB to send the rest of the
+    // in the state that all sent are COMPLETED but we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+are
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+time_track_complete_index_key_operation(regTcPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+time_track_complete_index_key_operation(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    // still waiting for 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+a CONTINUEB to send the rest of the
     // COMPLETE requests.
     /*-------------------------------------------------------*/
     return;
   }
-  if (ERROR_INSERTED(8021))
+  if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regTcPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (ERROR_INSERTED(8021))
   {
     jam();
     ndbabort();
@@ -9001,8 +12243,7 @@ void Dbtc::execCOMPLETED(Signal* signal)
   {
     jam();
     sendApiLateCommitSignal(signal, localApiConnectptr);
-  }
-  releaseTransResources(signal, localApiConnectptr);
+  } releaseTransResources(signal, localApiConnectptr);
   CRASH_INSERTION(8054);
 }
 
@@ -9021,13 +12262,39 @@ void Dbtc::releaseTransResources(Signal* signal,
   while (tcConList.first(tcConnectptr))
   {
     jamDebug();
-    if (likely(releaseTcCon(signal, loop_count, false)))
+    if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+likely(releaseTcCon(signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regTcPtr,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ loop_count, false)))
     {
-      jamDebug();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     jamDebug();
       tcConList.removeFirst(tcConnectptr);
       tcConnectRecord.release(tcConnectptr);
     }
-    if (++loop_count > ZMAX_RELEASE_PER_RT_BREAK)
+    if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regTcPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (++loop_count > ZMAX_RELEASE_PER_RT_BREAK)
     {
       /**
        * Very large transactions require that we release records in a
@@ -9040,8 +12307,70 @@ void Dbtc::releaseTransResources(Signal* signal,
       signal->theData[1] = apiConnectptr.i;
       sendSignal(reference(),
                  GSN_CONTINUEB,
-                 signal,
-                 2,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::setupIndexOpReturn(ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::setupIndexOpReturn(ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regApiPtr,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regApiPtr,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TcConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TcConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regTcPtr)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regTcPtr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     signal,
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TcIndexOperation*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TcIndexOperation
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+indexOp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*indexOp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     2,
                  JBB);
       checkPoolShrinkNeed(DBTC_CONNECT_RECORD_TRANSIENT_POOL_INDEX,
                           tcConnectRecord);
@@ -9054,16 +12383,77 @@ void Dbtc::releaseTransResources(Signal* signal,
   jamDebug();
   releaseFiredTriggerData(signal,
                           &apiConnectptr.p->theFiredTriggers,
-                          loop_count,
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+             loop_count,
                           false);
   if (loop_count > ZMAX_RELEASE_PER_RT_BREAK)
   {
     jam();
     setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
-    signal->theData[0] = TcContinueB::ZRELEASE_TRANS_RESOURCES;
-    signal->theData[1] = apiConnectptr.i;
-    sendSignal(reference(),
-               GSN_CONTINUEB,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiConnectRecordPtr apiConnectptr)
+{
+/*---------------------------------------------------------------*/
+/* IF THE COMMIT FLAG IS SET IN SIGNAL TCKEYREQ THEN DBTC HAS TO */
+/* SEND TCKEYCONF FOR ALL OPERATIONS EXCEPT THE LAST ONE. WHEN   */
+/* THE TRANSACTION THEN IS COMMITTED TCKEYCONF IS SENT FOR THE   */
+/* WHOLE TRANSACTION               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   signal->theData[0] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TcContinueB::ZRELEASE_TRANS_RESOURCES;
+||||||| Common ancestor
+=======
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ apiConnectptr) {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->theData[1]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+/*---------------------------------------------------------------*/
+>>>>>>> MySQL 8.0.36
+ = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.i;
+||||||| Common ancestor
+=======
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ IF THE COMMIT FLAG IS SET 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+sendSignal(reference(),
+||||||| Common ancestor
+=======
+IN
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ SIGNAL TCKEYREQ THEN DBTC HAS TO */
+  /* SEND TCKEYCONF FOR ALL OPERATIONS EXCEPT THE LAST ONE. WHEN   GSN_CONTINUEB,
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+/*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  /* THE TRANSACTION THEN IS COMMITTED TCKEYCONF IS SENT FOR THE   */
+  /* WHOLE TRANSACTION                                             */
+  /*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
                signal,
                2,
                JBB);
@@ -9074,15 +12464,65 @@ void Dbtc::releaseTransResources(Signal* signal,
                                   &apiConnectptr.p->theSeizedIndexOperations,
                                   loop_count,
                                   false);
-  if (loop_count > ZMAX_RELEASE_PER_RT_BREAK)
+    if (loop_count > ZMAX_RELEASE_PER_RT_BREAK)
   {
     jam();
     setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
-    signal->theData[0] = TcContinueB::ZRELEASE_TRANS_RESOURCES;
-    signal->theData[1] = apiConnectptr.i;
+    signal->theData[0] = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TcContinueB::ZRELEASE_TRANS_RESOURCES;
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  return;
+      }
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    return;
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal->theData[1] 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ apiConnectptr.i;
     sendSignal(reference(),
                GSN_CONTINUEB,
-               signal,
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord::TF_INDEX_OP_RETURN))
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    ApiConnectRecord::TF_INDEX_OP_RETURN)) {
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam();
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    jam();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
                2,
                JBB);
     return;
@@ -9091,14 +12531,42 @@ void Dbtc::releaseTransResources(Signal* signal,
   jamDebug();
   releaseApiConCopy(signal, apiConnectptr);
   jamDebug();
-}//Dbtc::releaseTransResources()
+}  //Dbtc::releaseTransResources()
 
 /* *********************************************************************>> */
 /*       MODULE: HANDLE_GCP                                                */
 /*       DESCRIPTION: HANDLES GLOBAL CHECKPOINT HANDLING AT THE COMPLETION */
-/*       OF THE COMMIT PHASE AND THE ABORT PHASE. WE MUST ENSURE THAT TC   */
-/*       SENDS GCP_TCFINISHED WHEN ALL TRANSACTIONS BELONGING TO A CERTAIN */
-/*       GLOBAL CHECKPOINT HAVE COMPLETED.                                 */
+/*       OF THE COMMIT PHASE AND THE ABORT PHASE. WE MUST ENSURE THAT TC   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+/*   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }  SENDS GCP_TCFINISHED WHEN ALL TRANSACTIONS BELONGING TO A CERTAIN */
+/*       GLOBAL CHECKPOINT HAVE COMPLETED.         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord::TF_INDEX_OP_RETURN))
+=======
+    ApiConnectRecord::TF_INDEX_OP_RETURN)) {
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	jam();
+=======
+    jam();
+>>>>>>> MySQL 8.0.36
+                  */
 /* *********************************************************************>> */
 void Dbtc::handleGcp(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
 {
@@ -9108,15 +12576,13 @@ void Dbtc::handleGcp(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
   unlinkApiConnect(localGcpPtr, apiConnectptr);
   if (localGcpPtr.p->apiConnectList.isEmpty())
   {
-    if (localGcpPtr.p->gcpNomoretransRec == ZTRUE)
+      if (localGcpPtr.p->gcpNomoretransRec == ZTRUE)
     {
-      if (c_ongoing_take_over_cnt == 0)
-      {
-        jam();
+        if (c_ongoing_take_over_cnt == 0) {
+          jam();
         gcpTcfinished(signal, localGcpPtr.p->gcpId, __LINE__);
         unlinkAndReleaseGcp(localGcpPtr);
-      }
-      else
+        } else
       {
         DEB_GCP(("gcpId(%u,%u) finished, but c_ongoing_take_over_cnt: %u",
                  Uint32(localGcpPtr.p->gcpId >> 32),
@@ -9135,7 +12601,7 @@ Dbtc::checkGcpFinished(Signal *signal)
   if (gcp_list.first(gcpPtr) &&
       gcpPtr.p->gcpNomoretransRec == ZTRUE)
   {
-    jam();
+      jam();
     NDB_TICKS currTime = NdbTick_getCurrentTicks();
     Uint32 secs_wait =
       NdbTick_Elapsed(gcpPtr.p->m_received_ticks, currTime).seconds();
@@ -9150,13 +12616,50 @@ Dbtc::checkGcpFinished(Signal *signal)
       ApiConnectRecordPtr apiConnectptr;
       LocalApiConnectRecord_gcp_list
         apiConList(c_apiConnectRecordPool,
-                   gcpPtr.p->apiConnectList);
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }       gcpPtr.p->apiConnectList);
       apiConList.first(apiConnectptr);
       if (apiConnectptr.p != nullptr)
       {
         jam();
         DumpStateOrd * const dumpState =
-          (DumpStateOrd *)signal->getDataPtrSend();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}//switch
+}//Dbtc::lqhKeyConf_checkTransactionState()
+
+void Dbtc::sendtckeyconf(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  // switch
+}  // Dbtc::lqhKeyConf_checkTransactionState()
+
+void Dbtc::sendtckeyconf(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       (DumpStateOrd *)signal->getDataPtrSend();
         dumpState->args[0] = DumpStateOrd::TcDumpOneApiConnectRec;
         dumpState->args[1] = apiConnectptr.i;
         dumpState->args[2] = instance();
@@ -9174,13 +12677,32 @@ Dbtc::checkGcpFinished(Signal *signal)
           {
             for (Uint32 i = 0; i <= tcPtr.p->lastReplicaNo; i++)
             {
-              if (tcPtr.p->failData[i] != LqhTransConf::Committed)
-                print_flag = true;
+              if (tcPtr.p->failData[i] != LqhTransConf::Committed)               print_flag = true;
             }
           }
           else if (apiConnectptr.p->apiConnectstate == CS_WAIT_COMPLETE_CONF)
           {
-            for (Uint32 i = 0; i <= tcPtr.p->lastReplicaNo; i++)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+gci_lo
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*gci_lo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       for (Uint32 i = 0; i <= tcPtr.p->lastReplicaNo; i++)
             {
               if (tcPtr.p->failData[i] != LqhTransConf::InvalidStatus)
                 print_flag = true;
@@ -9197,13 +12719,55 @@ Dbtc::checkGcpFinished(Signal *signal)
             dumpState->args[2] = instance();
             signal->setLength(3);
             execDUMP_STATE_ORD(signal);
-          }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+gci_lo
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*gci_lo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     }
           tcPtrI = tcPtr.p->nextList;
         }
         ndbabort();
       }
-      else
-      {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendSignal(regApiPtr->ndbapiBlockref,
+	 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(regApiPtr->ndbapiBlockref, GSN_TCKEYCONF, signal,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  else
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
         jam();
         g_eventLogger->info("List of API connect records empty crashing!");
         ndbabort();
@@ -9220,17 +12784,61 @@ void Dbtc::releaseApiConCopy(Signal* signal, ApiConnectRecordPtr const apiConnec
   ndbrequire(regApiPtr->apiConnectkind == ApiConnectRecord::CK_COPY);
   ndbassert(regApiPtr->nextApiConnect == RNIL);
   setApiConTimer(apiConnectptr, 0, __LINE__);
-  regApiPtr->apiConnectstate = CS_RESTART;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+regApiPtr->apiConnectstate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if
+  // -------------------------------------------------------------------------
+  //
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  //
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= CS_RESTART;
   ndbrequire(regApiPtr->commitAckMarker == RNIL);
   regApiPtr->apiConnectkind = ApiConnectRecord::CK_FREE;
   releaseApiConTimer(apiConnectptr);
-  c_apiConnectRecordPool.release(apiConnectptr);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+The header contains the block reference of receiver plus the real signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_apiConnectRecordPool.release(apiConnectptr);
   checkPoolShrinkNeed(DBTC_API_CONNECT_RECORD_TRANSIENT_POOL_INDEX,
                       c_apiConnectRecordPool);
 }//Dbtc::releaseApiConCopy()
 
 /* ========================================================================= */
-/* -------  RELEASE ALL RECORDS CONNECTED TO A DIRTY WRITE OPERATION ------- */
+/* 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+// length - 3, since we have the real signal length plus one additional word
+  // for the header we have to do - 4.
+  // 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+// -------------------------------------------------------------------------
+  // The header contains the block reference of receiver plus the real signal
+  // length - 3, since we have the real signal length plus one additional word
+  // for the header we have to do - 4.
+  // 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+-------  RELEASE ALL RECORDS CONNECTED TO A DIRTY WRITE OPERATION ------- */
 /* ========================================================================= */
 void Dbtc::releaseDirtyWrite(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
 {
@@ -9249,15 +12857,79 @@ void Dbtc::releaseDirtyWrite(Signal* signal, ApiConnectRecordPtr const apiConnec
       setApiConTimer(apiConnectptr, 0, __LINE__);
       sendtckeyconf(signal, 1, apiConnectptr);
     }//if
-  }//if
-}//Dbtc::releaseDirtyWrite()
+  }  //if
+}  // Dbtc::releaseDirtyWrite()
 
 /*****************************************************************************
- *                               L Q H K E Y R E F                          
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::copyFromToLen(UintR*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::copyFromToLen(UintR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sourceBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*sourceBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+UintR*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UintR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+destBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*destBuffer,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                            L Q H K E Y R E F                          
  * WHEN LQHKEYREF IS RECEIVED DBTC WILL CHECK IF COMMIT FLAG WAS SENT FROM THE
  * APPLICATION. IF SO, THE WHOLE TRANSACTION WILL BE ROLLED BACK AND SIGNAL  
  * TCROLLBACKREP WILL BE SENT TO THE API.                                    
- *                                                                          
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::execSEND_PACKED(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execSEND_PACKED(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                                                         
  * OTHERWISE TC WILL CHECK THE ERRORCODE. IF THE ERRORCODE IS INDICATING THAT
  * THE "ROW IS NOT FOUND" FOR UPDATE/READ/DELETE OPERATIONS AND "ROW ALREADY 
  * EXISTS" FOR INSERT OPERATIONS, DBTC WILL RELEASE THE OPERATION AND THEN   
@@ -9268,7 +12940,7 @@ void Dbtc::releaseDirtyWrite(Signal* signal, ApiConnectRecordPtr const apiConnec
  * THE OPERATION WILL BE TREATED AS AN OPERATION WITHOUT COMMIT. WHEN ANY    
  * OTHER FAULTCODE IS RECEIVED THE WHOLE TRANSACTION MUST BE ROLLED BACK     
  *****************************************************************************/
-void Dbtc::execLQHKEYREF(Signal* signal) 
+void Dbtc::execLQHKEYREF(Signal *signal) 
 {
   const LqhKeyRef * const lqhKeyRef = (LqhKeyRef *)signal->getDataPtr();
   Uint32 indexId = 0;
@@ -9277,7 +12949,29 @@ void Dbtc::execLQHKEYREF(Signal* signal)
   UintR compare_transid1, compare_transid2;
   Uint32 errCode = terrorCode = lqhKeyRef->errorCode;
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
-  ndbrequire(errCode != ZLQHKEY_PROTOCOL_ERROR);
+  ndbrequire(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+errCode
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+=======
+*signal,
+>>>>>>> MySQL 8.0.36
+ ZLQHKEY_PROTOCOL_ERROR);
 #endif
   /*-------------------------------------------------------------------------
    *                                                                         
@@ -9313,7 +13007,29 @@ void Dbtc::execLQHKEYREF(Signal* signal)
 	warningReport(signal, 25, tcConnectptr.i);
 	return;
       }
-      ApiConnectRecord * const regApiPtr = apiConnectptr.p;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+void
+Dbtc::startSendFireTrigReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+void Dbtc::startSendFireTrigReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     ApiConnectRecord * const regApiPtr = apiConnectptr.p;
       compare_transid1 = regApiPtr->transid[0] ^ lqhKeyRef->transId1;
       compare_transid2 = regApiPtr->transid[1] ^ lqhKeyRef->transId2;
       compare_transid1 = compare_transid1 | compare_transid2;
@@ -9346,7 +13062,28 @@ void Dbtc::execLQHKEYREF(Signal* signal)
         goto do_abort;
       }
       if (unlikely(TapiConnectstate == CS_RELEASE))
-      {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::diverify010Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::diverify010Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   {
         jam();
 	warningReport(signal, 25, tcConnectptr.i);
         return;
@@ -9371,10 +13108,33 @@ void Dbtc::execLQHKEYREF(Signal* signal)
           jam();
           // The operation executed an index trigger
           TcIndexDataPtr indexPtr;
-          ndbrequire(getIndexDataOperation(indexPtr, trigPtr.p->indexId));
+          ndbrequire(getIndexDataOperation(indexPtr, trigPtr.p->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+indexId));
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_flags,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+m_flags, (ApiConnectRecord::TF_INDEX_OP_RETURN |
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
           TcIndexData* indexData = indexPtr.p;
-          indexId = indexData->indexId;
-          regApiPtr->errorData = indexId;
+          indexId 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= indexData->indexId;
+          regApiPtr->errorData
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(ApiConnectRecord::TF_INDEX_OP_RETURN |
+          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ = indexId;
           if (errCode == ZALREADYEXIST)
           {
             jam();
@@ -9423,16 +13183,78 @@ void Dbtc::execLQHKEYREF(Signal* signal)
           {
             jam();
             g_eventLogger->info("reorg, ignore ZNOT_FOUND");
-            goto do_ignore;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::seizeApiConnectCopy(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::seizeApiConnectCopy(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+=======
+*signal,
+>>>>>>> MySQL 8.0.36
+          goto do_ignore;
           }
-          else if (errCode == 839)
+          else 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(errCode
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ == 839)
           {
             jam();
             g_eventLogger->info("reorg, ignore 839");
             goto do_ignore;
           }
           else
-          {
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execDIVERIFYCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execDIVERIFYCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
             g_eventLogger->info("reorg: opType: %u errCode: %u", opType,
                                 errCode);
           }
@@ -9453,11 +13275,30 @@ void Dbtc::execLQHKEYREF(Signal* signal)
            *   we found no child row...
            *   that means FK not violated...
            */
-          if (errCode == ZNOT_FOUND)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     if (errCode == ZNOT_FOUND)
           {
             jam();
-            if (regTcPtr->isIndexOp(regTcPtr->m_special_op_flags))
-            {
+            if (regTcPtr->isIndexOp(regTcPtr->m_special_op_flags))           {
               jam();
               /**
                * execTCINDXREQ adds an extra regApiPtr->lqhkeyreqrec++
@@ -9493,7 +13334,8 @@ void Dbtc::execLQHKEYREF(Signal* signal)
 
         unlinkReadyTcCon(apiConnectptr.p);
         Uint32 dummy = 0;
-        releaseTcCon(signal, dummy, true);
+        releaseTcCon(signal, dummy,
+                true);
         checkPoolShrinkNeed(DBTC_CONNECT_RECORD_TRANSIENT_POOL_INDEX,
                             tcConnectRecord);
 
@@ -9510,7 +13352,29 @@ void Dbtc::execLQHKEYREF(Signal* signal)
       }
       
   do_abort:
-      markOperationAborted(regApiPtr, regTcPtr);
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+commitGciHandling(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+commitGciHandling(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     markOperationAborted(regApiPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, regTcPtr);
       
       if(regApiPtr->apiConnectstate == CS_ABORTING){
 	/**
@@ -9536,7 +13400,30 @@ void Dbtc::execLQHKEYREF(Signal* signal)
       TcKeyRef * const tcKeyRef = (TcKeyRef *) signal->getDataPtrSend();
       tcKeyRef->transId[0] = regApiPtr->transid[0];
       tcKeyRef->transId[1] = regApiPtr->transid[1];
-      tcKeyRef->errorCode = terrorCode;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(unlikely(!
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(unlikely(
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcKeyRef
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(regApiPtr.p
+// RONDB-624 todo: Glue these lines together ^v
+=======
+           !(regApiPtr.p
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->errorCode = terrorCode;
       bool isIndexOp = regTcPtr->isIndexOp(regTcPtr->m_special_op_flags);
       Uint32 indexOp = tcConnectptr.p->indexOp;
       Uint32 clientData = regTcPtr->clientData;
@@ -9552,7 +13439,8 @@ void Dbtc::execLQHKEYREF(Signal* signal)
 	regApiPtr->lqhkeyreqrec--; // Compensate for extra during read
 	tcKeyRef->connectPtr = indexOp;
         tcKeyRef->errorData = indexId;
-	EXECUTE_DIRECT(DBTC, GSN_TCKEYREF, signal, TcKeyRef::SignalLength);
+	EXECUTE_DIRECT(DBTC,
+                  GSN_TCKEYREF, signal, TcKeyRef::SignalLength);
 	apiConnectptr.i = save;
 	apiConnectptr.p = regApiPtr;
       } else {
@@ -9561,7 +13449,7 @@ void Dbtc::execLQHKEYREF(Signal* signal)
         tcKeyRef->errorData = indexId;
 	sendSignal(regApiPtr->ndbapiBlockref, 
 		   GSN_TCKEYREF, signal, TcKeyRef::SignalLength, JBB);
-      }//if
+      }  //if
       
       /*---------------------------------------------------------------------
        * SINCE WE ARE NOT ABORTING WE NEED TO UPDATE THE COUNT OF HOW MANY 
@@ -9613,8 +13501,7 @@ void Dbtc::clearCommitAckMarker(ApiConnectRecord * const regApiPtr,
     ndbrequire(regApiPtr->num_commit_ack_markers > 0);
     regApiPtr->num_commit_ack_markers--;
     regTcPtr->commitAckMarker = RNIL;
-    if (regApiPtr->num_commit_ack_markers == 0)
-    {
+    if (regApiPtr->num_commit_ack_markers == 0)   {
       jam();
       tc_clearbit(regApiPtr->m_flags,
                   ApiConnectRecord::TF_COMMIT_ACK_MARKER_RECEIVED);
@@ -9676,8 +13563,7 @@ void Dbtc::execTC_COMMITREQ(Signal* signal)
       {
         tcConnectptr.i = regApiPtr->tcConnect.getFirst();
         ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
-        if (likely(regApiPtr->lqhkeyconfrec == regApiPtr->lqhkeyreqrec))
-        {
+        if (likely(regApiPtr->lqhkeyconfrec == regApiPtr->lqhkeyreqrec)) {
           jamDebug();
           /*******************************************************************/
           // The proper case where the application is waiting for commit or 
@@ -9688,9 +13574,47 @@ void Dbtc::execTC_COMMITREQ(Signal* signal)
           setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
           diverify010Lab(signal, apiConnectptr);
           return;
-        } else {
+        }
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+//Dbtc::commit020Lab()
+
+Uint32
+Dbtc::sendCommitLqh(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  // Dbtc::commit020Lab()
+
+Uint32 Dbtc::sendCommitLqh(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else {
           jam();
-          /*******************************************************************/
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ TcConnectRecord *const regTcPtr,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*******************************************************************/
+||||||| Common ancestor
+* const regTcPtr,
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
           // The transaction is started but not all operations are completed. 
           // It is not possible to commit the transaction in this state. 
           // We will abort it instead.
@@ -9711,11 +13635,32 @@ void Dbtc::execTC_COMMITREQ(Signal* signal)
         commitConf->gci_hi = 0;
         commitConf->gci_lo = 0;
         signal->m_send_wakeups++;
-        sendSignal(apiBlockRef, GSN_TC_COMMITCONF, signal, 
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+UintR*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UintR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TDataPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*TDataPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     sendSignal(apiBlockRef, GSN_TC_COMMITCONF, signal, 
 		   TcCommitConf::SignalLength, JBB);
         
         regApiPtr->returnsignal = RS_NO_RETURN;
-        releaseAbortResources(signal, apiConnectptr);
+     Uint64 Tgci,
+  releaseAbortResources(signal, apiConnectptr);
         return;
       }//if
       break;
@@ -9798,8 +13743,7 @@ void Dbtc::execTCROLLBACKREQ(Signal* signal)
 
   jamEntry();
 
-  if(unlikely((signal->getLength() >= 4) && (signal->theData[3] & 0x1)))
-  {
+  if(unlikely((signal->getLength() >= 4) && (signal->theData[3] & 0x1))) {
     g_eventLogger->info("Trying to roll back potentially bad txn");
     potentiallyBad= true;
   }
@@ -9813,11 +13757,10 @@ void Dbtc::execTCROLLBACKREQ(Signal* signal)
   compare_transid1 = apiConnectptr.p->transid[0] ^ signal->theData[1];
   compare_transid2 = apiConnectptr.p->transid[1] ^ signal->theData[2];
   compare_transid1 = compare_transid1 | compare_transid2;
-  if (unlikely(compare_transid1 != 0))
-  {
+  if (unlikely(compare_transid1 != 0)) {
     jam();
     return;
-  }//if
+  }  // if
 
   apiConnectptr.p->m_flags |= ApiConnectRecord::TF_EXEC_FLAG;
   apiConnectptr.p->m_tc_hbrep_timer = ctcTimer;
@@ -9899,14 +13842,13 @@ TC_ROLL_warning:
 
 TC_ROLL_system_error:
   jam();
-  if(likely(potentiallyBad==false))
-    systemErrorLab(signal, __LINE__);
+  if(likely(potentiallyBad==false))   systemErrorLab(signal, __LINE__);
   return;
 }//Dbtc::execTCROLLBACKREQ()
 
 void Dbtc::execTC_HBREP(Signal* signal) 
 {
-  const TcHbRep * const tcHbRep = 
+  const TcHbRep *const tcHbRep = 
     (TcHbRep *)signal->getDataPtr();
 
   jamEntry();
@@ -9923,8 +13865,7 @@ void Dbtc::execTC_HBREP(Signal* signal)
              apiConnectptr.p->transid[1] == tcHbRep->transId2))
   {
 
-    if (likely(getApiConTimer(apiConnectptr) != 0))
-    {
+    if (likely(getApiConTimer(apiConnectptr) != 0)) {
       setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
     } else {
       DEBUG("TCHBREP received when timer was off apiConnectptr.i=" 
@@ -9941,8 +13882,8 @@ void Dbtc::execTC_HBREP(Signal* signal)
 /*                                  A B O R T                                */
 /*                                                                           */
 /*****************************************************************************/
-void Dbtc::warningReport(Signal* signal, int place, Uint32 oprec)
-{
+void Dbtc::warningReport(
+    Signal *signal, int place, Uint32 oprec) {
   switch (place) {
   case 0:
     jam();
@@ -10101,7 +14042,32 @@ void Dbtc::warningReport(Signal* signal, int place, Uint32 oprec)
     break;
   case 22:
     jam();
-#ifdef COMPLETE_TRACE
+<<<<<<< RonDB // RONDB-624 todo
+#ifdef
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+
+void Dbtc::complete010Lab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Dbtc::complete010Lab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+COMPLETE_TRACE
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                         
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     ndbout << "Time-out waiting for COMPLETECONF in Dbtc, oprec: "
            << oprec << endl;
 #endif
@@ -10166,22 +14132,65 @@ void Dbtc::warningReport(Signal* signal, int place, Uint32 oprec)
   return;
 }
 
-void Dbtc::errorReport(Signal* signal, int place)
+void Dbtc::errorReport(Signal *signal,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ int place)
 {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ TcConnectRecord *const regTcPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   switch (place) {
   case 0:
     jam();
     break;
   case 1:
     jam();
-    break;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   break;
   case 2:
     jam();
     break;
   case 3:
-    jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TcConnectRecord * const regTcPtr,
+               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  jam();
     break;
-  case 4:
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+case
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 4:
     jam();
     break;
   case 5:
@@ -10211,8 +14220,7 @@ void Dbtc::execABORTED(Signal* signal)
   UintR Tnodeid = signal->theData[3];
   UintR TlastLqhInd = signal->theData[4];
 
-  if (ERROR_INSERTED(8040))
-  {
+  if (ERROR_INSERTED(8040)) {
     CLEAR_ERROR_INSERT_VALUE;
     sendSignalWithDelay(cownref, GSN_ABORTED, signal, 2000, 5);
     return;
@@ -10221,16 +14229,70 @@ void Dbtc::execABORTED(Signal* signal)
    *    ONE PARTICIPANT IN THE TRANSACTION HAS REPORTED THAT IT IS ABORTED.
    *------------------------------------------------------------------------*/
   /*-------------------------------------------------------------------------
-   *     WE HAVE TO CHECK THAT THIS IS NOT AN OLD SIGNAL BELONGING TO A     
+   *     WE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+HAVE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+UintR*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+UintR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TO
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TDataPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*TDataPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ CHECK THAT THIS IS NOT AN OLD SIGNAL BELONGING TO A     
    *     TRANSACTION ALREADY ABORTED. THIS CAN HAPPEN WHEN TIME-OUT OCCURS  
    *     IN TC WAITING FOR ABORTED.                                         
    *-------------------------------------------------------------------------*/
   if (unlikely(!tcConnectRecord.getValidPtr(tcConnectptr)))
-  {
-    warningReport(signal, 2, tcConnectptr.i);
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+return 255;
+}
+
+void
+Dbtc::sendFireTrigReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return 255;
+}
+
+void Dbtc::sendFireTrigReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   warningReport(signal, 2, tcConnectptr.i);
     return;
     /*-----------------------------------------------------------------------*/
-    // ABORTED reported on an operation not expecting ABORT.
+    // ABORTED reported on an
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ operation not expecting ABORT.
     /*-----------------------------------------------------------------------*/
   }
   ApiConnectRecordPtr apiConnectptr;
@@ -10353,25 +14415,80 @@ void Dbtc::clearTcNodeData(Signal* signal,
   if (TLastLqhIndicator == ZTRUE) {
     for (Ti = Tstart ; Ti < tcConnectptr.p->noOfNodes; Ti++) {
       jam();
-      tcConnectptr.p->tcNodedata[Ti] = 0;
+     Ptr<TcConnectRecord> 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcConnectptr.p->tcNodedata[Ti]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+regTcPtr,
+>>>>>>> MySQL 8.0.36
+ = 0;
     }//for
   } else {
     jam();
-    tcConnectptr.p->tcNodedata[Tstart] = 0;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcConnectptr.p->tcNodedata[Tstart] = 0;
   }//for
 }//clearTcNodeData()
 
 void Dbtc::abortErrorLab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
 {
-  ptrGuard(apiConnectptr);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ Ptr<TcConnectRecord> regTcPtr,
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ptrGuard(apiConnectptr);
   ApiConnectRecord * transP = apiConnectptr.p;
-  if (unlikely((transP->apiConnectstate == CS_ABORTING &&
-                transP->abortState != AS_IDLE)))
+  if (unlikely((transP->apiConnectstate == CS_ABORTING 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&&
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ pass,
+               transP->abortState != AS_IDLE)))
   {
     jam();
     return;
   }
-  if (unlikely(transP->apiConnectstate == CS_RELEASE))
+  if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(unlikely(transP->apiConnectstate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ CS_RELEASE))
   {
     jam();
     return;
@@ -10410,7 +14527,36 @@ void Dbtc::abort010Lab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
   if (transP->tcConnect.isEmpty())
   {
     jam();
-    /*--------------------------------------------------------------------*/
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ret;
+}
+
+void
+Dbtc::checkWaitFireTrigConfDone(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ret;
+}
+
+void Dbtc::checkWaitFireTrigConfDone(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*--------------------------------------------------------------------*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     /* WE HAVE NO PARTICIPANTS IN THE TRANSACTION.                        */
     /*--------------------------------------------------------------------*/
     releaseAbortResources(signal, apiConnectptr);
@@ -10423,7 +14569,34 @@ void Dbtc::abort010Lab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
 }
 
 /*--------------------------------------------------------------------------*/
-/*                                                                          */
+/*                                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+return;
+}
+
+
+void
+Dbtc::execFIRE_TRIG_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return;
+}
+
+void Dbtc::execFIRE_TRIG_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+                                      */
 /*       WE WILL ABORT ONE NODE PER OPERATION AT A TIME. THIS IS TO KEEP    */
 /*       ERROR HANDLING OF THIS PROCESS FAIRLY SIMPLE AND TRACTABLE.        */
 /*       EVEN IF NO NODE OF THIS PARTICULAR NODE NUMBER NEEDS ABORTION WE   */
@@ -10449,8 +14622,7 @@ ABORT020:
     /* WE ARE STILL WAITING FOR MORE KEYINFO/ATTRINFO. WE HAVE NOT CONTACTED*/
     /* ANY LQH YET AND SO WE CAN SIMPLY SET STATE TO ABORTING.              */
     /*----------------------------------------------------------------------*/
-    tcConnectptr.p->noOfNodes = 0; // == releaseAbort(signal)
-    tcConnectptr.p->tcConnectstate = OS_ABORTING;
+    tcConnectptr.p->noOfNodes = 0; // == releaseAbort(signal)   tcConnectptr.p->tcConnectstate = OS_ABORTING;
     break;
   }
   case OS_CONNECTED:
@@ -10458,8 +14630,34 @@ ABORT020:
     jam();
     /*-----------------------------------------------------------------------
      *   WE ARE STILL IN THE INITIAL PHASE OF THIS OPERATION. 
-     *   NEED NOT BOTHER ABOUT ANY LQH ABORTS.
-     *-----------------------------------------------------------------------*/
+     *   NEED NOT BOTHER ABOUT ANY LQH 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ABORTS.
+||||||| Common ancestor
+}
+}
+
+void
+Dbtc::execFIRE_TRIG_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Dbtc::execFIRE_TRIG_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+    *-----------------------------------------------------------------------*/
     tcConnectptr.p->noOfNodes = 0; // == releaseAbort(signal)
     tcConnectptr.p->tcConnectstate = OS_ABORTING;
     break;
@@ -10526,24 +14724,128 @@ ABORT020:
     {
       jam();
       /**
-       * We need to stop sending here to handle this batch. Continuing
+       * We need to stop sending here to handle this batch. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Continuing
        * would endanger a job buffer explosion or send buffer explosion.
-       * We abort in steps if transaction sizes go beyond 1024 operations.
-       */
-      apiConnectptr.p->nextTcOperation = tcConnectptr.i;
-    }
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendRemoveMarker(signal,
+                     nodeId,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendRemoveMarker(signal, nodeId, instanceKey, transId1, transId2,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+       * We abort in steps if transaction sizes go beyond 1024 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+operations.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   instanceKey,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   removed_by_fail_api);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    next_flag = commitAckMarkers.next(iter, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+=======
+1);
+>>>>>>> MySQL 8.0.36
   }
+  commitAckMarkers.release();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p->nextTcOperation
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+checkPoolShrinkNeed(DBTC_COMMIT_ACK_MARKER_BUFFER_TRANSIENT_POOL_INDEX,
+>>>>>>> MySQL 8.0.36
+ = tcConnectptr.i;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  transId1,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
 
   if (ERROR_INSERTED(8089))
   {
     CLEAR_ERROR_INSERT_VALUE;
   }
 
-  if (apiConnectptr.p->counter > 0)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+c_theCommitAckMarkerBufferPool);
+}
+
+void
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(apiConnectptr.p->counter
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Dbtc::sendRemoveMarker(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   transId2,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+NodeId nodeId, Uint32 instanceKey,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   {
     jam();
     apiConnectptr.p->send_abort_done = true;
-    setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
+    setApiConTimer(apiConnectptr, ctcTimer, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+__LINE__);
     return;
   }
   /*-----------------------------------------------------------------------
@@ -10555,21 +14857,72 @@ ABORT020:
 }
 
 /*--------------------------------------------------------------------------*/
-/*       RELEASE KEY AND ATTRINFO OBJECTS AND SEND ABORT TO THE LQH BLOCK.  */
+/*       RELEASE KEY AND ATTRINFO OBJECTS AND SEND ABORT
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+   removed_by_fail_api);
+    next_flag = commitAckMarkers.next(iter, 1);
+  }
+  commitAckMarkers.release();
+  checkPoolShrinkNeed(DBTC_COMMIT_ACK_MARKER_BUFFER_TRANSIENT_POOL_INDEX,
+                      c_theCommitAckMarkerBufferPool);
+}
+
+void
+Dbtc::sendRemoveMarker(Signal* signal, 
+                       NodeId nodeId,
+                
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ TO THE LQH BLOCK.  */
 /*--------------------------------------------------------------------------*/
-int Dbtc::releaseAndAbort(Signal* signal, ApiConnectRecord* const regApiPtr)
+int Dbtc::releaseAndAbort(Signal* 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+instanceKey
+// RONDB-624 todo: Glue these lines together ^v
+=======
+transid1
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, ApiConnectRecord* const regApiPtr)
 {
   HostRecordPtr localHostptr;
   UintR TnoLoops = tcConnectptr.p->noOfNodes;
   
   regApiPtr->counter++;
   bool prevAlive = false;
-  for (Uint32 Ti = 0; Ti < TnoLoops ; Ti++) {
+  for (Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Ti
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+transid1, 
+=======
+transid2,
+>>>>>>> MySQL 8.0.36
+ = 0; Ti < TnoLoops ; Ti++) {
     localHostptr.i = tcConnectptr.p->tcNodedata[Ti];
     ptrCheckGuard(localHostptr, chostFilesize, hostRecord);
-    if (localHostptr.p->hostStatus == HS_ALIVE) {
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ if (localHostptr.p->hostStatus == HS_ALIVE) {
       jam();
       if (prevAlive) {
+||||||| Common ancestor
+Uint32 transid2,
+                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
         // if previous is alive, its LQH forwards abort to this node
         jam();
         continue;
@@ -10591,7 +14944,32 @@ int Dbtc::releaseAndAbort(Signal* signal, ApiConnectRecord* const regApiPtr)
                                instanceNo,
                                localHostptr.i);
       }
-      abo->tcOprec = tcConnectptr.i;
+      abo->tcOprec 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+Dbtc::sendApiLateCommitSignal(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::sendApiLateCommitSignal(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcConnectptr.i;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       abo->tcBlockref = cownref;
       abo->transid1 = regApiPtr->transid[0];
       abo->transid2 = regApiPtr->transid[1];
@@ -10616,7 +14994,27 @@ int Dbtc::releaseAndAbort(Signal* signal, ApiConnectRecord* const regApiPtr)
       }
       DEB_ABORT_TRANS(("(%u)Send ABORT tcRef(%u,%x) transid(%u,%u)"
                        " to ref: %x",
-                       instance(),
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execCOMPLETED(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execCOMPLETED(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              instance(),
                        tcConnectptr.i,
                        reference(),
                        regApiPtr->transid[0],
@@ -10647,7 +15045,7 @@ int Dbtc::releaseAndAbort(Signal* signal, ApiConnectRecord* const regApiPtr)
       sendSignal(cownref, GSN_ABORTED, signal, 5, JBB);
       prevAlive = false;
     }//if
-  }//for
+  }  //for
   return 1;
 }
 
@@ -10655,7 +15053,7 @@ int Dbtc::releaseAndAbort(Signal* signal, ApiConnectRecord* const regApiPtr)
 /* -------                       ENTER TIME_SIGNAL                   ------- */
 /*                                                                           */
 /* ------------------------------------------------------------------------- */
-void Dbtc::execTIME_SIGNAL(Signal* signal) 
+void Dbtc::execTIME_SIGNAL(Signal *signal) 
 {
   jamEntry();
 
@@ -10704,8 +15102,7 @@ void Dbtc::timer_handling(Signal *signal)
 /*------------------------------------------------*/
 /* Start timeout handling if not already going on */
 /*------------------------------------------------*/
-void Dbtc::checkStartTimeout(Signal* signal)
-{
+void Dbtc::checkStartTimeout(Signal *signal) {
   ctimeOutCheckCounter++;
   if (ctimeOutCheckActive == TOCS_TRUE) {
     jam();
@@ -10717,13 +15114,63 @@ void Dbtc::checkStartTimeout(Signal* signal)
       jam();
       /**
        * This code simply checks that the scan for PK timeouts haven't
-       * lost itself, a sort of watchdog for that code. If that would
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::releaseApiConCopy(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::releaseApiConCopy(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+lost itself
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                             a sort of watchdog for that code. If that would
        * occur we would no longer have any timeout handling of
        * transactions which would render the system useless. This is
        * to protect ourselves for future bugs in the code that we
        * might introduce by mistake.
        * 
-       * 100 is simply an arbitrary number that needs to be bigger
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::releaseDirtyWrite(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::releaseDirtyWrite(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+100
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ is simply an arbitrary number that needs to be bigger
        * than the maximum number of calls to timer_handling that
        * we can have in one call to execTIME_SIGNAL. This is
        * currently 10 but could change in the future.
@@ -10736,7 +15183,7 @@ void Dbtc::checkStartTimeout(Signal* signal)
     }
     ctimeOutCheckLastHeartbeat = ctimeOutCheckHeartbeat;
     return;
-  }//if
+  }    // if
   if (ctimeOutCheckCounter < ctimeOutCheckDelay) {
     jam();
     /*------------------------------------------------------------------*/
@@ -10791,7 +15238,31 @@ void Dbtc::checkStartFragTimeout(Signal* signal)
   }//if
 
   // Go through the fragment records and look for timeout in a scan.
-  ctimeOutCheckFragActive = TOCS_TRUE;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ctimeOutCheckFragActive
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::execLQHKEYREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execLQHKEYREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ TOCS_TRUE;
   ctimeOutCheckFragCounter = 0;
   ctimeOutMissedHeartbeatsScan = 0;
   timeOutLoopStartFragLab(signal, 0); // 0 means first scan record
@@ -10850,8 +15321,26 @@ void Dbtc::timeOutLoopStartLab(Signal* signal, Uint32 api_con_timer_ptr)
     }
   }
   Uint32 timers_ptr_count = 0;
-  Uint32 api_con_timers_ptr = (api_con_timer_ptr == RNIL)
-                                  ? RNIL
+  Uint32 api_con_timers_ptr = (api_con_timer_ptr == RNIL)                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(!c_apiConnectRecordPool.getValidPtr(apiConnectptr))
+=======
+(!c_apiConnectRecordPool.getValidPtr(apiConnectptr)) {
+>>>>>>> MySQL 8.0.36
+     ? 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL
+||||||| Common ancestor
+{
+	warningReport(signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  warningReport(signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
                                   : (api_con_timer_ptr >> ApiConTimers::INDEX_BITS);
   bool found = false;
   while (api_con_timers_ptr != RNIL &&
@@ -10865,20 +15354,41 @@ void Dbtc::timeOutLoopStartLab(Signal* signal, Uint32 api_con_timer_ptr)
     timers_ptr_count += NDB_ARRAY_SIZE(timers);
     for (Uint32 i = 0; i < ptr_cnt; i++)
     {
-      if (!Magic::match(timers[i].p->m_magic, ApiConTimers::TYPE_ID))
+      if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!Magic::match(timers[i].p->m_magic, ApiConTimers::TYPE_ID))
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regTcPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
       {
-        continue;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+    continue;
       }
       Uint32 timer_index = 0;
-      if (i == 0 &&
+      if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+regTcPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ (i == 0 &&
           timers[i].i == (api_con_timer_ptr >> ApiConTimers::INDEX_BITS))
       {
         timer_index = api_con_timer_ptr & ApiConTimers::INDEX_MASK;
       }
       for (;
            timer_index < timers[i].p->m_top;
-           timer_index++)
-      {
+           timer_index++) {
         Uint32 api_timer = timers[i].p->m_entries[timer_index].m_timer;
         if (api_timer == 0)
         {
@@ -10896,14 +15406,33 @@ void Dbtc::timeOutLoopStartLab(Signal* signal, Uint32 api_con_timer_ptr)
         if (unlikely(old_mask_value)) // abort during single user mode
         {
           if ((getNodeState().getSingleUserApi() ==
-               refToNode(apiConnectptr.p->ndbapiBlockref)) ||
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TcIndexData*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  TcIndexData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+indexData
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*indexData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  refToNode(apiConnectptr.p->ndbapiBlockref)) ||
               !(apiConnectptr.p->singleUserMode & (1 << NDB_SUM_LOCKED)))
           {
             // api allowed during single user, use original timeout
             time_out_value=
               old_time_out_param + (apiConnectptr.i & old_mask_value);
-          }
-          else
+            } else
           {
             error= ZCLUSTER_IN_SINGLEUSER_MODE;
           }
@@ -10912,8 +15441,19 @@ void Dbtc::timeOutLoopStartLab(Signal* signal, Uint32 api_con_timer_ptr)
         if (time_passed > time_out_value)
         {
           jam();
-          timeOutFoundLab(signal, apiConnectptr.i, error);
-          timer_index++;
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+timeOutFoundLab(signal, apiConnectptr.i, error);
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }   timer_index++;
           if (timer_index < ApiConTimers::INDEX_MAX_COUNT)
           {
             api_con_timer_ptr =
@@ -10922,7 +15462,7 @@ void Dbtc::timeOutLoopStartLab(Signal* signal, Uint32 api_con_timer_ptr)
           else if (i + 1 < ptr_cnt)
           {
             api_con_timer_ptr = timers[i + 1].i << ApiConTimers::INDEX_BITS;
-          }
+            }
           else if (api_con_timers_ptr != RNIL)
           {
             api_con_timer_ptr = api_con_timers_ptr << ApiConTimers::INDEX_BITS;
@@ -10944,7 +15484,7 @@ void Dbtc::timeOutLoopStartLab(Signal* signal, Uint32 api_con_timer_ptr)
     {
       break;
     }
-    if (api_con_timers_ptr == RNIL)
+      if (api_con_timers_ptr == RNIL)
     {
       api_con_timer_ptr = RNIL;
     }
@@ -10957,32 +15497,119 @@ void Dbtc::timeOutLoopStartLab(Signal* signal, Uint32 api_con_timer_ptr)
   {
     jam();
     /*------------------------------------------------------------------*/
-    /*                                                                  */
-    /*       WE HAVE NOW CHECKED ALL TRANSACTIONS FOR TIME-OUT AND ALSO */
+    /*   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }                                                      */
+    /*      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ WE HAVE NOW CHECKED ALL TRANSACTIONS
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ FOR 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TIME-OUT
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ AND ALSO */
     /*       STARTED TIME-OUT HANDLING OF THOSE WE FOUND. WE ARE NOW    */
     /*       READY AND CAN WAIT FOR THE NEXT TIME-OUT CHECK.            */
     /*------------------------------------------------------------------*/
     ctimeOutCheckActive = TOCS_FALSE;
-  } else {
+  } else 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
     jam();
-    sendContinueTimeOutControl(signal, api_con_timer_ptr);
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ sendContinueTimeOutControl(signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+api_con_timer_ptr);
   }
   return;
 }//Dbtc::timeOutLoopStartLab()
 
 void Dbtc::printCrashApiConnectrec(ApiConnectRecordPtr apiConnectptr)
+||||||| Common ancestor
+ else
+          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 {
   g_eventLogger->info("m_apiConTimer: 0x%x, m_apiConTimer_line: %u, state: %u",
                       apiConnectptr.p->m_apiConTimer,
                       apiConnectptr.p->m_apiConTimer_line,
                       apiConnectptr.p->apiConnectstate);
   g_eventLogger->info("transid: (0x%x,0x%x), lqhkeyconfrec: %u, counter: %u",
-                      apiConnectptr.p->transid[0],
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          apiConnectptr.p->transid[0],
                       apiConnectptr.p->transid[1],
                       apiConnectptr.p->lqhkeyconfrec,
                       apiConnectptr.p->counter);
-  g_eventLogger->info("finish_trans_counter: %u, globalcheckpointid: 0x%llx, ",
-                      apiConnectptr.p->finish_trans_counter,
+  g_eventLogger->info("finish_trans_counter: %u, globalcheckpointid:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+jam();
+          if (errCode == ZNOT_FOUND)
+          {
+            errCode = terrorCode = ZFK_NO_PARENT_ROW_EXISTS;
+            regApiPtr->errorData = trigPtr.p->fkId;
+          }
+          goto do_abort;
+        case TriggerType::FK_PARENT:
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 0x%llx, ",
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+/**
+=======
+  if (errCode == ZNOT_FOUND) {
+              errCode = terrorCode = ZFK_NO_PARENT_ROW_EXISTS;
+              regApiPtr->errorData = trigPtr.p->fkId;
+            }
+            goto do_abort;
+          case TriggerType::FK_PARENT:
+            jam();
+            /**
+>>>>>>> MySQL 8.0.36
+            apiConnectptr.p->finish_trans_counter,
                       apiConnectptr.p->globalcheckpointid);
   g_eventLogger->info("lqhkeyreqrec: %u, pendingTriggers: %u,"
                       " commitAckMarker: 0x%x",
@@ -10996,7 +15623,18 @@ void Dbtc::printCrashApiConnectrec(ApiConnectRecordPtr apiConnectptr)
                       apiConnectptr.p->setup_fail_data);
   g_eventLogger->info("send_fail_data_process_ongoing: %u, "
                       "check_fail_data_process_ongoing: %u",
-                      apiConnectptr.p->send_fail_data_process_ongoing,
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }   apiConnectptr.p->send_fail_data_process_ongoing,
                       apiConnectptr.p->check_fail_data_process_ongoing);
   g_eventLogger->info("num_commit_ack_markers: %u, m_write_count: %u",
                       apiConnectptr.p->num_commit_ack_markers,
@@ -11015,8 +15653,36 @@ void Dbtc::printCrashApiConnectrec(ApiConnectRecordPtr apiConnectptr)
                       apiConnectptr.p->tcindxrec,
                       apiConnectptr.p->apiFailState);
   g_eventLogger->info("singleUserMode: %u, m_pre_commit_pass: %u, "
-                      "cascading_scans_count: %u",
-                      apiConnectptr.p->singleUserMode,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   "cascading_scans_count: %u",
+||||||| Common ancestor
+*/
+	jam();
+	return;
+=======
+*/
+        jam();
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+=======
+  return;
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+}
+
+>>>>>>> MySQL 8.0.36
+          apiConnectptr.p->singleUserMode,
                       apiConnectptr.p->m_pre_commit_pass,
                       apiConnectptr.p->cascading_scans_count);
   g_eventLogger->info("m_inExecuteTriggers: %u, m_special_op_flags: 0x%x, "
@@ -11044,9 +15710,39 @@ void Dbtc::printCrashApiConnectrec(ApiConnectRecordPtr apiConnectptr)
                         tcConnectptr.p->tcOprec);
     g_eventLogger->info("lastReplicaNo: %u, operation: %u",
                         tcConnectptr.p->lastReplicaNo,
-                        tcConnectptr.p->operation);
-    for (Uint32 i = 0; i <= tcConnectptr.p->lastReplicaNo; i++)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+return;
+	}
+=======
+return;
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              tcConnectptr.p->operation);
+    for (Uint32 i = 0; i <= tcConnectptr.p->lastReplicaNo; i++) {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
     {
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
       hostptr.i = tcConnectptr.p->tcNodedata[i];
       Uint32 nodeStatus = 0;
       if (hostptr.i != 0)
@@ -11069,14 +15765,33 @@ void Dbtc::printCrashApiConnectrec(ApiConnectRecordPtr apiConnectptr)
 void Dbtc::logAbortingOperation(Signal* signal,
                                 ApiConnectRecordPtr apiPtr,
                                 TcConnectRecordPtr tcPtr,
-                                Uint32 error)
+                           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execTC_COMMITREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execTC_COMMITREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    Uint32 error)
 {
   jam();
   const Uint32 logLevel = c_trans_error_loglevel;
 
   if (!((logLevel & TELL_CONTROL_MASK) &&
-        (logLevel & TELL_TC_ABORTS)))
-  {
+        (logLevel & TELL_TC_ABORTS))) {
     /* We are not logging / not logging aborts */
     return;
   }
@@ -11121,14 +15836,37 @@ void Dbtc::logAbortingOperation(Signal* signal,
                       error,
                       tcPtr.i,
                       tcPtr.p->operation,
-                      tcPtr.p->tcConnectstate,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+not concluded
+=======
+not
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+yet
+// RONDB-624 todo: Glue these lines together ^v
+=======
+concluded yet
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.p->tcConnectstate,
                       tcPtr.p->m_special_op_flags);
 
   if (tcPtr.p->triggeringOperation != RNIL)
   {
-    jam();
+      jam();
     TcConnectRecordPtr triggeringOpPtr;
-    triggeringOpPtr.i = tcPtr.p->triggeringOperation;
+    triggeringOpPtr.i =
+            tcPtr.p->triggeringOperation;
     tcConnectRecord.getPtr(triggeringOpPtr);
 
     Ptr<TcDefinedTriggerData> trigPtr;
@@ -11138,14 +15876,34 @@ void Dbtc::logAbortingOperation(Signal* signal,
                         "Trig type %u objid %u Triggering op type %u.",
                         instance(),
                         apiPtr.p->transid[0],
-                        apiPtr.p->transid[1],
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TcCommitRef::SignalLength,
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TcCommitRef::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          apiPtr.p->transid[1],
                         trigPtr.p->triggerType,
                         trigPtr.p->indexId,
                         triggeringOpPtr.p->operation);
   }
 }//Dbtc::logAbortingOperation()
 
-void Dbtc::logTransactionTimeout(Signal* signal,
+void Dbtc::logTransactionTimeout(Signal *signal,
                                  Uint32 apiConnIdx,
                                  Uint32 errCode,
                                  bool force)
@@ -11158,8 +15916,30 @@ void Dbtc::logTransactionTimeout(Signal* signal,
   const Uint32 logLevel = (force ? Uint32(TELL_FULL):
                            c_trans_error_loglevel);
 
-  if (!((logLevel & TELL_CONTROL_MASK) &&
-        (logLevel & TELL_TC_TIMEOUTS_MASK)))
+  if (!((logLevel & TELL_CONTROL_MASK) 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&&
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+signal, 3,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(logLevel
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+3,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ & TELL_TC_TIMEOUTS_MASK)))
   {
     /* We are not logging / not logging timeouts */
     return;
@@ -11176,7 +15956,7 @@ void Dbtc::logTransactionTimeout(Signal* signal,
   if (!((logLevel & TELL_ALL) ||
         ((logLevel & TELL_DEFERRED) && trans_has_deferred_constraints)))
   {
-    /* We are not logging this timeout */
+      /* We are not logging this timeout */
     return;
   }
 
@@ -11187,11 +15967,42 @@ void Dbtc::logTransactionTimeout(Signal* signal,
     return;
   }
 
-  /* Log it */
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/* Log it */
   g_eventLogger
-    ->info("TC %u : Txn timeout [0x%08x 0x%08x] state %u ptr %u exec %u "
-           "place %u ticks %u code %u lqhkeyreqrec/conf %u/%u "
-           "pendingTriggers %u flags 0x%x apiref 0x%x nodes %s deferred %u",
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+5, JBB);
+    break;
+// RONDB-624 todo: Glue these lines together ^v
+=======
+5,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    ->info("TC %u : Txn timeout [0x%08x 0x%08x] state %u ptr %u exec %u 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"
+||||||| Common ancestor
+=======
+JBB);
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     "place %u ticks %u code %u lqhkeyreqrec/conf %u/%u "
+       
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+break;
+>>>>>>> MySQL 8.0.36
+    "pendingTriggers %u flags 0x%x apiref 0x%x nodes %s deferred %u",
            instance(),
            apiConn.transid[0],
            apiConn.transid[1],
@@ -11204,7 +16015,27 @@ void Dbtc::logTransactionTimeout(Signal* signal,
            apiConn.lqhkeyreqrec,
            apiConn.lqhkeyconfrec,
            apiConn.pendingTriggers,
-           apiConn.m_flags,
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execTC_HBREP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execTC_HBREP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ apiConn.m_flags,
            apiConn.ndbapiBlockref,
            BaseString::getPrettyText(apiConn.m_transaction_nodes).c_str(),
            trans_has_deferred_constraints?1:0);
@@ -11212,7 +16043,6 @@ void Dbtc::logTransactionTimeout(Signal* signal,
   /* TODO : CONTINUEB */
   TcConnectRecordPtr localTcConnectptr;
   LocalTcConnectRecord_fifo tcConList(tcConnectRecord, apiPtr.p->tcConnect);
-
   if (tcConList.first(localTcConnectptr)) do
   {
     ndbrequire(tcConnectRecord.getValidPtr(localTcConnectptr));
@@ -11224,7 +16054,27 @@ void Dbtc::logTransactionTimeout(Signal* signal,
                         "%u/%u/%u nodes %u %u %u %u",
                         instance(),
                         apiConn.transid[0],
-                        apiConn.transid[1],
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::warningReport(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::warningReport(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              apiConn.transid[1],
                         localTcConnectptr.i,
                         tcConn.operation,
                         tcConn.tcConnectstate,
@@ -11293,7 +16143,7 @@ void Dbtc::periodicLogOddTimeoutAndResetTimer(ApiConnectRecordPtr apiPtr)
   /* 10s elapsed */
   if (millis_passed > logPeriodMillis)
   {
-    jam();
+      jam();
 
     /* Generate a concise summary of operation states */
     const Uint32 buffSz = 80;
@@ -11303,7 +16153,31 @@ void Dbtc::periodicLogOddTimeoutAndResetTimer(ApiConnectRecordPtr apiPtr)
     Uint32 opStateCounts[OS_MAX_STATE_VAL + 1];
     memset(&opStateCounts[0], 0, sizeof(opStateCounts));
 
-    /* Build count of operation states within this transaction */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   /*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::errorReport(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::errorReport(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Build
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ count of operation states within this transaction */
     TcConnectRecordPtr opPtr;
     LocalTcConnectRecord_fifo tcConList(tcConnectRecord, apiPtr.p->tcConnect);
     if (tcConList.first(opPtr))
@@ -11324,7 +16198,27 @@ void Dbtc::periodicLogOddTimeoutAndResetTimer(ApiConnectRecordPtr apiPtr)
                                        buffSz - idx,
                                        "S%u:%u ",
                                        i,
-                                       opStateCounts[i]);
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execABORTED(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execABORTED(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                  opStateCounts[i]);
         idx += res;
         if (idx >= buffSz)
         {
@@ -11367,8 +16261,7 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
   case CS_STARTED:
   {
     if (apiConnectptr.p->lqhkeyreqrec == apiConnectptr.p->lqhkeyconfrec &&
-        errCode != ZCLUSTER_IN_SINGLEUSER_MODE)
-    {
+        errCode != ZCLUSTER_IN_SINGLEUSER_MODE)   {
       jam();
       /*
       We are waiting for application to continue the transaction. In this
@@ -11380,7 +16273,7 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
       {
         jam();
         return;
-      }//if
+      }  // if
     }
 
     logTransactionTimeout(signal, TapiConPtr, errCode);
@@ -11427,8 +16320,33 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
   {
     jam();
     /*------------------------------------------------------------------*/
-    /* We are waiting for confirmation that Commit has occurred at one  */
-    /* or more LQH instances.  We cannot speed this up.                 */
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::clearTcNodeData(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::clearTcNodeData(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We are waiting for confirmation that Commit has occurred at one  */
+    /* or more LQH instances.  We cannot speed this up. 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, 
+                           UintR
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, UintR
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                */
     /* Only in confirmed node failure situations do we take action.     */
     /*------------------------------------------------------------------*/
     logTransactionTimeout(signal, TapiConPtr, errCode);
@@ -11437,14 +16355,212 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
       jam();
       /**
        * Set up of setupFailData is already in process, cannot start
-       * another one when already in process.
-       */
-      return;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::abortErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::abortErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, ApiConnectRecordPtr const apiConnectptr)
+{
+=======
+*signal,
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptrGuard(apiConnectptr);
+=======
+>>>>>>> MySQL 8.0.36
+ another 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+one
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+when
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+already
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+transP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+process.
+||||||| Common ancestor
+apiConnectptr.p;
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+if (transP->apiConnectstate ==
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+AS_IDLE){
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return;
     }
     init_setupFailData(signal,
-                       apiConnectptr,
-                       ZCOMMIT_SETUP);
-    break;
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+return;
+  }
+  transP->returnsignal = RS_TCROLLBACKREP;
+  if(transP->returncode == 0){
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ const 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+jam();
+    transP->returncode
+// RONDB-624 todo: Glue these lines together ^v
+=======
+apiConnectptr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= terrorCode;
+  }
+=======
+{
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+abort010Lab(signal, apiConnectptr);
+}//Dbtc::abortErrorLab()
+
+void Dbtc::abort010Lab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
+{
+=======
+ptrGuard(apiConnectptr);
+>>>>>>> MySQL 8.0.36
+      apiConnectptr,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+(unlikely(transP->apiConnectstate
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(transP->apiConnectstate
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                    ZCOMMIT_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SETUP);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+IDLE))
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+IDLE) {
+    jam();
+    return;
+  }
+  transP->returnsignal = RS_TCROLLBACKREP;
+  if (transP->returncode == 0) {
+    jam();
+    transP->returncode = terrorCode;
+  }
+  abort010Lab(signal, apiConnectptr);
+}  // Dbtc::abortErrorLab()
+
+void Dbtc::abort010Lab(Signal *signal,
+                       ApiConnectRecordPtr const apiConnectptr) {
+  ApiConnectRecord *transP = apiConnectptr.p;
+  if (unlikely(transP->apiConnectstate == CS_ABORTING &&
+               transP->abortState != AS_IDLE))
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   break;
   }
   case CS_COMPLETING:
   case CS_COMPLETE_SENT:
@@ -11535,9 +16651,32 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
     }
     if (apiConnectptr.p->check_fail_data_process_ongoing)
     {
-      jam();
+      jam(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+);
       DEB_NODE_FAILURE(("apiConnectptr.i: %u, CS_WAIT_ABORT_CONF cfdpo",
-                        apiConnectptr.i));
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                    apiConnectptr.i));
       return;
     }
     DEB_NODE_FAILURE(("apiConnectptr.i: %u, CS_WAIT_ABORT_CONF",
@@ -11547,11 +16686,11 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
     ndbrequire(tcConList.first(tcConnectptr));
     checkFailData_abort(signal,
                         apiConnectptr);
-    break;
+      break;
   }
   case CS_WAIT_COMMIT_CONF:
   {
-    jam();
+      jam();
     logTransactionTimeout(signal, TapiConPtr, errCode);
     CRASH_INSERTION(8053);
     apiConnectptr.p->timeOutCounter++;
@@ -11584,21 +16723,19 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
   }
   case CS_WAIT_COMPLETE_CONF:
   {
-    jam();
+      jam();
     logTransactionTimeout(signal, TapiConPtr, errCode);
     apiConnectptr.p->timeOutCounter++;
     if (unlikely(apiConnectptr.p->timeOutCounter >= ZMAX_TIMEOUT_COUNTER))
     {
       printCrashApiConnectrec(apiConnectptr);
     }
-    if (apiConnectptr.p->send_fail_data_process_ongoing)
-    {
+    if (apiConnectptr.p->send_fail_data_process_ongoing)   {
       jam();
       DEB_NODE_FAILURE(("apiConnectptr.i: %u, CS_WAIT_COMPLETE_CONF sfdpo",
                         apiConnectptr.i));
       return;
-    }
-    if (apiConnectptr.p->check_fail_data_process_ongoing)
+    } if (apiConnectptr.p->check_fail_data_process_ongoing)
     {
       jam();
       DEB_NODE_FAILURE(("apiConnectptr.i: %u, CS_WAIT_COMPLETE_CONF cfdpo",
@@ -11651,8 +16788,7 @@ void Dbtc::timeOutFoundLab(Signal* signal, Uint32 TapiConPtr, Uint32 errCode)
 /*-------------------------------------------------*/
 /*      Timeout-loop for scanned fragments.        */
 /*-------------------------------------------------*/
-void Dbtc::timeOutLoopStartFragLab(Signal* signal, Uint32 TscanConPtr)
-{
+void Dbtc::timeOutLoopStartFragLab(Signal *signal, Uint32 TscanConPtr) {
   ScanFragRecPtr timeOutPtr[8];
   UintR tfragTimer[8];
   UintR texpiredTime[8];
@@ -11728,7 +16864,7 @@ void Dbtc::timeOutLoopStartFragLab(Signal* signal, Uint32 TscanConPtr)
 /*Handle the heartbeat signal from LQH in a scan process                    */
 // (Set timer on fragrec.)
 /*--------------------------------------------------------------------------*/
-void Dbtc::execSCAN_HBREP(Signal* signal)
+void Dbtc::execSCAN_HBREP(Signal *signal)
 {
   jamEntry();
 
@@ -11752,8 +16888,7 @@ void Dbtc::execSCAN_HBREP(Signal* signal)
 
   ScanRecordPtr scanptr;
   scanptr.i = scanFragptr.p->scanRec;
-  if (unlikely(!scanRecordPool.getUncheckedPtrRW(scanptr)))
-  {
+  if (unlikely(!scanRecordPool.getUncheckedPtrRW(scanptr))) {
     return;
   }
 
@@ -11835,7 +16970,26 @@ void Dbtc::logScanTimeout(Signal* signal,
     tc_testbit(apiPtr.p->m_flags, ApiConnectRecord::TF_DEFERRED_CONSTRAINTS);
 
   if (!((logLevel & TELL_ALL) ||
-        ((logLevel & TELL_DEFERRED) && trans_has_deferred_constraints)))
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::checkStartFragTimeout(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::checkStartFragTimeout(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+      ((logLevel & TELL_DEFERRED) && trans_has_deferred_constraints)))
   {
     /* We are not logging this timeout */
   }
@@ -11875,7 +17029,31 @@ void Dbtc::logScanTimeout(Signal* signal,
                       scanPtr.p->scanRequestInfo,
                       (rc?"rc ":""),
                       (lockmode?"lm 1 ":"lm 0 "),
-                      (holdlock?"hl 1 ":"hl 0 "),
+                      (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+holdlock?"hl
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+1
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ":"hl 0 "),
                       (keyinfo?"ki ":""),
                       (range?"range ":""),
                       (nodisk?"nodisk ":"disk "),
@@ -11904,13 +17082,38 @@ void Dbtc::timeOutFoundFragLab(Signal* signal, UintR TscanConPtr)
     scanptr.i = ptr.p->scanRec;
     scanRecordPool.getPtr(scanptr);
     ApiConnectRecordPtr TlocalApiConnectptr;
-    TlocalApiConnectptr.i = scanptr.p->scanApiRec;
-    c_apiConnectRecordPool.getPtr(TlocalApiConnectptr);
+    TlocalApiConnectptr.i =
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ c_apiConTimersPool.getUncheckedPtrs(
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ scanptr.p->scanApiRec;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_apiConnectRecordPool.getPtr(TlocalApiConnectptr);
 
     DEBUG("[ H'" << hex << TlocalApiConnectptr.p->transid[0]
         << " H'" << TlocalApiConnectptr.p->transid[1] << "] "
         << TscanConPtr << " timeOutFoundFragLab: scanFragState = "
-        << ptr.p->scanFragState);
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+c_apiConTimersPool.getUncheckedPtrs(&api_con_timers_ptr,
+                                           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&api_con_timers_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    << ptr.p->scanFragState);
   }
 #endif
 
@@ -12061,10 +17264,33 @@ void Dbtc::execGCP_NOMORETRANS(Signal* signal)
   LocalGcpRecord_list gcp_list(c_gcpRecordPool, c_gcpRecordList);
   GcpRecordPtr gcpPtr;
   if (!nfhandling)
-  {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::logAbortingOperation(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::logAbortingOperation(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
     /**
      * Preprocess list to remove any GCP record that are no longer of interest
-     * since node failure processing is done but there could still be lingering
+     * since node failure processing
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ is done but there could still be lingering
      * GCP records created in the node failure processing. No such record should
      * be found during normal processing.
      */
@@ -12097,8 +17323,7 @@ void Dbtc::execGCP_NOMORETRANS(Signal* signal)
         jam();
         g_eventLogger->info("DBTC %u: GCP completion %u/%u waiting "
                             "for node failure handling (%u) to complete "
-                            "(empty=%u)",
-                            instance(),
+                            "(empty=%u)",       instance(),
                             gci_hi,
                             gci_lo,
                             c_ongoing_take_over_cnt,
@@ -12152,29 +17377,73 @@ void Dbtc::execGCP_NOMORETRANS(Signal* signal)
   }
   else
   {
-    g_eventLogger->info("DBTC %u: GCP completion %u/%u waiting "
-                        "for node failure handling (%u) to complete. "
-                        "Seizing record for GCP.",
-                        instance(),
-                        gci_hi,
-                        gci_lo,
-                        c_ongoing_take_over_cnt);
+    g_eventLogger->info(
+        "DBTC %u: GCP completion %u/%u waiting "
+        "for node failure handling (%u) to complete. "
+                        "Seizing record for GCP.", instance(), gci_hi,
+                        gci_lo, c_ongoing_take_over_cnt);
 seize:
     jam();
     seizeGcp(gcpPtr, tcheckGcpId, __LINE__);
     gcpPtr.p->gcpNomoretransRec = ZTRUE;
     gcpPtr.p->m_received_ticks = currentTime;
   }
-  return;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::logTransactionTimeout(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::logTransactionTimeout(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return;
   
 outoforder:
   g_eventLogger->info("DBTC %u: GCP completion %u/%u waiting "
-                      "for node failure handling (%u) to complete. "
+                      "for node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                                
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ failure handling (%u) to complete. "
                       "GCP received out of order.  First GCP %u/%u",
                       instance(),
                       gci_hi, gci_lo,
-                      c_ongoing_take_over_cnt,
-                      Uint32(gcpPtr.p->gcpId >> 32),
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   c_ongoing_take_over_cnt,
+                      Uint32(gcpPtr.p->gcpId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32(TELL_FULL):
+                         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32(TELL_FULL)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+>>
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 32),
                       Uint32(gcpPtr.p->gcpId));
 
   if (tcheckGcpId < gcpPtr.p->gcpId)
@@ -12184,7 +17453,29 @@ outoforder:
     GcpRecordPtr tmp;
     ndbrequire(c_gcpRecordPool.seize(tmp));
 
-    tmp.p->gcpId = tcheckGcpId;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tmp.p->gcpId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConn
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&apiConn
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = tcheckGcpId;
     tmp.p->apiConnectList.init();
     tmp.p->gcpNomoretransRec = ZTRUE;
     tmp.p->m_received_ticks = currentTime;
@@ -12222,8 +17513,7 @@ outoforder:
       jam();
       gcpPtr.p->gcpNomoretransRec = ZTRUE;
       gcpPtr.p->m_received_ticks = currentTime;
-      g_eventLogger->info("DBTC %u: Out of order GCP %u/%u already linked",
-                          instance(),
+      g_eventLogger->info("DBTC %u: Out of order GCP %u/%u already linked",                instance(),
                           gci_hi,
                           gci_lo);
       return;
@@ -12233,22 +17523,42 @@ outoforder:
     ndbrequire(gcpPtr.p->gcpId > tcheckGcpId);
 
     GcpRecordPtr tmp;
-    ndbrequire(c_gcpRecordPool.seize(tmp));
+      ndbrequire(c_gcpRecordPool.seize(tmp));
 
-    tmp.p->gcpId = tcheckGcpId;
+    tmp.p->gcpId 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TcConnectRecord&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TcConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcheckGcpId;
+||||||| Common ancestor
+tcConn
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&tcConn
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     tmp.p->apiConnectList.init();
     tmp.p->gcpNomoretransRec = ZTRUE;
     tmp.p->m_received_ticks = currentTime;
     gcp_list.insertAfter(tmp, prev);
     ndbassert(tmp.p->nextList == gcpPtr.i);
     g_eventLogger->info("DBTC %u: Out of order Gcp %u/%u linked mid-list. "
-                        "%u/%u < %u/%u < %u/%u",
+          "%u/%u < %u/%u < %u/%u",
                         instance(),
                         gci_hi, gci_lo,
                         Uint32(prev.p->gcpId >> 32),
-                        Uint32(prev.p->gcpId),
-                        gci_hi, gci_lo,
-                        Uint32(gcpPtr.p->gcpId >> 32),
+                        Uint32(prev.p->gcpId), gci_hi, gci_lo, Uint32(gcpPtr.p->gcpId >> 32),
                         Uint32(gcpPtr.p->gcpId));
     return;
   }
@@ -12264,7 +17574,16 @@ outoforder:
 /*    NODE ACTING AS TC HAVE FAILED. IT STARTS BY QUERYING ALL NODES ABOUT   */
 /*    ANY OPERATIONS PARTICIPATING IN A TRANSACTION WHERE THE TC NODE HAVE   */
 /*    FAILED.                                                                */
-/*                                                                           */
+/*                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+numberToRef(tcConn.recBlockNo,
+=======
+numberToRef(
+>>>>>>> MySQL 8.0.36
+              tcConn.recBlockNo,
+                     */
 /*    AFTER RECEIVING INFORMATION FROM ALL NODES ABOUT OPERATION STATUS THIS */
 /*    CODE WILL ENSURE THAT ALL AFFECTED TRANSACTIONS ARE PROPERLY ABORTED OR*/
 /*    COMMITTED. THE ORIGINATING APPLICATION NODE WILL ALSO BE CONTACTED.    */
@@ -12407,7 +17726,31 @@ const char* getNFBitName(const Uint32 bit)
 }
 
 static
-void getNFBitNames(char* buff, Uint32 buffLen, const Uint32 bits)
+void getNFBitNames(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+char*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+buff
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, Uint32 buffLen, const Uint32 bits)
 {
   Uint32 index = 1;
   while (index < Dbtc::HostRecord::NF_NODE_FAIL_BITS)
@@ -12427,8 +17770,8 @@ void getNFBitNames(char* buff, Uint32 buffLen, const Uint32 bits)
                                      ", ");
         buff+= chars;
         buffLen-= chars;
+        }
       }
-    }
 
     index = index << 1;
   }
@@ -12454,14 +17797,50 @@ Dbtc::checkNodeFailComplete(Signal* signal,
 
     NFCompleteRep * const nfRep = (NFCompleteRep *)&signal->theData[0];
     nfRep->blockNo      = DBTC;
-    nfRep->nodeId       = cownNodeid;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nfRep
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+/*-----------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  /*------------------------------------------------------------------*/
+      logTransactionTimeout(signal, TapiConPtr, errCode);
+      terrorCode = errCode;
+      abortErrorLab(signal, apiConnectptr);
+      return;
+    case CS_COMMITTING:
+      jam();
+      /*-----------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->nodeId    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   = cownNodeid;
     nfRep->failedNodeId = hostptr.i;
 
     if (instance() == 0)
     {
       jam();
       sendSignal(cdihblockref, GSN_NF_COMPLETEREP, signal,
-                 NFCompleteRep::SignalLength, JBB);
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+logTransactionTimeout(signal, TapiConPtr, errCode);
+    terrorCode = errCode;
+    abortErrorLab(signal, apiConnectptr);
+    return;
+  case CS_COMMITTING:
+    jam();
+    /*------------------------------------------------------------------*/
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+               NFCompleteRep::SignalLength, JBB);
       sendSignal(QMGR_REF, GSN_NF_COMPLETEREP, signal,
                  NFCompleteRep::SignalLength, JBB);
     }
@@ -12499,7 +17878,18 @@ Dbtc::checkNodeFailComplete(Signal* signal,
 }
 
 void Dbtc::checkScanActiveInFailedLqh(Signal* signal, 
-                                      Uint32 scanPtrI, 
+                          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }         Uint32 scanPtrI, 
                                       Uint32 failedNodeId)
 {
   ScanRecordPtr scanptr;
@@ -12528,9 +17918,8 @@ void Dbtc::checkScanActiveInFailedLqh(Signal* signal,
 	ScanFragRecPtr curr = ptr;
 	run.next(ptr);
 	if (curr.p->scanFragState == ScanFragRec::LQH_ACTIVE && 
-	    refToNode(curr.p->lqhBlockref) == failedNodeId)
-        {
-	  jam();
+	    refToNode(curr.p->lqhBlockref) == failedNodeId)     {
+	    jam();
 	  curr.p->scanFragState = ScanFragRec::COMPLETED;
 	  curr.p->stopFragTimer();
           run.remove(curr);
@@ -12542,8 +17931,19 @@ void Dbtc::checkScanActiveInFailedLqh(Signal* signal,
       {
         checkPoolShrinkNeed(DBTC_SCAN_FRAGMENT_TRANSIENT_POOL_INDEX,
                             c_scan_frag_pool);
-      }
-      if (!found)
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  }   if (!found)
       {
         Local_ScanFragRec_dllist deliv(c_scan_frag_pool,
                                        scanptr.p->m_delivered_scan_frags);
@@ -12552,7 +17952,7 @@ void Dbtc::checkScanActiveInFailedLqh(Signal* signal,
           jam();
           if (refToNode(ptr.p->lqhBlockref) == failedNodeId)
           {
-            jam();
+              jam();
             found = true;
             break;
           }
@@ -12565,18 +17965,41 @@ void Dbtc::checkScanActiveInFailedLqh(Signal* signal,
                                           scanptr.p->m_fragLocations);
         for (frags.first(ptr); !found && !ptr.isNull(); frags.next(ptr))
         {
-          for (Uint32 j = ptr.p->m_first_index; j < ptr.p->m_next_index; j++)
-          {
+          for (Uint32 j = ptr.p->m_first_index; j < ptr.p->m_next_index; j++)       {
             const BlockReference blockRef =
               ptr.p->m_frag_location_array[j].preferredBlockRef;
             const NodeId nodeId = refToNode(blockRef);
             if (nodeId == failedNodeId)
             {
               jam();
-              found = true;
-              break;
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+/*------------------------------------------------------------------*/
+=======
+  /*------------------------------------------------------------------*/
+        // Time-out waiting for ABORTCONF. We will resend the ABORTREQ just in
+        // case.
+        /*------------------------------------------------------------------*/
+>>>>>>> MySQL 8.0.36
+ found = true;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+           break;
             }
-          }
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+// Time-out waiting for ABORTCONF. We will resend the ABORTREQ just in
+      // case.
+      /*------------------------------------------------------------------*/
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      }
         }
       }
     }
@@ -12584,14 +18007,14 @@ void Dbtc::checkScanActiveInFailedLqh(Signal* signal,
     {
       jam();
       scanError(signal, scanptr, ZSCAN_LQH_ERROR);	  
-    }
+      }
 
     // Send CONTINUEB to continue later
     signal->theData[0] = TcContinueB::ZCHECK_SCAN_ACTIVE_FAILED_LQH;
     signal->theData[1] = scanPtrI; // Check next scanptr
     signal->theData[2] = failedNodeId;
     sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);
-    return;
+      return;
   }//for
   checkNodeFailComplete(signal, failedNodeId, HostRecord::NF_CHECK_SCAN);
 }
@@ -12601,7 +18024,7 @@ Dbtc::nodeFailCheckTransactions(Signal* signal,
 				Uint32 transPtrI, 
 				Uint32 failedNodeId)
 {
-  jam();
+    jam();
   Uint32 TtcTimer = ctcTimer;
   Uint32 TapplTimeout = c_appl_timeout_value;
 
@@ -12649,7 +18072,7 @@ Dbtc::nodeFailCheckTransactions(Signal* signal,
   }
   if (api_ptr == RNIL)
   {
-    jam();
+      jam();
     checkNodeFailComplete(signal, failedNodeId, 
                           HostRecord::NF_CHECK_TRANSACTION);
   }
@@ -12663,7 +18086,7 @@ Dbtc::nodeFailCheckTransactions(Signal* signal,
 }
 
 void
-Dbtc::ndbdFailBlockCleanupCallback(Signal* signal,
+Dbtc::ndbdFailBlockCleanupCallback(Signal *signal,
                                    Uint32 failedNodeId,
                                    Uint32 ignoredRc)
 {
@@ -12688,23 +18111,117 @@ Dbtc::apiFailBlockCleanupCallback(Signal* signal,
 void
 Dbtc::checkScanFragList(Signal* signal,
                         Uint32 failedNodeId,
-                        ScanRecord * scanP,
-                        Local_ScanFragRec_dllist::Head & head)
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+apiConnectptr.p->counter)
+=======
+apiConnectptr.p->counter) {
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
 {
+	jam();
+	/**
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam();
+        /**
+        
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       ScanRecord * scanP,
+              
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+	return;
+=======
+*/
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+=======
+  return;
+>>>>>>> MySQL 8.0.36
+    Local_ScanFragRec_dllist::Head & 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+head)
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
+
   DEBUG("checkScanActiveInFailedLqh: scanFragError");
 }
 
 void Dbtc::execTAKE_OVERTCCONF(Signal* signal)
 {
-  jamEntry();
+  jamEntry()
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
 
-  const Uint32 sig_len = signal->getLength();
+  const Uint32 sig_len = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal->getLength
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+();
 
   const TakeOverTcConf* const conf = (const TakeOverTcConf*) &signal->theData;
+<<<<<<< RonDB // RONDB-624 todo
 
-  const Uint32 failedNodeId = conf->failedNode;
+||||||| Common ancestor
+	return;
+=======
+>>>>>>> MySQL 8.0.36
+  const Uint32 failedNodeId = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+conf->failedNode;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  return;
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   hostptr.i = failedNodeId;
-  ptrCheckGuard(hostptr, chostFilesize, hostRecord);
+  ptrCheckGuard(hostptr, chostFilesize, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+hostRecord);
+||||||| Common ancestor
+=======
+}
+>>>>>>> MySQL 8.0.36
 
   const Uint32 senderRef = conf->senderRef;
 
@@ -12719,15 +18236,65 @@ void Dbtc::execTAKE_OVERTCCONF(Signal* signal)
      * Node should be in queue
      */
     Uint32 i = 0;
-    Uint32 end = tcNodeFailptr.p->queueIndex;
-    for (; i<end; i++)
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+__LINE__, apiConnectptr.i,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+__LINE__,
+>>>>>>> MySQL 8.0.36
+  Uint32 end = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcNodeFailptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                        apiConnectptr.i, apiConnectptr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.p->queueIndex;
+    for (; i <end; i++)
     {
       jam();
       if (tcNodeFailptr.p->queueList[i] == hostptr.i)
       {
         g_eventLogger->info("DBTC %u: Removed node %u"
-          " from takeover queue, %u failed nodes remaining",
-                            instance(),
+          " from takeover queue, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%u
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnectptr);
+	return;
+=======
+apiConnectptr);
+>>>>>>> MySQL 8.0.36
+ failed nodes remaining",
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+=======
+  return;
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+}
+
+>>>>>>> MySQL 8.0.36
+                   instance(),
                             hostptr.i,
                             end - 1);
 
@@ -12738,16 +18305,35 @@ void Dbtc::execTAKE_OVERTCCONF(Signal* signal)
 
     if (i == end)
     {
-      if (sig_len <= TakeOverTcConf::SignalLength_v8_0_17)
-      {
+      if (sig_len <= TakeOverTcConf::SignalLength_v8_0_17) {
         jam();
         if (!checkNodeFailSequence(signal))
         {
           jam();
           return;
-        }
-        /*
-         * Fallthrough to resend signal for later retry.
+        } else {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  /*
+||||||| Common ancestor
+else
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  {
+	sendSignal(cownref,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(cownref,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   * Fallthrough to resend signal for later retry.
          */
       }
       else
@@ -12826,17 +18412,83 @@ void Dbtc::insert_take_over_failed_node(Signal* signal, Uint32 failedNodeId)
       cmasterNodeId != getOwnNodeId() ||
       (! (instance() == 0 /* single TC */ ||
           instance() == TAKE_OVER_INSTANCE))) /* in mt-TC case let 1 instance
-                                                 do take-over */
+                                                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::reportNodeFailed(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::reportNodeFailed(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+do
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ take-over */
   {
     jam();
     /*------------------------------------------------------------*/
-    /*       WE CAN CURRENTLY ONLY HANDLE ONE TAKE OVER AT A TIME */
+    /*       WE CAN 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CURRENTLY
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DisconnectRep::SignalLength,
+>>>>>>> MySQL 8.0.36
+ ONLY HANDLE ONE TAKE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+OVER
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DisconnectRep::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ AT A TIME */
     /*------------------------------------------------------------*/
     /*       IF MORE THAN ONE TAKE OVER IS REQUESTED WE WILL      */
     /*       QUEUE THE TAKE OVER AND START IT AS SOON AS THE      */
     /*       PREVIOUS ARE COMPLETED.                              */
     /*------------------------------------------------------------*/
-    g_eventLogger->info("DBTC %u: Inserting failed node %u into"
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::timeOutLoopStartFragLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::timeOutLoopStartFragLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  g_eventLogger->info("DBTC %u: Inserting failed node %u into"
                         " takeover queue, length %u",
                         instance(),
                         failedNodeId,
@@ -12886,7 +18538,30 @@ void Dbtc::insert_take_over_failed_node(Signal* signal, Uint32 failedNodeId)
 
   Master TC (take over TC instance, starting at instance 0):
   Sends:
-  LQH_TRANSREQ (Take over data reference,
+  LQH_TRANSREQ (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Take
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+over
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ data reference,
                 Master TC block reference,
                 TC Take over node id,
                 TC Take over instance id)
@@ -12931,8 +18606,7 @@ Dbtc::sendLQH_TRANSREQ(Signal *signal, Uint32 failedNodeId)
   lqhTransReq->failedNodeId = failedNodeId;
   lqhTransReq->instanceId = tcNodeFailptr.p->takeOverInstanceId;
   sig_len = LqhTransReq::SignalLength;
-  if (ERROR_INSERTED(8064) && hostptr.i == getOwnNodeId())
-  {
+  if (ERROR_INSERTED(8064) && hostptr.i == getOwnNodeId()) {
     ndbout_c("sending delayed GSN_LQH_TRANSREQ to self");
     sendSignalWithDelay(blockRef, GSN_LQH_TRANSREQ, signal, 100, sig_len);
     CLEAR_ERROR_INSERT_VALUE;
@@ -12943,8 +18617,7 @@ Dbtc::sendLQH_TRANSREQ(Signal *signal, Uint32 failedNodeId)
   }
 }
 
-void Dbtc::startTakeOverLab(Signal* signal,
-                            Uint32 instanceId,
+void Dbtc::startTakeOverLab(Signal *signal,   Uint32 instanceId,
                             Uint32 failedNodeId)
 {
   for (Uint32 i = 0; i < TRANSID_FAIL_HASH_SIZE; i++)
@@ -13009,8 +18682,7 @@ Dbtc::get_transid_fail_bucket(Uint32 transid1)
 }
 
 void
-Dbtc::insert_transid_fail_hash(Uint32 transid1,
-                               ApiConnectRecordPtr const apiConnectptr)
+Dbtc::insert_transid_fail_hash(Uint32 transid1,          ApiConnectRecordPtr const apiConnectptr)
 {
   Uint32 bucket = get_transid_fail_bucket(transid1);
   ndbrequire(apiConnectptr.p->apiConnectkind == ApiConnectRecord::CK_FAIL);
@@ -13080,8 +18752,28 @@ void Dbtc::remove_from_transid_fail_hash(Uint32 transid1,
   ApiConnectRecordPtr locApiConnectptr;
   ApiConnectRecordPtr prevApiConptr;
 
-  ndbrequire(apiConnectptr.p->apiConnectkind == ApiConnectRecord::CK_FAIL);
-  prevApiConptr.i = RNIL;
+  ndbrequire(apiConnectptr.p->apiConnectkind == ApiConnectRecord::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CK_FAIL);
+||||||| Common ancestor
+timeOutFoundFragLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+timeOutFoundFragLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ prevApiConptr.i = RNIL;
   Uint32 bucket = get_transid_fail_bucket(transid1);
   locApiConnectptr.i = ctransidFailHash[bucket];
   ndbrequire(locApiConnectptr.i != RNIL);
@@ -13092,9 +18784,47 @@ void Dbtc::remove_from_transid_fail_hash(Uint32 transid1,
     {
       if (prevApiConptr.i == RNIL)
       {
-        jam();
-        /* We were first in the hash linked list */
-        ndbassert(ctransidFailHash[bucket] == apiConnectptr.i);
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TlocalApiConnectptr.p->transid[0]
+=======
+TlocalApiConnectptr.p->transid[0] << " H'"
+>>>>>>> MySQL 8.0.36
+   jam();
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+H'"
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ /* We were first 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+"
+=======
+" << TscanConPtr
+>>>>>>> MySQL 8.0.36
+ the hash linked list */
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TscanConPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    ndbassert(ctransidFailHash[bucket] == apiConnectptr.i);
         ctransidFailHash[bucket] = apiConnectptr.p->nextApiConnect;
       }
       else
@@ -13118,9 +18848,20 @@ void Dbtc::remove_from_transid_fail_hash(Uint32 transid1,
 }
 
 Uint32
-Dbtc::get_tc_fail_bucket(Uint32 transid1, Uint32 opRec)
+Dbtc::get_tc_fail_bucket(Uint32 transid1, Uint32 opRec) {
 {
-  return (transid1 ^ opRec) & (TC_FAIL_HASH_SIZE - 1);
+  return (transid1 ^ opRec) & 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	jam
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(TC_FAIL_HASH_SIZE - 1);
 }
 
 void
@@ -13226,7 +18967,27 @@ void Dbtc::remove_takeover_transaction(Signal *signal,
                signal,
                2,
                JBB);
-    return;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execGCP_NOMORETRANS(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execGCP_NOMORETRANS(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ return;
   }
   releaseApiConnectFail(regApiPtr);
   return;
@@ -13241,8 +19002,7 @@ void Dbtc::execLQH_TRANSCONF(Signal* signal)
   LqhTransConf * const lqhTransConf = (LqhTransConf *)&signal->theData[0];
 
   if (ERROR_INSERTED(8102) ||
-      ERROR_INSERTED(8118))
-  {
+      ERROR_INSERTED(8118)) {
     jam();
     if ((((LqhTransConf::OperationStatus)lqhTransConf->operationStatus) ==
          LqhTransConf::LastTransConf) &&
@@ -13250,7 +19010,8 @@ void Dbtc::execLQH_TRANSCONF(Signal* signal)
          ERROR_INSERTED(8118)))
     {
       jam();
-      g_eventLogger->info("Delaying final LQH_TRANSCONF from Lqh @ node %u",
+      g_eventLogger->info(
+            "Delaying final LQH_TRANSCONF from Lqh @ node %u",
                           refToNode(signal->getSendersBlockRef()));
       // Force multi-tc takeover
       ((LqhTransConf*)lqhTransConf)->maxInstanceId = 4;
@@ -13307,8 +19068,7 @@ void Dbtc::execLQH_TRANSCONF(Signal* signal)
              (signal->getLength() >= LqhTransConf::SignalLength_GCI_LO));
   gci |= gci_lo;
 
-  if (transStatus == LqhTransConf::LastTransConf)
-  {
+  if (transStatus == LqhTransConf::LastTransConf) {
     jam();
     Uint32 maxInstanceId = lqhTransConf->maxInstanceId;
     if (unlikely(signal->getLength() < LqhTransConf::SignalLength_INST_ID))
@@ -13353,34 +19113,330 @@ void Dbtc::execLQH_TRANSCONF(Signal* signal)
      */
     jam();
     updateApiStateFail(signal,
-                       transid1,
-                       transid2,
+                       transid1,  transid2,
                        transStatus,
-                       reqinfo,
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                   reqinfo,
                        applRef,
                        gci,
                        nodeId,
                        apiConnectptr);
   }
   else
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+gcp_list.addFirst(tmp);
+    g_eventLogger->info("DBTC %u: Out of order GCP %u/%u linked first",
+                        instance(),
+                        gci_hi,
+                        gci_lo);
+    return;
+  }
+  else
   {
-    if (tcNodeFailptr.p->takeOverFailed)
+    Ptr<GcpRecord> prev = gcpPtr;
+    LocalGcpRecord_list gcp_list(c_gcpRecordPool, c_gcpRecordList);
+    while (tcheckGcpId
+// RONDB-624 todo: Glue these lines together ^v
+=======
+gcp_list.addFirst(tmp);
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+>
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   if (tcNodeFailptr.p
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+gcpPtr.p
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  g_eventLogger
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+takeOverFailed)
+||||||| Common ancestor
+gcpId)
+=======
+info("DBTC
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ %u: Out of order GCP %u/%u linked first",
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      * After we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+failed to allocate a transaction record we won't
+||||||| Common ancestor
+{
+=======
+>>>>>>> MySQL 8.0.36
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+instance(),
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+try
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g_eventLogger->info("DBTC
+// RONDB-624 todo: Glue these lines together ^v
+=======
+gci_hi,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+%u:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+gci_lo);
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+allocate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Out
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+any
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+of
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+new
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+order
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ones
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GCP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+return;
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+since
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+%u/%u
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+linked
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+might mean that we
+||||||| Common ancestor
+last",
+=======
+else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
+    Ptr<GcpRecord> prev 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+* miss operations of a transaction.
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ gcpPtr;
+    LocalGcpRecord_list 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+=======
+gcp_list(c_gcpRecordPool,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ c_gcpRecordList);
+    while 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return;
+||||||| Common ancestor
+=======
+(tcheckGcpId
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ > gcpPtr.p->gcpId) {
+ }
+    if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+instance
+// RONDB-624 todo: Glue these lines together ^v
+=======
+jam
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+unlikely(!seizeApiConnectFail(signal, apiConnectptr)))
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+),
+// RONDB-624 todo: Glue these lines together ^v
+=======
+);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     {
-      jam();
-      /**
-       * After we failed to allocate a transaction record we won't
-       * try to allocate any new ones since it might mean that we
-       * miss operations of a transaction.
-       */
-      return;
-    }
-    if (unlikely(!seizeApiConnectFail(signal, apiConnectptr)))
-    {
-      jam();
-      /**
-       * We failed to allocate a transaction record, we will record that
+   if (gcpPtr.p->nextList == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+||||||| Common ancestor
+=======
+RNIL)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
+     /**
+   g_eventLogger->info("DBTC %u: Out of 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+order
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+We
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+GCP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+failed
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+%u/%u
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+linked
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+allocate a transaction record
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  gci_hi
+// RONDB-624 todo: Glue these lines together ^v
+=======
+last"
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, we will record that
        * we failed to handle all transactions and we will not allocate
-       * any more transaction records as part of taking over this instance
+       * any more 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+transaction records as part of taking over this instance
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+gci_lo);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+instance(), gci_hi, gci_lo);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
        * of the failed TC. The failed transactions will be taken over in
        * a second step of the TC take over of this instance and possibly
        * even more than two steps will be performed.
@@ -13473,7 +19529,31 @@ void Dbtc::execLQH_TRANSCONF(Signal* signal)
         /**
          * We failed to allocate a TC record, given that we can no longer
          * complete take over of this transaction we must handle the failed
-         * transaction take over. We also set takeOverFailed to true to
+         * transaction take over. We also 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+set
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::execNODE_FAILREP(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execNODE_FAILREP(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+takeOverFailed
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to true to
          * ensure that we cannot start any new transaction take over after
          * this one. This is imperative to do since otherwise a new operation
          * on the failed transaction can come along and find free resources.
@@ -13498,9 +19578,32 @@ void Dbtc::execLQH_TRANSCONF(Signal* signal)
         if (apiConnectptr.i == tcNodeFailptr.p->first_apiConnectPtrI)
         {
           jam();
-          tcNodeFailptr.p->first_apiConnectPtrI = RNIL;
-        }
-        releaseMarker(apiConnectptr.p);
+          tcNodeFailptr.p->first_apiConnectPtrI = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+RNIL;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  }
+        releaseMarker
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(apiConnectptr.p);
         remove_from_transid_fail_hash(transid1, apiConnectptr);
         /**
          * Removing the takeover transaction can be divided into several
@@ -13508,19 +19611,56 @@ void Dbtc::execLQH_TRANSCONF(Signal* signal)
          */
         remove_takeover_transaction(signal, apiConnectptr);
       }
-      else
-      {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  else
+||||||| Common ancestor
+}//if
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+// if
+>>>>>>> MySQL 8.0.36
+
         jam();
         seizeTcConnectFail(signal);
         linkTcInConnectionlist(signal, apiConnectptr.p);
         insert_tc_fail_hash(transid1, tcOprec);
-        initTcConnectFail(signal,
-                          instanceKey,
+        initTcConnectFail(signal,   instanceKey,
                           tcOprec,
                           reqinfo,
                           transStatus,
                           nodeId,
-                          apiConnectptr.i);
+                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+getNFBitName(const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*getNFBitName(const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     apiConnectptr.i);
       }
     }
   }
@@ -13529,13 +19669,61 @@ void Dbtc::execLQH_TRANSCONF(Signal* signal)
 /*------------------------------------------------------------*/
 /*       A NODE HAS REPORTED COMPLETION OF TAKE OVER REPORTING*/
 /*------------------------------------------------------------*/
-void Dbtc::nodeTakeOverCompletedLab(Signal* signal,
-                                    NodeId nodeId,
-                                    Uint32 maxInstanceId)
+void Dbtc::nodeTakeOverCompletedLab(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+buff
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*buff
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeId nodeId,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= BaseString::snprintf(buff,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                          Uint32 maxInstanceId)
 {
   Uint32 guard0;
 
-  CRASH_INSERTION(8061);
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+BaseString::snprintf(buff,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ CRASH_INSERTION(8061);
 
   if (unlikely(maxInstanceId >= NDBMT_MAX_BLOCK_INSTANCES))
   {
@@ -13568,13 +19756,38 @@ void Dbtc::nodeTakeOverCompletedLab(Signal* signal,
         /*       NOT ALL NODES ARE COMPLETED WITH REPORTING IN THE    */
         /*       TAKE OVER.                                           */
         /*------------------------------------------------------------*/
-        DEB_NODE_FAILURE(("Not all nodes completed take over"));
-        found_active = true;
-      }
+
+void Dbtc::checkNodeFailComplete(Signal *signal, Uint32 failedNodeId,
+       DEB_NODE_FAILURE(("Not all nodes completed take over"));
+        found_active = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
+||||||| Common ancestor
+
+
+void
+Dbtc::checkNodeFailComplete(Signal* signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+failedNodeId,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
       else if (hostptr.p->lqhTransStatus == LTS_WAIT)
       {
         jam();
-        DEB_NODE_FAILURE(("Send LQH_TRANSREQ to %u for failed node: %u",
+        DEB_NODE_FAILURE((
+        "Send LQH_TRANSREQ to %u for failed node: %u",
                           hostptr.i,
                           nodeId));
         found_active = true;
@@ -13620,9 +19833,33 @@ void Dbtc::nodeTakeOverCompletedLab(Signal* signal,
     jam();
     tcNodeFailptr.p->takeOverProcState[tindex] = ZTAKE_OVER_ACTIVE;
     signal->theData[0] = TcContinueB::ZCOMPLETE_TRANS_AT_TAKE_OVER;
-    signal->theData[1] = tcNodeFailptr.i;
-    signal->theData[2] = tindex;
-    sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);
+    signal->theData[1] = tcNodeFailptr.i
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+), 
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+), GSN_NDB_TAMPER,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ signal,
+  signal->theData[2] = tindex;
+    sendSignal(cownref, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GSN_CONTINUEB,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GSN_NDB_TAMPER,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  3, JBB);
   }
 }
 
@@ -13633,19 +19870,78 @@ void Dbtc::nodeTakeOverCompletedLab(Signal* signal,
 void Dbtc::completeTransAtTakeOverLab(Signal* signal, UintR TtakeOverInd) 
 {
   jam();
-  while (tcNodeFailptr.p->currentHashIndexTakeOver < TRANSID_FAIL_HASH_SIZE)
-  {
+  while (tcNodeFailptr.p->currentHashIndexTakeOver < TRANSID_FAIL_HASH_SIZE) {
     jam();
-    ApiConnectRecordPtr apiConnectptr;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if (unlikely(scanRecordPool.getUncheckedPtrs(&scanPtrI, &scanptr, 1) == 0))
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+if (unlikely(scanRecordPool.getUncheckedPtrs(&scanPtrI, &scanptr, 1) ==
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+             0)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     apiConnectptr.i = 
         ctransidFailHash[tcNodeFailptr.p->currentHashIndexTakeOver];
-    if (apiConnectptr.i != RNIL)
-    {
+    if (apiConnectptr.i != RNIL) {
       jam();
       /*------------------------------------------------------------*/
       /*       WE HAVE FOUND A TRANSACTION THAT NEEDS TO BE         */
       /*       COMPLETED. REMOVE IT FROM THE HASH TABLE SUCH THAT   */
-      /*       NOT ANOTHER ACTIVITY ALSO TRIES TO COMPLETE THIS     */
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+!ptr.isNull(); )
+=======
+!ptr.isNull();) {
+>>>>>>> MySQL 8.0.36
+   /*   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+	jam();
+	ScanFragRecPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam();
+        ScanFragRecPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    NOT ANOTHER ACTIVITY ALSO TRIES TO COMPLETE THIS   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  */
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+failedNodeId)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+failedNodeId) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       /*       TRANSACTION.                                         */
       /*------------------------------------------------------------*/
       c_apiConnectRecordPool.getPtr(apiConnectptr);
@@ -13711,16 +20007,63 @@ void Dbtc::completeTransAtTakeOverDoLast(Signal* signal, UintR TtakeOverInd)
      *
      * Given that we haven't completed this round, we continue with
      * one more attempt on the same TC instance.
-     */
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+HostRecord::NF_CHECK_SCAN);
+}
+
+void
+Dbtc::nodeFailCheckTransactions(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+HostRecord::NF_CHECK_SCAN);
+}
+
+void Dbtc::nodeFailCheckTransactions(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
     jam();
     g_eventLogger->info("DBTC %u: Continuing take over of "
                         "DBTC instance %u in node %u",
                         instance(),
-                        tcNodeFailptr.p->takeOverInstanceId,
-                        tcNodeFailptr.p->takeOverNode);
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+c_apiConnectRecordPool.getUncheckedPtrs(&api_ptr,
+=======
+c_apiConnectRecordPool.getUncheckedPtrs(
+>>>>>>> MySQL 8.0.36
+     tcNodeFailptr.p->takeOverInstanceId,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                     tcNodeFailptr.p->takeOverNode);
     ndbrequire(tcNodeFailptr.p->handledOneTransaction);
     startTakeOverLab(signal,
-                     tcNodeFailptr.p->takeOverInstanceId,
+          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&api_ptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+           tcNodeFailptr.p->takeOverInstanceId,
                      tcNodeFailptr.p->takeOverNode);
     return;
   }
@@ -13733,7 +20076,27 @@ void Dbtc::completeTransAtTakeOverDoLast(Signal* signal, UintR TtakeOverInd)
      */
     jam();
     g_eventLogger->info("DBTC %u: Completed take over of "
-                        "DBTC instance %u in failed node %u,"
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+transPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+&transPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                     "DBTC instance %u in failed node %u,"
                         " continuing with the next instance",
                         instance(),
                         tcNodeFailptr.p->takeOverInstanceId,
@@ -13752,8 +20115,39 @@ void Dbtc::completeTransAtTakeOverDoLast(Signal* signal, UintR TtakeOverInd)
   tcNodeFailptr.p->completedTakeOver++;
 
   g_eventLogger->info("DBTC %u: Completed take over"
-                      " of failed node %u",
-                      instance(),
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+}
+
+void
+Dbtc::ndbdFailBlockCleanupCallback(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+void Dbtc::ndbdFailBlockCleanupCallback(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                   " of failed node %u",
+      
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 failedNodeId,
+              instance(),
                       tcNodeFailptr.p->takeOverNode);
   CRASH_INSERTION(8062);
 
@@ -13761,23 +20155,135 @@ void Dbtc::completeTransAtTakeOverDoLast(Signal* signal, UintR TtakeOverInd)
     jam();
     /*------------------------------------------------------------*/
     /*       WE WERE THE LAST ACTIVITY THAT WAS COMPLETED. WE NEED*/
-    /*       TO REPORT THE COMPLETION OF THE TAKE OVER TO ALL     */
-    /*       NODES THAT ARE ALIVE.                                */
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+HostRecord::NF_BLOCK_HANDLE);
+}
+
+void
+Dbtc::apiFailBlockCleanupCallback(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+HostRecord::NF_BLOCK_HANDLE);
+}
+
+void Dbtc::apiFailBlockCleanupCallback(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+      TO REPORT THE COMPLETION OF THE TAKE OVER TO ALL     */
+    /*    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Uint32 failedNodeId,
+ NODES THAT ARE 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ALIVE.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                                */
     /*------------------------------------------------------------*/
     NodeReceiverGroup rg(DBTC, c_alive_nodes);
     TakeOverTcConf* const conf = (TakeOverTcConf*) &signal->theData;
     conf->failedNode = tcNodeFailptr.p->takeOverNode;
     conf->senderRef = reference();
     conf->tcFailNo = cfailure_nr;
-    // It is ok to send too long signal to old nodes (<8.0.18).
-    sendSignal(rg, GSN_TAKE_OVERTCCONF, signal,
+    // It is ok to send too long signal to old nodes 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(<8.0.18).
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ failedNodeId,
+   sendSignal(rg, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+GSN_TAKE_OVERTCCONF,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signal,
+||||||| Common ancestor
+failedNodeId,
+=======
+>>>>>>> MySQL 8.0.36
                TakeOverTcConf::SignalLength,
                JBB);
     
     if (tcNodeFailptr.p->queueIndex > 0) {
       jam();
       /*------------------------------------------------------------*/
-      /*       THERE ARE MORE NODES TO TAKE OVER. WE NEED TO START  */
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execTAKE_OVERTCCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execTAKE_OVERTCCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+    /*       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+THERE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TakeOverTcConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TakeOverTcConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ARE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ MORE NODES TO TAKE OVER. WE NEED TO START  */
       /*       THE TAKE OVER.                                       */
       /*------------------------------------------------------------*/
       Uint32 failedNodeId = tcNodeFailptr.p->queueList[0];
@@ -13788,7 +20294,8 @@ void Dbtc::completeTransAtTakeOverDoLast(Signal* signal, UintR TtakeOverInd)
         tcNodeFailptr.p->queueList[i] = tcNodeFailptr.p->queueList[i+1];
       }
       tcNodeFailptr.p->queueIndex--;
-      g_eventLogger->info("DBTC %u: Starting next DBTC node"
+      g_eventLogger->info(
+            "DBTC %u: Starting next DBTC node"
                           " take over for failed node %u,"
                           " %u failed nodes remaining in takeover queue",
                           instance(),
@@ -13817,7 +20324,17 @@ void Dbtc::completeTransAtTakeOverDoOne(Signal* signal,
     /*------------------------------------------------------------*/
     /*       ALL PARTS OF THE TRANSACTIONS REPORTED COMMITTED. WE */
     /*       HAVE THUS COMPLETED THE COMMIT PHASE. WE CAN REPORT  */
-    /*       COMMITTED TO THE APPLICATION AND CONTINUE WITH THE   */
+    /*  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sendSignalWithDelay(reference(), GSN_TAKE_OVERTCCONF, signal,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignalWithDelay(reference(), GSN_TAKE_OVERTCCONF, signal, 10,
+>>>>>>> MySQL 8.0.36
+     COMMITTED TO THE APPLICATION AND CONTINUE WITH THE   */
     /*       COMPLETE PHASE.                                      */
     /*------------------------------------------------------------*/
     sendTCKEY_FAILCONF(signal, apiConnectptr.p);
@@ -13853,8 +20370,30 @@ void Dbtc::completeTransAtTakeOverDoOne(Signal* signal,
                      apiConnectptr.i,
                      apiConnectptr.p->transid[0],
                      apiConnectptr.p->transid[1]));
-    init_finish_processing(apiConnectptr.p);
-    toCommitHandlingLab(signal, apiConnectptr);
+    init_finish_processing(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p);
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ toCommitHandlingLab(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal, apiConnectptr);
     return;
   case CS_FAIL_ABORTING:
   case CS_FAIL_PREPARED:
@@ -14084,7 +20623,30 @@ Dbtc::execTCKEY_FAILREFCONF_R(Signal* signal)
  * setup_fail_data will be true. This ensures that we don't
  * start another call to setupFailData while it is in
  * progress. After completing it we will change the transaction
- * state which will ensure that it won't be called again after
+ * state which will ensure 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiConnectRecordPtr&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnectptr)
+{
+=======
+&apiConnectptr) {
+>>>>>>> MySQL 8.0.36
+ won't be called again after
  * executing to its completion.
  *
  * After completing the setup we will call either
@@ -14149,23 +20711,75 @@ void Dbtc::execABORTCONF(Signal* signal)
   jamEntry();
   tcConnectptr.i = signal->theData[0];
   NodeId nodeId = signal->theData[2];
-  if (ERROR_INSERTED(8045))
-  {
+  if (
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ERROR_INSERTED(8045))
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ {
     CLEAR_ERROR_INSERT_VALUE;
     sendSignalWithDelay(cownref, GSN_ABORTCONF, signal, 2000, 5);
     return;
   }
   if (unlikely(!tcConnectRecord.getValidPtr(tcConnectptr) ||
-               tcConnectptr.p->tcConnectstate != OS_WAIT_ABORT_CONF))
-  {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              tcConnectptr.p->tcConnectstate != 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+OS_WAIT_ABORT_CONF))
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ transid2,
+ {
     jam();
-    warningReport(signal, 16, tcConnectptr.i);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+warningReport(signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+16,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+transid2,
+=======
+>>>>>>> MySQL 8.0.36
+ tcConnectptr.i);
     return;
   }
   ApiConnectRecordPtr apiConnectptr;
   apiConnectptr.i = tcConnectptr.p->apiConnect;
   if (unlikely(!c_apiConnectRecordPool.getValidPtr(apiConnectptr) ||
-               apiConnectptr.p->apiConnectstate != CS_WAIT_ABORT_CONF))
+ Uint32 tcOprec,
+             apiConnectptr.p->apiConnectstate != CS_WAIT_ABORT_CONF))
   {
     jam();
     warningReport(signal, 17, tcConnectptr.i);
@@ -14173,8 +20787,7 @@ void Dbtc::execABORTCONF(Signal* signal)
   }
   compare_transid1 = apiConnectptr.p->transid[0] ^ signal->theData[3];
   compare_transid2 = apiConnectptr.p->transid[1] ^ signal->theData[4];
-  if (unlikely(compare_transid1 != 0 || compare_transid2 != 0))
-  {
+  if (unlikely(compare_transid1 != 0 || compare_transid2 != 0)) {
     jam();
     warningReport(signal, 18, tcConnectptr.i);
     return;
@@ -14182,17 +20795,35 @@ void Dbtc::execABORTCONF(Signal* signal)
   bool found = false;
   for (Uint32 i = 0; i <= tcConnectptr.p->lastReplicaNo; i++)
   {
-    if (nodeId == tcConnectptr.p->tcNodedata[i])
-    {
+    if (nodeId == tcConnectptr.p->tcNodedata[i]) {
       jam();
       jamLine((Uint16)i);
       tcConnectptr.p->failData[i] = LqhTransConf::Aborted;
       found = true;
-      break;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ break;
     }
   }
-  if (!found)
-  {
+  if (!found) {
     jam();
     warningReport(signal, 19, tcConnectptr.i);
     return;
@@ -14258,13 +20889,12 @@ Dbtc::check_finished_abort_handling(Signal *signal,
   return;
 }
 
-void Dbtc::toAbortHandlingLab(Signal* signal,
+void Dbtc::toAbortHandlingLab(Signal *signal,
                               ApiConnectRecordPtr const apiConnectptr)
 {
   Uint32 replicaNo = tcConnectptr.p->lastReplicaNo;
   Uint32 loop_count = 0;
-  ndbrequire(!(apiConnectptr.p->send_fail_data_process_ongoing ||
-               apiConnectptr.p->check_fail_data_process_ongoing));
+  ndbrequire(!(apiConnectptr.p->send_fail_data_process_ongoing ||          apiConnectptr.p->check_fail_data_process_ongoing));
   apiConnectptr.p->send_fail_data_process_ongoing = true;
   apiConnectptr.p->apiConnectstate = CS_WAIT_ABORT_CONF;
 
@@ -14365,8 +20995,7 @@ void Dbtc::toAbortHandlingLab(Signal* signal,
 }
 
 void
-Dbtc::checkFailData_abort(Signal *signal,
-                          ApiConnectRecordPtr apiConnectptr)
+Dbtc::checkFailData_abort(Signal *signal,    ApiConnectRecordPtr apiConnectptr)
 {
   Uint32 loop_count = 0;
   ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
@@ -14408,8 +21037,7 @@ Dbtc::checkFailData_abort(Signal *signal,
         ndbrequire(apiConnectptr.p->finish_trans_counter > 0);
         apiConnectptr.p->finish_trans_counter--;
       }
-      else if (!ndbd_support_abortreq_full(nodeVersion))
-      {
+      else if (!ndbd_support_abortreq_full(nodeVersion))   {
         jam();
         /**
          * We are running against an old data node. In this case we need to
@@ -14616,6 +21244,7 @@ void Dbtc::execCOMMITCONF(Signal* signal)
       tcConnectptr.i = apiConnectptr.p->nextTcOperation;
       ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
       toCommitHandlingLab(signal, apiConnectptr);
+<<<<<<< RonDB // RONDB-624 todo
       return;
     }
   }
@@ -14623,8 +21252,36 @@ void Dbtc::execCOMMITCONF(Signal* signal)
 }
 
 void
-Dbtc::check_finished_commit_handling(Signal *signal,
-                                     ApiConnectRecordPtr apiConnectptr)
+Dbtc::check_finished_commit_handling(Signal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+/*------------------------------------------------------------*/
+/*       A NODE HAS REPORTED COMPLETION OF TAKE OVER REPORTING*/
+/*------------------------------------------------------------*/
+void Dbtc::nodeTakeOverCompletedLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+/*------------------------------------------------------------*/
+/*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*signal,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      A NODE HAS REPORTED COMPLETION OF TAKE OVER REPORTING*/
+/*------------------------------------------------------------*/
+void Dbtc::nodeTakeOverCompletedLab(Signal *signal,  ApiConnectRecordPtr apiConnectptr)
 {
   ndbrequire(!(apiConnectptr.p->send_fail_data_process_ongoing ||
                apiConnectptr.p->check_fail_data_process_ongoing));
@@ -14730,7 +21387,27 @@ void Dbtc::toCommitHandlingLab(Signal* signal,
                    signal,
                    CommitReq::SignalLength,
                    JBB);
-      }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::completeTransAtTakeOverLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::completeTransAtTakeOverLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    }
       break;
     }
     default:
@@ -14780,7 +21457,6 @@ void Dbtc::toCommitHandlingLab(Signal* signal,
     }
   } while (1);
 }
-
 void
 Dbtc::checkFailData_commit(Signal *signal,
                            ApiConnectRecordPtr apiConnectptr)
@@ -14894,8 +21570,7 @@ Dbtc::checkFailData_commit(Signal *signal,
       if (loop_count >= ZMAX_SETUP_PER_RT_BREAK)
       {
         jam();
-        check_to_commit_handling(signal,
-                                 apiConnectptr,
+        check_to_commit_handling(signal,            apiConnectptr,
                                  tcConnectptr.i,
                                  __LINE__);
         return;
@@ -14936,10 +21611,37 @@ void Dbtc::execCOMPLETECONF(Signal* signal)
   ApiConnectRecordPtr apiConnectptr;
   apiConnectptr.i = tcConnectptr.p->apiConnect;
   if (unlikely(!c_apiConnectRecordPool.getValidPtr(apiConnectptr) ||
-               apiConnectptr.p->apiConnectstate != CS_WAIT_COMPLETE_CONF))
-  {
-    jam();
-    warningReport(signal, 13, tcConnectptr.i);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g_eventLogger->info("DBTC %u: Starting next DBTC node"
+=======
+g_eventLogger->info(
+>>>>>>> MySQL 8.0.36
+      apiConnectptr.p->apiConnectstate != CS_WAIT_COMPLETE_CONF))
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+"DBTC
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ %u: Starting next 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam();
+||||||| Common ancestor
+=======
+DBTC
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ node"
+  warningReport(signal, 13, tcConnectptr.i);
     return;
   }
   compare_transid1 = apiConnectptr.p->transid[0] ^ conf->transid1;
@@ -14975,7 +21677,28 @@ void Dbtc::execCOMPLETECONF(Signal* signal)
   }
   if (ERROR_INSERTED(8028))
   {
-    jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::completeTransAtTakeOverDoOne(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::completeTransAtTakeOverDoOne(
+    Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
     ndbabort();
   }
   ndbrequire(apiConnectptr.p->finish_trans_counter > 0);
@@ -15033,13 +21756,14 @@ Dbtc::check_finished_complete_handling(Signal *signal,
     signal->theData[0] = TcContinueB::ZCOMPLETE_TRANS_AT_TAKE_OVER;
     signal->theData[1] = apiConnectptr.p->takeOverRec;
     signal->theData[2] = apiConnectptr.p->takeOverInd;
-    sendSignal(cownref, GSN_CONTINUEB, signal, 3, JBB);
+    sendSignal(cownref, GSN_CONTINUEB, signal, 3,
+                        JBB);
     handleGcp(signal, apiConnectptr);
     releaseTakeOver(signal, apiConnectptr);
   }
   else
   {
-    jam();
+      jam();
     if (tc_testbit(apiConnectptr.p->m_flags,
                    ApiConnectRecord::TF_LATE_COMMIT))
     {
@@ -15070,7 +21794,7 @@ void Dbtc::toCompleteHandlingLab(Signal* signal,
     case LqhTransConf::InvalidStatus:
     {
       jam();
-      /*empty*/;
+        /*empty*/;
       break;
     }
     case LqhTransConf::Committed:
@@ -15084,19 +21808,49 @@ void Dbtc::toCompleteHandlingLab(Signal* signal,
       }
       else
       {
-        jam();
+          jam();
         loop_count += 60;
         apiConnectptr.p->finish_trans_counter++;
         Uint32 instanceKey = tcConnectptr.p->lqhInstanceKey;
         Uint32 instanceNo = getInstanceNo(hostptr.i, instanceKey);
         BlockReference blockRef = numberToRef(DBLQH, instanceNo, hostptr.i);
+
         tcConnectptr.p->tcConnectstate = OS_WAIT_COMPLETE_CONF;
         tcConnectptr.p->apiConnect = apiConnectptr.i;
         CompleteReq* req = (CompleteReq*)signal->theData;
         if (hostptr.i != getOwnNodeId())
         {
           signal->m_send_wakeups++;
-        }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+return;
+  }//switch
+}//Dbtc::completeTransAtTakeOverDoOne()
+
+void 
+Dbtc::sendTCKEY_FAILREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  return;
+  }  // switch
+}  // Dbtc::completeTransAtTakeOverDoOne()
+
+void Dbtc::sendTCKEY_FAILREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   }
         req->reqPtr = tcConnectptr.i;
         req->reqBlockref = cownref;
         req->transid1 = apiConnectptr.p->transid[0];
@@ -15112,33 +21866,130 @@ void Dbtc::toCompleteHandlingLab(Signal* signal,
       break;
     }
     default:
-    {
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
+||||||| Common ancestor
+sendTCKEY_FAILCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendTCKEY_FAILCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   {
       jam();
       ndbabort();
       return;
     }
     }
-    if (replicaNo > 0)
-    {
+    if (replicaNo > 0)   {
       jam();
       replicaNo--;
     }
     else
     {
       tcConnectptr.i = tcConnectptr.p->nextList;
-      if (tcConnectptr.i == RNIL)
-      {
+      if (tcConnectptr.i == RNIL)   {
         jam();
         apiConnectptr.p->send_fail_data_process_ongoing = false;
-        setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
-        apiConnectptr.p->nextTcOperation = RNIL;
-        check_finished_complete_handling(signal,
+        setApiConTimer(apiConnectptr,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ ctcTimer, __LINE__);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ JBB);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p->nextTcOperation
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+=======
+         JBB);
+>>>>>>> MySQL 8.0.36
+ = RNIL;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+} else {
+>>>>>>> MySQL 8.0.36
+      check_finished_complete_handling(signal,
                                          apiConnectptr);
         return;
       }
-      if (apiConnectptr.p->finish_trans_counter >= ZMAX_OUTSTANDING_COMMIT_OPS)
-      {
-        jam();
+      if (apiConnectptr.p->finish_trans_counter >= ZMAX_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+OUTSTANDING_COMMIT_OPS)
+||||||| Common ancestor
+FAILREFCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+FAILREFCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                                 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+regApiPtr,
+			
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regApiPtr, Uint32 gsn,
+>>>>>>> MySQL 8.0.36
+  {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+gsn,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                           
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    jam();
         /**
          * We have sent a sufficiently large batch already. No room to send
          * more right now. Wait until a set of operations have returned until
@@ -15173,7 +22024,27 @@ Dbtc::checkFailData_complete(Signal *signal,
   ndbrequire(tcConnectRecord.getValidPtr(tcConnectptr));
   Uint32 replicaNo = tcConnectptr.p->lastReplicaNo;
   ndbrequire(!(apiConnectptr.p->send_fail_data_process_ongoing ||
-               apiConnectptr.p->check_fail_data_process_ongoing));
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execABORTCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execABORTCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+         apiConnectptr.p->check_fail_data_process_ongoing));
   apiConnectptr.p->check_fail_data_process_ongoing = true;
   do
   {
@@ -15190,8 +22061,7 @@ Dbtc::checkFailData_complete(Signal *signal,
       jam();
       hostptr.i = tcConnectptr.p->tcNodedata[replicaNo];
       ptrCheckGuard(hostptr, chostFilesize, hostRecord);
-      if (hostptr.p->hostStatus != HS_ALIVE)
-      {
+      if (hostptr.p->hostStatus != HS_ALIVE)     {
         jam();
         /* Node died before responding. */
         tcConnectptr.p->failData[replicaNo] = LqhTransConf::InvalidStatus;
@@ -15212,7 +22082,25 @@ Dbtc::checkFailData_complete(Signal *signal,
     else
     {
       if (apiConnectptr.p->finish_trans_counter == 0)
-      {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::toAbortHandlingLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::toAbortHandlingLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+=======
+*signal,
+>>>>>>> MySQL 8.0.36
+    {
         apiConnectptr.p->check_fail_data_process_ongoing = false;
         if (apiConnectptr.p->nextTcOperation == RNIL)
         {
@@ -15239,10 +22127,10 @@ Dbtc::checkFailData_complete(Signal *signal,
         apiConnectptr.p->check_fail_data_process_ongoing = false;
         return;
       }
-      if (tcConnectptr.i == apiConnectptr.p->nextTcOperation)
+      if (tcConnectptr.i ==   apiConnectptr.p->nextTcOperation)
       {
         jam();
-        apiConnectptr.p->check_fail_data_process_ongoing = false;
+          apiConnectptr.p->check_fail_data_process_ongoing = false;
         if (apiConnectptr.p->finish_trans_counter <
             ZMAX_OUTSTANDING_COMMIT_OPS_RESTART)
         {
@@ -15257,7 +22145,7 @@ Dbtc::checkFailData_complete(Signal *signal,
       jam();
       if (loop_count >= ZMAX_SETUP_PER_RT_BREAK)
       {
-        jam();
+          jam();
         check_to_complete_handling(signal,
                                    apiConnectptr,
                                    tcConnectptr.i,
@@ -15329,7 +22217,27 @@ void Dbtc::initApiConnectFail(Signal* signal,
     jam();
     CommitAckMarkerPtr tmp;
 
-    {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execCOMMITCONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execCOMMITCONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  {
       CommitAckMarker key;
       key.transid1 = transid1;
       key.transid2 = transid2;
@@ -15339,19 +22247,137 @@ void Dbtc::initApiConnectFail(Signal* signal,
          * We found a "lingering" marker...
          *   most probably from earlier node failure
          *   check consistency using lots of it-statements
-         */
-        jam();
-        if (tmp.p->apiConnectPtr == RNIL)
-        {
-          jam();
-          // ok - marker had no transaction, use it...
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+CS_WAIT_COMMIT_CONF))
+=======
+CS_WAIT_COMMIT_CONF)) {
+    jam();
+    warningReport(signal, 9);
+    return;
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  // if
+  compare_transid1 = apiConnectptr.p->transid[0] ^ signal->theData[2];
+  compare_transid2 = apiConnectptr.p->transid[1] ^ signal->theData[3];
+  if (unlikely(compare_transid1 != 0 || compare_transid2 != 0)) {
+    jam();
+    warningReport(signal, 10);
+    return;
+  }  // if
+  arrGuard(apiConnectptr.p->currentReplicaNo, MAX_REPLICAS);
+  if (unlikely(tcConnectptr.p->tcNodedata[apiConnectptr.p->currentReplicaNo] !=
+               nodeId)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+        jam(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal, 9
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signal, 11
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   if (tmp.p->apiConnectPtr == RNIL)
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}//if
+  compare_transid1 = apiConnectptr.p->transid[0] ^ signal->theData[2];
+  compare_transid2 = apiConnectptr.p->transid[1] ^ signal->theData[3];
+  if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  {
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(unlikely(compare_transid1 != 0 || compare_transid2 != 0))
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     jam();
+          
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ {
+    jam();
+    warningReport(signal, 10);
+    return;
+  }
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+//
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ ok - marker had no transaction, use it...
         }
         else
-        {
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+if
+  arrGuard(apiConnectptr.p->currentReplicaNo, MAX_REPLICAS);
+  if (unlikely(
+    tcConnectptr.p->tcNodedata[apiConnectptr.p->currentReplicaNo] !=
+    nodeId))
+  {
+    jam();
+    warningReport(signal, 11);
+    return;
+  }//if
+=======
+ if
+>>>>>>> MySQL 8.0.36
+      {
           ApiConnectRecordPtr transPtr;
           transPtr.i = tmp.p->apiConnectPtr;
           c_apiConnectRecordPool.getPtr(transPtr);
-          if (transPtr.p->commitAckMarker == RNIL)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::toCommitHandlingLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::toCommitHandlingLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+=======
+*signal,
+>>>>>>> MySQL 8.0.36
+        if (transPtr.p->commitAckMarker == RNIL)
           {
             jam();
             // ok - marker had a transaction that had moved on, use it...
@@ -15363,7 +22389,7 @@ void Dbtc::initApiConnectFail(Signal* signal,
           }
           else
           {
-            jam();
+              jam();
             /**
              * marker pointed to a transaction that was pointing to marker...
              *   i.e both transaction + marker lingering...
@@ -15431,7 +22457,7 @@ void Dbtc::initTcConnectFail(Signal* signal,
   regTcPtr->dirtyOp = LqhTransConf::getDirtyFlag(reqinfo);
   regTcPtr->lqhInstanceKey = instanceKey;
   regTcPtr->recBlockNo = DBLQH;
-}//Dbtc::initTcConnectFail()
+}  // Dbtc::initTcConnectFail()
 
 /*----------------------------------------------------------*/
 /*       INITIALISE TC NODE FAIL RECORD.                    */
@@ -15445,7 +22471,27 @@ void Dbtc::initTcFail(Signal* signal)
 }
 
 /*----------------------------------------------------------*/
-/*               RELEASE_TAKE_OVER                          */
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void Dbtc::execCOMPLETECONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::execCOMPLETECONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+              RELEASE_TAKE_OVER                          */
 /*----------------------------------------------------------*/
 void Dbtc::releaseTakeOver(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
 {
@@ -15456,8 +22502,7 @@ void Dbtc::releaseTakeOver(Signal* signal, ApiConnectRecordPtr const apiConnectp
   {
     jam();
     releaseTcConnectFail(tcConnectptr);
-    if (++loop_count > ZMAX_RELEASE_PER_RT_BREAK)
-    {
+    if (++loop_count > ZMAX_RELEASE_PER_RT_BREAK)   {
       jam();
       setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
       signal->theData[0] = TcContinueB::ZRELEASE_TAKE_OVER;
@@ -15486,8 +22531,7 @@ Dbtc::init_finish_processing(ApiConnectRecord *apiConnectPtrP)
 void
 Dbtc::init_setupFailData(Signal *signal,
                          ApiConnectRecordPtr const apiConnectptr,
-                         Uint32 type)
-{
+                         Uint32 type) {
   /**
    * This is the first timeout, thus we set timeout counter to 0.
    * Setting setup_fail_data ensures that we will ignore any
@@ -15745,18 +22789,76 @@ void Dbtc::updateApiStateFail(Signal* signal,
   switch (transStatus) {
   case LqhTransConf::Committed:
     jam();
-    switch (apiConnectptr.p->apiConnectstate) {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+seize trans
+=======
+seize
+>>>>>>> MySQL 8.0.36
+ switch (apiConnectptr.p->apiConnectstate) {
     case CS_FAIL_COMMITTING:
-    case CS_FAIL_COMMITTED:
+    case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CS_FAIL_COMMITTED:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+// RONDB-624 todo: Glue these lines together ^v
+=======
+* trans
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       jam();
-      ndbrequire(gci == apiConnectptr.p->globalcheckpointid);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ndbrequire(gci ==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+releaseApiConnectFail(signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p->globalcheckpointid);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnectptr);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       break;
-    case CS_FAIL_PREPARED:
+    case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CS_FAIL_PREPARED:
       jam();
       apiConnectptr.p->apiConnectstate = CS_FAIL_COMMITTING;
-      apiConnectptr.p->globalcheckpointid = gci;
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ updateApiStateFail(signal,
+                 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ releaseApiConnectFail(signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ apiConnectptr);
+  apiConnectptr.p->globalcheckpointid = gci;
       break;
-    case CS_FAIL_COMPLETED:
+  updateApiStateFail(signal,  case CS_FAIL_COMPLETED:
       jam();
       apiConnectptr.p->globalcheckpointid = gci;
       apiConnectptr.p->apiConnectstate = CS_FAIL_COMMITTED;
@@ -15830,14 +22932,10 @@ void Dbtc::updateApiStateFail(Signal* signal,
 /*       WE ALSO NEED TO CHECK THAT THERE IS CONSISTENCY      */
 /*       BETWEEN THE DIFFERENT REPLICAS.                      */
 /*------------------------------------------------------------*/
-void Dbtc::updateTcStateFail(Signal* signal,
-                             Uint32 instanceKey,
-                             Uint32 tcOprec,
+void Dbtc::updateTcStateFail(Signal *signal, Uint32 instanceKey, Uint32 tcOprec,
                              Uint32 reqinfo,
                              LqhTransConf::OperationStatus transStatus,
-                             NodeId nodeId,
-                             ApiConnectRecordPtr const apiConnectptr)
-{
+                             NodeId nodeId, ApiConnectRecordPtr const apiConnectptr) {
   const Uint8 replicaNo     = LqhTransConf::getReplicaNo(reqinfo);
   const Uint8 lastReplicaNo = LqhTransConf::getLastReplicaNo(reqinfo);
   const Uint8 dirtyOp       = LqhTransConf::getDirtyFlag(reqinfo);
@@ -15887,7 +22985,7 @@ void Dbtc::execTCGETOPSIZEREQ(Signal* signal)
     signal->theData[2] = Tusersblkref;
     sendSignal(DBDIH_REF, GSN_CHECK_LCP_IDLE_ORD, signal, 3, JBB);
   }
-}//Dbtc::execTCGETOPSIZEREQ()
+}  // Dbtc::execTCGETOPSIZEREQ()
 
 void Dbtc::execTC_CLOPSIZEREQ(Signal* signal) 
 {
@@ -15903,39 +23001,272 @@ void Dbtc::execTC_CLOPSIZEREQ(Signal* signal)
 }//Dbtc::execTC_CLOPSIZEREQ()
 
 /* ######################################################################### */
-/* #######                        ERROR MODULE                       ####### */
-/* ######################################################################### */
-void Dbtc::wrongSchemaVersionErrorLab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
-{
-  const TcKeyReq * const tcKeyReq = (TcKeyReq *)&signal->theData[0];
+/* #######                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+INITIALISE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+INITIALISE TC NODE FAIL RECORD.                    */
+/*----------------------------------------------------------*/
+void Dbtc::initTcFail(Signal *signal) {
+  tcNodeFailptr.i = 0;
+  ptrAss(tcNodeFailptr, tcFailRecord);
+  tcNodeFailptr.p->queueIndex = 0;
+  tcNodeFailptr.p->failStatus = FS_IDLE;
+}  // Dbtc::initTcFail()
 
-  TableRecordPtr tabPtr;
-  tabPtr.i = tcKeyReq->tableId;
-  const Uint32 schemVer = tcKeyReq->tableSchemaVersion;
-  ptrCheckGuard(tabPtr, ctabrecFilesize, tableRecord);
+/*----------------------------------------------------------*/
+/*               RELEASE_TAKE_OVER  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ERROR
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FAIL
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MODULE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RECORD.
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                       ####### */
+/* ######################################################################### */
+void Dbtc::
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+wrongSchemaVersionErrorLab
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+initTcFail
+// RONDB-624 todo: Glue these lines together ^v
+=======
+releaseTakeOver
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Signal *signal
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+, ApiConnectRecordPtr const apiConnectptr)
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+) 
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const TcKeyReq * const tcKeyReq
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tcNodeFailptr.i
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(TcKeyReq *)&signal->theData[0];
+
+||||||| Common ancestor
+0;
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TableRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ptrAss(tcNodeFailptr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtr;
+||||||| Common ancestor
+tcFailRecord);
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tabPtr.i = tcKeyReq->tableId;
+  const Uint32 schemVer
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tcNodeFailptr.p->queueIndex
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcKeyReq->tableSchemaVersion;
+||||||| Common ancestor
+0;
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ptrCheckGuard(tabPtr, ctabrecFilesize, tableRecord);
 
   terrorCode = tabPtr.p->getErrorCode(schemVer);
+||||||| Common ancestor
+tcNodeFailptr.p->failStatus
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
   abortErrorLab(signal, apiConnectptr);
 }//Dbtc::wrongSchemaVersionErrorLab()
 
-void Dbtc::noFreeConnectionErrorLab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
+void
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+FS_IDLE;
+}//Dbtc::initTcFail()
+
+/*----------------------------------------------------------*/
+/*      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ Dbtc::noFreeConnectionErrorLab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
 {
-  terrorCode = ZNO_FREE_TC_CONNECTION;
-  abortErrorLab(signal, apiConnectptr);        /* RECORD. OTHERWISE GOTO ERRORHANDLING  */
+ ApiConnectRecordPtr 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+terrorCode
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+apiConnectptr)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZNO_FREE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RELEASE_TAKE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+{
+  LocalTcConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TC_CONNECTION;
+||||||| Common ancestor
+OVER         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+fifo tcConList(tcConnectRecord,
+            
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  abortErrorLab(signal, apiConnectptr);        /* RECORD. OTHERWISE GOTO ERRORHANDLING  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
 }//Dbtc::noFreeConnectionErrorLab()
 
-void Dbtc::aiErrorLab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
+void
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*/
+/*----------------------------------------------------------*/
+void
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Dbtc::aiErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::releaseTakeOver(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr)
 {
-  terrorCode = ZLENGTH_ERROR;
-  abortErrorLab(signal, apiConnectptr);
+||||||| Common ancestor
+apiConnectptr)
+{
+
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+terrorCode = ZLENGTH_ERROR;
+||||||| Common ancestor
+LocalTcConnectRecord_fifo
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ abortErrorLab(signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+tcConList(tcConnectRecord,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ apiConnectptr);
 }//Dbtc::aiErrorLab()
 
 void Dbtc::appendToSectionErrorLab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
 {
   terrorCode = ZGET_DATAREC_ERROR;
   releaseAtErrorLab(signal, apiConnectptr);
-}//Dbtc::appendToSectionErrorLab
+}  // Dbtc::appendToSectionErrorLab
 
 void Dbtc::releaseAtErrorLab(Signal* signal, ApiConnectRecordPtr const apiConnectptr)
 {
@@ -15972,12 +23303,56 @@ bool Dbtc::testFragmentDrop(Signal* signal)
 {
   Uint32 fragIdToDrop= ~0;
   /* Drop some fragments to test the dropped fragment handling code */
-  if (ERROR_INSERTED(8074))
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::setupFailData(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::setupFailData(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if (ERROR_INSERTED(8074))
     fragIdToDrop= 1;
   else if (ERROR_INSERTED(8075))
     fragIdToDrop= 2;
   else if (ERROR_INSERTED(8076))
-    fragIdToDrop= 3;
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragIdToDrop=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 3;
   
   if ((signal->header.m_fragmentInfo == fragIdToDrop) ||
       ERROR_INSERTED(8077)) // Drop all fragments
@@ -15992,9 +23367,20 @@ bool Dbtc::testFragmentDrop(Signal* signal)
     Uint32 secCount= handle.m_cnt;
     releaseSections(handle);
     SignalDroppedRep* rep = (SignalDroppedRep*)signal->theData;
-    Uint32 gsn = signal->header.theVerId_signalNumber;
-    Uint32 len = signal->header.theLength;
-    Uint32 newLen= (len > 22 ? 22 : len);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ Uint32 gsn = signal->header.theVerId_signalNumber;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+DECISION.
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   Uint32 len = signal->header.theLength;
+   * COMMIT/ABORT DECISION.
+  Uint32 newLen= (len > 22 ? 22 : len);
     memmove(rep->originalData, signal->theData, (4 * newLen));
     rep->originalGsn = gsn;
     rep->originalLength = len;
@@ -16011,12 +23397,33 @@ bool Dbtc::testFragmentDrop(Signal* signal)
 #endif
 
 /* ######################################################################### *
- * #######                        SCAN MODULE                        ####### *
+ * #######                        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SCAN
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MODULE
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+COMPLETE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+         * COMPLETE MESSAGE.
+             ####### *
  * ######################################################################### *
 
   The application orders a scan of a table.  We divide the scan into a scan on
   each fragment.  The scan uses the primary replicas since the scan might be   
-  used for an update in a separate transaction. 
+  used   for an update in a separate transaction. 
 
   Scans are always done as a separate transaction.  Locks from the scan
   can be overtaken by another transaction.  Scans can never lock the entire
@@ -16035,8 +23442,29 @@ bool Dbtc::testFragmentDrop(Signal* signal)
       process (hereafter called delivery process) will start up a number 
       of scan processes.  Each of these scan processes will 
       independently scan one fragment at a time.  The delivery
-      process object is the scan record and the scan process object is 
-      the scan fragment record plus the scan operation record.
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbtc::updateApiStateFail(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::updateApiStateFail(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     process object is the scan record and the scan process object is 
+      the scan fragment record plus the scan
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ operation record.
    
   -#  The third step is thus performed in parallel. In the third step each 
       scan process retrieves the primary replica of the fragment it will 
@@ -16113,7 +23541,7 @@ void Dbtc::execSCAN_TABREQ(Signal* signal)
       ERROR_INSERTED(8076) ||
       ERROR_INSERTED(8077))
   {
-    jam();
+        jam();
     if (testFragmentDrop(signal)) {
       jam();
       return;
@@ -16160,14 +23588,37 @@ void Dbtc::execSCAN_TABREQ(Signal* signal)
   Uint32 * apiPtr = signal->theData+25; // temp storage
   copy(apiPtr, api_op_ptr);
 
-  Uint32 aiLength= 0;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::updateTcStateFail(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::updateTcStateFail(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 aiLength= 0;
   Uint32 keyLen= 0;
 
   if (likely(isLongReq))
   {
     SegmentedSectionPtr attrInfoPtr, keyInfoPtr;
     /* Long SCANTABREQ, determine Ai and Key length from sections */
-    ndbrequire(handle.getSection(attrInfoPtr, ScanTabReq::AttrInfoSectionNum));
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  ndbrequire(handle.getSection(attrInfoPtr, ScanTabReq::AttrInfoSectionNum));
     aiLength= attrInfoPtr.sz;
     if (numSections == 3)
     {
@@ -16218,7 +23669,25 @@ void Dbtc::execSCAN_TABREQ(Signal* signal)
       errCode = ZSTATE_ERROR;
       goto SCAN_TAB_error_no_state_change;
     }
-  }
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbtc::execTCGETOPSIZEREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::execTCGETOPSIZEREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
   ndbassert(transP->ndbapiBlockref == apiBlockRef);
 
   if (unlikely(ScanTabReq::getMultiFragFlag(ri) &&
@@ -16236,8 +23705,7 @@ void Dbtc::execSCAN_TABREQ(Signal* signal)
       (cConcScanCount >= cscanrecFileSize))
   {
     goto SCAN_error_check;
-  }
-  if (buddyPtr != RNIL) {
+  } if (buddyPtr != RNIL) {
     ApiConnectRecordPtr buddyApiPtr;
     buddyApiPtr.i = buddyPtr;
     if (likely(c_apiConnectRecordPool.getValidPtr(buddyApiPtr)) &&
@@ -16247,7 +23715,31 @@ void Dbtc::execSCAN_TABREQ(Signal* signal)
       jamDebug();
       
       if (unlikely(buddyApiPtr.p->apiConnectstate == CS_ABORTING ||
-                   buddyApiPtr.p->apiConnectstate == CS_RELEASE))
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+buddyApiPtr.p->apiConnectstate
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::execTC_CLOPSIZEREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execTC_CLOPSIZEREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+==
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ CS_RELEASE))
       {
 	// transaction has been aborted
 	jam();
@@ -16271,35 +23763,174 @@ void Dbtc::execSCAN_TABREQ(Signal* signal)
                tabptr.p->singleUserMode == NDB_SUM_LOCKED))
   {
     errCode = ZCLUSTER_IN_SINGLEUSER_MODE;
-    goto SCAN_TAB_error;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::tabStateErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::tabStateErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                           
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  goto SCAN_TAB_error;
   }
 
   scanptr = seizeScanrec(signal);
   ndbrequire(transP->apiScanRec == RNIL);
   ndbrequire(scanptr.p->scanApiRec == RNIL);
 
-  errCode = initScanrec(scanptr, scanTabReq, scanParallel,
+  errCode = initScanrec(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scanptr,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scanTabReq
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+                                      scanParallel,
                         apiPtr, apiConnectptr.i);
   if (unlikely(errCode))
   {
     jam();
     transP->apiScanRec = scanptr.i;
     releaseScanResources(signal, scanptr, apiConnectptr, true /* NotStarted */);
-    goto SCAN_TAB_error;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::noFreeConnectionErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::noFreeConnectionErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                                   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  goto SCAN_TAB_error;
   }
 
   releaseSection(handle.m_ptr[ScanTabReq::ReceiverIdSectionNum].i);
-  if (likely(isLongReq))
-  {
+  if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(likely(isLongReq))
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnectptr);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ {
     jamDebug();
-    /* We keep the AttrInfo and KeyInfo sections */
+       apiConnectptr); /* We keep the AttrInfo and KeyInfo sections */
     scanptr.p->scanAttrInfoPtr = handle.m_ptr[ScanTabReq::AttrInfoSectionNum].i;
-    if (keyLen)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::aiErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::aiErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  if (keyLen)
     {
       jamDebug();
-      scanptr.p->scanKeyInfoPtr = handle.m_ptr[ScanTabReq::KeyInfoSectionNum].i;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}//Dbtc::aiErrorLab()
+
+void Dbtc::appendToSectionErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}  // Dbtc::aiErrorLab()
+
+void Dbtc::appendToSectionErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                                  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     scanptr.p->scanKeyInfoPtr = handle.m_ptr[ScanTabReq::KeyInfoSectionNum].i;
     }
-  }
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbtc::releaseAtErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::releaseAtErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                            
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ }
   else
   {
     jam();
@@ -16340,9 +23971,53 @@ void Dbtc::execSCAN_TABREQ(Signal* signal)
   transP->apiConnectstate = CS_START_SCAN;
   transP->currSavePointId = currSavePointId;
 
-  /**********************************************************
-  * We start the timer on scanRec to be able to discover a 
-  * timeout in the API the API now is in charge!
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ /**********************************************************
+||||||| Common ancestor
+Dbtc::warningHandlerLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::warningHandlerLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ * We start the timer on scanRec to be able to discover a 
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::systemErrorLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::systemErrorLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+timeout
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ in the API the API now is in charge!
   ***********************************************************/
   setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
   updateBuddyTimer(apiConnectptr);
@@ -16376,7 +24051,27 @@ void Dbtc::execSCAN_TABREQ(Signal* signal)
 
  SCAN_error_check:
   if (aiLength == 0) {
-    jam();
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SignalDroppedRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SignalDroppedRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rep
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  jam();
     errCode = ZSCAN_AI_LEN_ERROR;
     goto SCAN_TAB_error;
   }//if
@@ -16591,7 +24286,27 @@ void Dbtc::scanKeyinfoLab(Signal* signal,
                    apiConnectptr);
 
       /* Prepare for up coming ATTRINFO/KEYINFO */
-      apiConnectptr.p->apiConnectstate = CS_ABORTING;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execSCAN_TABREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execSCAN_TABREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    apiConnectptr.p->apiConnectstate = CS_ABORTING;
       apiConnectptr.p->abortState = AS_IDLE;
       apiConnectptr.p->transid[0] = transid0;
       apiConnectptr.p->transid[1] = transid1;
@@ -16657,8 +24372,7 @@ void Dbtc::scanAttrinfoLab(Signal* signal, UintR Tlen, ApiConnectRecordPtr const
     diFcountReqLab(signal, scanptr, apiConnectptr);
     return;
   }
-  else if (unlikely (regCachePtr->currReclenAi > regCachePtr->attrlength))
-  {
+  else if (unlikely (regCachePtr->currReclenAi > regCachePtr->attrlength)) {
     jam();
     abortScanLab(signal, scanptr, ZLENGTH_ERROR, true, apiConnectptr);
     return;
@@ -16714,10 +24428,33 @@ void Dbtc::diFcountReqLab(Signal* signal,
   }
   else
   {
-    execDIH_SCAN_TAB_REF(signal, scanptr, apiConnectptr);
+    execDIH_SCAN_TAB_REF(signal, scanptr, apiConnectptr)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     return;
-  }
-}//Dbtc::diFcountReqLab()
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+//Dbtc::diFcountReqLab()
 
 /********************************************************************
  * execDIH_SCAN_TAB_CONF
@@ -16744,15 +24481,13 @@ void Dbtc::execDIH_SCAN_TAB_CONF(Signal* signal,
     jam();
     ScanFragReq::setReorgFlag(scanptr.p->scanRequestInfo, ScanFragReq::REORG_NOT_MOVED);
   }
-  if (unlikely(regApiPtr->apiFailState != ApiConnectRecord::AFS_API_OK))
-  {
+  if (unlikely(regApiPtr->apiFailState != ApiConnectRecord::AFS_API_OK)) {
     jam();
     releaseScanResources(signal, scanptr, apiConnectptr, true);
     handleApiFailState(signal, apiConnectptr.i);
     return;
   }//if
-  if (unlikely(tfragCount == 0))
-  {
+  if (unlikely(tfragCount == 0)) {
     jam();
     abortScanLab(signal, scanptr, ZNO_FRAGMENT_ERROR, true, apiConnectptr);
     return;
@@ -16803,8 +24538,8 @@ int compareFragLocation(const void * a, const void * b)
  * sendDihGetNodesLab
  *
  * Will request DBDIH for the LQH fragment location of all 'scanNoFrag'
- * fragments. Insert a fragment location record in the list
- * 'ScanRecord::m_fragLocations' for each fragment to be scanned.
+  * fragments. Insert a fragment location record in the list
+  * 'ScanRecord::m_fragLocations' for each fragment to be scanned.
  *
  * As the DBDIH signaling is direct executed, we can execute for quite
  * a while here. To avoid too much work in one request we send CONTINUEB
@@ -16822,7 +24557,8 @@ void Dbtc::sendDihGetNodesLab(Signal* signal,
   {
     jam();
     updateBuddyTimer(apiConnectptr);
-    close_scan_req_send_conf(signal, scanptr, apiConnectptr);
+    close_scan_req_send_conf(signal, scanptr,
+             apiConnectptr);
     return;
   }
 
@@ -16843,12 +24579,33 @@ void Dbtc::sendDihGetNodesLab(Signal* signal,
   if (unlikely(!tabPtr.p->checkTable(schemaVersion)))
   {
     jam();
-    scanError(signal, scanptr, tabPtr.p->getErrorCode(schemaVersion));
+    scanError(signal, 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scanptr, tabPtr.p->getErrorCode(schemaVersion));
+||||||| Common ancestor
+ UintR scanParallel,
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     return;
   }
 
   /**
-   * Note that the above checkTable() and scanState checking is
+   * Note that the above checkTable() and 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scanState
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    UintR scanParallel, const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ checking is
    * sufficient for all sendDihGetNodeReq's below: As EXECUTE_DIRECT
    * is used, there can't be any other signals processed in between
    * which close the scan, or drop the table.
@@ -16859,8 +24616,7 @@ void Dbtc::sendDihGetNodesLab(Signal* signal,
   {
     Local_ScanFragLocation_list list(m_fragLocationPool,
                                      scanptr.p->m_fragLocations);
-    if (unlikely(!m_fragLocationPool.seize(fragLocationPtr)))
-    {
+    if (unlikely(!m_fragLocationPool.seize(fragLocationPtr)))   {
       jam();
       scanError(signal, scanptr, ZNO_FRAG_LOCATION_RECORD_ERROR);
       return;
@@ -16880,9 +24636,7 @@ void Dbtc::sendDihGetNodesLab(Signal* signal,
      * one signal to ensure we keep the rules of not executing
      * for more than 5-10 microseconds per signal.
      */
-    if (fragCnt >= DiGetNodesReq::MAX_DIGETNODESREQS ||
-        ERROR_INSERTED(8129))
-    {
+    if (fragCnt >= DiGetNodesReq::MAX_DIGETNODESREQS || ERROR_INSERTED(8129)) {
       jam();
       signal->theData[0] = TcContinueB::ZSTART_FRAG_SCANS;
       signal->theData[1] = apiConnectptr.i;
@@ -16891,10 +24645,39 @@ void Dbtc::sendDihGetNodesLab(Signal* signal,
       if (ERROR_INSERTED(8129))
       {
         jam();
-        // Delay CONTINUEB
-        sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 2000, 4);
+        // 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Delay
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ CONTINUEB
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  sendSignalWithDelay(reference(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+&c_counters.c_scan_count)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+               : &c_counters.c_scan_count)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+), GSN_CONTINUEB, signal, 2000, 4);
+<<<<<<< RonDB // RONDB-624 todo
 
-        // Disconnect API
+||||||| Common ancestor
+errout:
+=======
+errout
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ :       // Disconnect API
         signal->theData[0] = 900;
         signal->theData[1] = refToNode(apiConnectptr.p->ndbapiBlockref);
         sendSignal(CMVMI_REF, GSN_DUMP_STATE_ORD, signal, 2, JBA);
@@ -16904,10 +24687,83 @@ void Dbtc::sendDihGetNodesLab(Signal* signal,
       return;
     }
 
-    const bool success = sendDihGetNodeReq(signal,
-                                           scanptr,
-                                           fragLocationPtr,
-                                           scanP->scanNextFragId,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::scanTabRefLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::scanTabRefLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  const bool success = sendDihGetNodeReq(
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+signal,
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                       scanptr, signal,
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, ScanTabRef::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ScanTabRef::SignalLength,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::scanKeyinfoLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::scanKeyinfoLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+               fragLocationPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,                  scanP->scanNextFragId,
                                            is_multi_spj_scan);
     if (unlikely(!success))
     {
@@ -16941,8 +24797,7 @@ void Dbtc::sendDihGetNodesLab(Signal* signal,
 
     /* Construct SPJ blockRefs, fill in fragment locations into a temporary array */
     i = 0;
-    for (frags.first(ptr); !ptr.isNull(); frags.next(ptr))
-    {
+    for (frags.first(ptr); !ptr.isNull(); frags.next(ptr)) {
       for (Uint32 j = ptr.p->m_first_index; j < ptr.p->m_next_index; j++)
       {
         const BlockReference primaryBlockRef =
@@ -16995,7 +24850,7 @@ void Dbtc::sendDihGetNodesLab(Signal* signal,
 /******************************************************
  * execDIH_SCAN_TAB_REF
  ******************************************************/
-void Dbtc::execDIH_SCAN_TAB_REF(Signal* signal,
+void Dbtc::execDIH_SCAN_TAB_REF(Signal *signal,
                                 ScanRecordPtr scanptr,
                                 ApiConnectRecordPtr const apiConnectptr)
 {
@@ -17028,10 +24883,9 @@ void Dbtc::abortScanLab(Signal* signal, ScanRecordPtr scanptr, Uint32 errCode,
                                  refToNode(apiConnectptr.p->ndbapiBlockref));
   scanTabRefLab(signal, errCode, apiConnectptr.p);
   releaseScanResources(signal, scanptr, apiConnectptr, not_started);
-}//Dbtc::abortScanLab()
+}  // Dbtc::abortScanLab()
 
-void Dbtc::releaseScanResources(Signal* signal,
-                                ScanRecordPtr scanPtr,
+void Dbtc::releaseScanResources(Signal *signal,       ScanRecordPtr scanPtr,
                                 ApiConnectRecordPtr const apiConnectptr,
 				bool not_started)
 {
@@ -17051,15 +24905,21 @@ void Dbtc::releaseScanResources(Signal* signal,
     Local_ScanFragRec_dllist run(c_scan_frag_pool, scanPtr.p->m_running_scan_frags);
     Local_ScanFragRec_dllist queue(c_scan_frag_pool, scanPtr.p->m_queued_scan_frags);
     ScanFragRecPtr ptr;
-    while (run.removeFirst(ptr))
+    while (run.removeFirst(ptr))   {
+      c_scan_frag_pool.release(ptr);
+    }
+    while 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(queue.removeFirst(ptr))
+||||||| Common ancestor
+tabPtr.p->getErrorCode(scanptr.p->scanSchemaVersion),
+=======
+>>>>>>> MySQL 8.0.36
     {
       c_scan_frag_pool.release(ptr);
     }
-    while (queue.removeFirst(ptr))
-    {
-      c_scan_frag_pool.release(ptr);
-    }
-    checkPoolShrinkNeed(DBTC_SCAN_FRAGMENT_TRANSIENT_POOL_INDEX,
+   tabPtr.p->getErrorCode(scanptr.p->scanSchemaVersion), checkPoolShrinkNeed(DBTC_SCAN_FRAGMENT_TRANSIENT_POOL_INDEX,
                         c_scan_frag_pool);
   }
 
@@ -17122,7 +24982,7 @@ void Dbtc::releaseScanResources(Signal* signal,
   apiConnectptr.p->apiScanRec = RNIL;
   apiConnectptr.p->apiConnectstate = CS_CONNECTED;
   setApiConTimer(apiConnectptr, 0, __LINE__);
-}//Dbtc::releaseScanResources()
+}  //Dbtc::releaseScanResources()
 
 bool Dbtc::sendDihGetNodeReq(Signal* signal,
                              ScanRecordPtr scanptr,
@@ -17159,7 +25019,10 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
   jamEntryDebug();
   /**
    * theData[0] is always '0' in a DiGetNodesCONF,
-   * else it is a REF, with errorCode in theData[1]
+   * else it is a REF, with 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+errorCode in theData[1]
    */
   const Uint32 errorCode =
     (signal->theData[0] != 0)    ? signal->theData[1] : //DIH error
@@ -17175,15 +25038,211 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
   const DiGetNodesConf * conf = (DiGetNodesConf *)&signal->theData[0]; 
   const Uint32 lqhScanFragId = conf->fragId;
   NodeId nodeId = conf->nodes[0];
-  const NodeId ownNodeId = getOwnNodeId();
-  arrGuard(nodeId, MAX_NDB_NODES);
-  {
-    if (ERROR_INSERTED(8050) &&
-        nodeId != ownNodeId)
-    {
-      /* Asked to scan a fragment which is not on the same node as the
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+((Dbtc::ScanFragLocation*)b)->primaryBlockRef);
+}
+
+/********************************************************************
+ * sendDihGetNodesLab
+ *
+ * Will request DBDIH for the LQH fragment location of all 'scanNoFrag'
+ * fragments. Insert a fragment location record in the list
+ * 'ScanRecord::m_fragLocations' for each fragment to be scanned.
+ *
+ * As the DBDIH signaling is direct executed, we can execute for quite
+ * a while here. To avoid too much work in one request we send CONTINUEB
+ * every MAX_DIGETNODESREQS'th signal to space out the signals a bit.
+ ********************************************************************/
+void
+// RONDB-624 todo: Glue these lines together ^v
+=======
+((Dbtc::ScanFragLocation *)b)->primaryBlockRef);
+}
+
+/********************************************************************
+ * sendDihGetNodesLab
+ *
+ * Will request DBDIH for the LQH fragment location of all 'scanNoFrag'
+ * fragments. Insert a fragment location record in the list
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Dbtc::sendDihGetNodesLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+* 'ScanRecord::m_fragLocations' for each fragment to be scanned.
+ *
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+NodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+=======
+* As the DBDIH signaling is direct executed, we can execute for quite
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ownNodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+*
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+a
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+getOwnNodeId();
+||||||| Common ancestor
+=======
+while
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ here. 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+arrGuard(nodeId,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+To
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+MAX_NDB_NODES);
+||||||| Common ancestor
+=======
+avoid
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ too 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+much
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ work in one 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+request
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+(ERROR_INSERTED(8050)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+we
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+&&
+||||||| Common ancestor
+=======
+send
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ CONTINUEB
+ * every MAX_DIGETNODESREQS'th signal to space 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+nodeId
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+out
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+!=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+the
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ownNodeId)
+||||||| Common ancestor
+=======
+signals
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ a bit.
+ ********************************************************************/
+void 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+Dbtc::sendDihGetNodesLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ *signal,     /* Asked to scan a fragment which is not on the same node as the
        * TC - transaction hinting / scan partition pruning has failed
-       * Used by testPartitioning.cpp
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ScanRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Used
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const scanP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const scanP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ by testPartitioning.cpp
        */
       jamLineDebug((Uint16)nodeId);
       jamLineDebug((Uint16)lqhScanFragId);
@@ -17256,14 +25315,38 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
     ndbabort();  // Only node-local reads 
   }
 
-  /* Send SCANFRAGREQ directly to LQH block, or 'viaSPJ'
-   * In the later case we may do a Round-Robin load distribution
+  /* Send SCANFRAGREQ directly to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LQH block, or 'viaSPJ'
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= sendDihGetNodeReq(signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+   * In the later case we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+may do a Round-Robin load distribution
    * among the SPJ instances if multiple SPJ requests are needed.
    */
   Uint32 blockInstance;
   if (scanptr.p->m_scan_block_no == DBLQH)
   {
-    /**
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendDihGetNodeReq(signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ /**
      * InstanceKey need to mapped to InstanceNo, this is performed below and the
      * mapping depends on node id, therefore it's mapped both for primary node
      * and the preferred node id.
@@ -17295,8 +25378,7 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
    * the KeyInfo and AttrInfo sections when sending.
    */
   NodeId preferredNodeId = nodeId;
-  if (likely(!is_multi_spj_scan))
-  {
+  if (likely(!is_multi_spj_scan)) {
     primaryNodeId = nodeId;
   }
   else
@@ -17306,7 +25388,18 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
 
 #ifdef DEBUG_ACTIVE_NODES
   {
-    ApiConnectRecordPtr apiPtr;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+temporary
+// RONDB-624 todo: Glue these lines together ^v
+=======
+temporary
+     *
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ApiConnectRecordPtr apiPtr;
     apiPtr.i = scanptr.p->scanApiRec;
     ndbrequire(c_apiConnectRecordPool.getUncheckedPtrRW(apiPtr));
     Uint32 count = (conf->reqinfo & 0xFFFF) + 1;
@@ -17319,15 +25412,37 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
                       scanptr.i,
                       scanptr.p->scanTableref,
                       lqhScanFragId,
-                      conf->fragChangeNumber,
-                      conf->tabChangeNumber,
+                      conf->fragChangeNumber, sizeof(ScanFragLocation),
+                     conf->tabChangeNumber,
                       ownNodeId,
                       primaryNodeId,
                       preferredNodeId,
                       conf->nodes[0],
                       conf->nodes[1],
                       conf->nodes[2],
-                      count,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execDIH_SCAN_TAB_REF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execDIH_SCAN_TAB_REF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+count
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
                       apiPtr.p->transid[0],
                       apiPtr.p->transid[1],
                       index));
@@ -17338,8 +25453,7 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
   BlockReference primaryBlockInstance = blockInstance;
   BlockReference preferredBlockInstance = blockInstance;
 
-  if (scanptr.p->m_scan_block_no == DBLQH)
-  {
+  if (scanptr.p->m_scan_block_no == DBLQH) {
     jam();
     primaryBlockInstance = getInstanceNo(primaryNodeId, blockInstance);
     preferredBlockInstance = getInstanceNo(preferredNodeId, blockInstance);
@@ -17347,7 +25461,27 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
   const BlockReference primaryBlockRef = numberToRef(
                   scanptr.p->m_scan_block_no, primaryBlockInstance, primaryNodeId);
   const BlockReference preferredBlockRef = numberToRef(
-                  scanptr.p->m_scan_block_no, preferredBlockInstance, preferredNodeId);
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::abortScanLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::abortScanLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       scanptr.p->m_scan_block_no, preferredBlockInstance, preferredNodeId);
 
   //Build list of fragId locations.
   {
@@ -17359,15 +25493,64 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
       Local_ScanFragLocation_list list(m_fragLocationPool,
                                        scanptr.p->m_fragLocations);
       if (unlikely(!m_fragLocationPool.seize(fragLocationPtr)))
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+
+void Dbtc::releaseScanResources(Signal* signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+
+void Dbtc::releaseScanResources(Signal *signal, ScanRecordPtr scanPtr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       {
         jam();
         scanError(signal, scanptr, ZNO_FRAG_LOCATION_RECORD_ERROR);
-        return false;
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+false;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+scanPtr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+const apiConnectptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
       }
       list.addLast(fragLocationPtr);
       index = 0;
       fragLocationPtr.p->m_first_index = 0;
-    }
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+ApiConnectRecordPtr const apiConnectptr,
+				bool
+// RONDB-624 todo: Glue these lines together ^v
+=======
+bool
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
     fragLocationPtr.p->m_next_index = index + 1;
     fragLocationPtr.p->m_frag_location_array[index].fragId = lqhScanFragId;
     fragLocationPtr.p->m_frag_location_array[index].primaryBlockRef =
@@ -17376,7 +25559,7 @@ bool Dbtc::sendDihGetNodeReq(Signal* signal,
       preferredBlockRef;
   }
   return true;
-}//Dbtc::sendDihGetNodeReq
+}  //Dbtc::sendDihGetNodeReq
 
 /********************************************************************
  * ::sendFragScansLab()
@@ -17401,8 +25584,7 @@ void Dbtc::sendFragScansLab(Signal* signal,
   tabPtr.i = scanptr.p->scanTableref;
   ptrCheckGuard(tabPtr, ctabrecFilesize, tableRecord);
 
-  if (scanptr.p->scanState == ScanRecord::CLOSING_SCAN)
-  {
+  if (scanptr.p->scanState == ScanRecord::CLOSING_SCAN) {
     jam();
     updateBuddyTimer(apiConnectptr);
     close_scan_req_send_conf(signal, scanptr, apiConnectptr);
@@ -17410,8 +25592,28 @@ void Dbtc::sendFragScansLab(Signal* signal,
   }
 
   /**
-   * Check table, ERROR_INSERT to verify scanError() failure handling.
-   */
+   * Check table, ERROR_INSERT to verify scanError() failure 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+handling.
+||||||| Common ancestor
+DihScanTabCompleteRep*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+DihScanTabCompleteRep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+rep
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*rep
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  */
   const Uint32 schemaVersion = scanptr.p->scanSchemaVersion;
   if (ERROR_INSERTED_CLEAR(8115))
   {
@@ -17426,9 +25628,32 @@ void Dbtc::sendFragScansLab(Signal* signal,
     return;
   }
 
-  /**
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::sendDihGetNodeReq(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::sendDihGetNodeReq(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/**
    * Note that the above checkTable() and scanState checking is
    * sufficient for all the sendScanFragReq's below:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                             ScanRecordPtr scanptr,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, ScanRecordPtr scanptr,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    * Table or scanState can not change while we are in control.
    * sendScanFragReq() itself can fail, possibly closing the scan.
    * However, that is caught by checking its return value.
@@ -17436,8 +25661,7 @@ void Dbtc::sendFragScansLab(Signal* signal,
   scanFragP.i = RNIL;
   ScanFragLocationPtr fragLocationPtr;
   {
-    Local_ScanFragLocation_list list(m_fragLocationPool,
-                                     scanptr.p->m_fragLocations);
+    Local_ScanFragLocation_list list(m_fragLocationPool,         scanptr.p->m_fragLocations);
     list.first(fragLocationPtr);
   }
   while (fragLocationPtr.p != NULL)
@@ -17501,8 +25725,7 @@ void Dbtc::sendFragScansLab(Signal* signal,
           }
           if (fragCnt > 0 &&
               scanptr.p->scanNextFragId == scanptr.p->scanNoFrag-1 && //Last FragId
-              ERROR_INSERTED_CLEAR(8097))
-          {
+              ERROR_INSERTED_CLEAR(8097))       {
             jam();
             signal->theData[0] = TcContinueB::ZSEND_FRAG_SCANS;
             signal->theData[1] = apiConnectptr.i;
@@ -17538,8 +25761,7 @@ void Dbtc::sendFragScansLab(Signal* signal,
                                          scanFragP,
                                          fragLocationPtr,
                                          apiConnectptr);
-    if (unlikely(!success))
-    {
+    if (unlikely(!success))   {
       jam();
       return;
     }
@@ -17562,8 +25784,7 @@ void Dbtc::sendFragScansLab(Signal* signal,
 
     list.next(scanFragP);
     jam();
-    while (!scanFragP.isNull())
-    {
+    while (!scanFragP.isNull()) {
       jamDebug();
       ndbassert(scanFragP.p->scanFragState == ScanFragRec::IDLE);
 
@@ -17606,8 +25827,7 @@ void Dbtc::execSCAN_FRAGREF(Signal* signal)
   const Uint32 errCode = ref->errorCode;
 
   scanFragptr.i = ref->senderData;
-  if (!c_scan_frag_pool.getValidPtr(scanFragptr))
-  {
+  if (!c_scan_frag_pool.getValidPtr(scanFragptr)) {
     jam();
     warningHandlerLab(signal, __LINE__);
     return;
@@ -17615,16 +25835,14 @@ void Dbtc::execSCAN_FRAGREF(Signal* signal)
 
   ScanRecordPtr scanptr;
   scanptr.i = scanFragptr.p->scanRec;
-  if (!scanRecordPool.getValidPtr(scanptr))
-  {
+  if (!scanRecordPool.getValidPtr(scanptr)) {
     jam();
     systemErrorLab(signal, __LINE__);
   }
 
   ApiConnectRecordPtr apiConnectptr;
   apiConnectptr.i = scanptr.p->scanApiRec;
-  if (!c_apiConnectRecordPool.getValidPtr(apiConnectptr))
-  {
+  if (!c_apiConnectRecordPool.getValidPtr(apiConnectptr)) {
     jam();
     systemErrorLab(signal, __LINE__);
   }
@@ -17653,7 +25871,8 @@ void Dbtc::execSCAN_FRAGREF(Signal* signal)
   scanFragptr.p->stopFragTimer();
   time_track_complete_scan_frag_error(scanFragptr.p);
   {
-    Local_ScanFragRec_dllist run(c_scan_frag_pool, scanptr.p->m_running_scan_frags);
+    Local_ScanFragRec_dllist run(c_scan_frag_pool,
+                                    scanptr.p->m_running_scan_frags);
     run.remove(scanFragptr);
     c_scan_frag_pool.release(scanFragptr);
     checkPoolShrinkNeed(DBTC_SCAN_FRAGMENT_TRANSIENT_POOL_INDEX,
@@ -17765,7 +25984,8 @@ void Dbtc::execSCAN_FRAGCONF(Signal* signal)
     return;
   }//if
 
-  BlockReference lqhRef = scanFragptr.p->lqhBlockref;
+  BlockReference lqhRef =
+                  scanFragptr.p->lqhBlockref;
   if (sig_len == ScanFragConf::SignalLength_query)
   {
     jamDebug();
@@ -17849,10 +26069,29 @@ void Dbtc::execSCAN_FRAGCONF(Signal* signal)
     const bool ok = sendScanFragReq(signal,
                                     scanptr,
                                     scanFragptr,
-                                    fragLocationPtr,
+         
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::execSCAN_FRAGREF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::execSCAN_FRAGREF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                          fragLocationPtr,
                                     apiConnectptr);
-    if (unlikely(!ok))
-    {
+    if (unlikely(!ok))   {
       jam();
     }
     return;
@@ -17893,7 +26132,7 @@ void Dbtc::execSCAN_FRAGCONF(Signal* signal)
     jamDebug();
     sendScanTabConf(signal, scanptr, apiConnectptr);
   }
-}//Dbtc::execSCAN_FRAGCONF()
+}  // Dbtc::execSCAN_FRAGCONF()
 
 /****************************************************************************
  * execSCAN_NEXTREQ
@@ -17901,11 +26140,34 @@ void Dbtc::execSCAN_FRAGCONF(Signal* signal)
  * THE APPLICATION HAS PROCESSED THE TUPLES TRANSFERRED AND IS NOW READY FOR
  * MORE. THIS SIGNAL IS ALSO USED TO CLOSE THE SCAN. 
  ****************************************************************************/
-void Dbtc::execSCAN_NEXTREQ(Signal* signal) 
-{
+void Dbtc::execSCAN_NEXTREQ(Signal *signal) {
   const ScanNextReq * const req = (ScanNextReq *)&signal->theData[0];
   const UintR transid1 = req->transId1;
-  const UintR transid2 = req->transId2;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ScanRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+UintR transid2
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+scanP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*scanP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = req->transId2;
   const UintR stopScan = req->stopScan;
 
   jamEntryDebug();
@@ -17926,18 +26188,29 @@ void Dbtc::execSCAN_NEXTREQ(Signal* signal)
    */
   const UintR ctransid1 = apiConnectptr.p->transid[0] ^ transid1;
   const UintR ctransid2 = apiConnectptr.p->transid[1] ^ transid2;
-  if (unlikely((ctransid1 | ctransid2) != 0))
-  {
+  if (unlikely((ctransid1 | ctransid2) != 0)) {
     jam();
     releaseSections(handle);
-    ScanTabRef * ref = (ScanTabRef*)&signal->theData[0];
+    ScanTabRef *ref = (ScanTabRef *)&signal->theData[0];
     ref->apiConnectPtr = apiConnectptr.p->ndbapiConnect;
     ref->transId1 = transid1;
     ref->transId2 = transid2;
-    ref->errorCode  = ZSTATE_ERROR;
+    ref->errorCode = ZSTATE_ERROR;
     ref->closeNeeded = 0;
-    sendSignal(signal->senderBlockRef(), GSN_SCAN_TABREF, 
-	       signal, ScanTabRef::SignalLength, JBB);
+    sendSignal(signal->senderBlockRef(), GSN_SCAN_TABREF, signal,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  signal,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ ScanTabRef::SignalLength, JBB);
     DEBUG("Wrong transid");
     return;
   }
@@ -17955,7 +26228,31 @@ void Dbtc::execSCAN_NEXTREQ(Signal* signal)
        * The application sends a SCAN_NEXTREQ after experiencing a time-out.
        *  We will send a SCAN_TABREF to indicate a time-out occurred.
        *********************************************************************/
-      DEBUG("scanTabRefLab: ZSCANTIME_OUT_ERROR2");
+      DEBUG(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+"scanTabRefLab:
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZSCANTIME_OUT_ERROR2"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
       g_eventLogger->info("apiConnectptr(%d) -> abort", apiConnectptr.i);
       ndbabort(); //B2 indication of strange things going on
       scanTabRefLab(signal, ZSCANTIME_OUT_ERROR2, apiConnectptr.p);
@@ -17998,8 +26295,7 @@ void Dbtc::execSCAN_NEXTREQ(Signal* signal)
    * so that we don't overwrite them when sending signals
    */
   Uint32 len = 0;
-  if (handle.m_cnt > 0)
-  {
+  if (handle.m_cnt > 0) {
     jamDebug();
     /* TODO : Add Dropped signal handling for SCAN_NEXTREQ */
     /* Receiver ids are in a long section */
@@ -18063,7 +26359,8 @@ void Dbtc::execSCAN_NEXTREQ(Signal* signal)
     scanFragptr.p->m_ops = 0;
 
     {
-      Local_ScanFragRec_dllist running(c_scan_frag_pool, scanP->m_running_scan_frags);
+      Local_ScanFragRec_dllist running(c_scan_frag_pool,
+                                     scanP->m_running_scan_frags);
       Local_ScanFragRec_dllist delivered(c_scan_frag_pool, scanP->m_delivered_scan_frags);
       delivered.remove(scanFragptr);
       running.addFirst(scanFragptr);
@@ -18084,17 +26381,57 @@ void Dbtc::execSCAN_NEXTREQ(Signal* signal)
       ScanFragLocationPtr fragLocationPtr;
       {
         Local_ScanFragLocation_list list(m_fragLocationPool,
-                                         scanptr.p->m_fragLocations);
+                                       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  scanptr.p->m_fragLocations);
         list.first(fragLocationPtr);
         ndbassert(fragLocationPtr.p != NULL);
       }
       const bool ok = sendScanFragReq(signal,
                                       scanptr,
                                       scanFragptr,
-                                      fragLocationPtr,
-                                      apiConnectptr);
-      if (unlikely(!ok))
-      {
+                        
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+scanptr.p->m_fragLocations);
+      list.first(fragLocationPtr);
+      ndbassert(fragLocationPtr.p != NULL);
+    }
+    const bool ok = sendScanFragReq(signal,
+                                    scanptr,
+                                    scanFragptr,
+                        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+scanptr.p->m_fragLocations);
+>>>>>>> MySQL 8.0.36
+      list.first(fragLocationPtr);
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ndbassert(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+fragLocationPtr.p != NULL);
+    }
+    const bool ok = sendScanFragReq(signal, scanptr, scanFragptr,
+                                    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+fragLocationPtr, 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+apiConnectptr);
+      if (unlikely(!ok))   {
         jam();
         return; //scanError() has already been called
       }
@@ -18123,8 +26460,30 @@ Dbtc::close_scan_req(Signal* signal,
                      ApiConnectRecordPtr const apiConnectptr)
 {
   ScanRecord* scanP = scanPtr.p;
-  ndbrequire(scanPtr.p->scanState != ScanRecord::IDLE);  
-  ScanRecord::ScanState old = scanPtr.p->scanState;
+  ndbrequire(scanPtr.p->
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+scanState != ScanRecord::IDLE);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+m_booked_fragments_count
+=======
+m_booked_fragments_count <
+>>>>>>> MySQL 8.0.36
+  
+  ScanRecord::ScanState old 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ scanPtr.p->scanState;
   scanPtr.p->scanState = ScanRecord::CLOSING_SCAN;
   scanPtr.p->m_close_scan_req = req_received;
 
@@ -18145,7 +26504,25 @@ Dbtc::close_scan_req(Signal* signal,
    * queued w/     : close -> LQH
    * queued wo/    : move to completed
    */
-  
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+void Dbtc::execSCAN_NEXTREQ(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::execSCAN_NEXTREQ(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
   ScanFragNextReq * nextReq = (ScanFragNextReq*)&signal->theData[0];
   nextReq->requestInfo = 0;
   ScanFragNextReq::setCloseFlag(nextReq->requestInfo, 1);
@@ -18171,9 +26548,33 @@ Dbtc::close_scan_req(Signal* signal,
 	ndbrequire(old == ScanRecord::WAIT_AI || old == ScanRecord::RUNNING);
         curr.p->scanFragState = ScanFragRec::COMPLETED;
         running.remove(curr);
-        c_scan_frag_pool.release(curr);
+        c_scan_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+frag_pool.release(curr);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TABREF, 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TABREF, signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 	continue;
-      case ScanFragRec::WAIT_GET_PRIMCONF:
+      case 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ScanFragRec
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, ScanTabRef
+// RONDB-624 todo: Glue these lines together ^v
+=======
+        ScanTabRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+::WAIT_GET_PRIMCONF:
 	jam();
 	continue;
       case ScanFragRec::LQH_ACTIVE:
@@ -18207,10 +26608,42 @@ Dbtc::close_scan_req(Signal* signal,
         check_blockref(curr.p->lqhBlockref);
         nextReq->senderData = curr.i;
         ndbrequire(refToMain(curr.p->lqhBlockref) != V_QUERY);
-        sendSignal(curr.p->lqhBlockref, GSN_SCAN_NEXTREQ, signal, 
-		   ScanFragNextReq::SignalLength, JBB);
+        sendSignal(curr.p->lqhBlockref, GSN_SCAN_NEXTREQ, signal, signal,
+		   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ScanFragNextReq
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+    signal, ScanTabRef
+// RONDB-624 todo: Glue these lines together ^v
+=======
+            ScanTabRef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+::SignalLength, JBB);
       }
-    }
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ScanRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ScanRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+scanP
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*scanP
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  }
 
     // Close delivered
     for(delivered.first(ptr); !ptr.isNull(); )
@@ -18312,7 +26745,10 @@ Dbtc::close_scan_req_send_conf(Signal* signal,
     return;
   }
 
-  Uint32 ref = apiConnectptr.p->ndbapiBlockref;
+  Uint32 ref = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiConnectptr.p->ndbapiBlockref;
   if(!apiFail && ref)
   {
     jam();
@@ -18354,8 +26790,59 @@ Dbtc::seizeScanrec(Signal* signal)
 
 void
 Dbtc::get_next_frag_location(ScanFragLocationPtr fragLocationPtr,
-                             Uint32 & fragId,
-                             Uint32 & primaryBlockRef,
+                             Uint32 &
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+scanptr.p->m_fragLocations);
+        list.first(fragLocationPtr);
+        ndbassert(fragLocationPtr.p != NULL);
+      }
+      const bool ok = sendScanFragReq(signal,
+                                      scanptr,
+                                      scanFragptr,
+                                      fragLocationPtr,
+                              
+// RONDB-624 todo: Glue these lines together ^v
+=======
+scanptr.p->m_fragLocations);
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+fragId,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+       apiConnectptr);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       list.first(fragLocationPtr);
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+if (unlikely(!ok))
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  ndbassert(fragLocationPtr.p != NULL);
+      }
+      const bool ok = sendScanFragReq(signal, scanptr, scanFragptr,
+                                      fragLocationPtr, apiConnectptr);
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+if (unlikely(!ok)) {
+>>>>>>> MySQL 8.0.36
+                   Uint32 & primaryBlockRef,
                              Uint32 & preferredBlockRef)
 {
   Uint32 index = fragLocationPtr.p->m_first_index;
@@ -18365,8 +26852,22 @@ Dbtc::get_next_frag_location(ScanFragLocationPtr fragLocationPtr,
   preferredBlockRef =
     fragLocationPtr.p->m_frag_location_array[index].preferredBlockRef;
 }
-                      
+                ScanRecordPtr scanPtr,
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
 void
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+scanPtr,
+                     bool req_received,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                     bool req_received,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
 Dbtc::get_and_step_next_frag_location(ScanFragLocationPtr & fragLocationPtr,
                                       ScanRecord *scanPtrP,
                                       Uint32 & fragId,
@@ -18441,10 +26942,54 @@ bool Dbtc::sendScanFragReq(Signal* signal,
                       instance(),
                       scanptr.i,
                       scanptr.p->scanTableref,
-                      fragId,
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+0)
+=======
+0) {
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ fragId,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jamDebug();
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jamDebug();
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
                       nodeId,
                       apiPtr.p->transid[0],
-                      apiPtr.p->transid[1],
+                
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+=======
+{
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jamDebug();
+	curr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jamDebug();
+        curr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+.p->transid[1],
                       index,
                       signalId));
   }
@@ -18454,7 +26999,7 @@ bool Dbtc::sendScanFragReq(Signal* signal,
   sections.m_ptr[0].i = scanP->scanAttrInfoPtr;
   sections.m_ptr[1].i = scanP->scanKeyInfoPtr;
 
-  sections.m_cnt = 1; // there is always attrInfo
+  sections.m_cnt = 1;  // there is always attrInfo
 
   if (scanP->scanKeyInfoPtr != RNIL)
   {
@@ -18462,22 +27007,122 @@ bool Dbtc::sendScanFragReq(Signal* signal,
     sections.m_cnt = 2; // and sometimes keyinfo
   }
 
-  if (ScanFragReq::getMultiFragFlag(scanP->scanRequestInfo))
+  if (ScanFragReq::getMultiFragFlag(scanP->scanRequestInfo)) {
   {
-    jam();
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jam
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jamDebug
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jamDebug
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+();
     /**
      * Fragment locations use a bit more involved model for SPJ queries
      * that use multiple SPJ workers. We want as much execution of the
      * query done locally as possible and we want to ensure that the
-     * query execution is done within one location domain if possible.
+     * query 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+execution
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+
+=======
+{
+>>>>>>> MySQL 8.0.36
+ is done within one location 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+domain
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jamDebug();
+	curr.p->scanFragState
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jamDebug();
+        curr.p->scanFragState
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ if possible.
      *
      * At the same time we want to ensure that we use the correct amount
      * of SPJ workers for the query as prepared by the NDB API. The NDB
-     * API has prepared one SPJ worker for each data node that owns a
+     * API has prepared one SPJ worker for each data 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+apiConnectptr);
+}
+
+void
+Dbtc::close_scan_req_send_conf(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+apiConnectptr);
+}
+
+void Dbtc::close_scan_req_send_conf(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that owns a
      * primary partition in the cluster.
      *
-     * What we do is that when we combine several SPJ workers into one
-     * since it is handled locally within one SPJ node we will increase
+     * What we
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+do
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+ScanRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+scanPtr,
+>>>>>>> MySQL 8.0.36
+ that when we combine several SPJ workers 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+into one
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanRecordPtr scanPtr,
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  * since it is handled locally within one SPJ node we will increase
      * the batch size of that SPJ worker accordingly to ensure that we
      * make use of all the available batch size that the NDB API provided
      * for us.
@@ -18491,14 +27136,55 @@ bool Dbtc::sendScanFragReq(Signal* signal,
      * the query in the location domain where we are residing. This will
      * avoid all network traffic between location domains for the SPJ
      * queries. This will help avoiding network bottlenecks and ensure
-     * that we make proper use of the bandwidth between location domains
+     * that we make proper use of 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+the
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+}
+
+Dbtc::ScanRecordPtr
+Dbtc::seizeScanrec(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+}
+
+Dbtc::ScanRecordPtr Dbtc::seizeScanrec(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bandwidth
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+ between location domains
      * mainly for write requests that need to pass over location domain
      * borders to ensure all replicas are updated.
      *
-     * TODO: More work and thought is required to consider the execution
+     * TODO: More work and thought is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+required to consider the execution
      * of queries involving a mix of FULLY_REPLICATED tables and tables
-     * with normal partitioning.
-     */
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 & fragId,
+                      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ * with normal partitioning.
+ Uint32 &fragId,   */
     Uint32 fragIdPtrI = RNIL;
     if (unlikely(!appendToSection(fragIdPtrI, &fragId, 1)))
     {
@@ -18517,10 +27203,21 @@ bool Dbtc::sendScanFragReq(Signal* signal,
      */
     while (fragLocationPtr.p != NULL)
     {
-      Uint32 thisPrimaryLqhBlockRef;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32 thisPrimaryLqhBlockRef;
       Uint32 thisPreferredLqhBlockRef;
       get_next_frag_location(fragLocationPtr,
-                             fragId,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanRecord *scanPtrP,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+     ScanRecord *scanPtrP,   fragId,
                              thisPrimaryLqhBlockRef,
                              thisPreferredLqhBlockRef);
       jam();
@@ -18542,10 +27239,29 @@ bool Dbtc::sendScanFragReq(Signal* signal,
         return false;
       }
       scanP->scanNextFragId++;
-      get_and_step_next_frag_location(fragLocationPtr,
-                                      scanptr.p,
+      get_and_step_next_frag_location(fragLocationPtr,            scanptr.p,
                                       fragId,
-                                      thisPrimaryLqhBlockRef,
+                               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ScanRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ScanRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+      thisPrimaryLqhBlockRef,
                                       thisPreferredLqhBlockRef);
     }
     jam();
@@ -18584,7 +27300,7 @@ bool Dbtc::sendScanFragReq(Signal* signal,
   req->batch_size_rows= scanP->batch_size_rows;
   req->batch_size_bytes= scanP->batch_byte_size;
 
-  // Encode variable part
+   // Encode variable part
   ndbassert(ScanFragReq::getCorrFactorFlag(requestInfo) == 0);
 
   HostRecordPtr host_ptr;
@@ -18682,8 +27398,7 @@ bool Dbtc::sendScanFragReq(Signal* signal,
 #ifdef DEBUG_ACTIVE_NODES
     Uint32 currentNodeId = refToNode(ref);
     Uint32 signalId = signal->header.theSignalId;
-    if (currentNodeId != origNodeId)
-    {
+    if (currentNodeId != origNodeId)   {
       DEB_ACTIVE_NODES(("(%u) signalId: %u, new node: %u",
                         instance(),
                         signalId,
@@ -18896,28 +27611,90 @@ void Dbtc::gcpTcfinished(Signal* signal, Uint64 gci, Uint32 line)
         NodeInfo ni = getNodeInfo(pos);
         if ((ni.getType() == NODE_TYPE_DB) &&
             ni.m_connected)
-        {
-          /* Found a db node... */
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+=======
+ScanFragRecPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ scanFragPtr,
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  /* Found
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ScanFragRecPtr scanFragPtr,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ a db node... */
           if (!skip)
           {
             g_eventLogger->info("TC : Killing node %u", pos);
             signal->theData[0] = 9999;
             sendSignal(numberToRef(CMVMI, pos), GSN_DUMP_STATE_ORD, signal,
                        1, JBA);
-            if (!multi)
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::sendScanTabConf(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::sendScanTabConf(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+          if (!multi)
               break;
-            skip = true;
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal,
+                          
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          skip = true;
           }
           else
           {
-            g_eventLogger->info("TC : Skipping node %u", pos);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ops
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ops
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+       g_eventLogger->info("TC : Skipping node %u", pos);
             skip = false;
           }
         }
 
         pos++;
-        if (pos == MAX_NDB_NODES)
-          pos = 1;
+        if (pos == MAX_NDB_NODES)       pos = 1;
       } while (pos != start);
     }
 
@@ -18993,14 +27770,12 @@ void Dbtc::initApiConnect(Signal* signal)
 
   ApiConnectRecordPtr apiConnectptr;
   Uint32 removeLoopCount = 0;
-  while (fast_record_list.removeFirst(apiConnectptr))
-  {
+  while (fast_record_list.removeFirst(apiConnectptr)) {
     refresh_watch_dog();
     removeLoopCount++;
     releaseApiConTimer(apiConnectptr);
     c_apiConnectRecordPool.release(apiConnectptr);
-  }
-  jam();
+  } jam();
   jamData(removeLoopCount);
   c_apiConnectRecordPool.resetUsedHi();
   c_apiConTimersPool.resetUsedHi();
@@ -19020,9 +27795,31 @@ void Dbtc::inithost(Signal* signal)
                      hostptr.i));
     hostptr.p->inPackedList = false;
     hostptr.p->lqhTransStatus = LTS_IDLE;
-    struct PackedWordsContainer * containerTCKEYCONF =
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+struct
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+sendSignal(ref, GSN_SCAN_TABCONF, signal,
+  
+// RONDB-624 todo: Glue these lines together ^v
+=======
+sendSignal(ref, GSN_SCAN_TABCONF, signal, ScanTabConf::SignalLength, JBB,
+>>>>>>> MySQL 8.0.36
+ PackedWordsContainer * containerTCKEYCONF =
       &hostptr.p->packTCKEYCONF;
-    containerTCKEYCONF->noOfPackedWords = 0;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+containerTCKEYCONF->noOfPackedWords
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+JBB,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ = 0;
     for (Uint32 i = 0; i < NDB_ARRAY_SIZE(hostptr.p->lqh_pack); i++)
     {
       struct PackedWordsContainer * container = &hostptr.p->lqh_pack[i];
@@ -19033,9 +27830,9 @@ void Dbtc::inithost(Signal* signal)
     hostptr.p->m_nf_bits = 0;
   }//for
   c_alive_nodes.clear();
-}//Dbtc::inithost()
+}  // Dbtc::inithost()
 
-void Dbtc::initialiseRecordsLab(Signal* signal, UintR Tdata0, 
+void Dbtc::initialiseRecordsLab(Signal *signal, UintR Tdata0, 
 				Uint32 retRef, Uint32 retData) 
 {
   switch (Tdata0) {
@@ -19106,7 +27903,19 @@ void Dbtc::initialiseRecordsLab(Signal* signal, UintR Tdata0,
   signal->theData[2] = 0;
   signal->theData[3] = retRef;
   signal->theData[4] = retData;
-  sendSignal(reference(), GSN_CONTINUEB, signal, 5, JBB);
+  sendSignal(reference(), GSN_CONTINUEB, signal,
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 1,
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 5, JBB);
 }
 
 /* ========================================================================= */
@@ -19148,10 +27957,62 @@ void Dbtc::initialiseTcConnect(Signal* signal)
    *    available in case of node failure.
    * 3) Free reserved records.
    *
-   * tcConnectRecord is a ComposedSlotPool, which means that records with lower
-   * .i value can be accessed faster than those with high .i value. We want to
-   * make sure we have a good number of fast-access records for regular use,
-   * hence the "reserved records". We protect reserved records (in step 1 and 3)
+ 2000,
+  * tcConnectRecord is a ComposedSlotPool, which means that records with lower
+   * .i value can be accessed faster than 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+those
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+2000,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ with high .i value. We want to
+   * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+make
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+GCPTCFinished::SignalLength,
+>>>>>>> MySQL 8.0.36
+ sure we have a good number of fast-access records for regular 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+use,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+GCPTCFinished::SignalLength, JBB);
+}//Dbtc::gcpTcfinished()
+=======
+ JBB);
+}  // Dbtc::gcpTcfinished()
+>>>>>>> MySQL 8.0.36
+
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::initApiConnect(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::initApiConnect(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ * hence the "reserved records". We protect reserved records (in step 1 and 3)
    * from becoming allocated to the fail record list.
    *
    * Note that DbtcInit.cpp initializes tcConnectRecord with
@@ -19167,8 +28028,7 @@ void Dbtc::initialiseTcConnect(Signal* signal)
                                         CFG_TC_RESERVED_CONNECT_RECORD,
                                         &reserveConnectRecord));
   SLList<TcConnectRecord_pool> fast_record_list(tcConnectRecord);
-  for (Uint32 i = 0; i < reserveConnectRecord; i++)
-  {
+  for (Uint32 i = 0; i < reserveConnectRecord; i++) {
     refresh_watch_dog();
     TcConnectRecordPtr tcConptr;
     ndbrequire(tcConnectRecord.seize(tcConptr));
@@ -19176,7 +28036,31 @@ void Dbtc::initialiseTcConnect(Signal* signal)
   }
   jam();
 
-  LocalTcConnectRecord_fifo tcConList(tcConnectRecord, cfreeTcConnectFail);
+  LocalTcConnectRecord_fifo tcConList(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcConnectRecord,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cfreeTcConnectFail
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
   Uint32 tcConnectFailCount = 0;
 #ifdef VM_TRACE
   Uint32 prevptr = 0;
@@ -19211,9 +28095,31 @@ void Dbtc::initialiseTcConnect(Signal* signal)
   jam();
   jamData(removeLoopCount);
   tcConnectRecord.resetUsedHi();
-}//Dbtc::initialiseTcConnect()
+}  // Dbtc::initialiseTcConnect()
 
-/* ------------------------------------------------------------------------- */
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+void Dbtc::initialiseRecordsLab(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+void Dbtc::initialiseRecordsLab(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+-------------------------------------------------------------------------
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal, UintR Tdata0,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, UintR Tdata0,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ */
 /* ----     LINK A GLOBAL CHECKPOINT RECORD INTO THE LIST WITH TRANSACTIONS  */
 /*          WAITING FOR COMPLETION.                                          */
 /* ------------------------------------------------------------------------- */
@@ -19256,9 +28162,49 @@ void Dbtc::releaseAbortResources(Signal* signal,
     // Put apiCopyRecord back in free list.
     jam();
     ApiConnectRecordPtr copyPtr;
-    copyPtr.i = apiConnectptr.p->apiCopyRecord;
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::initialiseScanrec(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::initialiseScanrec(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  copyPtr.i = apiConnectptr.p->apiCopyRecord;
     c_apiConnectRecordPool.getPtr(copyPtr);
-    ndbassert(copyPtr.p->apiCopyRecord == RNIL);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+
+void Dbtc::initTable(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+
+void Dbtc::initTable(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   ndbassert(copyPtr.p->apiCopyRecord == RNIL);
     ndbassert(copyPtr.p->nextApiConnect == RNIL);
     ndbrequire(copyPtr.p->apiConnectkind == ApiConnectRecord::CK_COPY);
     copyPtr.p->apiConnectkind = ApiConnectRecord::CK_FREE;
@@ -19278,7 +28224,27 @@ void Dbtc::releaseAbortResources(Signal* signal,
     CacheRecordPtr cachePtr;
     cachePtr.i = apiConnectptr.p->cachePtr;
     if (likely(cachePtr.i == Uint32(~0)))
-    {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::initialiseTcConnect(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::initialiseTcConnect(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  {
       jam();
       cachePtr.p = &m_local_cache_record;
     }
@@ -19297,8 +28263,7 @@ void Dbtc::releaseAbortResources(Signal* signal,
   LocalTcConnectRecord_fifo tcConList(tcConnectRecord,
                                       apiConnectptr.p->tcConnect);
   Uint32 loop_count = 0;
-  while (tcConList.first(tcConnectptr))
-  {
+  while (tcConList.first(tcConnectptr)) {
     jam();
     // Clear any markers that have not already been cleared
     clearCommitAckMarker(apiConnectptr.p, tcConnectptr.p);
@@ -19312,8 +28277,167 @@ void Dbtc::releaseAbortResources(Signal* signal,
     {
       /**
        * Very large transactions require that we release records in a
-       * number of jobs and not all in one job that could take seconds
-       * to complete. This would destroy our requirements on low latency.
+       *
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+/
+/* -------
+// RONDB-624 todo: Glue these lines together ^v
+=======
+/
+/* ------- LINK A TC CONNECT RECORD INTO THE API LIST OF TC CONNECTIONS  --- */
+/* ------------------------------------------------------------------------- */
+void Dbtc::linkTcInConnectionlist(Signal *signal,
+              
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+number
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LINK
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+of
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+A
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+jobs
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TC
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+and
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CONNECT
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+not
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RECORD
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+all
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+INTO
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+in
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+THE
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+one
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+API
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+job
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+LIST
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+OF
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+could
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TC
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+take
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CONNECTIONS
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ seconds
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ complete. This would destroy our requirements on low latency.
        */
       jam();
       setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
@@ -19325,12 +28449,32 @@ void Dbtc::releaseAbortResources(Signal* signal,
                  2,
                  JBB);
       checkPoolShrinkNeed(DBTC_CONNECT_RECORD_TRANSIENT_POOL_INDEX,
-                          tcConnectRecord);
+               
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Dbtc::releaseAbortResources(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Dbtc::releaseAbortResources(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal,
+                                
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+          tcConnectRecord);
       return;
     }
   }//while
-  if (loop_count > 0)
-  {
+  if (loop_count > 0) {
     checkPoolShrinkNeed(DBTC_CONNECT_RECORD_TRANSIENT_POOL_INDEX,
                         tcConnectRecord);
   }
@@ -19348,8 +28492,7 @@ void Dbtc::releaseAbortResources(Signal* signal,
                                   &apiConnectptr.p->theSeizedIndexOperations,
                                   loop_count,
                                   false);
-  if (loop_count > ZMAX_RELEASE_PER_RT_BREAK)
-  {
+  if (loop_count > ZMAX_RELEASE_PER_RT_BREAK) {
     jam();
     setApiConTimer(apiConnectptr, ctcTimer, __LINE__);
     signal->theData[0] = TcContinueB::ZRELEASE_ABORT_RESOURCES;
@@ -19381,7 +28524,7 @@ void Dbtc::releaseAbortResources(Signal* signal,
   }
   jamDebug();
 
-  // MASV let state be CS_ABORTING until all 
+  // MASV let state be CS_ABORTING until all
   // signals in the "air" have been received. Reset to CS_CONNECTED
   // will be done when a TCKEYREQ with start flag is received
   // or releaseApiCon is called
@@ -19390,107 +28533,100 @@ void Dbtc::releaseAbortResources(Signal* signal,
   apiConnectptr.p->abortState = AS_IDLE;
 
   if (tc_testbit(apiConnectptr.p->m_flags, ApiConnectRecord::TF_EXEC_FLAG) ||
-      apiConnectptr.p->apiFailState != ApiConnectRecord::AFS_API_OK)
-  {
+      apiConnectptr.p->apiFailState != ApiConnectRecord::AFS_API_OK) {
     jam();
     bool ok = false;
     Uint32 blockRef = apiConnectptr.p->ndbapiBlockref;
     ReturnSignal ret = apiConnectptr.p->returnsignal;
     apiConnectptr.p->returnsignal = RS_NO_RETURN;
     tc_clearbit(apiConnectptr.p->m_flags, ApiConnectRecord::TF_EXEC_FLAG);
-    switch(ret){
-    case RS_TCROLLBACKCONF:
-      jam();
-      ok = true;
-      signal->theData[0] = apiConnectptr.p->ndbapiConnect;
-      signal->theData[1] = apiConnectptr.p->transid[0];
-      signal->theData[2] = apiConnectptr.p->transid[1];
+    switch (ret) {
+      case RS_TCROLLBACKCONF:
+        jam();
+        ok = true;
+        signal->theData[0] = apiConnectptr.p->ndbapiConnect;
+        signal->theData[1] = apiConnectptr.p->transid[0];
+        signal->theData[2] = apiConnectptr.p->transid[1];
       signal->m_send_wakeups++;
       sendSignal(blockRef, GSN_TCROLLBACKCONF, signal, 3, JBB);
-      break;
-    case RS_TCROLLBACKREP:{
-      jam();
-      ok = true;
-#ifdef ERROR_INSERT
-      if (ERROR_INSERTED(8101))
-      {
-        char buf[128];
-        BaseString::snprintf(buf, sizeof(buf),
-                             "Sending CONTINUEB:ZDEBUG_DELAY_TCROLLBACKREP");
-        warningEvent("%s", buf);
-
-        jam();
-        signal->theData[0] = TcContinueB::ZDEBUG_DELAY_TCROLLBACKREP;
-        signal->theData[1] = apiConnectptr.p->ndbapiConnect;
-        signal->theData[2] = apiConnectptr.p->transid[0];
-        signal->theData[3] = apiConnectptr.p->transid[1];
-        signal->theData[4] = apiConnectptr.p->returncode;
-        signal->theData[5] = apiConnectptr.p->errorData;
-        signal->theData[6] = blockRef;
-        
-        sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 100, 7);
         break;
-      }
-#endif      
-      TcRollbackRep * const tcRollbackRep = 
-	(TcRollbackRep *) signal->getDataPtr();
-      
-      tcRollbackRep->connectPtr = apiConnectptr.p->ndbapiConnect;
-      tcRollbackRep->transId[0] = apiConnectptr.p->transid[0];
-      tcRollbackRep->transId[1] = apiConnectptr.p->transid[1];
-      tcRollbackRep->returnCode = apiConnectptr.p->returncode;
-      tcRollbackRep->errorData = apiConnectptr.p->errorData;
-      sendSignal(blockRef, GSN_TCROLLBACKREP, signal, 
-		 TcRollbackRep::SignalLength, JBB);
-    }
-      break;
-    case RS_NO_RETURN:
-      jam();
-      ok = true;
-      break;
-    case RS_TCKEYCONF:
+      case RS_TCROLLBACKREP: {
+        jam();
+        ok = true;
+#ifdef ERROR_INSERT
+        if (ERROR_INSERTED(8101)) {
+          char buf[128];
+          BaseString::snprintf(buf, sizeof(buf),
+                             "Sending CONTINUEB:ZDEBUG_DELAY_TCROLLBACKREP");
+          warningEvent("%s", buf);
+
+          jam();
+          signal->theData[0] = TcContinueB::ZDEBUG_DELAY_TCROLLBACKREP;
+          signal->theData[1] = apiConnectptr.p->ndbapiConnect;
+          signal->theData[2] = apiConnectptr.p->transid[0];
+          signal->theData[3] = apiConnectptr.p->transid[1];
+          signal->theData[4] = apiConnectptr.p->returncode;
+          signal->theData[5] = apiConnectptr.p->errorData;
+          signal->theData[6] = blockRef;
+
+          sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 100, 7);
+          break;
+        }
+#endif
+        TcRollbackRep *const tcRollbackRep =
+            (TcRollbackRep *)signal->getDataPtr();
+
+        tcRollbackRep->connectPtr = apiConnectptr.p->ndbapiConnect;
+        tcRollbackRep->transId[0] = apiConnectptr.p->transid[0];
+        tcRollbackRep->transId[1] = apiConnectptr.p->transid[1];
+        tcRollbackRep->returnCode = apiConnectptr.p->returncode;
+        tcRollbackRep->errorData = apiConnectptr.p->errorData;
+        sendSignal(blockRef, GSN_TCROLLBACKREP, signal,
+                   TcRollbackRep::SignalLength, JBB);
+      } break;
+      case RS_NO_RETURN:
+        jam();
+        ok = true;
+        break;
+      case RS_TCKEYCONF:
       jamDebug();
       break;
     case RS_TC_COMMITCONF:
       jamDebug();
       break;
-    }    
-    if(!ok){
+    }
+    if (!ok) {
       jam();
       g_eventLogger->info("returnsignal = %d", apiConnectptr.p->returnsignal);
       sendSystemError(signal, __LINE__);
-    }//if
-
+    }  // if
   }
   setApiConTimer(apiConnectptr, 0,
                  100000 + apiConnectptr.p->m_apiConTimer_line);
   time_track_complete_transaction_error(apiConnectptr.p);
-  if (apiConnectptr.p->apiFailState != ApiConnectRecord::AFS_API_OK)
-  {
+  if (apiConnectptr.p->apiFailState != ApiConnectRecord::AFS_API_OK) {
     jam();
     handleApiFailState(signal, apiConnectptr.i);
     return;
-  }//if
-}//Dbtc::releaseAbortResources()
+  }  // if
+}  // Dbtc::releaseAbortResources()
 
-void Dbtc::releaseApiCon(Signal* signal, UintR TapiConnectPtr) 
-{
+void Dbtc::releaseApiCon(Signal *signal, UintR TapiConnectPtr) {
   ApiConnectRecordPtr TlocalApiConnectptr;
 
   TlocalApiConnectptr.i = TapiConnectPtr;
   c_apiConnectRecordPool.getPtr(TlocalApiConnectptr);
-  if (TlocalApiConnectptr.p->apiCopyRecord != RNIL)
-  {
+  if (TlocalApiConnectptr.p->apiCopyRecord != RNIL) {
     ApiConnectRecordPtr copyPtr;
     copyPtr.i = TlocalApiConnectptr.p->apiCopyRecord;
     c_apiConnectRecordPool.getPtr(copyPtr);
-    if (copyPtr.p->apiConnectstate == CS_RESTART)
-    {
+    if (copyPtr.p->apiConnectstate == CS_RESTART) {
       releaseApiConCopy(signal, copyPtr);
     }
   }
   ndbassert(TlocalApiConnectptr.p->nextApiConnect == RNIL);
-  ndbrequire(TlocalApiConnectptr.p->apiConnectkind == ApiConnectRecord::CK_USER);
+  ndbrequire(TlocalApiConnectptr.p->apiConnectkind ==
+             ApiConnectRecord::CK_USER);
   TlocalApiConnectptr.p->apiConnectkind = ApiConnectRecord::CK_FREE;
   setApiConTimer(TlocalApiConnectptr, 0, __LINE__);
   TlocalApiConnectptr.p->apiConnectstate = CS_DISCONNECTED;
@@ -19510,10 +28646,9 @@ void Dbtc::releaseApiCon(Signal* signal, UintR TapiConnectPtr)
   c_apiConnectRecordPool.release(TlocalApiConnectptr);
   checkPoolShrinkNeed(DBTC_API_CONNECT_RECORD_TRANSIENT_POOL_INDEX,
                       c_apiConnectRecordPool);
-}//Dbtc::releaseApiCon()
+}  // Dbtc::releaseApiCon()
 
-void Dbtc::releaseApiConnectFail(ApiConnectRecordPtr const apiConnectptr)
-{
+void Dbtc::releaseApiConnectFail(ApiConnectRecordPtr const apiConnectptr) {
   apiConnectptr.p->apiConnectstate = CS_RESTART;
   apiConnectptr.p->takeOverRec = RNIL;
   setApiConTimer(apiConnectptr, 0, __LINE__);
@@ -19525,29 +28660,49 @@ void Dbtc::releaseApiConnectFail(ApiConnectRecordPtr const apiConnectptr)
   ndbrequire(apiConnectptr.p->commitAckMarker == RNIL);
 }
 
-void Dbtc::releaseKeys(CacheRecord* regCachePtr)
-{
-  Uint32 keyInfoSectionI= regCachePtr->keyInfoSectionI;
+void Dbtc::releaseKeys(CacheRecord *regCachePtr) {
+  Uint32 keyInfoSectionI = regCachePtr->keyInfoSectionI;
 
   /* Release KeyInfo section if there is one */
   releaseSection(keyInfoSectionI);
-  regCachePtr->keyInfoSectionI= RNIL;
+  regCachePtr->keyInfoSectionI = RNIL;
 
-}//Dbtc::releaseKeys()
+}  // Dbtc::releaseKeys()
 
-void Dbtc::releaseTcConnectFail(TcConnectRecordPtr tcPtr)
+void Dbtc::releaseTcConnectFail(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TcConnectRecordPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+tcPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+)
 {
   LocalTcConnectRecord_fifo tcConList(tcConnectRecord, cfreeTcConnectFail);
   tcConList.addFirst(tcPtr);
 }
 
-bool Dbtc::seizeApiConnect(Signal* signal, ApiConnectRecordPtr& apiConnectptr)
-{
-  if (likely(c_apiConnectRecordPool.seize(apiConnectptr)))
-  {
+bool Dbtc::seizeApiConnect(Signal *signal, ApiConnectRecordPtr &apiConnectptr) {
+  if (likely(c_apiConnectRecordPool.seize(apiConnectptr))) {
     jam();
-    if (!seizeApiConTimer(apiConnectptr))
-    {
+    if (!seizeApiConTimer(apiConnectptr)) {
       c_apiConnectRecordPool.release(apiConnectptr);
       terrorCode = ZNO_FREE_API_CONNECTION;
       return false;
@@ -19557,23 +28712,20 @@ bool Dbtc::seizeApiConnect(Signal* signal, ApiConnectRecordPtr& apiConnectptr)
     apiConnectptr.p->apiConnectstate = CS_DISCONNECTED;
     setApiConTimer(apiConnectptr, 0, __LINE__);
     apiConnectptr.p->apiConnectstate = CS_CONNECTED; /* STATE OF CONNECTION */
-    tc_clearbit(apiConnectptr.p->m_flags,
-                ApiConnectRecord::TF_TRIGGER_PENDING);
+    tc_clearbit(apiConnectptr.p->m_flags, ApiConnectRecord::TF_TRIGGER_PENDING);
     return true;
   } else {
     jam();
     terrorCode = ZNO_FREE_API_CONNECTION;
     return false;
-  }//if
-}//Dbtc::seizeApiConnect()
+  }  // if
+}  // Dbtc::seizeApiConnect()
 
-bool Dbtc::seizeApiConnectFail(Signal* signal,
-                               ApiConnectRecordPtr& apiConnectptr)
-{
+bool Dbtc::seizeApiConnectFail(Signal *signal,
+                               ApiConnectRecordPtr &apiConnectptr) {
   LocalApiConnectRecord_api_list apiConList(c_apiConnectRecordPool,
                                             c_apiConnectFailList);
-  if (unlikely(!apiConList.removeFirst(apiConnectptr)))
-  {
+  if (unlikely(!apiConList.removeFirst(apiConnectptr))) {
     return false;
   }
   ndbrequire(apiConnectptr.p->apiConnectkind == ApiConnectRecord::CK_FREE);
@@ -19581,68 +28733,56 @@ bool Dbtc::seizeApiConnectFail(Signal* signal,
   return true;
 }
 
-void Dbtc::seizeTcConnectFail(Signal* signal) 
-{
+void Dbtc::seizeTcConnectFail(Signal *signal) {
   LocalTcConnectRecord_fifo tcConList(tcConnectRecord, cfreeTcConnectFail);
   ndbrequire(tcConList.removeFirst(tcConnectptr));
   tcConnectptr.p = new (tcConnectptr.p) TcConnectRecord();
-}//Dbtc::seizeTcConnectFail()
+}  // Dbtc::seizeTcConnectFail()
 
-void Dbtc::sendContinueTimeOutControl(Signal* signal, Uint32 TapiConPtr) 
-{
+void Dbtc::sendContinueTimeOutControl(Signal *signal, Uint32 TapiConPtr) {
   signal->theData[0] = TcContinueB::ZCONTINUE_TIME_OUT_CONTROL;
   signal->theData[1] = TapiConPtr;
   sendSignal(cownref, GSN_CONTINUEB, signal, 2, JBB);
-}//Dbtc::sendContinueTimeOutControl()
+}  // Dbtc::sendContinueTimeOutControl()
 
-void Dbtc::sendSystemError(Signal* signal, int line) 
-{
+void Dbtc::sendSystemError(Signal *signal, int line) {
   progError(line, NDBD_EXIT_NDBREQUIRE);
-}//Dbtc::sendSystemError()
+}  // Dbtc::sendSystemError()
 
 /* ========================================================================= */
 /* -------             LINK ACTUAL GCP OUT OF LIST                   ------- */
 /* ------------------------------------------------------------------------- */
-void Dbtc::unlinkAndReleaseGcp(Ptr<GcpRecord> tmpGcpPtr)
-{
+void Dbtc::unlinkAndReleaseGcp(Ptr<GcpRecord> tmpGcpPtr) {
   ndbrequire(c_gcpRecordList.getFirst() == tmpGcpPtr.i);
 
   LocalGcpRecord_list gcp_list(c_gcpRecordPool, c_gcpRecordList);
   ndbrequire(gcp_list.removeFirst(tmpGcpPtr));
   c_gcpRecordPool.release(tmpGcpPtr);
-  checkPoolShrinkNeed(DBTC_GCP_RECORD_TRANSIENT_POOL_INDEX,
-                      c_gcpRecordPool);
+  checkPoolShrinkNeed(DBTC_GCP_RECORD_TRANSIENT_POOL_INDEX, c_gcpRecordPool);
 }
 
-void
-Dbtc::execDUMP_STATE_ORD(Signal* signal)
-{
+void Dbtc::execDUMP_STATE_ORD(Signal *signal) {
   const Uint32 MAX_RECORDS_AT_A_TIME = 16;
 
   jamEntry();
-  DumpStateOrd * const dumpState = (DumpStateOrd *)&signal->theData[0];
+  DumpStateOrd *const dumpState = (DumpStateOrd *)&signal->theData[0];
   Uint32 arg = signal->theData[0];
 
   // Dump set of ScanFragRecs
-  if (dumpState->args[0] == DumpStateOrd::TCSetSchedNumLqhKeyReqCount)
-  {
+  if (dumpState->args[0] == DumpStateOrd::TCSetSchedNumLqhKeyReqCount) {
     Uint32 val = dumpState->args[1];
     m_num_lqhkeyreq_counts = val;
     return;
-  }
-  else if (dumpState->args[0] == DumpStateOrd::TCSetSchedNumScanFragReqCount)
-  {
+  } else if (dumpState->args[0] ==
+             DumpStateOrd::TCSetSchedNumScanFragReqCount) {
     Uint32 val = dumpState->args[1];
     m_num_scan_fragreq_counts = val;
     return;
-  }
-  else if (dumpState->args[0] == DumpStateOrd::TCSetLoadRefreshCount)
-  {
+  } else if (dumpState->args[0] == DumpStateOrd::TCSetLoadRefreshCount) {
     Uint32 val = dumpState->args[1];
     m_rr_load_refresh_count = val;
     return;
-  }
-  else if (dumpState->args[0] == DumpStateOrd::TcDumpSetOfScanFragRec){
+  } else if (dumpState->args[0] == DumpStateOrd::TcDumpSetOfScanFragRec) {
     /**
      * DUMP 2500 12 10 1 1
      * Prints ScanFrag records 12 through 21 in instance 1.
@@ -19658,40 +28798,31 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     Uint32 instanceId = 0;
     Uint32 includeOnlyActive = 1;
 
-    if (signal->getLength() >= 4)
-    {
+    if (signal->getLength() >= 4) {
       recordNo = dumpState->args[1];
       numRecords = dumpState->args[2];
       instanceId = dumpState->args[3];
-      if (signal->getLength() >= 5)
-      {
+      if (signal->getLength() >= 5) {
         includeOnlyActive = dumpState->args[4];
       }
-    }
-    else
-    {
+    } else {
       return;
     }
-    if (instance() != instanceId)
-    {
+    if (instance() != instanceId) {
       return;
     }
-    if (numRecords > MAX_RECORDS_AT_A_TIME)
-    {
+    if (numRecords > MAX_RECORDS_AT_A_TIME) {
       numRecords = MAX_RECORDS_AT_A_TIME;
     }
-    if (unlikely(recordNo >= RNIL))
-    {
+    if (unlikely(recordNo >= RNIL)) {
       return;
     }
-    
+
     ScanFragRecPtr sfp;
     Uint32 found = c_scan_frag_pool.getUncheckedPtrs(&recordNo, &sfp, 1);
-    if (found == 1 &&
-        Magic::match(sfp.p->m_magic, ScanFragRec::TYPE_ID) &&
+    if (found == 1 && Magic::match(sfp.p->m_magic, ScanFragRec::TYPE_ID) &&
         (sfp.p->scanFragState != ScanFragRec::COMPLETED ||
-         !includeOnlyActive))
-    {
+         !includeOnlyActive)) {
       dumpState->args[0] = DumpStateOrd::TcDumpOneScanFragRec;
       dumpState->args[1] = sfp.i;
       dumpState->args[2] = instance();
@@ -19700,8 +28831,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     }
     numRecords--;
 
-    if (recordNo != RNIL && numRecords > 0)
-    {
+    if (recordNo != RNIL && numRecords > 0) {
       dumpState->args[0] = DumpStateOrd::TcDumpSetOfScanFragRec;
       dumpState->args[1] = recordNo;
       dumpState->args[2] = numRecords;
@@ -19713,7 +28843,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
   }
 
   // Dump one ScanFragRec
-  if (dumpState->args[0] == DumpStateOrd::TcDumpOneScanFragRec){
+  if (dumpState->args[0] == DumpStateOrd::TcDumpOneScanFragRec) {
     /**
      * DUMP 2501 12 1
      * Print ScanFrag record 12 in instance 1
@@ -19723,41 +28853,32 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     jam();
     Uint32 recordNo = RNIL;
     Uint32 instanceId = RNIL;
-    if (signal->getLength() == 3)
-    {
+    if (signal->getLength() == 3) {
       recordNo = dumpState->args[1];
       instanceId = dumpState->args[2];
-    }
-    else
-    {
+    } else {
       return;
     }
-    if (instanceId != instance())
-    {
+    if (instanceId != instance()) {
       return;
     }
-    if (unlikely(recordNo >= RNIL))
-    {
+    if (unlikely(recordNo >= RNIL)) {
       return;
     }
 
     ScanFragRecPtr sfp;
     sfp.i = recordNo;
-    if (c_scan_frag_pool.getValidPtr(sfp))
-    {
-      infoEvent("Dbtc::ScanFragRec[%d]: state=%d, lqhFragId=%u",
-                  sfp.i,
-                sfp.p->scanFragState,
-                sfp.p->lqhScanFragId);
-      infoEvent(" nodeid=%d, timer=%d",
-                refToNode(sfp.p->lqhBlockref),
+    if (c_scan_frag_pool.getValidPtr(sfp)) {
+      infoEvent("Dbtc::ScanFragRec[%d]: state=%d, lqhFragId=%u", sfp.i,
+                sfp.p->scanFragState, sfp.p->lqhScanFragId);
+      infoEvent(" nodeid=%d, timer=%d", refToNode(sfp.p->lqhBlockref),
                 sfp.p->scanFragTimer);
     }
     return;
   }
 
   // Dump set of ScanRecords
-  if (dumpState->args[0] == DumpStateOrd::TcDumpSetOfScanRec){
+  if (dumpState->args[0] == DumpStateOrd::TcDumpSetOfScanRec) {
     /**
      * DUMP 2502 12 10 1 1
      * Print Scan records 12 through 21 in instance 1
@@ -19773,47 +28894,35 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     Uint32 instanceId = 0;
     Uint32 includeOnlyActive = 1;
 
-    if (signal->getLength() >= 4)
-    {
+    if (signal->getLength() >= 4) {
       recordNo = dumpState->args[1];
       numRecords = dumpState->args[2];
       instanceId = dumpState->args[3];
-      if (signal->getLength() >= 5)
-      {
+      if (signal->getLength() >= 5) {
         includeOnlyActive = dumpState->args[4];
       }
-    }
-    else
-    {
+    } else {
       return;
     }
-    if (instance() != instanceId)
-    {
+    if (instance() != instanceId) {
       return;
     }
-    if (numRecords > MAX_RECORDS_AT_A_TIME)
-    {
+    if (numRecords > MAX_RECORDS_AT_A_TIME) {
       numRecords = MAX_RECORDS_AT_A_TIME;
     }
-    if (recordNo >= cscanrecFileSize)
-    {
+    if (recordNo >= cscanrecFileSize) {
       return;
     }
 
-    for (; numRecords > 0 && recordNo != RNIL; numRecords--)
-    {
+    for (; numRecords > 0 && recordNo != RNIL; numRecords--) {
       ScanRecordPtr sp;
-      if (unlikely(scanRecordPool.getUncheckedPtrs(&recordNo, &sp, 1) != 1))
-      {
+      if (unlikely(scanRecordPool.getUncheckedPtrs(&recordNo, &sp, 1) != 1)) {
         continue;
       }
-      if (!Magic::match(sp.p->m_magic, ScanRecord::TYPE_ID))
-      {
+      if (!Magic::match(sp.p->m_magic, ScanRecord::TYPE_ID)) {
         continue;
       }
-      if (sp.p->scanState != ScanRecord::IDLE ||
-          !includeOnlyActive)
-      {
+      if (sp.p->scanState != ScanRecord::IDLE || !includeOnlyActive) {
         dumpState->args[0] = DumpStateOrd::TcDumpOneScanRec;
         dumpState->args[1] = recordNo;
         dumpState->args[2] = instance();
@@ -19821,8 +28930,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
         execDUMP_STATE_ORD(signal);
       }
     }
-    if (recordNo != RNIL && numRecords > 0)
-    {
+    if (recordNo != RNIL && numRecords > 0) {
       dumpState->args[0] = DumpStateOrd::TcDumpSetOfScanRec;
       dumpState->args[1] = recordNo;
       dumpState->args[2] = numRecords;
@@ -19835,7 +28943,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
 
   // Dump one ScanRecord
   // and associated ScanFragRec and ApiConnectRecord
-  if (dumpState->args[0] == DumpStateOrd::TcDumpOneScanRec){
+  if (dumpState->args[0] == DumpStateOrd::TcDumpOneScanRec) {
     /**
      * DUMP 2504 12 1
      * This will print ScanRecord 12 in instance 1 and all associated
@@ -19847,58 +28955,47 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     jam();
     Uint32 recordNo = RNIL;
     Uint32 instanceId = 0;
-    if (signal->getLength() == 3)
-    {
+    if (signal->getLength() == 3) {
       recordNo = dumpState->args[1];
       instanceId = dumpState->args[2];
-    }
-    else
-    {
+    } else {
       return;
     }
-    if (instanceId != instance())
-    {
+    if (instanceId != instance()) {
       return;
     }
-    if (recordNo == RNIL)
-    {
+    if (recordNo == RNIL) {
       return;
     }
     ScanRecordPtr sp;
-    if (unlikely(scanRecordPool.getUncheckedPtrs(&recordNo, &sp, 1) != 1))
-    {
+    if (unlikely(scanRecordPool.getUncheckedPtrs(&recordNo, &sp, 1) != 1)) {
       return;
     }
 
-    infoEvent("Dbtc::ScanRecord[%d]: state=%d, "
-	      "nextfrag=%d, nofrag=%d",
-	      sp.i,
-	      sp.p->scanState,
-	      sp.p->scanNextFragId,
-	      sp.p->scanNoFrag);
-    infoEvent(" para=%d, receivedop=%d, noOprecPerFrag=%d",
-	      sp.p->scanParallel,
-	      sp.p->scanReceivedOperations,
-	      sp.p->batch_size_rows);
-    infoEvent(" schv=%d, tab=%d, sproc=%d",
-	      sp.p->scanSchemaVersion,
-	      sp.p->scanTableref,
-	      sp.p->scanStoredProcId);
-    infoEvent(" apiRec=%d",
-              sp.p->scanApiRec);
+    infoEvent(
+        "Dbtc::ScanRecord[%d]: state=%d, "
+        "nextfrag=%d, nofrag=%d",
+        sp.i, sp.p->scanState, sp.p->scanNextFragId, sp.p->scanNoFrag);
+    infoEvent(" para=%d, receivedop=%d, noOprecPerFrag=%d", sp.p->scanParallel,
+              sp.p->scanReceivedOperations, sp.p->batch_size_rows);
+    infoEvent(" schv=%d, tab=%d, sproc=%d", sp.p->scanSchemaVersion,
+              sp.p->scanTableref, sp.p->scanStoredProcId);
+    infoEvent(" apiRec=%d", sp.p->scanApiRec);
 
-    if (sp.p->scanState != ScanRecord::IDLE){
+    if (sp.p->scanState != ScanRecord::IDLE) {
       // Request dump of ScanFragRec
       ScanFragRecPtr sfptr;
-#define DUMP_SFR(x){\
-      Local_ScanFragRec_dllist list(c_scan_frag_pool, x);\
-      for(list.first(sfptr); !sfptr.isNull(); list.next(sfptr)){\
-	dumpState->args[0] = DumpStateOrd::TcDumpOneScanFragRec; \
-	dumpState->args[1] = sfptr.i;\
-        dumpState->args[2] = instance(); \
-        signal->setLength(3); \
-	execDUMP_STATE_ORD(signal);\
-      }}
+#define DUMP_SFR(x)                                              \
+  {                                                              \
+    Local_ScanFragRec_dllist list(c_scan_frag_pool, x);          \
+    for (list.first(sfptr); !sfptr.isNull(); list.next(sfptr)) { \
+      dumpState->args[0] = DumpStateOrd::TcDumpOneScanFragRec;   \
+      dumpState->args[1] = sfptr.i;                              \
+      dumpState->args[2] = instance();                           \
+      signal->setLength(3);                                      \
+      execDUMP_STATE_ORD(signal);                                \
+    }                                                            \
+  }
 
       DUMP_SFR(sp.p->m_running_scan_frags);
       DUMP_SFR(sp.p->m_queued_scan_frags);
@@ -19909,14 +29006,13 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
       dumpState->args[1] = sp.p->scanApiRec;
       dumpState->args[2] = instance();
       signal->setLength(3);
-      execDUMP_STATE_ORD(signal);      
+      execDUMP_STATE_ORD(signal);
     }
     return;
   }
 
   // Dump Set of TcConnectRecord(s)
-  if (dumpState->args[0] == DumpStateOrd::TcDumpSetOfTcConnectRec)
-  {
+  if (dumpState->args[0] == DumpStateOrd::TcDumpSetOfTcConnectRec) {
     /**
      * DUMP 2517 12 10 1 1
      * This will print recordNo from 12 to 21 in instance 1 (first
@@ -19934,7 +29030,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
      * overloading any parts of the system. Also print from instance
      * at a time since otherwise it will be almost impossible to know
      * which instance have generated what printout.
-     * 
+     *
      * The printouts will end up in the cluster log.
      */
     jam();
@@ -19943,36 +29039,27 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     Uint32 numRecords = 1;
     Uint32 includeOnlyActive = 1;
 
-    if (signal->getLength() >= 4)
-    {
+    if (signal->getLength() >= 4) {
       recordNo = dumpState->args[1];
       numRecords = dumpState->args[2];
       instanceId = dumpState->args[3];
-      if (signal->getLength() >= 5)
-      {
+      if (signal->getLength() >= 5) {
         includeOnlyActive = dumpState->args[4];
       }
-    }
-    else
-    {
+    } else {
       return;
     }
-    if (instanceId != instance())
-    {
+    if (instanceId != instance()) {
       return;
     }
-    if (numRecords > MAX_RECORDS_AT_A_TIME)
-    {
+    if (numRecords > MAX_RECORDS_AT_A_TIME) {
       numRecords = MAX_RECORDS_AT_A_TIME;
     }
 
     TcConnectRecordPtr tc;
     tc.i = recordNo;
-    if (tcConnectRecord.getValidPtr(tc))
-    {
-      if (tc.p->tcConnectstate != OS_CONNECTED ||
-          !includeOnlyActive)
-      {
+    if (tcConnectRecord.getValidPtr(tc)) {
+      if (tc.p->tcConnectstate != OS_CONNECTED || !includeOnlyActive) {
         dumpState->args[0] = DumpStateOrd::TcDumpOneTcConnectRec;
         dumpState->args[1] = recordNo;
         dumpState->args[2] = instanceId;
@@ -19983,10 +29070,8 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
 
     numRecords--;
     recordNo++;
-    if (numRecords > 0)
-    {
-      if (tcConnectRecord.getUncheckedPtrs(&recordNo, &tc, 1))
-      {
+    if (numRecords > 0) {
+      if (tcConnectRecord.getUncheckedPtrs(&recordNo, &tc, 1)) {
         dumpState->args[0] = DumpStateOrd::TcDumpSetOfTcConnectRec;
         dumpState->args[1] = recordNo;
         dumpState->args[2] = numRecords;
@@ -19999,8 +29084,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
   }
 
   // Dump one TcConnectRecord
-  if (dumpState->args[0] == DumpStateOrd::TcDumpOneTcConnectRec)
-  {
+  if (dumpState->args[0] == DumpStateOrd::TcDumpOneTcConnectRec) {
     /**
      * This part is mostly used as an assistant function to dump a range
      * of TcConnect records. It can also be invoked directly in
@@ -20012,58 +29096,42 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     jam();
     Uint32 recordNo = RNIL;
     Uint32 instanceId = RNIL;
-    if (signal->getLength() == 3)
-    {
+    if (signal->getLength() == 3) {
       recordNo = dumpState->args[1];
       instanceId = dumpState->args[2];
-    }
-    else
-    {
+    } else {
       return;
     }
-    if (instanceId != instance())
-    {
+    if (instanceId != instance()) {
       return;
     }
 
     TcConnectRecordPtr tc;
     tc.i = recordNo;
-    if (!tcConnectRecord.getValidPtr(tc))
-    {
+    if (!tcConnectRecord.getValidPtr(tc)) {
       return;
     }
-    g_eventLogger->info("Dbtc::TcConnectRecord[%d]: state=%d, apiCon=%d, "
-	      "commitAckMarker=%d",
-	      tc.i,
-	      tc.p->tcConnectstate,
-	      tc.p->apiConnect,
-	      tc.p->commitAckMarker);
+    g_eventLogger->info(
+        "Dbtc::TcConnectRecord[%d]: state=%d, apiCon=%d, "
+        "commitAckMarker=%d",
+        tc.i, tc.p->tcConnectstate, tc.p->apiConnect, tc.p->commitAckMarker);
     g_eventLogger->info(" special flags=%x, noOfNodes=%d, operation=%d",
-	      tc.p->m_special_op_flags,
-	      tc.p->noOfNodes,
-	      tc.p->operation);
+              tc.p->m_special_op_flags, tc.p->noOfNodes, tc.p->operation);
     g_eventLogger->info(" clientData=%d, savePointId=%d, nodes(%d,%d,%d,%d), ",
-	      tc.p->clientData,
-	      tc.p->savePointId,
-              tc.p->tcNodedata[0],
+              tc.p->clientData, tc.p->savePointId, tc.p->tcNodedata[0],
               tc.p->tcNodedata[1],
               tc.p->tcNodedata[2],
               tc.p->tcNodedata[3]);
     g_eventLogger->info("failData(%u,%u,%u,%u) lastReplicaNo: %u",
                         tc.p->failData[0],
-                        tc.p->failData[1],
-                        tc.p->failData[2],
-                        tc.p->failData[3],
+                        tc.p->failData[1],           tc.p->failData[2],           tc.p->failData[3],
                         tc.p->lastReplicaNo);
-    g_eventLogger->info(" next=%d, instance=%u ",
-              tc.p->nextList,
-              instance());
+    g_eventLogger->info(" next=%d, instance=%u ", tc.p->nextList, instance());
     return;
   }
 
   // Dump Set of ApiConnectRecord(s)
-  if (dumpState->args[0] == DumpStateOrd::TcDumpSetOfApiConnectRec)
-  {
+  if (dumpState->args[0] == DumpStateOrd::TcDumpSetOfApiConnectRec) {
     /**
      * Print a range of ApiConnect records
      * This command is invoked by the following DUMP command:
@@ -20071,7 +29139,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
      * Print ApiConnect record 12 through 13 in instance 1
      *
      * The output will end up in the cluster log.
-     * 
+     *
      * WARNING: Don't print more than at most 10 records at a time
      * in a production system.
      * Use the full set of parameters such that we also specify the
@@ -20085,37 +29153,29 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     Uint32 numRecords = 1;
     Uint32 includeOnlyActive = 1;
 
-    if (signal->getLength() >= 4)
-    {
+    if (signal->getLength() >= 4) {
       recordNo = dumpState->args[1];
       numRecords = dumpState->args[2];
       instanceId = dumpState->args[3];
-      if (signal->getLength() >= 5)
-      {
+      if (signal->getLength() >= 5) {
         includeOnlyActive = dumpState->args[4];
       }
-    }
-    else
-    {
+    } else {
       return;
     }
-    if (instanceId != instance())
-    {
+    if (instanceId != instance()) {
       return;
     }
 
     ApiConnectRecordPtr ap;
     ap.i = recordNo;
-    if (!c_apiConnectRecordPool.getValidPtr(ap))
-    {
+    if (!c_apiConnectRecordPool.getValidPtr(ap)) {
       return;
     }
 
-    if (!includeOnlyActive ||
-        ((ap.p->apiConnectstate != CS_CONNECTED) &&
-           (ap.p->apiConnectstate != CS_ABORTING ||
-            ap.p->abortState != AS_IDLE)))
-    {
+    if (!includeOnlyActive || ((ap.p->apiConnectstate != CS_CONNECTED) &&
+                               (ap.p->apiConnectstate != CS_ABORTING ||
+                                ap.p->abortState != AS_IDLE))) {
       dumpState->args[0] = DumpStateOrd::TcDumpOneApiConnectRec;
       dumpState->args[1] = recordNo;
       dumpState->args[2] = instanceId;
@@ -20125,8 +29185,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
 
     numRecords--;
     if (numRecords > 0 &&
-        c_apiConnectRecordPool.getUncheckedPtrs(&recordNo, &ap, 1))
-    {
+        c_apiConnectRecordPool.getUncheckedPtrs(&recordNo, &ap, 1)) {
       dumpState->args[0] = DumpStateOrd::TcDumpSetOfApiConnectRec;
       dumpState->args[1] = recordNo;
       dumpState->args[2] = numRecords;
@@ -20138,7 +29197,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
   }
 
   // Dump one ApiConnectRecord
-  if (dumpState->args[0] == DumpStateOrd::TcDumpOneApiConnectRec){
+  if (dumpState->args[0] == DumpStateOrd::TcDumpOneApiConnectRec) {
     /**
      * Print one ApiConnect record.
      * This is a support function to DUMP 2515. It can also
@@ -20152,53 +29211,42 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     jam();
     Uint32 recordNo = RNIL;
     Uint32 instanceId = RNIL;
-    if (signal->getLength() == 3)
-    {
+    if (signal->getLength() == 3) {
       recordNo = dumpState->args[1];
       instanceId = dumpState->args[2];
-    }
-    else
-    {
+    } else {
       return;
     }
 
     ApiConnectRecordPtr ap;
     ap.i = recordNo;
-    if (!c_apiConnectRecordPool.getValidPtr(ap))
-    {
+    if (!c_apiConnectRecordPool.getValidPtr(ap)) {
       return;
     }
-    if (instanceId != instance())
-    {
+    if (instanceId != instance()) {
       return;
     }
 
     g_eventLogger->info(
               "Dbtc::c_apiConnectRecordPool.getPtr(%d): state=%d,"
               " abortState=%d, "
-	      "apiFailState=%d",
-	      ap.i,
-	      ap.p->apiConnectstate,
-	      ap.p->abortState,
-	      ap.p->apiFailState);
+        "apiFailState=%d",
+        ap.i, ap.p->apiConnectstate, ap.p->abortState, ap.p->apiFailState);
     g_eventLogger->info(" transid(0x%x, 0x%x), apiBref=0x%x, scanRec=%d",
-	      ap.p->transid[0],
-	      ap.p->transid[1],
-	      ap.p->ndbapiBlockref,
-	      ap.p->apiScanRec);
-    g_eventLogger->info(" ctcTimer=%d, apiTimer=%d, apiTimer:line: %u, "
+              ap.p->transid[0], ap.p->transid[1], ap.p->ndbapiBlockref,
+              ap.p->apiScanRec);
+    g_eventLogger->info(
+        " ctcTimer=%d, apiTimer=%d, apiTimer:line: %u, "
               "counter=%d, retcode=%d, "
-	      "retsig=%d",
-              ctcTimer, getApiConTimer(ap),
+        "retsig=%d",
+        ctcTimer, getApiConTimer(ap),
               ap.p->m_apiConTimer_line,
-	      ap.p->counter,
-	      ap.p->returncode,
-	      ap.p->returnsignal);
-    g_eventLogger->info(" lqhkeyconfrec=%d, lqhkeyreqrec=%d, "
-	      "tckeyrec=%d",
-	      ap.p->lqhkeyconfrec,
-	      ap.p->lqhkeyreqrec,
-	      ap.p->tckeyrec);
+	      ap.p->counter, ap.p->returncode,
+        ap.p->returnsignal);
+    g_eventLogger->info(
+        " lqhkeyconfrec=%d, lqhkeyreqrec=%d, "
+        "tckeyrec=%d",
+        ap.p->lqhkeyconfrec, ap.p->lqhkeyreqrec, ap.p->tckeyrec);
     g_eventLogger->info("send_fail_data_processing: %u,"
                         " check_fail_data_process_ongoing: %u",
                         ap.p->send_fail_data_process_ongoing,
@@ -20206,15 +29254,12 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     g_eventLogger->info("finish_trans_counter: %u, nextTcOperation: %u",
                         ap.p->finish_trans_counter,
                         ap.p->nextTcOperation);
-    g_eventLogger->info(" next=%d, instance=%u, firstTc=%d ",
-	      ap.p->nextApiConnect,
-              instance(),
-              ap.p->tcConnect.getFirst());
+    g_eventLogger->info(" next=%d, instance=%u, firstTc=%d ", ap.p->nextApiConnect,
+              instance(), ap.p->tcConnect.getFirst());
     return;
   }
 
-  if (dumpState->args[0] == DumpStateOrd::TcDumpApiConnectRecSummary)
-  {
+  if (dumpState->args[0] == DumpStateOrd::TcDumpApiConnectRecSummary) {
     /**
      * This DUMP command is used to print a summary of ApiConnect record
      * connected to API nodes.
@@ -20228,15 +29273,13 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     Uint32 apiNode = 1;
     Uint32 pos = 0;
 
-    Uint32 seized_count = 0;      /* Number seized by an Api */
-    Uint32 stateless_count = 0;   /* Number 'started' with no ops */
-    Uint32 stateful_count = 0;    /* Number running */
-    Uint32 scan_count = 0;        /* Number used for scans */
-    
-    if (signal->getLength() == 2)
-    {
-      if (instance() != dumpState->args[1])
-      {
+    Uint32 seized_count = 0;    /* Number seized by an Api */
+    Uint32 stateless_count = 0; /* Number 'started' with no ops */
+    Uint32 stateful_count = 0;  /* Number running */
+    Uint32 scan_count = 0;      /* Number used for scans */
+
+    if (signal->getLength() == 2) {
+      if (instance() != dumpState->args[1]) {
         return;
       }
       g_eventLogger->info("Start of ApiConnectRec summary (%u total allocated)",
@@ -20255,60 +29298,48 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
        *   stateful are in use, handling some transaction
        *   scan are in use, handling a table or index scan
        */
-    }
-    else if (signal->getLength() == 7)
-    {
+    } else if (signal->getLength() == 7) {
       apiNode = dumpState->args[1];
       pos = dumpState->args[2];
       seized_count = dumpState->args[3];
       stateless_count = dumpState->args[4];
       stateful_count = dumpState->args[5];
       scan_count = dumpState->args[6];
-    }
-    else
-    {
+    } else {
       return;
     }
 
-    if (apiNode == 0)
-      return;
+    if (apiNode == 0) return;
 
-    while (apiNode < MAX_NODES)
-    {
+    while (apiNode < MAX_NODES) {
       if (getNodeInfo(apiNode).getType() == NODE_TYPE_API &&
-          getNodeInfo(apiNode).m_version != 0)
-      {
+          getNodeInfo(apiNode).m_version != 0) {
         break;
       }
-      apiNode ++;
+      apiNode++;
     }
-    
-    if (apiNode >= MAX_NODES)
-    {
+
+    if (apiNode >= MAX_NODES) {
       g_eventLogger->info("End of ApiConnectRec summary");
       return;
     }
 
-    for (int laps = 0; laps < 16 && pos != RNIL; laps++)
-    {
+    for (int laps = 0; laps < 16 && pos != RNIL; laps++) {
       ApiConnectRecordPtr apiConnectptr;
-      if (c_apiConnectRecordPool.getUncheckedPtrs(&pos, &apiConnectptr, 1) == 0)
-      {
+      if (c_apiConnectRecordPool.getUncheckedPtrs(&pos, &apiConnectptr, 1) ==
+          0) {
         continue;
       }
-      if (!Magic::match(apiConnectptr.p->m_magic, ApiConnectRecord::TYPE_ID))
-      {
+      if (!Magic::match(apiConnectptr.p->m_magic, ApiConnectRecord::TYPE_ID)) {
         continue;
       }
-      if (apiConnectptr.p->apiConnectkind != ApiConnectRecord::CK_USER)
-      {
+      if (apiConnectptr.p->apiConnectkind != ApiConnectRecord::CK_USER) {
         continue;
       }
       /* Following code mostly similar to that for NdbInfo transactions table */
       Uint32 conState = apiConnectptr.p->apiConnectstate;
 
-      if (conState == CS_ABORTING && apiConnectptr.p->abortState == AS_IDLE)
-      {
+      if (conState == CS_ABORTING && apiConnectptr.p->abortState == AS_IDLE) {
         /**
          * These is for all practical purposes equal
          */
@@ -20316,30 +29347,22 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
       }
 
       if ((refToNode(apiConnectptr.p->ndbapiBlockref) == apiNode) &&
-          (conState != CS_DISCONNECTED))
-      {
+          (conState != CS_DISCONNECTED)) {
         seized_count++;
-        
-        if (conState == CS_STARTED && 
-            apiConnectptr.p->lqhkeyreqrec == 0)
-        {
+
+        if (conState == CS_STARTED && apiConnectptr.p->lqhkeyreqrec == 0) {
           stateless_count++;
-        }
-        else if (conState == CS_START_SCAN)
-        {
+        } else if (conState == CS_START_SCAN) {
           scan_count++;
-        }
-        else if (conState != CS_CONNECTED)
-        {
+        } else if (conState != CS_CONNECTED) {
           stateful_count++;
         }
       }
     }
 
-    if (pos == RNIL)
-    {
+    if (pos == RNIL) {
       /* Finished with this apiNode, output info, if any */
-//      if (seized_count > 0)
+      //      if (seized_count > 0)
       {
         g_eventLogger->info(
             "  Api node %u connect records seized : %u stateless : %u stateful "
@@ -20350,11 +29373,11 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
         stateful_count = 0;
         scan_count = 0;
       }
-      
+
       apiNode++;
       pos = 0;
     }
-    
+
     signal->theData[0] = DumpStateOrd::TcDumpApiConnectRecSummary;
     signal->theData[1] = apiNode;
     signal->theData[2] = pos;
@@ -20367,156 +29390,132 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     return;
   }
 
-  if (dumpState->args[0] == DumpStateOrd::TcSetTransactionTimeout){
+  if (dumpState->args[0] == DumpStateOrd::TcSetTransactionTimeout) {
     jam();
-    if(signal->getLength() > 1){
+    if (signal->getLength() > 1) {
       set_timeout_value(signal->theData[1]);
-    }
-    else
-    {
+    } else {
       /* Reset to configured value */
-      const ndb_mgm_configuration_iterator * p = 
-        m_ctx.m_config.getOwnConfigIterator();
+      const ndb_mgm_configuration_iterator *p =
+          m_ctx.m_config.getOwnConfigIterator();
       ndbrequire(p != 0);
-      
+
       Uint32 val = 3000;
       ndb_mgm_get_int_parameter(p, CFG_DB_TRANSACTION_DEADLOCK_TIMEOUT, &val);
       set_timeout_value(val);
     }
   }
 
-  if (dumpState->args[0] == DumpStateOrd::TcSetApplTransactionTimeout){
+  if (dumpState->args[0] == DumpStateOrd::TcSetApplTransactionTimeout) {
     jam();
-    if(signal->getLength() > 1){
+    if (signal->getLength() > 1) {
       set_appl_timeout_value(signal->theData[1]);
     }
   }
 
-  if (dumpState->args[0] == DumpStateOrd::TcStartDumpIndexOpCount)
-  {
+  if (dumpState->args[0] == DumpStateOrd::TcStartDumpIndexOpCount) {
     static int frequency = 1;
     if (signal->getLength() > 1)
       frequency = signal->theData[1];
-    else
-      if (refToBlock(signal->getSendersBlockRef()) != DBTC)
-	frequency = 1;
-    
-    if (frequency)
-    {
+    else if (refToBlock(signal->getSendersBlockRef()) != DBTC)
+      frequency = 1;
+
+    if (frequency) {
       dumpState->args[0] = DumpStateOrd::TcDumpIndexOpCount;
       execDUMP_STATE_ORD(signal);
       dumpState->args[0] = DumpStateOrd::TcStartDumpIndexOpCount;
-      
+
       Uint32 delay = 1000 * (frequency > 25 ? 25 : frequency);
       sendSignalWithDelay(cownref, GSN_DUMP_STATE_ORD, signal, delay, 1);
     }
   }
-  
-  if (dumpState->args[0] == DumpStateOrd::TcDumpIndexOpCount)
-  {
-    infoEvent("instance: %u, IndexOpCount: pool: %d free: %d",
-              instance(),
-	      c_theIndexOperationPool.getSize(),
-	      c_theIndexOperationPool.getNoOfFree());
+
+  if (dumpState->args[0] == DumpStateOrd::TcDumpIndexOpCount) {
+    infoEvent("instance: %u, IndexOpCount: pool: %d free: %d", instance(),
+              c_theIndexOperationPool.getSize(),
+              c_theIndexOperationPool.getNoOfFree());
     return;
   }
 
-  if (arg == 2550)
-  {
+  if (arg == 2550) {
     jam();
     Uint32 len = signal->getLength() - 1;
-    if (len + 2 > 25)
-    {
+    if (len + 2 > 25) {
       jam();
       infoEvent("Too long filter");
       return;
     }
-    if (validate_filter(signal))
-    {
+    if (validate_filter(signal)) {
       jam();
       memmove(signal->theData + 2, signal->theData + 1, 4 * len);
       signal->theData[0] = 2551;
-      signal->theData[1] = 0;    // record
+      signal->theData[1] = 0;  // record
       sendSignal(reference(), GSN_DUMP_STATE_ORD, signal, len + 2, JBB);
-      
+
       infoEvent("Starting dump of transactions");
     }
     return;
   }
-  if (arg == 2551)
-  {
+  if (arg == 2551) {
     jam();
     Uint32 len = signal->getLength();
     ndbassert(len > 1);
     Uint32 record = signal->theData[1];
 
     bool print = false;
-    for (Uint32 i = 0; i < 32 && record != RNIL; i++)
-    {
+    for (Uint32 i = 0; i < 32 && record != RNIL; i++) {
       jam();
       ApiConnectRecordPtr ap;
-      if (c_apiConnectRecordPool.getUncheckedPtrs(&record, &ap, 1) != 1)
-      {
+      if (c_apiConnectRecordPool.getUncheckedPtrs(&record, &ap, 1) != 1) {
         continue;
       }
-      if (!Magic::match(ap.p->m_magic, ApiConnectRecord::TYPE_ID))
-      {
+      if (!Magic::match(ap.p->m_magic, ApiConnectRecord::TYPE_ID)) {
         continue;
       }
       print = match_and_print(signal, ap);
 
-      if (print)
-      {
-	jam();
-	break;
+      if (print) {
+        jam();
+        break;
       }
     }
 
-    if (record == RNIL)
-    {
+    if (record == RNIL) {
       jam();
       infoEvent("End of transaction dump");
       return;
     }
-    
+
     signal->theData[1] = record;
-    if (print)
-    {
+    if (print) {
       jam();
       sendSignalWithDelay(reference(), GSN_DUMP_STATE_ORD, signal, 200, len);
-    }
-    else
-    {
+    } else {
       jam();
       sendSignal(reference(), GSN_DUMP_STATE_ORD, signal, len, JBB);
     }
     return;
   }
 #ifdef ERROR_INSERT
-  if (arg == 2552 || arg == 4002 || arg == 4003)
-  {
-    ndbrequire(m_commitAckMarkerPool.getNoOfFree() == m_commitAckMarkerPool.getSize());
+  if (arg == 2552 || arg == 4002 || arg == 4003) {
+    ndbrequire(m_commitAckMarkerPool.getNoOfFree() ==
+               m_commitAckMarkerPool.getSize());
     return;
   }
 #endif
   if (arg == DumpStateOrd::DihTcSumaNodeFailCompleted &&
-      signal->getLength() == 2)
-  {
+      signal->getLength() == 2) {
     jam();
     NodeId nodeId = signal->theData[1];
-    if (nodeId < MAX_NODES && nodeId < NDB_ARRAY_SIZE(capiConnectClosing))
-    {
-      warningEvent(" DBTC: capiConnectClosing[%u]: %u",
-                   nodeId, capiConnectClosing[nodeId]);
-    }
-    else
-    {
+    if (nodeId < MAX_NODES && nodeId < NDB_ARRAY_SIZE(capiConnectClosing)) {
+      warningEvent(" DBTC: capiConnectClosing[%u]: %u", nodeId,
+                   capiConnectClosing[nodeId]);
+    } else {
       warningEvent(" DBTC: dump-%u to unknown node: %u", arg, nodeId);
     }
   }
 
-  if (arg == DumpStateOrd::TcResourceSnapshot)
-  {
+  if (arg == DumpStateOrd::TcResourceSnapshot) {
     RSS_OP_SNAPSHOT_SAVE(cConcScanCount);
     RSS_AP_SNAPSHOT_SAVE(c_scan_frag_pool);
     RSS_AP_SNAPSHOT_SAVE(c_theDefinedTriggerPool);
@@ -20538,8 +29537,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     RSS_AP_SNAPSHOT_SAVE(m_fragLocationPool);
     RSS_AP_SNAPSHOT_SAVE(c_cacheRecordPool);
   }
-  if (arg == DumpStateOrd::TcResourceCheckLeak)
-  {
+  if (arg == DumpStateOrd::TcResourceCheckLeak) {
     RSS_OP_SNAPSHOT_CHECK(cConcScanCount);
     RSS_AP_SNAPSHOT_CHECK(c_scan_frag_pool);
     RSS_AP_SNAPSHOT_CHECK(c_theDefinedTriggerPool);
@@ -20550,8 +29548,7 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
 #ifdef ERROR_INSERT
     g_eventLogger->info("(%u)Snapshot check val: %u, old_val: %u",
                         instance(),
-                        c_counters.cconcurrentOp,
-                        rss_cconcurrentOp);
+                        c_counters.cconcurrentOp, rss_cconcurrentOp);
     ndbrequire(rss_cconcurrentOp == c_counters.cconcurrentOp);
 #endif
     RSS_AP_SNAPSHOT_CHECK(c_theAttributeBufferPool);
@@ -20560,16 +29557,13 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
     RSS_AP_SNAPSHOT_CHECK(c_cacheRecordPool);
   }
 
-  if (arg == DumpStateOrd::TcDumpPoolLevels)
-  {
+  if (arg == DumpStateOrd::TcDumpPoolLevels) {
     /**
      * DUMP 2555 1
      * Prints pool levels for instance 1 to cluster log
      */
-    if (signal->getLength() == 2)
-    {
-      if (signal->theData[1] != instance())
-      {
+    if (signal->getLength() == 2) {
+      if (signal->theData[1] != instance()) {
         return;
       }
       infoEvent("TC: instance: %u, Print pool levels", instance());
@@ -20580,54 +29574,47 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
       sendSignal(reference(), GSN_DUMP_STATE_ORD, signal, 5, JBB);
       return;
     }
-    if (signal->getLength() != 5)
-    {
+    if (signal->getLength() != 5) {
       g_eventLogger->info("DUMP TcDumpPoolLevels : Bad signal length : %u",
                           signal->getLength());
       return;
     }
-    if (signal->theData[4] != instance())
-    {
+    if (signal->theData[4] != instance()) {
       return;
     }
-    
+
     Uint32 resource = signal->theData[1];
     Uint32 position = signal->theData[2];
     Uint32 sum = signal->theData[3];
     /* const Uint32 MAX_ITER = 200; */
 
-    switch(resource)
-    {
-    case 1: 
-      infoEvent("TC : Concurrent operations in use/total : %u/%u (%u bytes each)", 
-                c_counters.cconcurrentOp, 
-                tcConnectRecord.getSize(),
-                (Uint32) sizeof(TcConnectRecord));
-      resource++;
-      position = 0;
-      sum = 0;
-      break;
-    case 2:
-      infoEvent("TC : Concurrent scans in use/total : %u/%u (%u bytes each)", 
-                cConcScanCount, 
-                cscanrecFileSize,
-                (Uint32) sizeof(ScanRecord));
-      resource++;
-      position = 0;
-      sum = 0;
-      break;
-    case 3:
-      infoEvent("TC : Scan Frag records in use/total : %u/%u (%u bytes each)",
-                c_scan_frag_pool.getSize() - 
-                c_scan_frag_pool.getNoOfFree(), 
-                c_scan_frag_pool.getSize(),
-                (Uint32) sizeof(ScanFragRec));
-      resource++;
-      position = 0;
-      sum = 0;
-      break;
-    default:
-      return;
+    switch (resource) {
+      case 1:
+        infoEvent(
+            "TC : Concurrent operations in use/total : %u/%u (%u bytes each)",
+            c_counters.cconcurrentOp, tcConnectRecord.getSize(),
+            (Uint32)sizeof(TcConnectRecord));
+        resource++;
+        position = 0;
+        sum = 0;
+        break;
+      case 2:
+        infoEvent("TC : Concurrent scans in use/total : %u/%u (%u bytes each)",
+                  cConcScanCount, cscanrecFileSize, (Uint32)sizeof(ScanRecord));
+        resource++;
+        position = 0;
+        sum = 0;
+        break;
+      case 3:
+        infoEvent("TC : Scan Frag records in use/total : %u/%u (%u bytes each)",
+                  c_scan_frag_pool.getSize() - c_scan_frag_pool.getNoOfFree(),
+                  c_scan_frag_pool.getSize(), (Uint32)sizeof(ScanFragRec));
+        resource++;
+        position = 0;
+        sum = 0;
+        break;
+      default:
+        return;
     }
 
     signal->theData[0] = DumpStateOrd::TcDumpPoolLevels;
@@ -20640,375 +29627,334 @@ Dbtc::execDUMP_STATE_ORD(Signal* signal)
   }
 
 #if defined(VM_TRACE) || defined(ERROR_INSERT)
-  if (arg == DumpStateOrd::TcSetTransientPoolMaxSize)
-  {
+  if (arg == DumpStateOrd::TcSetTransientPoolMaxSize) {
     jam();
-    if (signal->getLength() < 3)
-      return;
+    if (signal->getLength() < 3) return;
     const Uint32 pool_index = signal->theData[1];
     const Uint32 new_size = signal->theData[2];
-    if (pool_index >= c_transient_pool_count)
-      return;
+    if (pool_index >= c_transient_pool_count) return;
     c_transient_pools[pool_index]->setMaxSize(new_size);
-    if (pool_index == DBTC_SCAN_RECORD_TRANSIENT_POOL_INDEX)
-    {
+    if (pool_index == DBTC_SCAN_RECORD_TRANSIENT_POOL_INDEX) {
       cscanrecFileSize = new_size;
     }
   }
-  if (arg == DumpStateOrd::TcResetTransientPoolMaxSize)
-  {
+  if (arg == DumpStateOrd::TcResetTransientPoolMaxSize) {
     jam();
-    if(signal->getLength() < 2)
-      return;
+    if (signal->getLength() < 2) return;
     const Uint32 pool_index = signal->theData[1];
-    if (pool_index >= c_transient_pool_count)
-      return;
+    if (pool_index >= c_transient_pool_count) return;
     c_transient_pools[pool_index]->resetMaxSize();
-    if (pool_index == DBTC_SCAN_RECORD_TRANSIENT_POOL_INDEX)
-    {
+    if (pool_index == DBTC_SCAN_RECORD_TRANSIENT_POOL_INDEX) {
       cscanrecFileSize = cscanrecFileSize_original;
     }
   }
 #endif
 
-  if (arg == DumpStateOrd::TcSetTransErrorLogLevel)
-  {
+  if (arg == DumpStateOrd::TcSetTransErrorLogLevel) {
     jam();
     Uint32 level = 0;
-    if (signal->getLength() >= 2)
-    {
+    if (signal->getLength() >= 2) {
       level = signal->theData[1];
     }
 
-    g_eventLogger->info("TC %u : __TransactionErrorLogLevel changes from 0x%x to 0x%x",
-                        instance(),
-                        c_trans_error_loglevel,
-                        level);
+    g_eventLogger->info(
+        "TC %u : __TransactionErrorLogLevel changes from 0x%x to 0x%x",
+        instance(), c_trans_error_loglevel, level);
     c_trans_error_loglevel = level;
     return;
   }
-}//Dbtc::execDUMP_STATE_ORD()
+}  // Dbtc::execDUMP_STATE_ORD()
 
-void Dbtc::execDBINFO_SCANREQ(Signal *signal)
-{
-  DbinfoScanReq req= *(DbinfoScanReq*)signal->theData;
-  const Ndbinfo::ScanCursor* cursor =
-    CAST_CONSTPTR(Ndbinfo::ScanCursor, DbinfoScan::getCursorPtr(&req));
+void Dbtc::execDBINFO_SCANREQ(Signal *signal) {
+  DbinfoScanReq req = *(DbinfoScanReq *)signal->theData;
+  const Ndbinfo::ScanCursor *cursor =
+      CAST_CONSTPTR(Ndbinfo::ScanCursor, DbinfoScan::getCursorPtr(&req));
   Ndbinfo::Ratelimit rl;
 
   jamEntry();
 
-  switch(req.tableId){
-  case Ndbinfo::POOLS_TABLEID:
-  {
-    Ndbinfo::pool_entry pools[] =
-    {
-      { "API Connect",
-        c_apiConnectRecordPool.getUsed(),
-        c_apiConnectRecordPool.getSize(),
-        c_apiConnectRecordPool.getEntrySize(),
-        c_apiConnectRecordPool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBTC_API_CONNECT_RECORD},
-      { "API Connect Timer",
-        c_apiConTimersPool.getUsed(),
-        c_apiConTimersPool.getSize(),
-        c_apiConTimersPool.getEntrySize(),
-        c_apiConTimersPool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBTC_API_CONNECT_TIMERS},
-      { "Cache Record",
-        c_cacheRecordPool.getUsed(),
-        c_cacheRecordPool.getSize(),
-        c_cacheRecordPool.getEntrySize(),
-        c_cacheRecordPool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBTC_CACHE_RECORD},
-      { "Defined Trigger",
-        c_theDefinedTriggerPool.getUsed(),
-        c_theDefinedTriggerPool.getSize(),
-        c_theDefinedTriggerPool.getEntrySize(),
-        c_theDefinedTriggerPool.getUsedHi(),
-        { CFG_DB_NO_TRIGGERS, 0, 0, 0 },
-        0},
-      { "Fired Trigger",
-        c_theFiredTriggerPool.getUsed(),
-        c_theFiredTriggerPool.getSize(),
-        c_theFiredTriggerPool.getEntrySize(),
-        c_theFiredTriggerPool.getUsedHi(),
-        { CFG_DB_NO_TRIGGER_OPS, 0, 0, 0 },
-        RT_DBTC_FIRED_TRIGGER_DATA},
-      { "Foreign Key Record",
-        c_fk_pool.getUsed(),
-        c_fk_pool.getSize(),
-        c_fk_pool.getEntrySize(),
-        c_fk_pool.getUsedHi(),
-        { 0, 0, 0, 0 },
-        RT_DBDICT_FILE},
-      { "GCP Record",
-        c_gcpRecordPool.getUsed(),
-        c_gcpRecordPool.getSize(),
-        c_gcpRecordPool.getEntrySize(),
-        c_gcpRecordPool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBTC_GCP_RECORD},
-      { "Index",
-        c_theIndexPool.getUsed(),
-        c_theIndexPool.getSize(),
-        c_theIndexPool.getEntrySize(),
-        c_theIndexPool.getUsedHi(),
-        { CFG_DB_NO_TABLES,
-          CFG_DB_NO_ORDERED_INDEXES,
-          CFG_DB_NO_UNIQUE_HASH_INDEXES, 0 },
-        0},
-      { "Scan Fragment",
-        c_scan_frag_pool.getUsed(),
-        c_scan_frag_pool.getSize(),
-        c_scan_frag_pool.getEntrySize(),
-        c_scan_frag_pool.getUsedHi(),
-        { CFG_DB_NO_LOCAL_SCANS, 0, 0, 0 },
-        RT_DBTC_SCAN_FRAGMENT},
-      { "Scan Fragment Location",
-        m_fragLocationPool.getUsed(),
-        m_fragLocationPool.getSize(),
-        m_fragLocationPool.getEntrySize(),
-        m_fragLocationPool.getUsedHi(),
-        { 0, 0, 0, 0 },
-        RT_DBTC_FRAG_LOCATION},
-      { "Commit ACK Marker",
-        m_commitAckMarkerPool.getUsed(),
-        m_commitAckMarkerPool.getSize(),
-        m_commitAckMarkerPool.getEntrySize(),
-        m_commitAckMarkerPool.getUsedHi(),
-        { CFG_DB_NO_TRANSACTIONS, 0, 0, 0 },
-        RT_DBTC_COMMIT_ACK_MARKER},
-      { "Commit ACK Marker Buffer",
-        c_theCommitAckMarkerBufferPool.getUsed(),
-        c_theCommitAckMarkerBufferPool.getSize(),
-        c_theCommitAckMarkerBufferPool.getEntrySize(),
-        c_theCommitAckMarkerBufferPool.getUsedHi(),
-        { 0, 0, 0, 0 },
-        RT_DBTC_COMMIT_ACK_MARKER_BUFFER},
-      { "Index Op",
-        c_theIndexOperationPool.getUsed(),
-        c_theIndexOperationPool.getSize(),
-        c_theIndexOperationPool.getEntrySize(),
-        c_theIndexOperationPool.getUsedHi(),
-        { 0, 0, 0, 0 },
-        RT_DBTC_INDEX_OPERATION},
-      { "Operations",
-        tcConnectRecord.getUsed(),
-        tcConnectRecord.getSize(),
-        tcConnectRecord.getEntrySize(),
-        tcConnectRecord.getUsedHi(),
-        { 0, 0, 0, 0 },
-        RT_DBTC_CONNECT_RECORD},
-      { "TC Scan Record",  /* TC redundantly included to improve readability */
-        cConcScanCount,
-        cscanrecFileSize,
-        sizeof(ScanRecord),
-        0, /* No HWM */
-        {CFG_DB_NO_SCANS, 0, 0, 0},
-        0},
-      { NULL, 0, 0, 0, 0, {0, 0, 0, 0}, 0 }
-    };
+  switch (req.tableId) {
+    case Ndbinfo::POOLS_TABLEID: {
+      Ndbinfo::pool_entry pools[] = {
+          {"API Connect",
+           c_apiConnectRecordPool.getUsed(),
+           c_apiConnectRecordPool.getSize(),
+           c_apiConnectRecordPool.getEntrySize(),
+           c_apiConnectRecordPool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBTC_API_CONNECT_RECORD},
+          {"API Connect Timer",
+           c_apiConTimersPool.getUsed(),
+           c_apiConTimersPool.getSize(),
+           c_apiConTimersPool.getEntrySize(),
+           c_apiConTimersPool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBTC_API_CONNECT_TIMERS},
+          {"Cache Record",
+           c_cacheRecordPool.getUsed(),
+           c_cacheRecordPool.getSize(),
+           c_cacheRecordPool.getEntrySize(),
+           c_cacheRecordPool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBTC_CACHE_RECORD},
+          {"Defined Trigger",
+           c_theDefinedTriggerPool.getUsed(),
+           c_theDefinedTriggerPool.getSize(),
+           c_theDefinedTriggerPool.getEntrySize(),
+           c_theDefinedTriggerPool.getUsedHi(),
+           {CFG_DB_NO_TRIGGERS, 0, 0, 0},
+           0},
+          {"Fired Trigger",
+           c_theFiredTriggerPool.getUsed(),
+           c_theFiredTriggerPool.getSize(),
+           c_theFiredTriggerPool.getEntrySize(),
+           c_theFiredTriggerPool.getUsedHi(),
+           {CFG_DB_NO_TRIGGER_OPS, 0, 0, 0},
+           RT_DBTC_FIRED_TRIGGER_DATA},
+          {"Foreign Key Record",
+           c_fk_pool.getUsed(),
+           c_fk_pool.getSize(),
+           c_fk_pool.getEntrySize(),
+           c_fk_pool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBDICT_FILE},
+          {"GCP Record",
+           c_gcpRecordPool.getUsed(),
+           c_gcpRecordPool.getSize(),
+           c_gcpRecordPool.getEntrySize(),
+           c_gcpRecordPool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBTC_GCP_RECORD},
+          {"Index",
+           c_theIndexPool.getUsed(),
+           c_theIndexPool.getSize(),
+           c_theIndexPool.getEntrySize(),
+           c_theIndexPool.getUsedHi(),
+           {CFG_DB_NO_TABLES, CFG_DB_NO_ORDERED_INDEXES,
+            CFG_DB_NO_UNIQUE_HASH_INDEXES, 0},
+           0},
+          {"Scan Fragment",
+           c_scan_frag_pool.getUsed(),
+           c_scan_frag_pool.getSize(),
+           c_scan_frag_pool.getEntrySize(),
+           c_scan_frag_pool.getUsedHi(),
+           {CFG_DB_NO_LOCAL_SCANS, 0, 0, 0},
+           RT_DBTC_SCAN_FRAGMENT},
+          {"Scan Fragment Location",
+           m_fragLocationPool.getUsed(),
+           m_fragLocationPool.getSize(),
+           m_fragLocationPool.getEntrySize(),
+           m_fragLocationPool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBTC_FRAG_LOCATION},
+          {"Commit ACK Marker",
+           m_commitAckMarkerPool.getUsed(),
+           m_commitAckMarkerPool.getSize(),
+           m_commitAckMarkerPool.getEntrySize(),
+           m_commitAckMarkerPool.getUsedHi(),
+           {CFG_DB_NO_TRANSACTIONS, 0, 0, 0},
+           RT_DBTC_COMMIT_ACK_MARKER},
+          {"Commit ACK Marker Buffer",
+           c_theCommitAckMarkerBufferPool.getUsed(),
+           c_theCommitAckMarkerBufferPool.getSize(),
+           c_theCommitAckMarkerBufferPool.getEntrySize(),
+           c_theCommitAckMarkerBufferPool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBTC_COMMIT_ACK_MARKER_BUFFER},
+          {"Index Op",
+           c_theIndexOperationPool.getUsed(),
+           c_theIndexOperationPool.getSize(),
+           c_theIndexOperationPool.getEntrySize(),
+           c_theIndexOperationPool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBTC_INDEX_OPERATION},
+          {"Operations",
+           tcConnectRecord.getUsed(),
+           tcConnectRecord.getSize(),
+           tcConnectRecord.getEntrySize(),
+           tcConnectRecord.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBTC_CONNECT_RECORD},
+          {"TC Scan Record", /* TC redundantly included to improve readability
+                              */
+           cConcScanCount,
+           cscanrecFileSize,
+           sizeof(ScanRecord),
+           0, /* No HWM */
+           {CFG_DB_NO_SCANS, 0, 0, 0},
+           0},
+          {NULL, 0, 0, 0, 0, {0, 0, 0, 0}, 0}};
 
-   const size_t num_config_params =
-      sizeof(pools[0].config_params) / sizeof(pools[0].config_params[0]);
-    const Uint32 numPools = NDB_ARRAY_SIZE(pools);
-    Uint32 pool = cursor->data[0];
-    ndbrequire(pool < numPools);
-    BlockNumber bn = blockToMain(number());
-    while(pools[pool].poolname)
-    {
-      jam();
-      Ndbinfo::Row row(signal, req);
-      row.write_uint32(getOwnNodeId());
-      row.write_uint32(bn);           // block number
-      row.write_uint32(instance());   // block instance
-      row.write_string(pools[pool].poolname);
-
-      row.write_uint64(pools[pool].used);
-      row.write_uint64(pools[pool].total);
-      row.write_uint64(pools[pool].used_hi);
-      row.write_uint64(pools[pool].entry_size);
-      for (size_t i = 0; i < num_config_params; i++)
-        row.write_uint32(pools[pool].config_params[i]);
-      row.write_uint32(GET_RG(pools[pool].record_type));
-      row.write_uint32(GET_TID(pools[pool].record_type));
-      ndbinfo_send_row(signal, req, row, rl);
-      pool++;
-      if (rl.need_break(req))
-      {
+      const size_t num_config_params =
+          sizeof(pools[0].config_params) / sizeof(pools[0].config_params[0]);
+      const Uint32 numPools = NDB_ARRAY_SIZE(pools);
+      Uint32 pool = cursor->data[0];
+      ndbrequire(pool < numPools);
+      BlockNumber bn = blockToMain(number());
+      while (pools[pool].poolname) {
         jam();
-        ndbinfo_send_scan_break(signal, req, rl, pool);
-        return;
-      }
-    }
-    break;
-  }
-  case Ndbinfo::TC_TIME_TRACK_STATS_TABLEID:
-  {
-    Uint32 restore = cursor->data[0];
-    HostRecordPtr hostPtr;
-    Uint32 first_index = restore & 0xFFFF;
-    hostPtr.i = restore >> 16;
-    if (hostPtr.i == 0)
-      hostPtr.i = 1;
-    for ( ; hostPtr.i < MAX_NODES; hostPtr.i++)
-    {
-      ptrCheckGuard(hostPtr, chostFilesize, hostRecord);
-      if (hostPtr.p->time_tracked == false)
-        continue;
-      for (Uint32 i = first_index; i < TIME_TRACK_HISTOGRAM_RANGES; i++)
-      {
         Ndbinfo::Row row(signal, req);
         row.write_uint32(getOwnNodeId());
-        row.write_uint32(DBTC);
-        row.write_uint32(instance());
-        row.write_uint32(hostPtr.i);
-        row.write_uint64(c_time_track_histogram_boundary[i]);
-        row.write_uint64(hostPtr.p->time_track_scan_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_scan_error_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_scan_frag_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_scan_frag_error_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_transaction_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_transaction_error_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_read_key_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_write_key_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_index_key_histogram[i]);
-        row.write_uint64(hostPtr.p->time_track_key_error_histogram[i]);
+        row.write_uint32(bn);          // block number
+        row.write_uint32(instance());  // block instance
+        row.write_string(pools[pool].poolname);
+
+        row.write_uint64(pools[pool].used);
+        row.write_uint64(pools[pool].total);
+        row.write_uint64(pools[pool].used_hi);
+        row.write_uint64(pools[pool].entry_size);
+        for (size_t i = 0; i < num_config_params; i++)
+          row.write_uint32(pools[pool].config_params[i]);
+        row.write_uint32(GET_RG(pools[pool].record_type));
+        row.write_uint32(GET_TID(pools[pool].record_type));
         ndbinfo_send_row(signal, req, row, rl);
-        if (rl.need_break(req))
-        {
-          Uint32 save = i + 1 + (hostPtr.i << 16);
+        pool++;
+        if (rl.need_break(req)) {
           jam();
-          ndbinfo_send_scan_break(signal, req, rl, save);
+          ndbinfo_send_scan_break(signal, req, rl, pool);
           return;
         }
       }
-      first_index = 0;
+      break;
     }
-    break;
-  }
-  case Ndbinfo::COUNTERS_TABLEID:
-  {
-    Ndbinfo::counter_entry counters[] = {
-      { Ndbinfo::ATTRINFO_COUNTER, c_counters.cattrinfoCount },
-      { Ndbinfo::TRANSACTIONS_COUNTER, c_counters.ctransCount },
-      { Ndbinfo::COMMITS_COUNTER, c_counters.ccommitCount },
-      { Ndbinfo::READS_COUNTER, c_counters.creadCount },
-      { Ndbinfo::SIMPLE_READS_COUNTER, c_counters.csimpleReadCount },
-      { Ndbinfo::WRITES_COUNTER, c_counters.cwriteCount },
-      { Ndbinfo::ABORTS_COUNTER, c_counters.cabortCount },
-      { Ndbinfo::TABLE_SCANS_COUNTER, c_counters.c_scan_count },
-      { Ndbinfo::RANGE_SCANS_COUNTER, c_counters.c_range_scan_count },
-      { Ndbinfo::LOCAL_READ_COUNTER, c_counters.clocalReadCount },
-      { Ndbinfo::LOCAL_WRITE_COUNTER, c_counters.clocalWriteCount }
-    };
-    const size_t num_counters = sizeof(counters) / sizeof(counters[0]);
-
-    Uint32 i = cursor->data[0];
-    BlockNumber bn = blockToMain(number());
-    while(i < num_counters)
-    {
-      jam();
-      Ndbinfo::Row row(signal, req);
-      row.write_uint32(getOwnNodeId());
-      row.write_uint32(bn);           // block number
-      row.write_uint32(instance());   // block instance
-      row.write_uint32(counters[i].id);
-
-      row.write_uint64(counters[i].val);
-      ndbinfo_send_row(signal, req, row, rl);
-      i++;
-      if (rl.need_break(req))
-      {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, i);
-        return;
-      }
-    }
-
-    break;
-  }
-  case Ndbinfo::TRANSACTIONS_TABLEID:
-  {
-    Uint32 loop_count = 0;
-    Uint32 api_ptr = cursor->data[0];
-    const Uint32 maxloop = 256;
-    bool do_break = false;
-    while (!do_break &&
-           api_ptr != RNIL &&
-           loop_count < maxloop)
-    {
-      ApiConnectRecordPtr ptrs[8];
-      Uint32 ptr_cnt =
-          c_apiConnectRecordPool.getUncheckedPtrs(&api_ptr,
-                                                  ptrs,
-                                                  NDB_ARRAY_SIZE(ptrs)); // TODO respect #loops left
-      loop_count += NDB_ARRAY_SIZE(ptrs);
-      for (Uint32 i = 0; i < ptr_cnt; i++)
-      {
-        if (!Magic::match(ptrs[i].p->m_magic, ApiConnectRecord::TYPE_ID))
-        {
-          continue;
-        }
-        ApiConnectRecordPtr const& ptr = ptrs[i];
-        Ndbinfo::Row row(signal, req);
-        if (ndbinfo_write_trans(row, ptr))
-        {
-          jam();
+    case Ndbinfo::TC_TIME_TRACK_STATS_TABLEID: {
+      Uint32 restore = cursor->data[0];
+      HostRecordPtr hostPtr;
+      Uint32 first_index = restore & 0xFFFF;
+      hostPtr.i = restore >> 16;
+      if (hostPtr.i == 0) hostPtr.i = 1;
+      for (; hostPtr.i < MAX_NODES; hostPtr.i++) {
+        ptrCheckGuard(hostPtr, chostFilesize, hostRecord);
+        if (hostPtr.p->time_tracked == false) continue;
+        for (Uint32 i = first_index; i < TIME_TRACK_HISTOGRAM_RANGES; i++) {
+          Ndbinfo::Row row(signal, req);
+          row.write_uint32(getOwnNodeId());
+          row.write_uint32(DBTC);
+          row.write_uint32(instance());
+          row.write_uint32(hostPtr.i);
+          row.write_uint64(c_time_track_histogram_boundary[i]);
+          row.write_uint64(hostPtr.p->time_track_scan_histogram[i]);
+          row.write_uint64(hostPtr.p->time_track_scan_error_histogram[i]);
+          row.write_uint64(hostPtr.p->time_track_scan_frag_histogram[i]);
+          row.write_uint64(hostPtr.p->time_track_scan_frag_error_histogram[i]);
+          row.write_uint64(hostPtr.p->time_track_transaction_histogram[i]);
+          row.write_uint64(
+              hostPtr.p->time_track_transaction_error_histogram[i]);
+          row.write_uint64(hostPtr.p->time_track_read_key_histogram[i]);
+          row.write_uint64(hostPtr.p->time_track_write_key_histogram[i]);
+          row.write_uint64(hostPtr.p->time_track_index_key_histogram[i]);
+          row.write_uint64(hostPtr.p->time_track_key_error_histogram[i]);
           ndbinfo_send_row(signal, req, row, rl);
-        }
-        if (rl.need_break(req))
-        {
-          if (i + 1 < ptr_cnt)
-          {
-            api_ptr = ptrs[i + 1].i;
+          if (rl.need_break(req)) {
+            Uint32 save = i + 1 + (hostPtr.i << 16);
+            jam();
+            ndbinfo_send_scan_break(signal, req, rl, save);
+            return;
           }
-          do_break = true;
-          break;
+        }
+        first_index = 0;
+      }
+      break;
+    }
+    case Ndbinfo::COUNTERS_TABLEID: {
+      Ndbinfo::counter_entry counters[] = {
+          {Ndbinfo::ATTRINFO_COUNTER, c_counters.cattrinfoCount},
+          {Ndbinfo::TRANSACTIONS_COUNTER, c_counters.ctransCount},
+          {Ndbinfo::COMMITS_COUNTER, c_counters.ccommitCount},
+          {Ndbinfo::READS_COUNTER, c_counters.creadCount},
+          {Ndbinfo::SIMPLE_READS_COUNTER, c_counters.csimpleReadCount},
+          {Ndbinfo::WRITES_COUNTER, c_counters.cwriteCount},
+          {Ndbinfo::ABORTS_COUNTER, c_counters.cabortCount},
+          {Ndbinfo::TABLE_SCANS_COUNTER, c_counters.c_scan_count},
+          {Ndbinfo::RANGE_SCANS_COUNTER, c_counters.c_range_scan_count},
+          {Ndbinfo::LOCAL_READ_COUNTER, c_counters.clocalReadCount},
+          {Ndbinfo::LOCAL_WRITE_COUNTER, c_counters.clocalWriteCount}};
+      const size_t num_counters = sizeof(counters) / sizeof(counters[0]);
+
+      Uint32 i = cursor->data[0];
+      BlockNumber bn = blockToMain(number());
+      while (i < num_counters) {
+        jam();
+        Ndbinfo::Row row(signal, req);
+        row.write_uint32(getOwnNodeId());
+        row.write_uint32(bn);          // block number
+        row.write_uint32(instance());  // block instance
+        row.write_uint32(counters[i].id);
+
+        row.write_uint64(counters[i].val);
+        ndbinfo_send_row(signal, req, row, rl);
+        i++;
+        if (rl.need_break(req)) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, i);
+          return;
         }
       }
+
+      break;
     }
-    if (api_ptr == RNIL)
-    {
-      goto done;
+    case Ndbinfo::TRANSACTIONS_TABLEID: {
+      Uint32 loop_count = 0;
+      Uint32 api_ptr = cursor->data[0];
+      const Uint32 maxloop = 256;
+      bool do_break = false;
+      while (!do_break && api_ptr != RNIL && loop_count < maxloop) {
+        ApiConnectRecordPtr ptrs[8];
+        Uint32 ptr_cnt = c_apiConnectRecordPool.getUncheckedPtrs(
+            &api_ptr, ptrs,
+            NDB_ARRAY_SIZE(ptrs));  // TODO respect #loops left
+        loop_count += NDB_ARRAY_SIZE(ptrs);
+        for (Uint32 i = 0; i < ptr_cnt; i++) {
+          if (!Magic::match(ptrs[i].p->m_magic, ApiConnectRecord::TYPE_ID)) {
+            continue;
+          }
+          ApiConnectRecordPtr const &ptr = ptrs[i];
+          Ndbinfo::Row row(signal, req);
+          if (ndbinfo_write_trans(row, ptr)) {
+            jam();
+            ndbinfo_send_row(signal, req, row, rl);
+          }
+          if (rl.need_break(req)) {
+            if (i + 1 < ptr_cnt) {
+              api_ptr = ptrs[i + 1].i;
+            }
+            do_break = true;
+            break;
+          }
+        }
+      }
+      if (api_ptr == RNIL) {
+        goto done;
+      }
+      ndbinfo_send_scan_break(signal, req, rl, api_ptr);
+      return;
     }
-    ndbinfo_send_scan_break(signal, req, rl, api_ptr);
-    return;
-  }
-  default:
-    break;
+    default:
+      break;
   }
 
 done:
   ndbinfo_send_scan_conf(signal, req, rl);
 }
 
-bool
-Dbtc::ndbinfo_write_trans(Ndbinfo::Row & row, ApiConnectRecordPtr transPtr)
-{
+bool Dbtc::ndbinfo_write_trans(Ndbinfo::Row &row,
+                               ApiConnectRecordPtr transPtr) {
   Uint32 conState = transPtr.p->apiConnectstate;
 
-  if (conState == CS_ABORTING && transPtr.p->abortState == AS_IDLE)
-  {
+  if (conState == CS_ABORTING && transPtr.p->abortState == AS_IDLE) {
     /**
      * These is for all practical purposes equal
      */
     conState = CS_CONNECTED;
   }
 
-  if (conState == CS_CONNECTED ||
-      conState == CS_DISCONNECTED ||
-      conState == CS_RESTART)
-  {
+  if (conState == CS_CONNECTED || conState == CS_DISCONNECTED ||
+      conState == CS_RESTART) {
     return false;
   }
 
   row.write_uint32(getOwnNodeId());
-  row.write_uint32(instance());   // block instance
+  row.write_uint32(instance());  // block instance
   row.write_uint32(transPtr.i);
   row.write_uint32(transPtr.p->ndbapiBlockref);
   row.write_uint32(transPtr.p->transid[0]);
@@ -21017,47 +29963,47 @@ Dbtc::ndbinfo_write_trans(Ndbinfo::Row & row, ApiConnectRecordPtr transPtr)
   row.write_uint32(transPtr.p->m_flags);
   row.write_uint32(transPtr.p->lqhkeyreqrec);
   Uint32 outstanding = 0;
-  switch((ConnectionState)conState) {
-  case CS_CONNECTED:
-  case CS_DISCONNECTED:
-    break;
-  case CS_STARTED:
-  case CS_RECEIVING:
-  case CS_REC_COMMITTING:
-  case CS_START_COMMITTING:
-  case CS_SEND_FIRE_TRIG_REQ:
-  case CS_WAIT_FIRE_TRIG_REQ:
-    outstanding = transPtr.p->lqhkeyreqrec - transPtr.p->lqhkeyconfrec;
-    break;
-  case CS_COMMITTING:
-  case CS_COMPLETING:
-  case CS_COMMIT_SENT:
-  case CS_COMPLETE_SENT:
-  case CS_ABORTING:
+  switch ((ConnectionState)conState) {
+    case CS_CONNECTED:
+    case CS_DISCONNECTED:
+      break;
+    case CS_STARTED:
+    case CS_RECEIVING:
+    case CS_REC_COMMITTING:
+    case CS_START_COMMITTING:
+    case CS_SEND_FIRE_TRIG_REQ:
+    case CS_WAIT_FIRE_TRIG_REQ:
+      outstanding = transPtr.p->lqhkeyreqrec - transPtr.p->lqhkeyconfrec;
+      break;
+    case CS_COMMITTING:
+    case CS_COMPLETING:
+    case CS_COMMIT_SENT:
+    case CS_COMPLETE_SENT:
+    case CS_ABORTING:
   case CS_RESTART:
-    outstanding = transPtr.p->counter;
-    break;
-  case CS_PREPARE_TO_COMMIT:
-    break;
-  case CS_START_SCAN:
-    // TODO
-    break;
-  case CS_WAIT_ABORT_CONF:
-  case CS_WAIT_COMMIT_CONF:
-  case CS_WAIT_COMPLETE_CONF:
+      outstanding = transPtr.p->counter;
+      break;
+    case CS_PREPARE_TO_COMMIT:
+      break;
+    case CS_START_SCAN:
+      // TODO
+      break;
+    case CS_WAIT_ABORT_CONF:
+    case CS_WAIT_COMMIT_CONF:
+    case CS_WAIT_COMPLETE_CONF:
   case CS_RELEASE:
-    // not easily computed :-(
-    break;
-  case CS_FAIL_PREPARED:
-  case CS_FAIL_ABORTED:
-    // we're assembling a state...
-    break;
-  case CS_FAIL_COMMITTING:
-  case CS_FAIL_COMMITTED:
-  case CS_FAIL_ABORTING:
-  case CS_FAIL_COMPLETED:
-    // not easily computed :_(
-    break;
+      // not easily computed :-(
+      break;
+    case CS_FAIL_PREPARED:
+    case CS_FAIL_ABORTED:
+      // we're assembling a state...
+      break;
+    case CS_FAIL_COMMITTING:
+    case CS_FAIL_COMMITTED:
+    case CS_FAIL_ABORTING:
+    case CS_FAIL_COMPLETED:
+      // not easily computed :_(
+      break;
   }
 
   row.write_uint32(outstanding);
@@ -21067,37 +30013,31 @@ Dbtc::ndbinfo_write_trans(Ndbinfo::Row & row, ApiConnectRecordPtr transPtr)
   return true;
 }
 
-bool
-Dbtc::validate_filter(Signal* signal)
-{
-  Uint32 * start = signal->theData + 1;
-  Uint32 * end = signal->theData + signal->getLength();
-  if (start == end)
-  {
+bool Dbtc::validate_filter(Signal *signal) {
+  Uint32 *start = signal->theData + 1;
+  Uint32 *end = signal->theData + signal->getLength();
+  if (start == end) {
     infoEvent("No filter specified, not listing...");
     return false;
   }
 
-  while(start < end)
-  {
-    switch(* start){
-    case 1: // API Node
-    case 4: // Inactive time
-      start += 2;
-      break;
-    case 2: // Transid
-      start += 3;
-      break;
-    default:
-      infoEvent("Invalid filter op: 0x%x pos: %ld",
-		* start,
-		(long int)(start - (signal->theData + 1)));
-      return false;
+  while (start < end) {
+    switch (*start) {
+      case 1:  // API Node
+      case 4:  // Inactive time
+        start += 2;
+        break;
+      case 2:  // Transid
+        start += 3;
+        break;
+      default:
+        infoEvent("Invalid filter op: 0x%x pos: %ld", *start,
+                  (long int)(start - (signal->theData + 1)));
+        return false;
     }
   }
 
-  if (start != end)
-  {
+  if (start != end) {
     infoEvent("Invalid filter, unexpected end");
     return false;
   }
@@ -21105,51 +30045,45 @@ Dbtc::validate_filter(Signal* signal)
   return true;
 }
 
-bool
-Dbtc::match_and_print(Signal* signal, ApiConnectRecordPtr apiPtr)
-{
+bool Dbtc::match_and_print(Signal *signal, ApiConnectRecordPtr apiPtr) {
   Uint32 conState = apiPtr.p->apiConnectstate;
-  if (conState == CS_CONNECTED ||
-      conState == CS_DISCONNECTED ||
+  if (conState == CS_CONNECTED || conState == CS_DISCONNECTED ||
       conState == CS_RESTART)
     return false;
 
   Uint32 len = signal->getLength();
-  Uint32* start = signal->theData + 2;
-  Uint32* end = signal->theData + len;
+  Uint32 *start = signal->theData + 2;
+  Uint32 *end = signal->theData + len;
   Uint32 apiTimer = getApiConTimer(apiPtr);
-  while (start < end)
-  {
+  while (start < end) {
     jam();
-    switch(* start){
-    case 1:
-      jam();
-      if (refToNode(apiPtr.p->ndbapiBlockref) != * (start + 1))
-	return false;
-      start += 2;
-      break;
-    case 2:
-      jam();
-      if (apiPtr.p->transid[0] != * (start + 1) ||
-	  apiPtr.p->transid[1] != * (start + 2))
-	return false;
-      start += 3;
-      break;
-    case 4:{
-      jam();
-      if (apiTimer == 0 || ((ctcTimer - apiTimer) / 100) < * (start + 1))
-	return false;
-      start += 2;
-      break;
-    }
-    default:
-      ndbassert(false);
-      return false;
+    switch (*start) {
+      case 1:
+        jam();
+        if (refToNode(apiPtr.p->ndbapiBlockref) != *(start + 1)) return false;
+        start += 2;
+        break;
+      case 2:
+        jam();
+        if (apiPtr.p->transid[0] != *(start + 1) ||
+            apiPtr.p->transid[1] != *(start + 2))
+          return false;
+        start += 3;
+        break;
+      case 4: {
+        jam();
+        if (apiTimer == 0 || ((ctcTimer - apiTimer) / 100) < *(start + 1))
+          return false;
+        start += 2;
+        break;
+      }
+      default:
+        ndbassert(false);
+        return false;
     }
   }
-  
-  if (start != end)
-  {
+
+  if (start != end) {
     ndbassert(false);
     return false;
   }
@@ -21162,131 +30096,124 @@ Dbtc::match_and_print(Signal* signal, ApiConnectRecordPtr apiPtr)
 
   char state[10];
   const char *stateptr = "";
-  
-  switch(apiPtr.p->apiConnectstate){
-  case CS_STARTED:
-    stateptr = "Prepared";
-    break;
-  case CS_RECEIVING:
-  case CS_REC_COMMITTING:
-  case CS_START_COMMITTING:
-    stateptr = "Running";
-    break;
-  case CS_COMMITTING:
-    stateptr = "Committing";
-    break;
-  case CS_COMPLETING:
-    stateptr = "Completing";
-    break;
-  case CS_PREPARE_TO_COMMIT:
-    stateptr = "Prepare to commit";
-    break;
-  case CS_COMMIT_SENT:
-    stateptr = "Commit sent";
-    break;
-  case CS_COMPLETE_SENT:
-    stateptr = "Complete sent";
-    break;
-  case CS_ABORTING:
-    stateptr = "Aborting";
-    break;
-  case CS_START_SCAN:
-    stateptr = "Scanning";
-    break;
-  case CS_WAIT_ABORT_CONF:
-  case CS_WAIT_COMMIT_CONF:
-  case CS_WAIT_COMPLETE_CONF:
-  case CS_FAIL_PREPARED:
-  case CS_FAIL_COMMITTING:
-  case CS_FAIL_COMMITTED:
-  case CS_RESTART:
-  case CS_FAIL_ABORTED:
-  case CS_DISCONNECTED:
+
+  switch (apiPtr.p->apiConnectstate) {
+    case CS_STARTED:
+      stateptr = "Prepared";
+      break;
+    case CS_RECEIVING:
+    case CS_REC_COMMITTING:
+    case CS_START_COMMITTING:
+      stateptr = "Running";
+      break;
+    case CS_COMMITTING:
+      stateptr = "Committing";
+      break;
+    case CS_COMPLETING:
+      stateptr = "Completing";
+      break;
+    case CS_PREPARE_TO_COMMIT:
+      stateptr = "Prepare to commit";
+      break;
+    case CS_COMMIT_SENT:
+      stateptr = "Commit sent";
+      break;
+    case CS_COMPLETE_SENT:
+      stateptr = "Complete sent";
+      break;
+    case CS_ABORTING:
+      stateptr = "Aborting";
+      break;
+    case CS_START_SCAN:
+      stateptr = "Scanning";
+      break;
+    case CS_WAIT_ABORT_CONF:
+    case CS_WAIT_COMMIT_CONF:
+    case CS_WAIT_COMPLETE_CONF:
+    case CS_FAIL_PREPARED:
+    case CS_FAIL_COMMITTING:
+    case CS_FAIL_COMMITTED:
+    case CS_RESTART:
+    case CS_FAIL_ABORTED:
+    case CS_DISCONNECTED:
   case CS_RELEASE:
   default:
-    BaseString::snprintf(state, sizeof(state), 
-			 "%u", apiPtr.p->apiConnectstate);
-    stateptr = state;
-    break;
+      BaseString::snprintf(state, sizeof(state), "%u",
+                           apiPtr.p->apiConnectstate);
+      stateptr = state;
+      break;
   }
 
   char buf[100];
   BaseString::snprintf(buf, sizeof(buf),
-		       "TRX[%u]: API: %d(0x%x)"
-		       "transid: 0x%x 0x%x inactive: %u(%d) state: %s",
-		       apiPtr.i,
-		       refToNode(apiPtr.p->ndbapiBlockref),
-		       refToBlock(apiPtr.p->ndbapiBlockref),
-		       apiPtr.p->transid[0],
-		       apiPtr.p->transid[1],
-		       apiTimer ? (ctcTimer - apiTimer) / 100 : 0,
-                       apiPtr.p->m_apiConTimer_line,
-		       stateptr);
+                       "TRX[%u]: API: %d(0x%x)"
+                       "transid: 0x%x 0x%x inactive: %u(%d) state: %s",
+                       apiPtr.i, refToNode(apiPtr.p->ndbapiBlockref),
+                       refToBlock(apiPtr.p->ndbapiBlockref),
+                       apiPtr.p->transid[0], apiPtr.p->transid[1],
+                       apiTimer ? (ctcTimer - apiTimer) / 100 : 0,
+                       apiPtr.p->m_apiConTimer_line, stateptr);
   infoEvent("%s", buf);
-  
-  memcpy(signal->theData, temp, 4*len);
+
+  memcpy(signal->theData, temp, 4 * len);
   return true;
 }
 
-void Dbtc::execABORT_ALL_REQ(Signal* signal)
-{
+void Dbtc::execABORT_ALL_REQ(Signal *signal) {
   jamEntry();
-  AbortAllReq * req = (AbortAllReq*)&signal->theData[0];
-  AbortAllRef * ref = (AbortAllRef*)&signal->theData[0];
-  
+  AbortAllReq *req = (AbortAllReq *)&signal->theData[0];
+  AbortAllRef *ref = (AbortAllRef *)&signal->theData[0];
+
   const Uint32 senderData = req->senderData;
   const BlockReference senderRef = req->senderRef;
-  
+
   if (getAllowStartTransaction(refToNode(senderRef), 0) == true &&
-      !getNodeState().getSingleUserMode())
-  {
+      !getNodeState().getSingleUserMode()) {
     jam();
 
     ref->senderData = senderData;
     ref->errorCode = AbortAllRef::InvalidState;
-    sendSignal(senderRef, GSN_ABORT_ALL_REF, signal, 
-	       AbortAllRef::SignalLength, JBB);
-    return;
-  }
-  
-  if(c_abortRec.clientRef != 0){
-    jam();
-    
-    ref->senderData = senderData;
-    ref->errorCode = AbortAllRef::AbortAlreadyInProgress;
-    sendSignal(senderRef, GSN_ABORT_ALL_REF, signal, 
-	       AbortAllRef::SignalLength, JBB);
+    sendSignal(senderRef, GSN_ABORT_ALL_REF, signal, AbortAllRef::SignalLength,
+               JBB);
     return;
   }
 
-  if(refToNode(senderRef) != getOwnNodeId()){
+  if (c_abortRec.clientRef != 0) {
     jam();
-    
+
+    ref->senderData = senderData;
+    ref->errorCode = AbortAllRef::AbortAlreadyInProgress;
+    sendSignal(senderRef, GSN_ABORT_ALL_REF, signal, AbortAllRef::SignalLength,
+               JBB);
+    return;
+  }
+
+  if (refToNode(senderRef) != getOwnNodeId()) {
+    jam();
+
     ref->senderData = senderData;
     ref->errorCode = AbortAllRef::FunctionNotImplemented;
-    sendSignal(senderRef, GSN_ABORT_ALL_REF, signal, 
-	       AbortAllRef::SignalLength, JBB);
+    sendSignal(senderRef, GSN_ABORT_ALL_REF, signal, AbortAllRef::SignalLength,
+               JBB);
     return;
   }
 
   c_abortRec.clientRef = senderRef;
   c_abortRec.clientData = senderData;
   c_abortRec.oldTimeOutValue = ctimeOutValue;
-  
+
   ctimeOutValue = 0;
   const Uint32 sleepTime = (2 * 10 * ctimeOutCheckDelay + 199) / 200;
-  
+
   checkAbortAllTimeout(signal, (sleepTime == 0 ? 1 : sleepTime));
 }
 
-void Dbtc::checkAbortAllTimeout(Signal* signal, Uint32 sleepTime)
-{
-  
+void Dbtc::checkAbortAllTimeout(Signal *signal, Uint32 sleepTime) {
   ndbrequire(c_abortRec.clientRef != 0);
-  
-  if(sleepTime > 0){
+
+  if (sleepTime > 0) {
     jam();
-    
+
     sleepTime -= 1;
     signal->theData[0] = TcContinueB::ZWAIT_ABORT_ALL;
     signal->theData[1] = sleepTime;
@@ -21294,11 +30221,11 @@ void Dbtc::checkAbortAllTimeout(Signal* signal, Uint32 sleepTime)
     return;
   }
 
-  AbortAllConf * conf = (AbortAllConf*)&signal->theData[0];
+  AbortAllConf *conf = (AbortAllConf *)&signal->theData[0];
   conf->senderData = c_abortRec.clientData;
-  sendSignal(c_abortRec.clientRef, GSN_ABORT_ALL_CONF, signal, 
-	     AbortAllConf::SignalLength, JBB);
-  
+  sendSignal(c_abortRec.clientRef, GSN_ABORT_ALL_CONF, signal,
+             AbortAllConf::SignalLength, JBB);
+
   ctimeOutValue = c_abortRec.oldTimeOutValue;
   c_abortRec.clientRef = 0;
 }
@@ -21309,23 +30236,22 @@ void Dbtc::checkAbortAllTimeout(Signal* signal, Uint32 sleepTime)
 /* ---------------------------------------------------------------- */
 /* **************************************************************** */
 
-void Dbtc::execCREATE_TRIG_IMPL_REQ(Signal* signal)
-{
+void Dbtc::execCREATE_TRIG_IMPL_REQ(Signal *signal) {
   jamEntry();
-  if (!assembleFragments(signal))
-  {
+  if (!assembleFragments(signal)) {
     jam();
     return;
   }
 
-  const CreateTrigImplReq* req = (const CreateTrigImplReq*)signal->getDataPtr();
+  const CreateTrigImplReq *req =
+      (const CreateTrigImplReq *)signal->getDataPtr();
   const Uint32 senderRef = req->senderRef;
   const Uint32 senderData = req->senderData;
 
   SectionHandle handle(this, signal);
-  releaseSections(handle); // Not using mask
+  releaseSections(handle);  // Not using mask
 
-  TcDefinedTriggerData* triggerData;
+  TcDefinedTriggerData *triggerData;
   DefinedTriggerPtr triggerPtr;
 
   triggerPtr.i = req->triggerId;
@@ -21335,17 +30261,17 @@ void Dbtc::execCREATE_TRIG_IMPL_REQ(Signal* signal)
     jam();
     CLEAR_ERROR_INSERT_VALUE;
     // Failed to allocate trigger record
-ref:
+  ref:
     checkPoolShrinkNeed(DBTC_DEFINED_TRIGGER_RECORD_TRANSIENT_POOL_INDEX,
                         c_theDefinedTriggerPool);
-    CreateTrigImplRef* ref =  (CreateTrigImplRef*)signal->getDataPtrSend();
-    
+    CreateTrigImplRef *ref = (CreateTrigImplRef *)signal->getDataPtrSend();
+
     ref->senderRef = reference();
     ref->senderData = senderData;
     ref->errorCode = CreateTrigImplRef::InconsistentTC;
     ref->errorLine = __LINE__;
-    sendSignal(senderRef, GSN_CREATE_TRIG_IMPL_REF, 
-               signal, CreateTrigImplRef::SignalLength, JBB);
+    sendSignal(senderRef, GSN_CREATE_TRIG_IMPL_REF, signal,
+               CreateTrigImplRef::SignalLength, JBB);
     return;
   }
   triggerData = triggerPtr.p;
@@ -21358,27 +30284,26 @@ ref:
   triggerData->oldTriggerIds[1] = RNIL;
   triggerData->refCount = 0;
 
-  switch(triggerData->triggerType){
-  case TriggerType::SECONDARY_INDEX:
-    jam();
-    triggerData->indexId = req->indexId;
-    break;
-  case TriggerType::REORG_TRIGGER:
-  case TriggerType::FULLY_REPLICATED_TRIGGER:
-    jam();
-    triggerData->tableId = req->tableId;
-    break;
-  case TriggerType::FK_PARENT:
-  case TriggerType::FK_CHILD:
-    triggerData->fkId = req->indexId;
-    break;
-  default:
-    c_theDefinedTriggerHash.release(triggerPtr);
-    goto ref;
+  switch (triggerData->triggerType) {
+    case TriggerType::SECONDARY_INDEX:
+      jam();
+      triggerData->indexId = req->indexId;
+      break;
+    case TriggerType::REORG_TRIGGER:
+    case TriggerType::FULLY_REPLICATED_TRIGGER:
+      jam();
+      triggerData->tableId = req->tableId;
+      break;
+    case TriggerType::FK_PARENT:
+    case TriggerType::FK_CHILD:
+      triggerData->fkId = req->indexId;
+      break;
+    default:
+      c_theDefinedTriggerHash.release(triggerPtr);
+      goto ref;
   }
 
-  if (unlikely(req->triggerId != req->upgradeExtra[1]))
-  {
+  if (unlikely(req->triggerId != req->upgradeExtra[1])) {
     /**
      * This is nasty upgrade for unique indexes
      */
@@ -21389,8 +30314,7 @@ ref:
     DefinedTriggerPtr insertPtr = triggerPtr;
     DefinedTriggerPtr updatePtr;
     DefinedTriggerPtr deletePtr;
-    if (c_theDefinedTriggerPool.seize(updatePtr) == false)
-    {
+    if (c_theDefinedTriggerPool.seize(updatePtr) == false) {
       jam();
       c_theDefinedTriggerHash.release(insertPtr);
       goto ref;
@@ -21398,8 +30322,7 @@ ref:
     updatePtr.p->triggerId = req->upgradeExtra[1];
     c_theDefinedTriggerHash.add(updatePtr);
 
-    if (c_theDefinedTriggerPool.seize(deletePtr) == false)
-    {
+    if (c_theDefinedTriggerPool.seize(deletePtr) == false) {
       jam();
       c_theDefinedTriggerHash.release(insertPtr);
       c_theDefinedTriggerHash.release(updatePtr);
@@ -21425,17 +30348,16 @@ ref:
     deletePtr.p->refCount = 0;
   }
 
-  CreateTrigImplConf* conf = (CreateTrigImplConf*)signal->getDataPtrSend();
+  CreateTrigImplConf *conf = (CreateTrigImplConf *)signal->getDataPtrSend();
   conf->senderRef = reference();
   conf->senderData = senderData;
-  sendSignal(senderRef, GSN_CREATE_TRIG_IMPL_CONF, 
-             signal, CreateTrigImplConf::SignalLength, JBB);
+  sendSignal(senderRef, GSN_CREATE_TRIG_IMPL_CONF, signal,
+             CreateTrigImplConf::SignalLength, JBB);
 }
 
-void Dbtc::execDROP_TRIG_IMPL_REQ(Signal* signal)
-{
+void Dbtc::execDROP_TRIG_IMPL_REQ(Signal *signal) {
   jamEntry();
-  const DropTrigImplReq* req = (const DropTrigImplReq*)signal->getDataPtr();
+  const DropTrigImplReq *req = (const DropTrigImplReq *)signal->getDataPtr();
   const Uint32 senderRef = req->senderRef;
   const Uint32 senderData = req->senderData;
 
@@ -21446,43 +30368,39 @@ void Dbtc::execDROP_TRIG_IMPL_REQ(Signal* signal)
   bool found = getDefinedTriggerData(triggerPtr, req->triggerId);
 
   // If triggerIds don't match, the trigger has probably already been dropped.
-  if (!found || ERROR_INSERTED(8035))
-  {
+  if (!found || ERROR_INSERTED(8035)) {
     jam();
     CLEAR_ERROR_INSERT_VALUE;
     // Failed to find trigger record
-    DropTrigImplRef* ref = (DropTrigImplRef*)signal->getDataPtrSend();
+    DropTrigImplRef *ref = (DropTrigImplRef *)signal->getDataPtrSend();
 
     ref->senderRef = reference();
     ref->senderData = senderData;
     ref->errorCode = DropTrigImplRef::InconsistentTC;
     ref->errorLine = __LINE__;
-    sendSignal(senderRef, GSN_DROP_TRIG_IMPL_REF, 
-               signal, DropTrigImplRef::SignalLength, JBB);
+    sendSignal(senderRef, GSN_DROP_TRIG_IMPL_REF, signal,
+               DropTrigImplRef::SignalLength, JBB);
     return;
   }
 
-  if (triggerPtr.p->refCount > 0)
-  {
+  if (triggerPtr.p->refCount > 0) {
     jam();
-    sendSignalWithDelay(reference(), GSN_DROP_TRIG_IMPL_REQ,
-                        signal, 100, signal->getLength());
+    sendSignalWithDelay(reference(), GSN_DROP_TRIG_IMPL_REQ, signal, 100,
+                        signal->getLength());
     return;
   }
 
-  if (unlikely(triggerPtr.p->oldTriggerIds[0] != RNIL))
-  {
+  if (unlikely(triggerPtr.p->oldTriggerIds[0] != RNIL)) {
     jam();
 
-    const Uint32 * oldId = triggerPtr.p->oldTriggerIds;
+    const Uint32 *oldId = triggerPtr.p->oldTriggerIds;
     DefinedTriggerPtr oldPtr0, oldPtr1;
     ndbrequire(getDefinedTriggerData(oldPtr0, oldId[0]));
     ndbrequire(getDefinedTriggerData(oldPtr1, oldId[1]));
-    if (oldPtr0.p->refCount > 0 || oldPtr1.p->refCount > 0)
-    {
+    if (oldPtr0.p->refCount > 0 || oldPtr1.p->refCount > 0) {
       jam();
-      sendSignalWithDelay(reference(), GSN_DROP_TRIG_IMPL_REQ,
-                          signal, 100, signal->getLength());
+      sendSignalWithDelay(reference(), GSN_DROP_TRIG_IMPL_REQ, signal, 100,
+                          signal->getLength());
       return;
     }
     c_theDefinedTriggerHash.release(oldPtr0);
@@ -21492,23 +30410,22 @@ void Dbtc::execDROP_TRIG_IMPL_REQ(Signal* signal)
   checkPoolShrinkNeed(DBTC_DEFINED_TRIGGER_RECORD_TRANSIENT_POOL_INDEX,
                       c_theDefinedTriggerPool);
 
-  DropTrigImplConf* conf = (DropTrigImplConf*)signal->getDataPtrSend();
+  DropTrigImplConf *conf = (DropTrigImplConf *)signal->getDataPtrSend();
 
   conf->senderRef = reference();
   conf->senderData = senderData;
-  
-  sendSignal(senderRef, GSN_DROP_TRIG_IMPL_CONF, 
-             signal, DropTrigImplConf::SignalLength, JBB);
+
+  sendSignal(senderRef, GSN_DROP_TRIG_IMPL_CONF, signal,
+             DropTrigImplConf::SignalLength, JBB);
 }
 
-void Dbtc::execCREATE_INDX_IMPL_REQ(Signal* signal)
-{
+void Dbtc::execCREATE_INDX_IMPL_REQ(Signal *signal) {
   jamEntry();
-  const CreateIndxImplReq * const req =  
-    (const CreateIndxImplReq *)signal->getDataPtr();
+  const CreateIndxImplReq *const req =
+      (const CreateIndxImplReq *)signal->getDataPtr();
   const Uint32 senderRef = req->senderRef;
   const Uint32 senderData = req->senderData;
-  TcIndexData* indexData;
+  TcIndexData *indexData;
   TcIndexDataPtr indexPtr;
 
   SectionHandle handle(this, signal);
@@ -21519,17 +30436,17 @@ void Dbtc::execCREATE_INDX_IMPL_REQ(Signal* signal)
     jam();
     CLEAR_ERROR_INSERT_VALUE;
     // Failed to allocate index record
-     CreateIndxImplRef * const ref =  
-       (CreateIndxImplRef *)signal->getDataPtrSend();
+    CreateIndxImplRef *const ref =
+        (CreateIndxImplRef *)signal->getDataPtrSend();
 
-     ref->senderRef = reference();
-     ref->senderData = senderData;
-     ref->errorCode = CreateIndxImplRef::InconsistentTC;
-     ref->errorLine = __LINE__;
-     releaseSections(handle);
-     sendSignal(senderRef, GSN_CREATE_INDX_IMPL_REF, 
-                signal, CreateIndxImplRef::SignalLength, JBB);
-     return;
+    ref->senderRef = reference();
+    ref->senderData = senderData;
+    ref->errorCode = CreateIndxImplRef::InconsistentTC;
+    ref->errorLine = __LINE__;
+    releaseSections(handle);
+    sendSignal(senderRef, GSN_CREATE_INDX_IMPL_REF, signal,
+               CreateIndxImplRef::SignalLength, JBB);
+    return;
   }
   indexPtr.p->indexId = req->indexId;
   c_theIndexHash.add(indexPtr);
@@ -21543,7 +30460,7 @@ void Dbtc::execCREATE_INDX_IMPL_REQ(Signal* signal)
   SegmentedSectionPtr ssPtr;
   ndbrequire(handle.getSection(ssPtr, CreateIndxReq::ATTRIBUTE_LIST_SECTION));
   SimplePropertiesSectionReader r0(ssPtr, getSectionSegmentPool());
-  r0.reset(); // undo implicit first()
+  r0.reset();  // undo implicit first()
   if (!r0.getWord(&indexData->attributeList.sz) ||
       !r0.getWords(indexData->attributeList.id, indexData->attributeList.sz)) {
     ndbabort();
@@ -21551,24 +30468,23 @@ void Dbtc::execCREATE_INDX_IMPL_REQ(Signal* signal)
   indexData->primaryKeyPos = indexData->attributeList.sz;
 
   releaseSections(handle);
-  
-  CreateIndxImplConf * const conf =  
-    (CreateIndxImplConf *)signal->getDataPtrSend();
+
+  CreateIndxImplConf *const conf =
+      (CreateIndxImplConf *)signal->getDataPtrSend();
 
   conf->senderRef = reference();
   conf->senderData = senderData;
-  sendSignal(senderRef, GSN_CREATE_INDX_IMPL_CONF, 
-             signal, CreateIndxImplConf::SignalLength, JBB);
+  sendSignal(senderRef, GSN_CREATE_INDX_IMPL_CONF, signal,
+             CreateIndxImplConf::SignalLength, JBB);
 }
 
-void Dbtc::execALTER_INDX_IMPL_REQ(Signal* signal)
-{
+void Dbtc::execALTER_INDX_IMPL_REQ(Signal *signal) {
   jamEntry();
-  const AlterIndxImplReq * const req =
-    (const AlterIndxImplReq *)signal->getDataPtr();
+  const AlterIndxImplReq *const req =
+      (const AlterIndxImplReq *)signal->getDataPtr();
   const Uint32 senderRef = req->senderRef;
   const Uint32 senderData = req->senderData;
-  TcIndexData* indexData;
+  TcIndexData *indexData;
   TcIndexDataPtr indexPtr;
   const Uint32 requestType = req->requestType;
 
@@ -21576,64 +30492,57 @@ void Dbtc::execALTER_INDX_IMPL_REQ(Signal* signal)
   {
     jam();
     // Failed to find index record
-    AlterIndxImplRef * const ref =  
-      (AlterIndxImplRef *)signal->getDataPtrSend();
-    
+    AlterIndxImplRef *const ref = (AlterIndxImplRef *)signal->getDataPtrSend();
+
     ref->senderRef = reference();
     ref->senderData = senderData;
     ref->errorCode = AlterIndxImplRef::InconsistentTC;
     ref->errorLine = __LINE__;
 
-    sendSignal(senderRef, GSN_ALTER_INDX_IMPL_REF, 
-	       signal, AlterIndxImplRef::SignalLength, JBB);
+    sendSignal(senderRef, GSN_ALTER_INDX_IMPL_REF, signal,
+               AlterIndxImplRef::SignalLength, JBB);
     return;
   }
   indexData = indexPtr.p;
-  // Found index record, alter it's state  
+  // Found index record, alter it's state
   switch (requestType) {
-  case AlterIndxImplReq::AlterIndexOnline:
-    jam();
-    indexData->indexState = IS_ONLINE;
-    break;
-  case AlterIndxImplReq::AlterIndexOffline:
-    jam();
-    indexData->indexState = IS_BUILDING; // wl3600_todo ??
-    break;
-  default:
-    ndbabort();
+    case AlterIndxImplReq::AlterIndexOnline:
+      jam();
+      indexData->indexState = IS_ONLINE;
+      break;
+    case AlterIndxImplReq::AlterIndexOffline:
+      jam();
+      indexData->indexState = IS_BUILDING;  // wl3600_todo ??
+      break;
+    default:
+      ndbabort();
   }
-  AlterIndxImplConf * const conf =  
-    (AlterIndxImplConf *)signal->getDataPtrSend();
-  
+  AlterIndxImplConf *const conf = (AlterIndxImplConf *)signal->getDataPtrSend();
+
   conf->senderRef = reference();
   conf->senderData = senderData;
-  sendSignal(senderRef, GSN_ALTER_INDX_IMPL_CONF, 
-	     signal, AlterIndxImplConf::SignalLength, JBB);
+  sendSignal(senderRef, GSN_ALTER_INDX_IMPL_CONF, signal,
+             AlterIndxImplConf::SignalLength, JBB);
 }
 
-void
-Dbtc::execCREATE_FK_IMPL_REQ(Signal* signal)
-{
+void Dbtc::execCREATE_FK_IMPL_REQ(Signal *signal) {
   jamEntry();
-  CreateFKImplReq reqCopy = * CAST_CONSTPTR(CreateFKImplReq,
-                                            signal->getDataPtr());
-  CreateFKImplReq * req = &reqCopy;
+  CreateFKImplReq reqCopy =
+      *CAST_CONSTPTR(CreateFKImplReq, signal->getDataPtr());
+  CreateFKImplReq *req = &reqCopy;
 
   Uint32 errCode = 0;
   SectionHandle handle(this, signal);
 
-  if (req->requestType == CreateFKImplReq::RT_PREPARE)
-  {
+  if (req->requestType == CreateFKImplReq::RT_PREPARE) {
     jam();
     Ptr<TcFKData> fkPtr;
-    if (c_fk_hash.find(fkPtr, req->fkId))
-    {
+    if (c_fk_hash.find(fkPtr, req->fkId)) {
       jam();
       errCode = CreateFKImplRef::ObjectAlreadyExist;
       goto error;
     }
-    if (!c_fk_pool.seize(fkPtr))
-    {
+    if (!c_fk_pool.seize(fkPtr)) {
       jam();
       errCode = CreateFKImplRef::NoMoreObjectRecords;
       goto error;
@@ -21645,8 +30554,7 @@ Dbtc::execCREATE_FK_IMPL_REQ(Signal* signal)
     fkPtr.p->childTableId = req->childTableId;
     fkPtr.p->childIndexId = req->childIndexId;
 
-    if (req->parentIndexId != RNIL)
-    {
+    if (req->parentIndexId != RNIL) {
       /**
        * Ignore base-table here...we'll only use the index anyway
        */
@@ -21654,8 +30562,7 @@ Dbtc::execCREATE_FK_IMPL_REQ(Signal* signal)
       fkPtr.p->parentTableId = req->parentIndexId;
     }
 
-    if (req->childIndexId == RNIL)
-    {
+    if (req->childIndexId == RNIL) {
       jam();
       fkPtr.p->childIndexId = req->childTableId;
     }
@@ -21664,8 +30571,7 @@ Dbtc::execCREATE_FK_IMPL_REQ(Signal* signal)
       SegmentedSectionPtr ssPtr;
       ndbrequire(handle.getSection(ssPtr, CreateFKImplReq::PARENT_COLUMNS));
       fkPtr.p->parentTableColumns.sz = ssPtr.sz;
-      if (ssPtr.sz > NDB_ARRAY_SIZE(fkPtr.p->parentTableColumns.id))
-      {
+      if (ssPtr.sz > NDB_ARRAY_SIZE(fkPtr.p->parentTableColumns.id)) {
         errCode = CreateFKImplRef::InvalidFormat;
         goto error;
       }
@@ -21676,8 +30582,7 @@ Dbtc::execCREATE_FK_IMPL_REQ(Signal* signal)
       SegmentedSectionPtr ssPtr;
       ndbrequire(handle.getSection(ssPtr, CreateFKImplReq::CHILD_COLUMNS));
       fkPtr.p->childTableColumns.sz = ssPtr.sz;
-      if (ssPtr.sz > NDB_ARRAY_SIZE(fkPtr.p->childTableColumns.id))
-      {
+      if (ssPtr.sz > NDB_ARRAY_SIZE(fkPtr.p->childTableColumns.id)) {
         errCode = CreateFKImplRef::InvalidFormat;
         goto error;
       }
@@ -21685,92 +30590,76 @@ Dbtc::execCREATE_FK_IMPL_REQ(Signal* signal)
     }
 
     c_fk_hash.add(fkPtr);
-  }
-  else if (req->requestType == CreateFKImplReq::RT_ABORT)
-  {
+  } else if (req->requestType == CreateFKImplReq::RT_ABORT) {
     jam();
     Ptr<TcFKData> fkPtr;
     ndbassert(c_fk_hash.find(fkPtr, req->fkId));
-    if (c_fk_hash.find(fkPtr, req->fkId))
-    {
+    if (c_fk_hash.find(fkPtr, req->fkId)) {
       jam();
       c_fk_hash.release(fkPtr);
     }
-  }
-  else
-  {
-    ndbabort(); // No other request should reach TC
+  } else {
+    ndbabort();  // No other request should reach TC
   }
 
   releaseSections(handle);
   {
-    CreateFKImplConf * conf = CAST_PTR(CreateFKImplConf,
-                                       signal->getDataPtrSend());
+    CreateFKImplConf *conf =
+        CAST_PTR(CreateFKImplConf, signal->getDataPtrSend());
     conf->senderRef = reference();
     conf->senderData = req->senderData;
-    sendSignal(req->senderRef, GSN_CREATE_FK_IMPL_CONF,
-               signal, CreateFKImplConf::SignalLength, JBB);
+    sendSignal(req->senderRef, GSN_CREATE_FK_IMPL_CONF, signal,
+               CreateFKImplConf::SignalLength, JBB);
   }
   return;
 error:
   releaseSections(handle);
-  CreateFKImplRef * ref = CAST_PTR(CreateFKImplRef,
-                                   signal->getDataPtrSend());
+  CreateFKImplRef *ref = CAST_PTR(CreateFKImplRef, signal->getDataPtrSend());
   ref->senderRef = reference();
   ref->senderData = req->senderData;
   ref->errorCode = errCode;
-  sendSignal(req->senderRef, GSN_CREATE_FK_IMPL_REF,
-             signal, CreateFKImplRef::SignalLength, JBB);
+  sendSignal(req->senderRef, GSN_CREATE_FK_IMPL_REF, signal,
+             CreateFKImplRef::SignalLength, JBB);
 }
 
-void
-Dbtc::execDROP_FK_IMPL_REQ(Signal* signal)
-{
+void Dbtc::execDROP_FK_IMPL_REQ(Signal *signal) {
   jamEntry();
-  DropFKImplReq reqCopy = * CAST_CONSTPTR(DropFKImplReq,
-                                          signal->getDataPtr());
-  DropFKImplReq * req = &reqCopy;
+  DropFKImplReq reqCopy = *CAST_CONSTPTR(DropFKImplReq, signal->getDataPtr());
+  DropFKImplReq *req = &reqCopy;
 
   SectionHandle handle(this, signal);
   releaseSections(handle);
 
   Ptr<TcFKData> fkPtr;
   ndbassert(c_fk_hash.find(fkPtr, req->fkId));
-  if (c_fk_hash.find(fkPtr, req->fkId))
-  {
+  if (c_fk_hash.find(fkPtr, req->fkId)) {
     jam();
     c_fk_hash.release(fkPtr);
 
-    DropFKImplConf * conf = CAST_PTR(DropFKImplConf,
-                                     signal->getDataPtrSend());
+    DropFKImplConf *conf = CAST_PTR(DropFKImplConf, signal->getDataPtrSend());
     conf->senderRef = reference();
     conf->senderData = req->senderData;
-    sendSignal(req->senderRef, GSN_DROP_FK_IMPL_CONF,
-               signal, DropFKImplConf::SignalLength, JBB);
-  }
-  else
-  {
+    sendSignal(req->senderRef, GSN_DROP_FK_IMPL_CONF, signal,
+               DropFKImplConf::SignalLength, JBB);
+  } else {
     jam();
-    DropFKImplRef * ref = CAST_PTR(DropFKImplRef,
-                                   signal->getDataPtrSend());
+    DropFKImplRef *ref = CAST_PTR(DropFKImplRef, signal->getDataPtrSend());
     ref->senderRef = reference();
     ref->senderData = req->senderData;
     ref->errorCode = DropFKImplRef::NoSuchObject;
-    sendSignal(req->senderRef, GSN_DROP_FK_IMPL_REF,
-               signal, DropFKImplRef::SignalLength, JBB);
+    sendSignal(req->senderRef, GSN_DROP_FK_IMPL_REF, signal,
+               DropFKImplRef::SignalLength, JBB);
   }
 }
 
-void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
-{
+void Dbtc::execFIRE_TRIG_ORD(Signal *signal) {
   jamEntry();
 
-  if (!assembleFragments(signal))
-  {
+  if (!assembleFragments(signal)) {
     jam();
     return;
   }
-  FireTrigOrd * const fireOrd =  (FireTrigOrd *)signal->getDataPtr();
+  FireTrigOrd *const fireOrd = (FireTrigOrd *)signal->getDataPtr();
   SectionHandle handle(this, signal);
   const bool longsignal = handle.m_cnt > 0;
 
@@ -21779,39 +30668,33 @@ void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
   ndbrequire(signal->getLength() >= FireTrigOrd::SignalLength);
   bool transIdOk = true;
   /* Check the received transaction id */
-  
+
   /* Get triggering operation record */
   opPtr.i = fireOrd->getConnectionPtr();
 
   /* Get transaction record */
-  if (likely(tcConnectRecord.getValidPtr(opPtr)))
-  {
+  if (likely(tcConnectRecord.getValidPtr(opPtr))) {
     /* Get transaction record */
     transPtr.i = opPtr.p->apiConnect;
-  }
-  else
-  {
+  } else {
     transPtr.i = RNIL;
     opPtr.p = nullptr;
   }
 
   if (unlikely(transPtr.i == RNIL) ||
-      unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr)))
-  {
+      unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr))) {
     jam();
     /* Looks like the connect record was released
      * Treat as a bad transid
      */
     jam();
     transIdOk = false;
-  }
-  else
-  {
+  } else {
     jam();
     /* Check if signal's trans id and operation's transid are aligned */
     transIdOk = !((fireOrd->m_transId1 ^ transPtr.p->transid[0]) |
                   (fireOrd->m_transId2 ^ transPtr.p->transid[1]));
-  } 
+  }
 
   TcFiredTriggerData key;
   key.fireingOperation = opPtr.i;
@@ -21819,30 +30702,23 @@ void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
   FiredTriggerPtr trigPtr;
   bool ok = transIdOk;
 
-  if (likely(longsignal && transIdOk))
-  {
+  if (likely(longsignal && transIdOk)) {
     jam();
-    if (likely(c_theFiredTriggerPool.seize(trigPtr)))
-    {
+    if (likely(c_theFiredTriggerPool.seize(trigPtr))) {
       jam();
       trigPtr.p->nodeId = key.nodeId;
       trigPtr.p->fireingOperation = key.fireingOperation;
       trigPtr.p->triggerId = fireOrd->m_triggerId;
-    }
-    else
-    {
+    } else {
       jam();
       ok = false;
     }
   }
 
   Uint32 errorCode = ZTOO_MANY_FIRED_TRIGGERS;
-  if (likely((longsignal && ok) ||
-             c_firedTriggerHash.find(trigPtr, key)))
-  {
+  if (likely((longsignal && ok) || c_firedTriggerHash.find(trigPtr, key))) {
     jam();
-    if (!longsignal)
-    {
+    if (!longsignal) {
       jam();
       c_firedTriggerHash.remove(trigPtr);
     }
@@ -21850,13 +30726,12 @@ void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
     trigPtr.p->triggerType = (TriggerType::Value)fireOrd->m_triggerType;
     trigPtr.p->triggerEvent = (TriggerEvent::Value)fireOrd->m_triggerEvent;
 
-    trigPtr.p->fragId= fireOrd->fragId;
-    if (longsignal)
-    {
+    trigPtr.p->fragId = fireOrd->fragId;
+    if (longsignal) {
       jam();
-      AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+      AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
       {
-        //TODO: error insert to make e.g middle append fail
+        // TODO: error insert to make e.g middle append fail
         LocalAttributeBuffer tmp1(pool, trigPtr.p->keyValues);
         LocalAttributeBuffer tmp2(pool, trigPtr.p->beforeValues);
         LocalAttributeBuffer tmp3(pool, trigPtr.p->afterValues);
@@ -21871,13 +30746,11 @@ void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
     ok &= trigPtr.p->afterValues.getSize() == fireOrd->m_noAfterValueWords;
     ok &= trigPtr.p->beforeValues.getSize() == fireOrd->m_noBeforeValueWords;
 
-    if (ERROR_INSERTED(8085))
-    {
+    if (ERROR_INSERTED(8085)) {
       ok = false;
     }
 
-    if(likely( ok ))
-    {
+    if (likely(ok)) {
       jam();
       setApiConTimer(transPtr, ctcTimer, __LINE__);
       opPtr.p->numReceivedTriggers++;
@@ -21917,22 +30790,21 @@ void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
        * it will be called as usual on receiving LQHKEYCONF for the
        * triggered operation.
        */
-      opPtr.p->triggerExecutionCount++; // Default 1 LQHKEYREQ per trigger
+      opPtr.p->triggerExecutionCount++;  // Default 1 LQHKEYREQ per trigger
       // Insert fired trigger in execution queue
       {
-        Local_TcFiredTriggerData_fifo
-          list(c_theFiredTriggerPool, opPtr.p->thePendingTriggers);
+        Local_TcFiredTriggerData_fifo list(c_theFiredTriggerPool,
+                                           opPtr.p->thePendingTriggers);
         list.addLast(trigPtr);
       }
 
       if (opPtr.p->numReceivedTriggers == opPtr.p->numFiredTriggers ||
-          transPtr.p->isExecutingDeferredTriggers())
-      {
+          transPtr.p->isExecutingDeferredTriggers()) {
         jam();
-        Local_TcFiredTriggerData_fifo
-          list(c_theFiredTriggerPool, transPtr.p->theFiredTriggers);
+        Local_TcFiredTriggerData_fifo list(c_theFiredTriggerPool,
+                                           transPtr.p->theFiredTriggers);
         list.appendList(opPtr.p->thePendingTriggers);
-	executeTriggers(signal, &transPtr);
+        executeTriggers(signal, &transPtr);
       }
       return;
     }
@@ -21946,7 +30818,7 @@ void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
     jam();
     errorCode = ZINCONSISTENT_TRIGGER_STATE;
     // Release trigger records
-    AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+    AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
     LocalAttributeBuffer tmp1(pool, trigPtr.p->keyValues);
     tmp1.release();
     LocalAttributeBuffer tmp2(pool, trigPtr.p->beforeValues);
@@ -21966,12 +30838,11 @@ void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
    * bad transid
    * If transid is ok, abort the transaction.
    * else, return.
-   * (Note small risk of 'abort of innocent' in upgrade 
+   * (Note small risk of 'abort of innocent' in upgrade
    *  scenario with no transid in FIRE_TRIG_ORD)
    */
   jam();
-  if (transIdOk)
-  {
+  if (transIdOk) {
     jam();
     abortTransFromTrigger(signal, transPtr, errorCode);
   }
@@ -21979,21 +30850,19 @@ void Dbtc::execFIRE_TRIG_ORD(Signal* signal)
   return;
 }
 
-void Dbtc::execTRIG_ATTRINFO(Signal* signal)
-{
+void Dbtc::execTRIG_ATTRINFO(Signal *signal) {
   jamEntry();
-  TrigAttrInfo * const trigAttrInfo =  (TrigAttrInfo *)signal->getDataPtr();
+  TrigAttrInfo *const trigAttrInfo = (TrigAttrInfo *)signal->getDataPtr();
   Uint32 attrInfoLength = signal->getLength() - TrigAttrInfo::StaticLength;
   const Uint32 *src = trigAttrInfo->getData();
   FiredTriggerPtr firedTrigPtr;
-  
+
   TcFiredTriggerData key;
   key.fireingOperation = trigAttrInfo->getConnectionPtr();
   key.nodeId = refToNode(signal->getSendersBlockRef());
-  if(!c_firedTriggerHash.find(firedTrigPtr, key)){
+  if (!c_firedTriggerHash.find(firedTrigPtr, key)) {
     jam();
-    if(!c_theFiredTriggerPool.seize(firedTrigPtr))
-    {
+    if (!c_theFiredTriggerPool.seize(firedTrigPtr)) {
       jam();
       /**
        * Will be handled when FIRE_TRIG_ORD arrives
@@ -22003,51 +30872,50 @@ void Dbtc::execTRIG_ATTRINFO(Signal* signal)
       return;
     }
     ndbrequire(firedTrigPtr.p->keyValues.getSize() == 0 &&
-	       firedTrigPtr.p->beforeValues.getSize() == 0 &&
-	       firedTrigPtr.p->afterValues.getSize() == 0);
-    
+               firedTrigPtr.p->beforeValues.getSize() == 0 &&
+               firedTrigPtr.p->afterValues.getSize() == 0);
+
     firedTrigPtr.p->nodeId = refToNode(signal->getSendersBlockRef());
     firedTrigPtr.p->fireingOperation = key.fireingOperation;
     firedTrigPtr.p->triggerId = trigAttrInfo->getTriggerId();
     c_firedTriggerHash.add(firedTrigPtr);
   }
-  
-  AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+
+  AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
   switch (trigAttrInfo->getAttrInfoType()) {
-  case(TrigAttrInfo::PRIMARY_KEY):
-    jam();
-    {
-      LocalAttributeBuffer buf(pool, firedTrigPtr.p->keyValues);
-      buf.append(src, attrInfoLength);
-    }
-    break;
-  case(TrigAttrInfo::BEFORE_VALUES):
-    jam();
-    {
-      LocalAttributeBuffer buf(pool, firedTrigPtr.p->beforeValues);
-      buf.append(src, attrInfoLength);
-    }
-    break;
-  case(TrigAttrInfo::AFTER_VALUES):
-    jam();
-    {
-      LocalAttributeBuffer buf(pool, firedTrigPtr.p->afterValues);
-      buf.append(src, attrInfoLength);
-    }
-    break;
-  default:
-    ndbabort();
+    case (TrigAttrInfo::PRIMARY_KEY):
+      jam();
+      {
+        LocalAttributeBuffer buf(pool, firedTrigPtr.p->keyValues);
+        buf.append(src, attrInfoLength);
+      }
+      break;
+    case (TrigAttrInfo::BEFORE_VALUES):
+      jam();
+      {
+        LocalAttributeBuffer buf(pool, firedTrigPtr.p->beforeValues);
+        buf.append(src, attrInfoLength);
+      }
+      break;
+    case (TrigAttrInfo::AFTER_VALUES):
+      jam();
+      {
+        LocalAttributeBuffer buf(pool, firedTrigPtr.p->afterValues);
+        buf.append(src, attrInfoLength);
+      }
+      break;
+    default:
+      ndbabort();
   }
 }
 
-void Dbtc::execDROP_INDX_IMPL_REQ(Signal* signal)
-{
+void Dbtc::execDROP_INDX_IMPL_REQ(Signal *signal) {
   jamEntry();
-  const DropIndxImplReq * const req =
-    (const DropIndxImplReq *)signal->getDataPtr();
+  const DropIndxImplReq *const req =
+      (const DropIndxImplReq *)signal->getDataPtr();
   const Uint32 senderRef = req->senderRef;
   const Uint32 senderData = req->senderData;
-  TcIndexData* indexData;
+  TcIndexData *indexData;
   TcIndexDataPtr indexPtr;
   
   if (ERROR_INSERTED(8036) ||
@@ -22056,15 +30924,14 @@ void Dbtc::execDROP_INDX_IMPL_REQ(Signal* signal)
     jam();
     CLEAR_ERROR_INSERT_VALUE;
     // Failed to find index record
-    DropIndxImplRef * const ref =  
-      (DropIndxImplRef *)signal->getDataPtrSend();
+    DropIndxImplRef *const ref = (DropIndxImplRef *)signal->getDataPtrSend();
 
     ref->senderRef = reference();
     ref->senderData = senderData;
     ref->errorCode = DropIndxImplRef::InconsistentTC;
     ref->errorLine = __LINE__;
-    sendSignal(senderRef, GSN_DROP_INDX_IMPL_REF, 
-               signal, DropIndxImplRef::SignalLength, JBB);
+    sendSignal(senderRef, GSN_DROP_INDX_IMPL_REF, signal,
+               DropIndxImplRef::SignalLength, JBB);
     return;
   }
   indexData = indexPtr.p;
@@ -22073,41 +30940,37 @@ void Dbtc::execDROP_INDX_IMPL_REQ(Signal* signal)
   checkPoolShrinkNeed(DBTC_INDEX_DATA_RECORD_TRANSIENT_POOL_INDEX,
                       c_theIndexPool);
 
-  DropIndxImplConf * const conf =  
-    (DropIndxImplConf *)signal->getDataPtrSend();
+  DropIndxImplConf *const conf = (DropIndxImplConf *)signal->getDataPtrSend();
 
   conf->senderRef = reference();
   conf->senderData = senderData;
-  sendSignal(senderRef, GSN_DROP_INDX_IMPL_CONF, 
-             signal, DropIndxImplConf::SignalLength, JBB);
+  sendSignal(senderRef, GSN_DROP_INDX_IMPL_CONF, signal,
+             DropIndxImplConf::SignalLength, JBB);
 }
 
-void Dbtc::execTCINDXREQ(Signal* signal)
-{
+void Dbtc::execTCINDXREQ(Signal *signal) {
   jamEntry();
-  if (!assembleFragments(signal))
-  {
+  if (!assembleFragments(signal)) {
     jam();
     return;
   }
 
-  TcKeyReq * const tcIndxReq =  (TcKeyReq *)signal->getDataPtr();
+  TcKeyReq *const tcIndxReq = (TcKeyReq *)signal->getDataPtr();
   const UintR TapiIndex = tcIndxReq->apiConnectPtr;
   Uint32 tcIndxRequestInfo = tcIndxReq->requestInfo;
   Uint32 startFlag = tcIndxReq->getStartFlag(tcIndxRequestInfo);
   ApiConnectRecordPtr transPtr;
-  bool isLongTcIndxReq= (signal->getNoOfSections() != 0);
+  bool isLongTcIndxReq = (signal->getNoOfSections() != 0);
   SectionHandle handle(this, signal);
 
   transPtr.i = TapiIndex;
-  if (unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr)))
-  {
+  if (unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr))) {
     jam();
     warningHandlerLab(signal, __LINE__);
     releaseSections(handle);
     return;
-  }//if
-  ApiConnectRecord * const regApiPtr = transPtr.p;  
+  }  // if
+  ApiConnectRecord *const regApiPtr = transPtr.p;
   if (unlikely(regApiPtr->apiConnectstate == CS_RELEASE))
   {
     warningHandlerLab(signal, __LINE__);
@@ -22118,14 +30981,16 @@ void Dbtc::execTCINDXREQ(Signal* signal)
   TcIndexOperationPtr indexOpPtr;
 
 #ifdef ERROR_INSERT
-  if (ERROR_INSERTED(8100))
-  {
+  if (ERROR_INSERTED(8100)) {
     char buf[128];
-    BaseString::snprintf(buf, sizeof(buf), "Inserted 8100, startFlag %u, regApiPtr->apiConnectstate %u, regApiPtr->abortState %u", startFlag, regApiPtr->apiConnectstate, regApiPtr->abortState);
+    BaseString::snprintf(
+        buf, sizeof(buf),
+        "Inserted 8100, startFlag %u, regApiPtr->apiConnectstate %u, "
+        "regApiPtr->abortState %u",
+        startFlag, regApiPtr->apiConnectstate, regApiPtr->abortState);
     warningEvent("%s", buf);
-    
-    if (startFlag == 1)
-    {
+
+    if (startFlag == 1) {
       jam();
       /*
         Phase 1:
@@ -22144,11 +31009,13 @@ void Dbtc::execTCINDXREQ(Signal* signal)
       sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 100, 6);
       *signal = s;
     }
-  }
-  else if (ERROR_INSERTED(8101))
-  {
+  } else if (ERROR_INSERTED(8101)) {
     char buf[128];
-    BaseString::snprintf(buf, sizeof(buf), "Inserted 8101, startFlag %u, regApiPtr->apiConnectstate %u, regApiPtr->abortState %u", startFlag, regApiPtr->apiConnectstate, regApiPtr->abortState);
+    BaseString::snprintf(
+        buf, sizeof(buf),
+        "Inserted 8101, startFlag %u, regApiPtr->apiConnectstate %u, "
+        "regApiPtr->abortState %u",
+        startFlag, regApiPtr->apiConnectstate, regApiPtr->abortState);
     warningEvent("%s", buf);
 
     jam();
@@ -22160,8 +31027,7 @@ void Dbtc::execTCINDXREQ(Signal* signal)
     */
     if (regApiPtr->returncode != ZNODEFAIL_BEFORE_COMMIT ||
         regApiPtr->apiConnectstate != CS_ABORTING ||
-        regApiPtr->abortState != AS_IDLE)
-    {
+        regApiPtr->abortState != AS_IDLE) {
       /*
         We are waiting for abort to complete, but have not reached
         the transaction state we want to test. Try again.
@@ -22175,23 +31041,19 @@ void Dbtc::execTCINDXREQ(Signal* signal)
   }
 #endif
 
-   ConnectionState conState = regApiPtr->apiConnectstate;
-   if (startFlag == 1 &&
-       (conState == CS_CONNECTED ||
-        (conState == CS_STARTED && 
-         regApiPtr->tcConnect.isEmpty()) ||
-        (conState == CS_ABORTING && 
-         regApiPtr->abortState == AS_IDLE)))
-  {
+  ConnectionState conState = regApiPtr->apiConnectstate;
+  if (startFlag == 1 &&
+      (conState == CS_CONNECTED ||
+       (conState == CS_STARTED && regApiPtr->tcConnect.isEmpty()) ||
+       (conState == CS_ABORTING && regApiPtr->abortState == AS_IDLE))) {
     jam();
     // This is a newly started transaction, clean-up from any
     // previous transaction.
     initApiConnectRec(signal, regApiPtr, true);
     regApiPtr->apiConnectstate = CS_STARTED;
-  }//if (startFlag == 1 && ...
+  }  // if (startFlag == 1 && ...
   else if (regApiPtr->apiConnectstate == CS_ABORTING ||
-           regApiPtr->apiConnectstate == CS_RELEASE)
-  {
+           regApiPtr->apiConnectstate == CS_RELEASE) {
     jam();
     /*
       Transaction has been aborted and we have to do error
@@ -22204,29 +31066,26 @@ void Dbtc::execTCINDXREQ(Signal* signal)
 
   if (getNodeState().startLevel == NodeState::SL_SINGLEUSER &&
       getNodeState().getSingleUserApi() !=
-      refToNode(regApiPtr->ndbapiBlockref))
-  {
+          refToNode(regApiPtr->ndbapiBlockref)) {
     jam();
     releaseSections(handle);
     terrorCode = ZCLUSTER_IN_SINGLEUSER_MODE;
-    regApiPtr->m_flags |=
-      TcKeyReq::getExecuteFlag(tcIndxRequestInfo) ?
-      ApiConnectRecord::TF_EXEC_FLAG : 0;
+    regApiPtr->m_flags |= TcKeyReq::getExecuteFlag(tcIndxRequestInfo)
+                              ? ApiConnectRecord::TF_EXEC_FLAG
+                              : 0;
     abortErrorLab(signal, transPtr);
     return;
   }
 
-  if (regApiPtr->apiCopyRecord == RNIL)
-  {
+  if (regApiPtr->apiCopyRecord == RNIL) {
     jam();
-    if (unlikely(!seizeApiConnectCopy(signal, transPtr.p)))
-    {
+    if (unlikely(!seizeApiConnectCopy(signal, transPtr.p))) {
       jam();
       releaseSections(handle);
       terrorCode = ZSEIZE_API_COPY_ERROR;
-      regApiPtr->m_flags |=
-        TcKeyReq::getExecuteFlag(tcIndxRequestInfo) ?
-        ApiConnectRecord::TF_EXEC_FLAG : 0;
+      regApiPtr->m_flags |= TcKeyReq::getExecuteFlag(tcIndxRequestInfo)
+                                ? ApiConnectRecord::TF_EXEC_FLAG
+                                : 0;
       abortErrorLab(signal, transPtr);
       return;
     }
@@ -22237,13 +31096,13 @@ void Dbtc::execTCINDXREQ(Signal* signal)
     releaseSections(handle);
     // Failed to allocate index operation
     terrorCode = 288;
-    regApiPtr->m_flags |=
-      TcKeyReq::getExecuteFlag(tcIndxRequestInfo) ?
-      ApiConnectRecord::TF_EXEC_FLAG : 0;
+    regApiPtr->m_flags |= TcKeyReq::getExecuteFlag(tcIndxRequestInfo)
+                              ? ApiConnectRecord::TF_EXEC_FLAG
+                              : 0;
     abortErrorLab(signal, transPtr);
     return;
   }
-  TcIndexOperation* indexOp = indexOpPtr.p;
+  TcIndexOperation *indexOp = indexOpPtr.p;
   indexOp->indexOpId = indexOpPtr.i;
 
   // Save original signal
@@ -22251,8 +31110,7 @@ void Dbtc::execTCINDXREQ(Signal* signal)
   indexOp->connectionIndex = TapiIndex;
   regApiPtr->accumulatingIndexOp = indexOp->indexOpId;
 
-  if (isLongTcIndxReq)
-  {
+  if (isLongTcIndxReq) {
     jam();
     /* KeyInfo and AttrInfo already received into sections */
     SegmentedSectionPtr keyInfoSection, attrInfoSection;
@@ -22260,25 +31118,21 @@ void Dbtc::execTCINDXREQ(Signal* signal)
     /* Store i value for first long section of KeyInfo
      * and AttrInfo in Index operation
      */
-    ndbrequire(handle.getSection(keyInfoSection,
-                                 TcKeyReq::KeyInfoSectionNum));
+    ndbrequire(handle.getSection(keyInfoSection, TcKeyReq::KeyInfoSectionNum));
 
-    indexOp->keyInfoSectionIVal= keyInfoSection.i;
-  
-    if (handle.m_cnt == 2)
-    {
-      ndbrequire(handle.getSection(attrInfoSection,
-                                   TcKeyReq::AttrInfoSectionNum));
-      indexOp->attrInfoSectionIVal= attrInfoSection.i;
+    indexOp->keyInfoSectionIVal = keyInfoSection.i;
+
+    if (handle.m_cnt == 2) {
+      ndbrequire(
+          handle.getSection(attrInfoSection, TcKeyReq::AttrInfoSectionNum));
+      indexOp->attrInfoSectionIVal = attrInfoSection.i;
     }
 
-    if (TcKeyReq::getDeferredConstraints(tcIndxRequestInfo))
-    {
+    if (TcKeyReq::getDeferredConstraints(tcIndxRequestInfo)) {
       regApiPtr->m_flags |= ApiConnectRecord::TF_DEFERRED_CONSTRAINTS;
     }
 
-    if (TcKeyReq::getDisableFkConstraints(tcIndxRequestInfo))
-    {
+    if (TcKeyReq::getDisableFkConstraints(tcIndxRequestInfo)) {
       regApiPtr->m_flags |= ApiConnectRecord::TF_DISABLE_FK_CONSTRAINTS;
     }
     indexOp->savedFlags = regApiPtr->m_flags;
@@ -22292,14 +31146,12 @@ void Dbtc::execTCINDXREQ(Signal* signal)
     /* All data received, process */
     readIndexTable(signal, transPtr, indexOp, 0);
     return;
-  }
-  else
-  {
+  } else {
     jam();
     /* Short TcIndxReq, build up KeyInfo and AttrInfo
      * sections from separate signals
      */
-    Uint32 * dataPtr = &tcIndxReq->scanInfo;
+    Uint32 *dataPtr = &tcIndxReq->scanInfo;
     Uint32 indexLength = TcKeyReq::getKeyLength(tcIndxRequestInfo);
     Uint32 attrLength = TcKeyReq::getAttrinfoLen(tcIndxReq->attrLen);
 
@@ -22318,29 +31170,20 @@ void Dbtc::execTCINDXREQ(Signal* signal)
     const Uint32 includedAttrLength = MIN(attrLength, TcKeyReq::MaxAttrInfo);
     int ret;
 
-    if ((ret = saveINDXKEYINFO(signal,
-                               indexOp,
-                               dataPtr,
-                               includedIndexLength)) == 0)
-    {
+    if ((ret = saveINDXKEYINFO(signal, indexOp, dataPtr,
+                               includedIndexLength)) == 0) {
       jam();
       /* All KI + no AI received, process */
       readIndexTable(signal, transPtr, indexOp, 0);
       return;
-    }
-    else if (ret == -1)
-    {
+    } else if (ret == -1) {
       jam();
       return;
     }
 
     dataPtr += includedIndexLength;
 
-    if (saveINDXATTRINFO(signal,
-                         indexOp,
-                         dataPtr,
-                         includedAttrLength) == 0)
-    {
+    if (saveINDXATTRINFO(signal, indexOp, dataPtr, includedAttrLength) == 0) {
       jam();
       /* All KI and AI received, process */
       readIndexTable(signal, transPtr, indexOp, 0);
@@ -22349,48 +31192,39 @@ void Dbtc::execTCINDXREQ(Signal* signal)
   }
 }
 
-void Dbtc::execINDXKEYINFO(Signal* signal)
-{
+void Dbtc::execINDXKEYINFO(Signal *signal) {
   jamEntry();
   Uint32 keyInfoLength = signal->getLength() - IndxKeyInfo::HeaderLength;
-  IndxKeyInfo * const indxKeyInfo =  (IndxKeyInfo *)signal->getDataPtr();
+  IndxKeyInfo *const indxKeyInfo = (IndxKeyInfo *)signal->getDataPtr();
   const Uint32 *src = indxKeyInfo->getData();
   const UintR TconnectIndex = indxKeyInfo->connectPtr;
   ApiConnectRecordPtr transPtr;
   transPtr.i = TconnectIndex;
-  if (unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr)))
-  {
+  if (unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr))) {
     jam();
     warningHandlerLab(signal, __LINE__);
     return;
-  }//if
-  ApiConnectRecord * const regApiPtr = transPtr.p;
+  }  // if
+  ApiConnectRecord *const regApiPtr = transPtr.p;
   TcIndexOperationPtr indexOpPtr;
 
-  if (compare_transid(regApiPtr->transid, indxKeyInfo->transId) == false)
-  {
+  if (compare_transid(regApiPtr->transid, indxKeyInfo->transId) == false) {
     jam();
     return;
   }
 
   if (regApiPtr->apiConnectstate == CS_ABORTING ||
-      regApiPtr->apiConnectstate == CS_RELEASE)
-  {
+      regApiPtr->apiConnectstate == CS_RELEASE) {
     jam();
     return;
   }
 
   indexOpPtr.i = regApiPtr->accumulatingIndexOp;
-  if (indexOpPtr.i != RNIL && c_theIndexOperationPool.getValidPtr(indexOpPtr))
-  {
-    TcIndexOperation* indexOp = indexOpPtr.p;
-    ndbassert( indexOp->pendingKeyInfo > 0 );
+  if (indexOpPtr.i != RNIL && c_theIndexOperationPool.getValidPtr(indexOpPtr)) {
+    TcIndexOperation *indexOp = indexOpPtr.p;
+    ndbassert(indexOp->pendingKeyInfo > 0);
 
-    if (saveINDXKEYINFO(signal,
-                        indexOp,
-                        src,
-                        keyInfoLength) == 0)
-    {
+    if (saveINDXKEYINFO(signal, indexOp, src, keyInfoLength) == 0) {
       jam();
       /* All KI + AI received, process */
       readIndexTable(signal, transPtr, indexOp, 0);
@@ -22398,48 +31232,39 @@ void Dbtc::execINDXKEYINFO(Signal* signal)
   }
 }
 
-void Dbtc::execINDXATTRINFO(Signal* signal)
-{
+void Dbtc::execINDXATTRINFO(Signal *signal) {
   jamEntry();
   Uint32 attrInfoLength = signal->getLength() - IndxAttrInfo::HeaderLength;
-  IndxAttrInfo * const indxAttrInfo =  (IndxAttrInfo *)signal->getDataPtr();
+  IndxAttrInfo *const indxAttrInfo = (IndxAttrInfo *)signal->getDataPtr();
   const Uint32 *src = indxAttrInfo->getData();
   const UintR TconnectIndex = indxAttrInfo->connectPtr;
   ApiConnectRecordPtr transPtr;
   transPtr.i = TconnectIndex;
-  if (unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr)))
-  {
+  if (unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr))) {
     jam();
     warningHandlerLab(signal, __LINE__);
     return;
-  }//if
-  ApiConnectRecord * const regApiPtr = transPtr.p;
+  }  // if
+  ApiConnectRecord *const regApiPtr = transPtr.p;
   TcIndexOperationPtr indexOpPtr;
 
-  if (compare_transid(regApiPtr->transid, indxAttrInfo->transId) == false)
-  {
+  if (compare_transid(regApiPtr->transid, indxAttrInfo->transId) == false) {
     jam();
     return;
   }
 
   if (regApiPtr->apiConnectstate == CS_ABORTING ||
-      regApiPtr->apiConnectstate == CS_RELEASE)
-  {
+      regApiPtr->apiConnectstate == CS_RELEASE) {
     jam();
     return;
   }
 
   indexOpPtr.i = regApiPtr->accumulatingIndexOp;
-  if (indexOpPtr.i != RNIL && c_theIndexOperationPool.getValidPtr(indexOpPtr))
-  {
-    TcIndexOperation* indexOp = indexOpPtr.p;
-    ndbassert( indexOp->pendingAttrInfo > 0 );
+  if (indexOpPtr.i != RNIL && c_theIndexOperationPool.getValidPtr(indexOpPtr)) {
+    TcIndexOperation *indexOp = indexOpPtr.p;
+    ndbassert(indexOp->pendingAttrInfo > 0);
 
-    if (saveINDXATTRINFO(signal,
-                         indexOp,
-                         src,
-                         attrInfoLength) == 0)
-    {
+    if (saveINDXATTRINFO(signal, indexOp, src, attrInfoLength) == 0) {
       jam();
       /* All KI + AI received, process */
       readIndexTable(signal, transPtr, indexOp, 0);
@@ -22451,17 +31276,10 @@ void Dbtc::execINDXATTRINFO(Signal* signal)
  * Save received KeyInfo
  * Return true if we have received all needed data
  */
-int
-Dbtc::saveINDXKEYINFO(Signal* signal,
-                      TcIndexOperation* indexOp,
-                      const Uint32 *src,
-                      Uint32 len)
-{
+int Dbtc::saveINDXKEYINFO(Signal *signal, TcIndexOperation *indexOp,
+                          const Uint32 *src, Uint32 len) {
   if (ERROR_INSERTED(8052) ||
-      ! appendToSection(indexOp->keyInfoSectionIVal,
-                        src,
-                        len))
-  {
+      !appendToSection(indexOp->keyInfoSectionIVal, src, len)) {
     jam();
     // Failed to seize keyInfo, abort transaction
 #ifdef VM_TRACE
@@ -22479,18 +31297,16 @@ Dbtc::saveINDXKEYINFO(Signal* signal,
     abortErrorLab(signal, apiConnectptr);
     return -1;
   }
-  indexOp->pendingKeyInfo-= len;
+  indexOp->pendingKeyInfo -= len;
 
-  if (receivedAllINDXKEYINFO(indexOp) && receivedAllINDXATTRINFO(indexOp))
-  {
+  if (receivedAllINDXKEYINFO(indexOp) && receivedAllINDXATTRINFO(indexOp)) {
     jam();
     return 0;
   }
   return 1;
 }
 
-bool Dbtc::receivedAllINDXKEYINFO(TcIndexOperation* indexOp)
-{
+bool Dbtc::receivedAllINDXKEYINFO(TcIndexOperation *indexOp) {
   return (indexOp->pendingKeyInfo == 0);
 }
 
@@ -22498,17 +31314,10 @@ bool Dbtc::receivedAllINDXKEYINFO(TcIndexOperation* indexOp)
  * Save signal INDXATTRINFO
  * Return true if we have received all needed data
  */
-int
-Dbtc::saveINDXATTRINFO(Signal* signal,
-                       TcIndexOperation* indexOp,
-                       const Uint32 *src,
-                       Uint32 len)
-{
+int Dbtc::saveINDXATTRINFO(Signal *signal, TcIndexOperation *indexOp,
+                           const Uint32 *src, Uint32 len) {
   if (ERROR_INSERTED(8051) ||
-      ! appendToSection(indexOp->attrInfoSectionIVal,
-                        src,
-                        len))
-  {
+      !appendToSection(indexOp->attrInfoSectionIVal, src, len)) {
     jam();
 #ifdef VM_TRACE
     g_eventLogger->info(
@@ -22525,18 +31334,16 @@ Dbtc::saveINDXATTRINFO(Signal* signal,
     return -1;
   }
 
-  indexOp->pendingAttrInfo-= len;
+  indexOp->pendingAttrInfo -= len;
 
-  if (receivedAllINDXKEYINFO(indexOp) && receivedAllINDXATTRINFO(indexOp))
-  {
+  if (receivedAllINDXKEYINFO(indexOp) && receivedAllINDXATTRINFO(indexOp)) {
     jam();
     return 0;
   }
   return 1;
 }
 
-bool Dbtc::receivedAllINDXATTRINFO(TcIndexOperation* indexOp)
-{
+bool Dbtc::receivedAllINDXATTRINFO(TcIndexOperation *indexOp) {
   return (indexOp->pendingAttrInfo == 0);
 }
 
@@ -22544,15 +31351,12 @@ bool Dbtc::receivedAllINDXATTRINFO(TcIndexOperation* indexOp)
 extern bool ErrorImportActive;
 #endif
 
-Uint32 Dbtc::saveTRANSID_AI(Signal* signal,
-                            TcIndexOperation* indexOp, 
-                            const Uint32 *src,
-                            Uint32 len)
-{
+Uint32 Dbtc::saveTRANSID_AI(Signal *signal, TcIndexOperation *indexOp,
+                            const Uint32 *src, Uint32 len) {
   /* TransID_AI is received as a result of looking up a
    * unique index table
    * The unique index table is looked up using the index
-   * key to receive a single attribute containing the 
+   * key to receive a single attribute containing the
    * fragment holding the base table row and the base
    * table primary key.
    * This is later used to build a TCKEYREQ against the
@@ -22578,136 +31382,124 @@ Uint32 Dbtc::saveTRANSID_AI(Signal* signal,
    * The outgoing KeyInfo section contains the base
    * table primary key info, with the fragment id passed
    * as the distribution key.
-   * ITAS_WAIT_KEY_FAIL state is entered when there is no 
+   * ITAS_WAIT_KEY_FAIL state is entered when there is no
    * space to store received TRANSID_AI information and
    * key collection must fail.  Transaction abort is performed
    * once all TRANSID_AI is received, and the system waits in
    * ITAS_WAIT_KEY_FAIL state until then.
    *
    */
-  Uint32 remain= len;
+  Uint32 remain = len;
 
-  while (remain != 0)
-  {
-    switch(indexOp->transIdAIState) {
-    case ITAS_WAIT_HEADER:
-    {
-      jam();
-      ndbassert(indexOp->transIdAISectionIVal == RNIL);
-      /* Look at the first AttributeHeader to get the
-       * expected size of the primary key attribute
-       */
-      AttributeHeader* head = (AttributeHeader *) src;
-      ndbassert(head->getHeaderSize() == 1);
-      indexOp->pendingTransIdAI = 1 + head->getDataSize();
-
-      src++;
-      remain--;
-      indexOp->transIdAIState = ITAS_WAIT_FRAGID;
-      break;
-    }
-    case ITAS_WAIT_FRAGID:
-    {
-      jam();
-      ndbassert(indexOp->transIdAISectionIVal == RNIL);
-      /* Grab the fragment Id word */
-      indexOp->fragmentId= *src;
-
-      src++;
-      remain--;
-      indexOp->transIdAIState = ITAS_WAIT_KEY; 
-      break;
-    }
-    case ITAS_WAIT_KEY:
-    {
-      jam();
-      /* Add key information to long section */
-#ifdef ERROR_INSERT
-      if (ERROR_INSERTED(8066))
-      {
-        ErrorImportActive = true;
-      }
-#endif
-
-      bool res = appendToSection(indexOp->transIdAISectionIVal, src, remain);
-#ifdef ERROR_INSERT
-      if (ERROR_INSERTED(8066))
-      {
-        ErrorImportActive = false;
-      }
-#endif
-
-      if (res)
-      {
+  while (remain != 0) {
+    switch (indexOp->transIdAIState) {
+      case ITAS_WAIT_HEADER: {
         jam();
-        remain= 0;
-        break;
-      }
-      else
-      {
-        jam();
-#ifdef VM_TRACE
-        g_eventLogger->info(
-            "Dbtc::saveTRANSID_AI: Failed to seize buffer for TRANSID_AI");
-#endif
-        indexOp->transIdAIState= ITAS_WAIT_KEY_FAIL;
-      }
-    }
-    // Fall through to ITAS_WAIT_KEY_FAIL state handling
-    [[fallthrough]];
-
-    case ITAS_WAIT_KEY_FAIL:
-    {
-      /* Failed when collecting key previously - if we have all the
-       * TRANSID_AI now then we abort
-       */
-      if (indexOp->pendingTransIdAI > len)
-      {
-        /* Still some TransIdAI to arrive, keep waiting as if we had
-         * stored it
+        ndbassert(indexOp->transIdAISectionIVal == RNIL);
+        /* Look at the first AttributeHeader to get the
+         * expected size of the primary key attribute
          */
-        remain= 0;
+        AttributeHeader *head = (AttributeHeader *)src;
+        ndbassert(head->getHeaderSize() == 1);
+        indexOp->pendingTransIdAI = 1 + head->getDataSize();
+
+        src++;
+        remain--;
+        indexOp->transIdAIState = ITAS_WAIT_FRAGID;
         break;
       }
+      case ITAS_WAIT_FRAGID: {
+        jam();
+        ndbassert(indexOp->transIdAISectionIVal == RNIL);
+        /* Grab the fragment Id word */
+        indexOp->fragmentId = *src;
 
-      /* All TransIdAI has arrived, abort */
-      ApiConnectRecordPtr apiConnectptr;
-      apiConnectptr.i = indexOp->connectionIndex;
-      c_apiConnectRecordPool.getPtr(apiConnectptr);
-      releaseIndexOperation(apiConnectptr.p, indexOp);
-      terrorCode = ZGET_DATAREC_ERROR;
-      abortErrorLab(signal, apiConnectptr);
-      return ZGET_DATAREC_ERROR;
-    }
-
-    case ITAS_ALL_RECEIVED:
-      jam();
-      [[fallthrough]];
-    default:
-      jam();
-      /* Bad state, or bad state to receive TransId_Ai in */
-      // Todo : Check error handling here.
-#ifdef VM_TRACE
-      g_eventLogger->info("Dbtc::saveTRANSID_AI: Bad state when receiving");
+        src++;
+        remain--;
+        indexOp->transIdAIState = ITAS_WAIT_KEY;
+        break;
+      }
+      case ITAS_WAIT_KEY: {
+        jam();
+        /* Add key information to long section */
+#ifdef ERROR_INSERT
+        if (ERROR_INSERTED(8066)) {
+          ErrorImportActive = true;
+        }
 #endif
-      ApiConnectRecordPtr apiConnectptr;
-      apiConnectptr.i = indexOp->connectionIndex;
-      c_apiConnectRecordPool.getPtr(apiConnectptr);
-      releaseIndexOperation(apiConnectptr.p, indexOp);
-      terrorCode = ZINCONSISTENT_INDEX_USE;
-      abortErrorLab(signal, apiConnectptr);
-      return ZINCONSISTENT_INDEX_USE;
-    } // switch
-  } // while
 
-  if ((indexOp->pendingTransIdAI-= len) == 0)
+        bool res = appendToSection(indexOp->transIdAISectionIVal, src, remain);
+#ifdef ERROR_INSERT
+        if (ERROR_INSERTED(8066)) {
+          ErrorImportActive = false;
+        }
+#endif
+
+        if (res) {
+          jam();
+          remain = 0;
+          break;
+        } else {
+          jam();
+#ifdef VM_TRACE
+          g_eventLogger->info(
+              "Dbtc::saveTRANSID_AI: Failed to seize buffer for TRANSID_AI");
+#endif
+          indexOp->transIdAIState = ITAS_WAIT_KEY_FAIL;
+        }
+      }
+        // Fall through to ITAS_WAIT_KEY_FAIL state handling
+        [[fallthrough]];
+
+      case ITAS_WAIT_KEY_FAIL: {
+        /* Failed when collecting key previously - if we have all the
+         * TRANSID_AI now then we abort
+         */
+        if (indexOp->pendingTransIdAI > len) {
+          /* Still some TransIdAI to arrive, keep waiting as if we had
+           * stored it
+           */
+          remain = 0;
+          break;
+        }
+
+        /* All TransIdAI has arrived, abort */
+        ApiConnectRecordPtr apiConnectptr;
+        apiConnectptr.i = indexOp->connectionIndex;
+        c_apiConnectRecordPool.getPtr(apiConnectptr);
+        releaseIndexOperation(apiConnectptr.p, indexOp);
+        terrorCode = ZGET_DATAREC_ERROR;
+        abortErrorLab(signal, apiConnectptr);
+        return ZGET_DATAREC_ERROR;
+      }
+
+      case ITAS_ALL_RECEIVED:
+        jam();
+        [[fallthrough]];
+      default:
+        jam();
+        /* Bad state, or bad state to receive TransId_Ai in */
+        // Todo : Check error handling here.
+#ifdef VM_TRACE
+        g_eventLogger->info("Dbtc::saveTRANSID_AI: Bad state when receiving");
+#endif
+        ApiConnectRecordPtr apiConnectptr;
+        apiConnectptr.i = indexOp->connectionIndex;
+        c_apiConnectRecordPool.getPtr(apiConnectptr);
+        releaseIndexOperation(apiConnectptr.p, indexOp);
+        terrorCode = ZINCONSISTENT_INDEX_USE;
+        abortErrorLab(signal, apiConnectptr);
+        return ZINCONSISTENT_INDEX_USE;
+    }  // switch
+  }    // while
+
+  if ((indexOp->pendingTransIdAI -= len) == 0)
     indexOp->transIdAIState = ITAS_ALL_RECEIVED;
-  
+
   return ZOK;
 }
 
-bool Dbtc::receivedAllTRANSID_AI(TcIndexOperation* indexOp)
-{
+bool Dbtc::receivedAllTRANSID_AI(TcIndexOperation *indexOp) {
   return (indexOp->transIdAIState == ITAS_ALL_RECEIVED);
 }
 
@@ -22716,22 +31508,20 @@ bool Dbtc::receivedAllTRANSID_AI(TcIndexOperation* indexOp)
  * This can be either the return of reading an index table
  * or performing an index operation
  */
-void Dbtc::execTCKEYCONF(Signal* signal)
-{
-  TcKeyConf * const tcKeyConf =  (TcKeyConf *)signal->getDataPtr();
+void Dbtc::execTCKEYCONF(Signal *signal) {
+  TcKeyConf *const tcKeyConf = (TcKeyConf *)signal->getDataPtr();
   TcIndexOperationPtr indexOpPtr;
 
   jamEntry();
   indexOpPtr.i = tcKeyConf->apiConnectPtr;
   if (unlikely(!c_theIndexOperationPool.getValidPtr(indexOpPtr) ||
-               indexOpPtr.i == RNIL))
-  {
+               indexOpPtr.i == RNIL)) {
     jam();
     // Missing or invalid index operation
     return;
   }
 
-  TcIndexOperation* const indexOp = indexOpPtr.p;
+  TcIndexOperation *const indexOp = indexOpPtr.p;
 
   /**
    * Check on TCKEYCONF whether the the transaction was committed
@@ -22741,114 +31531,112 @@ void Dbtc::execTCKEYCONF(Signal* signal)
   ApiConnectRecordPtr apiConnectptr;
   apiConnectptr.i = indexOp->connectionIndex;
   if (unlikely(!c_apiConnectRecordPool.getValidPtr(apiConnectptr) ||
-               apiConnectptr.i == RNIL))
-  {
+               apiConnectptr.i == RNIL)) {
     jam();
     // Missing or invalid api connection for index operation
     return;
   }
-  ApiConnectRecord * const regApiPtr = apiConnectptr.p;
+  ApiConnectRecord *const regApiPtr = apiConnectptr.p;
 
-  switch(indexOp->indexOpState) {
-  case(IOS_NOOP): {
-    jam();
-    // Should never happen, abort
-    TcKeyRef * const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
+  switch (indexOp->indexOpState) {
+    case (IOS_NOOP): {
+      jam();
+      // Should never happen, abort
+      TcKeyRef *const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
 
-    tcIndxRef->connectPtr = indexOp->tcIndxReq.senderData;
-    tcIndxRef->transId[0] = regApiPtr->transid[0];
-    tcIndxRef->transId[1] = regApiPtr->transid[1];
-    tcIndxRef->errorCode = ZINCONSISTENT_INDEX_USE;    
-    tcIndxRef->errorData = 0;
-    sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal, 
-	       TcKeyRef::SignalLength, JBB);
-    return;
-  }
-  case(IOS_INDEX_ACCESS): {
-    jam();
-    // Just waiting for the TRANSID_AI now
-    indexOp->indexOpState = IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI;
-    break;
-  }
-  case(IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI): {
-    jam();
-    // Double TCKEYCONF, should never happen, abort
-    TcKeyRef * const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
+      tcIndxRef->connectPtr = indexOp->tcIndxReq.senderData;
+      tcIndxRef->transId[0] = regApiPtr->transid[0];
+      tcIndxRef->transId[1] = regApiPtr->transid[1];
+      tcIndxRef->errorCode = ZINCONSISTENT_INDEX_USE;
+      tcIndxRef->errorData = 0;
+      sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal,
+                 TcKeyRef::SignalLength, JBB);
+      return;
+    }
+    case (IOS_INDEX_ACCESS): {
+      jam();
+      // Just waiting for the TRANSID_AI now
+      indexOp->indexOpState = IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI;
+      break;
+    }
+    case (IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI): {
+      jam();
+      // Double TCKEYCONF, should never happen, abort
+      TcKeyRef *const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
 
-    tcIndxRef->connectPtr = indexOp->tcIndxReq.senderData;
-    tcIndxRef->transId[0] = regApiPtr->transid[0];
-    tcIndxRef->transId[1] = regApiPtr->transid[1];
-    tcIndxRef->errorCode = ZINCONSISTENT_INDEX_USE;    
-    tcIndxRef->errorData = 0;
-    sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal, 
-	       TcKeyRef::SignalLength, JBB);
-    return;
-  }
-  case(IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF): {  
-    jam();
-    // Continue with index operation
-    executeIndexOperation(signal, regApiPtr, indexOp);
-    break;
-  }
+      tcIndxRef->connectPtr = indexOp->tcIndxReq.senderData;
+      tcIndxRef->transId[0] = regApiPtr->transid[0];
+      tcIndxRef->transId[1] = regApiPtr->transid[1];
+      tcIndxRef->errorCode = ZINCONSISTENT_INDEX_USE;
+      tcIndxRef->errorData = 0;
+      sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal,
+                 TcKeyRef::SignalLength, JBB);
+      return;
+    }
+    case (IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF): {
+      jam();
+      // Continue with index operation
+      executeIndexOperation(signal, regApiPtr, indexOp);
+      break;
+    }
   }
 }
 
-void Dbtc::execTCKEYREF(Signal* signal)
-{
-  TcKeyRef * const tcKeyRef = (TcKeyRef *)signal->getDataPtr();
+void Dbtc::execTCKEYREF(Signal *signal) {
+  TcKeyRef *const tcKeyRef = (TcKeyRef *)signal->getDataPtr();
   TcIndexOperationPtr indexOpPtr;
 
   jamEntry();
   indexOpPtr.i = tcKeyRef->connectPtr;
-  if (!c_theIndexOperationPool.getValidPtr(indexOpPtr) || indexOpPtr.i == RNIL)
-  {
-    jam();    
+  if (!c_theIndexOperationPool.getValidPtr(indexOpPtr) ||
+      indexOpPtr.i == RNIL) {
+    jam();
     // Missing or invalid index operation
     return;
   }
-  TcIndexOperation * const indexOp = indexOpPtr.p;
-  switch(indexOp->indexOpState) {
-  case(IOS_NOOP): {
-    jam();    
-    // Should never happen, abort
-    break;
-  }
-  case(IOS_INDEX_ACCESS):
-  case(IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI):
-  case(IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF): {
-    jam();    
-    // Send TCINDXREF 
-    
-    ApiConnectRecordPtr apiConnectptr;
-    apiConnectptr.i = indexOp->connectionIndex;
-    if (!c_apiConnectRecordPool.getValidPtr(apiConnectptr) || apiConnectptr.i == RNIL)
-    {
-      jam();    
-      // Invalid index operation, no valid api connection.
+  TcIndexOperation *const indexOp = indexOpPtr.p;
+  switch (indexOp->indexOpState) {
+    case (IOS_NOOP): {
+      jam();
+      // Should never happen, abort
+      break;
+    }
+    case (IOS_INDEX_ACCESS):
+    case (IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI):
+    case (IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF): {
+      jam();
+      // Send TCINDXREF
+
+      ApiConnectRecordPtr apiConnectptr;
+      apiConnectptr.i = indexOp->connectionIndex;
+      if (!c_apiConnectRecordPool.getValidPtr(apiConnectptr) ||
+          apiConnectptr.i == RNIL) {
+        jam();
+        // Invalid index operation, no valid api connection.
+        return;
+      }
+      ApiConnectRecord *const regApiPtr = apiConnectptr.p;
+
+      TcKeyReq *const tcIndxReq = &indexOp->tcIndxReq;
+      TcKeyRef *const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
+
+      tcIndxRef->connectPtr = tcIndxReq->senderData;
+      tcIndxRef->transId[0] = tcKeyRef->transId[0];
+      tcIndxRef->transId[1] = tcKeyRef->transId[1];
+      tcIndxRef->errorCode = tcKeyRef->errorCode;
+      tcIndxRef->errorData = 0;
+
+      releaseIndexOperation(regApiPtr, indexOp);
+
+      sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal,
+                 TcKeyRef::SignalLength, JBB);
       return;
     }
-    ApiConnectRecord * const regApiPtr = apiConnectptr.p;
-
-    TcKeyReq * const tcIndxReq = &indexOp->tcIndxReq;
-    TcKeyRef * const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
-    
-    tcIndxRef->connectPtr = tcIndxReq->senderData;
-    tcIndxRef->transId[0] = tcKeyRef->transId[0];
-    tcIndxRef->transId[1] = tcKeyRef->transId[1];
-    tcIndxRef->errorCode = tcKeyRef->errorCode;
-    tcIndxRef->errorData = 0;
-
-    releaseIndexOperation(regApiPtr, indexOp);
-
-    sendSignal(regApiPtr->ndbapiBlockref, 
-               GSN_TCINDXREF, signal, TcKeyRef::SignalLength, JBB);
-    return;
-  }
   }
 }
 
-void Dbtc::execTRANSID_AI_R(Signal* signal){
-  TransIdAI * const transIdAI =  (TransIdAI *)signal->getDataPtr();
+void Dbtc::execTRANSID_AI_R(Signal *signal) {
+  TransIdAI *const transIdAI = (TransIdAI *)signal->getDataPtr();
   Uint32 sigLen = signal->length();
   Uint32 dataLen = sigLen - TransIdAI::HeaderLength - 1;
   Uint32 recBlockref = transIdAI->attrData[dataLen];
@@ -22861,13 +31649,11 @@ void Dbtc::execTRANSID_AI_R(Signal* signal){
    * Forward signal to final destination
    * Truncate last word since that was used to hold the final dest.
    */
-  sendSignal(recBlockref, GSN_TRANSID_AI,
-	     signal, sigLen - 1, JBB,
-	     &handle);
+  sendSignal(recBlockref, GSN_TRANSID_AI, signal, sigLen - 1, JBB, &handle);
 }
 
-void Dbtc::execKEYINFO20_R(Signal* signal){
-  KeyInfo20 * const keyInfo =  (KeyInfo20 *)signal->getDataPtr();
+void Dbtc::execKEYINFO20_R(Signal *signal) {
+  KeyInfo20 *const keyInfo = (KeyInfo20 *)signal->getDataPtr();
   Uint32 sigLen = signal->length();
   Uint32 dataLen = sigLen - KeyInfo20::HeaderLength - 1;
   Uint32 recBlockref = keyInfo->keyData[dataLen];
@@ -22875,34 +31661,30 @@ void Dbtc::execKEYINFO20_R(Signal* signal){
   jamEntry();
 
   SectionHandle handle(this, signal);
-  
+
   /**
    * Forward signal to final destination
    * Truncate last word since that was used to hold the final dest.
    */
-  sendSignal(recBlockref, GSN_KEYINFO20,
-	     signal, sigLen - 1, JBB,
-	     &handle);
+  sendSignal(recBlockref, GSN_KEYINFO20, signal, sigLen - 1, JBB, &handle);
 }
 
-
-/** 
+/**
  * execTRANSID_AI
- * 
- * TRANSID_AI are received as a result of performing a read on 
+ *
+ * TRANSID_AI are received as a result of performing a read on
  * the index table as part of a (unique) index operation.
- * The data received is the primary key of the base table 
+ * The data received is the primary key of the base table
  * which is then used to perform the index operation on the
  * base table.
  */
-void Dbtc::execTRANSID_AI(Signal* signal)
-{
-  TransIdAI * const transIdAI =  (TransIdAI *)signal->getDataPtr();
+void Dbtc::execTRANSID_AI(Signal *signal) {
+  TransIdAI *const transIdAI = (TransIdAI *)signal->getDataPtr();
 
   jamEntry();
   TcIndexOperationPtr indexOpPtr;
   indexOpPtr.i = transIdAI->connectPtr;
-  TcIndexOperation* indexOp = c_theIndexOperationPool.getPtr(indexOpPtr.i);
+  TcIndexOperation *indexOp = c_theIndexOperationPool.getPtr(indexOpPtr.i);
   indexOpPtr.p = indexOp;
   if (!indexOp) {
     jam();
@@ -22910,29 +31692,26 @@ void Dbtc::execTRANSID_AI(Signal* signal)
   }
   const UintR TconnectIndex = indexOp->connectionIndex;
   ApiConnectRecordPtr transPtr;
-  
+
   transPtr.i = TconnectIndex;
   c_apiConnectRecordPool.getPtr(transPtr);
-  ApiConnectRecord * const regApiPtr = transPtr.p;
+  ApiConnectRecord *const regApiPtr = transPtr.p;
 
   // Accumulate attribute data
   SectionHandle handle(this, signal);
   bool longSignal = (handle.m_cnt == 1);
   Uint32 errorCode = ZOK;
-  if (longSignal)
-  {
+  if (longSignal) {
     SegmentedSectionPtr dataPtr;
     Uint32 dataLen;
     ndbrequire(handle.getSection(dataPtr, 0));
     dataLen = dataPtr.sz;
 
-    SectionSegment * ptrP = dataPtr.p;
-    while (dataLen > NDB_SECTION_SEGMENT_SZ)
-    {
+    SectionSegment *ptrP = dataPtr.p;
+    while (dataLen > NDB_SECTION_SEGMENT_SZ) {
       errorCode = saveTRANSID_AI(signal, indexOp, &ptrP->theData[0],
                                  NDB_SECTION_SEGMENT_SZ);
-      if (errorCode != ZOK)
-      {
+      if (errorCode != ZOK) {
         releaseSections(handle);
         goto save_error;
       }
@@ -22940,20 +31719,15 @@ void Dbtc::execTRANSID_AI(Signal* signal)
       ptrP = g_sectionSegmentPool.getPtr(ptrP->m_nextSegment);
     }
     errorCode = saveTRANSID_AI(signal, indexOp, &ptrP->theData[0], dataLen);
-    if (errorCode != ZOK)
-    {
+    if (errorCode != ZOK) {
       releaseSections(handle);
       goto save_error;
     }
 
     releaseSections(handle);
-  }
-  else
-  {
+  } else {
     /* Short TransId_AI signal */
-    errorCode = saveTRANSID_AI(signal,
-                               indexOp,
-                               transIdAI->getData(),
+    errorCode = saveTRANSID_AI(signal, indexOp, transIdAI->getData(),
                                signal->getLength() - TransIdAI::HeaderLength);
     if (errorCode != ZOK) {
     save_error:
@@ -22961,7 +31735,7 @@ void Dbtc::execTRANSID_AI(Signal* signal)
       // Failed to allocate space for TransIdAI
       // Todo : How will this behave when transaction already aborted
       // in saveTRANSID_AI call?
-      TcKeyRef * const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
+      TcKeyRef *const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
 
       tcIndxRef->connectPtr = indexOp->tcIndxReq.senderData;
       tcIndxRef->transId[0] = regApiPtr->transid[0];
@@ -22974,141 +31748,136 @@ void Dbtc::execTRANSID_AI(Signal* signal)
     }
   }
 
-  switch(indexOp->indexOpState) {
-  case(IOS_NOOP): {
-    jam();
-    // Should never happen, abort
-    TcKeyRef * const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
-    
-    tcIndxRef->connectPtr = indexOp->tcIndxReq.senderData;
-    tcIndxRef->transId[0] = regApiPtr->transid[0];
-    tcIndxRef->transId[1] = regApiPtr->transid[1];
-    tcIndxRef->errorCode = ZINCONSISTENT_INDEX_USE;
-    tcIndxRef->errorData = 0;
-    sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal, 
-	       TcKeyRef::SignalLength, JBB);
-    return;
-    break;
-  }
-  case(IOS_INDEX_ACCESS): {
-    jam();
-    // Check if all TRANSID_AI have been received
-    if (receivedAllTRANSID_AI(indexOp)) {
+  switch (indexOp->indexOpState) {
+    case (IOS_NOOP): {
       jam();
-      // Just waiting for a TCKEYCONF now
-      indexOp->indexOpState = IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF;
+      // Should never happen, abort
+      TcKeyRef *const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
+
+      tcIndxRef->connectPtr = indexOp->tcIndxReq.senderData;
+      tcIndxRef->transId[0] = regApiPtr->transid[0];
+      tcIndxRef->transId[1] = regApiPtr->transid[1];
+      tcIndxRef->errorCode = ZINCONSISTENT_INDEX_USE;
+      tcIndxRef->errorData = 0;
+      sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal,
+                 TcKeyRef::SignalLength, JBB);
+      return;
+      break;
     }
-    // else waiting for either TRANSID_AI or TCKEYCONF
-    break;
+    case (IOS_INDEX_ACCESS): {
+      jam();
+      // Check if all TRANSID_AI have been received
+      if (receivedAllTRANSID_AI(indexOp)) {
+        jam();
+        // Just waiting for a TCKEYCONF now
+        indexOp->indexOpState = IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF;
+      }
+      // else waiting for either TRANSID_AI or TCKEYCONF
+      break;
     }
-  case(IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF): {
-    jam();
+    case (IOS_INDEX_ACCESS_WAIT_FOR_TCKEYCONF): {
+      jam();
 #ifdef VM_TRACE
-    g_eventLogger->info(
-        "Dbtc::execTRANSID_AI: Too many TRANSID_AI, ignore for now");
+      g_eventLogger->info(
+          "Dbtc::execTRANSID_AI: Too many TRANSID_AI, ignore for now");
 #endif
-    /*
-    // Too many TRANSID_AI
-    TcKeyRef * const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
-    
-    tcIndexRef->connectPtr = indexOp->tcIndxReq.senderData;
-    tcIndxRef->transId[0] = regApiPtr->transid[0];
-    tcIndxRef->transId[1] = regApiPtr->transid[1];
-    tcIndxRef->errorCode = 4349;
-    tcIndxRef->errorData = 0;
-    sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal, 
-               TcKeyRef::SignalLength, JBB);
-    */
-    break;
-  }
-  case(IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI): { 
-    jam();
-    // Check if all TRANSID_AI have been received
-    if (receivedAllTRANSID_AI(indexOp)) {
-      jam();
-      // Continue with index operation
-      executeIndexOperation(signal, regApiPtr, indexOp);
+      /*
+      // Too many TRANSID_AI
+      TcKeyRef * const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
+
+      tcIndexRef->connectPtr = indexOp->tcIndxReq.senderData;
+      tcIndxRef->transId[0] = regApiPtr->transid[0];
+      tcIndxRef->transId[1] = regApiPtr->transid[1];
+      tcIndxRef->errorCode = 4349;
+      tcIndxRef->errorData = 0;
+      sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal,
+                 TcKeyRef::SignalLength, JBB);
+      */
+      break;
     }
-    // else continue waiting for more TRANSID_AI
-    break;
-  }
+    case (IOS_INDEX_ACCESS_WAIT_FOR_TRANSID_AI): {
+      jam();
+      // Check if all TRANSID_AI have been received
+      if (receivedAllTRANSID_AI(indexOp)) {
+        jam();
+        // Continue with index operation
+        executeIndexOperation(signal, regApiPtr, indexOp);
+      }
+      // else continue waiting for more TRANSID_AI
+      break;
+    }
   }
 }
 
-void Dbtc::execTCROLLBACKREP(Signal* signal)
-{
-  TcRollbackRep* tcRollbackRep =  (TcRollbackRep *)signal->getDataPtr();
+void Dbtc::execTCROLLBACKREP(Signal *signal) {
+  TcRollbackRep *tcRollbackRep = (TcRollbackRep *)signal->getDataPtr();
   jamEntry();
   TcIndexOperationPtr indexOpPtr;
   indexOpPtr.i = tcRollbackRep->connectPtr;
-  TcIndexOperation* indexOp = c_theIndexOperationPool.getPtr(indexOpPtr.i);
+  TcIndexOperation *indexOp = c_theIndexOperationPool.getPtr(indexOpPtr.i);
   indexOpPtr.p = indexOp;
-  tcRollbackRep =  (TcRollbackRep *)signal->getDataPtrSend();
+  tcRollbackRep = (TcRollbackRep *)signal->getDataPtrSend();
   tcRollbackRep->connectPtr = indexOp->tcIndxReq.senderData;
   ApiConnectRecordPtr apiConnectptr;
   apiConnectptr.i = indexOp->tcIndxReq.apiConnectPtr;
   c_apiConnectRecordPool.getPtr(apiConnectptr);
-  sendSignal(apiConnectptr.p->ndbapiBlockref, 
-	     GSN_TCROLLBACKREP, signal, TcRollbackRep::SignalLength, JBB);
+  sendSignal(apiConnectptr.p->ndbapiBlockref, GSN_TCROLLBACKREP, signal,
+             TcRollbackRep::SignalLength, JBB);
 }
 
 /**
  * Read index table with the index attributes as PK
  */
-void Dbtc::readIndexTable(Signal* signal,
-                          ApiConnectRecordPtr transPtr,
-                          TcIndexOperation* indexOp,
-                          Uint32 special_op_flags)
-{
-  TcKeyReq * const tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
-  Uint32 tcKeyRequestInfo = indexOp->tcIndxReq.requestInfo; 
+void Dbtc::readIndexTable(Signal *signal, ApiConnectRecordPtr transPtr,
+                          TcIndexOperation *indexOp, Uint32 special_op_flags) {
+  TcKeyReq *const tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
+  Uint32 tcKeyRequestInfo = indexOp->tcIndxReq.requestInfo;
   TcIndexDataPtr indexDataPtr;
   Uint32 transId1 = indexOp->tcIndxReq.transId1;
   Uint32 transId2 = indexOp->tcIndxReq.transId2;
-  ApiConnectRecord* regApiPtr = transPtr.p;
+  ApiConnectRecord *regApiPtr = transPtr.p;
 
-  const Operation_t opType = 
-    (Operation_t)TcKeyReq::getOperationType(tcKeyRequestInfo);
+  const Operation_t opType =
+      (Operation_t)TcKeyReq::getOperationType(tcKeyRequestInfo);
 
   // Find index table
   /* The validity of the index is checked subsequently using indexState. */
   if (unlikely(!getIndexDataOperation(indexDataPtr,
-                                      indexOp->tcIndxReq.tableId)))
-  {
+                                      indexOp->tcIndxReq.tableId))) {
     /* The index was either null or was already dropped.
      * Abort the operation and release the resources. */
     jam();
     terrorCode = ZNO_SUCH_TABLE;
     /* If the signal is last in the batch, don't wait for more
      * and enable sending the reply signal in abortErrorLab */
-    regApiPtr->m_flags |=
-      TcKeyReq::getExecuteFlag(tcKeyRequestInfo) ?
-      ApiConnectRecord::TF_EXEC_FLAG : 0;
+    regApiPtr->m_flags |= TcKeyReq::getExecuteFlag(tcKeyRequestInfo)
+                              ? ApiConnectRecord::TF_EXEC_FLAG
+                              : 0;
     abortErrorLab(signal, transPtr);
     return;
   }
-  TcIndexData* indexData = indexDataPtr.p;
+  TcIndexData *indexData = indexDataPtr.p;
   tcKeyReq->transId1 = transId1;
   tcKeyReq->transId2 = transId2;
   tcKeyReq->tableId = indexData->indexId;
   tcKeyReq->tableSchemaVersion = indexOp->tcIndxReq.tableSchemaVersion;
-  TcKeyReq::setOperationType(tcKeyRequestInfo, 
-			     opType == ZREAD ? ZREAD : ZREAD_EX);
-  TcKeyReq::setAIInTcKeyReq(tcKeyRequestInfo, 0); // No AI in long TCKEYREQ
+  TcKeyReq::setOperationType(tcKeyRequestInfo,
+                             opType == ZREAD ? ZREAD : ZREAD_EX);
+  TcKeyReq::setAIInTcKeyReq(tcKeyRequestInfo, 0);  // No AI in long TCKEYREQ
   TcKeyReq::setInterpretedFlag(tcKeyRequestInfo, 0);
   tcKeyReq->senderData = indexOp->indexOpId;
   indexOp->indexOpState = IOS_INDEX_ACCESS;
   regApiPtr->executingIndexOp = regApiPtr->accumulatingIndexOp;
   regApiPtr->accumulatingIndexOp = RNIL;
   regApiPtr->m_special_op_flags =
-    TcConnectRecord::SOF_INDEX_TABLE_READ | special_op_flags;
+      TcConnectRecord::SOF_INDEX_TABLE_READ | special_op_flags;
 
-  if (ERROR_INSERTED(8037))
-  {
+  if (ERROR_INSERTED(8037)) {
     g_eventLogger->info("shifting index version");
-    tcKeyReq->tableSchemaVersion = ~(Uint32)indexOp->tcIndxReq.tableSchemaVersion;
+    tcKeyReq->tableSchemaVersion =
+        ~(Uint32)indexOp->tcIndxReq.tableSchemaVersion;
   }
-  tcKeyReq->attrLen = 1; // Primary key is stored as one attribute
+  tcKeyReq->attrLen = 1;  // Primary key is stored as one attribute
   tcKeyReq->requestInfo = tcKeyRequestInfo;
 
   ndbassert(TcKeyReq::getDirtyFlag(tcKeyRequestInfo) == 0);
@@ -23121,12 +31890,9 @@ void Dbtc::readIndexTable(Signal* signal,
    */
   Ptr<SectionSegment> indexLookupAttrInfoSection;
   Uint32 singleAIWord;
-  
+
   AttributeHeader::init(&singleAIWord, indexData->primaryKeyPos, 0);
-  if (! import(indexLookupAttrInfoSection,
-               &singleAIWord,
-               1))
-  {
+  if (!import(indexLookupAttrInfoSection, &singleAIWord, 1)) {
     jam();
     /* Error creating AttrInfo section to request primary
      * key from index table.
@@ -23147,17 +31913,17 @@ void Dbtc::readIndexTable(Signal* signal,
 
   ndbassert(signal->header.m_noOfSections == 0);
 
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ] 
-    = indexOp->keyInfoSectionIVal;
-  
-  /* We pass this section to TCKEYREQ next */
-  indexOp->keyInfoSectionIVal= RNIL;
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] =
+      indexOp->keyInfoSectionIVal;
 
-  signal->m_sectionPtrI[ TcKeyReq::AttrInfoSectionNum ]
-    = indexLookupAttrInfoSection.i;
-  signal->header.m_noOfSections= 2;
-  
-  /* Direct execute of long TCKEYREQ 
+  /* We pass this section to TCKEYREQ next */
+  indexOp->keyInfoSectionIVal = RNIL;
+
+  signal->m_sectionPtrI[TcKeyReq::AttrInfoSectionNum] =
+      indexLookupAttrInfoSection.i;
+  signal->header.m_noOfSections = 2;
+
+  /* Direct execute of long TCKEYREQ
    * TCKEYREQ is responsible for freeing the KeyInfo and
    * AttrInfo sections passed to it
    */
@@ -23165,20 +31931,17 @@ void Dbtc::readIndexTable(Signal* signal,
   jamEntry();
 
   if (unlikely(regApiPtr->apiConnectstate == CS_ABORTING ||
-               regApiPtr->apiConnectstate == CS_RELEASE))
-  {
+               regApiPtr->apiConnectstate == CS_RELEASE)) {
     jam();
-  }
-  else
-  {
+  } else {
     jam();
     /**
      * "Fool" TC not to start committing transaction since it always will
      *   have one outstanding lqhkeyreq
      * This is later decreased when the index read is complete
-     */ 
+     */
     regApiPtr->lqhkeyreqrec++;
-    
+
     /**
      * Remember ptr to index read operation
      *   (used to set correct save point id on index operation later)
@@ -23193,12 +31956,10 @@ void Dbtc::readIndexTable(Signal* signal,
  * Execute the index operation with the result from
  * the index table read as PK
  */
-void Dbtc::executeIndexOperation(Signal* signal, 
-				 ApiConnectRecord* regApiPtr,
-				 TcIndexOperation* indexOp) {
-  
-  TcKeyReq * const tcIndxReq = &indexOp->tcIndxReq;
-  TcKeyReq * const tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
+void Dbtc::executeIndexOperation(Signal *signal, ApiConnectRecord *regApiPtr,
+                                 TcIndexOperation *indexOp) {
+  TcKeyReq *const tcIndxReq = &indexOp->tcIndxReq;
+  TcKeyReq *const tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
   Uint32 tcKeyRequestInfo = tcIndxReq->requestInfo;
       
   // Find index table
@@ -23206,17 +31967,17 @@ void Dbtc::executeIndexOperation(Signal* signal,
   if (unlikely(!getIndexDataOperation(indexPtr, tcIndxReq->tableId)))
   {
     jam();
-    // Failed to find index record 
+    // Failed to find index record
     // TODO : How is this operation cleaned up?
-    TcKeyRef * const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
+    TcKeyRef *const tcIndxRef = (TcKeyRef *)signal->getDataPtrSend();
 
     tcIndxRef->connectPtr = indexOp->tcIndxReq.senderData;
     tcIndxRef->transId[0] = regApiPtr->transid[0];
     tcIndxRef->transId[1] = regApiPtr->transid[1];
-    tcIndxRef->errorCode = ZINCONSISTENT_INDEX_USE;    
+    tcIndxRef->errorCode = ZINCONSISTENT_INDEX_USE;
     tcIndxRef->errorData = 0;
-    sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal, 
-	       TcKeyRef::SignalLength, JBB);
+    sendSignal(regApiPtr->ndbapiBlockref, GSN_TCINDXREF, signal,
+               TcKeyRef::SignalLength, JBB);
     return;
   }
   TcIndexData* indexData;
@@ -23233,12 +31994,11 @@ void Dbtc::executeIndexOperation(Signal* signal,
   tcKeyReq->tableSchemaVersion = tabPtr.p->currentSchemaVersion;
   tcKeyReq->transId1 = regApiPtr->transid[0];
   tcKeyReq->transId2 = regApiPtr->transid[1];
-  tcKeyReq->senderData = tcIndxReq->senderData; // Needed for TRANSID_AI to API
-  
-  if (tabPtr.p->get_user_defined_partitioning())
-  {
+  tcKeyReq->senderData = tcIndxReq->senderData;  // Needed for TRANSID_AI to API
+
+  if (tabPtr.p->get_user_defined_partitioning()) {
     jam();
-    tcKeyReq->scanInfo = indexOp->fragmentId; // As read from Index table
+    tcKeyReq->scanInfo = indexOp->fragmentId;  // As read from Index table
     TcKeyReq::setDistributionKeyFlag(tcKeyRequestInfo, 1U);
   }
   regApiPtr->m_special_op_flags = 0;
@@ -23248,32 +32008,30 @@ void Dbtc::executeIndexOperation(Signal* signal,
    * Get the KeyInfo we received from the index table lookup
    */
   SegmentedSectionPtr keyInfoFromTransIdAI;
-  
-  ndbassert( indexOp->transIdAISectionIVal != RNIL );
+
+  ndbassert(indexOp->transIdAISectionIVal != RNIL);
   getSection(keyInfoFromTransIdAI, indexOp->transIdAISectionIVal);
-  
-  ndbassert( signal->header.m_noOfSections == 0 );
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ]
-    = indexOp->transIdAISectionIVal;
+
+  ndbassert(signal->header.m_noOfSections == 0);
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] =
+      indexOp->transIdAISectionIVal;
   signal->header.m_noOfSections = 1;
-  
+
   indexOp->transIdAISectionIVal = RNIL;
-  
+
   /* AttrInfo section
    * Attach any AttrInfo section from original TCINDXREQ
    */
-  if ( indexOp->attrInfoSectionIVal != RNIL )
-  {
+  if (indexOp->attrInfoSectionIVal != RNIL) {
     jam();
     SegmentedSectionPtr attrInfoFromInitialReq;
 
     getSection(attrInfoFromInitialReq, indexOp->attrInfoSectionIVal);
-    signal->m_sectionPtrI[ TcKeyReq::AttrInfoSectionNum ]
-      = indexOp->attrInfoSectionIVal;
+    signal->m_sectionPtrI[TcKeyReq::AttrInfoSectionNum] =
+        indexOp->attrInfoSectionIVal;
     signal->header.m_noOfSections = 2;
     indexOp->attrInfoSectionIVal = RNIL;
   }
-
 
   TcKeyReq::setCommitFlag(tcKeyRequestInfo, 0);
   TcKeyReq::setExecuteFlag(tcKeyRequestInfo, 0);
@@ -23305,14 +32063,12 @@ void Dbtc::executeIndexOperation(Signal* signal,
 
 #ifdef ERROR_INSERT
   bool err8072 = ERROR_INSERTED(8072);
-  if (err8072)
-  {
+  if (err8072) {
     CLEAR_ERROR_INSERT_VALUE;
   }
 #endif
 
-  if (triggeringOp != RNIL)
-  {
+  if (triggeringOp != RNIL) {
     jam();
     /**
      * Carry forward info that this was caused by trigger
@@ -23330,21 +32086,19 @@ void Dbtc::executeIndexOperation(Signal* signal,
                        ApiConnectRecord::TF_INDEX_OP_RETURN));
 
   /* Execute TCKEYREQ now - it is now responsible for freeing
-   * the KeyInfo and AttrInfo sections 
+   * the KeyInfo and AttrInfo sections
    */
   EXECUTE_DIRECT(DBTC, GSN_TCKEYREQ, signal, TcKeyReq::StaticLength);
   jamEntry();
 
 #ifdef ERROR_INSERT
-  if (err8072)
-  {
+  if (err8072) {
     SET_ERROR_INSERT_VALUE(8072);
   }
 #endif
 
   if (unlikely(regApiPtr->apiConnectstate == CS_ABORTING ||
-               regApiPtr->apiConnectstate == CS_RELEASE))
-  {
+               regApiPtr->apiConnectstate == CS_RELEASE)) {
     // TODO : Presumably the abort cleans up the operation
     jam();
     return;
@@ -23357,11 +32111,9 @@ void Dbtc::executeIndexOperation(Signal* signal,
   regApiPtr->immediateTriggerId = RNIL;
 }
 
-bool Dbtc::seizeIndexOperation(ApiConnectRecord* regApiPtr,
-			       TcIndexOperationPtr& indexOpPtr)
-{
-  if (likely(c_theIndexOperationPool.seize(indexOpPtr)))
-  {
+bool Dbtc::seizeIndexOperation(ApiConnectRecord *regApiPtr,
+                               TcIndexOperationPtr &indexOpPtr) {
+  if (likely(c_theIndexOperationPool.seize(indexOpPtr))) {
     jam();
     ndbassert(indexOpPtr.p->pendingKeyInfo == 0);
     ndbassert(indexOpPtr.p->keyInfoSectionIVal == RNIL);
@@ -23381,23 +32133,22 @@ bool Dbtc::seizeIndexOperation(ApiConnectRecord* regApiPtr,
   return false;
 }
 
-void Dbtc::releaseIndexOperation(ApiConnectRecord* regApiPtr,
-				 TcIndexOperation* indexOp)
-{
+void Dbtc::releaseIndexOperation(ApiConnectRecord *regApiPtr,
+                                 TcIndexOperation *indexOp) {
   indexOp->indexOpState = IOS_NOOP;
   indexOp->pendingKeyInfo = 0;
   releaseSection(indexOp->keyInfoSectionIVal);
-  indexOp->keyInfoSectionIVal= RNIL;
+  indexOp->keyInfoSectionIVal = RNIL;
   indexOp->pendingAttrInfo = 0;
   releaseSection(indexOp->attrInfoSectionIVal);
-  indexOp->attrInfoSectionIVal= RNIL;
+  indexOp->attrInfoSectionIVal = RNIL;
   indexOp->transIdAIState = ITAS_WAIT_HEADER;
   indexOp->pendingTransIdAI = 0;
   releaseSection(indexOp->transIdAISectionIVal);
-  indexOp->transIdAISectionIVal= RNIL;
-  indexOp->savedFlags= 0;
+  indexOp->transIdAISectionIVal = RNIL;
+  indexOp->savedFlags = 0;
 
-  TcIndexOperationPtr indexOpPtr; // TODO get it passed into function
+  TcIndexOperationPtr indexOpPtr;  // TODO get it passed into function
   indexOpPtr.i = indexOp->indexOpId;
   c_theIndexOperationPool.getPtr(indexOpPtr);
   ndbrequire(indexOpPtr.p == indexOp);
@@ -23411,11 +32162,32 @@ void Dbtc::releaseIndexOperation(ApiConnectRecord* regApiPtr,
 }
 
 void Dbtc::releaseAllSeizedIndexOperations(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+
                Signal *signal,
-               LocalTcIndexOperation_dllist::Head *seized_index_head,
+||||||| Common ancestor
+ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+              LocalTcIndexOperation_dllist::Head *seized_index_head,
                Uint32 & loop_count,
-               bool detach)
-{
+               bool detach
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+regApiPtr
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*regApiPtr
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+) {
   LocalTcIndexOperation_dllist list(c_theIndexOperationPool,
                                     *seized_index_head);
   TcIndexOperationPtr seizedIndexOpPtr;
@@ -23454,7 +32226,27 @@ void Dbtc::releaseAllSeizedIndexOperations(
                    GSN_CONTINUEB,
                    signal,
                    1 + (size_head / 4),
-                   JBB);
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+TcIndexOperation*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TcIndexOperation
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+indexOp
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*indexOp
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+        JBB);
         seized_index_head->init();
       }
       checkPoolShrinkNeed(DBTC_INDEX_OPERATION_TRANSIENT_POOL_INDEX,
@@ -23467,95 +32259,78 @@ void Dbtc::releaseAllSeizedIndexOperations(
   jam();
 }
 
-void Dbtc::saveTriggeringOpState(Signal* signal, TcConnectRecord* trigOp)
-{
-  LqhKeyConf * lqhKeyConf = (LqhKeyConf *)signal->getDataPtr();
-  copyFromToLen((UintR*)lqhKeyConf,
-		&trigOp->savedState[0],
-                LqhKeyConf::SignalLength);  
+void Dbtc::saveTriggeringOpState(Signal *signal, TcConnectRecord *trigOp) {
+  LqhKeyConf *lqhKeyConf = (LqhKeyConf *)signal->getDataPtr();
+  copyFromToLen((UintR *)lqhKeyConf, &trigOp->savedState[0],
+                LqhKeyConf::SignalLength);
 }
 
-void
-Dbtc::trigger_op_finished(Signal* signal,
-                          ApiConnectRecordPtr apiConnectptr,
-                          Uint32 trigPtrI,
-                          TcConnectRecord* triggeringOp,
-                          Uint32 errCode)
-{
-  if (trigPtrI != RNIL)
-  {
+void Dbtc::trigger_op_finished(Signal *signal,
+                               ApiConnectRecordPtr apiConnectptr,
+                               Uint32 trigPtrI, TcConnectRecord *triggeringOp,
+                               Uint32 errCode) {
+  if (trigPtrI != RNIL) {
     jam();
     Ptr<TcDefinedTriggerData> trigPtr;
     ndbrequire(getDefinedTriggerData(trigPtr, trigPtrI));
-    switch(trigPtr.p->triggerType){
-    case TriggerType::FK_PARENT:
-    {
-      if (errCode == ZNOT_FOUND)
-      {
-        jam();
-        break; // good!
-      }
+    switch (trigPtr.p->triggerType) {
+      case TriggerType::FK_PARENT: {
+        if (errCode == ZNOT_FOUND) {
+          jam();
+          break;  // good!
+        }
 
-      Ptr<TcFKData> fkPtr;
-      // TODO make it a pool.getPtr() instead
-      // by also adding fk_ptr_i to definedTriggerData
-      ndbrequire(c_fk_hash.find(fkPtr, trigPtr.p->fkId));
-      if (errCode == 0 && ((fkPtr.p->bits&CreateFKImplReq::FK_ON_ACTION) == 0))
-      {
-        jam();
-        // Only restrict
-        terrorCode = ZFK_CHILD_ROW_EXISTS;
-        apiConnectptr.p->errorData = trigPtr.p->fkId;
-      }
-      else if (errCode == 0)
-      {
-        /**
-         * Check action performed against expected result...
-         */
-        if (triggeringOp->operation == ZDELETE &&
-            (fkPtr.p->bits & CreateFKImplReq::FK_DELETE_ACTION))
-        {
+        Ptr<TcFKData> fkPtr;
+        // TODO make it a pool.getPtr() instead
+        // by also adding fk_ptr_i to definedTriggerData
+        ndbrequire(c_fk_hash.find(fkPtr, trigPtr.p->fkId));
+        if (errCode == 0 &&
+            ((fkPtr.p->bits & CreateFKImplReq::FK_ON_ACTION) == 0)) {
           jam();
-          // the on action succeeded, good!
-          break;
-        }
-        else if ((triggeringOp->operation == ZUPDATE || triggeringOp->operation == ZWRITE) &&
-                 (fkPtr.p->bits & CreateFKImplReq::FK_UPDATE_ACTION))
-        {
+          // Only restrict
+          terrorCode = ZFK_CHILD_ROW_EXISTS;
+          apiConnectptr.p->errorData = trigPtr.p->fkId;
+        } else if (errCode == 0) {
+          /**
+           * Check action performed against expected result...
+           */
+          if (triggeringOp->operation == ZDELETE &&
+              (fkPtr.p->bits & CreateFKImplReq::FK_DELETE_ACTION)) {
+            jam();
+            // the on action succeeded, good!
+            break;
+          } else if ((triggeringOp->operation == ZUPDATE ||
+                      triggeringOp->operation == ZWRITE) &&
+                     (fkPtr.p->bits & CreateFKImplReq::FK_UPDATE_ACTION)) {
+            jam();
+            // the on action succeeded, good!
+            break;
+          }
           jam();
-          // the on action succeeded, good!
-          break;
+          terrorCode = ZFK_CHILD_ROW_EXISTS;
+          apiConnectptr.p->errorData = trigPtr.p->fkId;
+        } else {
+          jam();
+          jamLine(errCode);
+          terrorCode = errCode;
         }
-        jam();
-        terrorCode = ZFK_CHILD_ROW_EXISTS;
-        apiConnectptr.p->errorData = trigPtr.p->fkId;
+        abortErrorLab(signal, apiConnectptr);
+        return;
       }
-      else
-      {
-        jam();
-        jamLine(errCode);
-        terrorCode = errCode;
-      }
-      abortErrorLab(signal, apiConnectptr);
-      return;
-    }
-    default:
-      (void)1;
+      default:
+        (void)1;
     }
   }
-  if (!apiConnectptr.p->isExecutingDeferredTriggers())
-  {
+  if (!apiConnectptr.p->isExecutingDeferredTriggers()) {
     jam();
-    if (unlikely((triggeringOp->triggerExecutionCount == 0)))
-    {
+    if (unlikely((triggeringOp->triggerExecutionCount == 0))) {
       g_eventLogger->info("%u : %p->triggerExecutionCount == 0", __LINE__,
                           triggeringOp);
       dump_trans(apiConnectptr);
     }
     ndbrequire(triggeringOp->triggerExecutionCount > 0);
     triggeringOp->triggerExecutionCount--;
-    if (triggeringOp->triggerExecutionCount == 0)
-    {
+    if (triggeringOp->triggerExecutionCount == 0) {
       /**
        * We have completed current trigger execution
        * Continue triggering operation
@@ -23563,37 +32338,32 @@ Dbtc::trigger_op_finished(Signal* signal,
       jam();
       continueTriggeringOp(signal, triggeringOp, apiConnectptr);
     }
-  }
-  else
-  {
+  } else {
     jam();
     lqhKeyConf_checkTransactionState(signal, apiConnectptr);
   }
 }
 
-void Dbtc::continueTriggeringOp(Signal* signal,
-                                TcConnectRecord* trigOp,
-                                ApiConnectRecordPtr regApiPtr)
-{
-  LqhKeyConf * lqhKeyConf = (LqhKeyConf *)signal->getDataPtr();
-  copyFromToLen(&trigOp->savedState[0],
-                (UintR*)lqhKeyConf,
-		LqhKeyConf::SignalLength);
+void Dbtc::continueTriggeringOp(Signal *signal, TcConnectRecord *trigOp,
+                                ApiConnectRecordPtr regApiPtr) {
+  LqhKeyConf *lqhKeyConf = (LqhKeyConf *)signal->getDataPtr();
+  copyFromToLen(&trigOp->savedState[0], (UintR *)lqhKeyConf,
+                LqhKeyConf::SignalLength);
 
-  if (unlikely(trigOp->savedState[LqhKeyConf::SignalLength-1] == ~Uint32(0)))
-  {
+  if (unlikely(trigOp->savedState[LqhKeyConf::SignalLength - 1] ==
+               ~Uint32(0))) {
     g_eventLogger->info("%u : savedState not set", __LINE__);
-    printLQHKEYCONF(stderr,signal->getDataPtr(),LqhKeyConf::SignalLength,DBTC);
+    printLQHKEYCONF(stderr, signal->getDataPtr(), LqhKeyConf::SignalLength,
+                    DBTC);
     dump_trans(regApiPtr);
   }
-  ndbrequire(trigOp->savedState[LqhKeyConf::SignalLength-1] != ~Uint32(0));
-  trigOp->savedState[LqhKeyConf::SignalLength-1] = ~Uint32(0);
+  ndbrequire(trigOp->savedState[LqhKeyConf::SignalLength - 1] != ~Uint32(0));
+  trigOp->savedState[LqhKeyConf::SignalLength - 1] = ~Uint32(0);
 
   lqhKeyConf->numFiredTriggers = 0;
   trigOp->numReceivedTriggers = 0;
 
-  if (trigOp->triggeringOperation != RNIL)
-  {
+  if (trigOp->triggeringOperation != RNIL) {
     jam();
 
     /**
@@ -23605,7 +32375,7 @@ void Dbtc::continueTriggeringOp(Signal* signal,
 
   /**
    * All triggers executed successfully, continue operation
-   * 
+   *
    * We have to be careful here not sending too many direct signals in a row.
    * This has two consequences, first we are breaking the coding rules if we
    * do and thus other signals have a hard time to get their piece of the
@@ -23615,34 +32385,27 @@ void Dbtc::continueTriggeringOp(Signal* signal,
    * in the NDB code.
    */
   c_lqhkeyconf_direct_sent++;
-  if (c_lqhkeyconf_direct_sent <= 5)
-  {
+  if (c_lqhkeyconf_direct_sent <= 5) {
     jam();
     execLQHKEYCONF(signal);
-  }
-  else
-  {
+  } else {
     jam();
     c_lqhkeyconf_direct_sent = 0;
-    sendSignal(reference(),
-               GSN_LQHKEYCONF,
-               signal,
-               LqhKeyConf::SignalLength,
+    sendSignal(reference(), GSN_LQHKEYCONF, signal, LqhKeyConf::SignalLength,
                JBB);
   }
 }
 
-void Dbtc::executeTriggers(Signal* signal, ApiConnectRecordPtr const* transPtr)
-{
-  ApiConnectRecord* regApiPtr = transPtr->p;
+void Dbtc::executeTriggers(Signal *signal,
+                           ApiConnectRecordPtr const *transPtr) {
+  ApiConnectRecord *regApiPtr = transPtr->p;
   TcConnectRecordPtr opPtr;
   FiredTriggerPtr trigPtr;
   jam();
 
   /* Are we already executing triggers in this transaction? */
   ApiConnectRecord::ExecTriggersGuard execGuard(regApiPtr);
-  if (!execGuard.canExecNow())
-  {
+  if (!execGuard.canExecNow()) {
     jam();
     return;
   }
@@ -23652,17 +32415,15 @@ void Dbtc::executeTriggers(Signal* signal, ApiConnectRecordPtr const* transPtr)
     if ((regApiPtr->apiConnectstate == CS_STARTED) ||
         (regApiPtr->apiConnectstate == CS_START_COMMITTING) ||
         (regApiPtr->apiConnectstate == CS_SEND_FIRE_TRIG_REQ) ||
-        (regApiPtr->apiConnectstate == CS_WAIT_FIRE_TRIG_REQ))
-    {
+        (regApiPtr->apiConnectstate == CS_WAIT_FIRE_TRIG_REQ)) {
       jam();
-      Local_TcFiredTriggerData_fifo
-        list(c_theFiredTriggerPool, regApiPtr->theFiredTriggers);
+      Local_TcFiredTriggerData_fifo list(c_theFiredTriggerPool,
+                                         regApiPtr->theFiredTriggers);
       list.first(trigPtr);
       while (trigPtr.i != RNIL) {
         jam();
         if (regApiPtr->cascading_scans_count >=
-            MaxCascadingScansPerTransaction)
-        {
+            MaxCascadingScansPerTransaction) {
           jam();
           // Pause all trigger execution if a cascading scan is ongoing
           D("trans: cascading scans " << regApiPtr->cascading_scans_count);
@@ -23672,8 +32433,7 @@ void Dbtc::executeTriggers(Signal* signal, ApiConnectRecordPtr const* transPtr)
         // Pause trigger execution if the number of concurrent
         // trigger operations have exceeded the limit
         if (regApiPtr->m_executing_trigger_ops >=
-            MaxExecutingTriggerOpsPerTrans)
-        {
+            MaxExecutingTriggerOpsPerTrans) {
           jam();
           D("trans: too many triggering operations "
             << regApiPtr->m_executing_trigger_ops);
@@ -23683,33 +32443,31 @@ void Dbtc::executeTriggers(Signal* signal, ApiConnectRecordPtr const* transPtr)
         // Execute ready triggers in parallel
         opPtr.i = trigPtr.p->fireingOperation;
         tcConnectRecord.getPtr(opPtr);
-	FiredTriggerPtr nextTrigPtr = trigPtr;
+        FiredTriggerPtr nextTrigPtr = trigPtr;
         list.next(nextTrigPtr);
         ndbrequire(opPtr.p->apiConnect == transPtr->i);
 
         if (opPtr.p->numReceivedTriggers == opPtr.p->numFiredTriggers ||
-            regApiPtr->isExecutingDeferredTriggers())
-        {
+            regApiPtr->isExecutingDeferredTriggers()) {
           jam();
           // Fireing operation is ready to have a trigger executing
-          while (executeTrigger(signal, trigPtr.p, transPtr, &opPtr) == false)
-          {
+          while (executeTrigger(signal, trigPtr.p, transPtr, &opPtr) == false) {
             jam();
             /**
              * TODO: timeslice, e.g CONTINUE
              */
           }
 
-          // Should allow for interleaving here by sending a CONTINUEB and 
-	  // return
+          // Should allow for interleaving here by sending a CONTINUEB and
+          // return
           // Release trigger records
-	  AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
-	  LocalAttributeBuffer tmp1(pool, trigPtr.p->keyValues);
-	  tmp1.release();
-	  LocalAttributeBuffer tmp2(pool, trigPtr.p->beforeValues);
-	  tmp2.release();
-	  LocalAttributeBuffer tmp3(pool, trigPtr.p->afterValues);
-	  tmp3.release();
+          AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
+          LocalAttributeBuffer tmp1(pool, trigPtr.p->keyValues);
+          tmp1.release();
+          LocalAttributeBuffer tmp2(pool, trigPtr.p->beforeValues);
+          tmp2.release();
+          LocalAttributeBuffer tmp3(pool, trigPtr.p->afterValues);
+          tmp3.release();
           list.remove(trigPtr);
           c_theFiredTriggerPool.release(trigPtr);
           checkPoolShrinkNeed(DBTC_ATTRIBUTE_BUFFER_TRANSIENT_POOL_INDEX,
@@ -23717,29 +32475,25 @@ void Dbtc::executeTriggers(Signal* signal, ApiConnectRecordPtr const* transPtr)
           checkPoolShrinkNeed(DBTC_FIRED_TRIGGER_DATA_TRANSIENT_POOL_INDEX,
                               c_theFiredTriggerPool);
         }
-	trigPtr = nextTrigPtr;
+        trigPtr = nextTrigPtr;
       }
       return;
       // No more triggers, continue transaction after last executed trigger has
       // returned (in execLQHKEYCONF or execLQHKEYREF)
     } else {
-
       jam();
       /* Not in correct state to fire triggers yet, need to wait
        * (or keep waiting)
        */
 
       if ((regApiPtr->apiConnectstate == CS_RECEIVING) ||
-          (regApiPtr->apiConnectstate == CS_REC_COMMITTING))
-      {
+          (regApiPtr->apiConnectstate == CS_REC_COMMITTING)) {
         // Wait until transaction is ready to execute a trigger
         jam();
         D("trans: apiConnectstate " << regApiPtr->apiConnectstate);
         waitToExecutePendingTrigger(signal, *transPtr);
-      }
-      else
-      {
-        /* Transaction has started aborting.  
+      } else {
+        /* Transaction has started aborting.
          * Forget about unprocessed triggers
          */
         ndbrequire(regApiPtr->apiConnectstate == CS_ABORTING ||
@@ -23749,12 +32503,9 @@ void Dbtc::executeTriggers(Signal* signal, ApiConnectRecordPtr const* transPtr)
   }
 }
 
-void
-Dbtc::waitToExecutePendingTrigger(Signal* signal, ApiConnectRecordPtr transPtr)
-{
-  if (!tc_testbit(transPtr.p->m_flags,
-                  ApiConnectRecord::TF_TRIGGER_PENDING))
-  {
+void Dbtc::waitToExecutePendingTrigger(Signal *signal,
+                                       ApiConnectRecordPtr transPtr) {
+  if (!tc_testbit(transPtr.p->m_flags, ApiConnectRecord::TF_TRIGGER_PENDING)) {
     jam();
     D("trans: send trigger pending");
     c_lqhkeyconf_direct_sent = 0;
@@ -23764,19 +32515,15 @@ Dbtc::waitToExecutePendingTrigger(Signal* signal, ApiConnectRecordPtr transPtr)
     signal->theData[2] = transPtr.p->transid[0];
     signal->theData[3] = transPtr.p->transid[1];
     sendSignal(reference(), GSN_CONTINUEB, signal, 4, JBB);
-  }
-  else
-  {
+  } else {
     // We are already waiting for a pending trigger (CONTINUEB)
     D("trans: trigger pending already");
   }
 }
 
-bool Dbtc::executeTrigger(Signal* signal,
-                          TcFiredTriggerData* firedTriggerData,
-                          ApiConnectRecordPtr const* transPtr,
-                          TcConnectRecordPtr* opPtr)
-{
+bool Dbtc::executeTrigger(Signal *signal, TcFiredTriggerData *firedTriggerData,
+                          ApiConnectRecordPtr const *transPtr,
+                          TcConnectRecordPtr *opPtr) {
   /* Using a IgnoreAlloc variant of getPtr to make the lookup safe.
    * The validity of the trigger should be checked subsequently.
    */
@@ -23785,91 +32532,112 @@ bool Dbtc::executeTrigger(Signal* signal,
                                      firedTriggerData->triggerId);
 
   // If triggerIds don't match, the trigger has been dropped
-  // -> skip trigger exec.
-  if (likely(found))
-  {
-    TcDefinedTriggerData* const definedTriggerData = definedTriggerPtr.p;
+  // -> skip trigger
+  // exec.
+  if (likely(found)) {
+    TcDefinedTriggerData *const definedTriggerData = definedTriggerPtr.p;
     transPtr->p->pendingTriggers--;
-    switch(firedTriggerData->triggerType) {
-    case(TriggerType::SECONDARY_INDEX):
-      jam();
-      executeIndexTrigger(signal, definedTriggerData, firedTriggerData, 
-                          transPtr, opPtr);
-      break;
-    case TriggerType::REORG_TRIGGER:
-      jam();
-      executeReorgTrigger(signal, definedTriggerData, firedTriggerData,
-                          transPtr, opPtr);
-      break;
-    case TriggerType::FK_PARENT:
-      jam();
-      executeFKParentTrigger(signal, definedTriggerData, firedTriggerData,
-                             transPtr, opPtr);
-      break;
-    case TriggerType::FK_CHILD:
-      jam();
-      executeFKChildTrigger(signal, definedTriggerData, firedTriggerData,
+    switch (firedTriggerData->triggerType) {
+      case (TriggerType::SECONDARY_INDEX):
+        jam();
+        executeIndexTrigger(signal, definedTriggerData, firedTriggerData,
                             transPtr, opPtr);
-      break;
-    case TriggerType::FULLY_REPLICATED_TRIGGER:
-      jam();
-      return executeFullyReplicatedTrigger(signal,
-                                           definedTriggerData, firedTriggerData,
-                                           transPtr, opPtr);
-      break;
-    default:
-      ndbabort();
+        break;
+      case TriggerType::REORG_TRIGGER:
+        jam();
+        executeReorgTrigger(signal, definedTriggerData, firedTriggerData,
+                            transPtr, opPtr);
+        break;
+      case TriggerType::FK_PARENT:
+        jam();
+        executeFKParentTrigger(signal, definedTriggerData, firedTriggerData,
+                               transPtr, opPtr);
+        break;
+      case TriggerType::FK_CHILD:
+        jam();
+        executeFKChildTrigger(signal, definedTriggerData, firedTriggerData,
+                              transPtr, opPtr);
+        break;
+      case TriggerType::FULLY_REPLICATED_TRIGGER:
+        jam();
+        return executeFullyReplicatedTrigger(signal, definedTriggerData,
+                                             firedTriggerData, transPtr, opPtr);
+        break;
+      default:
+        ndbabort();
     }
   }
   return true;
 }
 
-void Dbtc::executeIndexTrigger(Signal* signal,
-                               TcDefinedTriggerData* definedTriggerData,
-                               TcFiredTriggerData* firedTriggerData,
-                               ApiConnectRecordPtr const* transPtr,
-                               TcConnectRecordPtr* opPtr)
-{
-  TcIndexDataPtr indexPtr;
+void Dbtc::executeIndexTrigger(Signal *signal,
+                               TcDefinedTriggerData *definedTriggerData,
+                               TcFiredTriggerData *firedTriggerData,
+                               ApiConnectRecordPtr const *transPtr,
+                               TcConnectRecordPtr *opPtr) {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+TcIndexDataPtr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+TcIndexData*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+TcIndexData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+indexPtr;
+||||||| Common ancestor
+indexData
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*indexData
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   ndbrequire(getIndexDataOperation(indexPtr, definedTriggerData->indexId));
   TcIndexData *indexData = indexPtr.p;
 
   switch (firedTriggerData->triggerEvent) {
-  case(TriggerEvent::TE_INSERT): {
-    jam();
-    insertIntoIndexTable(signal, firedTriggerData, transPtr, opPtr, indexData);
-    break;
-  }
-  case(TriggerEvent::TE_DELETE): {
-    jam();
-    deleteFromIndexTable(signal, firedTriggerData, transPtr, opPtr, indexData);
-    break;
-  }
-  case(TriggerEvent::TE_UPDATE): {
-    jam();
-    opPtr->p->triggerExecutionCount++; // One is already added...and this is 2
-    deleteFromIndexTable(signal, firedTriggerData, transPtr, opPtr, indexData);
-    insertIntoIndexTable(signal, firedTriggerData, transPtr, opPtr, indexData);
-    break;
-  }
-  default:
-    ndbabort();
+    case (TriggerEvent::TE_INSERT): {
+      jam();
+      insertIntoIndexTable(signal, firedTriggerData, transPtr, opPtr,
+                           indexData);
+      break;
+    }
+    case (TriggerEvent::TE_DELETE): {
+      jam();
+      deleteFromIndexTable(signal, firedTriggerData, transPtr, opPtr,
+                           indexData);
+      break;
+    }
+    case (TriggerEvent::TE_UPDATE): {
+      jam();
+      opPtr->p
+          ->triggerExecutionCount++;  // One is already added...and this is 2
+      deleteFromIndexTable(signal, firedTriggerData, transPtr, opPtr,
+                           indexData);
+      insertIntoIndexTable(signal, firedTriggerData, transPtr, opPtr,
+                           indexData);
+      break;
+    }
+    default:
+      ndbabort();
   }
 }
 
-Uint32
-Dbtc::fk_constructAttrInfoSetNull(const TcFKData * fkPtrP)
-{
+Uint32 Dbtc::fk_constructAttrInfoSetNull(const TcFKData *fkPtrP) {
   Uint32 attrInfo[MAX_ATTRIBUTES_IN_INDEX];
-  for (Uint32 i = 0; i<fkPtrP->childTableColumns.sz; i++)
-  {
+  for (Uint32 i = 0; i < fkPtrP->childTableColumns.sz; i++) {
     AttributeHeader::init(attrInfo + i, fkPtrP->childTableColumns.id[i],
                           0 /* setNull */);
   }
 
   Uint32 tmp = RNIL;
-  if (ERROR_INSERTED(8106))
-  {
+  if (ERROR_INSERTED(8106)) {
     return tmp;
   }
 
@@ -23877,13 +32645,10 @@ Dbtc::fk_constructAttrInfoSetNull(const TcFKData * fkPtrP)
   return tmp;
 }
 
-Uint32
-Dbtc::fk_constructAttrInfoUpdateCascade(const TcFKData * fkPtrP,
-                                        AttributeBuffer::Head & srchead)
-{
+Uint32 Dbtc::fk_constructAttrInfoUpdateCascade(const TcFKData *fkPtrP,
+                                               AttributeBuffer::Head &srchead) {
   Uint32 tmp = RNIL;
-  if (ERROR_INSERTED(8103))
-  {
+  if (ERROR_INSERTED(8103)) {
     return tmp;
   }
 
@@ -23895,33 +32660,29 @@ Dbtc::fk_constructAttrInfoUpdateCascade(const TcFKData * fkPtrP,
   Uint32 pos = 0;
   AttributeBuffer::DataBufferIterator iter;
   LocalAttributeBuffer src(c_theAttributeBufferPool, srchead);
-  bool moreData= src.first(iter);
-  const Uint32 segSize= src.getSegmentSize(); // 11
+  bool moreData = src.first(iter);
+  const Uint32 segSize = src.getSegmentSize();  // 11
 
-  while (moreData)
-  {
-    AttributeHeader* attrHeader = (AttributeHeader *) iter.data;
+  while (moreData) {
+    AttributeHeader *attrHeader = (AttributeHeader *)iter.data;
     Uint32 dataSize = attrHeader->getDataSize();
 
     AttributeHeader ah(*iter.data);
-    ah.setAttributeId(fkPtrP->childTableColumns.id[pos++]);// Renumber AttrIds
-    if (unlikely(!appendToSection(tmp, &ah.m_value, 1)))
-    {
+    ah.setAttributeId(fkPtrP->childTableColumns.id[pos++]);  // Renumber AttrIds
+    if (unlikely(!appendToSection(tmp, &ah.m_value, 1))) {
       releaseSection(tmp);
       return RNIL;
     }
 
     moreData = src.next(iter, 1);
-    while (dataSize)
-    {
+    while (dataSize) {
       ndbrequire(moreData);
       /* Copy as many contiguous words as possible */
       Uint32 contigLeft = segSize - iter.ind;
       ndbassert(contigLeft);
       Uint32 contigValid = MIN(dataSize, contigLeft);
 
-      if (unlikely(!appendToSection(tmp, iter.data, contigValid)))
-      {
+      if (unlikely(!appendToSection(tmp, iter.data, contigValid))) {
         releaseSection(tmp);
         return RNIL;
       }
@@ -23933,13 +32694,11 @@ Dbtc::fk_constructAttrInfoUpdateCascade(const TcFKData * fkPtrP,
   return tmp;
 }
 
-void
-Dbtc::executeFKParentTrigger(Signal* signal,
-                             TcDefinedTriggerData* definedTriggerData,
-                             TcFiredTriggerData* firedTriggerData,
-                             ApiConnectRecordPtr const* transPtr,
-                             TcConnectRecordPtr* opPtr)
-{
+void Dbtc::executeFKParentTrigger(Signal *signal,
+                                  TcDefinedTriggerData *definedTriggerData,
+                                  TcFiredTriggerData *firedTriggerData,
+                                  ApiConnectRecordPtr const *transPtr,
+                                  TcConnectRecordPtr *opPtr) {
   Ptr<TcFKData> fkPtr;
   // TODO make it a pool.getPtr() instead
   // by also adding fk_ptr_i to definedTriggerData
@@ -23969,59 +32728,48 @@ Dbtc::executeFKParentTrigger(Signal* signal,
    */
   Uint32 op = ZREAD;
   Uint32 attrValuesPtrI = RNIL;
-  switch(firedTriggerData->triggerEvent)
-  {
-  case TriggerEvent::TE_UPDATE:
-    if (fkPtr.p->bits & CreateFKImplReq::FK_UPDATE_CASCADE)
-    {
-      jam();
-      /**
-       * Update child table with after values of parent
-       */
-      op = ZUPDATE;
-      attrValuesPtrI =
-        fk_constructAttrInfoUpdateCascade(fkPtr.p,
-                                          firedTriggerData->afterValues);
+  switch (firedTriggerData->triggerEvent) {
+    case TriggerEvent::TE_UPDATE:
+      if (fkPtr.p->bits & CreateFKImplReq::FK_UPDATE_CASCADE) {
+        jam();
+        /**
+         * Update child table with after values of parent
+         */
+        op = ZUPDATE;
+        attrValuesPtrI = fk_constructAttrInfoUpdateCascade(
+            fkPtr.p, firedTriggerData->afterValues);
 
-      if (unlikely(attrValuesPtrI == RNIL))
-        goto oom;
+        if (unlikely(attrValuesPtrI == RNIL)) goto oom;
+      } else if (fkPtr.p->bits & CreateFKImplReq::FK_UPDATE_SET_NULL) {
+        jam();
+        /**
+         * Update child table set null
+         */
+        goto setnull;
+      }
+      break;
+    case TriggerEvent::TE_DELETE:
+      if (fkPtr.p->bits & CreateFKImplReq::FK_DELETE_CASCADE) {
+        jam();
+        /**
+         * Delete from child table
+         */
+        op = ZDELETE;
+      } else if (fkPtr.p->bits & CreateFKImplReq::FK_DELETE_SET_NULL) {
+        jam();
+        /**
+         * Update child table set null
+         */
+        goto setnull;
+      }
+      break;
+    default:
+      ndbabort();
+    setnull : {
+      op = ZUPDATE;
+      attrValuesPtrI = fk_constructAttrInfoSetNull(fkPtr.p);
+      if (unlikely(attrValuesPtrI == RNIL)) goto oom;
     }
-    else if (fkPtr.p->bits & CreateFKImplReq::FK_UPDATE_SET_NULL)
-    {
-      jam();
-      /**
-       * Update child table set null
-       */
-      goto setnull;
-    }
-    break;
-  case TriggerEvent::TE_DELETE:
-    if (fkPtr.p->bits & CreateFKImplReq::FK_DELETE_CASCADE)
-    {
-      jam();
-      /**
-       * Delete from child table
-       */
-      op = ZDELETE;
-    }
-    else if (fkPtr.p->bits & CreateFKImplReq::FK_DELETE_SET_NULL)
-    {
-      jam();
-      /**
-       * Update child table set null
-       */
-      goto setnull;
-    }
-    break;
-  default:
-    ndbabort();
-  setnull:
-  {
-    op = ZUPDATE;
-    attrValuesPtrI = fk_constructAttrInfoSetNull(fkPtr.p);
-    if (unlikely(attrValuesPtrI == RNIL))
-      goto oom;
-  }
   }
 
   /**
@@ -24038,17 +32786,14 @@ Dbtc::executeFKParentTrigger(Signal* signal,
    * The index is on the foreign key child table, that is it is
    * required on the table that defines the foreign key.
    */
-  if (! (fkPtr.p->bits & CreateFKImplReq::FK_CHILD_OI))
-  {
+  if (!(fkPtr.p->bits & CreateFKImplReq::FK_CHILD_OI)) {
     jam();
-    fk_readFromChildTable(signal, firedTriggerData, transPtr, opPtr,
-                          fkPtr.p, op, attrValuesPtrI);
-  }
-  else
-  {
+    fk_readFromChildTable(signal, firedTriggerData, transPtr, opPtr, fkPtr.p,
+                          op, attrValuesPtrI);
+  } else {
     jam();
-    fk_scanFromChildTable(signal, firedTriggerData, transPtr, opPtr->i,
-                          fkPtr.p, op, attrValuesPtrI);
+    fk_scanFromChildTable(signal, firedTriggerData, transPtr, opPtr->i, fkPtr.p,
+                          op, attrValuesPtrI);
   }
   return;
 oom:
@@ -24056,18 +32801,14 @@ oom:
   abortTransFromTrigger(signal, *transPtr, ZGET_DATAREC_ERROR);
 }
 
-void
-Dbtc::fk_readFromChildTable(Signal* signal,
-                            TcFiredTriggerData* firedTriggerData,
-                            ApiConnectRecordPtr const* transPtr,
-                            TcConnectRecordPtr* opPtr,
-                            TcFKData* fkData,
-                            Uint32 op,
-                            Uint32 attrValuesPtrI)
-{
-  ApiConnectRecord* regApiPtr = transPtr->p;
-  TcConnectRecord* opRecord = opPtr->p;
-  TcKeyReq * const tcKeyReq =  (TcKeyReq *)signal->getDataPtrSend();
+void Dbtc::fk_readFromChildTable(Signal *signal,
+                                 TcFiredTriggerData *firedTriggerData,
+                                 ApiConnectRecordPtr const *transPtr,
+                                 TcConnectRecordPtr *opPtr, TcFKData *fkData,
+                                 Uint32 op, Uint32 attrValuesPtrI) {
+  ApiConnectRecord *regApiPtr = transPtr->p;
+  TcConnectRecord *opRecord = opPtr->p;
+  TcKeyReq *const tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
   Uint32 tcKeyRequestInfo = 0;
   TableRecordPtr childIndexPtr;
 
@@ -24077,12 +32818,11 @@ Dbtc::fk_readFromChildTable(Signal* signal,
   tcKeyReq->senderData = opPtr->i;
 
   // Calculate key length and renumber attribute id:s
-  AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+  AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
   LocalAttributeBuffer beforeValues(pool, firedTriggerData->beforeValues);
 
   SegmentedSectionGuard guard(this, attrValuesPtrI);
-  if (beforeValues.getSize() == 0)
-  {
+  if (beforeValues.getSize() == 0) {
     jam();
     ndbrequire(tc_testbit(regApiPtr->m_flags,
                           ApiConnectRecord::TF_DEFERRED_CONSTRAINTS));
@@ -24092,12 +32832,11 @@ Dbtc::fk_readFromChildTable(Signal* signal,
     return;
   }
 
-  Uint32 keyIVal= RNIL;
-  bool hasNull= false;
+  Uint32 keyIVal = RNIL;
+  bool hasNull = false;
   Uint32 err = fk_buildKeyInfo(keyIVal, hasNull, beforeValues, fkData, false);
   guard.add(keyIVal);
-  if (unlikely(err != 0))
-  {
+  if (unlikely(err != 0)) {
     jam();
     abortTransFromTrigger(signal, *transPtr, err);
     return;
@@ -24106,8 +32845,7 @@ Dbtc::fk_readFromChildTable(Signal* signal,
   /* If there's Nulls in the values that become the index table's
    * PK then we skip this delete
    */
-  if (hasNull)
-  {
+  if (hasNull) {
     jam();
     trigger_op_finished(signal, *transPtr, RNIL, opRecord, 0);
     /* Already executing triggers */
@@ -24118,8 +32856,7 @@ Dbtc::fk_readFromChildTable(Signal* signal,
   Uint16 flags = TcConnectRecord::SOF_TRIGGER;
   const Uint32 currSavePointId = regApiPtr->currSavePointId;
   Uint32 gsn = GSN_TCKEYREQ;
-  if (op == ZREAD)
-  {
+  if (op == ZREAD) {
     jam();
     /**
      * Fix savepoint id seen by READ:
@@ -24130,34 +32867,31 @@ Dbtc::fk_readFromChildTable(Signal* signal,
      *   immediate after ('+1') the operation which updated it.
      */
     if (!transPtr->p->isExecutingDeferredTriggers())
-      regApiPtr->currSavePointId = opRecord->savePointId+1;
+      regApiPtr->currSavePointId = opRecord->savePointId + 1;
 
-   /*
-    * Foreign key triggers =
-    *     on DELETE/UPDATE(parent) -> READ/SCAN(child) with lock
-    *     on INSERT/UPDATE(child)  -> READ(parent) with lock
-    *
-    * FK checks require a consistent read of 2 or more rows, which
-    * require row locks in Ndb.  The most lightweight row locks available
-    * are SimpleRead which takes a shared row lock for the duration of the
-    * read at LDM.
-    *
-    * Minimal lock mode for correctness = SimpleRead(parent)+SimpleRead(child)
-    */
+    /*
+     * Foreign key triggers =
+     *     on DELETE/UPDATE(parent) -> READ/SCAN(child) with lock
+     *     on INSERT/UPDATE(child)  -> READ(parent) with lock
+     *
+     * FK checks require a consistent read of 2 or more rows, which
+     * require row locks in Ndb.  The most lightweight row locks available
+     * are SimpleRead which takes a shared row lock for the duration of the
+     * read at LDM.
+     *
+     * Minimal lock mode for correctness = SimpleRead(parent)+SimpleRead(child)
+     */
     TcKeyReq::setSimpleFlag(tcKeyRequestInfo, 1);
     /* Read child row using SimpleRead lock */
     TcKeyReq::setDirtyFlag(tcKeyRequestInfo, 0);
-  }
-  else
-  {
+  } else {
     jam();
     /**
      * Let an update/delete triggers be made with same save point
      *   as operation it originated from.
      */
     regApiPtr->currSavePointId = opRecord->savePointId;
-    if (fkData->childTableId != fkData->childIndexId)
-    {
+    if (fkData->childTableId != fkData->childIndexId) {
       jam();
       gsn = GSN_TCINDXREQ;
     }
@@ -24176,28 +32910,24 @@ Dbtc::fk_readFromChildTable(Signal* signal,
 
   /* Attach KeyInfo section to signal */
   ndbrequire(signal->header.m_noOfSections == 0);
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ] = keyIVal;
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] = keyIVal;
   signal->header.m_noOfSections = 1;
 
-  if (attrValuesPtrI != RNIL)
-  {
+  if (attrValuesPtrI != RNIL) {
     jam();
-    signal->m_sectionPtrI[ TcKeyReq::AttrInfoSectionNum ] = attrValuesPtrI;
+    signal->m_sectionPtrI[TcKeyReq::AttrInfoSectionNum] = attrValuesPtrI;
     signal->header.m_noOfSections = 2;
   }
 
-  guard.clear(); // now sections will be handled...
+  guard.clear();  // now sections will be handled...
 
   /* Pass trigger Id via ApiConnectRecord (nasty) */
   ndbrequire(regApiPtr->immediateTriggerId == RNIL);
-  regApiPtr->immediateTriggerId= firedTriggerData->triggerId;
-  if (gsn == GSN_TCKEYREQ)
-  {
+  regApiPtr->immediateTriggerId = firedTriggerData->triggerId;
+  if (gsn == GSN_TCKEYREQ) {
     EXECUTE_DIRECT(DBTC, GSN_TCKEYREQ, signal, TcKeyReq::StaticLength);
-  }
-  else
-  {
-    fk_execTCINDXREQ(signal, * transPtr, * opPtr, op);
+  } else {
+    fk_execTCINDXREQ(signal, *transPtr, *opPtr, op);
   }
   jamEntry();
 
@@ -24209,23 +32939,17 @@ Dbtc::fk_readFromChildTable(Signal* signal,
   regApiPtr->m_executing_trigger_ops++;
 }
 
-void
-Dbtc::fk_execTCINDXREQ(Signal* signal,
-                       ApiConnectRecordPtr transPtr,
-                       TcConnectRecordPtr opPtr,
-                       Uint32 operation)
-{
+void Dbtc::fk_execTCINDXREQ(Signal *signal, ApiConnectRecordPtr transPtr,
+                            TcConnectRecordPtr opPtr, Uint32 operation) {
   jam();
   SectionHandle handle(this, signal);
-  const TcKeyReq * tcIndxReq =  CAST_CONSTPTR(TcKeyReq,
-                                              signal->getDataPtr());
+  const TcKeyReq *tcIndxReq = CAST_CONSTPTR(TcKeyReq, signal->getDataPtr());
 
   /**
    * this is a mockup of execTCINDXREQ...
    */
   TcIndexOperationPtr indexOpPtr;
-  if (unlikely(!seizeIndexOperation(transPtr.p, indexOpPtr)))
-  {
+  if (unlikely(!seizeIndexOperation(transPtr.p, indexOpPtr))) {
     jam();
     releaseSections(handle);
     abortTransFromTrigger(signal, transPtr, 288);
@@ -24248,10 +32972,9 @@ Dbtc::fk_execTCINDXREQ(Signal* signal,
   ndbrequire(handle.getSection(keyInfoSection, TcKeyReq::KeyInfoSectionNum));
   indexOpPtr.p->keyInfoSectionIVal = keyInfoSection.i;
 
-  if (handle.m_cnt == 2)
-  {
-    ndbrequire(handle.getSection(attrInfoSection,
-                                 TcKeyReq::AttrInfoSectionNum));
+  if (handle.m_cnt == 2) {
+    ndbrequire(
+        handle.getSection(attrInfoSection, TcKeyReq::AttrInfoSectionNum));
     indexOpPtr.p->attrInfoSectionIVal = attrInfoSection.i;
   }
 
@@ -24266,12 +32989,9 @@ Dbtc::fk_execTCINDXREQ(Signal* signal,
                  transPtr.p->m_special_op_flags);
 
   if (unlikely(transPtr.p->apiConnectstate == CS_ABORTING ||
-               transPtr.p->apiConnectstate == CS_RELEASE))
-  {
+               transPtr.p->apiConnectstate == CS_RELEASE)) {
     jam();
-  }
-  else
-  {
+  } else {
     /**
      * readIndexTable() sets senderData to indexOpPtr.i
      * and SOF_TRIGGER assumes triggerOperation is stored in senderData
@@ -24287,67 +33007,50 @@ Dbtc::fk_execTCINDXREQ(Signal* signal,
   return;
 }
 
-Uint32
-Dbtc::fk_buildKeyInfo(Uint32& keyIVal, bool& hasNull,
-                      LocalAttributeBuffer & values,
-                      TcFKData * fkPtrP,
-                      bool parent)
-{
-  if (ERROR_INSERTED(8104))
-  {
+Uint32 Dbtc::fk_buildKeyInfo(Uint32 &keyIVal, bool &hasNull,
+                             LocalAttributeBuffer &values, TcFKData *fkPtrP,
+                             bool parent) {
+  if (ERROR_INSERTED(8104)) {
     return ZGET_DATAREC_ERROR;
   }
 
-  IndexAttributeList * list = 0;
-  if (parent == true)
-  {
+  IndexAttributeList *list = 0;
+  if (parent == true) {
     jam();
     list = &fkPtrP->childTableColumns;
-  }
-  else
-  {
+  } else {
     jam();
     list = &fkPtrP->parentTableColumns;
   }
 
   AttributeBuffer::DataBufferIterator iter;
   bool eof = !values.first(iter);
-  for (Uint32 i = 0; i < list->sz; i++)
-  {
+  for (Uint32 i = 0; i < list->sz; i++) {
     Uint32 col = list->id[i];
-    if (!eof && AttributeHeader(* iter.data).getAttributeId() == col)
-    {
-  found:
-      Uint32 len = AttributeHeader(* iter.data).getDataSize();
-      if (len == 0)
-      {
+    if (!eof && AttributeHeader(*iter.data).getAttributeId() == col) {
+    found:
+      Uint32 len = AttributeHeader(*iter.data).getDataSize();
+      if (len == 0) {
         hasNull = true;
         return 0;
       }
       eof = !values.next(iter);
-      Uint32 err = appendDataToSection(keyIVal, values, iter,
-                                       len);
-      if (unlikely(err != 0))
-        return err;
+      Uint32 err = appendDataToSection(keyIVal, values, iter, len);
+      if (unlikely(err != 0)) return err;
 
       eof = iter.isNull();
-    }
-    else
-    {
+    } else {
       /**
        * Search for column...
        */
       eof = !values.first(iter);
-      while (!eof && AttributeHeader(* iter.data).getAttributeId() != col)
-      {
-        eof = !values.next(iter,
-                           1 + AttributeHeader(* iter.data).getDataSize());
+      while (!eof && AttributeHeader(*iter.data).getAttributeId() != col) {
+        eof = !values.next(iter, 1 + AttributeHeader(*iter.data).getDataSize());
       }
-      if (unlikely(eof))
-      {
+      if (unlikely(eof)) {
         return ZMISSING_TRIGGER_DATA;
       }
-      ndbassert(AttributeHeader(* iter.data).getAttributeId() == col);
+      ndbassert(AttributeHeader(*iter.data).getAttributeId() == col);
       goto found;
     }
   }
@@ -24357,16 +33060,12 @@ Dbtc::fk_buildKeyInfo(Uint32& keyIVal, bool& hasNull,
 
 #define SCAN_FROM_CHILD_PARALLELISM 4
 
-void
-Dbtc::fk_scanFromChildTable(Signal* signal,
-                            TcFiredTriggerData* firedTriggerData,
-                            ApiConnectRecordPtr const* transPtr,
-                            const Uint32 opPtrI,
-                            TcFKData* fkData,
-                            Uint32 op,
-                            Uint32 attrValuesPtrI)
-{
-  ApiConnectRecord* regApiPtr = transPtr->p;
+void Dbtc::fk_scanFromChildTable(Signal *signal,
+                                 TcFiredTriggerData *firedTriggerData,
+                                 ApiConnectRecordPtr const *transPtr,
+                                 const Uint32 opPtrI, TcFKData *fkData,
+                                 Uint32 op, Uint32 attrValuesPtrI) {
+  ApiConnectRecord *regApiPtr = transPtr->p;
 
   SegmentedSectionGuard guard(this, attrValuesPtrI);
 
@@ -24376,16 +33075,14 @@ Dbtc::fk_scanFromChildTable(Signal* signal,
    * possible in debug build.
    * Otherwise it should be less than or equal to cscanrecFileSize.
    */
-  if (unlikely(cConcScanCount >= cscanrecFileSize))
-  {
+  if (unlikely(cConcScanCount >= cscanrecFileSize)) {
     jam();
     abortTransFromTrigger(signal, *transPtr, ZNO_SCANREC_ERROR);
     return;
   }
 
   // TODO check against MaxDMLOperationsPerTransaction (not for failover?)
-  if (unlikely(!tcConnectRecord.seize(tcConnectptr)))
-  {
+  if (unlikely(!tcConnectRecord.seize(tcConnectptr))) {
     jam();
     abortTransFromTrigger(signal, *transPtr, ZNO_FREE_TC_CONNECTION);
     return;
@@ -24393,8 +33090,7 @@ Dbtc::fk_scanFromChildTable(Signal* signal,
   c_counters.cconcurrentOp++;
 
   ApiConnectRecordPtr apiConnectptr;
-  if (unlikely(!seizeApiConnect(signal, apiConnectptr)))
-  {
+  if (unlikely(!seizeApiConnect(signal, apiConnectptr))) {
     jam();
     ndbrequire(terrorCode != ZOK);
     Uint32 dummy = 0;
@@ -24408,13 +33104,13 @@ Dbtc::fk_scanFromChildTable(Signal* signal,
   // seize a TcConnectRecord to keep track of trigger stuff
   TcConnectRecordPtr tcPtr = tcConnectptr;
 
-  // Reuse the ApiConnectRecordPtr, set this TC as (internal) 'API-client' 
+  // Reuse the ApiConnectRecordPtr, set this TC as (internal) 'API-client'
   ApiConnectRecordPtr scanApiConnectPtr = apiConnectptr;
   scanApiConnectPtr.p->ndbapiBlockref = reference();
   scanApiConnectPtr.p->ndbapiConnect = tcPtr.i;
 
   tcPtr.p->apiConnect = scanApiConnectPtr.i;
-  ndbrequire(hasOp(* transPtr, opPtrI));
+  ndbrequire(hasOp(*transPtr, opPtrI));
   tcPtr.p->triggeringOperation = opPtrI;
   tcPtr.p->currentTriggerId = firedTriggerData->triggerId;
   tcPtr.p->triggerErrorCode = ZNOT_FOUND;
@@ -24436,23 +33132,20 @@ Dbtc::fk_scanFromChildTable(Signal* signal,
    * Construct an index-scan
    */
   const Uint32 parallelism = SCAN_FROM_CHILD_PARALLELISM;
-  ScanTabReq * req = CAST_PTR(ScanTabReq, signal->getDataPtrSend());
+  ScanTabReq *req = CAST_PTR(ScanTabReq, signal->getDataPtrSend());
   Uint32 ri = 0;
   ScanTabReq::setParallelism(ri, parallelism);
   ScanTabReq::setDescendingFlag(ri, 0);
   ScanTabReq::setRangeScanFlag(ri, 1);
   ScanTabReq::setTupScanFlag(ri, 0);
   ScanTabReq::setNoDiskFlag(ri, 1);
-  if (op == ZREAD)
-  {
+  if (op == ZREAD) {
     /* Scan child table using SimpleRead lock */
     ScanTabReq::setScanBatch(ri, 1);
     ScanTabReq::setLockMode(ri, 0);
     ScanTabReq::setHoldLockFlag(ri, 0);
     ScanTabReq::setKeyinfoFlag(ri, 0);
-  }
-  else
-  {
+  } else {
     ScanTabReq::setScanBatch(ri, 16);
     ScanTabReq::setLockMode(ri, 1);
     ScanTabReq::setHoldLockFlag(ri, 1);
@@ -24478,48 +33171,41 @@ Dbtc::fk_scanFromChildTable(Signal* signal,
   ptr[0].i = ptr[1].i = ptr[2].i = RNIL;
 
   Uint32 optrs[parallelism];
-  for (Uint32 i = 0; i<parallelism; i++)
-    optrs[i] = tcPtr.i;
+  for (Uint32 i = 0; i < parallelism; i++) optrs[i] = tcPtr.i;
 
-  Uint32 program[] = {
-    0, 1, 0, 0, 0, Interpreter::ExitLastOK()
-  };
+  Uint32 program[] = {0, 1, 0, 0, 0, Interpreter::ExitLastOK()};
 
-  if (op != ZREAD)
-  {
+  if (op != ZREAD) {
     program[5] = Interpreter::ExitOK();
   }
 
   Uint32 errorCode = ZGET_DATAREC_ERROR;
-  if (ERROR_INSERTED(8102))
-  {
+  if (ERROR_INSERTED(8102)) {
     goto oom;
   }
-  if (unlikely( !import(ptr[0], optrs, NDB_ARRAY_SIZE(optrs))))
-  {
+  if (unlikely(!import(ptr[0], optrs, NDB_ARRAY_SIZE(optrs)))) {
     jam();
     goto oom;
   }
 
-  if (unlikely( !import(ptr[1], program, NDB_ARRAY_SIZE(program))))
-  {
+  if (unlikely(!import(ptr[1], program, NDB_ARRAY_SIZE(program)))) {
     jam();
     goto oom;
   }
 
   {
-    AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+    AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
     LocalAttributeBuffer beforeValues(pool, firedTriggerData->beforeValues);
-    if (unlikely((errorCode=fk_buildBounds(ptr[2], beforeValues, fkData)) != 0))
-    {
+    if (unlikely((errorCode = fk_buildBounds(ptr[2], beforeValues, fkData)) !=
+                 0)) {
       jam();
       goto oom;
     }
   }
 
-  guard.clear(); // now sections will be handled...
+  guard.clear();  // now sections will be handled...
 
-  signal->header.m_noOfSections= 3;
+  signal->header.m_noOfSections = 3;
   signal->m_sectionPtrI[0] = ptr[0].i;
   signal->m_sectionPtrI[1] = ptr[1].i;
   signal->m_sectionPtrI[2] = ptr[2].i;
@@ -24527,24 +33213,22 @@ Dbtc::fk_scanFromChildTable(Signal* signal,
   signal->header.theSendersBlockRef = reference();
   execSCAN_TABREQ(signal);
   if (scanApiConnectPtr.p->apiConnectstate == CS_ABORTING ||
-      scanApiConnectPtr.p->apiConnectstate == CS_RELEASE)
-  {
+      scanApiConnectPtr.p->apiConnectstate == CS_RELEASE) {
     goto abort_trans;
   }
 
-  transPtr->p->lqhkeyreqrec++; // Make sure that execution is stalled
+  transPtr->p->lqhkeyreqrec++;  // Make sure that execution is stalled
   D("trans: cascading scans++ " << transPtr->p->cascading_scans_count);
-  ndbrequire(transPtr->p->cascading_scans_count < MaxCascadingScansPerTransaction);
+  ndbrequire(transPtr->p->cascading_scans_count <
+             MaxCascadingScansPerTransaction);
   transPtr->p->cascading_scans_count++;
   transPtr->p->m_executing_trigger_ops++;
   return;
 
 oom:
   jam();
-  for (Uint32 i = 0; i < 3; i++)
-  {
-    if (ptr[i].i != RNIL)
-    {
+  for (Uint32 i = 0; i < 3; i++) {
+    if (ptr[i].i != RNIL) {
       release(ptr[i]);
     }
   }
@@ -24566,24 +33250,18 @@ abort_trans:
  * part of the trigger execution of the foreign key parent trigger.
  * Therefore we increment the trigger execution count afterwards.
  */
-void
-Dbtc::execKEYINFO20(Signal* signal)
-{
+void Dbtc::execKEYINFO20(Signal *signal) {
   jamEntry();
-  const KeyInfo20 * conf = CAST_CONSTPTR(KeyInfo20, signal->getDataPtr());
+  const KeyInfo20 *conf = CAST_CONSTPTR(KeyInfo20, signal->getDataPtr());
 
-  Uint32 transId[] = {
-    conf->transId1,
-    conf->transId2
-  };
+  Uint32 transId[] = {conf->transId1, conf->transId2};
 
   Uint32 keyLen = conf->keyLen;
   Uint32 scanInfo = conf->scanInfo_Node;
 
   TcConnectRecordPtr tcPtr;
   tcPtr.i = conf->clientOpPtr;
-  if (unlikely(!tcConnectRecord.getValidPtr(tcPtr)))
-  {
+  if (unlikely(!tcConnectRecord.getValidPtr(tcPtr))) {
     jam();
     warningHandlerLab(signal, __LINE__);
     // Assert to catch code coverage, remove when reached and analysed
@@ -24593,17 +33271,15 @@ Dbtc::execKEYINFO20(Signal* signal)
 
   ApiConnectRecordPtr scanApiConnectPtr;
   scanApiConnectPtr.i = tcPtr.p->apiConnect;
-  if (unlikely(!c_apiConnectRecordPool.getValidPtr(scanApiConnectPtr)))
-  {
+  if (unlikely(!c_apiConnectRecordPool.getValidPtr(scanApiConnectPtr))) {
     jam();
     // Assert to catch code coverage, remove when reached and analysed
     ndbassert(false);
     return;
   }
 
-  if (! (transId[0] == scanApiConnectPtr.p->transid[0] &&
-         transId[1] == scanApiConnectPtr.p->transid[1]))
-  {
+  if (!(transId[0] == scanApiConnectPtr.p->transid[0] &&
+        transId[1] == scanApiConnectPtr.p->transid[1])) {
     jam();
 
     /**
@@ -24621,20 +33297,17 @@ Dbtc::execKEYINFO20(Signal* signal)
   ApiConnectRecordPtr transPtr;
   transPtr.i = orgTransPtrI;
   if (unlikely(!c_apiConnectRecordPool.getValidPtr(transPtr)) ||
-      unlikely(! (transId[0] == transPtr.p->transid[0] &&
-                  transId[1] == transPtr.p->transid[1] &&
-                  transPtr.p->apiConnectstate != CS_ABORTING &&
-                  transPtr.p->apiConnectstate != CS_RELEASE)))
-  {
+      unlikely(!(transId[0] == transPtr.p->transid[0] &&
+                 transId[1] == transPtr.p->transid[1] &&
+                 transPtr.p->apiConnectstate != CS_ABORTING &&
+                  transPtr.p->apiConnectstate != CS_RELEASE))) {
     jam();
 
     /**
      * The "base" transaction has been aborted...
      *   terminate scan directly
      */
-    fk_scanFromChildTable_abort(signal,
-                                tcPtr,
-                                scanApiConnectPtr);
+    fk_scanFromChildTable_abort(signal, tcPtr, scanApiConnectPtr);
     return;
   }
 
@@ -24643,21 +33316,17 @@ Dbtc::execKEYINFO20(Signal* signal)
 
   /* Extract KeyData */
   Uint32 keyInfoPtrI = RNIL;
-  if (signal->header.m_noOfSections == 0)
-  {
+  if (signal->header.m_noOfSections == 0) {
     jam();
     Ptr<SectionSegment> keyInfo;
-    if (unlikely(! import(keyInfo, conf->keyData, keyLen)))
-    {
+    if (unlikely(!import(keyInfo, conf->keyData, keyLen))) {
       abortTransFromTrigger(signal, transPtr, ZGET_DATAREC_ERROR);
       return;
     }
     keyInfoPtrI = keyInfo.i;
-  }
-  else
-  {
+  } else {
     jam();
-    ndbrequire(signal->header.m_noOfSections == 1); // key is already here...
+    ndbrequire(signal->header.m_noOfSections == 1);  // key is already here...
     keyInfoPtrI = signal->m_sectionPtrI[0];
     signal->header.m_noOfSections = 0;
   }
@@ -24672,7 +33341,7 @@ Dbtc::execKEYINFO20(Signal* signal)
    * NOTE: on table...not index
    */
   Uint32 op = tcPtr.p->operation;
-  TcKeyReq * const tcKeyReq =  CAST_PTR(TcKeyReq, signal->getDataPtrSend());
+  TcKeyReq *const tcKeyReq = CAST_PTR(TcKeyReq, signal->getDataPtrSend());
   TableRecordPtr childTabPtr;
 
   childTabPtr.i = fkPtr.p->childTableId;
@@ -24690,37 +33359,33 @@ Dbtc::execKEYINFO20(Signal* signal)
   TcKeyReq::setAIInTcKeyReq(tcKeyRequestInfo, 0);
   TcKeyReq::setOperationType(tcKeyRequestInfo, op);
   const bool use_scan_takeover = false;
-  if (use_scan_takeover)
-  {
+  if (use_scan_takeover) {
     TcKeyReq::setScanIndFlag(tcKeyRequestInfo, 1);
   }
   tcKeyReq->requestInfo = tcKeyRequestInfo;
-  if (use_scan_takeover)
-  {
-    tcKeyReq->scanInfo = (scanInfo << 1) + 1; // TODO cleanup
+  if (use_scan_takeover) {
+    tcKeyReq->scanInfo = (scanInfo << 1) + 1;  // TODO cleanup
   }
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ] = keyInfoPtrI;
-  signal->header.m_noOfSections= 1;
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] = keyInfoPtrI;
+  signal->header.m_noOfSections = 1;
 
-  if (tcPtr.p->indexOp != RNIL)
-  {
+  if (tcPtr.p->indexOp != RNIL) {
     /**
      * attrValues save in indexOp
      */
     Uint32 tmp = RNIL;
-    if (unlikely( !dupSection(tmp, tcPtr.p->indexOp)))
-    {
+    if (unlikely(!dupSection(tmp, tcPtr.p->indexOp))) {
       jam();
       releaseSection(keyInfoPtrI);
       signal->header.m_noOfSections = 0;
       abortTransFromTrigger(signal, transPtr, ZGET_DATAREC_ERROR);
       return;
     }
-    signal->m_sectionPtrI[ TcKeyReq::AttrInfoSectionNum ] = tmp;
-    signal->header.m_noOfSections= 2;
+    signal->m_sectionPtrI[TcKeyReq::AttrInfoSectionNum] = tmp;
+    signal->header.m_noOfSections = 2;
   }
 
-  TcConnectRecordPtr opPtr; // triggering operation
+  TcConnectRecordPtr opPtr;  // triggering operation
   opPtr.i = tcPtr.p->triggeringOperation;
   tcConnectRecord.getPtr(opPtr);
 
@@ -24734,8 +33399,8 @@ Dbtc::execKEYINFO20(Signal* signal)
   /* Pass trigger Id via ApiConnectRecord (nasty) */
   ndbrequire(transPtr.p->immediateTriggerId == RNIL);
   transPtr.p->immediateTriggerId = tcPtr.p->currentTriggerId;
-  EXECUTE_DIRECT(DBTC, GSN_TCKEYREQ, signal, TcKeyReq::StaticLength +
-                 (use_scan_takeover ? 1 : 0));
+  EXECUTE_DIRECT(DBTC, GSN_TCKEYREQ, signal,
+                 TcKeyReq::StaticLength + (use_scan_takeover ? 1 : 0));
   jamEntry();
 
   /*
@@ -24751,30 +33416,24 @@ Dbtc::execKEYINFO20(Signal* signal)
   transPtr.p->m_executing_trigger_ops++;
 }
 
-void
-Dbtc::execSCAN_TABCONF(Signal* signal)
-{
+void Dbtc::execSCAN_TABCONF(Signal *signal) {
   jamEntry();
 
-  if (ERROR_INSERTED(8109))
-  {
+  if (ERROR_INSERTED(8109)) {
     jam();
     /* Hang around */
-    sendSignalWithDelay(cownref, GSN_SCAN_TABCONF, signal, 100, signal->getLength());
+    sendSignalWithDelay(cownref, GSN_SCAN_TABCONF, signal, 100,
+                        signal->getLength());
     return;
   }
 
-  const ScanTabConf * conf = CAST_CONSTPTR(ScanTabConf, signal->getDataPtr());
+  const ScanTabConf *conf = CAST_CONSTPTR(ScanTabConf, signal->getDataPtr());
 
-  Uint32 transId[] = {
-    conf->transId1,
-    conf->transId2
-  };
+  Uint32 transId[] = {conf->transId1, conf->transId2};
 
   TcConnectRecordPtr tcPtr;
   tcPtr.i = conf->apiConnectPtr;
-  if (unlikely(!tcConnectRecord.getValidPtr(tcPtr)))
-  {
+  if (unlikely(!tcConnectRecord.getValidPtr(tcPtr))) {
     jam();
     warningHandlerLab(signal, __LINE__);
     // Assert to catch code coverage, remove when reached and analysed
@@ -24784,17 +33443,15 @@ Dbtc::execSCAN_TABCONF(Signal* signal)
 
   ApiConnectRecordPtr scanApiConnectPtr;
   scanApiConnectPtr.i = tcPtr.p->apiConnect;
-  if (unlikely(!c_apiConnectRecordPool.getValidPtr(scanApiConnectPtr)))
-  {
+  if (unlikely(!c_apiConnectRecordPool.getValidPtr(scanApiConnectPtr))) {
     jam();
     // Assert to catch code coverage, remove when reached and analysed
     ndbassert(false);
     return;
   }
 
-  if (! (transId[0] == scanApiConnectPtr.p->transid[0] &&
-         transId[1] == scanApiConnectPtr.p->transid[1]))
-  {
+  if (!(transId[0] == scanApiConnectPtr.p->transid[0] &&
+        transId[1] == scanApiConnectPtr.p->transid[1])) {
     jam();
 
     /**
@@ -24812,30 +33469,22 @@ Dbtc::execSCAN_TABCONF(Signal* signal)
   ApiConnectRecordPtr orgApiConnectPtr;
   orgApiConnectPtr.i = orgTransPtrI;
   if (unlikely(!c_apiConnectRecordPool.getUncheckedPtrRW(orgApiConnectPtr)) ||
-      unlikely(! (transId[0] == orgApiConnectPtr.p->transid[0] &&
-                  transId[1] == orgApiConnectPtr.p->transid[1] &&
-                  orgApiConnectPtr.p->apiConnectstate != CS_ABORTING &&
-                  orgApiConnectPtr.p->apiConnectstate != CS_RELEASE)))
-  {
+      unlikely(!(transId[0] == orgApiConnectPtr.p->transid[0] &&
+                 transId[1] == orgApiConnectPtr.p->transid[1] &&
+                 orgApiConnectPtr.p->apiConnectstate != CS_ABORTING &&
+                  orgApiConnectPtr.p->apiConnectstate != CS_RELEASE))) {
     jam();
 
     /**
      * The "base" transaction has been aborted...
      *   terminate scan directly
      */
-    if (conf->requestInfo & ScanTabConf::EndOfData)
-    {
+    if (conf->requestInfo & ScanTabConf::EndOfData) {
       jam();
-      fk_scanFromChildTable_done(signal,
-                                 tcPtr,
-                                 scanApiConnectPtr);
-    }
-    else
-    {
+      fk_scanFromChildTable_done(signal, tcPtr, scanApiConnectPtr);
+    } else {
       jam();
-      fk_scanFromChildTable_abort(signal,
-                                  tcPtr,
-                                  scanApiConnectPtr);
+      fk_scanFromChildTable_abort(signal, tcPtr, scanApiConnectPtr);
     }
     return;
   }
@@ -24851,33 +33500,32 @@ Dbtc::execSCAN_TABCONF(Signal* signal)
 
   Uint32 rows = 0;
   const Uint32 ops = (conf->requestInfo >> OPERATIONS_SHIFT) & OPERATIONS_MASK;
-  for (Uint32 i = 0; i<ops; i++)
-  {
+  for (Uint32 i = 0; i < ops; i++) {
     jam();
-    ScanTabConf::OpData * op = (ScanTabConf::OpData*)
-      (signal->getDataPtr() + ScanTabConf::SignalLength + 3 * i);
+    ScanTabConf::OpData *op =
+        (ScanTabConf::OpData *)(signal->getDataPtr() +
+                                ScanTabConf::SignalLength + 3 * i);
     rows += ScanTabConf::getRows(op->rows);
   }
 
-  if (rows && tcPtr.p->operation != ZREAD)
-  {
+  if (rows && tcPtr.p->operation != ZREAD) {
     jam();
-    TcConnectRecordPtr opPtr; // triggering operation
+    TcConnectRecordPtr opPtr;  // triggering operation
     opPtr.i = tcPtr.p->triggeringOperation;
     tcConnectRecord.getPtr(opPtr);
-    TcConnectRecord * triggeringOp = opPtr.p;
+    TcConnectRecord *triggeringOp = opPtr.p;
     if (triggeringOp->operation == ZDELETE &&
-        (fkPtr.p->bits & (CreateFKImplReq::FK_DELETE_CASCADE | CreateFKImplReq::FK_DELETE_SET_NULL)))
-    {
+        (fkPtr.p->bits & (CreateFKImplReq::FK_DELETE_CASCADE |
+                          CreateFKImplReq::FK_DELETE_SET_NULL))) {
       /**
        * don't abort scan
        */
       jam();
       rows = 0;
-    }
-    else if ((triggeringOp->operation == ZUPDATE || triggeringOp->operation == ZWRITE) &&
-             (fkPtr.p->bits & (CreateFKImplReq::FK_UPDATE_CASCADE | CreateFKImplReq::FK_UPDATE_SET_NULL)))
-    {
+    } else if ((triggeringOp->operation == ZUPDATE ||
+                triggeringOp->operation == ZWRITE) &&
+               (fkPtr.p->bits & (CreateFKImplReq::FK_UPDATE_CASCADE |
+                                 CreateFKImplReq::FK_UPDATE_SET_NULL))) {
       /**
        * don't abort scan
        */
@@ -24886,32 +33534,22 @@ Dbtc::execSCAN_TABCONF(Signal* signal)
     }
   }
 
-  if (rows)
-  {
+  if (rows) {
     jam();
     tcPtr.p->triggerErrorCode = ZFK_CHILD_ROW_EXISTS;
     orgApiConnectPtr.p->errorData = trigPtr.p->fkId;
   }
 
-  if (conf->requestInfo & ScanTabConf::EndOfData)
-  {
+  if (conf->requestInfo & ScanTabConf::EndOfData) {
     jam();
-    fk_scanFromChildTable_done(signal,
-                               tcPtr,
-                               scanApiConnectPtr);
-  }
-  else if (rows)
-  {
+    fk_scanFromChildTable_done(signal, tcPtr, scanApiConnectPtr);
+  } else if (rows) {
     jam();
     /**
      * Abort scan...we already know that ZFK_CHILD_ROW_EXISTS
      */
-    fk_scanFromChildTable_abort(signal,
-                                tcPtr,
-                                scanApiConnectPtr);
-  }
-  else
-  {
+    fk_scanFromChildTable_abort(signal, tcPtr, scanApiConnectPtr);
+  } else {
     jam();
     /**
      * Continue scanning...
@@ -24919,45 +33557,39 @@ Dbtc::execSCAN_TABCONF(Signal* signal)
     const Uint32 parallelism = SCAN_FROM_CHILD_PARALLELISM;
     Uint32 cnt = 0;
     Uint32 operations[parallelism];
-    for (Uint32 i = 0; i<ops; i++)
-    {
+    for (Uint32 i = 0; i < ops; i++) {
       jam();
-      ScanTabConf::OpData * op = (ScanTabConf::OpData*)
-        (signal->getDataPtr() + ScanTabConf::SignalLength + 3 * i);
-      if (op->tcPtrI != RNIL)
-      {
+      ScanTabConf::OpData *op =
+          (ScanTabConf::OpData *)(signal->getDataPtr() +
+                                  ScanTabConf::SignalLength + 3 * i);
+      if (op->tcPtrI != RNIL) {
         ndbrequire(cnt < NDB_ARRAY_SIZE(operations));
         operations[cnt++] = op->tcPtrI;
       }
     }
-    if (cnt)
-    {
+    if (cnt) {
       jam();
-      ScanNextReq* req = CAST_PTR(ScanNextReq, signal->getDataPtrSend());
+      ScanNextReq *req = CAST_PTR(ScanNextReq, signal->getDataPtrSend());
       req->apiConnectPtr = scanApiConnectPtr.i;
       req->stopScan = 0;
       req->transId1 = scanApiConnectPtr.p->transid[0];
       req->transId2 = scanApiConnectPtr.p->transid[1];
-      memcpy(signal->getDataPtrSend() + ScanNextReq::SignalLength,
-             operations, 4 * cnt);
+      memcpy(signal->getDataPtrSend() + ScanNextReq::SignalLength, operations,
+             4 * cnt);
       sendSignal(reference(), GSN_SCAN_NEXTREQ, signal,
                  ScanNextReq::SignalLength + cnt, JBB);
     }
   }
 }
 
-void
-Dbtc::fk_scanFromChildTable_abort(Signal* signal,
-                                  TcConnectRecordPtr tcPtr,
-                                  ApiConnectRecordPtr scanApiConnectPtr)
-{
+void Dbtc::fk_scanFromChildTable_abort(Signal *signal, TcConnectRecordPtr tcPtr,
+                                       ApiConnectRecordPtr scanApiConnectPtr) {
   ndbrequire(scanApiConnectPtr.p->ndbapiConnect == tcPtr.i);
   /**
    * Check that the scan has not already completed
    * - so we can abort aggressively
    */
-  if (scanApiConnectPtr.p->apiConnectstate != CS_START_SCAN)
-  {
+  if (scanApiConnectPtr.p->apiConnectstate != CS_START_SCAN) {
     jam();
     /**
      * Scan has already completed...we just haven't received the EOD yet
@@ -24967,7 +33599,7 @@ Dbtc::fk_scanFromChildTable_abort(Signal* signal,
     return;
   }
 
-  ScanNextReq* req = CAST_PTR(ScanNextReq, signal->getDataPtrSend());
+  ScanNextReq *req = CAST_PTR(ScanNextReq, signal->getDataPtrSend());
   req->apiConnectPtr = scanApiConnectPtr.i;
   req->stopScan = 1;
   req->transId1 = scanApiConnectPtr.p->transid[0];
@@ -24983,32 +33615,26 @@ Dbtc::fk_scanFromChildTable_abort(Signal* signal,
   EXECUTE_DIRECT(DBTC, GSN_SCAN_NEXTREQ, signal, ScanNextReq::SignalLength);
 }
 
-void
-Dbtc::fk_scanFromChildTable_done(Signal* signal,
-                                 TcConnectRecordPtr tcPtr,
-                                 ApiConnectRecordPtr scanApiConnectPtr)
-{
+void Dbtc::fk_scanFromChildTable_done(Signal *signal, TcConnectRecordPtr tcPtr,
+                                      ApiConnectRecordPtr scanApiConnectPtr) {
   ndbrequire(scanApiConnectPtr.p->ndbapiConnect == tcPtr.i);
   /**
    * save things needed to finish this trigger op
    */
-  Uint32 transId[] = {
-    scanApiConnectPtr.p->transid[0],
-    scanApiConnectPtr.p->transid[1]
-  };
+  Uint32 transId[] = {scanApiConnectPtr.p->transid[0],
+                      scanApiConnectPtr.p->transid[1]};
 
   Uint32 errCode = tcPtr.p->triggerErrorCode;
   Uint32 triggerId = tcPtr.p->currentTriggerId;
   Uint32 orgTransPtrI = tcPtr.p->nextTcFailHash;
 
-  TcConnectRecordPtr opPtr; // triggering operation
+  TcConnectRecordPtr opPtr;  // triggering operation
   opPtr.i = tcPtr.p->triggeringOperation;
 
   /**
    * release extra allocated resources
    */
-  if (tcPtr.p->indexOp != RNIL)
-  {
+  if (tcPtr.p->indexOp != RNIL) {
     releaseSection(tcPtr.p->indexOp);
   }
   tcConnectptr = tcPtr;
@@ -25022,11 +33648,10 @@ Dbtc::fk_scanFromChildTable_done(Signal* signal,
   orgApiConnectPtr.i = orgTransPtrI;
 
   if (!c_apiConnectRecordPool.getValidPtr(orgApiConnectPtr) ||
-      ! (transId[0] == orgApiConnectPtr.p->transid[0] &&
-         transId[1] == orgApiConnectPtr.p->transid[1] &&
-         orgApiConnectPtr.p->apiConnectstate != CS_ABORTING &&
-         orgApiConnectPtr.p->apiConnectstate != CS_RELEASE))
-  {
+      !(transId[0] == orgApiConnectPtr.p->transid[0] &&
+        transId[1] == orgApiConnectPtr.p->transid[1] &&
+        orgApiConnectPtr.p->apiConnectstate != CS_ABORTING &&
+         orgApiConnectPtr.p->apiConnectstate != CS_RELEASE)) {
     jam();
     /**
      * The "base" transaction has been aborted...
@@ -25037,8 +33662,7 @@ Dbtc::fk_scanFromChildTable_done(Signal* signal,
   }
 
   tcConnectRecord.getPtr(opPtr);
-  if (opPtr.p->apiConnect != orgApiConnectPtr.i)
-  {
+  if (opPtr.p->apiConnect != orgApiConnectPtr.i) {
     jam();
     ndbabort();
     /**
@@ -25053,7 +33677,8 @@ Dbtc::fk_scanFromChildTable_done(Signal* signal,
   }
 
   ndbrequire(orgApiConnectPtr.p->lqhkeyreqrec > 0);
-  ndbrequire(orgApiConnectPtr.p->lqhkeyreqrec > orgApiConnectPtr.p->lqhkeyconfrec);
+  ndbrequire(orgApiConnectPtr.p->lqhkeyreqrec >
+             orgApiConnectPtr.p->lqhkeyconfrec);
   orgApiConnectPtr.p->lqhkeyreqrec--;
 
   D("trans: cascading scans-- " << orgApiConnectPtr.p->cascading_scans_count);
@@ -25066,44 +33691,36 @@ Dbtc::fk_scanFromChildTable_done(Signal* signal,
   executeTriggers(signal, &orgApiConnectPtr);
 }
 
-void
-Dbtc::execSCAN_TABREF(Signal* signal)
-{
+void Dbtc::execSCAN_TABREF(Signal *signal) {
   jamEntry();
 
-  if (ERROR_INSERTED(8109))
-  {
+  if (ERROR_INSERTED(8109)) {
     jam();
     /* Hang around */
-    sendSignalWithDelay(cownref, GSN_SCAN_TABREF, signal, 100, signal->getLength());
+    sendSignalWithDelay(cownref, GSN_SCAN_TABREF, signal, 100,
+                        signal->getLength());
     return;
   }
 
+  const ScanTabRef *ref = CAST_CONSTPTR(ScanTabRef, signal->getDataPtr());
 
-  const ScanTabRef * ref = CAST_CONSTPTR(ScanTabRef, signal->getDataPtr());
-
-  Uint32 transId[] = {
-    ref->transId1,
-    ref->transId2
-  };
+  Uint32 transId[] = {ref->transId1, ref->transId2};
 
   TcConnectRecordPtr tcPtr;
   tcPtr.i = ref->apiConnectPtr;
-  if (unlikely(!tcConnectRecord.getValidPtr(tcPtr)))
-  {
+  if (unlikely(!tcConnectRecord.getValidPtr(tcPtr))) {
     jam();
     warningHandlerLab(signal, __LINE__);
     // Assert to catch code coverage, remove when reached and analysed
-    //ndbassert(false);
+    // ndbassert(false);
     return;
   }
 
   ApiConnectRecordPtr scanApiConnectPtr;
   scanApiConnectPtr.i = tcPtr.p->apiConnect;
   if (!c_apiConnectRecordPool.getValidPtr(scanApiConnectPtr) ||
-      ! (transId[0] == scanApiConnectPtr.p->transid[0] &&
-         transId[1] == scanApiConnectPtr.p->transid[1]))
-  {
+      !(transId[0] == scanApiConnectPtr.p->transid[0] &&
+        transId[1] == scanApiConnectPtr.p->transid[1])) {
     jam();
 
     /**
@@ -25115,84 +33732,63 @@ Dbtc::execSCAN_TABREF(Signal* signal)
   }
 
   tcPtr.p->triggerErrorCode = ref->errorCode;
-  if (ref->closeNeeded)
-  {
+  if (ref->closeNeeded) {
     jam();
-    fk_scanFromChildTable_abort(signal,
-                               tcPtr,
-                               scanApiConnectPtr);
-  }
-  else
-  {
+    fk_scanFromChildTable_abort(signal, tcPtr, scanApiConnectPtr);
+  } else {
     jam();
-    fk_scanFromChildTable_done(signal,
-                               tcPtr,
-                               scanApiConnectPtr);
+    fk_scanFromChildTable_done(signal, tcPtr, scanApiConnectPtr);
   }
 }
 
-Uint32
-Dbtc::fk_buildBounds(SegmentedSectionPtr & dst,
-                     LocalAttributeBuffer & src,
-                     TcFKData* fkData)
-{
+Uint32 Dbtc::fk_buildBounds(SegmentedSectionPtr &dst, LocalAttributeBuffer &src,
+                            TcFKData *fkData) {
   dst.i = RNIL;
   Uint32 dstPtrI = RNIL;
 
-  IndexAttributeList * list = &fkData->parentTableColumns;
+  IndexAttributeList *list = &fkData->parentTableColumns;
 
   AttributeBuffer::DataBufferIterator iter;
   bool eof = !src.first(iter);
-  for (Uint32 i = 0; i < list->sz; i++)
-  {
+  for (Uint32 i = 0; i < list->sz; i++) {
     Uint32 col = list->id[i];
-    if (!eof && AttributeHeader(* iter.data).getAttributeId() == col)
-    {
-  found:
-      Uint32 byteSize = AttributeHeader(* iter.data).getByteSize();
+    if (!eof && AttributeHeader(*iter.data).getAttributeId() == col) {
+    found:
+      Uint32 byteSize = AttributeHeader(*iter.data).getByteSize();
       Uint32 len32 = (byteSize + 3) / 4;
-      if (len32 == 0)
-      {
+      if (len32 == 0) {
         // ?? TODO what to do
       }
       eof = !src.next(iter);
 
       Uint32 data[2];
       data[0] = TuxBoundInfo::BoundEQ;
-      AttributeHeader::init(data+1, i, byteSize);
-      if (unlikely(!appendToSection(dstPtrI, data, NDB_ARRAY_SIZE(data))))
-      {
+      AttributeHeader::init(data + 1, i, byteSize);
+      if (unlikely(!appendToSection(dstPtrI, data, NDB_ARRAY_SIZE(data)))) {
         dst.i = dstPtrI;
         return ZGET_DATAREC_ERROR;
       }
 
-      Uint32 err = appendDataToSection(dstPtrI, src, iter,
-                                       len32);
-      if (unlikely(err != 0))
-      {
+      Uint32 err = appendDataToSection(dstPtrI, src, iter, len32);
+      if (unlikely(err != 0)) {
         dst.i = dstPtrI;
         return err;
       }
 
       eof = iter.isNull();
-    }
-    else
-    {
+    } else {
       /**
        * Search for column...
        */
       eof = !src.first(iter);
-      while (!eof && AttributeHeader(* iter.data).getAttributeId() != col)
-      {
-        eof = !src.next(iter,
-                           1 + AttributeHeader(* iter.data).getDataSize());
+      while (!eof && AttributeHeader(*iter.data).getAttributeId() != col) {
+        eof = !src.next(iter, 1 + AttributeHeader(*iter.data).getDataSize());
       }
-      if (unlikely(eof))
-      {
+      if (unlikely(eof)) {
         dst.i = dstPtrI;
         return ZMISSING_TRIGGER_DATA;
       }
-      ndbassert(AttributeHeader(* iter.data).getAttributeId() == col);
+      ndbassert(AttributeHeader(*iter.data).getAttributeId() == col);
       goto found;
     }
   }
@@ -25201,13 +33797,11 @@ Dbtc::fk_buildBounds(SegmentedSectionPtr & dst,
   return 0;
 }
 
-void
-Dbtc::executeFKChildTrigger(Signal* signal,
-                            TcDefinedTriggerData* definedTriggerData,
-                            TcFiredTriggerData* firedTriggerData,
-                            ApiConnectRecordPtr const* transPtr,
-                            TcConnectRecordPtr* opPtr)
-{
+void Dbtc::executeFKChildTrigger(Signal *signal,
+                                 TcDefinedTriggerData *definedTriggerData,
+                                 TcFiredTriggerData *firedTriggerData,
+                                 ApiConnectRecordPtr const *transPtr,
+                                 TcConnectRecordPtr *opPtr) {
   Ptr<TcFKData> fkPtr;
   // TODO make it a pool.getPtr() instead
   // by also adding fk_ptr_i to definedTriggerData
@@ -25222,35 +33816,34 @@ Dbtc::executeFKChildTrigger(Signal* signal,
    * so this is always a key lookup.
    */
   switch (firedTriggerData->triggerEvent) {
-  case(TriggerEvent::TE_INSERT):
-    jam();
-    /**
-     * Check that after values exists in parent table
-     */
-    fk_readFromParentTable(signal, firedTriggerData, transPtr, opPtr, fkPtr.p);
-    break;
-  case(TriggerEvent::TE_UPDATE):
-    jam();
-    /**
-     * Check that after values exists in parent table
-     */
-    fk_readFromParentTable(signal, firedTriggerData, transPtr, opPtr, fkPtr.p);
-    break;
-  default:
-    ndbabort();
+    case (TriggerEvent::TE_INSERT):
+      jam();
+      /**
+       * Check that after values exists in parent table
+       */
+      fk_readFromParentTable(signal, firedTriggerData, transPtr, opPtr,
+                             fkPtr.p);
+      break;
+    case (TriggerEvent::TE_UPDATE):
+      jam();
+      /**
+       * Check that after values exists in parent table
+       */
+      fk_readFromParentTable(signal, firedTriggerData, transPtr, opPtr,
+                             fkPtr.p);
+      break;
+    default:
+      ndbabort();
   }
 }
 
-void
-Dbtc::fk_readFromParentTable(Signal* signal,
-                             TcFiredTriggerData* firedTriggerData,
-                             ApiConnectRecordPtr const* transPtr,
-                             TcConnectRecordPtr* opPtr,
-                             TcFKData* fkData)
-{
-  ApiConnectRecord* regApiPtr = transPtr->p;
-  TcConnectRecord* opRecord = opPtr->p;
-  TcKeyReq * const tcKeyReq =  (TcKeyReq *)signal->getDataPtrSend();
+void Dbtc::fk_readFromParentTable(Signal *signal,
+                                  TcFiredTriggerData *firedTriggerData,
+                                  ApiConnectRecordPtr const *transPtr,
+                                  TcConnectRecordPtr *opPtr, TcFKData *fkData) {
+  ApiConnectRecord *regApiPtr = transPtr->p;
+  TcConnectRecord *opRecord = opPtr->p;
+  TcKeyReq *const tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
   Uint32 tcKeyRequestInfo = 0;
   TableRecordPtr parentTabPtr;
 
@@ -25260,11 +33853,10 @@ Dbtc::fk_readFromParentTable(Signal* signal,
   tcKeyReq->senderData = opPtr->i;
 
   // Calculate key length and renumber attribute id:s
-  AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+  AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
   LocalAttributeBuffer afterValues(pool, firedTriggerData->afterValues);
 
-  if (afterValues.getSize() == 0)
-  {
+  if (afterValues.getSize() == 0) {
     jam();
     ndbrequire(tc_testbit(regApiPtr->m_flags,
                           ApiConnectRecord::TF_DEFERRED_CONSTRAINTS));
@@ -25274,12 +33866,11 @@ Dbtc::fk_readFromParentTable(Signal* signal,
     return;
   }
 
-  Uint32 keyIVal= RNIL;
-  bool hasNull= false;
+  Uint32 keyIVal = RNIL;
+  bool hasNull = false;
   Uint32 err = fk_buildKeyInfo(keyIVal, hasNull, afterValues, fkData, true);
   SegmentedSectionGuard guard(this, keyIVal);
-  if (unlikely(err != 0))
-  {
+  if (unlikely(err != 0)) {
     abortTransFromTrigger(signal, *transPtr, err);
     return;
   }
@@ -25287,8 +33878,7 @@ Dbtc::fk_readFromParentTable(Signal* signal,
   /* If there's Nulls in the values that become the index table's
    * PK then we skip this delete
    */
-  if (hasNull)
-  {
+  if (hasNull) {
     jam();
     trigger_op_finished(signal, *transPtr, RNIL, opRecord, 0);
     /* Already executing triggers */
@@ -25298,8 +33888,7 @@ Dbtc::fk_readFromParentTable(Signal* signal,
 
   Uint16 flags = TcConnectRecord::SOF_TRIGGER;
   if (((fkData->bits & CreateFKImplReq::FK_ACTION_MASK) == 0) ||
-      transPtr->p->isExecutingDeferredTriggers())
-  {
+      transPtr->p->isExecutingDeferredTriggers()) {
     jam();
     /* Read parent row using SimpleRead locking */
     TcKeyReq::setSimpleFlag(tcKeyRequestInfo, 1);
@@ -25316,11 +33905,11 @@ Dbtc::fk_readFromParentTable(Signal* signal,
   tcKeyReq->transId2 = regApiPtr->transid[1];
   tcKeyReq->requestInfo = tcKeyRequestInfo;
 
-  guard.clear(); // now sections will be handled...
+  guard.clear();  // now sections will be handled...
 
   /* Attach KeyInfo section to signal */
   ndbrequire(signal->header.m_noOfSections == 0);
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ] = keyIVal;
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] = keyIVal;
   signal->header.m_noOfSections = 1;
 
   /**
@@ -25333,12 +33922,12 @@ Dbtc::fk_readFromParentTable(Signal* signal,
    */
   const Uint32 currSavePointId = regApiPtr->currSavePointId;
   if (!transPtr->p->isExecutingDeferredTriggers())
-    regApiPtr->currSavePointId = opRecord->savePointId+1;
+    regApiPtr->currSavePointId = opRecord->savePointId + 1;
 
   regApiPtr->m_special_op_flags = flags;
   /* Pass trigger Id via ApiConnectRecord (nasty) */
   ndbrequire(regApiPtr->immediateTriggerId == RNIL);
-  regApiPtr->immediateTriggerId= firedTriggerData->triggerId;
+  regApiPtr->immediateTriggerId = firedTriggerData->triggerId;
   EXECUTE_DIRECT(DBTC, GSN_TCKEYREQ, signal, TcKeyReq::StaticLength);
   jamEntry();
 
@@ -25354,17 +33943,15 @@ void Dbtc::releaseFiredTriggerData(
       Signal *signal,
       Local_TcFiredTriggerData_fifo::Head* triggers_head,
       Uint32 & loop_count,
-      bool detach)
-{
+      bool detach) {
   Local_TcFiredTriggerData_fifo triggers(c_theFiredTriggerPool, *triggers_head);
   FiredTriggerPtr trigPtr;
 
-  while (triggers.removeFirst(trigPtr))
-  {
+  while (triggers.removeFirst(trigPtr)) {
     jam();
     // Release trigger records
 
-    AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+    AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
     LocalAttributeBuffer tmp1(pool, trigPtr.p->keyValues);
     tmp1.release();
     LocalAttributeBuffer tmp2(pool, trigPtr.p->beforeValues);
@@ -25420,45 +34007,35 @@ void Dbtc::releaseFiredTriggerData(
  * handling and the transaction should be aborted with the
  * given error code
  */
-void Dbtc::abortTransFromTrigger(Signal* signal,
+void Dbtc::abortTransFromTrigger(Signal *signal,
                                  ApiConnectRecordPtr const transPtr,
-                                 Uint32 error)
-{
+                                 Uint32 error) {
   jam();
   terrorCode = error;
-  
+
   abortErrorLab(signal, transPtr);
 }
 
-Uint32
-Dbtc::appendDataToSection(Uint32& sectionIVal,
-                          AttributeBuffer & src,
-                          AttributeBuffer::DataBufferIterator & iter,
-                          Uint32 len)
-{
-  const Uint32 segSize = src.getSegmentSize(); // 11
-  while (len)
-  {
+Uint32 Dbtc::appendDataToSection(Uint32 &sectionIVal, AttributeBuffer &src,
+                                 AttributeBuffer::DataBufferIterator &iter,
+                                 Uint32 len) {
+  const Uint32 segSize = src.getSegmentSize();  // 11
+  while (len) {
     /* Copy as many contiguous words as possible */
     Uint32 contigLeft = segSize - iter.ind;
     ndbassert(contigLeft);
     Uint32 contigValid = MIN(len, contigLeft);
 
-    if (unlikely(!appendToSection(sectionIVal,
-                                  iter.data,
-                                  contigValid)))
-    {
+    if (unlikely(!appendToSection(sectionIVal, iter.data, contigValid))) {
       goto full;
     }
     len -= contigValid;
     bool hasMore = src.next(iter, contigValid);
 
-    if (len == 0)
-      break;
+    if (len == 0) break;
 
-    if (unlikely(! hasMore))
-    {
-      ndbassert(false); // this is internal error...
+    if (unlikely(!hasMore)) {
+      ndbassert(false);  // this is internal error...
       goto fail;
     }
   }
@@ -25467,13 +34044,13 @@ Dbtc::appendDataToSection(Uint32& sectionIVal,
 full:
   jam();
   releaseSection(sectionIVal);
-  sectionIVal= RNIL;
+  sectionIVal = RNIL;
   return ZGET_DATAREC_ERROR;
 
 fail:
   jam();
   releaseSection(sectionIVal);
-  sectionIVal= RNIL;
+  sectionIVal = RNIL;
   return ZMISSING_TRIGGER_DATA;
 }
 
@@ -25485,81 +34062,68 @@ fail:
  * If attribute headers are to be copied they will be
  * renumbered consecutively, starting with the given
  * attrId.
- * hasNull is updated to indicate whether any Nulls 
+ * hasNull is updated to indicate whether any Nulls
  * were encountered.
  */
-bool Dbtc::appendAttrDataToSection(Uint32& sectionIVal, 
-                                   AttributeBuffer& values,
-                                   bool withHeaders,
-                                   Uint32& attrId,
-                                   bool& hasNull)
-{
+bool Dbtc::appendAttrDataToSection(Uint32 &sectionIVal, AttributeBuffer &values,
+                                   bool withHeaders, Uint32 &attrId,
+                                   bool &hasNull) {
   AttributeBuffer::DataBufferIterator iter;
-  bool moreData= values.first(iter);
-  hasNull= false;
-  const Uint32 segSize= values.getSegmentSize(); // 11
+  bool moreData = values.first(iter);
+  hasNull = false;
+  const Uint32 segSize = values.getSegmentSize();  // 11
 
-  while (moreData)
-  {
-    AttributeHeader* attrHeader = (AttributeHeader *) iter.data;
-    Uint32 dataSize= attrHeader->getDataSize();
+  while (moreData) {
+    AttributeHeader *attrHeader = (AttributeHeader *)iter.data;
+    Uint32 dataSize = attrHeader->getDataSize();
     hasNull |= (dataSize == 0);
-    
-    if (withHeaders)
-    {
+
+    if (withHeaders) {
       AttributeHeader ah(*iter.data);
-      ah.setAttributeId(attrId); // Renumber AttrIds
-      if (unlikely(!appendToSection(sectionIVal,
-                                    &ah.m_value,
-                                    1)))
-      {
+      ah.setAttributeId(attrId);  // Renumber AttrIds
+      if (unlikely(!appendToSection(sectionIVal, &ah.m_value, 1))) {
         releaseSection(sectionIVal);
-        sectionIVal= RNIL;
+        sectionIVal = RNIL;
         return false;
       }
     }
 
-    moreData= values.next(iter, 1);
-    
-    while (dataSize)
-    {
+    moreData = values.next(iter, 1);
+
+    while (dataSize) {
       ndbrequire(moreData);
       /* Copy as many contiguous words as possible */
-      Uint32 contigLeft= segSize - iter.ind;
+      Uint32 contigLeft = segSize - iter.ind;
       ndbassert(contigLeft);
-      Uint32 contigValid= MIN(dataSize, contigLeft);
-      
-      if (unlikely(!appendToSection(sectionIVal,
-                                    iter.data,
-                                    contigValid)))
-      {
+      Uint32 contigValid = MIN(dataSize, contigLeft);
+
+      if (unlikely(!appendToSection(sectionIVal, iter.data, contigValid))) {
         releaseSection(sectionIVal);
-        sectionIVal= RNIL;
+        sectionIVal = RNIL;
         return false;
       }
-      moreData= values.next(iter, contigValid);
-      dataSize-= contigValid;
+      moreData = values.next(iter, contigValid);
+      dataSize -= contigValid;
     }
     attrId++;
   }
 
   return true;
-} 
+}
 
-void Dbtc::insertIntoIndexTable(Signal* signal, 
-                                TcFiredTriggerData* firedTriggerData, 
-                                ApiConnectRecordPtr const* transPtr,
-                                TcConnectRecordPtr* opPtr,
-                                TcIndexData* indexData)
-{
-  ApiConnectRecord* regApiPtr = transPtr->p;
-  TcConnectRecord* opRecord = opPtr->p;
-  TcKeyReq * const tcKeyReq =  (TcKeyReq *)signal->getDataPtrSend();
+void Dbtc::insertIntoIndexTable(Signal *signal,
+                                TcFiredTriggerData *firedTriggerData,
+                                ApiConnectRecordPtr const *transPtr,
+                                TcConnectRecordPtr *opPtr,
+                                TcIndexData *indexData) {
+  ApiConnectRecord *regApiPtr = transPtr->p;
+  TcConnectRecord *opRecord = opPtr->p;
+  TcKeyReq *const tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
   Uint32 tcKeyRequestInfo = 0;
   TableRecordPtr indexTabPtr;
 
   jam();
-  
+
   indexTabPtr.i = indexData->indexId;
   ptrCheckGuard(indexTabPtr, ctabrecFilesize, tableRecord);
   tcKeyReq->apiConnectPtr = transPtr->i;
@@ -25568,16 +34132,15 @@ void Dbtc::insertIntoIndexTable(Signal* signal,
   /* Key for insert to unique index table is the afterValues from the
    * base table operation (from update or insert on base).
    * Data for insert to unique index table is the afterValues from the
-   * base table operation plus the fragment id and packed keyValues from 
+   * base table operation plus the fragment id and packed keyValues from
    * the base table operation
    */
   // Calculate key length and renumber attribute id:s
-  AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+  AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
   LocalAttributeBuffer afterValues(pool, firedTriggerData->afterValues);
   LocalAttributeBuffer keyValues(pool, firedTriggerData->keyValues);
 
-  if (afterValues.getSize() == 0)
-  {
+  if (afterValues.getSize() == 0) {
     jam();
     ndbrequire(tc_testbit(regApiPtr->m_flags,
                           ApiConnectRecord::TF_DEFERRED_CONSTRAINTS));
@@ -25587,36 +34150,30 @@ void Dbtc::insertIntoIndexTable(Signal* signal,
     return;
   }
 
-  Uint32 keyIVal= RNIL;
-  Uint32 attrIVal= RNIL;
-  bool appendOk= false;
-  do
-  {
-    Uint32 attrId= 0;
-    bool hasNull= false;
+  Uint32 keyIVal = RNIL;
+  Uint32 attrIVal = RNIL;
+  bool appendOk = false;
+  do {
+    Uint32 attrId = 0;
+    bool hasNull = false;
 
     /* Build Insert KeyInfo section from aftervalues */
-    if (unlikely(! appendAttrDataToSection(keyIVal,
-                                           afterValues,
-                                           false, // No AttributeHeaders
-                                           attrId,
-                                           hasNull)))
-    {
+    if (unlikely(!appendAttrDataToSection(keyIVal, afterValues,
+                                          false,  // No AttributeHeaders
+                                          attrId, hasNull))) {
       jam();
       break;
     }
 
-    if(ERROR_INSERTED(8086))
-    {
+    if (ERROR_INSERTED(8086)) {
       /* Simulate SS exhaustion */
       break;
     }
-    
+
     /* If there's Nulls in the values that become the index table's
      * PK then we skip this insert
      */
-    if (hasNull)
-    {
+    if (hasNull) {
       jam();
       releaseSection(keyIVal);
       trigger_op_finished(signal, *transPtr, RNIL, opRecord, 0);
@@ -25624,55 +34181,44 @@ void Dbtc::insertIntoIndexTable(Signal* signal,
       ndbassert(regApiPtr->m_inExecuteTriggers);
       return;
     }
-    
-    /* Build Insert AttrInfo section from aftervalues, 
+
+    /* Build Insert AttrInfo section from aftervalues,
      * fragment id + keyvalues
      */
-    AttributeHeader ah(attrId, 0); // Length tbd.
-    attrId= 0;
-    if (unlikely((! appendAttrDataToSection(attrIVal,
-                                            afterValues,
-                                            true, // Include AttributeHeaders,
-                                            attrId,
-                                            hasNull)) ||
-                 (! appendToSection(attrIVal,
-                                    &ah.m_value,
-                                    1))))
-    {
-      jam();
-      break;
-    }
-    
-    AttributeHeader* pkHeader= (AttributeHeader*) getLastWordPtr(attrIVal);
-    Uint32 startSz= getSectionSz(attrIVal);
-    if (unlikely((! appendToSection(attrIVal,
-                                    &firedTriggerData->fragId,
-                                    1)) ||
-                 (! appendAttrDataToSection(attrIVal,
-                                            keyValues,
-                                            false, // No AttributeHeaders
-                                            attrId,
-                                            hasNull))))
-    {
+    AttributeHeader ah(attrId, 0);  // Length tbd.
+    attrId = 0;
+    if (unlikely((!appendAttrDataToSection(attrIVal, afterValues,
+                                           true,  // Include AttributeHeaders,
+                                           attrId, hasNull)) ||
+                 (!appendToSection(attrIVal, &ah.m_value, 1)))) {
       jam();
       break;
     }
 
-    appendOk= true;
+    AttributeHeader *pkHeader = (AttributeHeader *)getLastWordPtr(attrIVal);
+    Uint32 startSz = getSectionSz(attrIVal);
+    if (unlikely((!appendToSection(attrIVal, &firedTriggerData->fragId, 1)) ||
+                 (!appendAttrDataToSection(attrIVal, keyValues,
+                                           false,  // No AttributeHeaders
+                                           attrId, hasNull)))) {
+      jam();
+      break;
+    }
+
+    appendOk = true;
 
     /* Now go back and set pk header length */
     pkHeader->setDataSize(getSectionSz(attrIVal) - startSz);
-  } while(0);
+  } while (0);
 
-  if (unlikely(!appendOk))
-  {
+  if (unlikely(!appendOk)) {
     /* Some failure building up KeyInfo and AttrInfo */
     releaseSection(keyIVal);
     releaseSection(attrIVal);
     abortTransFromTrigger(signal, *transPtr, ZGET_DATAREC_ERROR);
     return;
   }
-  
+
   /* Now build TcKeyReq for insert */
   TcKeyReq::setKeyLength(tcKeyRequestInfo, 0);
   tcKeyReq->attrLen = 0;
@@ -25683,12 +34229,12 @@ void Dbtc::insertIntoIndexTable(Signal* signal,
   tcKeyReq->transId1 = regApiPtr->transid[0];
   tcKeyReq->transId2 = regApiPtr->transid[1];
   tcKeyReq->requestInfo = tcKeyRequestInfo;
-  
+
   /* Attach Key and AttrInfo sections to signal */
   ndbrequire(signal->header.m_noOfSections == 0);
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ] = keyIVal;
-  signal->m_sectionPtrI[ TcKeyReq::AttrInfoSectionNum ] = attrIVal;
-  signal->header.m_noOfSections= 2;
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] = keyIVal;
+  signal->m_sectionPtrI[TcKeyReq::AttrInfoSectionNum] = attrIVal;
+  signal->header.m_noOfSections = 2;
 
   /*
    * Fix savepoint id -
@@ -25699,7 +34245,7 @@ void Dbtc::insertIntoIndexTable(Signal* signal,
   regApiPtr->m_special_op_flags = TcConnectRecord::SOF_TRIGGER;
   /* Pass trigger Id via ApiConnectRecord (nasty) */
   ndbrequire(regApiPtr->immediateTriggerId == RNIL);
-  regApiPtr->immediateTriggerId= firedTriggerData->triggerId;
+  regApiPtr->immediateTriggerId = firedTriggerData->triggerId;
 
   EXECUTE_DIRECT(DBTC, GSN_TCKEYREQ, signal, TcKeyReq::StaticLength);
   jamEntry();
@@ -25712,15 +34258,14 @@ void Dbtc::insertIntoIndexTable(Signal* signal,
   regApiPtr->m_executing_trigger_ops++;
 }
 
-void Dbtc::deleteFromIndexTable(Signal* signal, 
-                                TcFiredTriggerData* firedTriggerData, 
-                                ApiConnectRecordPtr const* transPtr,
-                                TcConnectRecordPtr* opPtr,
-                                TcIndexData* indexData)
-{
-  ApiConnectRecord* regApiPtr = transPtr->p;
-  TcConnectRecord* opRecord = opPtr->p;
-  TcKeyReq * const tcKeyReq =  (TcKeyReq *)signal->getDataPtrSend();
+void Dbtc::deleteFromIndexTable(Signal *signal,
+                                TcFiredTriggerData *firedTriggerData,
+                                ApiConnectRecordPtr const *transPtr,
+                                TcConnectRecordPtr *opPtr,
+                                TcIndexData *indexData) {
+  ApiConnectRecord *regApiPtr = transPtr->p;
+  TcConnectRecord *opRecord = opPtr->p;
+  TcKeyReq *const tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
   Uint32 tcKeyRequestInfo = 0;
   TableRecordPtr indexTabPtr;
 
@@ -25730,15 +34275,14 @@ void Dbtc::deleteFromIndexTable(Signal* signal,
   tcKeyReq->senderData = opPtr->i;
 
   // Calculate key length and renumber attribute id:s
-  AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+  AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
   LocalAttributeBuffer beforeValues(pool, firedTriggerData->beforeValues);
-  
-  Uint32 keyIVal= RNIL;
-  Uint32 attrId= 0;
-  bool hasNull= false;
 
-  if (beforeValues.getSize() == 0)
-  {
+  Uint32 keyIVal = RNIL;
+  Uint32 attrId = 0;
+  bool hasNull = false;
+
+  if (beforeValues.getSize() == 0) {
     jam();
     ndbrequire(tc_testbit(regApiPtr->m_flags,
                           ApiConnectRecord::TF_DEFERRED_CONSTRAINTS));
@@ -25749,24 +34293,20 @@ void Dbtc::deleteFromIndexTable(Signal* signal,
   }
 
   /* Build Delete KeyInfo section from beforevalues */
-  if (unlikely((! appendAttrDataToSection(keyIVal,
-                                          beforeValues,
-                                          false, // No AttributeHeaders
-                                          attrId,
-                                          hasNull)) ||
-               ERROR_INSERTED(8086)))
-  {
+  if (unlikely((!appendAttrDataToSection(keyIVal, beforeValues,
+                                         false,  // No AttributeHeaders
+                                         attrId, hasNull)) ||
+               ERROR_INSERTED(8086))) {
     jam();
     releaseSection(keyIVal);
     abortTransFromTrigger(signal, *transPtr, ZGET_DATAREC_ERROR);
     return;
   }
-  
+
   /* If there's Nulls in the values that become the index table's
    * PK then we skip this delete
    */
-  if (hasNull)
-  {
+  if (hasNull) {
     jam();
     releaseSection(keyIVal);
     trigger_op_finished(signal, *transPtr, RNIL, opRecord, 0);
@@ -25787,8 +34327,8 @@ void Dbtc::deleteFromIndexTable(Signal* signal,
 
   /* Attach KeyInfo section to signal */
   ndbrequire(signal->header.m_noOfSections == 0);
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ] = keyIVal;
-  signal->header.m_noOfSections= 1;
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] = keyIVal;
+  signal->header.m_noOfSections = 1;
 
   /**
    * Fix savepoint id -
@@ -25799,7 +34339,7 @@ void Dbtc::deleteFromIndexTable(Signal* signal,
   regApiPtr->m_special_op_flags = TcConnectRecord::SOF_TRIGGER;
   /* Pass trigger Id via ApiConnectRecord (nasty) */
   ndbrequire(regApiPtr->immediateTriggerId == RNIL);
-  regApiPtr->immediateTriggerId= firedTriggerData->triggerId;
+  regApiPtr->immediateTriggerId = firedTriggerData->triggerId;
   EXECUTE_DIRECT(DBTC, GSN_TCKEYREQ, signal, TcKeyReq::StaticLength);
   jamEntry();
 
@@ -25811,58 +34351,54 @@ void Dbtc::deleteFromIndexTable(Signal* signal,
   regApiPtr->m_executing_trigger_ops++;
 }
 
-Uint32 
-Dbtc::TableRecord::getErrorCode(Uint32 schemaVersion) const {
-  if(!get_enabled())
-    return ZNO_SUCH_TABLE;
-  if(get_dropping())
-    return ZDROP_TABLE_IN_PROGRESS;
-  if(table_version_major(schemaVersion) != table_version_major(currentSchemaVersion))
+Uint32 Dbtc::TableRecord::getErrorCode(Uint32 schemaVersion) const {
+  if (!get_enabled()) return ZNO_SUCH_TABLE;
+  if (get_dropping()) return ZDROP_TABLE_IN_PROGRESS;
+  if (table_version_major(schemaVersion) !=
+      table_version_major(currentSchemaVersion))
     return ZWRONG_SCHEMA_VERSION_ERROR;
-  ErrorReporter::handleAssert("Dbtc::TableRecord::getErrorCode",
-			      __FILE__, __LINE__);
+  ErrorReporter::handleAssert("Dbtc::TableRecord::getErrorCode", __FILE__,
+                              __LINE__);
   return 0;
 }
 
-void Dbtc::executeReorgTrigger(Signal* signal,
-                               TcDefinedTriggerData* definedTriggerData,
-                               TcFiredTriggerData* firedTriggerData,
-                               ApiConnectRecordPtr const* transPtr,
-                               TcConnectRecordPtr* opPtr)
-{
-
-  ApiConnectRecord* regApiPtr = transPtr->p;
-  TcConnectRecord* opRecord = opPtr->p;
-  TcKeyReq * tcKeyReq =  (TcKeyReq *)signal->getDataPtrSend();
+void Dbtc::executeReorgTrigger(Signal *signal,
+                               TcDefinedTriggerData *definedTriggerData,
+                               TcFiredTriggerData *firedTriggerData,
+                               ApiConnectRecordPtr const *transPtr,
+                               TcConnectRecordPtr *opPtr) {
+  ApiConnectRecord *regApiPtr = transPtr->p;
+  TcConnectRecord *opRecord = opPtr->p;
+  TcKeyReq *tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
 
   tcKeyReq->apiConnectPtr = transPtr->i;
   tcKeyReq->senderData = opPtr->i;
 
-  AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+  AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
   LocalAttributeBuffer keyValues(pool, firedTriggerData->keyValues);
   LocalAttributeBuffer attrValues(pool, firedTriggerData->afterValues);
 
   Uint32 optype;
-  bool sendAttrInfo= true;
+  bool sendAttrInfo = true;
 
   switch (firedTriggerData->triggerEvent) {
-  case TriggerEvent::TE_INSERT:
-    optype = ZINSERT;
-    break;
-  case TriggerEvent::TE_UPDATE:
-    /**
-     * Only update should be write, as COPY is done as update
-     *   a (maybe) better solution would be to have a different
-     *   trigger event for COPY
-     */
-    optype = ZWRITE;
-    break;
-  case TriggerEvent::TE_DELETE:
-    optype = ZDELETE;
-    sendAttrInfo= false;
-    break;
-  default:
-    ndbabort();
+    case TriggerEvent::TE_INSERT:
+      optype = ZINSERT;
+      break;
+    case TriggerEvent::TE_UPDATE:
+      /**
+       * Only update should be write, as COPY is done as update
+       *   a (maybe) better solution would be to have a different
+       *   trigger event for COPY
+       */
+      optype = ZWRITE;
+      break;
+    case TriggerEvent::TE_DELETE:
+      optype = ZDELETE;
+      sendAttrInfo = false;
+      break;
+    default:
+      ndbabort();
   }
 
   Ptr<TableRecord> tablePtr;
@@ -25881,57 +34417,48 @@ void Dbtc::executeReorgTrigger(Signal* signal,
   tcKeyReq->transId1 = regApiPtr->transid[0];
   tcKeyReq->transId2 = regApiPtr->transid[1];
 
-  Uint32 keyIVal= RNIL;
-  Uint32 attrIVal= RNIL;
-  Uint32 attrId= 0;
-  bool hasNull= false;
-  
+  Uint32 keyIVal = RNIL;
+  Uint32 attrIVal = RNIL;
+  Uint32 attrId = 0;
+  bool hasNull = false;
+
   /* Prepare KeyInfo section */
-  if (unlikely(!appendAttrDataToSection(keyIVal,
-                                        keyValues,
-                                        false, // No AttributeHeaders
-                                        attrId,
-                                        hasNull)))
-  {
+  if (unlikely(!appendAttrDataToSection(keyIVal, keyValues,
+                                        false,  // No AttributeHeaders
+                                        attrId, hasNull))) {
     releaseSection(keyIVal);
     abortTransFromTrigger(signal, *transPtr, ZGET_DATAREC_ERROR);
     return;
   }
-  
+
   ndbrequire(!hasNull);
-  
-  if (sendAttrInfo)
-  {
+
+  if (sendAttrInfo) {
     /* Prepare AttrInfo section from Key values and
      * After values
      */
     LocalAttributeBuffer::Iterator attrIter;
-    LocalAttributeBuffer* buffers[2];
-    buffers[0]= &keyValues;
-    buffers[1]= &attrValues;
-    const Uint32 segSize= keyValues.getSegmentSize(); // 11
-    for (int buf=0; buf < 2; buf++)
-    {
-      Uint32 dataSize= buffers[buf]->getSize();
-      bool moreData= buffers[buf]->first(attrIter);
+    LocalAttributeBuffer *buffers[2];
+    buffers[0] = &keyValues;
+    buffers[1] = &attrValues;
+    const Uint32 segSize = keyValues.getSegmentSize();  // 11
+    for (int buf = 0; buf < 2; buf++) {
+      Uint32 dataSize = buffers[buf]->getSize();
+      bool moreData = buffers[buf]->first(attrIter);
 
-      while(dataSize)
-      {
+      while (dataSize) {
         ndbrequire(moreData);
-        Uint32 contigLeft= segSize - attrIter.ind;
-        Uint32 contigValid= MIN(dataSize, contigLeft);
-        
-        if (unlikely(!appendToSection(attrIVal,
-                                      attrIter.data,
-                                      contigValid)))
-        {
+        Uint32 contigLeft = segSize - attrIter.ind;
+        Uint32 contigValid = MIN(dataSize, contigLeft);
+
+        if (unlikely(!appendToSection(attrIVal, attrIter.data, contigValid))) {
           releaseSection(keyIVal);
           releaseSection(attrIVal);
           abortTransFromTrigger(signal, *transPtr, ZGET_DATAREC_ERROR);
           return;
         }
-        moreData= buffers[buf]->next(attrIter, contigValid);
-        dataSize-= contigValid;
+        moreData = buffers[buf]->next(attrIter, contigValid);
+        dataSize -= contigValid;
       }
       ndbassert(!moreData);
     }
@@ -25939,9 +34466,9 @@ void Dbtc::executeReorgTrigger(Signal* signal,
 
   /* Attach Key and optional AttrInfo sections to signal */
   ndbrequire(signal->header.m_noOfSections == 0);
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ] = keyIVal;
-  signal->m_sectionPtrI[ TcKeyReq::AttrInfoSectionNum ] = attrIVal;
-  signal->header.m_noOfSections= sendAttrInfo? 2 : 1;
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] = keyIVal;
+  signal->m_sectionPtrI[TcKeyReq::AttrInfoSectionNum] = attrIVal;
+  signal->header.m_noOfSections = sendAttrInfo ? 2 : 1;
 
   /**
    * Fix savepoint id -
@@ -25950,8 +34477,7 @@ void Dbtc::executeReorgTrigger(Signal* signal,
   const Uint32 currSavePointId = regApiPtr->currSavePointId;
   regApiPtr->currSavePointId = opRecord->savePointId;
   regApiPtr->m_special_op_flags =
-    TcConnectRecord::SOF_REORG_TRIGGER |
-    TcConnectRecord::SOF_TRIGGER;
+      TcConnectRecord::SOF_REORG_TRIGGER | TcConnectRecord::SOF_TRIGGER;
   /**
    * The trigger is fired on this fragment id, ensure that the trigger
    * isn't executed on the same fragment id if the hash maps have been
@@ -25962,7 +34488,7 @@ void Dbtc::executeReorgTrigger(Signal* signal,
   /* Pass trigger Id via ApiConnectRecord (nasty) */
   ndbrequire(regApiPtr->immediateTriggerId == RNIL);
 
-  regApiPtr->immediateTriggerId= firedTriggerData->triggerId;
+  regApiPtr->immediateTriggerId = firedTriggerData->triggerId;
   EXECUTE_DIRECT(DBTC, GSN_TCKEYREQ, signal, TcKeyReq::StaticLength);
   jamEntry();
 
@@ -25974,13 +34500,10 @@ void Dbtc::executeReorgTrigger(Signal* signal,
   regApiPtr->m_executing_trigger_ops++;
 }
 
-bool
-Dbtc::executeFullyReplicatedTrigger(Signal* signal,
-                                    TcDefinedTriggerData* definedTriggerData,
-                                    TcFiredTriggerData* firedTriggerData,
-                                    ApiConnectRecordPtr const* transPtr,
-                                    TcConnectRecordPtr* opPtr)
-{
+bool Dbtc::executeFullyReplicatedTrigger(
+    Signal *signal, TcDefinedTriggerData *definedTriggerData,
+    TcFiredTriggerData *firedTriggerData, ApiConnectRecordPtr const *transPtr,
+    TcConnectRecordPtr *opPtr) {
   /**
    * We use a special feature in DIGETNODESREQ to get the next copy fragment
    * given the current fragment. DIH keeps the copy fragments in an ordered
@@ -25991,7 +34514,7 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
    * we're only interested in getting the next fragment id.
    */
   jamLine((Uint16)firedTriggerData->fragId);
-  DiGetNodesReq * diGetNodesReq =  (DiGetNodesReq *)signal->getDataPtrSend();
+  DiGetNodesReq *diGetNodesReq = (DiGetNodesReq *)signal->getDataPtrSend();
   diGetNodesReq->tableId = definedTriggerData->tableId;
   diGetNodesReq->hashValue = firedTriggerData->fragId;
   diGetNodesReq->distr_key_indicator = 0;
@@ -26001,12 +34524,11 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
   diGetNodesReq->only_readable_nodes = 0;
   diGetNodesReq->jamBufferPtr = jamBuffer();
   c_dih->execDIGETNODESREQ(signal);
-  DiGetNodesConf * diGetNodesConf =  (DiGetNodesConf *)signal->getDataPtrSend();
+  DiGetNodesConf *diGetNodesConf = (DiGetNodesConf *)signal->getDataPtrSend();
   ndbrequire(diGetNodesConf->zero == 0);
   Uint32 fragId = diGetNodesConf->fragId;
   jamEntry();
-  if (fragId == RNIL)
-  {
+  if (fragId == RNIL) {
     jam();
     /**
      * It is possible that the trigger is executed and done when arriving here.
@@ -26026,13 +34548,13 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
   firedTriggerData->fragId = fragId;
   jamLine((Uint16)fragId);
 
-  ApiConnectRecord* regApiPtr = transPtr->p;
-  TcConnectRecord* opRecord = opPtr->p;
-  TcKeyReq * tcKeyReq =  (TcKeyReq *)signal->getDataPtrSend();
+  ApiConnectRecord *regApiPtr = transPtr->p;
+  TcConnectRecord *opRecord = opPtr->p;
+  TcKeyReq *tcKeyReq = (TcKeyReq *)signal->getDataPtrSend();
   tcKeyReq->apiConnectPtr = transPtr->i;
   tcKeyReq->senderData = opPtr->i;
 
-  AttributeBuffer::DataBufferPool & pool = c_theAttributeBufferPool;
+  AttributeBuffer::DataBufferPool &pool = c_theAttributeBufferPool;
   LocalAttributeBuffer keyValues(pool, firedTriggerData->keyValues);
   LocalAttributeBuffer attrValues(pool, firedTriggerData->afterValues);
 
@@ -26040,21 +34562,21 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
   bool sendAttrInfo = true;
 
   switch (firedTriggerData->triggerEvent) {
-  case TriggerEvent::TE_INSERT:
-    jam();
-    optype = ZINSERT;
-    break;
-  case TriggerEvent::TE_UPDATE:
-    jam();
-    optype = ZUPDATE;
-    break;
-  case TriggerEvent::TE_DELETE:
-    jam();
-    optype = ZDELETE;
-    sendAttrInfo = false;
-    break;
-  default:
-    ndbabort();
+    case TriggerEvent::TE_INSERT:
+      jam();
+      optype = ZINSERT;
+      break;
+    case TriggerEvent::TE_UPDATE:
+      jam();
+      optype = ZUPDATE;
+      break;
+    case TriggerEvent::TE_DELETE:
+      jam();
+      optype = ZDELETE;
+      sendAttrInfo = false;
+      break;
+    default:
+      ndbabort();
   }
 
   Ptr<TableRecord> tablePtr;
@@ -26081,12 +34603,9 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
   bool hasNull = false;
 
   /* Prepare KeyInfo section */
-  if (unlikely(!appendAttrDataToSection(keyIVal,
-                                        keyValues,
-                                        false, // No AttributeHeaders
-                                        attrId,
-                                        hasNull)))
-  {
+  if (unlikely(!appendAttrDataToSection(keyIVal, keyValues,
+                                        false,  // No AttributeHeaders
+                                        attrId, hasNull))) {
     jam();
     abortTransFromTrigger(signal, *transPtr, ZGET_DATAREC_ERROR);
     return true;
@@ -26094,34 +34613,28 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
 
   ndbrequire(!hasNull);
 
-  if (sendAttrInfo)
-  {
+  if (sendAttrInfo) {
     /* Prepare AttrInfo section from Key values and
      * After values
      */
     jam();
     LocalAttributeBuffer::Iterator attrIter;
-    LocalAttributeBuffer* buffers[2];
+    LocalAttributeBuffer *buffers[2];
     buffers[0] = &keyValues;
     buffers[1] = &attrValues;
-    const Uint32 segSize = keyValues.getSegmentSize(); // 11
-    for (int buf = 0; buf < 2; buf++)
-    {
+    const Uint32 segSize = keyValues.getSegmentSize();  // 11
+    for (int buf = 0; buf < 2; buf++) {
       jam();
       Uint32 dataSize = buffers[buf]->getSize();
       bool moreData = buffers[buf]->first(attrIter);
 
-      while(dataSize)
-      {
+      while (dataSize) {
         jam();
         ndbrequire(moreData);
         Uint32 contigLeft = segSize - attrIter.ind;
         Uint32 contigValid = MIN(dataSize, contigLeft);
 
-        if (unlikely(!appendToSection(attrIVal,
-                                      attrIter.data,
-                                      contigValid)))
-        {
+        if (unlikely(!appendToSection(attrIVal, attrIter.data, contigValid))) {
           jam();
           releaseSection(keyIVal);
           releaseSection(attrIVal);
@@ -26137,9 +34650,9 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
 
   /* Attach Key and optional AttrInfo sections to signal */
   ndbrequire(signal->header.m_noOfSections == 0);
-  signal->m_sectionPtrI[ TcKeyReq::KeyInfoSectionNum ] = keyIVal;
-  signal->m_sectionPtrI[ TcKeyReq::AttrInfoSectionNum ] = attrIVal;
-  signal->header.m_noOfSections = sendAttrInfo? 2 : 1;
+  signal->m_sectionPtrI[TcKeyReq::KeyInfoSectionNum] = keyIVal;
+  signal->m_sectionPtrI[TcKeyReq::AttrInfoSectionNum] = attrIVal;
+  signal->header.m_noOfSections = sendAttrInfo ? 2 : 1;
 
   Uint32 saveOp = regApiPtr->tcConnect.getLast();
   Uint32 saveState = regApiPtr->apiConnectstate;
@@ -26151,8 +34664,8 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
   const Uint32 currSavePointId = regApiPtr->currSavePointId;
   regApiPtr->currSavePointId = opRecord->savePointId;
   regApiPtr->m_special_op_flags =
-    TcConnectRecord::SOF_FULLY_REPLICATED_TRIGGER |
-    TcConnectRecord::SOF_TRIGGER;
+      TcConnectRecord::SOF_FULLY_REPLICATED_TRIGGER |
+      TcConnectRecord::SOF_TRIGGER;
   /* Pass trigger Id via ApiConnectRecord (nasty) */
   ndbrequire(regApiPtr->immediateTriggerId == RNIL);
 
@@ -26168,15 +34681,12 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
 
   Uint32 currState = regApiPtr->apiConnectstate;
 
-  bool ok =
-    ((saveState == CS_SEND_FIRE_TRIG_REQ ||
-      saveState == CS_WAIT_FIRE_TRIG_REQ ||
-      saveState == CS_STARTED ||
-      saveState == CS_START_COMMITTING) &&
-      currState == saveState);
+  bool ok = ((saveState == CS_SEND_FIRE_TRIG_REQ ||
+              saveState == CS_WAIT_FIRE_TRIG_REQ || saveState == CS_STARTED ||
+              saveState == CS_START_COMMITTING) &&
+             currState == saveState);
 
-  if (ok && regApiPtr->tcConnect.getLast() != saveOp)
-  {
+  if (ok && regApiPtr->tcConnect.getLast() != saveOp) {
     jam();
     /**
      * We successfully added an op...continue iterating
@@ -26189,8 +34699,7 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
   }
 
   ndbassert(terrorCode != 0);
-  if (unlikely(terrorCode == 0))
-  {
+  if (unlikely(terrorCode == 0)) {
     jam();
     abortTransFromTrigger(signal, *transPtr, ZSTATE_ERROR);
     return true;
@@ -26202,24 +34711,21 @@ Dbtc::executeFullyReplicatedTrigger(Signal* signal,
   return true;
 }
 
-void
-Dbtc::execROUTE_ORD(Signal* signal)
-{
+void Dbtc::execROUTE_ORD(Signal *signal) {
   jamEntry();
-  if(!assembleFragments(signal)){
+  if (!assembleFragments(signal)) {
     jam();
     return;
   }
 
   SectionHandle handle(this, signal);
 
-  RouteOrd* ord = (RouteOrd*)signal->getDataPtr();
+  RouteOrd *ord = (RouteOrd *)signal->getDataPtr();
   Uint32 dstRef = ord->dstRef;
   Uint32 srcRef = ord->srcRef;
   Uint32 gsn = ord->gsn;
 
-  if (likely(getNodeInfo(refToNode(dstRef)).m_connected))
-  {
+  if (likely(getNodeInfo(refToNode(dstRef)).m_connected)) {
     jam();
     Uint32 secCount = handle.m_cnt;
     ndbrequire(secCount >= 1 && secCount <= 3);
@@ -26235,7 +34741,7 @@ Dbtc::execROUTE_ORD(Signal* signal)
 
     SegmentedSectionPtr save = handle.m_ptr[0];
     for (Uint32 i = 0; i < secCount - 1; i++)
-      handle.m_ptr[i] = handle.m_ptr[i+1];
+      handle.m_ptr[i] = handle.m_ptr[i + 1];
     handle.m_cnt--;
 
     sendSignal(dstRef, gsn, signal, sigLen, JBB, &handle);
@@ -26243,12 +34749,11 @@ Dbtc::execROUTE_ORD(Signal* signal)
     handle.m_cnt = 1;
     handle.m_ptr[0] = save;
     releaseSections(handle);
-    return ;
+    return;
   }
 
   releaseSections(handle);
-  warningEvent("Unable to route GSN: %d from %x to %x",
-	       gsn, srcRef, dstRef);
+  warningEvent("Unable to route GSN: %d from %x to %x", gsn, srcRef, dstRef);
 }
 
 /**
@@ -26273,28 +34778,23 @@ Dbtc::execROUTE_ORD(Signal* signal)
  * The granularity of the timer for those signals depends on the granularity
  * of the scheduler.
  */
-void
-Dbtc::time_track_init_histogram_limits(void)
-{
+void Dbtc::time_track_init_histogram_limits(void) {
   HostRecordPtr hostPtr;
   /**
    * Calculate the boundary values, the first one is 50 microseconds,
    * after that we multiply by 1.5 consecutively.
    */
   Uint32 val = TIME_TRACK_INITIAL_RANGE_VALUE;
-  for (Uint32 i = 0; i < TIME_TRACK_HISTOGRAM_RANGES; i++)
-  {
+  for (Uint32 i = 0; i < TIME_TRACK_HISTOGRAM_RANGES; i++) {
     c_time_track_histogram_boundary[i] = val;
     val *= 3;
     val /= 2;
   }
-  for (Uint32 node = 0; node < MAX_NODES; node++)
-  {
+  for (Uint32 node = 0; node < MAX_NODES; node++) {
     hostPtr.i = node;
     ptrCheckGuard(hostPtr, chostFilesize, hostRecord);
     hostPtr.p->time_tracked = false;
-    for (Uint32 i = 0; i < TIME_TRACK_HISTOGRAM_RANGES; i++)
-    {
+    for (Uint32 i = 0; i < TIME_TRACK_HISTOGRAM_RANGES; i++) {
       hostPtr.p->time_track_scan_histogram[i] = 0;
       hostPtr.p->time_track_scan_error_histogram[i] = 0;
       hostPtr.p->time_track_read_key_histogram[i] = 0;
@@ -26308,12 +34808,10 @@ Dbtc::time_track_init_histogram_limits(void)
   }
 }
 
-Uint32
-Dbtc::time_track_calculate_histogram_position(NDB_TICKS & start_ticks)
-{
+Uint32 Dbtc::time_track_calculate_histogram_position(NDB_TICKS &start_ticks) {
   NDB_TICKS end_ticks = getHighResTimer();
   Uint32 micros_passed =
-    (Uint32)NdbTick_Elapsed(start_ticks, end_ticks).microSec();
+      (Uint32)NdbTick_Elapsed(start_ticks, end_ticks).microSec();
 
   NdbTick_Invalidate(&start_ticks);
 
@@ -26330,15 +34828,11 @@ Dbtc::time_track_calculate_histogram_position(NDB_TICKS & start_ticks)
    * at times.
    */
   pos = (upper_pos + lower_pos) / 2;
-  while (true)
-  {
-    if (micros_passed > c_time_track_histogram_boundary[pos])
-    {
+  while (true) {
+    if (micros_passed > c_time_track_histogram_boundary[pos]) {
       /* Move to upper half in histogram ranges */
       lower_pos = pos + 1;
-    }
-    else
-    {
+    } else {
       /* Move to lower half in histogram ranges */
       upper_pos = pos;
     }
@@ -26429,14 +34923,88 @@ Dbtc::time_track_complete_key_operation(
   ptrCheckGuard(dbHostPtr, chostFilesize, hostRecord);
 
   if (regTcPtr->operation == ZREAD ||
-      regTcPtr->operation == ZUNLOCK)
+      regTcPtr->operation == 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ZUNLOCK)
   {
-    apiHostPtr.p->time_track_read_key_histogram[pos]++;
-    dbHostPtr.p->time_track_read_key_histogram[pos]++;
-  }
-  else
-  {
-    apiHostPtr.p->time_track_write_key_histogram[pos]++;
+||||||| Common ancestor
+ Uint32 apiNodeId)
+{
+=======
+  
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ apiHostPtr.p->time_track_read_key_histogram[pos]++;
+||||||| Common ancestor
+hostPtr;
+=======
+ Uint32 apiNodeId) {
+  HostRecordPtr hostPtr;
+  /* Scans are recorded on the calling API node */
+  Uint32 pos = time_track_calculate_histogram_position(scanPtr->m_start_ticks);
+  hostPtr.i = apiNodeId;
+  ptrCheckGuard(hostPtr, chostFilesize, hostRecord);
+  hostPtr.p->time_track_scan_histogram[pos]++;
+  hostPtr.p->time_tracked = true;
+}
+
+void Dbtc::time_track_complete_scan_error(ScanRecord *const scanPtr,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+/* Scans
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+dbHostPtr.p->time_track_read_key_histogram[pos]++;
+||||||| Common ancestor
+recorded
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+the
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+else
+||||||| Common ancestor
+API
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+*/
+=======
+>>>>>>> MySQL 8.0.36
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  apiHostPtr.p->time_track_write_key_histogram[pos]++;
     dbHostPtr.p->time_track_write_key_histogram[pos]++;
   }
   apiHostPtr.p->time_tracked = true;
@@ -26446,8 +35014,33 @@ Dbtc::time_track_complete_key_operation(
 void
 Dbtc::time_track_complete_key_operation_error(
   struct TcConnectRecord * const regTcPtr,
-  Uint32 apiNodeId,
+  Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 pos = time_track_calculate_histogram_position(scanPtr->m_start_ticks);
+  hostPtr.i = apiNodeId;
+  ptrCheckGuard(hostPtr, chostFilesize, hostRecord);
+  hostPtr.p->time_track_scan_histogram[pos]++;
+  hostPtr.p->time_tracked = true;
+}
+
+void
+Dbtc::time_track_complete_scan_error(ScanRecord * const scanPtr,
+        
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32 apiNodeId)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+apiNodeId,
   Uint32 dbNodeId)
+||||||| Common ancestor
+                            Uint32 apiNodeId)
+=======
+>>>>>>> MySQL 8.0.36
 {
   HostRecordPtr apiHostPtr, dbHostPtr;
   /* Scans are recorded on the calling API node and the primary DB node */
@@ -26464,14 +35057,11 @@ Dbtc::time_track_complete_key_operation_error(
   dbHostPtr.p->time_tracked = true;
 }
 
-void
-Dbtc::time_track_complete_scan_frag(
-  ScanFragRec * const scanFragPtr)
-{
+void Dbtc::time_track_complete_scan_frag(
+  ScanFragRec *const scanFragPtr) {
   HostRecordPtr hostPtr;
   /* Scan frag operations are recorded on the DB node */
-  if (!NdbTick_IsValid(scanFragPtr->m_start_ticks))
-  {
+  if (!NdbTick_IsValid(scanFragPtr->m_start_ticks)) {
     /**
      * We can come here immediately after a conf message with a closed
      * message. So essentially we can get two SCAN_FRAGCONF after each
@@ -26480,8 +35070,7 @@ Dbtc::time_track_complete_scan_frag(
     jam();
     return;
   }
-  Uint32 pos =
-    time_track_calculate_histogram_position(scanFragPtr->m_start_ticks);
+  Uint32 pos = time_track_calculate_histogram_position(scanFragPtr->m_start_ticks);
   Uint32 dbNodeId = refToNode(scanFragPtr->lqhBlockref);
   hostPtr.i = dbNodeId;
   ptrCheckGuard(hostPtr, chostFilesize, hostRecord);
@@ -26489,14 +35078,11 @@ Dbtc::time_track_complete_scan_frag(
   hostPtr.p->time_tracked = true;
 }
 
-void
-Dbtc::time_track_complete_scan_frag_error(
-  ScanFragRec * const scanFragPtr)
-{
+void Dbtc::time_track_complete_scan_frag_error(
+  ScanFragRec *const scanFragPtr) {
   HostRecordPtr hostPtr;
   /* Scan frag operations are recorded on the DB node */
-  if (!NdbTick_IsValid(scanFragPtr->m_start_ticks))
-  {
+  if (!NdbTick_IsValid(scanFragPtr->m_start_ticks)) {
     /**
      * We can come here after sending CLOSE flag on SCAN_FRAGREQ
      * while still waiting for SCAN_FRAGCONF, if SCAN_FRAGCONF
@@ -26506,8 +35092,7 @@ Dbtc::time_track_complete_scan_frag_error(
     jam();
     return;
   }
-  Uint32 pos =
-    time_track_calculate_histogram_position(scanFragPtr->m_start_ticks);
+  Uint32 pos = time_track_calculate_histogram_position(scanFragPtr->m_start_ticks);
   Uint32 dbNodeId = refToNode(scanFragPtr->lqhBlockref);
   hostPtr.i = dbNodeId;
   ptrCheckGuard(hostPtr, chostFilesize, hostRecord);
@@ -26529,9 +35114,8 @@ Dbtc::time_track_complete_transaction(ApiConnectRecord* const regApiPtr)
   hostPtr.p->time_tracked = true;
 }
 
-void
-Dbtc::time_track_complete_transaction_error(
-  ApiConnectRecord * const regApiPtr)
+void Dbtc::time_track_complete_transaction_error(
+  ApiConnectRecord *const regApiPtr)
 {
   HostRecordPtr hostPtr;
   /* Transactions are recorded on the API node */
@@ -26543,8 +35127,7 @@ Dbtc::time_track_complete_transaction_error(
      */
     return;
   }
-  Uint32 pos =
-    time_track_calculate_histogram_position(regApiPtr->m_start_ticks);
+  Uint32 pos = time_track_calculate_histogram_position(regApiPtr->m_start_ticks);
   Uint32 apiNodeId = refToNode(regApiPtr->ndbapiBlockref);
   hostPtr.i = apiNodeId;
   ptrCheckGuard(hostPtr, chostFilesize, hostRecord);
@@ -26552,8 +35135,7 @@ Dbtc::time_track_complete_transaction_error(
   hostPtr.p->time_tracked = true;
 }
 
-void
-Dbtc::execUPD_QUERY_DIST_ORD(Signal *signal)
+void Dbtc::execUPD_QUERY_DIST_ORD(Signal *signal)
 {
   /**
    * Receive an array of weights for each LDM and query thread.
@@ -26602,7 +35184,34 @@ Dbtc::query_thread_usage(Signal *signal)
                       " noQT: util_flag: %llu, noQT: no_exec_flag: %llu\n"
                       " noQT: exec_count: %llu, noQT: wrong_version: %llu",
                       instance(),
-                      used_dirty_flag,
+                   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+true;
+}
+
+void
+Dbtc::time_track_complete_transaction(ApiConnectRecord*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+true;
+}
+
+void Dbtc::time_track_complete_transaction(ApiConnectRecord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+const
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*const
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  used_dirty_flag,
                       used_locked_read,
                       used_locked_read_take_over,
                       no_read_flag,

@@ -25,16 +25,28 @@
 
 #include "trpman.hpp"
 #include "TransporterRegistry.hpp"
+#include "portlib/NdbTCP.h"
 #include "signaldata/CloseComReqConf.hpp"
 #include "signaldata/DisconnectRep.hpp"
-#include "signaldata/EnableCom.hpp"
-#include "signaldata/RouteOrd.hpp"
 #include "signaldata/DumpStateOrd.hpp"
-#include "signaldata/Abort.hpp"
-#include "portlib/NdbTCP.h"
+#include "signaldata/EnableCom.hpp"
+#include "
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+signaldata/Abort.hpp"
+#include "portlib
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+portlib
+// RONDB-624 todo: Glue these lines together ^v
+=======
+signaldata
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+/RouteOrd.hpp"
 
-#include "mt.hpp"
 #include "EventLogger.hpp"
+#include "mt.hpp"
 
 #define JAM_FILE_ID 430
 
@@ -43,14 +55,18 @@
 #endif
 
 #ifdef DEBUG_MULTI_TRP
-#define DEB_MULTI_TRP(arglist) do { g_eventLogger->info arglist ; } while (0)
+#define DEB_MULTI_TRP(arglist)   \
+  do {                           \
+    g_eventLogger->info arglist; \
+  } while (0)
 #else
-#define DEB_MULTI_TRP(arglist) do { } while (0)
+#define DEB_MULTI_TRP(arglist) \
+  do {                         \
+  } while (0)
 #endif
 
-Trpman::Trpman(Block_context & ctx, Uint32 instanceno) :
-  SimulatedBlock(TRPMAN, ctx, instanceno)
-{
+Trpman::Trpman(Block_context &ctx, Uint32 instanceno)
+    : SimulatedBlock(TRPMAN, ctx, instanceno) {
   BLOCK_CONSTRUCTOR(Trpman);
 
   addRecSignal(GSN_CLOSE_COMREQ, &Trpman::execCLOSE_COMREQ);
@@ -81,8 +97,7 @@ extern Uint32 MAX_RECEIVED_SIGNALS;
 #endif
 
 void
-Trpman::startCONTINUEB(Signal *signal)
-{
+Trpman::startCONTINUEB(Signal *signal) {
   jamEntry();
   if (!m_init_continueb)
   {
@@ -131,7 +146,39 @@ Trpman::handles_this_node(Uint32 nodeId, bool all)
 
   /**
    * Multiple receive threads can handle the node, but only one of the receive
-   * threads will act to change state and so forth, we define this to always
+   * threads will act to change state and so forth, we define this 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ret_val;
+}
+
+void
+Trpman::execOPEN_COMORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ret_val;
+}
+
+void Trpman::execOPEN_COMORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+always
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    * be the first transporter for this node. Often this method is called in
    * the setup and close phase where only one transporter is existing.
    * Thus we only look for first transporter below.
@@ -145,7 +192,27 @@ Trpman::handles_this_node(Uint32 nodeId, bool all)
   }
   globalTransporterRegistry.lockMultiTransporters();
   globalTransporterRegistry.get_trps_for_node(nodeId,
-                                              &trp_ids[0],
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ERROR_INSERTED(9002))
+	
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ERROR_INSERTED(9002)) &&
+>>>>>>> MySQL 8.0.36
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+&&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                                   &trp_ids[0],
                                               num_ids,
                                               max_ids);
   /* There's a global receiver->thread index - look it up */
@@ -331,9 +398,7 @@ Trpman::execCLOSE_COMREQ(Signal* signal)
       jamLine(node_id);
       close_com_failed_node(signal, node_id);
     }
-  }
-  else
-  {
+  } else {
     jam();
     ndbrequire(signal->getNoOfSections() == 0);
     found_nodes = 1;
@@ -354,9 +419,84 @@ Trpman::execCLOSE_COMREQ(Signal* signal)
     closeComConf->requestType = requestType;
     closeComConf->failNo = failNo;
 
-    /* Note assumption that noOfNodes and theNodes
-     * bitmap is not trampled above
-     * signals received from the remote node.
+    /* Note assumption that noOfNodes and 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+theNodes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+handles_this_node(i))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+handles_this_node(i)) {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+     * 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+bitmap
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+	jam();
+
+#ifdef
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  jam();
+
+#ifdef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+is
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ERROR_INSERT
+	if
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ERROR_INSERT
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+not
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+((ERROR_INSERTED(9000)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       if ((ERROR_INSERTED(9000)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ trampled 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+above
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ERROR_INSERTED(9002))
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ERROR_INSERTED(9002)) &&
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+&&
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ * signals received from the remote node.
      */
     sendSignal(TRPMAN_REF,
                GSN_CLOSE_COMCONF,
@@ -382,11 +522,8 @@ Trpman::execCLOSE_COMCONF(Signal *signal)
              JBA);
 }
 
-void
-Trpman::enable_com_node(Signal *signal, Uint32 node)
-{
-  if (!handles_this_node(node))
-    return;
+void Trpman::enable_com_node(Signal *signal, Uint32 node) {
+  if (!handles_this_node(node))   return;
   globalTransporterRegistry.setIOState(node, NoHalt);
   setNodeInfo(node).m_connected = true;
 
@@ -422,7 +559,31 @@ Trpman::execENABLE_COMREQ(Signal* signal)
     return;
   }
 
-  /* Need to copy out signal data to not clobber it with sendSignal(). */
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+/*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+CloseComReqConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+CloseComReqConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Need
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+closeComConf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*closeComConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to copy out signal data to not clobber it with sendSignal(). */
   BlockReference senderRef = enableComReq->m_senderRef;
   Uint32 senderData = enableComReq->m_senderData;
   Uint32 enableNodeId = enableComReq->m_enableNodeId;
@@ -458,13 +619,10 @@ Trpman::execENABLE_COMREQ(Signal* signal)
   enableComConf->m_senderRef = reference();
   enableComConf->m_senderData = senderData;
   enableComConf->m_enableNodeId = enableNodeId;
-  sendSignal(senderRef, GSN_ENABLE_COMCONF, signal,
-             EnableComConf::SignalLength, JBA);
+  sendSignal(senderRef, GSN_ENABLE_COMCONF, signal, EnableComConf::SignalLength, JBA);
 }
 
-void
-Trpman::execDISCONNECT_REP(Signal *signal)
-{
+void Trpman::execDISCONNECT_REP(Signal *signal) {
   const DisconnectRep * const rep = (DisconnectRep *)&signal->theData[0];
   const Uint32 hostId = rep->nodeId;
   jamEntry();
@@ -493,8 +651,7 @@ Trpman::execDISCONNECT_REP(Signal *signal)
  * external signals received from other nodes which
  * arrive from the same thread that runs TRPMAN
  */
-void
-Trpman::execROUTE_ORD(Signal* signal)
+void Trpman::execROUTE_ORD(Signal *signal)
 {
   jamEntry();
   if (!assembleFragments(signal))
@@ -514,8 +671,7 @@ Trpman::execROUTE_ORD(Signal* signal)
   Uint32 nodeId = refToNode(dstRef);
 
   if (likely((nodeId == 0) ||
-             getNodeInfo(nodeId).m_connected))
-  {
+             getNodeInfo(nodeId).m_connected)) {
     jam();
     Uint32 secCount = handle.m_cnt;
     ndbrequire(secCount >= 1 && secCount <= 3);
@@ -563,8 +719,7 @@ Trpman::execDBINFO_SCANREQ(Signal *signal)
   {
     jam();
     Uint32 rnode = cursor->data[0];
-    if (rnode == 0)
-      rnode++; // Skip node 0
+    if (rnode == 0)     rnode++; // Skip node 0
 
     while (rnode < MAX_NODES)
     {
@@ -573,8 +728,7 @@ Trpman::execDBINFO_SCANREQ(Signal *signal)
         rnode++;
         continue;
       }
-      if (!handles_this_node(rnode))
-      {
+      if (!handles_this_node(rnode))   {
         rnode++;
         continue;
       }
@@ -586,25 +740,73 @@ Trpman::execDBINFO_SCANREQ(Signal *signal)
         jam();
         Ndbinfo::Row row(signal, req);
         row.write_uint32(getOwnNodeId()); // Node id
-        row.write_uint32(rnode); // Remote node id
+     EnableComConf::SignalLength,
+   row.write_uint32(rnode); // Remote node id
         row.write_uint32(globalTransporterRegistry.getPerformState(rnode)); // State
 
         ndb_sockaddr conn_addr = globalTransporterRegistry.get_connect_address(rnode);
         /* Connect address */
         if (!conn_addr.is_unspecified())
         {
-          jam();
+ DisconnectRep::SignalLength,
+         jam();
           char *addr_str =
               Ndb_inet_ntop(&conn_addr, addr_buf, sizeof(addr_buf));
           row.write_string(addr_str);
         }
         else
         {
-          jam();
+       
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+*/
+void
+Trpman::execROUTE_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*/
+void Trpman::execROUTE_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+  jam();
           row.write_string("-");
         }
 
-        /* Bytes sent/received */
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  /*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+RouteOrd*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+RouteOrd
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Bytes
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ord
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*ord
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ sent/received */
         row.write_uint64(globalTransporterRegistry.get_bytes_sent(rnode));
         row.write_uint64(globalTransporterRegistry.get_bytes_received(rnode));
 
@@ -641,9 +843,7 @@ Trpman::execDBINFO_SCANREQ(Signal *signal)
   ndbinfo_send_scan_conf(signal, req, rl);
 }
 
-void
-Trpman::execNDB_TAMPER(Signal* signal)
-{
+void Trpman::execNDB_TAMPER(Signal* signal) {
   jamEntry();
 #ifdef ERROR_INSERT
   if (signal->getLength() == 1)
@@ -655,10 +855,9 @@ Trpman::execNDB_TAMPER(Signal* signal)
     SET_ERROR_INSERT_VALUE2(signal->theData[0], signal->theData[1]);
   }
 
-  if (signal->theData[0] == 9003)
+    if (signal->theData[0] == 9003)
   {
-    if (MAX_RECEIVED_SIGNALS < 1024)
-    {
+    if (MAX_RECEIVED_SIGNALS < 1024) {
       MAX_RECEIVED_SIGNALS = 1024;
     }
     else
@@ -678,10 +877,34 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
   Uint32 arg = dumpState->args[0]; (void)arg;
 
 #ifdef ERROR_INSERT
-  if (arg == 9000 || arg == 9002)
-  {
-    SET_ERROR_INSERT_VALUE(arg);
-    for (Uint32 i = 1; i<signal->getLength(); i++)
+  if (arg == 9000 || arg == 9002) {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SET_ERROR_INSERT_VALUE(arg);
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  default:
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  default: {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+    for (Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+i
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+     
+// RONDB-624 todo: Glue these lines together ^v
+=======
+   
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = 1; i<signal->getLength(); i++)
       c_error_9000_nodes_mask.set(signal->theData[i]);
   }
 
@@ -691,18 +914,46 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
     if (signal->getLength() == 1 || signal->theData[1])
     {
       signal->header.theLength = 2;
-      for (Uint32 i = 1; i<MAX_NODES; i++)
+      for (Uint32 i =
+                1; i<MAX_NODES; i++)
       {
-        if (c_error_9000_nodes_mask.get(i) &&
-            handles_this_node(i))
+            if (c_error_9000_nodes_mask.get(i) &&
+  {
+          handles_this_node(i))
         {
           signal->theData[0] = 0;
           signal->theData[1] = i;
           execOPEN_COMORD(signal);
-        }
-      }
-    }
-    c_error_9000_nodes_mask.clear();
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  else
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ } else
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+=======
+{
+>>>>>>> MySQL 8.0.36
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+c_error_9000_nodes_mask.clear();
+||||||| Common ancestor
+{
+=======
+>>>>>>> MySQL 8.0.36
   }
 
   if (arg == 9004 && signal->getLength() == 2)
@@ -710,7 +961,7 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
     SET_ERROR_INSERT_VALUE(9004);
     c_error_9000_nodes_mask.clear();
     c_error_9000_nodes_mask.set(signal->theData[1]);
-  }
+      }
 
   if (arg == 9005 && signal->getLength() == 2 && ERROR_INSERTED(9004))
   {
@@ -746,12 +997,33 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
   {
     bool block = (arg == 9992);
     TransporterReceiveHandle * recvdata = mt_get_trp_receive_handle(instance());
-    assert(recvdata != 0);
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+void
+Trpman::execNDB_TAMPER(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+void Trpman::execNDB_TAMPER(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal)
+{
+=======
+*signal) {
+>>>>>>> MySQL 8.0.36
+   assert(recvdata != 0);
     for (Uint32 n = 1; n < signal->getLength(); n++)
     {
       Uint32 nodeId = signal->theData[n];
-      if (!handles_this_node(nodeId, true))
-        continue;
+      if (!handles_this_node(nodeId, true))       continue;
 
       if ((nodeId > 0) &&
           (nodeId < MAX_NODES))
@@ -759,7 +1031,37 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
         if (block)
         {
           if (!globalTransporterRegistry.isBlocked(nodeId))
-          {
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+#endif
+}//execNDB_TAMPER()
+
+void
+Trpman::execDUMP_STATE_ORD(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+#endif
+}  // execNDB_TAMPER()
+
+void Trpman::execDUMP_STATE_ORD(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+signal)
+=======
+*signal) 
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+{
             g_eventLogger->info("(%u)TRPMAN : Blocking receive from node %u",
                                 instance(),
                                 nodeId);
@@ -773,8 +1075,7 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
         }
         else
         {
-          if (globalTransporterRegistry.isBlocked(nodeId))
-          {
+          if (globalTransporterRegistry.isBlocked(nodeId))         {
             g_eventLogger->info("(%u)TRPMAN : Unblocking receive from node %u",
                                 instance(), nodeId);
 
@@ -797,8 +1098,7 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
   if (arg == 9990) /* Block recv from all ndbd matching pattern */
   {
     Uint32 pattern = 0;
-    if (signal->getLength() > 1)
-    {
+    if (signal->getLength() > 1) {
       pattern = signal->theData[1];
       g_eventLogger->info(
           "TRPMAN : Blocking receive from all ndbds matching pattern -%s-",
@@ -817,26 +1117,179 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
       {
         if (getNodeInfo(node).m_type == NodeInfo::DB)
         {
-          if (!globalTransporterRegistry.isBlocked(node))
-          {
-            switch (pattern)
-            {
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+if (!globalTransporterRegistry.isBlocked(node))
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+else
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  g_eventLogger->info(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  switch (pattern)
+  
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+      
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+g_eventLogger->info("TRPMAN
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"TRPMAN
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+    {
             case 1:
-            {
-              /* Match if given node is on 'other side' of
-               * 2-replica cluster
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  {
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+blocked)", arg, nodeId);
+// RONDB-624 todo: Glue these lines together ^v
+=======
+blocked)",
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+ 
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   /* Match if 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+given
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+arg,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+node
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+}
+=======
+nodeId);
+>>>>>>> MySQL 8.0.36
+ is on 'other side' of
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+  }
+>>>>>>> MySQL 8.0.36
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+{
+=======
+} else {
+>>>>>>> MySQL 8.0.36
+    * 2-replica cluster
                */
               if ((getOwnNodeId() & 1) != (node & 1))
               {
                 /* Node is on the 'other side', match */
                 break;
-              }
-              /* Node is on 'my side', don't match */
+   else {
+          }
+  g_eventLogger->info(
+            /* Node is on 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+'my
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g_eventLogger->info("TRPMAN
+// RONDB-624 todo: Glue these lines together ^v
+=======
+"TRPMAN
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ side', don't match */
               continue;
-            }
-            default:
-              break;
-            }
+            
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+||||||| Common ancestor
+nodeId);
+=======
+>>>>>>> MySQL 8.0.36
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  default:
+||||||| Common ancestor
+}
+=======
+>>>>>>> MySQL 8.0.36
+   arg, nodeId);
+          break;
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+else
+=======
+  }
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+}
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+{
+// RONDB-624 todo: Glue these lines together ^v
+=======
+} else {
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
             g_eventLogger->info("(%u)TRPMAN : Blocking receive from node %u",
                                 instance(),
                                 node);
@@ -848,16 +1301,12 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
   }
   if (arg == 9991) /* Unblock recv from all blocked */
   {
-    TransporterReceiveHandle * recvdata = mt_get_trp_receive_handle(instance());
+    TransporterReceiveHandle *recvdata = mt_get_trp_receive_handle(instance());
     assert(recvdata != 0);
-    for (Uint32 node = 1; node < MAX_NODES; node++)
-    {
-      if (node == getOwnNodeId())
-        continue;
-      if (!handles_this_node(node, true))
-        continue;
-      if (globalTransporterRegistry.isBlocked(node))
-      {
+    for (Uint32 node = 1; node < MAX_NODES; node++) {
+      if (node == getOwnNodeId()) continue;
+      if (!handles_this_node(node, true)) continue;
+      if (globalTransporterRegistry.isBlocked(node)) {
         g_eventLogger->info("(%u)TRPMAN : Unblocking receive from node %u",
                             instance(),
                             node);
@@ -891,15 +1340,28 @@ Trpman::execDUMP_STATE_ORD(Signal* signal)
         }
         else
         {
-          g_eventLogger->info("TRPMAN : Unblocking send to node %u", 
+          g_eventLogger->info("TRPMAN : Unblocking send to node
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ %u", 
                               nodeId);
 
-          globalTransporterRegistry.unblockSend(*recvdata, nodeId);
+          globalTransporterRegistry.unblockSend(*recvdata
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ %u",
+                                instance()
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ %u"
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+, nodeId);
         }
       }
       else
       {
-        g_eventLogger->info("TRPMAN : Ignoring dump %u for node %u", arg,
+        g_eventLogger->info("TRPMAN : Ignoring dump %u for instance(), node %u", arg,
                             nodeId);
       }
     }
@@ -972,13 +1434,37 @@ Trpman::execACTIVATE_TRP_REQ(Signal *signal)
     ActivateTrpConf* conf =
       CAST_PTR(ActivateTrpConf, signal->getDataPtrSend());
     conf->nodeId = node_id;
-    conf->trpId = trp_id;
+    conf->trpId = trp_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+id;
     conf->senderRef = reference();
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+eventLogger->info("TRPMAN : Send to %u is %sblocked",
+// RONDB-624 todo: Glue these lines together ^v
+=======
+eventLogger->info(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
     sendSignal(ret_ref, GSN_ACTIVATE_TRP_CONF, signal,
-               ActivateTrpConf::SignalLength, JBB);
+      "TRPMAN : Send to %u is 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+   ActivateTrpConf::SignalLength, JBB);
   }
   else
-  {
+ 
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+         
+// RONDB-624 todo: Glue these lines together ^v
+=======
+%sblocked",
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {
     DEB_MULTI_TRP(("(%u)ACTIVATE_TRP_REQ is not receiver (%u,%u)",
                    instance(), node_id, trp_id));
   }
@@ -1003,9 +1489,72 @@ Trpman::execSEND_PUSH_ABORTREQ(Signal *signal)
   {
     /**
      * Send a signal to all query threads that haven't yet executed
-     * any signals after the ABORT signal was sent. This ensures that
+     * any signals after the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ABORT signal was sent. This ensures that
      * we know that the signal LQHKEYREQ must have been pushed through.
-     * It is merely a safety mechanism to ensure that we see the sent
+     * It is merely
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+g_eventLogger->info("TRPMAN : Unblocking send to node %u", 
+                       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+g_eventLogger->info("TRPMAN
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+a
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+:
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+safety
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Unblocking
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+mechanism
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+send
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ensure
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+node
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+%u",
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ we see the sent
      * signal earlier. No need to send it if signals already executed
      * in query thread since ABORT was sent.
      */
@@ -1014,14 +1563,90 @@ Trpman::execSEND_PUSH_ABORTREQ(Signal *signal)
     Uint32 exec_signal_id = getExecThreadSignalId(thr_no, our_thr_no);
     Int32 diff = get_diff_signal_id(send_signal_id, exec_signal_id);
     if (diff > 0)
-    {
-      jam();
-      jamData(thr_no);
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+||||||| Common ancestor
+}
+
+#endif
+}
+
+void
+Trpman::sendSYNC_THREAD_VIA_CONF(Signal*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+}
+
+#endif
+}
+
+void Trpman::sendSYNC_THREAD_VIA_CONF(Signal
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*signal, Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+     jam();
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+SyncThreadViaReqConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SyncThreadViaReqConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+   jamData(thr_no);
       Uint32 ref = numberToRef(THRMAN, thr_no + 1, getOwnNodeId());
-      sendSignal(ref, GSN_SEND_PUSH_ORD, signal, 1, JBB);
+      sendSignal(ref, GSN_SEND_PUSH_ORD, signal, 1,
+             JBB);
     }
   }
-  SendPushAbortConf* conf =
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+SendPushAbortConf*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+SyncThreadViaReqConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+SyncThreadViaReqConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+conf
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ =
     CAST_PTR(SendPushAbortConf, signal->getDataPtrSend());
   conf->tcOprec = tcOprec;
   conf->tcBlockref = tcBlockref;
@@ -1037,30 +1662,148 @@ Trpman::execSEND_PUSH_ABORTREQ(Signal *signal)
 }
 
 Uint32
-Trpman::distribute_signal(SignalHeader * const header,
-                          const Uint32 instance_no,
-                          Uint32 ** theData,
-                          Uint32 *buf_ptr)
+Trpman::distribute_signal(SignalHeader 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+char*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+char
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+const header
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+name
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*name
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+Uint32*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+count)
 {
-  DistributionHandler *handle = &m_distribution_handle;
+=======
+*count) {
+>>>>>>> MySQL 8.0.36
+                        const Uint32 instance_no,
+                          Uint32 ** theData,
+                          Uint32 *buf_ptr) {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+DistributionHandler
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ActivateTrpReq*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ActivateTrpReq
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*handle
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+req
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*req
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = &m_distribution_handle;
   Uint32 gsn = header->theVerId_signalNumber;
   ndbrequire(globalData.ndbMtQueryWorkers > 0);
   ndbrequire(m_distribution_handler_inited);
-  if (unlikely(gsn == GSN_ABORT))
-  {
+  if (unlikely(gsn == GSN_ABORT)) {
     /**
-     * ABORT signals can have race conditions when the query was
-     * executed potentially in a query thread. The ABORT code
-     * has handling of this possibility when signal is sent
+     * ABORT signals 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+can
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+instance(),
+>>>>>>> MySQL 8.0.36
+ have race conditions when the query was
+     * executed potentially in a query 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+thread.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+instance(),
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ The ABORT code
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ActivateTrpConf*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ActivateTrpConf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+has
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+conf
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*conf
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ handling of this possibility when signal is sent
      * with a bit more data about this threads id and the
      * signal id used by this signal. This ensures that we can
      * guarantee that all signals sent before ABORT was
      * executed in DBLQH before we're done.
      */
     memcpy(buf_ptr,
-           *theData,
-           Abort::SignalLengthKey * 4);
-    Abort* abo = CAST_PTR(Abort, buf_ptr);
+           *theData, instance(),
+          Abort::SignalLengthKey * 4);
+    Abort* abo 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+instance(),
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ CAST_PTR(Abort, buf_ptr);
     *theData = buf_ptr;
     abo->threadId = getThreadId();
     abo->senderThreadSignalId = getThreadSignalId();
@@ -1074,28 +1817,21 @@ Trpman::distribute_signal(SignalHeader * const header,
   if (likely(gsn == GSN_LQHKEYREQ))
   {
     return get_lqhkeyreq_ref(handle, instance_no);
-  }
-  else if (gsn == GSN_SCAN_FRAGREQ)
-  {
+  } else if (gsn == GSN_SCAN_FRAGREQ) {
     return get_scan_fragreq_ref(handle, instance_no);
-  }
-  else
-  {
+  } else {
     return 0;
   }
 }
 
-void
-Trpman::execUPD_QUERY_DIST_ORD(Signal *signal)
-{
+void Trpman::execUPD_QUERY_DIST_ORD(Signal *signal) {
   /**
    * Receive an array of weights for each LDM and query thread.
    * These weights are used to create an array used for a quick round robin
    * distribution of the signals received in distribute_signal.
    */
   DistributionHandler *dist_handle = &m_distribution_handle;
-  if (!m_distribution_handler_inited)
-  {
+  if (!m_distribution_handler_inited) {
     fill_distr_references(dist_handle);
     calculate_distribution_signal(dist_handle);
     m_distribution_handler_inited = true;
@@ -1112,9 +1848,7 @@ Trpman::execUPD_QUERY_DIST_ORD(Signal *signal)
   calculate_distribution_signal(dist_handle);
 }
 
-TrpmanProxy::TrpmanProxy(Block_context & ctx) :
-  LocalProxy(TRPMAN, ctx)
-{
+TrpmanProxy::TrpmanProxy(Block_context &ctx) : LocalProxy(TRPMAN, ctx) {
   addRecSignal(GSN_OPEN_COMORD, &TrpmanProxy::execOPEN_COMORD);
   addRecSignal(GSN_ENABLE_COMREQ, &TrpmanProxy::execENABLE_COMREQ);
   addRecSignal(GSN_ENABLE_COMCONF, &TrpmanProxy::execENABLE_COMCONF);
@@ -1122,17 +1856,14 @@ TrpmanProxy::TrpmanProxy(Block_context & ctx) :
   addRecSignal(GSN_CLOSE_COMCONF, &TrpmanProxy::execCLOSE_COMCONF);
   addRecSignal(GSN_ROUTE_ORD, &TrpmanProxy::execROUTE_ORD);
   addRecSignal(GSN_SYNC_THREAD_VIA_REQ, &TrpmanProxy::execSYNC_THREAD_VIA_REQ);
-  addRecSignal(GSN_SYNC_THREAD_VIA_CONF, &TrpmanProxy::execSYNC_THREAD_VIA_CONF);
+  addRecSignal(GSN_SYNC_THREAD_VIA_CONF,
+               &TrpmanProxy::execSYNC_THREAD_VIA_CONF);
   addRecSignal(GSN_ACTIVATE_TRP_REQ, &TrpmanProxy::execACTIVATE_TRP_REQ);
 }
 
-TrpmanProxy::~TrpmanProxy()
-{
-}
+TrpmanProxy::~TrpmanProxy() {}
 
-SimulatedBlock*
-TrpmanProxy::newWorker(Uint32 instanceNo)
-{
+SimulatedBlock *TrpmanProxy::newWorker(Uint32 instanceNo) {
   return new Trpman(m_ctx, instanceNo);
 }
 
@@ -1140,147 +1871,112 @@ BLOCK_FUNCTIONS(TrpmanProxy)
 
 // GSN_OPEN_COMORD
 
-void
-TrpmanProxy::execOPEN_COMORD(Signal* signal)
-{
+void TrpmanProxy::execOPEN_COMORD(Signal *signal) {
   jamEntry();
 
-  for (Uint32 i = 0; i<c_workers; i++)
-  {
+  for (Uint32 i = 0; i < c_workers; i++) {
     jam();
-    sendSignal(workerRef(i), GSN_OPEN_COMORD, signal,
-               signal->getLength(), JBB);
+    sendSignal(workerRef(i), GSN_OPEN_COMORD, signal, signal->getLength(), JBB);
   }
 }
 
 // GSN_CLOSE_COMREQ
 
-void
-TrpmanProxy::execCLOSE_COMREQ(Signal* signal)
-{
+void TrpmanProxy::execCLOSE_COMREQ(Signal *signal) {
   jamEntry();
-  Ss_CLOSE_COMREQ& ss = ssSeize<Ss_CLOSE_COMREQ>();
-  const CloseComReqConf* req = (const CloseComReqConf*)signal->getDataPtr();
+  Ss_CLOSE_COMREQ &ss = ssSeize<Ss_CLOSE_COMREQ>();
+  const CloseComReqConf *req = (const CloseComReqConf *)signal->getDataPtr();
   ss.m_req = *req;
-  if (req->failedNodeId == 0)
-  {
+  if (req->failedNodeId == 0) {
     ndbrequire(signal->getNoOfSections() == 1);
     SectionHandle handle(this, signal);
     saveSections(ss, handle);
-  }
-  else
-  {
+  } else {
     ndbrequire(signal->getNoOfSections() == 0);
   }
   sendREQ(signal, ss);
 }
 
-void
-TrpmanProxy::sendCLOSE_COMREQ(Signal *signal,
-                              Uint32 ssId,
-                              SectionHandle *handle)
-{
+void TrpmanProxy::sendCLOSE_COMREQ(Signal *signal, Uint32 ssId,
+                                   SectionHandle *handle) {
   jam();
-  Ss_CLOSE_COMREQ& ss = ssFind<Ss_CLOSE_COMREQ>(ssId);
-  CloseComReqConf* req = (CloseComReqConf*)signal->getDataPtrSend();
+  Ss_CLOSE_COMREQ &ss = ssFind<Ss_CLOSE_COMREQ>(ssId);
+  CloseComReqConf *req = (CloseComReqConf *)signal->getDataPtrSend();
 
   *req = ss.m_req;
   req->xxxBlockRef = reference();
   req->failNo = ssId;
-  sendSignalNoRelease(workerRef(ss.m_worker),
-                      GSN_CLOSE_COMREQ,
-                      signal,
-                      CloseComReqConf::SignalLength,
-                      JBB,
-                      handle);
+  sendSignalNoRelease(workerRef(ss.m_worker), GSN_CLOSE_COMREQ, signal,
+                      CloseComReqConf::SignalLength, JBB, handle);
 }
 
-void
-TrpmanProxy::execCLOSE_COMCONF(Signal* signal)
-{
-  const CloseComReqConf* conf = (const CloseComReqConf*)signal->getDataPtr();
+void TrpmanProxy::execCLOSE_COMCONF(Signal *signal) {
+  const CloseComReqConf *conf = (const CloseComReqConf *)signal->getDataPtr();
   Uint32 ssId = conf->failNo;
   jamEntry();
-  Ss_CLOSE_COMREQ& ss = ssFind<Ss_CLOSE_COMREQ>(ssId);
+  Ss_CLOSE_COMREQ &ss = ssFind<Ss_CLOSE_COMREQ>(ssId);
   recvCONF(signal, ss);
 }
 
-void
-TrpmanProxy::sendCLOSE_COMCONF(Signal *signal, Uint32 ssId)
-{
+void TrpmanProxy::sendCLOSE_COMCONF(Signal *signal, Uint32 ssId) {
   jam();
-  Ss_CLOSE_COMREQ& ss = ssFind<Ss_CLOSE_COMREQ>(ssId);
+  Ss_CLOSE_COMREQ &ss = ssFind<Ss_CLOSE_COMREQ>(ssId);
 
-  if (!lastReply(ss))
-  {
+  if (!lastReply(ss)) {
     jam();
     return;
   }
 
-  CloseComReqConf* conf = (CloseComReqConf*)signal->getDataPtrSend();
+  CloseComReqConf *conf = (CloseComReqConf *)signal->getDataPtrSend();
   *conf = ss.m_req;
-  sendSignal(QMGR_REF, GSN_CLOSE_COMCONF, signal,
-             CloseComReqConf::SignalLength, JBB);
+  sendSignal(QMGR_REF, GSN_CLOSE_COMCONF, signal, CloseComReqConf::SignalLength,
+             JBB);
   ssRelease<Ss_CLOSE_COMREQ>(ssId);
 }
 
 // GSN_ENABLE_COMREQ
 
-void
-TrpmanProxy::execENABLE_COMREQ(Signal* signal)
-{
+void TrpmanProxy::execENABLE_COMREQ(Signal *signal) {
   jamEntry();
-  Ss_ENABLE_COMREQ& ss = ssSeize<Ss_ENABLE_COMREQ>();
-  const EnableComReq* req = (const EnableComReq*)signal->getDataPtr();
+  Ss_ENABLE_COMREQ &ss = ssSeize<Ss_ENABLE_COMREQ>();
+  const EnableComReq *req = (const EnableComReq *)signal->getDataPtr();
   ss.m_req = *req;
   SectionHandle handle(this, signal);
   saveSections(ss, handle);
   sendREQ(signal, ss);
 }
 
-void
-TrpmanProxy::sendENABLE_COMREQ(Signal *signal,
-                               Uint32 ssId,
-                               SectionHandle *handle)
-{
+void TrpmanProxy::sendENABLE_COMREQ(Signal *signal, Uint32 ssId,
+                                    SectionHandle *handle) {
   jam();
-  Ss_ENABLE_COMREQ& ss = ssFind<Ss_ENABLE_COMREQ>(ssId);
-  EnableComReq* req = (EnableComReq*)signal->getDataPtrSend();
+  Ss_ENABLE_COMREQ &ss = ssFind<Ss_ENABLE_COMREQ>(ssId);
+  EnableComReq *req = (EnableComReq *)signal->getDataPtrSend();
 
   *req = ss.m_req;
   req->m_senderRef = reference();
   req->m_senderData = ssId;
-  sendSignalNoRelease(workerRef(ss.m_worker),
-                      GSN_ENABLE_COMREQ,
-                      signal,
-                      EnableComReq::SignalLength,
-                      JBB,
-                      handle);
+  sendSignalNoRelease(workerRef(ss.m_worker), GSN_ENABLE_COMREQ, signal,
+                      EnableComReq::SignalLength, JBB, handle);
 }
 
-void
-TrpmanProxy::execENABLE_COMCONF(Signal* signal)
-{
-  const EnableComConf* conf = (const EnableComConf*)signal->getDataPtr();
+void TrpmanProxy::execENABLE_COMCONF(Signal *signal) {
+  const EnableComConf *conf = (const EnableComConf *)signal->getDataPtr();
   Uint32 ssId = conf->m_senderData;
   jamEntry();
-  Ss_ENABLE_COMREQ& ss = ssFind<Ss_ENABLE_COMREQ>(ssId);
+  Ss_ENABLE_COMREQ &ss = ssFind<Ss_ENABLE_COMREQ>(ssId);
   recvCONF(signal, ss);
 }
 
-void
-TrpmanProxy::sendENABLE_COMCONF(Signal *signal, Uint32 ssId)
-{
+void TrpmanProxy::sendENABLE_COMCONF(Signal *signal, Uint32 ssId) {
   jam();
-  Ss_ENABLE_COMREQ& ss = ssFind<Ss_ENABLE_COMREQ>(ssId);
+  Ss_ENABLE_COMREQ &ss = ssFind<Ss_ENABLE_COMREQ>(ssId);
 
-  if (!lastReply(ss))
-  {
+  if (!lastReply(ss)) {
     jam();
     return;
   }
 
-  EnableComReq* conf = (EnableComReq*)signal->getDataPtr();
+  EnableComReq *conf = (EnableComReq *)signal->getDataPtr();
   *conf = ss.m_req;
   sendSignal(conf->m_senderRef, GSN_ENABLE_COMCONF, signal,
              EnableComReq::SignalLength, JBB);
@@ -1289,19 +1985,16 @@ TrpmanProxy::sendENABLE_COMCONF(Signal *signal, Uint32 ssId)
 
 // GSN_ROUTE_ORD
 
-void
-TrpmanProxy::execROUTE_ORD(Signal* signal)
-{
+void TrpmanProxy::execROUTE_ORD(Signal *signal) {
   jamEntry();
 
-  RouteOrd* ord = (RouteOrd*)signal->getDataPtr();
+  RouteOrd *ord = (RouteOrd *)signal->getDataPtr();
   Uint32 nodeId = ord->from;
   ndbassert(nodeId != 0);
 
   Uint32 workerIndex = 0;
 
-  if (globalData.ndbMtReceiveThreads > (Uint32) 1)
-  {
+  if (globalData.ndbMtReceiveThreads > (Uint32)1) {
     /**
      * This signal is sent from QMGR at API node failures to ensure that all
      * signals have been received from the API before continue. We know that
@@ -1316,74 +2009,61 @@ TrpmanProxy::execROUTE_ORD(Signal* signal)
     workerIndex = get_recv_thread_idx(trp_id);
     ndbrequire(workerIndex < globalData.ndbMtReceiveThreads);
   }
-  
+
   SectionHandle handle(this, signal);
-  sendSignal(workerRef(workerIndex), GSN_ROUTE_ORD, signal,
-             signal->getLength(), JBB, &handle);
+  sendSignal(workerRef(workerIndex), GSN_ROUTE_ORD, signal, signal->getLength(),
+             JBB, &handle);
 }
 
 // GSN_SYNC_THREAD_VIA
 
-void
-TrpmanProxy::execSYNC_THREAD_VIA_REQ(Signal* signal)
-{
+void TrpmanProxy::execSYNC_THREAD_VIA_REQ(Signal *signal) {
   jamEntry();
-  Ss_SYNC_THREAD_VIA& ss = ssSeize<Ss_SYNC_THREAD_VIA>();
-  const SyncThreadViaReqConf* req =
-    (const SyncThreadViaReqConf*)signal->getDataPtr();
+  Ss_SYNC_THREAD_VIA &ss = ssSeize<Ss_SYNC_THREAD_VIA>();
+  const SyncThreadViaReqConf *req =
+      (const SyncThreadViaReqConf *)signal->getDataPtr();
   ss.m_req = *req;
   sendREQ(signal, ss);
 }
 
-void
-TrpmanProxy::sendSYNC_THREAD_VIA_REQ(Signal *signal,
-                                     Uint32 ssId,
-                                     SectionHandle*)
-{
+void TrpmanProxy::sendSYNC_THREAD_VIA_REQ(Signal *signal, Uint32 ssId,
+                                          SectionHandle *) {
   jam();
-  SyncThreadViaReqConf* req = (SyncThreadViaReqConf*)signal->getDataPtr();
+  SyncThreadViaReqConf *req = (SyncThreadViaReqConf *)signal->getDataPtr();
   req->senderRef = reference();
   req->senderData = ssId;
-  Ss_SYNC_THREAD_VIA& ss = ssFind<Ss_SYNC_THREAD_VIA>(ssId);
+  Ss_SYNC_THREAD_VIA &ss = ssFind<Ss_SYNC_THREAD_VIA>(ssId);
   sendSignal(workerRef(ss.m_worker), GSN_SYNC_THREAD_VIA_REQ, signal,
              SyncThreadViaReqConf::SignalLength, JBA);
 }
 
-void
-TrpmanProxy::execSYNC_THREAD_VIA_CONF(Signal* signal)
-{
+void TrpmanProxy::execSYNC_THREAD_VIA_CONF(Signal *signal) {
   jamEntry();
-  const SyncThreadViaReqConf* conf =
-    (const SyncThreadViaReqConf*)signal->getDataPtr();
+  const SyncThreadViaReqConf *conf =
+      (const SyncThreadViaReqConf *)signal->getDataPtr();
   Uint32 ssId = conf->senderData;
-  Ss_SYNC_THREAD_VIA& ss = ssFind<Ss_SYNC_THREAD_VIA>(ssId);
+  Ss_SYNC_THREAD_VIA &ss = ssFind<Ss_SYNC_THREAD_VIA>(ssId);
   recvCONF(signal, ss);
 }
 
-void
-TrpmanProxy::sendSYNC_THREAD_VIA_CONF(Signal *signal, Uint32 ssId)
-{
+void TrpmanProxy::sendSYNC_THREAD_VIA_CONF(Signal *signal, Uint32 ssId) {
   jam();
-  Ss_SYNC_THREAD_VIA& ss = ssFind<Ss_SYNC_THREAD_VIA>(ssId);
+  Ss_SYNC_THREAD_VIA &ss = ssFind<Ss_SYNC_THREAD_VIA>(ssId);
 
-  if (!lastReply(ss))
-  {
+  if (!lastReply(ss)) {
     jam();
     return;
   }
 
-  SyncThreadViaReqConf* conf = (SyncThreadViaReqConf*)signal->getDataPtr();
+  SyncThreadViaReqConf *conf = (SyncThreadViaReqConf *)signal->getDataPtr();
   *conf = ss.m_req;
   sendSignal(conf->senderRef, GSN_SYNC_THREAD_VIA_CONF, signal,
              NodeFailRep::SignalLength, JBB);
   ssRelease<Ss_SYNC_THREAD_VIA>(ssId);
 }
 
-void
-TrpmanProxy::execACTIVATE_TRP_REQ(Signal *signal)
-{
-  for (Uint32 i = 0; i < c_workers; i++)
-  {
+void TrpmanProxy::execACTIVATE_TRP_REQ(Signal *signal) {
+  for (Uint32 i = 0; i < c_workers; i++) {
     jam();
     Uint32 ref = numberToRef(number(), workerInstance(i), getOwnNodeId());
     sendSignal(ref, GSN_ACTIVATE_TRP_REQ, signal, signal->getLength(), JBB);

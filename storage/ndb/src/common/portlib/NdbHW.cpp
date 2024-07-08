@@ -22,23 +22,25 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
-#include "my_config.h"
-#include "ndb_config.h"
-#include "util/require.h"
-#include <NdbHW.hpp>
-#include <UtilBuffer.hpp>
-#include <File.hpp>
-#include <NdbTick.h>
 #include <NdbThread.h>
+#include <NdbTick.h>
 #include <ndb_limits.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "../src/common/util/parse_mask.hpp"
+#include <File.hpp>
+#include <NdbHW.hpp>
+#include <UtilBuffer.hpp>
 #include <iostream>
 #include <thread>
+#include "../src/common/util/parse_mask.hpp"
+#include "my_config.h"
+#include "ndb_config.h"
+#include "util/require.h"
 
 //#define DEBUG_HW(arglist) do { fprintf arglist ; } while (0)
-#define DEBUG_HW(arglist) do { } while(0)
+#define DEBUG_HW(arglist) \
+  do {                    \
+  } while (0)
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -76,13 +78,11 @@ Uint32 is_avx2_supported()
   return avx2_supported;
 }
 
-int NdbHW_Init()
-{
+int NdbHW_Init() {
   /**
    * This function is called at startup of process.
    */
-  if (inited)
-  {
+  if (inited) {
     return initres;
   }
 
@@ -93,14 +93,11 @@ int NdbHW_Init()
 #ifdef _SC_NPROCESSORS_CONF
   {
     long tmp = sysconf(_SC_NPROCESSORS_CONF);
-    if (tmp < 0)
-    {
+    if (tmp < 0) {
       perror("sysconf(_SC_NPROCESSORS_CONF) returned error");
       abort();
-    }
-    else
-    {
-      ncpu = (Uint32) tmp;
+    } else {
+      ncpu = (Uint32)tmp;
       DEBUG_HW((stderr,
                 "%u CPUs found using sysconf(_SC_NPROCESSORS_CONF)\n",
                 ncpu));
@@ -117,52 +114,43 @@ int NdbHW_Init()
             "%u CPUs found using std::thread::hardware_concurrency()\n",
             ncpu));
 #endif
-  if (ncpu == 0)
-  {
+  if (ncpu == 0) {
     perror("ncpu == 0");
     abort();
   }
 
   ticks_per_us = 0;
-#if defined (HAVE_LINUX_SCHEDULING)
+#if defined(HAVE_LINUX_SCHEDULING)
 #ifdef _SC_CLK_TCK
   long sct = sysconf(_SC_CLK_TCK);
-  if (sct <= 0)
-  {
+  if (sct <= 0) {
     perror("sysconf(_SC_CLK_TCK) failed!");
     abort();
-  }
-  else
-  {
+  } else {
     ticks_per_us = Uint64(1000000) / Uint64(sct);
   }
 #endif
-  if (ticks_per_us == 0)
-  {
+  if (ticks_per_us == 0) {
     perror("ticks_per_us == 0");
     abort();
   }
 #endif
-  if (NdbHW_Init_platform() != 0)
-  {
+  if (NdbHW_Init_platform() != 0) {
     perror("Failed NdbHW_Init_platform()");
     abort();
   }
-  if ((Ndb_SetHWInfo()) == nullptr)
-  {
+  if ((Ndb_SetHWInfo()) == nullptr) {
     return -1;
   }
   initres = 0;
   return 0;
 }
 
-void NdbHW_End()
-{
+void NdbHW_End() {
   /**
    * This function is called at shutdown of process.
    */
-  if (inited)
-  {
+  if (inited) {
     NdbHW_End_platform();
     ncpu = 0;
     inited = 0;
@@ -181,19 +169,15 @@ void NdbHW_End()
   }
 }
 
-void
-Ndb_GetCoreCPUIds(Uint32 cpu_id, Uint32 *cpu_ids, Uint32 &num_cpus)
-{
+void Ndb_GetCoreCPUIds(Uint32 cpu_id, Uint32 *cpu_ids, Uint32 &num_cpus) {
   struct ndb_hwinfo *hwinfo = g_ndb_hwinfo;
   require(hwinfo->is_cpuinfo_available);
   require(hwinfo->cpu_info[cpu_id].online);
-  if (cpu_id >= hwinfo->cpu_cnt_max)
-  {
+  if (cpu_id >= hwinfo->cpu_cnt_max) {
     perror("CPU out of bounds in Ndb_GetCoreCPUIds");
     abort();
   }
-  if (hwinfo->cpu_cnt == 1)
-  {
+  if (hwinfo->cpu_cnt == 1) {
     cpu_ids[0] = cpu_id;
     num_cpus = 1;
     return;
@@ -238,8 +222,7 @@ static void
 create_prev_list(struct ndb_hwinfo *hwinfo)
 {
   Uint32 loop_count = 0;
-  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++)
-  {
+  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++) {
     Uint32 prev_cpu = RNIL;
     Uint32 next_cpu = g_first_virt_l3_cache[i];
     loop_count++;
@@ -259,54 +242,55 @@ static void
 create_cpu_list(struct ndb_hwinfo *hwinfo,
                 Uint32 num_cpus_per_ldm_group,
                 Uint32 num_rr_groups,
-                Uint32 num_ldm_instances)
-{
+                Uint32 num_ldm_instances) {
   Uint32 found_ldm_groups = 0;
-  Uint32 prev_cpu = RNIL;
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+}
+
+Uint32
+Ndb_GetFirstCPUInMap()
+{
+=======
+}
+
+Uint32 Ndb_GetFirstCPUInMap()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ { Uint32 prev_cpu = RNIL;
   Uint32 next_cpu = RNIL;
   Uint32 all_groups = hwinfo->num_virt_l3_caches;
   Uint32 current_groups = num_rr_groups > 0 ? num_rr_groups : all_groups;
   bool found = false;
   Uint32 first_virt_l3_cache[MAX_NUM_CPUS];
-  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++)
-  {
+  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++) {
     first_virt_l3_cache[i] = g_first_virt_l3_cache[i];
   }
   do
   {
     found = false;
-    for (Uint32 i = 0; i < current_groups; i++)
-    {
-      for (Uint32 j = 0; j < num_cpus_per_ldm_group; j++)
-      {
+    for (Uint32 i = 0; i < current_groups; i++) {
+      for (Uint32 j = 0; j < num_cpus_per_ldm_group; j++) {
         next_cpu = first_virt_l3_cache[i];
-        if (next_cpu == RNIL)
-        {
+        if (next_cpu == RNIL) {
           break;
         }
         found = true;
-        if (prev_cpu != RNIL)
-        {
+        if (prev_cpu != RNIL) {
           hwinfo->cpu_info[prev_cpu].next_cpu_map = next_cpu;
-        }
-        else
-        {
+        } else {
           hwinfo->first_cpu_map = next_cpu;
         }
         prev_cpu = next_cpu;
         first_virt_l3_cache[i] =
-          hwinfo->cpu_info[next_cpu].next_virt_l3_cpu_map;
+            hwinfo->cpu_info[next_cpu].next_virt_l3_cpu_map;
         hwinfo->cpu_info[next_cpu].next_cpu_map = RNIL;
       }
-      if (next_cpu == RNIL)
-      {
+      if (next_cpu == RNIL) {
         require(found_ldm_groups >= num_ldm_instances);
-      }
-      else
-      {
+      } else {
         found_ldm_groups++;
-        if (found_ldm_groups == num_ldm_instances)
-        {
+        if (found_ldm_groups == num_ldm_instances) {
           /**
            * We have setup all LDM and Query instances, now we can process the
            * remainder without the same level of checks and looping through all
@@ -320,15 +304,12 @@ create_cpu_list(struct ndb_hwinfo *hwinfo,
   return;
 }
 
-static Uint32
-find_largest_virt_l3_group(struct ndb_hwinfo *hwinfo, Uint32 first_group)
-{
+static Uint32 find_largest_virt_l3_group(struct ndb_hwinfo *hwinfo,
+                                         Uint32 first_group) {
   Uint32 max_id = RNIL;
   Uint32 max_size = 0;
-  for (Uint32 i = first_group; i < hwinfo->num_virt_l3_caches; i++)
-  {
-    if (g_num_virt_l3_cpus[i] > max_size)
-    {
+  for (Uint32 i = first_group; i < hwinfo->num_virt_l3_caches; i++) {
+    if (g_num_virt_l3_cpus[i] > max_size) {
       max_id = i;
       max_size = g_num_virt_l3_cpus[i];
     }
@@ -336,9 +317,7 @@ find_largest_virt_l3_group(struct ndb_hwinfo *hwinfo, Uint32 first_group)
   return max_id;
 }
 
-static void
-swap_virt_l3_caches(Uint32 largest_id, Uint32 curr_pos)
-{
+static void swap_virt_l3_caches(Uint32 largest_id, Uint32 curr_pos) {
   Uint32 largest_size = g_num_virt_l3_cpus[largest_id];
   Uint32 largest_first = g_first_virt_l3_cache[largest_id];
   Uint32 curr_size = g_num_virt_l3_cpus[curr_pos];
@@ -349,44 +328,32 @@ swap_virt_l3_caches(Uint32 largest_id, Uint32 curr_pos)
   g_num_virt_l3_cpus[curr_pos] = largest_size;
 }
 
-static void
-sort_virt_l3_caches(struct ndb_hwinfo *hwinfo)
-{
-  if (hwinfo->num_virt_l3_caches > 1)
-  {
-    for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches - 1; i++)
-    {
+static void sort_virt_l3_caches(struct ndb_hwinfo *hwinfo) {
+  if (hwinfo->num_virt_l3_caches > 1) {
+    for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches - 1; i++) {
       Uint32 largest_id = find_largest_virt_l3_group(hwinfo, i);
-      if (largest_id != i && largest_id != RNIL)
-      {
+      if (largest_id != i && largest_id != RNIL) {
         swap_virt_l3_caches(largest_id, i);
       }
     }
   }
 }
 
-static void create_init_virt_l3_cache_list(struct ndb_hwinfo *hwinfo)
-{
+static void create_init_virt_l3_cache_list(struct ndb_hwinfo *hwinfo) {
   Uint32 num_l3_caches = hwinfo->num_shared_l3_caches;
   Uint32 virt_l3_cache_index = 0;
-  for (Uint32 i = 0; i < num_l3_caches; i++)
-  {
+  for (Uint32 i = 0; i < num_l3_caches; i++) {
     bool found = false;
     Uint32 num_cpus = g_num_l3_cpus[i];
     Uint32 next_cpu = g_first_l3_cache[i];
     Uint32 prev_cpu = RNIL;
     Uint32 count = 0;
-    for (Uint32 j = 0; j < num_cpus; j++)
-    {
-      if (hwinfo->cpu_info[next_cpu].online)
-      {
+    for (Uint32 j = 0; j < num_cpus; j++) {
+      if (hwinfo->cpu_info[next_cpu].online) {
         count++;
-        if (found)
-        {
+        if (found) {
           hwinfo->cpu_info[prev_cpu].next_virt_l3_cpu_map = next_cpu;
-        }
-        else
-        {
+        } else {
           found = true;
           g_first_virt_l3_cache[virt_l3_cache_index] = next_cpu;
         }
@@ -396,8 +363,7 @@ static void create_init_virt_l3_cache_list(struct ndb_hwinfo *hwinfo)
       next_cpu = hwinfo->cpu_info[next_cpu].next_l3_cpu_map;
     }
     require(next_cpu == RNIL);
-    if (count > 0)
-    {
+    if (count > 0) {
       g_num_virt_l3_cpus[virt_l3_cache_index] = count;
       virt_l3_cache_index++;
     }
@@ -405,12 +371,78 @@ static void create_init_virt_l3_cache_list(struct ndb_hwinfo *hwinfo)
   /**
    * Sort CPUs such that we first list the efficiency cores to be used
    * by LDM threads as much as possible. We keep the original order of
-   * the lists except that those with Power efficiency will be sorted
-   * at the end of each L3 cache list.
+   * the lists 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+except that
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= (Uint32*)
+=======
+=
+>>>>>>> MySQL 8.0.36
+ those with Power 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+efficiency
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+malloc(sizeof(Uint32)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  (Uint32 *)malloc(sizeof(Uint32)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ will be sorted
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ * at the end of each L3 cache list.
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+= (Uint32*)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+=
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    */
-  for (Uint32 i = 0; i < virt_l3_cache_index; i++)
+  for 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+malloc(sizeof
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  (Uint32 *)malloc(sizeof
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+(Uint32 i = 0; i < virt_l3_cache_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+index; i++)
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+online = (Uint32*)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+online =
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   {
-    Uint32 new_core_first = RNIL;
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+malloc(sizeof(
+// RONDB-624 todo: Glue these lines together ^v
+=======
+  (Uint32 *)malloc(sizeof(
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+Uint32 new_core_first = RNIL;
     Uint32 new_core_last = RNIL;
     Uint32 new_power_first = RNIL;
     Uint32 new_power_last = RNIL;
@@ -445,8 +477,7 @@ static void create_init_virt_l3_cache_list(struct ndb_hwinfo *hwinfo)
         {
           hwinfo->cpu_info[new_power_last].next_virt_l3_cpu_map = l3_list;
           hwinfo->cpu_info[l3_list].prev_virt_l3_cpu_map = new_power_last;
-        }
-        hwinfo->cpu_info[l3_list].next_virt_l3_cpu_map = RNIL;
+        } hwinfo->cpu_info[l3_list].next_virt_l3_cpu_map = RNIL;
         new_power_last = l3_list;
       }
       l3_list = next_list;
@@ -551,8 +582,7 @@ create_l3_cache_list(struct ndb_hwinfo *hwinfo)
             hwinfo->cpu_info[i].in_l3_cache_list = true;
             prev_cpu_id = i;
             found++;
-            if (hwinfo->cpu_info[i].online)
-            {
+            if (hwinfo->cpu_info[i].online)         {
               found_online++;
             }
           }
@@ -560,7 +590,8 @@ create_l3_cache_list(struct ndb_hwinfo *hwinfo)
       }
     }
     g_num_l3_cpus[l3_cache_id] = found;
-    g_num_l3_cpus_online[l3_cache_id] = found_online;
+    g_num_l3_cpus_online[l3_cache_id] =
+      found_online;
     DEBUG_HW((stderr,
               "%u CPUs found and %u CPUs online in L3 cache group %u\n",
               found,
@@ -570,13 +601,32 @@ create_l3_cache_list(struct ndb_hwinfo *hwinfo)
   return 0;
 }
 
-static bool
-check_if_virt_l3_cache_will_be_ok(struct ndb_hwinfo *hwinfo,
-                                  Uint32 group_size,
-                                  Uint32 num_groups,
-                                  Uint32 num_ldm_instances,
-                                  Uint32 ldm_group_size)
-{
+static bool check_if_virt_l3_cache_will_be_ok(struct ndb_hwinfo *hwinfo,
+                             
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     Uint32 group_size,
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 group_size,
+   
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+            Uint32 group_size, Uint32 num_groups,
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+     Uint32
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+                                   Uint32 num_ldm_instances,
+                                  Uint32 ldm_group_size) {
   Uint32 count_full_groups_found = 0;
   Uint32 count_non_full_groups_found = 0;
   Uint32 full_group_size = group_size * ldm_group_size;
@@ -587,19 +637,15 @@ check_if_virt_l3_cache_will_be_ok(struct ndb_hwinfo *hwinfo,
             full_group_size,
             non_full_group_size,
             ldm_group_size));
-  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++)
-  {
+  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++) {
     Uint32 num_cpus_in_group = g_num_virt_l3_cpus[i];
     DEBUG_HW((stderr,
               "num_cpus %u in group %u\n",
               num_cpus_in_group, i));
-    while (num_cpus_in_group >= full_group_size)
-    {
+    while (num_cpus_in_group >= full_group_size) {
       num_cpus_in_group -= full_group_size;
       count_full_groups_found++;
-    }
-    if (num_cpus_in_group >= non_full_group_size)
-    {
+    } if (num_cpus_in_group >= non_full_group_size) {
       count_non_full_groups_found++;
     }
   }
@@ -610,9 +656,8 @@ check_if_virt_l3_cache_will_be_ok(struct ndb_hwinfo *hwinfo,
   /* Only count non full groups up until the searched number of groups */
   count_non_full_groups_found = MIN(count_non_full_groups_found,
                                     (num_groups - count_full_groups_found));
-  Uint32 tot_ldm_groups_found =
-    count_full_groups_found * group_size +
-    count_non_full_groups_found * (group_size - 1);
+  Uint32 tot_ldm_groups_found = count_full_groups_found * group_size +
+                                count_non_full_groups_found * (group_size - 1);
   DEBUG_HW((stderr,
             "Total LDM groups found: %u\n", tot_ldm_groups_found));
   return (tot_ldm_groups_found >= num_ldm_instances);
@@ -623,8 +668,7 @@ check_if_virt_l3_cache_is_ok(struct ndb_hwinfo *hwinfo,
                              Uint32 group_size,
                              Uint32 num_groups,
                              Uint32 num_ldm_instances,
-                             Uint32 ldm_group_size)
-{
+                             Uint32 ldm_group_size) {
   Uint32 count_full_groups_found = 0;
   Uint32 count_non_full_groups_found = 0;
   Uint32 full_group_size = group_size * ldm_group_size;
@@ -677,13 +721,45 @@ merge_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
    * last entry.
    */
   Uint32 group_size = ldm_group_size * min_group_size;
-  Uint32 num_cpus_in_first_list = g_num_virt_l3_cpus[largest_list];
+  Uint32 num_cpus_in_first_list =
+        g_num_virt_l3_cpus[largest_list];
   Uint32 first_cpu_next = g_first_virt_l3_cache[largest_list];
   Uint32 last_cpu_first;
   do
   {
     last_cpu_first = first_cpu_next;
-    first_cpu_next = hwinfo->cpu_info[first_cpu_next].next_virt_l3_cpu_map;
+    first_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+cpu_next
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+hwinfo *hwinfo,
+           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+hwinfo *hwinfo, Uint32 split_group_id,
+          
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+hwinfo->cpu_info[first_cpu_next].next_virt_l3_cpu_map;
+||||||| Common ancestor
+split_group_id,
+=======
+>>>>>>> MySQL 8.0.36
   } while (first_cpu_next != RNIL);
   Uint32 first_in_sec_cpu_list = g_first_virt_l3_cache[second_largest_list];
   Uint32 max_moved_cpus = group_size - num_cpus_in_first_list;
@@ -713,21 +789,46 @@ merge_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
 
   require(((g_num_virt_l3_cpus[second_largest_list] == 0) &&
            (first_in_sec_cpu_list == RNIL)) ||
-          ((g_num_virt_l3_cpus[second_largest_list] != 0) &&
-           (first_in_sec_cpu_list != RNIL)));
+          
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+((g_num_virt_l3_cpus[second_largest_list]
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+num_rr_groups,
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+    
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ != 0) &&
+    Uint32 num_rr_groups, Uint32 ldm_group_size,
+       (first_in_sec_cpu_list != RNIL)));
 
-  Uint32 num_virt_l3_caches = hwinfo->num_virt_l3_caches - 1;
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+num_virt_l3_caches
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ldm_group_size,
+       
+// RONDB-624 todo: Glue these lines together ^v
+=======
+       
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ = hwinfo->num_virt_l3_caches - 1;
   if (first_in_sec_cpu_list == RNIL &&
       g_first_virt_l3_cache[num_virt_l3_caches] != RNIL)
   {
     /* We move last item which isn't empty into the removed slot */
-    g_first_virt_l3_cache[second_largest_list] =
-      g_first_virt_l3_cache[num_virt_l3_caches];
+    g_first_virt_l3_cache[second_largest_list] =   g_first_virt_l3_cache[num_virt_l3_caches];
     g_num_virt_l3_cpus[second_largest_list] = g_num_virt_l3_cpus[num_virt_l3_caches];
     hwinfo->num_virt_l3_caches = num_virt_l3_caches;
   }
-  else if (first_in_sec_cpu_list == RNIL)
-  {
+  else if (first_in_sec_cpu_list == RNIL) {
     hwinfo->num_virt_l3_caches = num_virt_l3_caches;
   }
 }
@@ -741,16 +842,34 @@ split_group(struct ndb_hwinfo *hwinfo,
    * Removed group_size CPUs from the chosen group (which is the largest
    * group still existing). Place the removed group at the last position
    * in the array of L3 cache groups. The original is kept in its original
-   * position with the first group_size CPUs removed to the new list.
+   * position with the 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+first group_size CPUs removed to the new
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 group_size,
+           
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+ list.
    * Increment number of virtual L3 caches.
-   */
+  Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+*/
+||||||| Common ancestor
+=======
+group_size,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
   g_num_virt_l3_cpus[hwinfo->num_virt_l3_caches] =
     g_num_virt_l3_cpus[split_group_id] - check_group_size;
   g_num_virt_l3_cpus[split_group_id] = check_group_size;
   Uint32 next_cpu = g_first_virt_l3_cache[split_group_id];
   Uint32 prev_cpu = RNIL;
-  for (Uint32 i = 0; i < check_group_size; i++)
-  {
+  for (Uint32 i = 0; i < check_group_size; i++) {
     prev_cpu = next_cpu;
     next_cpu = hwinfo->cpu_info[next_cpu].next_virt_l3_cpu_map;
   }
@@ -764,9 +883,8 @@ split_group(struct ndb_hwinfo *hwinfo,
 
 static void
 adjust_rr_group_sizes(struct ndb_hwinfo *hwinfo,
-                      Uint32 num_rr_groups,
-                      Uint32 ldm_group_size,
-                      Uint32 num_ldm_instances)
+                      Uint32 num_rr_groups,         Uint32 ldm_group_size,
+                                  Uint32 num_ldm_instances)
 {
   if(num_rr_groups == 0)
     return;
@@ -802,8 +920,7 @@ split_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
   Uint32 check_group_size = group_size * ldm_group_size;
   Uint32 largest_group_size = 0;
   Uint32 largest_group_id = RNIL;
-  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++)
-  {
+  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++) {
     if (g_num_virt_l3_cpus[i] > largest_group_size)
     {
       largest_group_id = i;
@@ -818,16 +935,13 @@ split_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
             "Split Group[%u] = %u\n",
             largest_group_id,
             largest_group_size));
-  split_group(hwinfo,
-              largest_group_id,
+  split_group(hwinfo,  largest_group_id,
               check_group_size);
   return true;
 }
 
 static bool
-create_min_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
-                              Uint32 min_group_size,
-                              Uint32 ldm_group_size)
+create_min_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,    Uint32 min_group_size,    Uint32 ldm_group_size)
 {
   if (hwinfo->num_virt_l3_caches == 1)
   {
@@ -896,10 +1010,32 @@ create_min_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
  * groups.
  */
 static int
-create_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
-                          Uint32 optimal_group_size,
-                          Uint32 min_group_size,
-                          Uint32 max_num_groups,
+create_virt_l3_cache_list(struct ndb_hwinfo *hwinfo, check_group_size,
+                          Uint32 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+optimal
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                 check
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                 num_groups, num_ldm_instances,
+                                            ldm
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_group_size)) {
+        DEBUG_HW(("Virtual L3 cache will be ok with group size %u\n",
+                  check_group_size));
+        used_group_size = check_group_size;
+        used_num_groups = num_groups;
+     Uint32 min_group_size,
+  found_group_size = true;
+        break;
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+         Uint32 max_num_groups,
                           Uint32 ldm_group_size,
                           Uint32 num_ldm_instances)
 {
@@ -923,6 +1059,38 @@ create_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
    * split L3 cache groups until there are no groups larger than the
    * minimum size.
    *
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+num_groups,
+                                            num_ldm_instances,
+                                            ldm_group_size))
+      {
+        DEBUG_HW(("Virtual L3 cache will be ok with group size %u\n",
+                  check_group_size));
+        used_group_size = check_group_size;
+        used_num_groups = num_groups;
+        found_group_size = true;
+        break;
+      }
+    }
+  }
+  Uint32 loop_count = 0;
+  do
+  {
+    if (check_if_virt_l3_cache_is_ok(hwinfo,
+                                     used_group_size,
+                                     used_num_groups,
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ }
+    }
+  }
+  Uint32 loop_count = 0;
+  do {
+    if (check_if_virt_l3_cache_is_ok(hwinfo, used_group_size, used_num_groups,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
    * The final step is to start merging smaller groups such that they
    * can be of at least minimum group size. This step creates groups
    * that span more than one L3 cache group. This is not desirable
@@ -958,25 +1126,20 @@ create_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
     }
   }
   Uint32 loop_count = 0;
-  do
-  {
-    if (check_if_virt_l3_cache_is_ok(hwinfo,
-                                     used_group_size,
-                                     used_num_groups,
-                                     num_ldm_instances,
-                                     ldm_group_size))
-    {
+  do {
+    if (check_if_virt_l3_cache_is_ok(hwinfo, used_group_size, used_num_groups,
+                                     num_ldm_instances, ldm_group_size)) {
       return used_num_groups;
     }
-    DEBUG_HW((stderr, "Split virtual L3 cache list\n"));
+    DEBUG_HW(
+        (stderr, "Split virtual L3 cache list\n"));
     if (!split_virt_l3_cache_list(hwinfo,
                                   used_group_size,
-                                  ldm_group_size))
-    {
+                                  ldm_group_size)) {
       break;
     }
     loop_count++;
-    require(loop_count < 10000); //Make sure we don't enter eternal loop
+    require(loop_count < 10000);  // Make sure we don't enter eternal loop
   } while (true);
   require(!found_group_size);
   /**
@@ -989,22 +1152,110 @@ create_virt_l3_cache_list(struct ndb_hwinfo *hwinfo,
    * cache by merging the largest remaining virtual L3 cache groups that
    * are not at least of the minimal size.
    *
-   * If not even this is possible we will start by merging the smallest
-   * L3 cache groups to be able to form groups of at least the minimum
+   * If not 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+even this
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+> 0) ?
+=======
+> 0)
+>>>>>>> MySQL 8.0.36
+ is possible we 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+will
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(num_ldm_instances
+// RONDB-624 todo: Glue these lines together ^v
+=======
+      ? (num_ldm_instances
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ start by merging the smallest
+   * L3 cache groups to be able 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+to form
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+1 :
+=======
+1
+>>>>>>> MySQL 8.0.36
+ groups of at 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+least
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+num_ldm_instances
+// RONDB-624 todo: Glue these lines together ^v
+=======
+                          : num_ldm_instances
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ the minimum
    * group size.
    */
-  loop_count = 0;
+  loop_count =
+      0
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+) ?
+// RONDB-624 todo: Glue these lines together ^v
+=======
+)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+
   do
-  {
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+  (num_ldm_instances + (max_num_groups - 1)) / max_num_groups : 0;
+=======
+      ? (num_ldm_instances + (max_num_groups - 1)) / max_num_groups
+          : 0;
+>>>>>>> MySQL 8.0.36
+
     if (check_if_virt_l3_cache_is_ok(hwinfo,
                                      min_group_size,
                                      max_num_groups,
                                      num_ldm_instances,
-                                     ldm_group_size))
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+create_virt_l3_cache_list(hwinfo,
+=======
+create_virt_l3_cache_list(
+>>>>>>> MySQL 8.0.36
+      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+                          ldm_group_size))
     {
       return max_num_groups;
     }
-    DEBUG_HW((stderr,
+   
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+                                            
+// RONDB-624 todo: Glue these lines together ^v
+=======
+hwinfo,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ DEBUG_HW((stderr,
               "Merge entries in the virtual L3 cache list"
               ", minimum group size is %u\n",
               min_group_size));
@@ -1728,23 +1979,41 @@ static int Ndb_ReloadHWInfo(struct ndb_hwinfo * hwinfo)
                      &size_var,
                      nullptr,
                      0);
-  if (res != 0 || size_var != sizeof(active_cpu))
-    goto error_exit;
+  if (res != 0 || size_var != sizeof(active_cpu))   goto error_exit;
 
   size_var = sizeof(memory_size);
   res = sysctlbyname("hw.physmem",
                      (void*)&memory_size,
                      &size_var,
                      nullptr,
-                     0);
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ndb_hwinfo*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndb_hwinfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+res
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*res
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+                 0);
   if (res != 0 || size_var != sizeof(memory_size))
     goto error_exit;
 
   if (res != 0)
     goto error_exit;
 
-  for (Int32 i = 0; i < active_cpu; i++)
-  {
+  for (Int32 i = 0; i < active_cpu; i++) {
     hwinfo->cpu_info[i].online = true;
   }
   hwinfo->cpu_cnt = active_cpu;
@@ -1816,8 +2085,7 @@ const static size_t offsets[] =
   offsetof(struct ndb_cpudata,  cs_unknown2_us)
 };
 
-static int Ndb_ReloadCPUData(struct ndb_hwinfo *hwinfo)
-{
+static int Ndb_ReloadCPUData(struct ndb_hwinfo *hwinfo) {
   if (!inited)
     return -1;
 
@@ -1827,7 +2095,7 @@ static int Ndb_ReloadCPUData(struct ndb_hwinfo *hwinfo)
   FILE *stat_file = fopen("/proc/stat", "r");
   if (stat_file == nullptr)
   {
-    perror("failed to open /proc/stat");
+    perror("failed to open  /proc/stat");
     return -1;
   }
   FileGuard g(stat_file); // close at end...
@@ -1842,22 +2110,32 @@ static int Ndb_ReloadCPUData(struct ndb_hwinfo *hwinfo)
   char * c = nullptr;
   while (fgets(buf, sizeof(buf), stat_file))
   {
-    if (curr_cpu > max_cpu_no || (c = strstr(p, "cpu")) == nullptr)
-    {
+    if (curr_cpu > max_cpu_no || (c = strstr(p, "cpu")) == nullptr)   {
       break;
     }
-    if (c[3] == ' ')
-    {
+    if (c[3] == ' ')   {
       /**
        * this is the aggregate...skip over that
        */
       continue;
-    }
-    // c + 3 should be a number
+   
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ }
+    //
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+\
+    defined(HAVE_LINUX_SCHEDULING)
+// RONDB-624 todo: Glue these lines together ^v
+=======
+defined(HAVE_LINUX_SCHEDULING)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ c + 3 should be a number
     char * endptr = nullptr;
     long val = strtol(c + 3, &endptr, 10);
-    if (endptr == c + 3)
-    {
+    if (endptr == c + 3) {
       // no number found...
       return -1;
     }
@@ -1876,7 +2154,33 @@ static int Ndb_ReloadCPUData(struct ndb_hwinfo *hwinfo)
            ticks+5,ticks+6,ticks+7,ticks+8,ticks+9,
            ticks+10,ticks+11);
 
-    char * base = (char *)&hwinfo->cpu_data[curr_cpu];
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+<windows.h>
+#include
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<tchar.h>
+#include
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+<tchar.h>
+
+typedef
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<windows.h>
+
+typedef
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+  char * base = (char *)&hwinfo->cpu_data[curr_cpu];
     for (int i = 0; i < 12; i++)
     {
       Uint64 * ptr = (Uint64*)(base + offsets[i]);
@@ -1940,8 +2244,7 @@ get_cpu_atom_core(struct ndb_hwinfo *hwinfo)
     do
     {
       Uint32 next_cpu = mask.find(start_bit);
-      if (next_cpu == SparseBitmask::NotFound)
-      {
+      if (next_cpu == SparseBitmask::NotFound)   {
         if (start_bit == 0)
         {
           /**
@@ -1952,18 +2255,45 @@ get_cpu_atom_core(struct ndb_hwinfo *hwinfo)
         }
       }
       break;
-      if (next_cpu >= hwinfo->cpu_cnt_max)
-      {
+      if (next_cpu >= hwinfo->cpu_cnt_max) {
         snprintf(error_buf,
                  sizeof(error_buf),
                  "CPU number %u higher than max %u",
                  next_cpu,
                  hwinfo->cpu_cnt_max);
         perror(error_buf);
-        return 0;
+        
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+return
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+Uint32
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+0;
+||||||| Common ancestor
+=======
+group_number,
+>>>>>>> MySQL 8.0.36
       }
-      /**
-       * We set CPU capacity to half of Intel Core for Intel Atom
+     
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ /**
+    
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+Uint32 group_number,
+    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+>>>>>>> MySQL 8.0.36
+   * We set CPU capacity to half of Intel Core for Intel Atom
        * and to 100 for Intel Core.
        */
       hwinfo->cpu_info[next_cpu].cpu_capacity = (type == 0) ? 50 : 100;
@@ -1973,8 +2303,7 @@ get_cpu_atom_core(struct ndb_hwinfo *hwinfo)
 }
 
 static int
-get_cpu_capacity(ndb_cpuinfo_data *cpuinfo, Uint32 cpu)
-{
+get_cpu_capacity(ndb_cpuinfo_data *cpuinfo, Uint32 cpu) {
   char buf[256];
   char read_buf[256];
   snprintf(buf,
@@ -1982,8 +2311,7 @@ get_cpu_capacity(ndb_cpuinfo_data *cpuinfo, Uint32 cpu)
            "/sys/devices/system/cpu/cpu%u/cpu_capacity",
            cpu);
   FILE *capacity_info = fopen(buf, "r");
-  if (capacity_info == nullptr)
-  {
+  if (capacity_info == nullptr) {
     DEBUG_HW((stderr,
               "Found no CPU capacity for CPU %u\n",
               cpu));
@@ -2089,7 +2417,29 @@ get_cpu_throughput(struct ndb_hwinfo *hwinfo)
          * For the moment that the Power efficient has half the
          * throughput compared to the efficiency cores is a good
          * estimation. In reality benchmarks has shown that it is
-         * around 45%. However setting it to 50% instead makes it
+         * around 45%. However 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+setting
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+NdbHW_Init_platform()
+{
+=======
+NdbHW_Init_platform()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+it
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ to 50% instead makes it
          * easy to handle mapping threads to CPUs.
          *
          * In an environment like Intel Alder Lake and Intel
@@ -2097,8 +2447,48 @@ get_cpu_throughput(struct ndb_hwinfo *hwinfo)
          * when both are used the two CPUs within this one core
          * has about the same throughput as two Power efficient
          * cores. The automatic mapping will always try to use
-         * efficiency cores for LDM threads which benefits from
-         * hyperthreading (in the sense that one CPU could make
+         * efficiency cores for 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+LDM
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<sys/types.h>
+#include
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<sys/sysctl.h>
+#include
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+threads
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<sys/sysctl.h>
+
+static
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<sys/types.h>
+
+static
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ which 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+benefits from
+||||||| Common ancestor
+NdbHW_Init_platform()
+{
+=======
+NdbHW_Init_platform()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {        * hyperthreading (in the sense that one CPU could make
          * use of almost the entire CPU core). Thus the LDM
          * threads are using the CPU core to its full measure
          * both with 1 and 2 threads active in the CPU core.
@@ -2162,7 +2552,29 @@ get_meminfo(struct ndb_hwinfo *hwinfo)
     Uint64 val;
     if (sscanf(buf, "MemTotal: %llu", &val) == 1)
     {
-      memory_size_kb = val; // /proc/meminfo reports MemTotal in kb
+      memory_size_kb 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+= val;
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+<sys/types.h>
+#include
+// RONDB-624 todo: Glue these lines together ^v
+=======
+<sys/sysctl.h>
+#include
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ /
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+sysctl.h>
+=======
+types.h>
+>>>>>>> MySQL 8.0.36
+/ /proc/meminfo reports MemTotal in kb
       break;
     }
   }
@@ -2175,27 +2587,50 @@ get_meminfo(struct ndb_hwinfo *hwinfo)
             "Total memory is %llu MBytes\n",
             memory_size_kb / 1024));
   /* Memory is in kBytes */
-  hwinfo->hw_memory_size = memory_size_kb * 1024; // hw_memory_size in bytes
+  hwinfo->hw_memory_
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+size
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+platform()
+{
+=======
+platform()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ memory_size_kb * 1024; // hw_memory_size in bytes
   return 0;
 }
 
-static int init_hwinfo(struct ndb_hwinfo* hwinfo)
-{
+static int init_hwinfo(struct ndb_hwinfo*hwinfo) {
   hwinfo->is_cpuinfo_available = 1;
   hwinfo->is_cpudata_available = 1;
   return 0;
 }
 
 static int
-get_core_siblings_info(struct ndb_hwinfo *hwinfo)
-{
+get_core_siblings_info(struct ndb_hwinfo *hwinfo) {
   char error_buf[612];
   SparseBitmask mask(hwinfo->cpu_cnt_max);
   Uint32 next_core_id = 0;
   for (Uint32 i = 0; i < hwinfo->cpu_cnt_max; i++)
   {
     if (hwinfo->cpu_info[i].core_id != Uint32(~0))
-    {
+    
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+{
       /**
        * Already handled this CPU since it was included in previous
        * CPUs common cache CPUs.
@@ -2210,14 +2645,58 @@ get_core_siblings_info(struct ndb_hwinfo *hwinfo)
     FILE *sibl_info = fopen(buf, "r");
     if (sibl_info == nullptr)
     {
-      snprintf(error_buf, sizeof(error_buf), "Failed to open %s", buf);
+     
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+(void*)&active_cpu,
+                     &size_var,
+                     nullptr,
+                     0);
+  if (res != 0 || size_var != sizeof(active_cpu))
+    goto error_exit;
+
+  size_var = sizeof(memory_size);
+  res = sysctlbyname("hw.physmem",
+                     (void*)&memory_size,
+                    
+// RONDB-624 todo: Glue these lines together ^v
+=======
+(void *)&active_cpu,
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ snprintf(error_buf, sizeof(error_buf), "Failed to open %s", buf);
       perror(error_buf);
       return -1;
     }
     FileGuard g(sibl_info); // close at end...
     char read_buf[256];
-    if (fgets(read_buf, sizeof(read_buf), sibl_info) == nullptr)
-    {
+    if (fgets(read_buf, sizeof(
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+read
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+memory
+// RONDB-624 todo: Glue these lines together ^v
+=======
+active_cpu)) goto error_exit;
+
+  size_var = sizeof(memory
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+_buf), sibl_info)
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+ == nullptr
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+;
+  res = sysctlbyname("hw.physmem", (void *)&memory_size, &size_var, nullptr, 0
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
+  if (res != 0 || size_var != sizeof(memory_size)) {
       snprintf(error_buf, sizeof(error_buf), "Failed to read %s", buf);
       perror(error_buf);
       return -1;
@@ -2229,8 +2708,28 @@ get_core_siblings_info(struct ndb_hwinfo *hwinfo)
     {
       snprintf(error_buf,
                sizeof(error_buf),
-               "Failed to parse %s from %s",
-               read_buf,
+               "Failed to parse %s from 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+%s",
+||||||| Common ancestor
+ticks)
+{
+=======
+ticks)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {      
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+NdbHW_Init_platform()
+{
+=======
+NdbHW_Init_platform()
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ {       read_buf,
                buf);
       perror(error_buf);
       return -1;
@@ -2295,28 +2794,36 @@ get_physical_package_ids(struct ndb_hwinfo* hwinfo)
     }
     char buf[256];
     snprintf(buf,
-             sizeof(buf),
-             "/sys/devices/system/cpu/cpu%u/topology/physical_package_id",
-             i);
+             sizeof(buf), ticks + 5,
+           
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+  "/sys/devices/system/cpu/cpu%u/topology/physical_package_id"
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ticks+5,ticks+6,ticks+7,ticks+8,ticks+9
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ticks + 6, ticks + 7, ticks + 8, ticks + 9
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+,   i);
     FILE *package_info = fopen(buf, "r");
-    if (package_info == nullptr)
-    {
+    if (package_info == nullptr) {
       snprintf(error_buf, sizeof(error_buf), "Failed to open %s", buf);
       perror(error_buf);
       return -1;
     }
     FileGuard g(package_info); // close at end...
     char read_buf[256];
-    if (fgets(read_buf, sizeof(read_buf), package_info) == nullptr)
-    {
+    if (fgets(read_buf, sizeof(read_buf), package_info) == nullptr)   {
       snprintf(error_buf, sizeof(error_buf), "Failed to read %s", buf);
       perror(error_buf);
       return -1;
     }
     Uint32 package_id = (Uint32)strtol(read_buf, nullptr, 10);
     int err_code = errno;
-    if (package_id == 0 && (err_code == EINVAL || err_code == ERANGE))
-    {
+    if (package_id == 0 && (err_code == EINVAL || err_code == ERANGE)) {
       snprintf(error_buf,
                sizeof(error_buf),
                "Failed to convert %s into number",
@@ -2324,7 +2831,31 @@ get_physical_package_ids(struct ndb_hwinfo* hwinfo)
       perror(error_buf);
       return -1;
     }
-    Uint32 socket_id = Uint32(~0);
+    Uint32 socket_id 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+=
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+ndb_hwinfo*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndb_hwinfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+Uint32(~0
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+hwinfo
+// RONDB-624 todo: Glue these lines together ^v
+=======
+*hwinfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+);
     int max_socket_id = -1;
     for (Uint32 i = 0; i < hwinfo->cpu_cnt_max; i++)
     {
@@ -2354,8 +2885,7 @@ get_physical_package_ids(struct ndb_hwinfo* hwinfo)
     hwinfo->cpu_info[i].socket_id = socket_id;
     hwinfo->cpu_info[i].l3_cache_id = socket_id;
 
-    if (socket_id == num_cpu_sockets)
-      num_cpu_sockets++;
+    if (socket_id == num_cpu_sockets)   num_cpu_sockets++;
   }
   hwinfo->num_shared_l3_caches = num_cpu_sockets;
   hwinfo->num_cpu_sockets = num_cpu_sockets;
@@ -2429,18 +2959,34 @@ get_l3_cache_info(struct ndb_hwinfo *hwinfo)
           perror("No bits set, should not be possible");
           return -1;
         }
-        break;
+  
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+ndb_hwinfo*
+// RONDB-624 todo: Glue these lines together ^v
+=======
+ndb_hwinfo
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+||||||| Common ancestor
+hwinfo)
+{
+=======
+*hwinfo) {
+>>>>>>> MySQL 8.0.36
+     break;
       }
-      if (next_cpu >= hwinfo->cpu_cnt_max)
-      {
+      if (next_cpu >= hwinfo->cpu_cnt_max)     {
         perror("Found a non-existent CPU in CPU list");
         return -1;
       }
       hwinfo->cpu_info[next_cpu].l3_cache_id = next_l3_id;
-      DEBUG_HW((stderr,
-                "Found CPU %u in L3 cache region %u\n",
-                next_cpu,
-                next_l3_id));
+      DEBUG_HW((stderr,    "Found CPU %u in L3 cache region %u\n",
+                next_cpu,    next_l3_id));
       start_bit = next_cpu + 1;
     } while (true);
     next_l3_id++;
@@ -2499,8 +3045,7 @@ static int Ndb_ReloadHWInfo(struct ndb_hwinfo * hwinfo)
                  max_cpu_no);
         perror(error_buf);
         return -1;
-      }
-      while (curr_cpu + 1 < (int)val)
+      } while (curr_cpu + 1 < (int)val)
       {
         curr_cpu++;
         hwinfo->cpu_info[curr_cpu].online = 0;
@@ -2550,8 +3095,7 @@ static int Ndb_ReloadHWInfo(struct ndb_hwinfo * hwinfo)
     }
     else if ((p = strstr(buf, "model name")) != nullptr)
     {
-      if (! (curr_cpu >= 0 && curr_cpu <= (int)max_cpu_no))
-      {
+      if (! (curr_cpu >= 0 && curr_cpu <= (int)max_cpu_no)) {
         snprintf(error_buf,
                  sizeof(error_buf),
                  "CPU %u is outside max %u",
@@ -2586,8 +3130,7 @@ static int Ndb_ReloadHWInfo(struct ndb_hwinfo * hwinfo)
               "Found %u CPUs online, no core info in /proc/cpuinfo\n",
               cpu_online_count));
     int res = get_core_siblings_info(hwinfo);
-    if (res == -1)
-    {
+    if (res == -1) {
       return -1;
     }
     num_cpu_cores = (Uint32)res;
@@ -2617,11 +3160,9 @@ static int Ndb_ReloadHWInfo(struct ndb_hwinfo * hwinfo)
     num_cpu_cores = num_cpu_cores_per_socket * num_cpu_sockets;
     hwinfo->num_cpu_sockets = num_cpu_sockets;
     hwinfo->num_cpu_cores = num_cpu_cores;
-    for (Uint32 i = 0; i < hwinfo->cpu_cnt_max; i++)
-    {
+    for (Uint32 i = 0; i < hwinfo->cpu_cnt_max; i++) {
       struct ndb_cpuinfo_data *cpuinfo = &hwinfo->cpu_info[i];
-      if (cpuinfo->online)
-      {
+      if (cpuinfo->online) {
         cpuinfo->core_id += ((max_core_id + 1) * hwinfo->cpu_info[i].socket_id);
       }
     }
@@ -2819,12 +3360,53 @@ static void test_4(struct test_cpumap_data *map)
   map->cores_per_package = 32;
   map->exact_core = true;
   map->intel_core = false;
-  printf("Run test 4 with 4 L3 group with 4,8,2,6 CPUs, 8 LDMs\n");
-}
-
-static void test_5(struct test_cpumap_data *map)
+  printf("Run 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+test
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*)
 {
-  map->num_l3_caches = 4;
+=======
+*)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+4
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ with 4 L3 group with 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+4,8,2,6
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*)
+{
+=======
+*)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CPUs,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 8 LDMs\n"); }
+
+static void test_5(struct test_cpumap_data *map) { map->num_l3_caches = 4;
   map->num_cpus_in_l3_cache[0] = 4;
   map->num_cpus_in_l3_cache[1] = 8;
   map->num_cpus_in_l3_cache[2] = 2;
@@ -2832,14 +3414,65 @@ static void test_5(struct test_cpumap_data *map)
   map->cores_per_package = 16;
   map->num_query_threads_per_ldm = 1;
   map->num_ldm_instances = 8;
-  map->exact_core = true;
-  map->intel_core = false;
-  printf("Run test 5 with 4 L3 group with 4,8,2,4 CPUs, 8 LDMs\n");
-}
-
-static void test_6(struct test_cpumap_data *map)
+  map->exact_core = 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+true;
+||||||| Common ancestor
+*)
 {
-  map->num_l3_caches = 2;
+=======
+*)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ { map->intel_core = false;
+  printf("Run 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+test
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*)
+{
+=======
+*)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+5
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ with 4 L3 group with 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+4,8,2,4
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+*)
+{
+=======
+*)
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 
+// RONDB-624 todo: Glue these lines together ^v
+<<<<<<< RonDB // RONDB-624 todo
+CPUs,
+// RONDB-624 todo: Glue these lines together ^v
+||||||| Common ancestor
+=======
+{
+// RONDB-624 todo: Glue these lines together ^v
+>>>>>>> MySQL 8.0.36
+ 8 LDMs\n"); }
+
+static void test_6(struct test_cpumap_data *map) { map->num_l3_caches = 2;
   map->num_cpus_in_l3_cache[0] = 30;
   map->num_cpus_in_l3_cache[1] = 30;
   map->num_query_threads_per_ldm = 1;
@@ -2850,8 +3483,7 @@ static void test_6(struct test_cpumap_data *map)
   printf("Run test 6 with 2 L3 group with 30,30 CPUs, 16 LDMs\n");
 }
 
-static void test_7(struct test_cpumap_data *map)
-{
+static void test_7(struct test_cpumap_data *map) {
   map->num_l3_caches = 2;
   map->num_cpus_in_l3_cache[0] = 30;
   map->num_cpus_in_l3_cache[1] = 30;
@@ -2863,8 +3495,7 @@ static void test_7(struct test_cpumap_data *map)
   printf("Run test 7 with 2 L3 group with 30,30 CPUs, 18 LDMs\n");
 }
 
-static void test_8(struct test_cpumap_data *map)
-{
+static void test_8(struct test_cpumap_data *map) {
   map->num_l3_caches = 3;
   map->num_cpus_in_l3_cache[0] = 23;
   map->num_cpus_in_l3_cache[1] = 11;
@@ -2877,8 +3508,7 @@ static void test_8(struct test_cpumap_data *map)
   printf("Run test 8 with 3 L3 group with 23,11,8 CPUs, 20 LDMs\n");
 }
 
-static void test_9(struct test_cpumap_data *map)
-{
+static void test_9(struct test_cpumap_data *map) {
   map->num_l3_caches = 2;
   map->num_cpus_in_l3_cache[0] = 33;
   map->num_cpus_in_l3_cache[1] = 11;
@@ -2890,8 +3520,7 @@ static void test_9(struct test_cpumap_data *map)
   printf("Run test 9 with 2 L3 group with 33,11 CPUs, 14(2) LDMs\n");
 }
 
-static void test_10(struct test_cpumap_data *map)
-{
+static void test_10(struct test_cpumap_data *map) {
   map->num_l3_caches = 2;
   map->num_cpus_in_l3_cache[0] = 15;
   map->num_cpus_in_l3_cache[1] = 12;
@@ -2917,8 +3546,7 @@ static void test_11(struct test_cpumap_data *map)
   printf("Run test 11 with 3 L3 group with 15,13,13 CPUs, 19 LDMs\n");
 }
 
-static void test_12(struct test_cpumap_data *map)
-{
+static void test_12(struct test_cpumap_data *map) {
   map->num_l3_caches = 8;
   map->num_cpus_in_l3_cache[0] = 11;
   map->num_cpus_in_l3_cache[1] = 13;
@@ -2936,8 +3564,7 @@ static void test_12(struct test_cpumap_data *map)
   printf("Run test 12 with 8 L3 group with 11,13,,,,13 CPUs, 24 LDMs\n");
 }
 
-static void test_13(struct test_cpumap_data *map)
-{
+static void test_13(struct test_cpumap_data *map) {
   map->num_l3_caches = 8;
   map->num_cpus_in_l3_cache[0] = 16;
   map->num_cpus_in_l3_cache[1] = 16;
@@ -2955,8 +3582,7 @@ static void test_13(struct test_cpumap_data *map)
   printf("Run test 13 with 8 L3 group with 16,,,16,8,8 CPUs, 24 LDMs\n");
 }
 
-static void test_14(struct test_cpumap_data *map)
-{
+static void test_14(struct test_cpumap_data *map) {
   map->num_l3_caches = 16;
   map->num_cpus_in_l3_cache[0] = 1;
   map->num_cpus_in_l3_cache[1] = 1;
@@ -2982,8 +3608,7 @@ static void test_14(struct test_cpumap_data *map)
   printf("Run test 14 with 16 L3 group with 1 CPU, 6 LDMs\n");
 }
 
-static void test_15(struct test_cpumap_data *map)
-{
+static void test_15(struct test_cpumap_data *map) {
   map->num_l3_caches = 16;
   map->num_cpus_in_l3_cache[0] = 1;
   map->num_cpus_in_l3_cache[1] = 2;
@@ -3009,8 +3634,7 @@ static void test_15(struct test_cpumap_data *map)
   printf("Run test 15 with 16 L3 group with 0/1 CPU, 4 LDMs\n");
 }
 
-static void test_16(struct test_cpumap_data *map)
-{
+static void test_16(struct test_cpumap_data *map) {
   map->num_l3_caches = 1;
   map->num_cpus_in_l3_cache[0] = 2;
   map->num_query_threads_per_ldm = 1;
@@ -3033,8 +3657,7 @@ static void test_17(struct test_cpumap_data *map)
   printf("Run test 17 with 1 L3 group with 2 CPU, 0 LDMs\n");
 }
 
-static void test_18(struct test_cpumap_data *map)
-{
+static void test_18(struct test_cpumap_data *map) {
   map->num_l3_caches = 1;
   map->num_cpus_in_l3_cache[0] = 2;
   map->num_query_threads_per_ldm = 1;
@@ -3057,8 +3680,7 @@ static void test_19(struct test_cpumap_data *map)
   printf("Run test 19 with 1 L3 group with 2 CPU, 0 LDMs\n");
 }
 
-static void test_20(struct test_cpumap_data *map)
-{
+static void test_20(struct test_cpumap_data *map) {
   map->num_l3_caches = 2;
   map->num_cpus_in_l3_cache[0] = 2;
   map->num_cpus_in_l3_cache[1] = 1;
@@ -3097,17 +3719,14 @@ static void test_22(struct test_cpumap_data *map)
   printf("Run test 22 with 2 L3 group with 1 CPU, 0 LDMs\n");
 }
 
-static void
-create_hwinfo_test_cpu_map(struct test_cpumap_data *map)
-{
+static void create_hwinfo_test_cpu_map(struct test_cpumap_data *map) {
   Uint32 num_cpus = 0;
-  g_ndb_hwinfo = (struct ndb_hwinfo*)malloc(sizeof(struct ndb_hwinfo));
-  for (Uint32 i = 0; i < map->num_l3_caches; i++)
-  {
+  g_ndb_hwinfo = (struct ndb_hwinfo *)malloc(sizeof(struct ndb_hwinfo));
+  for (Uint32 i = 0; i < map->num_l3_caches; i++) {
     num_cpus += map->num_cpus_in_l3_cache[i];
   }
   void *ptr = malloc(sizeof(struct ndb_cpuinfo_data) * num_cpus);
-  g_ndb_hwinfo->cpu_info = (struct ndb_cpuinfo_data*)ptr;
+  g_ndb_hwinfo->cpu_info = (struct ndb_cpuinfo_data *)ptr;
   g_ndb_hwinfo->cpu_cnt_max = num_cpus;
   ncpu = num_cpus;
   g_ndb_hwinfo->cpu_cnt = num_cpus;
@@ -3116,23 +3735,18 @@ create_hwinfo_test_cpu_map(struct test_cpumap_data *map)
   Uint32 cpu_id = 0;
   struct ndb_hwinfo *hwinfo = g_ndb_hwinfo;
   Uint32 core_id = 0;
-  for (Uint32 l3_cache_id = 0; l3_cache_id < map->num_l3_caches; l3_cache_id++)
-  {
-    for (Uint32 i = 0; i < map->num_cpus_in_l3_cache[l3_cache_id]; i++)
-    {
+  for (Uint32 l3_cache_id = 0; l3_cache_id < map->num_l3_caches;
+       l3_cache_id++) {
+    for (Uint32 i = 0; i < map->num_cpus_in_l3_cache[l3_cache_id]; i++) {
       hwinfo->cpu_info[cpu_id].l3_cache_id = l3_cache_id;
       hwinfo->cpu_info[cpu_id].cpu_no = cpu_id;
-      if (map->intel_core)
-      {
+      if (map->intel_core) {
         hwinfo->cpu_info[cpu_id].core_id = core_id;
         core_id++;
-        if (core_id == map->cores_per_package)
-        {
+        if (core_id == map->cores_per_package) {
           core_id = 0;
         }
-      }
-      else
-      {
+      } else {
         hwinfo->cpu_info[cpu_id].core_id = cpu_id / 2;
       }
       hwinfo->cpu_info[cpu_id].socket_id = 0;
@@ -3144,19 +3758,13 @@ create_hwinfo_test_cpu_map(struct test_cpumap_data *map)
   create_l3_cache_list(g_ndb_hwinfo);
 }
 
-static void
-cleanup_test()
-{
+static void cleanup_test() {
   struct ndb_hwinfo *hwinfo = g_ndb_hwinfo;
-  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++)
-  {
-    printf("Virtual L3 Group[%u] = %u\n",
-           i, g_num_virt_l3_cpus[i]);
+  for (Uint32 i = 0; i < hwinfo->num_virt_l3_caches; i++) {
+    printf("Virtual L3 Group[%u] = %u\n", i, g_num_virt_l3_cpus[i]);
     Uint32 next_cpu = g_first_virt_l3_cache[i];
-    do
-    {
-      printf("    CPU %u, core: %u, l3_cache_id: %u\n",
-             next_cpu,
+    do {
+      printf("    CPU %u, core: %u, l3_cache_id: %u\n", next_cpu,
              hwinfo->cpu_info[next_cpu].core_id,
              hwinfo->cpu_info[next_cpu].l3_cache_id);
       next_cpu = hwinfo->cpu_info[next_cpu].next_virt_l3_cpu_map;
@@ -3164,22 +3772,20 @@ cleanup_test()
   }
   printf("CPU list created for CPU lock assignment\n");
   Uint32 next_cpu = hwinfo->first_cpu_map;
-  do
-  {
-    printf("    CPU %u, core: %u, l3_cache_id: %u\n",
-           next_cpu,
+  do {
+    printf("    CPU %u, core: %u, l3_cache_id: %u\n", next_cpu,
            hwinfo->cpu_info[next_cpu].core_id,
            hwinfo->cpu_info[next_cpu].l3_cache_id);
     next_cpu = hwinfo->cpu_info[next_cpu].next_cpu_map;
   } while (next_cpu != RNIL);
   ncpu = 0;
-  free((void*)g_first_l3_cache);
-  free((void*)g_first_virt_l3_cache);
-  free((void*)g_num_l3_cpus);
-  free((void*)g_num_l3_cpus_online);
-  free((void*)g_num_virt_l3_cpus);
-  free((void*)g_ndb_hwinfo->cpu_info);
-  free((void*)g_ndb_hwinfo);
+  free((void *)g_first_l3_cache);
+  free((void *)g_first_virt_l3_cache);
+  free((void *)g_num_l3_cpus);
+  free((void *)g_num_l3_cpus_online);
+  free((void *)g_num_virt_l3_cpus);
+  free((void *)g_ndb_hwinfo->cpu_info);
+  free((void *)g_ndb_hwinfo);
   g_ndb_hwinfo = nullptr;
   g_first_l3_cache = nullptr;
   g_first_virt_l3_cache = nullptr;
@@ -3188,18 +3794,13 @@ cleanup_test()
   g_num_l3_cpus_online = nullptr;
 }
 
-static void
-test_create(struct test_cpumap_data *map, Uint32 test_case)
-{
-  switch (test_case)
-  {
-    case 0:
-    {
+static void test_create(struct test_cpumap_data *map, Uint32 test_case) {
+  switch (test_case) {
+    case 0: {
       test_1(map);
       break;
     }
-    case 1:
-    {
+    case 1: {
       test_2(map);
       break;
     }
@@ -3238,73 +3839,59 @@ test_create(struct test_cpumap_data *map, Uint32 test_case)
       test_9(map);
       break;
     }
-    case 9:
-    {
+    case 9: {
       test_10(map);
       break;
     }
-    case 10:
-    {
+    case 10: {
       test_11(map);
       break;
     }
-    case 11:
-    {
+    case 11: {
       test_12(map);
       break;
     }
-    case 12:
-    {
+    case 12: {
       test_13(map);
       break;
     }
-    case 13:
-    {
+    case 13: {
       test_14(map);
       break;
     }
-    case 14:
-    {
+    case 14: {
       test_15(map);
       break;
     }
-    case 15:
-    {
+    case 15: {
       test_16(map);
       break;
     }
-    case 16:
-    {
+    case 16: {
       test_17(map);
       break;
     }
-    case 17:
-    {
+    case 17: {
       test_18(map);
       break;
     }
-    case 18:
-    {
+    case 18: {
       test_19(map);
       break;
     }
-    case 19:
-    {
+    case 19: {
       test_20(map);
       break;
     }
-    case 20:
-    {
+    case 20: {
       test_21(map);
       break;
     }
-    case 21:
-    {
+    case 21: {
       test_22(map);
       break;
     }
-    default:
-    {
+    default: {
       require(false);
       break;
     }
@@ -3313,9 +3900,7 @@ test_create(struct test_cpumap_data *map, Uint32 test_case)
 }
 
 #define NUM_TESTS 22
-static void
-test_create_cpumap()
-{
+static void test_create_cpumap() {
   Uint32 expected_res[NUM_TESTS];
   expected_res[0] = 1;
   expected_res[1] = 1;
@@ -3340,30 +3925,24 @@ test_create_cpumap()
   expected_res[20] = 1;
   expected_res[21] = 1;
   struct test_cpumap_data test_map;
-  for (Uint32 i = 0; i < NUM_TESTS; i++)
-  {
+  for (Uint32 i = 0; i < NUM_TESTS; i++) {
     printf("Start test %u\n", i + 1);
     test_create(&test_map, i);
     printf("Create HW info for test %u\n", i + 1);
     create_hwinfo_test_cpu_map(&test_map);
     printf("Create CPUMap for test %u\n", i + 1);
-    Uint32 num_rr_groups =
-      Ndb_CreateCPUMap(test_map.num_ldm_instances,
-                       test_map.num_query_threads_per_ldm);
-    for (Uint32 id = 0; id < g_ndb_hwinfo->cpu_cnt_max; id++)
-    {
+    Uint32 num_rr_groups = Ndb_CreateCPUMap(test_map.num_ldm_instances,
+                                            test_map.num_query_threads_per_ldm);
+    for (Uint32 id = 0; id < g_ndb_hwinfo->cpu_cnt_max; id++) {
       Uint32 cpu_ids[8];
       Uint32 num_cpus;
       Ndb_GetCoreCPUIds(id, &cpu_ids[0], num_cpus);
       printf("Ndb_GetCoreCPUIds: id: %u, num_cpus: %u\n",
              id,
              num_cpus);
-      if (test_map.exact_core)
-      {
+      if (test_map.exact_core) {
         OK(num_cpus == (test_map.num_query_threads_per_ldm + 1));
-      }
-      else
-      {
+      } else {
         OK(num_cpus <= (test_map.num_query_threads_per_ldm + 1));
       }
     }
@@ -3373,13 +3952,10 @@ test_create_cpumap()
   printf("test_create_cpumap passed\n");
 }
 
-void
-printdata(const struct ndb_hwinfo* data, Uint32 cpu)
-{
+void printdata(const struct ndb_hwinfo *data, Uint32 cpu) {
   uintmax_t sum_sys = 0;
 
-  for (Uint32 i = 0; i < data->cpu_cnt; i++)
-  {
+  for (Uint32 i = 0; i < data->cpu_cnt; i++) {
     sum_sys += data->cpu_data[i].cs_sys_us;
     sum_sys += data->cpu_data[i].cs_irq_us;
     sum_sys += data->cpu_data[i].cs_sirq_us;
@@ -3407,20 +3983,15 @@ printdata(const struct ndb_hwinfo* data, Uint32 cpu)
   cpu_sys += data->cpu_data[cpu].cs_guest_nice_us;
   cpu_sys += data->cpu_data[cpu].cs_steal_us;
 
-  printf("Cpu %u time: %juus sys: %ju%% All cpu sys: %juus\n",
-         cpu,
-         elapsed,
-         elapsed ? (100 * cpu_sys) / elapsed : 0,
-         sum_sys);
+  printf("Cpu %u time: %juus sys: %ju%% All cpu sys: %juus\n", cpu, elapsed,
+         elapsed ? (100 * cpu_sys) / elapsed : 0, sum_sys);
 }
 
-TAPTEST(NdbCPU)
-{
+TAPTEST(NdbCPU) {
   printf("Start NdbHW test\n");
   test_create_cpumap();
   int res = NdbHW_Init();
-  if (res < 0)
-  {
+  if (res < 0) {
     OK(1);
     return 0;
   }
@@ -3430,14 +4001,11 @@ TAPTEST(NdbCPU)
 #ifdef _SC_NPROCESSORS_CONF
   {
     long tmp = sysconf(_SC_NPROCESSORS_CONF);
-    if (tmp < 0)
-    {
+    if (tmp < 0) {
       perror("sysconf(_SC_NPROCESSORS_CONF) returned error");
       abort();
-    }
-    else
-    {
-      sysconf_ncpu_conf = (Uint32) tmp;
+    } else {
+      sysconf_ncpu_conf = (Uint32)tmp;
     }
   }
 #else
@@ -3456,13 +4024,12 @@ TAPTEST(NdbCPU)
    * Test of CPU info
    */
   OK(info != nullptr);
-  if (sysconf_ncpu_conf)
-  {
+  if (sysconf_ncpu_conf) {
     OK(sysconf_ncpu_conf == (long)info->cpu_cnt);
   }
   Ndb_FreeHWInfo();
   NdbHW_End();
   ndb_end(0);
-  return 1; // OK
+  return 1;  // OK
 }
 #endif
