@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2012, 2023, Oracle and/or its affiliates.
-   Copyright (c) 2023, 2023, Hopsworks and/or its affiliates.
+   Copyright (c) 2023, 2024, Hopsworks and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -33,15 +33,9 @@
 
 #include <NdbTap.hpp>
 
-<<<<<<< RonDB // RONDB-624 todo
 #include "rondb_hash.hpp"
-||||||| Common ancestor
-#include "md5_hash.hpp"
-=======
-#include "LHLevel.hpp"
-#include "md5_hash.hpp"
->>>>>>> MySQL 8.0.36
 #include "random.h"
+#include "LHLevel.hpp"
 
 #define BUCKSIZE 3
 

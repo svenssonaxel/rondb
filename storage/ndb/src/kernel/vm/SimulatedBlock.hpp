@@ -54,15 +54,9 @@
 
 #include "Callback.hpp"
 #include "DLHashTable.hpp"
-<<<<<<< RonDB // RONDB-624 todo
-||||||| Common ancestor
-#include "WOPool.hpp"
-=======
 #include "IntrusiveList.hpp"
->>>>>>> MySQL 8.0.36
 #include "RWPool.hpp"
 #include "SafeCounter.hpp"
-#include "WOPool.hpp"
 
 #include <kernel_config_parameters.h>
 #include <mgmapi.h>
