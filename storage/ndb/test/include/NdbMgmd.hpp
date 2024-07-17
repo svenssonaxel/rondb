@@ -399,8 +399,8 @@ class NdbMgmd {
       0
     };
 
-    ndb_socket_create_from_native(m_event_socket,
-                                  ndb_mgm_listen_event(m_handle, filter));
+    m_event_socket = ndb_socket_create_from_native(
+                          ndb_mgm_listen_event(m_handle, filter));
 
     return m_event_socket.is_valid();
   }

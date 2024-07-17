@@ -5416,10 +5416,8 @@ int runGetLogEventPretty(NDBT_Context *ctx, NDBT_Step *step) {
   if (!mgmd.connect()) return NDBT_FAILED;
 
   int filter[] = {15, NDB_MGM_EVENT_CATEGORY_INFO, 0};
-  ndb_socket_t my_fd_wrapped;
-  ndb_socket_create_from_native(my_fd_wrapped,
-                                ndb_mgm_listen_event(mgmd.handle(), filter));
-  NdbSocket my_fd{my_fd_wrapped};
+  NdbSocket my_fd{ndb_socket_create_from_native(
+      ndb_mgm_listen_event(mgmd.handle(), filter))};
 
   if (!my_fd.is_valid()) {
     ndbout << "FAILED: could not listen to event" << endl;

@@ -362,10 +362,8 @@ static int pause_lcp(int error) {
 
   int filter[] = {15, NDB_MGM_EVENT_CATEGORY_INFO, 0};
 
-  socket_t fd= ndb_mgm_listen_event(g_restarter.handle, filter);
-  ndb_socket_t my_fd_wrapped;
-  ndb_socket_create_from_native(my_fd_wrapped, fd);
-  NdbSocket my_fd{my_fd_wrapped};
+  NdbSocket my_fd{ndb_socket_create_from_native(
+                    ndb_mgm_listen_event(g_restarter.handle, filter))};
 
   require(my_fd.is_valid());
   require(!g_restarter.insertErrorInAllNodes(error));
@@ -454,8 +452,8 @@ static int continue_lcp(int error) {
   int filter[] = {15, NDB_MGM_EVENT_CATEGORY_INFO, 0};
   NdbSocket my_fd;
 
-  if(error){
-    ndb_socket_create_from_native(my_fd,
+  if (error) {
+    my_fd = ndb_socket_create_from_native(
               ndb_mgm_listen_event(g_restarter.handle, filter));
     require(my_fd.is_valid());
   }
