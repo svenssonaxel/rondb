@@ -28,6 +28,7 @@
 
 #include "util/require.h"
 #include "portlib/ndb_compiler.h"
+#include "portlib/ndb_socket.h"
 #include <mgmapi.h>
 #include "mgmcommon/NdbMgm.hpp"
 #include "../../src/mgmapi/mgmapi_internal.h"

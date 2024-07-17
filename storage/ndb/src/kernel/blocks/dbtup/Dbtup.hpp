@@ -3444,6 +3444,8 @@ private:
                     Uint32 noOfAttributes, 
                     Uint32* inBuffer);
 
+  bool primaryKey(Tablerec* const, Uint32);
+
   // these set terrorCode and return non-zero on error
 
   int executeTuxInsertTriggers(Signal* signal, 

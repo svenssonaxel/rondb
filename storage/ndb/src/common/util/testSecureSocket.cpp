@@ -337,7 +337,8 @@ NdbSocket & Client::connect_plain() {
     return m_plain_socket;
   }
   server_addr.set_port(opt_port);
-  if (!init(server_addr.get_address_family(), false)) return m_plain_socket;
+  if (!init(server_addr.get_address_family(), false))
+    return m_plain_socket;
   m_plain_socket = connect(server_addr);
   ndb_setsockopt(m_plain_socket.ndb_socket(), IPPROTO_TCP, TCP_NODELAY,
                  & opt_tcp_no_delay);

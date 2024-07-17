@@ -1695,7 +1695,7 @@ TransporterRegistry::check_TCP(TransporterReceiveHandle& recvdata,
                     ndb_socket_get_native(sock_fd), nullptr);
         } else if (recvdata.m_epoll_events[i].events & EPOLLIN) {
           recvdata.m_read_transporters.set(trpid);
-          recvdata.m_recv_socket_transporters.set(trpid);
+          recvdata.m_recv_sockets_transporters.set(trpid);
         }
       }
     }
@@ -3092,7 +3092,7 @@ TransporterRegistry::report_connect(TransporterReceiveHandle& recvdata,
   require(!t->isPartOfMultiTransporter());
   const TrpId trp_id = t->getTransporterIndex();
   DEBUG_FPRINTF((stderr, "(Node %u)REG:report_connect(Node %u) on trp: %u\n",
-                         localNodeId, node_id, id));
+                         localNodeId, node_id, trp_id));
   assert((receiveHandle == &recvdata) || (receiveHandle == nullptr));
   assert(recvdata.m_transporters.get(trp_id));
 
