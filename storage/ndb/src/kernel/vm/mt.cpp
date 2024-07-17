@@ -1935,8 +1935,8 @@ struct trp_callback : public TransporterCallback
   trp_callback() {}
 
   /* Callback interface. */
-  void enable_send_buffer(TrpId, bool) override;
-  void disable_send_buffer(TrpId, bool) override;
+  void enable_send_buffer(TrpId) override;
+  void disable_send_buffer(TrpId) override;
 
   void reportSendLen(NodeId nodeId, Uint32 count, Uint64 bytes) override;
   void lock_transporter(TrpId) override;
@@ -6032,11 +6032,10 @@ trp_callback::bytes_sent(TrpId trp_id,
 }
 
 void
-trp_callback::enable_send_buffer(TrpId trp_id, bool locked)
+trp_callback::enable_send_buffer(TrpId trp_id)
 {
   thr_repository::send_buffer *sb = g_thr_repository->m_send_buffers+trp_id;
-  if (!locked)
-    lock(&sb->m_send_lock);
+  lock(&sb->m_send_lock);
   assert(sb->m_sending_size == 0);
   {
     /**
@@ -6063,16 +6062,14 @@ trp_callback::enable_send_buffer(TrpId trp_id, bool locked)
   }
   assert(sb->m_enabled == false);
   sb->m_enabled = true;
-  if (!locked)
-    unlock(&sb->m_send_lock);
+  unlock(&sb->m_send_lock);
 }
 
 void
-trp_callback::disable_send_buffer(TrpId trp_id, bool locked)
+trp_callback::disable_send_buffer(TrpId trp_id)
 {
   thr_repository::send_buffer *sb = g_thr_repository->m_send_buffers+trp_id;
-  if (!locked)
-    lock(&sb->m_send_lock);
+  lock(&sb->m_send_lock);
   sb->m_enabled = false;
 
   /**
@@ -6096,8 +6093,7 @@ trp_callback::disable_send_buffer(TrpId trp_id, bool locked)
     sb->m_sending.m_last_page = NULL;
     sb->m_sending_size = 0;
   }
-  if (!locked)
-    unlock(&sb->m_send_lock);
+  unlock(&sb->m_send_lock);
 }
 
 static inline

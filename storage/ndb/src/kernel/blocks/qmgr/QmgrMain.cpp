@@ -11060,8 +11060,8 @@ Qmgr::execFREEZE_ACTION_REQ(Signal *signal)
       jam();
       Transporter *tmp_trp = multi_trp->get_active_transporter(i);
       TrpId id = tmp_trp->getTransporterIndex();
-      multi_trp->get_callback_obj()->enable_send_buffer(id, true);
       multi_trp->get_callback_obj()->unlock_send_transporter(id);
+      multi_trp->get_callback_obj()->enable_send_buffer(id);
       DEB_MULTI_TRP(("Enable trp %u for node %u", id, node_id));
     }
     globalTransporterRegistry.unlockMultiTransporters();
@@ -11337,8 +11337,8 @@ Qmgr::check_switch_completed(Signal *signal, NodeId node_id)
     TrpId trp_id = tmp_trp->getTransporterIndex();
     tmp_trp->get_callback_obj()->lock_transporter(trp_id);
     tmp_trp->shutdown();
-    multi_trp->get_callback_obj()->disable_send_buffer(trp_id, true);
     tmp_trp->get_callback_obj()->unlock_transporter(trp_id);
+    multi_trp->get_callback_obj()->disable_send_buffer(trp_id);
   }
   /**
    * We have now completed the switch to new set of transporters, the

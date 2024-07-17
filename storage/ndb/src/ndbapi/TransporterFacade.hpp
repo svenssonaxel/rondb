@@ -501,8 +501,8 @@ public:
    * methods on all clients known by TF to handle theirs thread local
    * send buffers.
    */
-  void enable_send_buffer(TrpId trp_id, bool) override;
-  void disable_send_buffer(TrpId trp_id, bool) override;
+  void enable_send_buffer(TrpId trp_id) override;
+  void disable_send_buffer(TrpId trp_id) override;
 
   Uint32 get_bytes_to_send_iovec(TrpId trp_id,
                                  struct iovec *dst,
