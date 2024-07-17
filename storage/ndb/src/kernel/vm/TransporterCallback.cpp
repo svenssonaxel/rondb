@@ -131,8 +131,8 @@ class TransporterCallbackKernelNonMT : public TransporterCallback,
   /**
    * Implements TransporterCallback interface:
    */
-  void enable_send_buffer(TrpId, bool) override;
-  void disable_send_buffer(TrpId, bool) override;
+  void enable_send_buffer(TrpId) override;
+  void disable_send_buffer(TrpId) override;
 
   Uint32 get_bytes_to_send_iovec(TrpId trp_id, struct iovec *dst,
                                  Uint32 max) override;
@@ -708,9 +708,8 @@ Uint32 TransporterCallbackKernelNonMT::bytes_sent(TrpId trp_id, Uint32 bytes) {
 }
 
 void
-TransporterCallbackKernelNonMT::enable_send_buffer(TrpId trp_id, bool locked)
+TransporterCallbackKernelNonMT::enable_send_buffer(TrpId trp_id)
 {
-  (void)locked;
   SendBuffer *b = m_send_buffers + trp_id;
   assert(b->m_enabled == false);
   assert(b->m_first_page == NULL);  // Disabled buffer is empty
@@ -718,8 +717,7 @@ TransporterCallbackKernelNonMT::enable_send_buffer(TrpId trp_id, bool locked)
 }
 
 void
-TransporterCallbackKernelNonMT::disable_send_buffer(TrpId trp_id,
-                                                    bool locked)
+TransporterCallbackKernelNonMT::disable_send_buffer(TrpId trp_id)
 {
   SendBuffer *b = m_send_buffers + trp_id;
   b->m_enabled = false;

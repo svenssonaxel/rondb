@@ -181,8 +181,8 @@ class TransporterCallback {
    * failures, e.g. a couple of direct transitions from CONNECTING
    * to DISCONNECTING in the TransporterRegistry.
    */
-  virtual void enable_send_buffer(TrpId, bool) = 0;
-  virtual void disable_send_buffer(TrpId, bool) = 0;
+  virtual void enable_send_buffer(TrpId) = 0;
+  virtual void disable_send_buffer(TrpId) = 0;
 
   /**
    * The transporter periodically calls this method, indicating the number

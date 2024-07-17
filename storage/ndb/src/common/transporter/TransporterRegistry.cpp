@@ -2744,7 +2744,7 @@ void TransporterRegistry::report_connect(TransporterReceiveHandle &recvdata,
 
   if (recvdata.epoll_add(t))
   {
-    callbackObj->enable_send_buffer(trp_id, false);
+    callbackObj->enable_send_buffer(trp_id);
     DEBUG_FPRINTF((stderr, "(Node %u)performStates[Node %u] = CONNECTED\n",
                    localNodeId, node_id));
     performStates[node_id] = CONNECTED;
@@ -2833,7 +2833,7 @@ TransporterRegistry::report_disconnect(TransporterReceiveHandle& recvdata,
        * thereby ensuring that after the disable_send_buffer method is
        * called no more signals are sent.
        */
-      callbackObj->disable_send_buffer(trp_id, false);
+      callbackObj->disable_send_buffer(trp_id);
       recvdata.m_recv_socket_transporters.clear(trp_id);
       recvdata.m_read_transporters.clear(trp_id);
       recvdata.m_has_data_transporters.clear(trp_id);
@@ -2893,7 +2893,7 @@ TransporterRegistry::report_disconnect(TransporterReceiveHandle& recvdata,
             const TrpId remove_trp_id = remove_trp->getTransporterIndex();
             if (remove_trp_id != 0)
             {
-              callbackObj->disable_send_buffer(remove_trp_id, false);
+              callbackObj->disable_send_buffer(remove_trp_id);
               remove_trp->forceUnsafeDisconnect();
               remove_allTransporters(remove_trp);
             }
@@ -2925,7 +2925,7 @@ TransporterRegistry::report_disconnect(TransporterReceiveHandle& recvdata,
         multi_trp->switch_active_trp();
         Transporter *base_trp = multi_trp->get_active_transporter(0);
         const TrpId base_trp_id = base_trp->getTransporterIndex();
-        callbackObj->disable_send_buffer(base_trp_id, false);
+        callbackObj->disable_send_buffer(base_trp_id);
         base_trp->doDisconnect();
         DEBUG_FPRINTF((stderr,
                        "Switch active trp, Node: %u, num active trp: %u"
