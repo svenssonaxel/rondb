@@ -2816,7 +2816,7 @@ CommandInterpreter::executeDeactivate(int processId,
   else if (node_type == NDB_MGM_NODE_TYPE_MGM)
   {
     int node_id = 0;
-    int result = ndb_mgm_get_nodeid(m_mgmsrv, node_id);
+    int result = ndb_mgm_get_nodeid(m_mgmsrv, &node_id);
     if (result < 0)
     {
       printError();

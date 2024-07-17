@@ -2475,7 +2475,7 @@ extern "C" int ndb_mgm_insert_error2(NdbMgmHandle handle, int nodeId,
 extern "C"
 int
 ndb_mgm_get_nodeid(NdbMgmHandle handle,
-                  int & nodeId)
+                  int * nodeId)
 {
   DBUG_ENTER("ndb_mgm_get_nodeid");
   CHECK_HANDLE(handle, -1);
@@ -2499,7 +2499,7 @@ ndb_mgm_get_nodeid(NdbMgmHandle handle,
     {
       Uint32 node_id;
       reply->get("nodeid", &node_id);
-      nodeId = node_id;
+      *nodeId = node_id;
       result = 0;
     }
     else
