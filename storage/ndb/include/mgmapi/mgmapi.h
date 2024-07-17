@@ -1040,7 +1040,7 @@ extern "C" {
    *
    * @note Request information about node id we are connected to
    */
-  int ndb_mgm_get_nodeid(NdbMgmHandle handle, int &nodeId);
+  int ndb_mgm_get_nodeid(NdbMgmHandle handle, int *nodeId);
 
   /**
    * Set hostname for a deactivated node
