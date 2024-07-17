@@ -2609,7 +2609,7 @@ errorInjectStalling(NDBT_Context* ctx, NDBT_Step* step)
 
     if (ndb->getNdbError().code != 0)
     {
-      g_err << method << " failed:\n";
+      g_err << method << " failed: \n";
       g_err << ndb->getNdbError().code << " "
             << ndb->getNdbError().message << endl;
       result = NDBT_FAILED;
@@ -2619,7 +2619,7 @@ errorInjectStalling(NDBT_Context* ctx, NDBT_Step* step)
 
   if (curr_gci != NDB_FAILURE_GCI)
   {
-    g_err << method << " failed to detect cluster failure:\n";
+    g_err << method << " failed to detect cluster failure: \n";
     result = NDBT_FAILED;
     goto cleanup;
   } 
@@ -2711,7 +2711,7 @@ errorInjectStalling(NDBT_Context* ctx, NDBT_Step* step)
 
     if (ndb->getNdbError().code != 0)
     {
-      g_err << method << " failed:\n";
+      g_err << method << " failed: \n";
       g_err << ndb->getNdbError().code << " "
             << ndb->getNdbError().message << endl;
       result = NDBT_FAILED;

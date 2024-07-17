@@ -35,7 +35,6 @@
 #endif
 
 
-
 const char * SocketAuthenticator::error(int result)
 {
   return (result < AuthOk) ? "Socket Auth failure" : "Success";

@@ -268,9 +268,6 @@ Transporter::connect_client_mgm(int port)
   require(!isPartOfMultiTransporter());
   NdbSocket secureSocket =
     m_transporter_registry.connect_ndb_mgmd(remoteHostName, port);
-  DEBUG_FPRINTF((stderr, "connect_ndb_mgmd to host: %s on port: %d\n",
-                 remoteHostName,
-                 port));
   return connect_client(std::move(secureSocket));
 }
 
@@ -307,6 +304,9 @@ Transporter::connect_client(bool multi_connection)
 
   if(isMgmConnection)
   {
+    DEBUG_FPRINTF((stderr, "connect_ndb_mgmd to host: %s on port: %d\n",
+                   remoteHostName,
+                   port));
     return connect_client_mgm(port);
   }
   else
