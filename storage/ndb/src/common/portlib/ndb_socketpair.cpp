@@ -110,8 +110,8 @@ int ndb_socketpair(ndb_socket_t s[2])
   ret= socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
   if (ret == 0)
   {
-    ndb_socket_create_from_native(s[0], sock[0]);
-    ndb_socket_create_from_native(s[1], sock[1]);
+    s[0] = ndb_socket_create_from_native(sock[0]);
+    s[1] = ndb_socket_create_from_native(sock[1]);
   }
   return ret;
 }

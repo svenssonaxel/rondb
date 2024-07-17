@@ -47,11 +47,11 @@ void ndb_socket_init_from_native(ndb_socket_t & ndb_sock, socket_t s)
 }
 
 static inline
-void
-ndb_socket_create_from_native(ndb_socket_t &s,
-                              socket_t native_socket)
+ndb_socket_t ndb_socket_create_from_native(socket_t native_socket)
 {
+  ndb_socket_t s;
   ndb_socket_init_from_native(s, native_socket);
+  return s;
 }
 
 static inline
@@ -150,7 +150,7 @@ ndb_socket_t ndb_accept(ndb_socket_t s, ndb_sockaddr *addr)
   {
     *addr = ndb_sockaddr(&sa.common, salen);
   }
-  ndb_socket_create_from_native(s, sock);
+  s = ndb_socket_create_from_native(sock);
   return s;
 }
 
