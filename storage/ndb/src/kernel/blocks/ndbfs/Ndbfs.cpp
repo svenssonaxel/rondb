@@ -54,16 +54,8 @@
 #include <NdbOut.hpp>
 #include <RefConvert.hpp>
 #include <portlib/NdbDir.hpp>
-<<<<<<< RonDB // RONDB-624 todo
-#include <NdbOut.hpp>
-#include <Configuration.hpp>
 #include <NdbConfig.h>
-||||||| Common ancestor
-#include <NdbOut.hpp>
-#include <Configuration.hpp>
-=======
 #include "debugger/DebuggerNames.hpp"
->>>>>>> MySQL 8.0.36
 
 #include <EventLogger.hpp>
 

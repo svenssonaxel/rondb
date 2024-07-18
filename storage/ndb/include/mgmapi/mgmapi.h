@@ -1016,29 +1016,6 @@ int ndb_mgm_restart4(NdbMgmHandle handle, int no_of_nodes, const int *node_list,
  */
 int ndb_mgm_start(NdbMgmHandle handle, int no_of_nodes, const int *node_list);
 
-<<<<<<< RonDB // RONDB-624 todo
-  /**
-   * Start database nodes
-   *
-   * @param   handle        Management handle.
-   * @param   no_of_nodes   Number of database nodes to be started<br>
-   *                        0: Start all database nodes in the cluster<br>
-   *                        n: Start the <var>n</var> node(s) specified in
-   *                            the array node_list
-   * @param   node_list     List of node IDs of database nodes to be started
-   *
-   * @return                Number of nodes actually started (-1 on error).
-   *
-   * @note    The nodes to be started must have been started with nostart(-n)
-   *          argument.
-   *          This means that the database node binary is started and
-   *          waiting for a START management command which will
-   *          actually enable the database node
-   */
-  int ndb_mgm_start(NdbMgmHandle handle,
-		    int no_of_nodes,
-		    const int * node_list);
-
   /**
    * Get node id of Management server we are connected to
    *
@@ -1093,46 +1070,11 @@ int ndb_mgm_start(NdbMgmHandle handle, int no_of_nodes, const int *node_list);
    */
   int ndb_mgm_deactivate(NdbMgmHandle handle, const int nodeId);
 
-  /** @} *********************************************************************/
-  /**
-   * @name Functions: Controlling Clusterlog output
-   * @{
-   */
-||||||| Common ancestor
-  /**
-   * Start database nodes
-   *
-   * @param   handle        Management handle.
-   * @param   no_of_nodes   Number of database nodes to be started<br>
-   *                        0: Start all database nodes in the cluster<br>
-   *                        n: Start the <var>n</var> node(s) specified in
-   *                            the array node_list
-   * @param   node_list     List of node IDs of database nodes to be started
-   *
-   * @return                Number of nodes actually started (-1 on error).
-   *
-   * @note    The nodes to be started must have been started with nostart(-n)
-   *          argument.
-   *          This means that the database node binary is started and
-   *          waiting for a START management command which will
-   *          actually enable the database node
-   */
-  int ndb_mgm_start(NdbMgmHandle handle,
-		    int no_of_nodes,
-		    const int * node_list);
-
-  /** @} *********************************************************************/
-  /**
-   * @name Functions: Controlling Clusterlog output
-   * @{
-   */
-=======
 /** @} *********************************************************************/
 /**
  * @name Functions: Controlling Clusterlog output
  * @{
  */
->>>>>>> MySQL 8.0.36
 
 /**
  * Filter cluster log severities
@@ -1485,7 +1427,6 @@ int ndb_mgm_exit_single_user(NdbMgmHandle handle, struct ndb_mgm_reply *reply);
  * @{
  */
 
-<<<<<<< RonDB // RONDB-624 todo
   /**
    * Get configuration
    * @param   handle     NDB management handle.
@@ -1500,36 +1441,6 @@ int ndb_mgm_exit_single_user(NdbMgmHandle handle, struct ndb_mgm_reply *reply);
 							   unsigned version);
   int ndb_mgm_set_configuration(NdbMgmHandle handle, struct ndb_mgm_configuration*);
   void ndb_mgm_destroy_configuration(struct ndb_mgm_configuration *);
-||||||| Common ancestor
-  /**
-   * Get configuration
-   * @param   handle     NDB management handle.
-   * @param   version    Version of configuration, 0 means latest
-   *                     (Currently this is the only supported value for this parameter)
-   *
-   * @return configuration
-   *
-   * @note The caller is responsible for calling ndb_mgm_destroy_configuration()
-   */
-  struct ndb_mgm_configuration * ndb_mgm_get_configuration(NdbMgmHandle handle,
-							   unsigned version);
-  void ndb_mgm_destroy_configuration(struct ndb_mgm_configuration *);
-=======
-/**
- * Get configuration
- * @param   handle     NDB management handle.
- * @param   version    Version of configuration, 0 means latest
- *                     (Currently this is the only supported value for this
- * parameter)
- *
- * @return configuration
- *
- * @note The caller is responsible for calling ndb_mgm_destroy_configuration()
- */
-struct ndb_mgm_configuration *ndb_mgm_get_configuration(NdbMgmHandle handle,
-                                                        unsigned version);
-void ndb_mgm_destroy_configuration(struct ndb_mgm_configuration *);
->>>>>>> MySQL 8.0.36
 
 int ndb_mgm_alloc_nodeid(NdbMgmHandle handle, unsigned version, int nodetype,
                          int log_event);

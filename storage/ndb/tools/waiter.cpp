@@ -28,25 +28,13 @@
 #include <time.h>
 #include "util/require.h"
 
-<<<<<<< RonDB // RONDB-624 todo
-#include <mgmapi.h>
 #include <ConfigValues.hpp>
-#include <NdbOut.hpp>
-||||||| Common ancestor
-#include <mgmapi.h>
-#include <NdbOut.hpp>
-=======
->>>>>>> MySQL 8.0.36
 #include <NdbSleep.h>
 #include <NdbTick.h>
 #include <mgmapi.h>
 #include <portlib/ndb_localtime.h>
-<<<<<<< RonDB // RONDB-624 todo
 #include <../src/mgmapi/mgmapi_configuration.hpp>
-||||||| Common ancestor
-=======
 #include <NdbOut.hpp>
->>>>>>> MySQL 8.0.36
 
 #include <NdbToolsProgramExitCodes.hpp>
 

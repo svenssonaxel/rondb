@@ -34,18 +34,14 @@
 
 #include <CountingSemaphore.hpp>
 #include <Mutex.hpp>
-<<<<<<< RonDB // RONDB-624 todo
 #include <RWPool64.hpp>
 #include <Intrusive64List.hpp>
-||||||| Common ancestor
-=======
 #include <NdbSeqLock.hpp>
 #include <blocks/mutexes.hpp>
 #include <signaldata/CopyGCIReq.hpp>
 #include <signaldata/LCP.hpp>
 #include <signaldata/MasterLCP.hpp>
 #include <signaldata/RedoStateRep.hpp>
->>>>>>> MySQL 8.0.36
 
 #define JAM_FILE_ID 356
 
@@ -744,25 +740,8 @@ class Dbdih : public SimulatedBlock {
     };
     Method method;
 
-<<<<<<< RonDB // RONDB-624 todo
     Uint32 startFidSize;
     Uint64 *startFid;
-||||||| Common ancestor
-
-
-//-----------------------------------------------------------------------------
-// Each entry in this array contains a reference to 16 fragment records in a
-// row. Thus finding the correct record is very quick provided the fragment id.
-//-----------------------------------------------------------------------------
-    Uint32 startFid[(MAX_NDB_PARTITIONS - 1) / NO_OF_FRAGS_PER_CHUNK + 1];
-=======
-    //-----------------------------------------------------------------------------
-    // Each entry in this array contains a reference to 16 fragment records in a
-    // row. Thus finding the correct record is very quick provided the fragment
-    // id.
-    //-----------------------------------------------------------------------------
-    Uint32 startFid[(MAX_NDB_PARTITIONS - 1) / NO_OF_FRAGS_PER_CHUNK + 1];
->>>>>>> MySQL 8.0.36
 
     CopyStatus tabCopyStatus;
     UpdateState tabUpdateState;

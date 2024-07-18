@@ -32,14 +32,8 @@
 #include <AttributeHeader.hpp>
 #include <DataBuffer.hpp>
 #include <IntrusiveList.hpp>
-<<<<<<< RonDB // RONDB-624 todo
 #include <RWPool64.hpp>
-||||||| Common ancestor
-#include <md5_hash.hpp>
-=======
 #include <SimulatedBlock.hpp>
-#include <md5_hash.hpp>
->>>>>>> MySQL 8.0.36
 
 // big brother
 #include <dbacc/Dbacc.hpp>
