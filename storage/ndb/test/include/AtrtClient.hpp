@@ -25,9 +25,9 @@
 #ifndef ATRT_CLIENT_HPP
 #define ATRT_CLIENT_HPP
 
-#include <DbUtil.hpp>
+#include "SqlClient.hpp"
 
-class AtrtClient: public DbUtil {
+class AtrtClient: public SqlClient {
 public:
 
   enum AtrtCommandType {

@@ -35,35 +35,22 @@
 #endif
 
 
-SocketAuthSimple::SocketAuthSimple(const char *username, const char *passwd) {
-  if (username)
-    m_username= strdup(username);
-  else
-    m_username= nullptr;
-  if (passwd)
-    m_passwd= strdup(passwd);
-  else
-    m_passwd= nullptr;
+
+const char * SocketAuthenticator::error(int result)
+{
+  return (result < AuthOk) ? "Socket Auth failure" : "Success";
 }
 
-SocketAuthSimple::~SocketAuthSimple()
+int SocketAuthSimple::client_authenticate(const NdbSocket & sockfd)
 {
-  if (m_passwd)
-    free(m_passwd);
-  if (m_username)
-    free(m_username);
-}
-
-bool SocketAuthSimple::client_authenticate(NdbSocket & sockfd)
-{
-  SecureSocketOutputStream s_output(sockfd);
-  SecureSocketInputStream  s_input(sockfd);
+  SocketOutputStream s_output(sockfd);
+  SocketInputStream  s_input(sockfd);
 
   DEBUG_FPRINTF((stderr, "send client authenticate on NDB_SOCKET: %s\n",
                  ndb_socket_to_string(sockfd).c_str()));
   // Write username and password
-  s_output.println("%s", m_username ? m_username : "");
-  s_output.println("%s", m_passwd ? m_passwd : "");
+  s_output.println("ndbd");
+  s_output.println("ndbd passwd");
 
   char buf[16];
 
@@ -72,7 +59,7 @@ bool SocketAuthSimple::client_authenticate(NdbSocket & sockfd)
   {
     DEBUG_FPRINTF((stderr, "Failed client authenticate on NDB_SOCKET: %s\n",
                    ndb_socket_to_string(sockfd).c_str()));
-    return false;
+    return -1;
   }
   buf[sizeof(buf)-1]= 0;
 
@@ -81,18 +68,18 @@ bool SocketAuthSimple::client_authenticate(NdbSocket & sockfd)
   {
     DEBUG_FPRINTF((stderr, "Succ client authenticate on NDB_SOCKET: %s\n",
                    ndb_socket_to_string(sockfd).c_str()));
-    return true;
+    return 0;
   }
 
   DEBUG_FPRINTF((stderr, "Failed auth client on NDB_SOCKET: %s, buf: %s\n",
                  ndb_socket_to_string(sockfd).c_str(), buf));
-  return false;
+  return -1;
 }
 
-bool SocketAuthSimple::server_authenticate(NdbSocket & sockfd)
+int SocketAuthSimple::server_authenticate(const NdbSocket & sockfd)
 {
-  SecureSocketOutputStream s_output(sockfd);
-  SecureSocketInputStream  s_input(sockfd);
+  SocketOutputStream s_output(sockfd);
+  SocketInputStream  s_input(sockfd);
 
   char buf[256];
 
@@ -103,7 +90,7 @@ bool SocketAuthSimple::server_authenticate(NdbSocket & sockfd)
   {
     DEBUG_FPRINTF((stderr, "Failed server auth on NDB_SOCKET: %s\n",
                    ndb_socket_to_string(sockfd).c_str()));
-    return false;
+    return -1;
   }
   buf[sizeof(buf)-1]= 0;
 
@@ -112,7 +99,7 @@ bool SocketAuthSimple::server_authenticate(NdbSocket & sockfd)
   {
     DEBUG_FPRINTF((stderr, "Failed server read passwd on NDB_SOCKET: %s\n",
                    ndb_socket_to_string(sockfd).c_str()));
-    return false;
+    return -1;
   }
   buf[sizeof(buf)-1]= 0;
 
@@ -121,5 +108,5 @@ bool SocketAuthSimple::server_authenticate(NdbSocket & sockfd)
   // Write authentication result
   s_output.println("ok");
 
-  return true;
+  return AuthOk;
 }
