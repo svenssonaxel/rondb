@@ -467,47 +467,39 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
           return;
         }
       }
-<<<<<<< RonDB // RONDB-624 todo
+      break;
     }
-    break;
-  }
   case Ndbinfo::DICT_OBJ_INFO_TABLEID:
   case Ndbinfo::STORED_TABLES_TABLEID:
   case Ndbinfo::TABLE_MAP_TABLEID:
   {
     jam();
-    if (c_masterNodeId != getOwnNodeId())
-    {
+    if (c_masterNodeId != getOwnNodeId()) {
       jam();
-||||||| Common ancestor
-    }
-    break;
-  }
-  case Ndbinfo::DICT_OBJ_INFO_TABLEID:
-  case Ndbinfo::STORED_TABLES_TABLEID:
-  {
-    jam();
-    if (c_masterNodeId != getOwnNodeId())
-    {
-      jam();
-=======
->>>>>>> MySQL 8.0.36
       break;
     }
-    case Ndbinfo::DICT_OBJ_INFO_TABLEID:
-    case Ndbinfo::STORED_TABLES_TABLEID: {
+    DictObjectName_hash::Iterator iter;
+    bool done = false;
+    const Uint32 nextBucket = cursor->data[0];
+
+    if (nextBucket == 0) {
+      // Start from the beginning.
       jam();
-<<<<<<< RonDB // RONDB-624 todo
+      done = !c_obj_name_hash.first(iter);
+    } else {
+      // Continue from where the last batch ended.
+      jam();
+      done = !c_obj_name_hash.next(nextBucket, iter);
+    }
+
+    while (!done) {
+      jam();
       ListTablesData ltd;
       Uint32 version, parentObjType, parentObjId;
-      
-      ndbrequire(buildListTablesData(*iter.curr.p,
-                                     RNIL,
-                                     ltd,
-                                     version,
-                                     parentObjType,
-                                     parentObjId));
-      
+
+      ndbrequire(buildListTablesData(*iter.curr.p, RNIL, ltd, version,
+                                     parentObjType, parentObjId));
+
       char nameBuff[PATH_MAX];
       {
         LcLocalRope name(iter.curr.p->m_name);
@@ -516,42 +508,28 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
       }
 
       /*
-        Try to find the parent of blob tables. Blob tables are named 
+        Try to find the parent of blob tables. Blob tables are named
         <db name>/def/NDB$BLOB_<parent obj id>_<parent column num>
        */
-      if (DictTabInfo::isTable(ltd.getTableType()) && parentObjId == 0)
-      {
-||||||| Common ancestor
-      ListTablesData ltd;
-      Uint32 version, parentObjType, parentObjId;
-      
-      ndbrequire(buildListTablesData(*iter.curr.p,
-                                     RNIL,
-                                     ltd,
-                                     version,
-                                     parentObjType,
-                                     parentObjId));
-      
-      LocalRope name(c_rope_pool, iter.curr.p->m_name);
-      char nameBuff[PATH_MAX];
-      name.copy(nameBuff);
-      ndbassert(strlen(nameBuff) < PATH_MAX);
-
-      /*
-        Try to find the parent of blob tables. Blob tables are named 
-        <db name>/def/NDB$BLOB_<parent obj id>_<parent column num>
-       */
-      if (DictTabInfo::isTable(ltd.getTableType()) && parentObjId == 0)
-      {
-=======
-      if (c_masterNodeId != getOwnNodeId()) {
->>>>>>> MySQL 8.0.36
+      if (DictTabInfo::isTable(ltd.getTableType()) && parentObjId == 0) {
         jam();
-        break;
+        const char *const blobNamePrefix = "/NDB$BLOB_";
+        const char *const blobNameStart = strstr(nameBuff, blobNamePrefix);
+
+        if (blobNameStart != NULL) {
+          jam();
+          char *parentIdEnd = NULL;
+          const long long num = strtoll(
+              blobNameStart + strlen(blobNamePrefix), &parentIdEnd, 10);
+          ndbassert(num > 0);
+          ndbassert(num < UINT_MAX32);
+          ndbassert(*parentIdEnd == '_');
+
+          parentObjId = static_cast<Uint32>(num);
+          parentObjType = ltd.getTableType();  // System or user table.
+        }
       }
-<<<<<<< RonDB // RONDB-624 todo
-      if (req.tableId == Ndbinfo::DICT_OBJ_INFO_TABLEID)
-      {
+      if (req.tableId == Ndbinfo::DICT_OBJ_INFO_TABLEID) {
         jam();
         Ndbinfo::Row row(signal, req);
         /* Write values */
@@ -563,36 +541,7 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
         row.write_uint32(parentObjId);
         row.write_string(nameBuff); /* FQ name */
         ndbinfo_send_row(signal, req, row, rl);
-||||||| Common ancestor
-      if (req.tableId == Ndbinfo::DICT_OBJ_INFO_TABLEID)
-      {
-        jam(); 
-        Ndbinfo::Row row(signal, req);
-        /* Write values */
-        row.write_uint32(ltd.getTableType());
-        row.write_uint32(ltd.getTableId());
-        row.write_uint32(version);
-        row.write_uint32(ltd.getTableState());
-        row.write_uint32(parentObjType);
-        row.write_uint32(parentObjId);
-        row.write_string(nameBuff); /* FQ name */
-        ndbinfo_send_row(signal, req, row, rl);
-=======
-      DictObjectName_hash::Iterator iter;
-      bool done = false;
-      const Uint32 nextBucket = cursor->data[0];
-
-      if (nextBucket == 0) {
-        // Start from the beginning.
-        jam();
-        done = !c_obj_name_hash.first(iter);
-      } else {
-        // Continue from where the last batch ended.
-        jam();
-        done = !c_obj_name_hash.next(nextBucket, iter);
->>>>>>> MySQL 8.0.36
       }
-<<<<<<< RonDB // RONDB-624 todo
       else if (req.tableId == Ndbinfo::TABLE_MAP_TABLEID)
       {
         if (ltd.getTableType() == DictTabInfo::TableType::SystemTable ||
@@ -641,60 +590,6 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
       }
       else
       {
-||||||| Common ancestor
-      else
-      {
-=======
-
-      while (!done) {
->>>>>>> MySQL 8.0.36
-        jam();
-        ListTablesData ltd;
-        Uint32 version, parentObjType, parentObjId;
-
-        ndbrequire(buildListTablesData(*iter.curr.p, RNIL, ltd, version,
-                                       parentObjType, parentObjId));
-
-        LocalRope name(c_rope_pool, iter.curr.p->m_name);
-        char nameBuff[PATH_MAX];
-        name.copy(nameBuff);
-        ndbassert(strlen(nameBuff) < PATH_MAX);
-
-        /*
-          Try to find the parent of blob tables. Blob tables are named
-          <db name>/def/NDB$BLOB_<parent obj id>_<parent column num>
-         */
-        if (DictTabInfo::isTable(ltd.getTableType()) && parentObjId == 0) {
-          jam();
-          const char *const blobNamePrefix = "/NDB$BLOB_";
-          const char *const blobNameStart = strstr(nameBuff, blobNamePrefix);
-
-          if (blobNameStart != NULL) {
-            jam();
-            char *parentIdEnd = NULL;
-            const long long num = strtoll(
-                blobNameStart + strlen(blobNamePrefix), &parentIdEnd, 10);
-            ndbassert(num > 0);
-            ndbassert(num < UINT_MAX32);
-            ndbassert(*parentIdEnd == '_');
-
-            parentObjId = static_cast<Uint32>(num);
-            parentObjType = ltd.getTableType();  // System or user table.
-          }
-        }
-        if (req.tableId == Ndbinfo::DICT_OBJ_INFO_TABLEID) {
-          jam();
-          Ndbinfo::Row row(signal, req);
-          /* Write values */
-          row.write_uint32(ltd.getTableType());
-          row.write_uint32(ltd.getTableId());
-          row.write_uint32(version);
-          row.write_uint32(ltd.getTableState());
-          row.write_uint32(parentObjType);
-          row.write_uint32(parentObjId);
-          row.write_string(nameBuff); /* FQ name */
-          ndbinfo_send_row(signal, req, row, rl);
-        } else {
           jam();
           jamLine(ltd.getTableId());
           if (DictTabInfo::isTable(ltd.getTableType()) ||
@@ -734,31 +629,31 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
             row.write_uint32(tabPtr.p->singleUserMode);
             ndbinfo_send_row(signal, req, row, rl);
           }
-        }
+      }
 
-        const Uint32 oldBucket = iter.bucket;
-        done = !c_obj_name_hash.next(iter);
+      const Uint32 oldBucket = iter.bucket;
+      done = !c_obj_name_hash.next(iter);
 
-        if (!done) {
+      if (!done) {
+        jam();
+        const bool onBucketBoundary = (iter.bucket != oldBucket);
+
+        /*
+          Ensure that we send all the entries in the current hash bucket
+          before ending the batch, since we use the bucket number to indicate
+          where the next batch should start.
+        */
+        if (onBucketBoundary && rl.need_break(req)) {
           jam();
-          const bool onBucketBoundary = (iter.bucket != oldBucket);
-
-          /*
-            Ensure that we send all the entries in the current hash bucket
-            before ending the batch, since we use the bucket number to indicate
-            where the next batch should start.
-          */
-          if (onBucketBoundary && rl.need_break(req)) {
-            jam();
-            ndbinfo_send_scan_break(signal, req, rl, iter.bucket);
-            return;
-          }
+          ndbinfo_send_scan_break(signal, req, rl, iter.bucket);
+          return;
         }
       }
-      break;
     }
-    default:
-      break;
+    break;
+  }
+  default:
+    break;
   }
 
   ndbinfo_send_scan_conf(signal, req, rl);
@@ -773,7 +668,6 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
 void Dbdict::execCONTINUEB(Signal *signal) {
   jamEntry();
   switch (signal->theData[0]) {
-<<<<<<< RonDB // RONDB-624 todo
   case ZDICT_SHRINK_TRANSIENT_POOLS:
   {
     jam();
@@ -809,18 +703,7 @@ void Dbdict::execCONTINUEB(Signal *signal) {
     break;
   }
 #endif
-  case ZPACK_TABLE_INTO_PAGES :
-    jam();
-    if (ERROR_INSERTED(6800))
-    {
-||||||| Common ancestor
-  case ZPACK_TABLE_INTO_PAGES :
-    jam();
-    if (ERROR_INSERTED(6800))
-    {
-=======
     case ZPACK_TABLE_INTO_PAGES:
->>>>>>> MySQL 8.0.36
       jam();
       if (ERROR_INSERTED(6800)) {
         jam();
@@ -17284,28 +17167,15 @@ void Dbdict::createEventUTIL_EXECUTE(Signal *signal, Uint32 callbackData,
           evntRecPtr.p->m_errorLine = __LINE__;
           evntRecPtr.p->m_errorNode = reference();
 
-<<<<<<< RonDB // RONDB-624 todo
+          createEvent_sendReply(signal, evntRecPtr);
+          return;
+        }
+
       TableRecordPtr tablePtr;
       tablePtr.i = obj_ptr_p->m_object_ptr_i;
       ndbrequire(c_tableRecordPool_.getValidPtr(tablePtr));
       evntRec->m_request.setTableId(tablePtr.p->tableId);
       evntRec->m_request.setTableVersion(tablePtr.p->tableVersion);
-||||||| Common ancestor
-      TableRecordPtr tablePtr;
-      ndbrequire(c_tableRecordPool_.getPtr(tablePtr, obj_ptr_p->m_object_ptr_i));
-      evntRec->m_request.setTableId(tablePtr.p->tableId);
-      evntRec->m_request.setTableVersion(tablePtr.p->tableVersion);
-=======
-          createEvent_sendReply(signal, evntRecPtr);
-          return;
-        }
->>>>>>> MySQL 8.0.36
-
-        TableRecordPtr tablePtr;
-        ndbrequire(
-            c_tableRecordPool_.getPtr(tablePtr, obj_ptr_p->m_object_ptr_i));
-        evntRec->m_request.setTableId(tablePtr.p->tableId);
-        evntRec->m_request.setTableVersion(tablePtr.p->tableVersion);
 
         createEventComplete_RT_USER_GET(signal, evntRecPtr);
         return;
@@ -20828,83 +20698,6 @@ Dbdict::execDICT_TAKEOVER_REQ(Signal* signal)
           so it can find the operation if it has already completed that
           operation.
          */
-<<<<<<< RonDB // RONDB-624 todo
-         if (SchemaOp::weight(op_ptr.p->m_state) <
-             SchemaOp::weight(rollforward_op_state))
-         {
-           jam();
-           rollforward_op = op_ptr.p->op_key;
-           rollforward_op_state = op_ptr.p->m_state;
-         }
-         list.last(last_op_ptr);
-         /*
-           Check if we didn't found any operation that hasn't completed.
-           Then it could be that we have already completed some operations,
-           then set rollforward point to first operation, if any, and inform
-           we are restarting to ensure the related gci is returned to new master
-           so it can find the operation if it has already completed that operation.
-          */
-         if ((rollforward_op == 0) && (op_ptr.i == last_op_ptr.i))
-         {
-           jam();
-           SchemaOpPtr first_op_ptr;
-           if (list.first(first_op_ptr))
-           {
-             jam();
-             rollforward_op = first_op_ptr.p->op_key;
-             rollforward_op_state = first_op_ptr.p->m_state;
-             lowest_op = first_op_ptr.p->op_key;
-             lowest_op_state = first_op_ptr.p->m_state;
-             /*
-               Find the OpInfo gsn for the first operation,
-               this might be needed by new master to create missing operation.
-             */
-             lowest_op_impl_req_gsn = getOpInfo(first_op_ptr).m_impl_req_gsn;
-#if defined VM_TRACE || defined MARTIN
-             g_eventLogger->info(
-                 "execDICT_TAKEOVER_CONF: Transaction %u rolled forward,"
-                 " resetting rollforward to first %u(%u), gsn %u",
-                 trans_ptr.p->trans_key, rollforward_op_state, rollforward_op,
-                 lowest_op_impl_req_gsn);
-||||||| Common ancestor
-         if (SchemaOp::weight(op_ptr.p->m_state) <
-             SchemaOp::weight(rollforward_op_state))
-         {
-           jam();
-           rollforward_op = op_ptr.p->op_key;
-           rollforward_op_state = op_ptr.p->m_state;
-         }
-         list.last(last_op_ptr);
-         /*
-           Check if we didn't found any operation that hasn't completed.
-           Then it could be that we have already completed some operations,
-           then set rollforward point to first operation, if any, and inform
-           we are restarting to ensure the related gci is returned to new master
-           so it can find the operation if it has already completed that operation.
-          */
-         if ((rollforward_op == 0) && (op_ptr.i == last_op_ptr.i))
-         {
-           jam();
-           SchemaOpPtr first_op_ptr;
-           if (list.first(first_op_ptr))
-           {
-             jam();
-             rollforward_op = first_op_ptr.p->op_key;
-             rollforward_op_state = first_op_ptr.p->m_state;
-             lowest_op = first_op_ptr.p->op_key;
-             lowest_op_state = first_op_ptr.p->m_state;
-             /*
-               Find the OpInfo gsn for the first operation,
-               this might be needed by new master to create missing operation.
-             */
-             lowest_op_impl_req_gsn = getOpInfo(first_op_ptr).m_impl_req_gsn;
-#ifdef VM_TRACE
-             g_eventLogger->info(
-                 "execDICT_TAKEOVER_CONF: Transaction %u rolled forward,"
-                 " resetting rollforward to first %u(%u), gsn %u",
-                 trans_ptr.p->trans_key, rollforward_op_state, rollforward_op,
-                 lowest_op_impl_req_gsn);
-=======
         if ((rollforward_op == 0) && (op_ptr.i == last_op_ptr.i)) {
           jam();
           SchemaOpPtr first_op_ptr;
@@ -20919,13 +20712,12 @@ Dbdict::execDICT_TAKEOVER_REQ(Signal* signal)
               this might be needed by new master to create missing operation.
             */
             lowest_op_impl_req_gsn = getOpInfo(first_op_ptr).m_impl_req_gsn;
-#ifdef VM_TRACE
+#if defined VM_TRACE || defined MARTIN
             g_eventLogger->info(
                 "execDICT_TAKEOVER_CONF: Transaction %u rolled forward,"
                 " resetting rollforward to first %u(%u), gsn %u",
                 trans_ptr.p->trans_key, rollforward_op_state, rollforward_op,
                 lowest_op_impl_req_gsn);
->>>>>>> MySQL 8.0.36
 #endif
            }
            restarting = true;
@@ -29470,35 +29262,6 @@ void Dbdict::trans_recover(Signal *signal, SchemaTransPtr trans_ptr) {
       trans_abort_parse_next(signal, trans_ptr, op_ptr);
       return;
     }
-<<<<<<< RonDB // RONDB-624 todo
-    [[fallthrough]];
-  case SchemaTrans::TS_PARSING:
-    jam();
-    setError(trans_ptr.p->m_error, SchemaTransEndRep::TransAborted, __LINE__);
-    trans_abort_parse_start(signal, trans_ptr);
-    return;
-  case SchemaTrans::TS_ABORTING_PARSE:
-  {
-    jam();
-#if defined VM_TRACE || defined MARTIN
-    g_eventLogger->info(
-        "Dbdict::trans_recover: ABORTING_PARSE, trans %u(0x%8x), state %u",
-        trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-||||||| Common ancestor
-    [[fallthrough]];
-  case SchemaTrans::TS_PARSING:
-    jam();
-    setError(trans_ptr.p->m_error, SchemaTransEndRep::TransAborted, __LINE__);
-    trans_abort_parse_start(signal, trans_ptr);
-    return;
-  case SchemaTrans::TS_ABORTING_PARSE:
-  {
-    jam();
-#ifdef VM_TRACE
-    g_eventLogger->info(
-        "Dbdict::trans_recover: ABORTING_PARSE, trans %u(0x%8x), state %u",
-        trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-=======
     case SchemaTrans::TS_PREPARING:
       jam();
       if (trans_ptr.p->m_master_recovery_state ==
@@ -29510,11 +29273,10 @@ void Dbdict::trans_recover(Signal *signal, SchemaTransPtr trans_ptr) {
       return;
     case SchemaTrans::TS_ABORTING_PREPARE: {
       jam();
-#ifdef VM_TRACE
+#if defined VM_TRACE || defined MARTIN
       g_eventLogger->info(
           "Dbdict::trans_recover: ABORTING PREPARE, trans %u(0x%8x), state %u",
           trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
->>>>>>> MySQL 8.0.36
 #endif
       setError(trans_ptr.p->m_error, SchemaTransEndRep::TransAborted, __LINE__);
       SchemaOpPtr op_ptr;
@@ -29524,51 +29286,7 @@ void Dbdict::trans_recover(Signal *signal, SchemaTransPtr trans_ptr) {
       trans_abort_prepare_next(signal, trans_ptr, op_ptr);
       return;
     }
-<<<<<<< RonDB // RONDB-624 todo
-    setError(trans_ptr.p->m_error, SchemaTransEndRep::TransAborted, __LINE__);
-    trans_abort_prepare_start(signal, trans_ptr);
-    return;
-  case SchemaTrans::TS_ABORTING_PREPARE:
-  {
-    jam();
-#if defined VM_TRACE || defined MARTIN
-    g_eventLogger->info(
-        "Dbdict::trans_recover: ABORTING PREPARE, trans %u(0x%8x), state %u",
-        trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-#endif
-    setError(trans_ptr.p->m_error, SchemaTransEndRep::TransAborted, __LINE__);
-    SchemaOpPtr op_ptr;
-    ndbrequire(c_schemaOpPool.getPtr(op_ptr, trans_ptr.p->m_curr_op_ptr_i));
-    // Revert operation state to restart abort
-    op_ptr.p->m_state = SchemaOp::OS_PREPARED;
-    trans_abort_prepare_next(signal, trans_ptr, op_ptr);
-    return;
-  }
-  case SchemaTrans::TS_FLUSH_COMMIT:
-||||||| Common ancestor
-    setError(trans_ptr.p->m_error, SchemaTransEndRep::TransAborted, __LINE__);
-    trans_abort_prepare_start(signal, trans_ptr);
-    return;
-  case SchemaTrans::TS_ABORTING_PREPARE:
-  {
-    jam();
-#ifdef VM_TRACE
-    g_eventLogger->info(
-        "Dbdict::trans_recover: ABORTING PREPARE, trans %u(0x%8x), state %u",
-        trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-#endif
-    setError(trans_ptr.p->m_error, SchemaTransEndRep::TransAborted, __LINE__);
-    SchemaOpPtr op_ptr;
-    ndbrequire(c_schemaOpPool.getPtr(op_ptr, trans_ptr.p->m_curr_op_ptr_i));
-    // Revert operation state to restart abort
-    op_ptr.p->m_state = SchemaOp::OS_PREPARED;
-    trans_abort_prepare_next(signal, trans_ptr, op_ptr);
-    return;
-  }
-  case SchemaTrans::TS_FLUSH_COMMIT:
-=======
     case SchemaTrans::TS_FLUSH_COMMIT:
->>>>>>> MySQL 8.0.36
     flush_commit:
       /*
          Flush commit any unflushed slaves
@@ -29617,7 +29335,7 @@ void Dbdict::trans_recover(Signal *signal, SchemaTransPtr trans_ptr) {
     }
     case SchemaTrans::TS_FLUSH_COMPLETE:
       jam();
-#ifdef VM_TRACE
+#if defined VM_TRACE || defined MARTIN
       g_eventLogger->info(
           "Dbdict::trans_recover: COMMITTING DONE, trans %u(0x%8x), state %u",
           trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
@@ -29629,60 +29347,10 @@ void Dbdict::trans_recover(Signal *signal, SchemaTransPtr trans_ptr) {
         Complete any uncommitted operations
       */
       jam();
-<<<<<<< RonDB // RONDB-624 todo
-      trans_commit_done(signal, trans_ptr);
-      return;
-    }
-  }
-  case SchemaTrans::TS_FLUSH_COMPLETE:
-    jam();
 #if defined VM_TRACE || defined MARTIN
-    g_eventLogger->info(
-        "Dbdict::trans_recover: COMMITTING DONE, trans %u(0x%8x), state %u",
-        trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-#endif
-    trans_complete_done(signal, trans_ptr);
-    return;
-  case SchemaTrans::TS_COMPLETING:
-  {
-    /*
-      Complete any uncommitted operations
-    */
-    jam();
-#if defined VM_TRACE || defined MARTIN
-    g_eventLogger->info(
-        "Dbdict::trans_recover: COMPLETING, trans %u(0x%8x), state %u",
-        trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-||||||| Common ancestor
-      trans_commit_done(signal, trans_ptr);
-      return;
-    }
-  }
-  case SchemaTrans::TS_FLUSH_COMPLETE:
-    jam();
-#ifdef VM_TRACE
-    g_eventLogger->info(
-        "Dbdict::trans_recover: COMMITTING DONE, trans %u(0x%8x), state %u",
-        trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-#endif
-    trans_complete_done(signal, trans_ptr);
-    return;
-  case SchemaTrans::TS_COMPLETING:
-  {
-    /*
-      Complete any uncommitted operations
-    */
-    jam();
-#ifdef VM_TRACE
-    g_eventLogger->info(
-        "Dbdict::trans_recover: COMPLETING, trans %u(0x%8x), state %u",
-        trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-=======
-#ifdef VM_TRACE
       g_eventLogger->info(
           "Dbdict::trans_recover: COMPLETING, trans %u(0x%8x), state %u",
           trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
->>>>>>> MySQL 8.0.36
 #endif
       SchemaOpPtr op_ptr;
       ndbrequire(c_schemaOpPool.getPtr(op_ptr, trans_ptr.p->m_curr_op_ptr_i));
@@ -29692,42 +29360,16 @@ void Dbdict::trans_recover(Signal *signal, SchemaTransPtr trans_ptr) {
         return;
       }
     }
-<<<<<<< RonDB // RONDB-624 todo
-  }
-  [[fallthrough]];
-  case SchemaTrans::TS_ENDING:
-    /*
-      End any pending slaves
-     */
-    jam();
-#if defined VM_TRACE || defined MARTIN
-    g_eventLogger->info(
-        "Dbdict::trans_recover: ENDING, trans %u(0x%8x), state %u", trans_ptr.i,
-        (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-||||||| Common ancestor
-  }
-  [[fallthrough]];
-  case SchemaTrans::TS_ENDING:
-    /*
-      End any pending slaves
-     */
-    jam();
-#ifdef VM_TRACE
-    g_eventLogger->info(
-        "Dbdict::trans_recover: ENDING, trans %u(0x%8x), state %u", trans_ptr.i,
-        (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
-=======
       [[fallthrough]];
     case SchemaTrans::TS_ENDING:
       /*
         End any pending slaves
        */
       jam();
-#ifdef VM_TRACE
+#if defined VM_TRACE || defined MARTIN
       g_eventLogger->info(
           "Dbdict::trans_recover: ENDING, trans %u(0x%8x), state %u",
           trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);
->>>>>>> MySQL 8.0.36
 #endif
       trans_end_start(signal, trans_ptr);
       return;
@@ -31150,20 +30792,19 @@ void Dbdict::createHashMap_parse(Signal *signal, bool master,
     Uint32 fragments;
     Uint32 partitions;
     Uint32 partitionBalance = impl_req->fragments;
-<<<<<<< RonDB // RONDB-624 todo
-    switch(partitionBalance) {
-    case 0:
-      /**
-       * Most likely a table is created from 7.4 or earlier version.
-       * We will replace the 0 with the default partition balance
-       * and continue as if everything is ok. All tables in 7.4 and
-       * earlier are either of type FOR_RP_BY_LDM or
-       * SPECIFIC. The other types can only be created using 7.5.2
-       * and later.
-       */
-      jam();
-      partitionBalance = NDB_PARTITION_BALANCE_FOR_RP_BY_LDM;
-      [[fallthrough]];
+    switch (partitionBalance) {
+      case 0:
+        /**
+         * Most likely a table is created from 7.4 or earlier version.
+         * We will replace the 0 with the default partition balance
+         * and continue as if everything is ok. All tables in 7.4 and
+         * earlier are either of type FOR_RP_BY_LDM or
+         * SPECIFIC. The other types can only be created using 7.5.2
+         * and later.
+         */
+        jam();
+        partitionBalance = NDB_PARTITION_BALANCE_FOR_RP_BY_LDM;
+        [[fallthrough]];
     case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM:
     case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM:
     case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_2:
@@ -31176,85 +30817,6 @@ void Dbdict::createHashMap_parse(Signal *signal, bool master,
     case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_16:
     case NDB_PARTITION_BALANCE_FOR_RP_BY_NODE:
     case NDB_PARTITION_BALANCE_FOR_RA_BY_NODE:
-      jam();
-      fragments = get_default_fragments(signal,
-                                        partitionBalance,
-                                        0);
-      if (impl_req->requestType & CreateHashMapReq::CreateForOneNodegroup)
-      {
-        partitions = get_default_partitions_fully_replicated(signal,
-                                                             partitionBalance);
-      }
-      else
-      {
-        partitions = fragments;
-      }
-      break;
-    default:
-      if(impl_req->requestType & CreateHashMapReq::CreateForOneNodegroup)
-      {
-        jam();
-||||||| Common ancestor
-    switch(partitionBalance) {
-    case 0:
-      /**
-       * Most likely a table is created from 7.4 or earlier version.
-       * We will replace the 0 with the default partition balance
-       * and continue as if everything is ok. All tables in 7.4 and
-       * earlier are either of type FOR_RP_BY_LDM or
-       * SPECIFIC. The other types can only be created using 7.5.2
-       * and later.
-       */
-      jam();
-      partitionBalance = NDB_PARTITION_BALANCE_FOR_RP_BY_LDM;
-      [[fallthrough]];
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_2:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_3:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_4:
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_NODE:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_NODE:
-      jam();
-      fragments = get_default_fragments(signal,
-                                        partitionBalance,
-                                        0);
-      if (impl_req->requestType & CreateHashMapReq::CreateForOneNodegroup)
-      {
-        partitions = get_default_partitions_fully_replicated(signal,
-                                                             partitionBalance);
-      }
-      else
-      {
-        partitions = fragments;
-      }
-      break;
-    default:
-      if(impl_req->requestType & CreateHashMapReq::CreateForOneNodegroup)
-      {
-        jam();
-=======
-    switch (partitionBalance) {
-      case 0:
->>>>>>> MySQL 8.0.36
-        /**
-         * Most likely a table is created from 7.4 or earlier version.
-         * We will replace the 0 with the default partition balance
-         * and continue as if everything is ok. All tables in 7.4 and
-         * earlier are either of type FOR_RP_BY_LDM or
-         * SPECIFIC. The other types can only be created using 7.5.2
-         * and later.
-         */
-        jam();
-        partitionBalance = NDB_PARTITION_BALANCE_FOR_RP_BY_LDM;
-        [[fallthrough]];
-      case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM:
-      case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM:
-      case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_2:
-      case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_3:
-      case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_4:
-      case NDB_PARTITION_BALANCE_FOR_RP_BY_NODE:
-      case NDB_PARTITION_BALANCE_FOR_RA_BY_NODE:
         jam();
         fragments = get_default_fragments(signal, partitionBalance, 0);
         if (impl_req->requestType & CreateHashMapReq::CreateForOneNodegroup) {

@@ -29,7 +29,6 @@
 
 #define JAM_FILE_ID 355
 
-<<<<<<< RonDB // RONDB-624 todo
 #if (defined(VM_TRACE) || defined(ERROR_INSERT))
 #define DEBUG_AUTOMATIC_MEMORY 1
 #endif
@@ -41,26 +40,12 @@
 #endif
 
 
-||||||| Common ancestor
-=======
+
 #define DEBUG(x) \
   { ndbout << "DIH::" << x << endl; }
->>>>>>> MySQL 8.0.36
 
-<<<<<<< RonDB // RONDB-624 todo
-#define DEBUG(x) { ndbout << "DIH::" << x << endl; }
-
-void Dbdih::initData() 
-{
-  callocated_frags = 0;
-||||||| Common ancestor
-#define DEBUG(x) { ndbout << "DIH::" << x << endl; }
-
-void Dbdih::initData() 
-{
-=======
 void Dbdih::initData() {
->>>>>>> MySQL 8.0.36
+  callocated_frags = 0;
   m_set_up_multi_trp_in_node_restart = false;
   cpageFileSize = ZPAGEREC;
 

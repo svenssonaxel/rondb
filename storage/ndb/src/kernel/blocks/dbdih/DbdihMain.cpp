@@ -93,17 +93,11 @@
 #include <signaldata/FsCloseReq.hpp>
 #include <signaldata/FsOpenReq.hpp>
 #include <signaldata/IsolateOrd.hpp>
-<<<<<<< RonDB // RONDB-624 todo
-#include <ndb_constants.h>
-#include <ndbd_malloc.hpp>
-||||||| Common ancestor
-#include <ndb_constants.h>
-=======
 #include <signaldata/LqhFrag.hpp>
 #include <signaldata/PrepDropTab.hpp>
 #include <signaldata/SumaImpl.hpp>
 #include <signaldata/Upgrade.hpp>
->>>>>>> MySQL 8.0.36
+#include <ndbd_malloc.hpp>
 #include "portlib/mt-asm.h"
 
 #include <EventLogger.hpp>

@@ -29,20 +29,8 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <stdlib.h>
-<<<<<<< RonDB // RONDB-624 todo
 #include <string.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/uio.h>
-#include <sys/types.h>
-||||||| Common ancestor
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/uio.h>
-#include <sys/types.h>
-=======
->>>>>>> MySQL 8.0.36
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
