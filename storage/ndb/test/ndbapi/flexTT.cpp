@@ -28,13 +28,7 @@
 #include <NdbApi.hpp>
 #include <NdbSchemaCon.hpp>
 
-<<<<<<< RonDB // RONDB-624 todo
 #include <rondb_hash.hpp>
-#include <NdbThread.h>
-||||||| Common ancestor
-#include <NdbThread.h>
-=======
->>>>>>> MySQL 8.0.36
 #include <NdbSleep.h>
 #include <NdbThread.h>
 #include <NdbTick.h>

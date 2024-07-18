@@ -25,15 +25,9 @@
 
 #include <ndb_global.h>
 #include <NdbSchemaCon.hpp>
-<<<<<<< RonDB // RONDB-624 todo
-||||||| Common ancestor
-#include <md5_hash.hpp>
-=======
 #include <cstring>
-#include <md5_hash.hpp>
 #include "NdbApi.hpp"
 #include "util/require.h"
->>>>>>> MySQL 8.0.36
 
 #include <NdbCondition.h>
 #include <NdbMutex.h>
@@ -231,14 +225,8 @@ static int                              tConnections = 1;
 #define DEFINE_TIMER NdbTimer timer
 #define START_TIMER timer.doStart();
 #define STOP_TIMER timer.doStop();
-<<<<<<< RonDB // RONDB-624 todo
-#define PRINT_TIMER(text, trans, opertrans, threads) timer.printTransactionStatistics(text, trans, opertrans, threads)
-||||||| Common ancestor
-#define PRINT_TIMER(text, trans, opertrans) timer.printTransactionStatistics(text, trans, opertrans)
-=======
-#define PRINT_TIMER(text, trans, opertrans) \
-  timer.printTransactionStatistics(text, trans, opertrans)
->>>>>>> MySQL 8.0.36
+#define PRINT_TIMER(text, trans, opertrans, threads) \
+  timer.printTransactionStatistics(text, trans, opertrans, threads)
 
 NDBT_Stats a_i, a_u, a_d, a_r;
 

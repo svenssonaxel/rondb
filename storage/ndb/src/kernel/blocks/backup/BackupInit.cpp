@@ -38,9 +38,6 @@
 
 #define JAM_FILE_ID 472
 
-// extern const unsigned Ndbcntr::g_sysTableCount;
-
-<<<<<<< RonDB // RONDB-624 todo
 //extern const unsigned Ndbcntr::g_sysTableCount;
 
 Backup::Backup(Block_context& ctx,
@@ -51,22 +48,6 @@ Backup::Backup(Block_context& ctx,
   c_nodes(c_nodePool),
   c_backups(c_backupPool)
 {
-||||||| Common ancestor
-//extern const unsigned Ndbcntr::g_sysTableCount;
-
-Backup::Backup(Block_context& ctx,
-               Uint32 instanceNumber,
-               Uint32 blockNo) :
-  SimulatedBlock(blockNo, ctx, instanceNumber),
-  c_nodes(c_nodePool),
-  c_backups(c_backupPool)
-{
-=======
-Backup::Backup(Block_context &ctx, Uint32 instanceNumber, Uint32 blockNo)
-    : SimulatedBlock(blockNo, ctx, instanceNumber),
-      c_nodes(c_nodePool),
-      c_backups(c_backupPool) {
->>>>>>> MySQL 8.0.36
   BLOCK_CONSTRUCTOR(Backup);
 
   c_masterNodeId = getOwnNodeId();
