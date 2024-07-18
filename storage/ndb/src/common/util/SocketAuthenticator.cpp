@@ -24,9 +24,9 @@
 */
 
 #include <ndb_global.h>
-#include <SocketAuthenticator.hpp>
 #include <InputStream.hpp>
 #include <OutputStream.hpp>
+#include <SocketAuthenticator.hpp>
 
 #if 0
 #define DEBUG_FPRINTF(arglist) do { fprintf arglist ; } while (0)
@@ -41,10 +41,9 @@ const char * SocketAuthenticator::error(int result)
   return (result < AuthOk) ? "Socket Auth failure" : "Success";
 }
 
-int SocketAuthSimple::client_authenticate(const NdbSocket & sockfd)
-{
+int SocketAuthSimple::client_authenticate(const NdbSocket &sockfd) {
   SocketOutputStream s_output(sockfd);
-  SocketInputStream  s_input(sockfd);
+  SocketInputStream s_input(sockfd);
 
   DEBUG_FPRINTF((stderr, "send client authenticate on NDB_SOCKET: %s\n",
                  ndb_socket_to_string(sockfd).c_str()));
@@ -76,10 +75,9 @@ int SocketAuthSimple::client_authenticate(const NdbSocket & sockfd)
   return -1;
 }
 
-int SocketAuthSimple::server_authenticate(const NdbSocket & sockfd)
-{
+int SocketAuthSimple::server_authenticate(const NdbSocket &sockfd) {
   SocketOutputStream s_output(sockfd);
-  SocketInputStream  s_input(sockfd);
+  SocketInputStream s_input(sockfd);
 
   char buf[256];
 
