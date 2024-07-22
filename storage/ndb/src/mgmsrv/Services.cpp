@@ -219,9 +219,8 @@ const ParserRow<MgmApiSession> commands[] = {
 
     MGM_CMD("enter single user", &MgmApiSession::enterSingleUser, ""),
     MGM_ARG("nodeId", Int, Mandatory, "Node"),
-<<<<<<< RonDB // RONDB-624 todo
-  
-  MGM_CMD("exit single user", &MgmApiSession::exitSingleUser, ""),
+
+    MGM_CMD("exit single user", &MgmApiSession::exitSingleUser, ""),
 
   MGM_CMD("get mgm nodeid", &MgmApiSession::get_mgm_nodeid, ""),
 
@@ -234,14 +233,6 @@ const ParserRow<MgmApiSession> commands[] = {
 
   MGM_CMD("deactivate", &MgmApiSession::deactivate, ""),
     MGM_ARG("node", Int, Mandatory, "node"),
-||||||| Common ancestor
-  
-  MGM_CMD("exit single user", &MgmApiSession::exitSingleUser, ""),
-  
-=======
->>>>>>> MySQL 8.0.36
-
-    MGM_CMD("exit single user", &MgmApiSession::exitSingleUser, ""),
 
     MGM_CMD("start", &MgmApiSession::start, ""),
     MGM_ARG("node", Int, Mandatory, "Node"),

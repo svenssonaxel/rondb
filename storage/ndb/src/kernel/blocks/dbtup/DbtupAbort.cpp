@@ -498,27 +498,9 @@ int Dbtup::TUPKEY_abort(KeyReqStruct *req_struct, int error_type) {
       terrorCode = ZOUTSIDE_OF_PROGRAM_ERROR;
       break;
 
-<<<<<<< RonDB // RONDB-624 todo
-  case 39:
-    if (get_trans_state(req_struct->operPtrP) == TRANS_TOO_MUCH_AI) {
-||||||| Common ancestor
-  case 38:
-    jam();
-    terrorCode = ZTEMPORARY_RESOURCE_FAILURE;
-    break;
-
-  case 39:
-    if (get_trans_state(req_struct->operPtrP) == TRANS_TOO_MUCH_AI) {
-=======
     case 35:
       jam();
       terrorCode = ZTOO_MANY_INSTRUCTIONS_ERROR;
-      break;
-
-    case 38:
->>>>>>> MySQL 8.0.36
-      jam();
-      terrorCode = ZTEMPORARY_RESOURCE_FAILURE;
       break;
 
     case 39:

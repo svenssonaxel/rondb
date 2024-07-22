@@ -23,22 +23,10 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-<<<<<<< RonDB // RONDB-624 todo
 #include <record_types.hpp>
 #include <ndbd_malloc.hpp>
-#include "util/require.h"
-||||||| Common ancestor
-#include "util/require.h"
-=======
->>>>>>> MySQL 8.0.36
 #include "Rope.hpp"
-<<<<<<< RonDB // RONDB-624 todo
-||||||| Common ancestor
-#include "DataBuffer.hpp"
-=======
-#include "DataBuffer.hpp"
 #include "util/require.h"
->>>>>>> MySQL 8.0.36
 
 #define JAM_FILE_ID 330
 

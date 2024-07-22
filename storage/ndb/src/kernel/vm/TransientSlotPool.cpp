@@ -40,11 +40,6 @@ TransientSlotPool::TransientSlotPool()
   m_free_list.init();
 }
 
-void TransientSlotPool::init(Uint32 type_id, Uint32 slot_size, Uint32 *min_recs,
-                             const Pool_context &pool_ctx) {
-  //  const Uint32 slots_per_page = Page::DATA_WORDS_PER_PAGE / slot_size;
-
-<<<<<<< RonDB // RONDB-624 todo
 void TransientSlotPool::init(Uint32 type_id,
                              Uint32 slot_size,
                              Uint32* min_recs,
@@ -53,19 +48,6 @@ void TransientSlotPool::init(Uint32 type_id,
 
   m_page_pool = new TransientPagePool(type_id,
                                       pool_ctx.get_mem_manager());
-||||||| Common ancestor
-void TransientSlotPool::init(Uint32 type_id,
-                             Uint32 slot_size,
-                             Uint32* min_recs,
-                             const Pool_context& pool_ctx)
-{
-//  const Uint32 slots_per_page = Page::DATA_WORDS_PER_PAGE / slot_size;
-
-  m_page_pool = new TransientPagePool(type_id,
-                                      pool_ctx.get_mem_manager());
-=======
-  m_page_pool = new TransientPagePool(type_id, pool_ctx.get_mem_manager());
->>>>>>> MySQL 8.0.36
   m_type_id = type_id;
   *min_recs = 0;
 }

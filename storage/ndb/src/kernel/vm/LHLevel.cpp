@@ -33,14 +33,8 @@
 
 #include <NdbTap.hpp>
 
-<<<<<<< RonDB // RONDB-624 todo
-#include "rondb_hash.hpp"
-||||||| Common ancestor
-#include "md5_hash.hpp"
-=======
 #include "LHLevel.hpp"
-#include "md5_hash.hpp"
->>>>>>> MySQL 8.0.36
+#include "rondb_hash.hpp"
 #include "random.h"
 
 #define BUCKSIZE 3

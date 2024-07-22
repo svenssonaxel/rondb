@@ -34,17 +34,7 @@
 #include <ErrorReporter.hpp>
 #include <pc.hpp>
 #include "Pool.hpp"
-<<<<<<< RonDB // RONDB-624 todo
-#include <ErrorReporter.hpp>
-#include <Bitmask.hpp>
-#include <mgmapi.h>
 #include <ndb_prefetch.h>
-||||||| Common ancestor
-#include <ErrorReporter.hpp>
-#include <Bitmask.hpp>
-#include <mgmapi.h>
-=======
->>>>>>> MySQL 8.0.36
 
 #include <NdbMutex.h>
 #include <EventLogger.hpp>

@@ -30,15 +30,7 @@
 #include <NdbTap.hpp>
 #include "Pool.hpp"
 #include "RWPool.hpp"
-<<<<<<< RonDB // RONDB-624 todo
 #include "test_context.hpp"
-||||||| Common ancestor
-#include "test_context.hpp"
-#include "WOPool.hpp"
-=======
-#include "WOPool.hpp"
-#include "test_context.hpp"
->>>>>>> MySQL 8.0.36
 
 #define JAM_FILE_ID 304
 

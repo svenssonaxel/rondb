@@ -508,31 +508,7 @@ static int mgmd_main(int argc, char **argv) {
 
 static void mgmd_stop(void) { g_StopServer = true; }
 
-<<<<<<< RonDB // RONDB-624 todo
-static void mgmd_stop(void)
-{
-  g_StopServer= true;
-}
-
-
-int main(int argc, char** argv)
-{
-  return ndb_daemon_init(argc, argv, mgmd_main, mgmd_stop,
-                         "ndb_mgmd", "RonDB Management Server");
-||||||| Common ancestor
-static void mgmd_stop(void)
-{
-  g_StopServer= true;
-}
-
-
-int main(int argc, char** argv)
-{
-  return ndb_daemon_init(argc, argv, mgmd_main, mgmd_stop,
-                         "ndb_mgmd", "MySQL Cluster Management Server");
-=======
 int main(int argc, char **argv) {
   return ndb_daemon_init(argc, argv, mgmd_main, mgmd_stop, "ndb_mgmd",
-                         "MySQL Cluster Management Server");
->>>>>>> MySQL 8.0.36
+                         "RonDB Management Server");
 }
