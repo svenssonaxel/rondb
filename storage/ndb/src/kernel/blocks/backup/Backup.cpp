@@ -52,12 +52,11 @@
 #include <signaldata/FsRef.hpp>
 #include <signaldata/FsRemoveReq.hpp>
 
-#include <signaldata/GetCpuUsage.hpp>
-
 #include <signaldata/BackupContinueB.hpp>
 #include <signaldata/BackupImpl.hpp>
 #include <signaldata/BackupSignalData.hpp>
 #include <signaldata/EventReport.hpp>
+#include <signaldata/GetCpuUsage.hpp>
 
 #include <signaldata/UtilSequence.hpp>
 

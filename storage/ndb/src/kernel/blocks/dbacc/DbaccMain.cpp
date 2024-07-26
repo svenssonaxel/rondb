@@ -45,9 +45,9 @@
 #include <signaldata/FsRemoveReq.hpp>
 #include <signaldata/NextScan.hpp>
 #include <signaldata/NodeStateSignalData.hpp>
+#include <util/rondb_hash.hpp>
 #include <signaldata/TransIdAI.hpp>
 #include <signaldata/TuxMaint.hpp>
-#include <util/rondb_hash.hpp>
 
 extern EventLogger *g_eventLogger;
 

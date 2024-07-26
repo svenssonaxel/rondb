@@ -27,8 +27,8 @@
 #include <ndb_limits.h>
 #include <algorithm>
 #include <cstring>
-#include <util/rondb_hash.hpp>
 #include "Dblqh.hpp"
+#include <util/rondb_hash.hpp>
 
 #include <ndb_version.h>
 #include <signaldata/GetCpuUsage.hpp>

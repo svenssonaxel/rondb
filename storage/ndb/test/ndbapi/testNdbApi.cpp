@@ -35,8 +35,8 @@
 #include <NdbRestarts.hpp>
 #include <UtilTransactions.hpp>
 #include <Vector.hpp>
-#include <cstring>
 #include "../../src/ndbapi/NdbImpl.hpp"
+#include <cstring>
 #include "../../src/ndbapi/SignalSender.hpp"
 #include "util/require.h"
 

@@ -26,10 +26,10 @@
 #define DBTUP_C
 #define DBTUP_SCAN_CPP
 #include <portlib/ndb_prefetch.h>
-#include <util/rondb_hash.hpp>
 #include <signaldata/AccLock.hpp>
 #include <signaldata/AccScan.hpp>
 #include <signaldata/NextScan.hpp>
+#include <util/rondb_hash.hpp>
 #include "../backup/Backup.hpp"
 #include "../dblqh/Dblqh.hpp"
 #include "Dbtup.hpp"

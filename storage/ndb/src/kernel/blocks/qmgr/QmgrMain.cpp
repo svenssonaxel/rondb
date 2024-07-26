@@ -62,13 +62,13 @@
 #include <signaldata/TrpKeepAlive.hpp>
 #include <signaldata/Activate.hpp>
 #include <signaldata/SetHostname.hpp>
-#include <signaldata/Upgrade.hpp>
-#include "Qmgr.hpp"
 #include <Configuration.hpp>
 #ifdef _WIN32
 #include <ws2tcpip.h>
 #endif
 
+#include <signaldata/Upgrade.hpp>
+#include "Qmgr.hpp"
 #include "portlib/NdbTCP.h"
 #include "portlib/ndb_sockaddr.h"
 

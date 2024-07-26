@@ -29,7 +29,6 @@
 #include <backup/Backup.hpp>
 #include <dblqh/Dblqh.hpp>
 #include <dbtup/Dbtup.hpp>
-#include <util/rondb_hash.hpp>
 #include <signaldata/AttrInfo.hpp>
 #include <signaldata/DictTabInfo.hpp>
 #include <signaldata/DumpStateOrd.hpp>
@@ -41,6 +40,7 @@
 #include <signaldata/FsRemoveReq.hpp>
 #include <signaldata/KeyInfo.hpp>
 #include <signaldata/LqhKey.hpp>
+#include <util/rondb_hash.hpp>
 #include <signaldata/RestoreImpl.hpp>
 
 #include <NdbTick.h>

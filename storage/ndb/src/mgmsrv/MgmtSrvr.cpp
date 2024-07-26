@@ -46,7 +46,6 @@
 #include <logger/FileLogHandler.hpp>
 #include <logger/SysLogHandler.hpp>
 #include <portlib/NdbDir.hpp>
-#include <signaldata/Activate.hpp>
 #include <signaldata/AllocNodeId.hpp>
 #include <signaldata/ApiVersion.hpp>
 #include <signaldata/BackupSignalData.hpp>
@@ -61,10 +60,11 @@
 #include <signaldata/NodeFailRep.hpp>
 #include <signaldata/ResumeReq.hpp>
 #include <signaldata/SchemaTrans.hpp>
-#include <signaldata/SetHostname.hpp>
 #include <signaldata/SetLogLevelOrd.hpp>
 #include <signaldata/StartOrd.hpp>
 #include <signaldata/Sync.hpp>
+#include <signaldata/Activate.hpp>
+#include <signaldata/SetHostname.hpp>
 #include <signaldata/TamperOrd.hpp>
 #include <signaldata/TestOrd.hpp>
 #include "NdbTCP.h"

@@ -33,9 +33,9 @@
 
 #include <NdbTap.hpp>
 
-#include "LHLevel.hpp"
 #include "rondb_hash.hpp"
 #include "random.h"
+#include "LHLevel.hpp"
 
 #define BUCKSIZE 3
 

@@ -75,6 +75,7 @@
 
 #include <NdbEnv.h>
 #include <ndb_constants.h>
+#include <ndbd_malloc.hpp>
 #include <DebuggerNames.hpp>
 #include <SectionReader.hpp>
 #include <signaldata/AlterTab.hpp>
@@ -97,7 +98,6 @@
 #include <signaldata/PrepDropTab.hpp>
 #include <signaldata/SumaImpl.hpp>
 #include <signaldata/Upgrade.hpp>
-#include <ndbd_malloc.hpp>
 #include "portlib/mt-asm.h"
 
 #include <EventLogger.hpp>

@@ -44,9 +44,9 @@
 #include <signaldata/EventReport.hpp>
 #include <signaldata/LqhKey.hpp>
 #include <signaldata/LqhTransConf.hpp>
-#include <signaldata/TcContinueB.hpp>
 #include <signaldata/TcIndx.hpp>
 #include <signaldata/TransIdAI.hpp>
+#include <signaldata/TcContinueB.hpp>
 #include <signaldata/TrigAttrInfo.hpp>
 #include "CountingPool.hpp"
 #include "TransientPool.hpp"
