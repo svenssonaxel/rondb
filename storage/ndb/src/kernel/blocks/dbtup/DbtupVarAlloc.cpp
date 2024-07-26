@@ -30,7 +30,6 @@
 
 #define JAM_FILE_ID 405
 
-<<<<<<< RonDB // RONDB-624 todo
 #if (defined(VM_TRACE) || defined(ERROR_INSERT))
 //#define DEBUG_ELEM_COUNT 1
 #endif
@@ -40,12 +39,10 @@
 #else
 #define DEB_ELEM_COUNT(arglist) do { } while (0)
 #endif
-||||||| Common ancestor
-=======
+
 void Dbtup::init_list_sizes(void) {
   c_min_list_size[0] = 200;
   c_max_list_size[0] = 499;
->>>>>>> MySQL 8.0.36
 
   c_min_list_size[1] = 500;
   c_max_list_size[1] = 999;

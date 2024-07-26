@@ -35,77 +35,18 @@
 #include <NdbRestarts.hpp>
 #include <UtilTransactions.hpp>
 #include <Vector.hpp>
-<<<<<<< RonDB // RONDB-624 todo
-#include <random.h>
-#include <NdbSleep.h>
-#include <NdbTick.h>
-#include <my_sys.h>
-#include "../../src/ndbapi/NdbImpl.hpp"
-||||||| Common ancestor
-#include <random.h>
-#include <NdbSleep.h>
-#include <NdbTick.h>
-#include <my_sys.h>
-=======
 #include <cstring>
->>>>>>> MySQL 8.0.36
+#include "../../src/ndbapi/NdbImpl.hpp"
 #include "../../src/ndbapi/SignalSender.hpp"
 #include "util/require.h"
 
 #define MAX_NDB_OBJECTS 32678
 
-<<<<<<< RonDB // RONDB-624 todo
-#define CHECK(b) if (!(b)) { \
-  g_err.println("ERR: failed on line %u", __LINE__); \
-  return -1; } 
-
-#define CHECKE(b,obj) if (!(b)) {                          \
-    g_err.println("ERR:failed on line %u with err %u %s",  \
-                  __LINE__,                                \
-                  obj.getNdbError().code,                 \
-                  obj.getNdbError().message); \
-    return -1; }
-
-#define CHECKEP(b,obj) if (!(b)) {                          \
-    g_err.println("ERR:failed on line %u with err %u %s",  \
-                  __LINE__,                                \
-                  obj->getNdbError().code,                 \
-                  obj->getNdbError().message); \
-    return -1; }
-
-static const char* ApiFailTestRun = "ApiFailTestRun";
-static const char* ApiFailTestComplete = "ApiFailTestComplete";
-static const char* ApiFailTestsRunning = "ApiFailTestsRunning";
-static const char* ApiFailNumberPkSteps = "ApiFailNumberPkSteps";
-static const int MAX_STEPS = 10;
-static Ndb_cluster_connection* otherConnection = NULL;
-static Ndb* stepNdbs[MAX_STEPS];
-||||||| Common ancestor
-#define CHECK(b) if (!(b)) { \
-  g_err.println("ERR: failed on line %u", __LINE__); \
-  return -1; } 
-
-#define CHECKE(b,obj) if (!(b)) {                          \
-    g_err.println("ERR:failed on line %u with err %u %s",  \
-                  __LINE__,                                \
-                  obj.getNdbError().code,                 \
-                  obj.getNdbError().message); \
-    return -1; }
-
-static const char* ApiFailTestRun = "ApiFailTestRun";
-static const char* ApiFailTestComplete = "ApiFailTestComplete";
-static const char* ApiFailTestsRunning = "ApiFailTestsRunning";
-static const char* ApiFailNumberPkSteps = "ApiFailNumberPkSteps";
-static const int MAX_STEPS = 10;
-static Ndb_cluster_connection* otherConnection = NULL;
-static Ndb* stepNdbs[MAX_STEPS];
-=======
 #define CHECK(b)                                       \
   if (!(b)) {                                          \
     g_err.println("ERR: failed on line %u", __LINE__); \
     return -1;                                         \
   }
->>>>>>> MySQL 8.0.36
 
 #define CHECKE(b, obj)                                                \
   if (!(b)) {                                                         \
@@ -113,6 +54,13 @@ static Ndb* stepNdbs[MAX_STEPS];
                   obj.getNdbError().code, obj.getNdbError().message); \
     return -1;                                                        \
   }
+
+#define CHECKEP(b,obj) if (!(b)) {                          \
+    g_err.println("ERR:failed on line %u with err %u %s",  \
+                  __LINE__,                                \
+                  obj->getNdbError().code,                 \
+                  obj->getNdbError().message); \
+    return -1; }
 
 static const char *ApiFailTestRun = "ApiFailTestRun";
 static const char *ApiFailTestComplete = "ApiFailTestComplete";

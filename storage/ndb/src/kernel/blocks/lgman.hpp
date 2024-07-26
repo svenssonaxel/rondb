@@ -36,15 +36,9 @@
 #include <signaldata/GetTabInfo.hpp>
 #include "diskpage.hpp"
 
-<<<<<<< RonDB // RONDB-624 todo
 #include <RWPool.hpp>
 #include <RWPool64.hpp>
-||||||| Common ancestor
-#include <WOPool.hpp>
-=======
->>>>>>> MySQL 8.0.36
 #include <SafeMutex.hpp>
-#include <WOPool.hpp>
 
 #define JAM_FILE_ID 339
 

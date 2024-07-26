@@ -31,15 +31,7 @@
 #include "signaldata/DumpStateOrd.hpp"
 #include "signaldata/EnableCom.hpp"
 #include "signaldata/RouteOrd.hpp"
-<<<<<<< RonDB // RONDB-624 todo
-#include "signaldata/DumpStateOrd.hpp"
 #include "signaldata/Abort.hpp"
-#include "portlib/NdbTCP.h"
-||||||| Common ancestor
-#include "signaldata/DumpStateOrd.hpp"
-#include "portlib/NdbTCP.h"
-=======
->>>>>>> MySQL 8.0.36
 
 #include "EventLogger.hpp"
 #include "mt.hpp"

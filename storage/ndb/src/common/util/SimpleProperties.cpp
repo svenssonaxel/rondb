@@ -114,32 +114,10 @@ bool SimpleProperties::Reader::next() { return readValue(); }
 
 bool SimpleProperties::Reader::valid() const { return m_type != InvalidValue; }
 
-<<<<<<< RonDB // RONDB-624 todo
-Uint32
-SimpleProperties::Reader::getValueLen() const {
-  switch(m_type){
-  case Uint32Value:
-    return 4;
-  case StringValue:
-  case BinaryValue:
-    return m_strLen;
-  case InvalidValue:
-    return 0;
-||||||| Common ancestor
-Uint16
-SimpleProperties::Reader::getValueLen() const {
-  switch(m_type){
-  case Uint32Value:
-    return 4;
-  case StringValue:
-  case BinaryValue:
-    return m_strLen;
-  case InvalidValue:
-    return 0;
-=======
 Uint16 SimpleProperties::Reader::getKey() const { return m_key; }
 
-Uint16 SimpleProperties::Reader::getValueLen() const {
+Uint32
+SimpleProperties::Reader::getValueLen() const {
   switch (m_type) {
     case Uint32Value:
       return 4;
@@ -148,7 +126,6 @@ Uint16 SimpleProperties::Reader::getValueLen() const {
       return m_strLen;
     case InvalidValue:
       return 0;
->>>>>>> MySQL 8.0.36
   }
   return 0;
 }

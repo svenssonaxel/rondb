@@ -50,20 +50,8 @@
 #include "../dbacc/Dbacc.hpp"
 #include "../pgman.hpp"
 #include "../tsman.hpp"
-<<<<<<< RonDB // RONDB-624 todo
 #include "../suma/Suma.hpp"
-#include <EventLogger.hpp>
-#include "../backup/BackupFormat.hpp"
-#include <portlib/ndb_prefetch.h>
-#include "util/ndb_math.h"
-||||||| Common ancestor
-#include <EventLogger.hpp>
-#include "../backup/BackupFormat.hpp"
-#include <portlib/ndb_prefetch.h>
-#include "util/ndb_math.h"
-=======
 #include "AttributeOffset.hpp"
->>>>>>> MySQL 8.0.36
 #include "TransientPool.hpp"
 #include "TransientSlotPool.hpp"
 #include "Undo_buffer.hpp"
@@ -347,49 +335,14 @@ class Dbtup : public SimulatedBlock {
     DROPPING = 68
   };
 
-<<<<<<< RonDB // RONDB-624 todo
-struct Fragoperrec {
-  Uint64 minRows;
-  Uint64 maxRows;
-  Uint64 fragPointer;
-  Uint32 nextFragoprec;
-  Uint32 lqhPtrFrag;
-  Uint32 fragidFrag;
-  Uint32 tableidFrag;
-  Uint32 attributeCount;
-  Uint32 charsetIndex;
-  Uint32 m_null_bits[2];
-  Uint32 m_extra_row_gci_bits;
-  Uint32 m_extra_row_author_bits;
-  union {
-    BlockReference lqhBlockrefFrag;
-    Uint32 m_senderRef;
-||||||| Common ancestor
-struct Fragoperrec {
-  Uint64 minRows;
-  Uint64 maxRows;
-  Uint32 nextFragoprec;
-  Uint32 lqhPtrFrag;
-  Uint32 fragidFrag;
-  Uint32 tableidFrag;
-  Uint32 fragPointer;
-  Uint32 attributeCount;
-  Uint32 charsetIndex;
-  Uint32 m_null_bits[2];
-  Uint32 m_extra_row_gci_bits;
-  Uint32 m_extra_row_author_bits;
-  union {
-    BlockReference lqhBlockrefFrag;
-    Uint32 m_senderRef;
-=======
   struct Fragoperrec {
     Uint64 minRows;
     Uint64 maxRows;
+  Uint64 fragPointer;
     Uint32 nextFragoprec;
     Uint32 lqhPtrFrag;
     Uint32 fragidFrag;
     Uint32 tableidFrag;
-    Uint32 fragPointer;
     Uint32 attributeCount;
     Uint32 charsetIndex;
     Uint32 m_null_bits[2];
@@ -405,7 +358,6 @@ struct Fragoperrec {
     Uint32 m_maxGciCompleted;
     bool inUse;
     bool definingFragment;
->>>>>>> MySQL 8.0.36
   };
   typedef Ptr<Fragoperrec> FragoperrecPtr;
 
@@ -795,174 +747,6 @@ struct Fragrecord {
   // No of allocated but unused words for var-sized fields.
   Uint64 m_varWordsFree;
 
-<<<<<<< RonDB // RONDB-624 todo
-  /**
-   * m_max_page_cnt contains the next page number to use when allocating
-   * a new page and all pages with lower page numbers are filled with
-   * rows. At fragment creation it is 0 since no pages are yet allocated.
-   * With 1 page allocated it is set to 1. The actual max page number with
-   * 1 page is however 0 since we start with page numbers from 0.
-   */
-  Uint32 m_max_page_cnt;
-  Uint32 m_free_page_id_list;
-  DynArr256::Head m_page_map;
-  Page_fifo::Head thFreeFirst;   // pages with at least 1 free record
-
-  Uint32 m_lcp_scan_op;
-  Local_key m_lcp_keep_list_head;
-  Local_key m_lcp_keep_list_tail;
-
-  enum FragState
-  { FS_FREE
-    ,FS_ONLINE           // Ordinary fragment
-    ,FS_REORG_NEW        // A new (not yet "online" fragment)
-    ,FS_REORG_COMMIT     // An ordinary fragment which has been split
-    ,FS_REORG_COMMIT_NEW // An new fragment which is online
-    ,FS_REORG_COMPLETE     // An ordinary fragment which has been split
-    ,FS_REORG_COMPLETE_NEW // An new fragment which is online
-  } fragStatus;
-  Uint32 fragTableId;
-  Uint32 fragmentId;
-  Uint32 partitionId;
-  // +1 is as "full" pages are stored last
-  Page_list::Head free_var_page_array[MAX_FREE_LIST+1];
-  
-  enum
-  {
-    UC_LCP = 1,
-    UC_CREATE = 2,
-    UC_SET_LCP = 3,
-    UC_NO_LCP = 4,
-    UC_DROP = 5
-  };
-  /* Calculated average row size of the rows in the fragment */
-  Uint32 m_average_row_size;
-  Uint32 m_restore_lcp_id;
-  Uint32 m_restore_local_lcp_id;
-  Uint32 m_undo_complete;
-  Uint32 m_tablespace_id;
-  Uint32 m_logfile_group_id;
-  Disk_alloc_info m_disk_alloc_info;
-  // GCI at time of start LCP (used to deduce if one should count row changes)
-  Uint32 m_lcp_start_gci;
-  // Number of changed rows since last LCP (approximative)
-  Uint64 m_lcp_changed_rows;
-  // Number of fixed-seize tuple parts (which equals the tuple count).
-  Uint64 m_fixedElemCount;
-  Uint64 m_row_count;
-  Uint64 m_prev_row_count;
-  Uint64 m_committed_changes;
-  /**
-    Number of variable-size tuple parts, i.e. the number of tuples that has
-    one or more non-NULL varchar/varbinary or blob fields. (The first few bytes
-    of a blob is stored like that, the rest in a blob table.)
-  */
-  Uint64 m_varElemCount;
-
-  // Consistency check.
-  bool verifyVarSpace() const
-  {
-    if ((m_varWordsFree < Uint64(1)<<60) && //Underflow.
-        m_varWordsFree * sizeof(Uint32) <=
-        Uint64(noOfVarPages) * File_formats::NDB_PAGE_SIZE)
-    {
-      return true;
-    }
-    else
-    {
-      g_eventLogger->info("TUP : T%uF%u verifyVarSpace fails : "
-                          "m_varWordsFree : %llu "
-                          "noOfVarPages : %u",
-                          fragTableId,
-                          fragmentId,
-                          m_varWordsFree,
-                          noOfVarPages);
-      return false;
-||||||| Common ancestor
-  /**
-   * m_max_page_cnt contains the next page number to use when allocating
-   * a new page and all pages with lower page numbers are filled with
-   * rows. At fragment creation it is 0 since no pages are yet allocated.
-   * With 1 page allocated it is set to 1. The actual max page number with
-   * 1 page is however 0 since we start with page numbers from 0.
-   */
-  Uint32 m_max_page_cnt;
-  Uint32 m_free_page_id_list;
-  DynArr256::Head m_page_map;
-  Page_fifo::Head thFreeFirst;   // pages with at least 1 free record
-
-  Uint32 m_lcp_scan_op;
-  Local_key m_lcp_keep_list_head;
-  Local_key m_lcp_keep_list_tail;
-
-  enum FragState
-  { FS_FREE
-    ,FS_ONLINE           // Ordinary fragment
-    ,FS_REORG_NEW        // A new (not yet "online" fragment)
-    ,FS_REORG_COMMIT     // An ordinary fragment which has been split
-    ,FS_REORG_COMMIT_NEW // An new fragment which is online
-    ,FS_REORG_COMPLETE     // An ordinary fragment which has been split
-    ,FS_REORG_COMPLETE_NEW // An new fragment which is online
-  } fragStatus;
-  Uint32 fragTableId;
-  Uint32 fragmentId;
-  Uint32 partitionId;
-  Uint32 nextfreefrag;
-  // +1 is as "full" pages are stored last
-  Page_list::Head free_var_page_array[MAX_FREE_LIST+1];
-  
-  enum
-  {
-    UC_LCP = 1,
-    UC_CREATE = 2,
-    UC_SET_LCP = 3,
-    UC_NO_LCP = 4,
-    UC_DROP = 5
-  };
-  /* Calculated average row size of the rows in the fragment */
-  Uint32 m_average_row_size;
-  Uint32 m_restore_lcp_id;
-  Uint32 m_restore_local_lcp_id;
-  Uint32 m_undo_complete;
-  Uint32 m_tablespace_id;
-  Uint32 m_logfile_group_id;
-  Disk_alloc_info m_disk_alloc_info;
-  // GCI at time of start LCP (used to deduce if one should count row changes)
-  Uint32 m_lcp_start_gci;
-  // Number of changed rows since last LCP (approximative)
-  Uint64 m_lcp_changed_rows;
-  // Number of fixed-seize tuple parts (which equals the tuple count).
-  Uint64 m_fixedElemCount;
-  Uint64 m_row_count;
-  Uint64 m_prev_row_count;
-  Uint64 m_committed_changes;
-  /**
-    Number of variable-size tuple parts, i.e. the number of tuples that has
-    one or more non-NULL varchar/varbinary or blob fields. (The first few bytes
-    of a blob is stored like that, the rest in a blob table.)
-  */
-  Uint64 m_varElemCount;
-
-  // Consistency check.
-  bool verifyVarSpace() const
-  {
-    if ((m_varWordsFree < Uint64(1)<<60) && //Underflow.
-        m_varWordsFree * sizeof(Uint32) <=
-        Uint64(noOfVarPages) * File_formats::NDB_PAGE_SIZE)
-    {
-      return true;
-    }
-    else
-    {
-      g_eventLogger->info("TUP : T%uF%u verifyVarSpace fails : "
-                          "m_varWordsFree : %llu "
-                          "noOfVarPages : %u",
-                          fragTableId,
-                          fragmentId,
-                          m_varWordsFree,
-                          noOfVarPages);
-      return false;
-=======
     /**
      * m_max_page_cnt contains the next page number to use when allocating
      * a new page and all pages with lower page numbers are filled with
@@ -996,7 +780,6 @@ struct Fragrecord {
     Uint32 fragTableId;
     Uint32 fragmentId;
     Uint32 partitionId;
-    Uint32 nextfreefrag;
     // +1 is as "full" pages are stored last
     Page_list::Head free_var_page_array[MAX_FREE_LIST + 1];
 
@@ -1045,26 +828,14 @@ struct Fragrecord {
             fragTableId, fragmentId, m_varWordsFree, noOfVarPages);
         return false;
       }
->>>>>>> MySQL 8.0.36
     }
-<<<<<<< RonDB // RONDB-624 todo
-  }
-};
+  };
   typedef Ptr64<Fragrecord> FragrecordPtr;
   typedef RecordPool64<RWPool64<Fragrecord> > Fragment_pool;
   Fragment_pool c_fragment_pool;
   RSS_OP_COUNTER(cnoOfAllocatedFragrec);
   RSS_OP_SNAPSHOT(cnoOfAllocatedFragrec);
   FragrecordPtr prepare_fragptr;
-||||||| Common ancestor
-  }
-
-};
-typedef Ptr<Fragrecord> FragrecordPtr;
-=======
-  };
-  typedef Ptr<Fragrecord> FragrecordPtr;
->>>>>>> MySQL 8.0.36
 
   void acquire_frag_page_map_mutex(Fragrecord *fragPtrP,
                                    EmulatedJamBuffer *jamBuf)
@@ -1161,53 +932,13 @@ typedef Ptr<Fragrecord> FragrecordPtr;
     }
   }
 
-<<<<<<< RonDB // RONDB-624 todo
-struct Operationrec {
-  static constexpr Uint32 TYPE_ID = RT_DBTUP_OPERATION;
-  Uint32 m_magic;
-
-  Operationrec() :
-    m_magic(Magic::make(TYPE_ID)),
-    fragmentPtr(RNIL64),
-    prevActiveOp(RNIL),
-    nextActiveOp(RNIL),
-    fragPageId(RNIL),
-    m_commit_state(CommitNotStarted),
-    m_any_value(0),
-    op_type(ZREAD),
-    trans_state(Uint32(TRANS_DISCONNECTED))
-  {
-    op_struct.bit_field.in_active_list = false;
-    op_struct.bit_field.tupVersion = ZNIL;
-    op_struct.bit_field.delete_insert_flag = false;
-  }
-||||||| Common ancestor
-struct Operationrec {
-  static constexpr Uint32 TYPE_ID = RT_DBTUP_OPERATION;
-  Uint32 m_magic;
-
-  Operationrec() :
-    m_magic(Magic::make(TYPE_ID)),
-    prevActiveOp(RNIL),
-    nextActiveOp(RNIL),
-    fragPageId(RNIL),
-    m_commit_state(CommitNotStarted),
-    m_any_value(0),
-    op_type(ZREAD),
-    trans_state(Uint32(TRANS_DISCONNECTED))
-  {
-    op_struct.bit_field.in_active_list = false;
-    op_struct.bit_field.tupVersion = ZNIL;
-    op_struct.bit_field.delete_insert_flag = false;
-  }
-=======
   struct Operationrec {
     static constexpr Uint32 TYPE_ID = RT_DBTUP_OPERATION;
     Uint32 m_magic;
->>>>>>> MySQL 8.0.36
 
     Operationrec()
         : m_magic(Magic::make(TYPE_ID)),
+    fragmentPtr(RNIL64),
           prevActiveOp(RNIL),
           nextActiveOp(RNIL),
           fragPageId(RNIL),
@@ -1220,50 +951,7 @@ struct Operationrec {
       op_struct.bit_field.delete_insert_flag = false;
     }
 
-<<<<<<< RonDB // RONDB-624 todo
-  enum CommitState
-  {
-    CommitNotStarted = 0,
-    CommitStartedNotReceived = 1,
-    CommitStartedReceived = 2,
-    CommitPerformedNotReceived = 3,
-    CommitPerformedReceived = 4,
-    CommitDoneReceived = 5,
-    CommitDoneNotReceived = 6
-  };
-  /*
-   * From fragment i-value we can find fragment and table record
-   */
-  Uint64 fragmentPtr;
-
-  /*
-   * Doubly linked list with anchor on tuple.
-   * This is to handle multiple updates on the same tuple
-   * by the same transaction.
-   */
-  Uint32 prevActiveOp;
-  Uint32 nextActiveOp;
-||||||| Common ancestor
-  enum CommitState
-  {
-    CommitNotStarted = 0,
-    CommitStartedNotReceived = 1,
-    CommitStartedReceived = 2,
-    CommitPerformedNotReceived = 3,
-    CommitPerformedReceived = 4,
-    CommitDoneReceived = 5,
-    CommitDoneNotReceived = 6
-  };
-  /*
-   * Doubly linked list with anchor on tuple.
-   * This is to handle multiple updates on the same tuple
-   * by the same transaction.
-   */
-  Uint32 prevActiveOp;
-  Uint32 nextActiveOp;
-=======
     ~Operationrec() {}
->>>>>>> MySQL 8.0.36
 
     enum CommitState {
       CommitNotStarted = 0,
@@ -1274,6 +962,11 @@ struct Operationrec {
       CommitDoneReceived = 5,
       CommitDoneNotReceived = 6
     };
+  /*
+   * From fragment i-value we can find fragment and table record
+   */
+  Uint64 fragmentPtr;
+
     /*
      * Doubly linked list with anchor on tuple.
      * This is to handle multiple updates on the same tuple
@@ -1289,17 +982,23 @@ struct Operationrec {
     bool is_first_operation() const { return prevActiveOp == RNIL; }
     bool is_last_operation() const { return nextActiveOp == RNIL; }
 
-<<<<<<< RonDB // RONDB-624 todo
-  Uint32 m_any_value;
-  Uint32 nextPool;
-  
-  /*
-   * We need references to both the original tuple and the copy tuple.
-   * We keep the page's real i-value and its index and from there we
-   * can find out about the fragment page id and the page offset.
-   */
-  Local_key m_tuple_location;
-  Local_key m_copy_tuple_location;
+    Uint32 m_undo_buffer_space;  // In words
+
+    Uint32 m_any_value;
+    Uint32 nextPool;
+
+    /*
+     * From fragment i-value we can find fragment and table record
+     */
+    Uint32 fragmentPtr;
+
+    /*
+     * We need references to both the original tuple and the copy tuple.
+     * We keep the page's real i-value and its index and from there we
+     * can find out about the fragment page id and the page offset.
+     */
+    Local_key m_tuple_location;
+    Local_key m_copy_tuple_location;
 
   /**
    * In case we need to allocate a new disk row part we store the new
@@ -1308,110 +1007,6 @@ struct Operationrec {
    * its i-value.
    */
   Uint32 m_uncommitted_used_space;
-
-  /*
-   * We keep the record linked to the operation record in LQH.
-   * This is needed due to writing of REDO log must be performed
-   * in correct order, which is the same order as the writes
-   * occurred. LQH can receive the records in different order.
-   */
-  Uint32 userpointer;
-
-  /*
-   * When responding to queries in the same transaction they will see
-   * a result from the save point id the query was started. Again
-   * functionality for multi-updates of the same record in one
-   * transaction.
-   */
-  Uint32 savepointId;
-
-  /**
-   * References to the disk page and the potential extra disk page
-   * during commit processing. RNIL if no disk page is used.
-   */
-  Uint32 m_disk_callback_page;
-  Uint32 m_disk_extra_callback_page;
-
-  Uint32 op_type;
-  Uint32 trans_state;
-  Uint32 tuple_state;
-||||||| Common ancestor
-  Uint32 m_any_value;
-  Uint32 nextPool;
-  
-  /*
-   * From fragment i-value we can find fragment and table record
-   */
-  Uint32 fragmentPtr;
-
-  /*
-   * We need references to both the original tuple and the copy tuple.
-   * We keep the page's real i-value and its index and from there we
-   * can find out about the fragment page id and the page offset.
-   */
-  Local_key m_tuple_location;
-  Local_key m_copy_tuple_location;
-
-  /*
-   * We keep the record linked to the operation record in LQH.
-   * This is needed due to writing of REDO log must be performed
-   * in correct order, which is the same order as the writes
-   * occurred. LQH can receive the records in different order.
-   */
-  Uint32 userpointer;
-
-  /*
-   * When responding to queries in the same transaction they will see
-   * a result from the save point id the query was started. Again
-   * functionality for multi-updates of the same record in one
-   * transaction.
-   */
-  union {
-    Uint32 savepointId;
-    Uint32 m_commit_disk_callback_page;
-  };
-
-  Uint32 op_type;
-  Uint32 trans_state;
-  Uint32 tuple_state;
-=======
-    Uint32 m_undo_buffer_space;  // In words
-
-    Uint32 m_any_value;
-    Uint32 nextPool;
->>>>>>> MySQL 8.0.36
-
-    /*
-     * From fragment i-value we can find fragment and table record
-     */
-    Uint32 fragmentPtr;
-
-<<<<<<< RonDB // RONDB-624 todo
-    unsigned int m_reorg : 2;
-    unsigned int in_active_list : 1;
-    unsigned int delete_insert_flag : 1;
-    unsigned int m_disk_preallocated : 1;
-    unsigned int m_load_diskpage_on_commit : 1;
-    unsigned int m_load_extra_diskpage_on_commit : 1;
-    unsigned int m_wait_log_buffer : 1;
-    unsigned int m_gci_written : 1;
-||||||| Common ancestor
-    unsigned int m_reorg : 2;
-    unsigned int in_active_list : 1;
-    unsigned int delete_insert_flag : 1;
-    unsigned int m_disk_preallocated : 1;
-    unsigned int m_load_diskpage_on_commit : 1;
-    unsigned int m_wait_log_buffer : 1;
-    unsigned int m_gci_written : 1;
-=======
-    /*
-     * We need references to both the original tuple and the copy tuple.
-     * We keep the page's real i-value and its index and from there we
-     * can find out about the fragment page id and the page offset.
-     */
-    Local_key m_tuple_location;
-    Local_key m_copy_tuple_location;
->>>>>>> MySQL 8.0.36
 
     /*
      * We keep the record linked to the operation record in LQH.
@@ -1427,10 +1022,14 @@ struct Operationrec {
      * functionality for multi-updates of the same record in one
      * transaction.
      */
-    union {
-      Uint32 savepointId;
-      Uint32 m_commit_disk_callback_page;
-    };
+  Uint32 savepointId;
+
+  /**
+   * References to the disk page and the potential extra disk page
+   * during commit processing. RNIL if no disk page is used.
+   */
+  Uint32 m_disk_callback_page;
+  Uint32 m_disk_extra_callback_page;
 
     Uint32 op_type;
     Uint32 trans_state;
@@ -1460,6 +1059,7 @@ struct Operationrec {
       unsigned int delete_insert_flag : 1;
       unsigned int m_disk_preallocated : 1;
       unsigned int m_load_diskpage_on_commit : 1;
+    unsigned int m_load_extra_diskpage_on_commit : 1;
       unsigned int m_wait_log_buffer : 1;
       unsigned int m_gci_written : 1;
 
@@ -1552,36 +1152,10 @@ struct Operationrec {
   /* WHEN A TRIGGER IS ACTIVATED AND RELEASED */
   /* WHEN THE TRIGGER IS DEACTIVATED.         */
   /* **************************************** */
-<<<<<<< RonDB // RONDB-624 todo
-struct TupTriggerData {
-  TupTriggerData() {}
-
-  Uint32 m_magic;
-  /**
-   * Trigger id, used by DICT/TRIX to identify the trigger
-   *
-   * trigger Ids are unique per block for SUBSCRIPTION triggers.
-   * This is so that BACKUP can use TUP triggers directly and delete them
-   * properly.
-   */
-  Uint32 triggerId;
-||||||| Common ancestor
-struct TupTriggerData {
-  TupTriggerData() {}
-  
-  /**
-   * Trigger id, used by DICT/TRIX to identify the trigger
-   *
-   * trigger Ids are unique per block for SUBSCRIPTION triggers.
-   * This is so that BACKUP can use TUP triggers directly and delete them
-   * properly.
-   */
-  Uint32 triggerId;
-=======
   struct TupTriggerData {
     TupTriggerData() {}
->>>>>>> MySQL 8.0.36
 
+  Uint32 m_magic;
     /**
      * Trigger id, used by DICT/TRIX to identify the trigger
      *
@@ -1624,7 +1198,16 @@ struct TupTriggerData {
      */
     bool monitorAllAttributes;
 
-<<<<<<< RonDB // RONDB-624 todo
+    /**
+     * Send only changed attributes at trigger firing time.
+     */
+    bool sendOnlyChangedAttributes;
+
+    /**
+     * Send also before values at trigger firing time.
+     */
+    bool sendBeforeValues;
+
   /**
    * Attribute mask, defines what attributes are to be monitored
    * Can be seen as a compact representation of SQL column name list
@@ -1643,76 +1226,17 @@ struct TupTriggerData {
    * Prev pointer (used in list)
    */
   Uint64 prevList;
-||||||| Common ancestor
-  /**
-   * Attribute mask, defines what attributes are to be monitored
-   * Can be seen as a compact representation of SQL column name list
-   */
-  AttributeMask attributeMask;
-  
-  /**
-   * Next ptr (used in pool/list)
-   */
-  union {
-    Uint32 nextPool;
-    Uint32 nextList;
-  };
-  
-  /**
-   * Prev pointer (used in list)
-   */
-  Uint32 prevList;
-=======
-    /**
-     * Send only changed attributes at trigger firing time.
-     */
-    bool sendOnlyChangedAttributes;
->>>>>>> MySQL 8.0.36
-
-    /**
-     * Send also before values at trigger firing time.
-     */
-    bool sendBeforeValues;
-
-<<<<<<< RonDB // RONDB-624 todo
-typedef Ptr64<TupTriggerData> TriggerPtr;
-typedef RecordPool64<RWPool64<TupTriggerData> > TupTriggerData_pool;
-typedef DLFifo64List<TupTriggerData_pool> TupTriggerData_list;
-Uint32 cnoOfAllocatedTriggerRec;
-Uint32 cnoOfMaxAllocatedTriggerRec;
-||||||| Common ancestor
-typedef Ptr<TupTriggerData> TriggerPtr;
-typedef ArrayPool<TupTriggerData> TupTriggerData_pool;
-typedef DLFifoList<TupTriggerData_pool> TupTriggerData_list;
-=======
-    /**
-     * Attribute mask, defines what attributes are to be monitored
-     * Can be seen as a compact representation of SQL column name list
-     */
-    AttributeMask attributeMask;
->>>>>>> MySQL 8.0.36
-
-    /**
-     * Next ptr (used in pool/list)
-     */
-    union {
-      Uint32 nextPool;
-      Uint32 nextList;
-    };
-
-    /**
-     * Prev pointer (used in list)
-     */
-    Uint32 prevList;
 
     inline void print(NdbOut &s) const {
       s << "[TriggerData = " << triggerId << "]";
     }
   };
 
-  typedef Ptr<TupTriggerData> TriggerPtr;
-  typedef ArrayPool<TupTriggerData> TupTriggerData_pool;
-  typedef DLFifoList<TupTriggerData_pool> TupTriggerData_list;
+typedef Ptr64<TupTriggerData> TriggerPtr;
+typedef RecordPool64<RWPool64<TupTriggerData> > TupTriggerData_pool;
+typedef DLFifo64List<TupTriggerData_pool> TupTriggerData_list;
+Uint32 cnoOfAllocatedTriggerRec;
+Uint32 cnoOfMaxAllocatedTriggerRec;
 
   /**
    * Pool of trigger data record
@@ -1780,21 +1304,7 @@ typedef DLFifoList<TupTriggerData_pool> TupTriggerData_list;
     UpdateFunction *updateFunctionArray;
     CHARSET_INFO **charsetArray;
 
-<<<<<<< RonDB // RONDB-624 todo
-    ReadFunction* readFunctionArray;
-    UpdateFunction* updateFunctionArray;
-    CHARSET_INFO** charsetArray;
-    
     Uint32* readKeyArray;
-||||||| Common ancestor
-    ReadFunction* readFunctionArray;
-    UpdateFunction* updateFunctionArray;
-    CHARSET_INFO** charsetArray;
-    
-    Uint32 readKeyArray;
-=======
-    Uint32 readKeyArray;
->>>>>>> MySQL 8.0.36
     /*
       Offset into Dbtup::tableDescriptor of the start of the descriptor
       words for each attribute.
@@ -2057,218 +1567,6 @@ typedef DLFifoList<TupTriggerData_pool> TupTriggerData_list;
   Uint32 c_storedProcCountNonAPI;
   void storedProcCountNonAPI(BlockReference apiBlockref, int add_del);
 
-<<<<<<< RonDB // RONDB-624 todo
-/* **************************** TABLE_DESCRIPTOR RECORD ******************************** */
-/* THIS VARIABLE IS USED TO STORE TABLE DESCRIPTIONS. A TABLE DESCRIPTION IS STORED AS A */
-/* CONTIGUOUS ARRAY IN THIS VARIABLE. WHEN A NEW TABLE IS ADDED A CHUNK IS ALLOCATED IN  */
-/* THIS RECORD. WHEN ATTRIBUTES ARE ADDED TO THE TABLE, A NEW CHUNK OF PROPER SIZE IS    */
-/* ALLOCATED AND ALL DATA IS COPIED TO THIS NEW CHUNK AND THEN THE OLD CHUNK IS PUT IN   */
-/* THE FREE LIST. EACH TABLE IS DESCRIBED BY A NUMBER OF TABLE DESCRIPTIVE ATTRIBUTES    */
-/* AND A NUMBER OF ATTRIBUTE DESCRIPTORS AS SHOWN IN FIGURE BELOW                        */
-/*                                                                                       */
-/* WHEN ALLOCATING A TABLE DESCRIPTOR THE SIZE IS ALWAYS A MULTIPLE OF 16 WORDS.         */
-/*                                                                                       */
-/*               ----------------------------------------------                          */
-/*               |    TRAILER USED FOR ALLOC/DEALLOC          |                          */
-/*               ----------------------------------------------                          */
-/*               |    TABLE DESCRIPTIVE ATTRIBUTES            |                          */
-/*               ----------------------------------------------                          */
-/*               |    ATTRIBUTE DESCRIPTION 1                 |                          */
-/*               ----------------------------------------------                          */
-/*               |    ATTRIBUTE DESCRIPTION 2                 |                          */
-/*               ----------------------------------------------                          */
-/*               |                                            |                          */
-/*               |                                            |                          */
-/*               |                                            |                          */
-/*               ----------------------------------------------                          */
-/*               |    ATTRIBUTE DESCRIPTION N                 |                          */
-/*               ----------------------------------------------                          */
-/*                                                                                       */
-/* THE TABLE DESCRIPTIVE ATTRIBUTES CONTAINS THE FOLLOWING ATTRIBUTES:                   */
-/*                                                                                       */
-/*               ----------------------------------------------                          */
-/*               |    HEADER (TYPE OF INFO)                   |                          */
-/*               ----------------------------------------------                          */
-/*               |    SIZE OF WHOLE CHUNK (INCL. TRAILER)     |                          */
-/*               ----------------------------------------------                          */
-/*               |    TABLE IDENTITY                          |                          */
-/*               ----------------------------------------------                          */
-/*               |    FRAGMENT IDENTITY                       |                          */
-/*               ----------------------------------------------                          */
-/*               |    NUMBER OF ATTRIBUTES                    |                          */
-/*               ----------------------------------------------                          */
-/*               |    SIZE OF FIXED ATTRIBUTES                |                          */
-/*               ----------------------------------------------                          */
-/*               |    NUMBER OF NULL FIELDS                   |                          */
-/*               ----------------------------------------------                          */
-/*               |    NOT USED                                |                          */
-/*               ----------------------------------------------                          */
-/*                                                                                       */
-/* THESE ATTRIBUTES ARE ALL ONE R-VARIABLE IN THE RECORD.                                */
-/* NORMALLY ONLY ONE TABLE DESCRIPTOR IS USED. DURING SCHEMA CHANGES THERE COULD         */
-/* HOWEVER EXIST MORE THAN ONE TABLE DESCRIPTION SINCE THE SCHEMA CHANGE OF VARIOUS      */
-/* FRAGMENTS ARE NOT SYNCHRONISED. THIS MEANS THAT ALTHOUGH THE SCHEMA HAS CHANGED       */
-/* IN ALL FRAGMENTS, BUT THE FRAGMENTS HAVE NOT REMOVED THE ATTRIBUTES IN THE SAME       */
-/* TIME-FRAME. THEREBY SOME ATTRIBUTE INFORMATION MIGHT DIFFER BETWEEN FRAGMENTS.        */
-/* EXAMPLES OF ATTRIBUTES THAT MIGHT DIFFER ARE SIZE OF FIXED ATTRIBUTES, NUMBER OF      */
-/* ATTRIBUTES, FIELD START WORD, START BIT.                                              */
-/*                                                                                       */
-/* AN ATTRIBUTE DESCRIPTION CONTAINS THE FOLLOWING ATTRIBUTES:                           */
-/*                                                                                       */
-/*               ----------------------------------------------                          */
-/*               |    Field Type, 4 bits (LSB Bits)           |                          */
-/*               ----------------------------------------------                          */
-/*               |    Attribute Size, 4 bits                  |                          */
-/*               ----------------------------------------------                          */
-/*               |    NULL indicator 1 bit                    |                          */
-/*               ----------------------------------------------                          */
-/*               |    Indicator if TUP stores attr. 1 bit     |                          */
-/*               ----------------------------------------------                          */
-/*               |    Not used 6 bits                         |                          */
-/*               ----------------------------------------------                          */
-/*               |    No. of elements in fixed array 16 bits  |                          */
-/*               ----------------------------------------------                          */
-/*               ----------------------------------------------                          */
-/*               |    Field Start Word, 21 bits (LSB Bits)    |                          */
-/*               ----------------------------------------------                          */
-/*               |    NULL Bit, 11 bits                       |                          */
-/*               ----------------------------------------------                          */
-/*                                                                                       */
-/* THE ATTRIBUTE SIZE CAN BE 1,2,4,8,16,32,64 AND 128 BITS.                              */
-/*                                                                                       */
-/* THE UNUSED PARTS OF THE RECORDS ARE PUT IN A LINKED LIST OF FREE PARTS. EACH OF       */
-/* THOSE FREE PARTS HAVE THREE RECORDS ASSIGNED AS SHOWN IN THIS STRUCTURE               */
-/* ALL FREE PARTS ARE SET INTO A CHUNK LIST WHERE EACH CHUNK IS AT LEAST 16 WORDS        */
-/*                                                                                       */
-/*               ----------------------------------------------                          */
-/*               |    HEADER = RNIL                           |                          */
-/*               ----------------------------------------------                          */
-/*               |    SIZE OF FREE AREA                       |                          */
-/*               ----------------------------------------------                          */
-/*               |    POINTER TO PREVIOUS FREE AREA           |                          */
-/*               ----------------------------------------------                          */
-/*               |    POINTER TO NEXT FREE AREA               |                          */
-/*               ----------------------------------------------                          */
-/*                                                                                       */
-/* IF THE POINTER TO THE NEXT AREA IS RNIL THEN THIS IS THE LAST FREE AREA.              */
-/*                                                                                       */
-/*****************************************************************************************/
-struct HostBuffer {
-  bool  inPackedList;
-  Uint32 packetLenTA;
-  Uint32 noOfPacketsTA;
-  Uint32 packetBufferTA[30];
-};
-typedef Ptr<HostBuffer> HostBufferPtr;
-||||||| Common ancestor
-/* **************************** TABLE_DESCRIPTOR RECORD ******************************** */
-/* THIS VARIABLE IS USED TO STORE TABLE DESCRIPTIONS. A TABLE DESCRIPTION IS STORED AS A */
-/* CONTIGUOUS ARRAY IN THIS VARIABLE. WHEN A NEW TABLE IS ADDED A CHUNK IS ALLOCATED IN  */
-/* THIS RECORD. WHEN ATTRIBUTES ARE ADDED TO THE TABLE, A NEW CHUNK OF PROPER SIZE IS    */
-/* ALLOCATED AND ALL DATA IS COPIED TO THIS NEW CHUNK AND THEN THE OLD CHUNK IS PUT IN   */
-/* THE FREE LIST. EACH TABLE IS DESCRIBED BY A NUMBER OF TABLE DESCRIPTIVE ATTRIBUTES    */
-/* AND A NUMBER OF ATTRIBUTE DESCRIPTORS AS SHOWN IN FIGURE BELOW                        */
-/*                                                                                       */
-/* WHEN ALLOCATING A TABLE DESCRIPTOR THE SIZE IS ALWAYS A MULTIPLE OF 16 WORDS.         */
-/*                                                                                       */
-/*               ----------------------------------------------                          */
-/*               |    TRAILER USED FOR ALLOC/DEALLOC          |                          */
-/*               ----------------------------------------------                          */
-/*               |    TABLE DESCRIPTIVE ATTRIBUTES            |                          */
-/*               ----------------------------------------------                          */
-/*               |    ATTRIBUTE DESCRIPTION 1                 |                          */
-/*               ----------------------------------------------                          */
-/*               |    ATTRIBUTE DESCRIPTION 2                 |                          */
-/*               ----------------------------------------------                          */
-/*               |                                            |                          */
-/*               |                                            |                          */
-/*               |                                            |                          */
-/*               ----------------------------------------------                          */
-/*               |    ATTRIBUTE DESCRIPTION N                 |                          */
-/*               ----------------------------------------------                          */
-/*                                                                                       */
-/* THE TABLE DESCRIPTIVE ATTRIBUTES CONTAINS THE FOLLOWING ATTRIBUTES:                   */
-/*                                                                                       */
-/*               ----------------------------------------------                          */
-/*               |    HEADER (TYPE OF INFO)                   |                          */
-/*               ----------------------------------------------                          */
-/*               |    SIZE OF WHOLE CHUNK (INCL. TRAILER)     |                          */
-/*               ----------------------------------------------                          */
-/*               |    TABLE IDENTITY                          |                          */
-/*               ----------------------------------------------                          */
-/*               |    FRAGMENT IDENTITY                       |                          */
-/*               ----------------------------------------------                          */
-/*               |    NUMBER OF ATTRIBUTES                    |                          */
-/*               ----------------------------------------------                          */
-/*               |    SIZE OF FIXED ATTRIBUTES                |                          */
-/*               ----------------------------------------------                          */
-/*               |    NUMBER OF NULL FIELDS                   |                          */
-/*               ----------------------------------------------                          */
-/*               |    NOT USED                                |                          */
-/*               ----------------------------------------------                          */
-/*                                                                                       */
-/* THESE ATTRIBUTES ARE ALL ONE R-VARIABLE IN THE RECORD.                                */
-/* NORMALLY ONLY ONE TABLE DESCRIPTOR IS USED. DURING SCHEMA CHANGES THERE COULD         */
-/* HOWEVER EXIST MORE THAN ONE TABLE DESCRIPTION SINCE THE SCHEMA CHANGE OF VARIOUS      */
-/* FRAGMENTS ARE NOT SYNCHRONISED. THIS MEANS THAT ALTHOUGH THE SCHEMA HAS CHANGED       */
-/* IN ALL FRAGMENTS, BUT THE FRAGMENTS HAVE NOT REMOVED THE ATTRIBUTES IN THE SAME       */
-/* TIME-FRAME. THEREBY SOME ATTRIBUTE INFORMATION MIGHT DIFFER BETWEEN FRAGMENTS.        */
-/* EXAMPLES OF ATTRIBUTES THAT MIGHT DIFFER ARE SIZE OF FIXED ATTRIBUTES, NUMBER OF      */
-/* ATTRIBUTES, FIELD START WORD, START BIT.                                              */
-/*                                                                                       */
-/* AN ATTRIBUTE DESCRIPTION CONTAINS THE FOLLOWING ATTRIBUTES:                           */
-/*                                                                                       */
-/*               ----------------------------------------------                          */
-/*               |    Field Type, 4 bits (LSB Bits)           |                          */
-/*               ----------------------------------------------                          */
-/*               |    Attribute Size, 4 bits                  |                          */
-/*               ----------------------------------------------                          */
-/*               |    NULL indicator 1 bit                    |                          */
-/*               ----------------------------------------------                          */
-/*               |    Indicator if TUP stores attr. 1 bit     |                          */
-/*               ----------------------------------------------                          */
-/*               |    Not used 6 bits                         |                          */
-/*               ----------------------------------------------                          */
-/*               |    No. of elements in fixed array 16 bits  |                          */
-/*               ----------------------------------------------                          */
-/*               ----------------------------------------------                          */
-/*               |    Field Start Word, 21 bits (LSB Bits)    |                          */
-/*               ----------------------------------------------                          */
-/*               |    NULL Bit, 11 bits                       |                          */
-/*               ----------------------------------------------                          */
-/*                                                                                       */
-/* THE ATTRIBUTE SIZE CAN BE 1,2,4,8,16,32,64 AND 128 BITS.                              */
-/*                                                                                       */
-/* THE UNUSED PARTS OF THE RECORDS ARE PUT IN A LINKED LIST OF FREE PARTS. EACH OF       */
-/* THOSE FREE PARTS HAVE THREE RECORDS ASSIGNED AS SHOWN IN THIS STRUCTURE               */
-/* ALL FREE PARTS ARE SET INTO A CHUNK LIST WHERE EACH CHUNK IS AT LEAST 16 WORDS        */
-/*                                                                                       */
-/*               ----------------------------------------------                          */
-/*               |    HEADER = RNIL                           |                          */
-/*               ----------------------------------------------                          */
-/*               |    SIZE OF FREE AREA                       |                          */
-/*               ----------------------------------------------                          */
-/*               |    POINTER TO PREVIOUS FREE AREA           |                          */
-/*               ----------------------------------------------                          */
-/*               |    POINTER TO NEXT FREE AREA               |                          */
-/*               ----------------------------------------------                          */
-/*                                                                                       */
-/* IF THE POINTER TO THE NEXT AREA IS RNIL THEN THIS IS THE LAST FREE AREA.              */
-/*                                                                                       */
-/*****************************************************************************************/
-struct TableDescriptor {
-  Uint32 tabDescr;
-};
-typedef Ptr<TableDescriptor> TableDescriptorPtr;
-
-struct HostBuffer {
-  bool  inPackedList;
-  Uint32 packetLenTA;
-  Uint32 noOfPacketsTA;
-  Uint32 packetBufferTA[30];
-};
-typedef Ptr<HostBuffer> HostBufferPtr;
-=======
   /* **************************** TABLE_DESCRIPTOR RECORD
    * ******************************** */
   /* THIS VARIABLE IS USED TO STORE TABLE DESCRIPTIONS. A TABLE DESCRIPTION IS
@@ -2379,11 +1677,6 @@ typedef Ptr<HostBuffer> HostBufferPtr;
   /* IF THE POINTER TO THE NEXT AREA IS RNIL THEN THIS IS THE LAST FREE AREA. */
   /*                                                                                       */
   /*****************************************************************************************/
-  struct TableDescriptor {
-    Uint32 tabDescr;
-  };
-  typedef Ptr<TableDescriptor> TableDescriptorPtr;
-
   struct HostBuffer {
     bool inPackedList;
     Uint32 packetLenTA;
@@ -2391,7 +1684,6 @@ typedef Ptr<HostBuffer> HostBufferPtr;
     Uint32 packetBufferTA[30];
   };
   typedef Ptr<HostBuffer> HostBufferPtr;
->>>>>>> MySQL 8.0.36
 
   /*
    * Build index operation record.
@@ -2685,7 +1977,12 @@ typedef Ptr<HostBuffer> HostBufferPtr;
      * the length of attribute stored.
      */
 
-<<<<<<< RonDB // RONDB-624 todo
+    Tablerec *tablePtrP;
+    Fragrecord *fragPtrP;
+    Operationrec *operPtrP;
+    EmulatedJamBuffer *jamBuffer;
+    Tuple_header *m_tuple_ptr;
+
   /**
    * Variables often used in read of columns
    */
@@ -2693,29 +1990,6 @@ typedef Ptr<HostBuffer> HostBufferPtr;
   Uint32 check_offset[2];
   Uint32          max_read;
   Uint32          out_buf_index;
-||||||| Common ancestor
-  /**
-   * Variables often used in read of columns
-   */
-  TableDescriptor *attr_descr;
-  Uint32 check_offset[2];
-  Uint32          max_read;
-  Uint32          out_buf_index;
-=======
-    Tablerec *tablePtrP;
-    Fragrecord *fragPtrP;
-    Operationrec *operPtrP;
-    EmulatedJamBuffer *jamBuffer;
-    Tuple_header *m_tuple_ptr;
-
-    /**
-     * Variables often used in read of columns
-     */
-    TableDescriptor *attr_descr;
-    Uint32 check_offset[2];
-    Uint32 max_read;
-    Uint32 out_buf_index;
->>>>>>> MySQL 8.0.36
 
     Uint32 out_buf_bits;
     Uint32 in_buf_index;
@@ -2732,20 +2006,24 @@ typedef Ptr<HostBuffer> HostBufferPtr;
     bool m_is_lcp;
     enum When m_when;
 
+#ifdef ERROR_INSERT
+  Uint32 instance_num;
+  bool is_query_block;
+#endif
     Tuple_header *m_disk_ptr;
     PagePtr m_page_ptr;
-    PagePtr m_varpart_page_ptr;  // could be same as m_page_ptr_p
+  PagePtr m_varpart_page_ptr[2];    // could be same as m_page_ptr_p
     PagePtr m_disk_page_ptr;     //
     Local_key m_row_id;
     Uint32 optimize_options;
+  Uint32 m_prio_a_flag;
+  Uint32 m_reorg;
 
     bool dirty_op;
     bool interpreted_exec;
     bool last_row;
     bool m_use_rowid;
     bool m_nr_copy_or_redo;
-    Uint8 m_reorg;
-    Uint8 m_prio_a_flag;
     bool m_deferred_constraints;
     bool m_disable_fk_checks;
 
@@ -2801,203 +2079,15 @@ typedef Ptr<HostBuffer> HostBufferPtr;
       Uint16 m_dyn_len_offset;
     } m_var_data[2];
 
-<<<<<<< RonDB // RONDB-624 todo
-  union {
-    Uint32 in_buf_len;
-    Uint32 m_lcp_varpart_len;
-  };
-  Uint32 errorCode; // Used in DbtupRoutines read/update functions
-  bool   xfrm_flag;
-
-  /* Flag: is tuple in expanded or in shrunken/stored format? */
-  bool is_expanded;
-  bool m_is_lcp;
-  enum When m_when;
-
-#ifdef ERROR_INSERT
-  Uint32 instance_num;
-  bool is_query_block;
-#endif
-  Tuple_header *m_disk_ptr;
-  PagePtr m_page_ptr;
-  PagePtr m_varpart_page_ptr[2];    // could be same as m_page_ptr_p
-  PagePtr m_disk_page_ptr;       //
-  Local_key m_row_id;
-  Uint32 optimize_options;
-  Uint32 m_prio_a_flag;
-  Uint32 m_reorg;
-  
-  bool            dirty_op;
-  bool            interpreted_exec;
-  bool            last_row;
-  bool            m_use_rowid;
-  bool            m_nr_copy_or_redo;
-  bool            m_deferred_constraints;
-  bool            m_disable_fk_checks;
-
-  Signal*         signal;
-  Uint32 num_fired_triggers;
-  Uint32 no_exec_instructions;
-  Uint32 frag_page_id;
-  Uint32 hash_value;
-  Uint32 gci_hi;
-  Uint32 gci_lo;
-  Uint32 log_size;
-  Uint32 read_length;
-  Uint32 attrinfo_len;
-  Uint32 tc_operation_ptr;
-  Uint32 trans_id1;
-  Uint32 trans_id2;
-  Uint32 TC_index;
-  // next 2 apply only to attrids >= 64 (zero otherwise)
-  BlockReference TC_ref;
-  BlockReference rec_blockref;
-
-  struct Var_data {
     /*
-      These are the pointers and offsets to the variable-sized part of the row
-      (static part, alwways stored even if NULL). They are used both for
-      expanded and shrunken form, with different values to allow using the
-      same read/update code for both forms.
-    */
-    char *m_data_ptr;
-    Uint16 *m_offset_array_ptr;
-    Uint16 m_var_len_offset;
-    Uint16 m_max_var_offset;
-    Uint16 m_max_dyn_offset;
-
-    /* These are the pointers and offsets to the dynamic part of the row. */
-
-    /* Pointer to the start of the bitmap for the dynamic part of the row. */
-    char *m_dyn_data_ptr;
-    /* Number of 32-bit words in dynamic part (stored/shrunken format). */
-    Uint32 m_dyn_part_len;
-    /*
-      Pointer to array with one element for each dynamic attribute (both
-      variable and fixed size). Each value is the offset from the end of the
-      bitmap to the start of the data for that attribute.
-    */
-    Uint16 *m_dyn_offset_arr_ptr;
-||||||| Common ancestor
-  union {
-    Uint32 in_buf_len;
-    Uint32 m_lcp_varpart_len;
-  };
-  Uint32 errorCode; // Used in DbtupRoutines read/update functions
-  bool   xfrm_flag;
-
-  /* Flag: is tuple in expanded or in shrunken/stored format? */
-  bool is_expanded;
-  bool m_is_lcp;
-  enum When m_when;
-
-  Tuple_header *m_disk_ptr;
-  PagePtr m_page_ptr;
-  PagePtr m_varpart_page_ptr;    // could be same as m_page_ptr_p
-  PagePtr m_disk_page_ptr;       //
-  Local_key m_row_id;
-  Uint32 optimize_options;
-  
-  bool            dirty_op;
-  bool            interpreted_exec;
-  bool            last_row;
-  bool            m_use_rowid;
-  bool            m_nr_copy_or_redo;
-  Uint8           m_reorg;
-  Uint8           m_prio_a_flag;
-  bool            m_deferred_constraints;
-  bool            m_disable_fk_checks;
-
-  Signal*         signal;
-  Uint32 num_fired_triggers;
-  Uint32 no_exec_instructions;
-  Uint32 frag_page_id;
-  Uint32 hash_value;
-  Uint32 gci_hi;
-  Uint32 gci_lo;
-  Uint32 log_size;
-  Uint32 read_length;
-  Uint32 attrinfo_len;
-  Uint32 tc_operation_ptr;
-  Uint32 trans_id1;
-  Uint32 trans_id2;
-  Uint32 TC_index;
-  // next 2 apply only to attrids >= 64 (zero otherwise)
-  BlockReference TC_ref;
-  BlockReference rec_blockref;
-
-  struct Var_data {
-    /*
-      These are the pointers and offsets to the variable-sized part of the row
-      (static part, alwways stored even if NULL). They are used both for
-      expanded and shrunken form, with different values to allow using the
-      same read/update code for both forms.
-    */
-    char *m_data_ptr;
-    Uint16 *m_offset_array_ptr;
-    Uint16 m_var_len_offset;
-    Uint16 m_max_var_offset;
-    Uint16 m_max_dyn_offset;
-
-    /* These are the pointers and offsets to the dynamic part of the row. */
-
-    /* Pointer to the start of the bitmap for the dynamic part of the row. */
-    char *m_dyn_data_ptr;
-    /* Number of 32-bit words in dynamic part (stored/shrunken format). */
-    Uint32 m_dyn_part_len;
-    /*
-      Pointer to array with one element for each dynamic attribute (both
-      variable and fixed size). Each value is the offset from the end of the
-      bitmap to the start of the data for that attribute.
-    */
-    Uint16 *m_dyn_offset_arr_ptr;
-=======
->>>>>>> MySQL 8.0.36
-    /*
-<<<<<<< RonDB // RONDB-624 todo
-      Offset from m_dyn_offset_array_ptr of array with one element for each
-      dynamic attribute. Each value is the offset to the end of data for that
-      attribute, so the difference to m_dyn_offset_array_ptr elements provides
-      the data lengths.
-    */
-    Uint16 m_dyn_len_offset;
-  } m_var_data[2];
-
-  /*
-   * A bitmap where a set bit means that the operation has
-   * supplied a value for this column
-   */
-  AttributeMask changeMask;
-  Uint16 var_pos_array[2][2*MAX_ATTRIBUTES_IN_TABLE + 1];
-  OperationrecPtr prevOpPtr;
-  Dblqh *m_lqh;
-};
-||||||| Common ancestor
-      Offset from m_dyn_offset_array_ptr of array with one element for each
-      dynamic attribute. Each value is the offset to the end of data for that
-      attribute, so the difference to m_dyn_offset_array_ptr elements provides
-      the data lengths.
-    */
-    Uint16 m_dyn_len_offset;
-  } m_var_data[2];
-
-  /*
-   * A bitmap where a set bit means that the operation has
-   * supplied a value for this column
-   */
-  AttributeMask changeMask;
-  Uint16 var_pos_array[2*MAX_ATTRIBUTES_IN_TABLE + 1];
-  OperationrecPtr prevOpPtr;
-};
-=======
      * A bitmap where a set bit means that the operation has
      * supplied a value for this column
      */
     AttributeMask changeMask;
-    Uint16 var_pos_array[2 * MAX_ATTRIBUTES_IN_TABLE + 1];
-    OperationrecPtr prevOpPtr;
+  Uint16 var_pos_array[2][2*MAX_ATTRIBUTES_IN_TABLE + 1];
+  OperationrecPtr prevOpPtr;
+  Dblqh *m_lqh;
   };
->>>>>>> MySQL 8.0.36
 
   friend struct Undo_buffer;
   Undo_buffer c_undo_buffer;
@@ -3524,19 +2614,9 @@ typedef Ptr<HostBuffer> HostBufferPtr;
                         Uint32& attrDataOffset,
                         Uint32& tuxFixHeaderSize);
   Uint32 get_current_frag_page_id();
-<<<<<<< RonDB // RONDB-624 todo
-private:
-  void disk_page_load_extra_callback(Signal*, Uint32 op, Uint32 page);
-  void disk_page_load_callback(Signal*, Uint32 op, Uint32 page);
-  void disk_page_load_scan_callback(Signal*, Uint32 op, Uint32 page);
-||||||| Common ancestor
-private:
-  void disk_page_load_callback(Signal*, Uint32 op, Uint32 page);
-  void disk_page_load_scan_callback(Signal*, Uint32 op, Uint32 page);
-=======
->>>>>>> MySQL 8.0.36
 
  private:
+  void disk_page_load_extra_callback(Signal*, Uint32 op, Uint32 page);
   void disk_page_load_callback(Signal *, Uint32 op, Uint32 page);
   void disk_page_load_scan_callback(Signal *, Uint32 op, Uint32 page);
 

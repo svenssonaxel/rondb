@@ -55,40 +55,16 @@ int main(int argc, const char **argv) {
       {"abort", 0, arg_integer, &_abort, "Abort probability", ""}};
   int num_args = sizeof(args) / sizeof(args[0]);
   int optind = 0;
-<<<<<<< RonDB // RONDB-624 todo
-  char desc[] = 
-    "tabname\n"\
-    "This program will load one table in Ndb with calculated data.\n"\
-    "This means that it is possible to check the validity of the data\n"\
-    "at a later time. The last column in each table is used as an update\n"\
-    "counter, it's initialised to zero and should be incremented for each\n"\
-    "update of the record.\n";
-  
-  if(getarg(args, num_args, argc, argv, &optind) ||
-     argv[optind] == NULL || _records == 0 || _help) {
-||||||| Common ancestor
-  char desc[] = 
-    "tabname\n"\
-    "This program will load one table in Ndb with calculated data. \n"\
-    "This means that it is possible to check the validity of the data \n"\
-    "at a later time. The last column in each table is used as an update \n"\
-    "counter, it's initialised to zero and should be incremented for each \n"\
-    "update of the record. \n";
-  
-  if(getarg(args, num_args, argc, argv, &optind) ||
-     argv[optind] == NULL || _records == 0 || _help) {
-=======
   char desc[] =
       "tabname\n"
-      "This program will load one table in Ndb with calculated data. \n"
-      "This means that it is possible to check the validity of the data \n"
-      "at a later time. The last column in each table is used as an update \n"
-      "counter, it's initialised to zero and should be incremented for each \n"
-      "update of the record. \n";
+      "This program will load one table in Ndb with calculated data.\n"
+      "This means that it is possible to check the validity of the data\n"
+      "at a later time. The last column in each table is used as an update\n"
+      "counter, it's initialised to zero and should be incremented for each\n"
+      "update of the record.\n";
 
   if (getarg(args, num_args, argc, argv, &optind) || argv[optind] == NULL ||
       _records == 0 || _help) {
->>>>>>> MySQL 8.0.36
     arg_printusage(args, num_args, argv[0], desc);
     return NDBT_ProgramExit(NDBT_WRONGARGS);
   }

@@ -39,7 +39,7 @@
 
 #include <Ndb.hpp>
 #include <NdbBlob.hpp>
-#include <NdbBlobImpl.hpp>
+#include "NdbBlobImpl.hpp"
 #include <NdbIndexOperation.hpp>
 #include <NdbIndexScanOperation.hpp>
 #include <NdbIndexStat.hpp>
@@ -47,22 +47,10 @@
 #include <NdbOperation.hpp>
 #include <NdbRecAttr.hpp>
 #include <NdbReceiver.hpp>
-<<<<<<< RonDB // RONDB-624 todo
-#include <NdbBlob.hpp>
-#include "NdbBlobImpl.hpp"
-#include <NdbInterpretedCode.hpp>
-#include "NdbWaitGroup.hpp"
-||||||| Common ancestor
-#include <NdbBlob.hpp>
-#include <NdbBlobImpl.hpp>
-#include <NdbInterpretedCode.hpp>
-#include <NdbWaitGroup.hpp>
-=======
 #include <NdbScanOperation.hpp>
 #include <NdbTransaction.hpp>
-#include <NdbWaitGroup.hpp>
+#include "NdbWaitGroup.hpp"
 #include "NdbIndexStatImpl.hpp"
->>>>>>> MySQL 8.0.36
 
 #include <NdbEventOperation.hpp>
 #include "NdbEventOperationImpl.hpp"

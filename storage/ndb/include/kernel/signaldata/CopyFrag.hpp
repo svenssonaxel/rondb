@@ -40,17 +40,9 @@ class CopyFragReq {
    * Receiver(s)
    */
   friend class Dblqh;
-<<<<<<< RonDB // RONDB-624 todo
 
   friend bool printCOPY_FRAGREQ(FILE *, const Uint32 *, Uint32, Uint16);
 
-public:
-  static constexpr Uint32 SignalLength = 11;
-||||||| Common ancestor
-public:
-  static constexpr Uint32 SignalLength = 11;
-=======
->>>>>>> MySQL 8.0.36
 
  public:
   static constexpr Uint32 SignalLength = 11;

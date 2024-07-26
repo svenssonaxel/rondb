@@ -79,31 +79,13 @@ int main(int argc, const char **argv) {
       {"usage", '?', arg_flag, &_help, "Print help", ""}};
   int num_args = sizeof(args) / sizeof(args[0]);
   int optind = 0;
-<<<<<<< RonDB // RONDB-624 todo
-  char desc[] = 
-    "tabname\n"\
-    "This program will read 'r' records from one table in Ndb.\n"\
-    "It will verify every column read by calculating the expected value.\n";
-  
-  if(getarg(args, num_args, argc, argv, &optind) ||
-     argv[optind] == NULL || _records == 0 || _batch == 0 || _help) {
-||||||| Common ancestor
-  char desc[] = 
-    "tabname\n"\
-    "This program will read 'r' records from one table in Ndb. \n"\
-    "It will verify every column read by calculating the expected value.\n";
-  
-  if(getarg(args, num_args, argc, argv, &optind) ||
-     argv[optind] == NULL || _records == 0 || _batch == 0 || _help) {
-=======
   char desc[] =
       "tabname\n"
-      "This program will read 'r' records from one table in Ndb. \n"
+      "This program will read 'r' records from one table in Ndb.\n"
       "It will verify every column read by calculating the expected value.\n";
 
   if (getarg(args, num_args, argc, argv, &optind) || argv[optind] == NULL ||
       _records == 0 || _batch == 0 || _help) {
->>>>>>> MySQL 8.0.36
     arg_printusage(args, num_args, argv[0], desc);
     return NDBT_ProgramExit(NDBT_WRONGARGS);
   }

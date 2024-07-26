@@ -1191,38 +1191,6 @@ void NdbImpl::trp_deliver_signal(const NdbApiSignal *aSignal,
       myNdb->connected(numberToRef(myNdb->theNdbBlockNumber, nodeId));
       break;
     }
-    default: {
-      tFirstDataPtr = nullptr;
-      goto InvalidSignal;
-    }
-  }  // switch
-
-<<<<<<< RonDB // RONDB-624 todo
-    NdbDictInterface::execSignal(&myNdb->theDictionary->m_receiver,
-                                 aSignal,
-                                 ptr);
-    break;
-  }
-  case GSN_NF_COMPLETEREP:
-  {
-    const NFCompleteRep *rep = CAST_CONSTPTR(NFCompleteRep,
-                                             aSignal->getDataPtr());
-    myNdb->report_node_failure_completed(rep->failedNodeId);
-    break;
-  }
-  case GSN_TAKE_OVERTCCONF:
-  {
-    myNdb->abortTransactionsAfterNodeFailure(tFirstData); // theData[0]
-    break;
-  }
-  case GSN_ALLOC_NODEID_CONF:
-  {
-    const AllocNodeIdConf *rep = CAST_CONSTPTR(AllocNodeIdConf,
-                                               aSignal->getDataPtr());
-    Uint32 nodeId = rep->nodeId;
-    myNdb->connected(numberToRef(myNdb->theNdbBlockNumber, nodeId));
-    break;
-  }
   case GSN_TC_HBREP:
   {
     /**
@@ -1233,53 +1201,13 @@ void NdbImpl::trp_deliver_signal(const NdbApiSignal *aSignal,
     m_start_time = NdbTick_getCurrentTicks();
     break;
   }
-  default:
-  {
-    tFirstDataPtr = nullptr;
-    goto InvalidSignal;
-  }
-  }//switch
+    default: {
+      tFirstDataPtr = nullptr;
+      goto InvalidSignal;
+    }
+  }  // switch
 
-  if (tNewState != tWaitState)
-  {
-||||||| Common ancestor
-    NdbDictInterface::execSignal(&myNdb->theDictionary->m_receiver,
-                                 aSignal,
-                                 ptr);
-    break;
-  }
-  case GSN_NF_COMPLETEREP:
-  {
-    const NFCompleteRep *rep = CAST_CONSTPTR(NFCompleteRep,
-                                             aSignal->getDataPtr());
-    myNdb->report_node_failure_completed(rep->failedNodeId);
-    break;
-  }
-  case GSN_TAKE_OVERTCCONF:
-  {
-    myNdb->abortTransactionsAfterNodeFailure(tFirstData); // theData[0]
-    break;
-  }
-  case GSN_ALLOC_NODEID_CONF:
-  {
-    const AllocNodeIdConf *rep = CAST_CONSTPTR(AllocNodeIdConf,
-                                               aSignal->getDataPtr());
-    Uint32 nodeId = rep->nodeId;
-    myNdb->connected(numberToRef(myNdb->theNdbBlockNumber, nodeId));
-    break;
-  }
-  default:
-  {
-    tFirstDataPtr = nullptr;
-    goto InvalidSignal;
-  }
-  }//switch
-
-  if (tNewState != tWaitState)
-  {
-=======
   if (tNewState != tWaitState) {
->>>>>>> MySQL 8.0.36
     /*
       If our waiter object is the owner of the "poll rights", then we
       can simply return, we will return from this routine to the

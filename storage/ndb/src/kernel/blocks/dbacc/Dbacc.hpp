@@ -39,15 +39,11 @@
 #include "Container.hpp"
 #include "TransientPool.hpp"
 #include "TransientSlotPool.hpp"
-<<<<<<< RonDB // RONDB-624 todo
 #include <Intrusive64List.hpp>
 #include <RWPool64.hpp>
 #include <atomic>
-||||||| Common ancestor
-=======
 #include "signaldata/AccKeyReq.hpp"
 #include "util/require.h"
->>>>>>> MySQL 8.0.36
 
 #include <EventLogger.hpp>
 
@@ -367,11 +363,23 @@ class Dbacc : public SimulatedBlock {
     void getPtr(Ptr<Page8> &page) const;
     void getPtrForce(Ptr<Page8> &page) const;
 
-<<<<<<< RonDB // RONDB-624 todo
-/* --------------------------------------------------------------------------------- */
-/* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN FRAGMENT    */
-/*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC FRAGMENT    */
-/* --------------------------------------------------------------------------------- */
+   private:
+    Page32_pool &m_page_pool;
+  };
+
+  typedef SLCFifoList<Page8_pool, IA_Page8> Page8List;
+  typedef LocalSLCFifoList<Page8_pool, IA_Page8> LocalPage8List;
+  typedef DLCFifoList<Page8_pool, IA_Page8> ContainerPageList;
+  typedef LocalDLCFifoList<Page8_pool, IA_Page8> LocalContainerPageList;
+
+/* ---------------------------------------------------------------------------------
+ */
+/* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN
+ * FRAGMENT    */
+/*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC
+ * FRAGMENT    */
+/* ---------------------------------------------------------------------------------
+ */
 #define NUM_ACC_FRAGMENT_MUTEXES 4
 struct Fragmentrec {
   Fragmentrec() {}
@@ -387,25 +395,7 @@ struct Fragmentrec {
   union {
     Uint32 mytabptr;
     Uint32 myTableId;
-||||||| Common ancestor
-/* --------------------------------------------------------------------------------- */
-/* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN FRAGMENT    */
-/*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC FRAGMENT    */
-/* --------------------------------------------------------------------------------- */
-#define NUM_ACC_FRAGMENT_MUTEXES 4
-struct Fragmentrec {
-  NdbMutex acc_frag_mutex[NUM_ACC_FRAGMENT_MUTEXES];
-  Uint32 scan[MAX_PARALLEL_SCANS_PER_FRAG];
-  Uint16 activeScanMask;
-  union {
-    Uint32 mytabptr;
-    Uint32 myTableId;
-=======
-   private:
-    Page32_pool &m_page_pool;
->>>>>>> MySQL 8.0.36
   };
-<<<<<<< RonDB // RONDB-624 todo
   union {
     Uint32 fragmentid;
     Uint32 myfid;
@@ -432,404 +422,6 @@ struct Fragmentrec {
 #endif
 
   Uint32 lockCount[NUM_ACC_FRAGMENT_MUTEXES];
-
-//-----------------------------------------------------------------------------
-// References to Directory Ranges (which in turn references directories, which
-// in its turn references the pages) for the bucket pages and the overflow
-// bucket pages.
-//-----------------------------------------------------------------------------
-  DynArr256::Head directory;
-
-//-----------------------------------------------------------------------------
-// We have a list of overflow pages with free areas. We have a special record,
-// the overflow record representing these pages. The reason is that the
-// same record is also used to represent pages in the directory array that have
-// been released since they were empty (there were however higher indexes with
-// data in them). These are put in the firstFreeDirIndexRec-list.
-// An overflow record representing a page can only be in one of these lists.
-//-----------------------------------------------------------------------------
-  ContainerPageList::Head fullpages; // For pages where only containers on page are allowed to overflow (word32[ZPOS_ALLOC_CONTAINERS] > ZFREE_LIMIT)
-  ContainerPageList::Head sparsepages; // For pages that other pages are still allowed to overflow into (0 < word32[ZPOS_ALLOC_CONTAINERS] <= ZFREE_LIMIT)
-
-//-----------------------------------------------------------------------------
-// Counter keeping track of how many times we have expanded. We need to ensure
-// that we do not shrink so many times that this variable becomes negative.
-//-----------------------------------------------------------------------------
-  Uint32 expandCounter;
-
-//-----------------------------------------------------------------------------
-// These variables are important for the linear hashing algorithm.
-// localkeylen is the size of the local key (1 and 2 is currently supported)
-// maxloadfactor is the factor specifying when to expand
-// minloadfactor is the factor specifying when to shrink (hysteresis model)
-// maxp and p
-// maxp and p is the variables most central to linear hashing. p + maxp + 1 is the
-// current number of buckets. maxp is the largest value of the type 2**n - 1
-// which is smaller than the number of buckets. These values are used to find
-// correct bucket with the aid of the hash value.
-//
-// slack is the variable keeping track of whether we have inserted more than
-// the current size is suitable for or less. Slack together with the boundaries
-// set by maxloadfactor and minloadfactor decides when to expand/shrink
-// slackCheck When slack goes over this value it is time to expand.
-// slackCheck = (maxp + p + 1)*(maxloadfactor - minloadfactor) or 
-// bucketSize * hysteresis
-// Since at most RNIL 8KiB-pages can be used for a fragment, the extreme values
-// for slack will be within -2^43 and +2^43 words.
-//-----------------------------------------------------------------------------
-  LHLevelRH level;
-  Uint32 localkeylen; // Currently only 1 is supported
-  Uint32 maxloadfactor;
-  Uint32 minloadfactor;
-  Int64 slack;
-  Int64 slackCheck;
-
-//-----------------------------------------------------------------------------
-// Fragment State, mostly applicable during LCP and restore
-//-----------------------------------------------------------------------------
-  State fragState;
-
-//-----------------------------------------------------------------------------
-// elementLength: Length of element in bucket and overflow pages
-// keyLength: Length of key
-//-----------------------------------------------------------------------------
-  static constexpr Uint32 elementLength = 2;
-  Uint16 keyLength;
-
-//-----------------------------------------------------------------------------
-// Only allow one expand or shrink signal in queue at the time.
-//-----------------------------------------------------------------------------
-  bool expandOrShrinkQueued;
-
-//-----------------------------------------------------------------------------
-// hashcheckbit is the bit to check whether to send element to split bucket or not
-// k (== 6) is the number of buckets per page
-//-----------------------------------------------------------------------------
-  static constexpr Uint32 k = 6;
-  static constexpr Uint32 MIN_HASH_COMPARE_BITS = 7;
-  static constexpr Uint32 MAX_HASH_VALUE_BITS = 31;
-
-//-----------------------------------------------------------------------------
-// nodetype can only be STORED in this release. Is currently only set, never read
-//-----------------------------------------------------------------------------
-  Uint8 nodetype;
-
-//-----------------------------------------------------------------------------
-// flag to avoid accessing table record if no char attributes
-//-----------------------------------------------------------------------------
-  Uint8 hasCharAttr;
-
-//-----------------------------------------------------------------------------
-// flag to mark that execEXPANDCHECK2 has failed due to DirRange full
-//-----------------------------------------------------------------------------
-  Uint8 dirRangeFull;
-
-  //Use new hash function or not
-  Uint8 m_use_new_hash_function;
-
-  // Number of Page8 pages allocated for the hash index.
-  Int32 m_noOfAllocatedPages;
-
-//-----------------------------------------------------------------------------
-// Lock stats
-//-----------------------------------------------------------------------------
-// Used to track row lock activity on this fragment
-  struct LockStats 
-  {
-    /* Exclusive row lock counts */
-
-    /*   Total requests received */
-    std::atomic<Uint64> m_ex_req_count;
-
-    /*   Total requests immediately granted */
-    std::atomic<Uint64> m_ex_imm_ok_count;
-
-    /*   Total requests granted after a wait */
-    std::atomic<Uint64> m_ex_wait_ok_count;
-
-    /*   Total requests failed after a wait */
-    std::atomic<Uint64> m_ex_wait_fail_count;
-    
-
-    /* Shared row lock counts */
-
-    /*   Total requests received */
-    std::atomic<Uint64> m_sh_req_count;
-
-    /*   Total requests immediately granted */
-    std::atomic<Uint64> m_sh_imm_ok_count;
-
-    /*   Total requests granted after a wait */
-    std::atomic<Uint64> m_sh_wait_ok_count;
-
-    /*   Total requests failed after a wait */
-    std::atomic<Uint64> m_sh_wait_fail_count;
-
-    /* Wait times */
-
-
-    /*   Total time spent waiting for a lock
-     *   which was eventually granted
-     */
-    std::atomic<Uint64> m_wait_ok_millis;
-||||||| Common ancestor
-  union {
-    Uint32 fragmentid;
-    Uint32 myfid;
-  };
-  Uint32 tupFragptr;
-  Uint32 roothashcheck;
-  Uint32 m_commit_count;
-  State rootState;
-  
-//-----------------------------------------------------------------------------
-// Temporary variables used during shrink and expand process.
-//-----------------------------------------------------------------------------
-  Uint32 expReceivePageptr;
-  Uint32 expReceiveIndex;
-  bool expReceiveIsforward;
-  Uint32 expSenderDirIndex;
-  Uint32 expSenderIndex;
-  Uint32 expSenderPageptr;
-
-//-----------------------------------------------------------------------------
-// Number of locks held on fragment, only for self-check
-//-----------------------------------------------------------------------------
-  Uint32 lockCount;
-
-//-----------------------------------------------------------------------------
-// References to Directory Ranges (which in turn references directories, which
-// in its turn references the pages) for the bucket pages and the overflow
-// bucket pages.
-//-----------------------------------------------------------------------------
-  DynArr256::Head directory;
-
-//-----------------------------------------------------------------------------
-// We have a list of overflow pages with free areas. We have a special record,
-// the overflow record representing these pages. The reason is that the
-// same record is also used to represent pages in the directory array that have
-// been released since they were empty (there were however higher indexes with
-// data in them). These are put in the firstFreeDirIndexRec-list.
-// An overflow record representing a page can only be in one of these lists.
-//-----------------------------------------------------------------------------
-  ContainerPageList::Head fullpages; // For pages where only containers on page are allowed to overflow (word32[ZPOS_ALLOC_CONTAINERS] > ZFREE_LIMIT)
-  ContainerPageList::Head sparsepages; // For pages that other pages are still allowed to overflow into (0 < word32[ZPOS_ALLOC_CONTAINERS] <= ZFREE_LIMIT)
-
-//-----------------------------------------------------------------------------
-// Counter keeping track of how many times we have expanded. We need to ensure
-// that we do not shrink so many times that this variable becomes negative.
-//-----------------------------------------------------------------------------
-  Uint32 expandCounter;
-
-//-----------------------------------------------------------------------------
-// These variables are important for the linear hashing algorithm.
-// localkeylen is the size of the local key (1 and 2 is currently supported)
-// maxloadfactor is the factor specifying when to expand
-// minloadfactor is the factor specifying when to shrink (hysteresis model)
-// maxp and p
-// maxp and p is the variables most central to linear hashing. p + maxp + 1 is the
-// current number of buckets. maxp is the largest value of the type 2**n - 1
-// which is smaller than the number of buckets. These values are used to find
-// correct bucket with the aid of the hash value.
-//
-// slack is the variable keeping track of whether we have inserted more than
-// the current size is suitable for or less. Slack together with the boundaries
-// set by maxloadfactor and minloadfactor decides when to expand/shrink
-// slackCheck When slack goes over this value it is time to expand.
-// slackCheck = (maxp + p + 1)*(maxloadfactor - minloadfactor) or 
-// bucketSize * hysteresis
-// Since at most RNIL 8KiB-pages can be used for a fragment, the extreme values
-// for slack will be within -2^43 and +2^43 words.
-//-----------------------------------------------------------------------------
-  LHLevelRH level;
-  Uint32 localkeylen; // Currently only 1 is supported
-  Uint32 maxloadfactor;
-  Uint32 minloadfactor;
-  Int64 slack;
-  Int64 slackCheck;
-
-//-----------------------------------------------------------------------------
-// nextfreefrag is the next free fragment if linked into a free list
-//-----------------------------------------------------------------------------
-  Uint32 nextfreefrag;
-
-//-----------------------------------------------------------------------------
-// Fragment State, mostly applicable during LCP and restore
-//-----------------------------------------------------------------------------
-  State fragState;
-
-//-----------------------------------------------------------------------------
-// elementLength: Length of element in bucket and overflow pages
-// keyLength: Length of key
-//-----------------------------------------------------------------------------
-  static constexpr Uint32 elementLength = 2;
-  Uint16 keyLength;
-
-//-----------------------------------------------------------------------------
-// Only allow one expand or shrink signal in queue at the time.
-//-----------------------------------------------------------------------------
-  bool expandOrShrinkQueued;
-
-//-----------------------------------------------------------------------------
-// hashcheckbit is the bit to check whether to send element to split bucket or not
-// k (== 6) is the number of buckets per page
-//-----------------------------------------------------------------------------
-  static constexpr Uint32 k = 6;
-  static constexpr Uint32 MIN_HASH_COMPARE_BITS = 7;
-  static constexpr Uint32 MAX_HASH_VALUE_BITS = 31;
-
-//-----------------------------------------------------------------------------
-// nodetype can only be STORED in this release. Is currently only set, never read
-//-----------------------------------------------------------------------------
-  Uint8 nodetype;
-
-//-----------------------------------------------------------------------------
-// flag to avoid accessing table record if no char attributes
-//-----------------------------------------------------------------------------
-  Uint8 hasCharAttr;
-
-//-----------------------------------------------------------------------------
-// flag to mark that execEXPANDCHECK2 has failed due to DirRange full
-//-----------------------------------------------------------------------------
-  Uint8 dirRangeFull;
-
-  // Number of Page8 pages allocated for the hash index.
-  Int32 m_noOfAllocatedPages;
-
-//-----------------------------------------------------------------------------
-// Lock stats
-//-----------------------------------------------------------------------------
-// Used to track row lock activity on this fragment
-  struct LockStats 
-  {
-    /* Exclusive row lock counts */
-
-    /*   Total requests received */
-    Uint64 m_ex_req_count;
-
-    /*   Total requests immediately granted */
-    Uint64 m_ex_imm_ok_count;
-
-    /*   Total requests granted after a wait */
-    Uint64 m_ex_wait_ok_count;
-
-    /*   Total requests failed after a wait */
-    Uint64 m_ex_wait_fail_count;
-    
-
-    /* Shared row lock counts */
-
-    /*   Total requests received */
-    Uint64 m_sh_req_count;
-
-    /*   Total requests immediately granted */
-    Uint64 m_sh_imm_ok_count;
-
-    /*   Total requests granted after a wait */
-    Uint64 m_sh_wait_ok_count;
-
-    /*   Total requests failed after a wait */
-    Uint64 m_sh_wait_fail_count;
-
-    /* Wait times */
-
-
-    /*   Total time spent waiting for a lock
-     *   which was eventually granted
-     */
-    Uint64 m_wait_ok_millis;
-=======
->>>>>>> MySQL 8.0.36
-
-<<<<<<< RonDB // RONDB-624 todo
-    /*   Total time spent waiting for a lock
-     *   which was not eventually granted
-     */
-    std::atomic<Uint64> m_wait_fail_millis;
-    
-    void init()
-    {
-      m_ex_req_count       = 0;
-      m_ex_imm_ok_count    = 0;
-      m_ex_wait_ok_count   = 0;
-      m_ex_wait_fail_count = 0;
-    
-      m_sh_req_count       = 0;
-      m_sh_imm_ok_count    = 0;
-      m_sh_wait_ok_count   = 0;
-      m_sh_wait_fail_count = 0;
-
-      m_wait_ok_millis     = 0;
-      m_wait_fail_millis   = 0;
-    }
-||||||| Common ancestor
-    /*   Total time spent waiting for a lock
-     *   which was not eventually granted
-     */
-    Uint64 m_wait_fail_millis;
-    
-    void init()
-    {
-      m_ex_req_count       = 0;
-      m_ex_imm_ok_count    = 0;
-      m_ex_wait_ok_count   = 0;
-      m_ex_wait_fail_count = 0;
-    
-      m_sh_req_count       = 0;
-      m_sh_imm_ok_count    = 0;
-      m_sh_wait_ok_count   = 0;
-      m_sh_wait_fail_count = 0;
-
-      m_wait_ok_millis     = 0;
-      m_wait_fail_millis   = 0;
-    }
-=======
-  typedef SLCFifoList<Page8_pool, IA_Page8> Page8List;
-  typedef LocalSLCFifoList<Page8_pool, IA_Page8> LocalPage8List;
-  typedef DLCFifoList<Page8_pool, IA_Page8> ContainerPageList;
-  typedef LocalDLCFifoList<Page8_pool, IA_Page8> LocalContainerPageList;
->>>>>>> MySQL 8.0.36
-
-/* ---------------------------------------------------------------------------------
- */
-/* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN
- * FRAGMENT    */
-/*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC
- * FRAGMENT    */
-/* ---------------------------------------------------------------------------------
- */
-#define NUM_ACC_FRAGMENT_MUTEXES 4
-  struct Fragmentrec {
-    NdbMutex acc_frag_mutex[NUM_ACC_FRAGMENT_MUTEXES];
-    Uint32 scan[MAX_PARALLEL_SCANS_PER_FRAG];
-    Uint16 activeScanMask;
-    union {
-      Uint32 mytabptr;
-      Uint32 myTableId;
-    };
-    union {
-      Uint32 fragmentid;
-      Uint32 myfid;
-    };
-    Uint32 tupFragptr;
-    Uint32 roothashcheck;
-    Uint32 m_commit_count;
-    State rootState;
-
-    //-----------------------------------------------------------------------------
-    // Temporary variables used during shrink and expand process.
-    //-----------------------------------------------------------------------------
-    Uint32 expReceivePageptr;
-    Uint32 expReceiveIndex;
-    bool expReceiveIsforward;
-    Uint32 expSenderDirIndex;
-    Uint32 expSenderIndex;
-    Uint32 expSenderPageptr;
-
-    //-----------------------------------------------------------------------------
-    // Number of locks held on fragment, only for self-check
-    //-----------------------------------------------------------------------------
-    Uint32 lockCount;
 
     //-----------------------------------------------------------------------------
     // References to Directory Ranges (which in turn references directories,
@@ -935,54 +527,60 @@ struct Fragmentrec {
     //-----------------------------------------------------------------------------
     Uint8 dirRangeFull;
 
-    // Number of Page8 pages allocated for the hash index.
-    Int32 m_noOfAllocatedPages;
+  //Use new hash function or not
+  Uint8 m_use_new_hash_function;
 
-    //-----------------------------------------------------------------------------
-    // Lock stats
-    //-----------------------------------------------------------------------------
-    // Used to track row lock activity on this fragment
-    struct LockStats {
-      /* Exclusive row lock counts */
+  // Number of Page8 pages allocated for the hash index.
+  Int32 m_noOfAllocatedPages;
 
-      /*   Total requests received */
-      Uint64 m_ex_req_count;
+//-----------------------------------------------------------------------------
+// Lock stats
+//-----------------------------------------------------------------------------
+// Used to track row lock activity on this fragment
+  struct LockStats 
+  {
+    /* Exclusive row lock counts */
 
-      /*   Total requests immediately granted */
-      Uint64 m_ex_imm_ok_count;
+    /*   Total requests received */
+    std::atomic<Uint64> m_ex_req_count;
 
-      /*   Total requests granted after a wait */
-      Uint64 m_ex_wait_ok_count;
+    /*   Total requests immediately granted */
+    std::atomic<Uint64> m_ex_imm_ok_count;
 
-      /*   Total requests failed after a wait */
-      Uint64 m_ex_wait_fail_count;
+    /*   Total requests granted after a wait */
+    std::atomic<Uint64> m_ex_wait_ok_count;
 
-      /* Shared row lock counts */
+    /*   Total requests failed after a wait */
+    std::atomic<Uint64> m_ex_wait_fail_count;
+    
 
-      /*   Total requests received */
-      Uint64 m_sh_req_count;
+    /* Shared row lock counts */
 
-      /*   Total requests immediately granted */
-      Uint64 m_sh_imm_ok_count;
+    /*   Total requests received */
+    std::atomic<Uint64> m_sh_req_count;
 
-      /*   Total requests granted after a wait */
-      Uint64 m_sh_wait_ok_count;
+    /*   Total requests immediately granted */
+    std::atomic<Uint64> m_sh_imm_ok_count;
 
-      /*   Total requests failed after a wait */
-      Uint64 m_sh_wait_fail_count;
+    /*   Total requests granted after a wait */
+    std::atomic<Uint64> m_sh_wait_ok_count;
 
-      /* Wait times */
+    /*   Total requests failed after a wait */
+    std::atomic<Uint64> m_sh_wait_fail_count;
 
-      /*   Total time spent waiting for a lock
-       *   which was eventually granted
-       */
-      Uint64 m_wait_ok_millis;
+    /* Wait times */
 
-      /*   Total time spent waiting for a lock
-       *   which was not eventually granted
-       */
-      Uint64 m_wait_fail_millis;
 
+    /*   Total time spent waiting for a lock
+     *   which was eventually granted
+     */
+    std::atomic<Uint64> m_wait_ok_millis;
+
+    /*   Total time spent waiting for a lock
+     *   which was not eventually granted
+     */
+    std::atomic<Uint64> m_wait_fail_millis;
+    
       void init() {
         m_ex_req_count = 0;
         m_ex_imm_ok_count = 0;
@@ -1079,11 +677,9 @@ struct Fragmentrec {
   Fragment_pool c_fragment_pool;
   void set_tup_fragptr(Uint64 fragptr, Uint64 tup_fragptr);
 
-<<<<<<< RonDB // RONDB-624 todo
   RSS_OP_COUNTER(cnoOfAllocatedFragrec);
   RSS_OP_SNAPSHOT(cnoOfAllocatedFragrec);
-||||||| Common ancestor
-=======
+
   struct Operationrec {
     static constexpr Uint32 TYPE_ID = RT_DBACC_OPERATION;
     Uint32 m_magic;
@@ -1119,38 +715,7 @@ struct Fragmentrec {
       OP_EXECUTED_DIRTY_READ = 0x3050F,
       OP_INITIAL = ~(Uint32)0
     };
->>>>>>> MySQL 8.0.36
 
-<<<<<<< RonDB // RONDB-624 todo
-struct Operationrec {
-  static constexpr Uint32 TYPE_ID = RT_DBACC_OPERATION;
-  Uint32 m_magic;
-
-  enum OpBits {
-    OP_MASK                 = 0x0000F // 4 bits for operation type
-    ,OP_LOCK_MODE           = 0x00010 // 0 - shared lock, 1 = exclusive lock
-    ,OP_ACC_LOCK_MODE       = 0x00020 // Or:de lock mode of all operation
-                                      // before me
-    ,OP_LOCK_OWNER          = 0x00040
-    ,OP_RUN_QUEUE           = 0x00080 // In parallel queue of lock owner
-    ,OP_DIRTY_READ          = 0x00100
-    ,OP_LOCK_REQ            = 0x00200 // isAccLockReq
-    ,OP_COMMIT_DELETE_CHECK = 0x00400
-    ,OP_INSERT_IS_DONE      = 0x00800
-    ,OP_ELEMENT_DISAPPEARED = 0x01000
-    ,OP_PENDING_ABORT       = 0x02000
-    ,OP_NOWAIT              = 0x04000
-    
-    ,OP_STATE_MASK          = 0xF0000
-    ,OP_STATE_IDLE          = 0xF0000
-    ,OP_STATE_WAITING       = 0x00000
-    ,OP_STATE_RUNNING       = 0x10000
-    ,OP_STATE_EXECUTED      = 0x30000
-    
-    ,OP_EXECUTED_DIRTY_READ = 0x3050F
-    ,OP_INITIAL             = ~(Uint32)0
-  };
-  
   Operationrec() :
     m_magic(Magic::make(TYPE_ID)),
     m_op_bits(OP_INITIAL),
@@ -1158,46 +723,6 @@ struct Operationrec {
     m_reserved(false)
   {
   }
-||||||| Common ancestor
-struct Operationrec {
-  static constexpr Uint32 TYPE_ID = RT_DBACC_OPERATION;
-  Uint32 m_magic;
-
-  enum OpBits {
-    OP_MASK                 = 0x0000F // 4 bits for operation type
-    ,OP_LOCK_MODE           = 0x00010 // 0 - shared lock, 1 = exclusive lock
-    ,OP_ACC_LOCK_MODE       = 0x00020 // Or:de lock mode of all operation
-                                      // before me
-    ,OP_LOCK_OWNER          = 0x00040
-    ,OP_RUN_QUEUE           = 0x00080 // In parallel queue of lock owner
-    ,OP_DIRTY_READ          = 0x00100
-    ,OP_LOCK_REQ            = 0x00200 // isAccLockReq
-    ,OP_COMMIT_DELETE_CHECK = 0x00400
-    ,OP_INSERT_IS_DONE      = 0x00800
-    ,OP_ELEMENT_DISAPPEARED = 0x01000
-    ,OP_PENDING_ABORT       = 0x02000
-    ,OP_NOWAIT              = 0x04000
-    
-    ,OP_STATE_MASK          = 0xF0000
-    ,OP_STATE_IDLE          = 0xF0000
-    ,OP_STATE_WAITING       = 0x00000
-    ,OP_STATE_RUNNING       = 0x10000
-    ,OP_STATE_EXECUTED      = 0x30000
-    
-    ,OP_EXECUTED_DIRTY_READ = 0x3050F
-    ,OP_INITIAL             = ~(Uint32)0
-  };
-  
-  Operationrec() :
-    m_magic(Magic::make(TYPE_ID)),
-    m_op_bits(OP_INITIAL),
-    prevOp(RNIL)
-  {
-  }
-=======
-    Operationrec()
-        : m_magic(Magic::make(TYPE_ID)), m_op_bits(OP_INITIAL), prevOp(RNIL) {}
->>>>>>> MySQL 8.0.36
 
     ~Operationrec() {}
 
@@ -1274,24 +799,26 @@ struct Operationrec {
     enum ScanState { WAIT_NEXT = 0, SCAN_DISCONNECT = 1 };
     enum ScanBucketState { FIRST_LAP = 0, SECOND_LAP = 1, SCAN_COMPLETED = 2 };
 
-    ScanRec()
-        : m_magic(Magic::make(TYPE_ID)),
-          activeLocalFrag(RNIL),
-          nextBucketIndex(0),
-          scanFirstActiveOp(RNIL),
-          scanFirstLockedOp(RNIL),
-          scanLastLockedOp(RNIL),
-          scanFirstQueuedOp(RNIL),
-          scanLastQueuedOp(RNIL),
-          scanOpsAllocated(0),
-          scanLockCount(0),
-          scanLockHeld(0),
-          inPageI(RNIL),
-          inConptr(0),
-          elemScanned(0) {}
+  ScanRec() :
+    m_magic(Magic::make(TYPE_ID)),
+    activeLocalFrag(RNIL64),
+    nextBucketIndex(0),
+    scanFirstActiveOp(RNIL),
+    scanFirstLockedOp(RNIL),
+    scanLastLockedOp(RNIL),
+    scanFirstQueuedOp(RNIL),
+    scanLastQueuedOp(RNIL),
+    scanOpsAllocated(0),
+    scanLockCount(0),
+    scanLockHeld(0),
+    inPageI(RNIL),
+    inConptr(0),
+    elemScanned(0)
+  {
+  }
 
-    Uint32 activeLocalFrag;
-    Uint32 nextBucketIndex;
+  Uint64 activeLocalFrag;
+  Uint32 nextBucketIndex;
     /**
      * Next ptr (used in list)
      */
@@ -1335,134 +862,6 @@ struct Operationrec {
     void clearScanned(Uint32 elemptr);
     void moveScanBit(Uint32 toptr, Uint32 fromptr);
   };
-<<<<<<< RonDB // RONDB-624 todo
-
-  ScanRec() :
-    m_magic(Magic::make(TYPE_ID)),
-    activeLocalFrag(RNIL64),
-    nextBucketIndex(0),
-    scanFirstActiveOp(RNIL),
-    scanFirstLockedOp(RNIL),
-    scanLastLockedOp(RNIL),
-    scanFirstQueuedOp(RNIL),
-    scanLastQueuedOp(RNIL),
-    scanOpsAllocated(0),
-    scanLockCount(0),
-    scanLockHeld(0),
-    inPageI(RNIL),
-    inConptr(0),
-    elemScanned(0)
-  {
-  }
-
-  Uint64 activeLocalFrag;
-  Uint32 nextBucketIndex;
-  /**
-   * Next ptr (used in list)
-   */
-  Uint32 nextList;
-
-  Uint32 scanFirstActiveOp;
-  Uint32 scanFirstLockedOp;
-  Uint32 scanLastLockedOp;
-  Uint32 scanFirstQueuedOp;
-  Uint32 scanLastQueuedOp;
-  Uint32 scanUserptr;
-  Uint32 scanTrid1;
-  Uint32 scanTrid2;
-  Uint32 startNoOfBuckets;
-  Uint32 minBucketIndexToRescan;
-  Uint32 maxBucketIndexToRescan;
-  Uint32 scanOpsAllocated;
-  Uint32 scanLockCount;
-  ScanBucketState scanBucketState;
-  ScanState scanState;
-  Uint16 scanLockHeld;
-  Uint16 scan_lastSeen;
-  Uint32 scanUserblockref;
-  Uint32 scanMask;
-  Uint8 scanLockMode;
-  Uint8 scanReadCommittedFlag;
-private:
-  Uint32 inPageI;
-  Uint32 inConptr;
-  Uint32 elemScanned;
-  enum { ELEM_SCANNED_BITS = sizeof(Uint32) * 8 };
-public:
-  bool isInContainer() const;
-  bool getContainer(Uint32& pagei, Uint32& conptr) const;
-  void enterContainer(Uint32 pagei, Uint32 conptr);
-  void leaveContainer(Uint32 pagei, Uint32 conptr);
-  bool isScanned(Uint32 elemptr) const;
-  void setScanned(Uint32 elemptr);
-  void clearScanned(Uint32 elemptr);
-  void moveScanBit(Uint32 toptr, Uint32 fromptr);
-};
-||||||| Common ancestor
-
-  ScanRec() :
-    m_magic(Magic::make(TYPE_ID)),
-    activeLocalFrag(RNIL),
-    nextBucketIndex(0),
-    scanFirstActiveOp(RNIL),
-    scanFirstLockedOp(RNIL),
-    scanLastLockedOp(RNIL),
-    scanFirstQueuedOp(RNIL),
-    scanLastQueuedOp(RNIL),
-    scanOpsAllocated(0),
-    scanLockCount(0),
-    scanLockHeld(0),
-    inPageI(RNIL),
-    inConptr(0),
-    elemScanned(0)
-  {
-  }
-
-  Uint32 activeLocalFrag;
-  Uint32 nextBucketIndex;
-  /**
-   * Next ptr (used in list)
-   */
-  Uint32 nextList;
-
-  Uint32 scanFirstActiveOp;
-  Uint32 scanFirstLockedOp;
-  Uint32 scanLastLockedOp;
-  Uint32 scanFirstQueuedOp;
-  Uint32 scanLastQueuedOp;
-  Uint32 scanUserptr;
-  Uint32 scanTrid1;
-  Uint32 scanTrid2;
-  Uint32 startNoOfBuckets;
-  Uint32 minBucketIndexToRescan;
-  Uint32 maxBucketIndexToRescan;
-  Uint32 scanOpsAllocated;
-  Uint32 scanLockCount;
-  ScanBucketState scanBucketState;
-  ScanState scanState;
-  Uint16 scanLockHeld;
-  Uint16 scan_lastSeen;
-  Uint32 scanUserblockref;
-  Uint32 scanMask;
-  Uint8 scanLockMode;
-  Uint8 scanReadCommittedFlag;
-private:
-  Uint32 inPageI;
-  Uint32 inConptr;
-  Uint32 elemScanned;
-  enum { ELEM_SCANNED_BITS = sizeof(Uint32) * 8 };
-public:
-  bool isInContainer() const;
-  bool getContainer(Uint32& pagei, Uint32& conptr) const;
-  void enterContainer(Uint32 pagei, Uint32 conptr);
-  void leaveContainer(Uint32 pagei, Uint32 conptr);
-  bool isScanned(Uint32 elemptr) const;
-  void setScanned(Uint32 elemptr);
-  void clearScanned(Uint32 elemptr);
-  void moveScanBit(Uint32 toptr, Uint32 fromptr);
-};
-=======
->>>>>>> MySQL 8.0.36
   typedef Ptr<ScanRec> ScanRecPtr;
   typedef TransientPool<ScanRec> ScanRec_pool;
   static constexpr Uint32 DBACC_SCAN_RECORD_TRANSIENT_POOL_INDEX = 0;
@@ -1768,7 +1167,6 @@ private:
 
  public:
   // Variables
-<<<<<<< RonDB // RONDB-624 todo
 /* ------------------------------------------------------------------------- */
 /* DIRECTORY                                                                 */
 /* ------------------------------------------------------------------------- */
@@ -1780,60 +1178,6 @@ private:
 /* --------------------------------------------------------------------------------- */
 /* PAGE8                                                                             */
 /* --------------------------------------------------------------------------------- */
-||||||| Common ancestor
-/* --------------------------------------------------------------------------------- */
-/* DIRECTORY                                                                         */
-/* --------------------------------------------------------------------------------- */
-  DynArr256Pool*  directoryPoolPtr;
-  DynArr256Pool   directoryPool;
-/* --------------------------------------------------------------------------------- */
-/* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN FRAGMENT    */
-/*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC FRAGMENT    */
-/* --------------------------------------------------------------------------------- */
-
-  Fragmentrec *fragmentrec;
-  FragmentrecPtr fragrecptr;
-  Uint32 cfirstfreefrag;
-  Uint32 cfragmentsize;
-  RSS_OP_COUNTER(cnoOfFreeFragrec);
-  RSS_OP_SNAPSHOT(cnoOfFreeFragrec);
-
-private:
-
-/* --------------------------------------------------------------------------------- */
-/* PAGE8                                                                             */
-/* --------------------------------------------------------------------------------- */
-=======
-  /* ---------------------------------------------------------------------------------
-   */
-  /* DIRECTORY */
-  /* ---------------------------------------------------------------------------------
-   */
-  DynArr256Pool *directoryPoolPtr;
-  DynArr256Pool directoryPool;
-  /* ---------------------------------------------------------------------------------
-   */
-  /* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN
-   * FRAGMENT    */
-  /*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC
-   * FRAGMENT    */
-  /* ---------------------------------------------------------------------------------
-   */
-
-  Fragmentrec *fragmentrec;
-  FragmentrecPtr fragrecptr;
-  Uint32 cfirstfreefrag;
-  Uint32 cfragmentsize;
-  RSS_OP_COUNTER(cnoOfFreeFragrec);
-  RSS_OP_SNAPSHOT(cnoOfFreeFragrec);
-
- private:
-  /* ---------------------------------------------------------------------------------
-   */
-  /* PAGE8 */
-  /* ---------------------------------------------------------------------------------
-   */
->>>>>>> MySQL 8.0.36
   /* 8 KB PAGE                       */
   Page32Lists pages;
   Page8List::Head cfreepages;
@@ -1843,35 +1187,8 @@ private:
 
   Page32_pool c_page_pool;
   Page8_pool c_page8_pool;
-<<<<<<< RonDB // RONDB-624 todo
   bool c_allow_use_of_emergency_pages;
   bool c_restart_allow_use_spare;
-/* --------------------------------------------------------------------------------- */
-/* ROOTFRAGMENTREC                                                                   */
-/*          DURING EXPAND FRAGMENT PROCESS, EACH FRAGMEND WILL BE EXPAND INTO TWO    */
-/*          NEW FRAGMENTS.TO MAKE THIS PROCESS EASIER, DURING ADD FRAGMENT PROCESS   */
-/*          NEXT FRAGMENT IDENTIIES WILL BE CALCULATED, AND TWO FRAGMENTS WILL BE    */
-/*          ADDED IN (NDBACC). THEREBY EXPAND OF FRAGMENT CAN BE PERFORMED QUICK AND */
-/*          EASY.THE NEW FRAGMENT ID SENDS TO TUP MANAGER FOR ALL OPERATION PROCESS. */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* TABREC                                                                            */
-/* --------------------------------------------------------------------------------- */
-||||||| Common ancestor
-  bool c_allow_use_of_spare_pages;
-/* --------------------------------------------------------------------------------- */
-/* ROOTFRAGMENTREC                                                                   */
-/*          DURING EXPAND FRAGMENT PROCESS, EACH FRAGMEND WILL BE EXPAND INTO TWO    */
-/*          NEW FRAGMENTS.TO MAKE THIS PROCESS EASIER, DURING ADD FRAGMENT PROCESS   */
-/*          NEXT FRAGMENT IDENTIIES WILL BE CALCULATED, AND TWO FRAGMENTS WILL BE    */
-/*          ADDED IN (NDBACC). THEREBY EXPAND OF FRAGMENT CAN BE PERFORMED QUICK AND */
-/*          EASY.THE NEW FRAGMENT ID SENDS TO TUP MANAGER FOR ALL OPERATION PROCESS. */
-/* --------------------------------------------------------------------------------- */
-/* --------------------------------------------------------------------------------- */
-/* TABREC                                                                            */
-/* --------------------------------------------------------------------------------- */
-=======
-  bool c_allow_use_of_spare_pages;
   /* ---------------------------------------------------------------------------------
    */
   /* ROOTFRAGMENTREC */
@@ -1892,7 +1209,6 @@ private:
   /* TABREC */
   /* ---------------------------------------------------------------------------------
    */
->>>>>>> MySQL 8.0.36
   Tabrec *tabrec;
   TabrecPtr tabptr;
   Uint32 ctablesize;

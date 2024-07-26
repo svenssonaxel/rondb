@@ -29,7 +29,7 @@
 #include <backup/Backup.hpp>
 #include <dblqh/Dblqh.hpp>
 #include <dbtup/Dbtup.hpp>
-#include <md5_hash.hpp>
+#include <util/rondb_hash.hpp>
 #include <signaldata/AttrInfo.hpp>
 #include <signaldata/DictTabInfo.hpp>
 #include <signaldata/DumpStateOrd.hpp>
@@ -41,25 +41,7 @@
 #include <signaldata/FsRemoveReq.hpp>
 #include <signaldata/KeyInfo.hpp>
 #include <signaldata/LqhKey.hpp>
-<<<<<<< RonDB // RONDB-624 todo
-#include <AttributeHeader.hpp>
-#include <backup/Backup.hpp>
-#include <dblqh/Dblqh.hpp>
-#include <dbtup/Dbtup.hpp>
-#include <KeyDescriptor.hpp>
-#include <signaldata/DumpStateOrd.hpp>
-#include <util/rondb_hash.hpp>
-||||||| Common ancestor
-#include <AttributeHeader.hpp>
-#include <md5_hash.hpp>
-#include <backup/Backup.hpp>
-#include <dblqh/Dblqh.hpp>
-#include <dbtup/Dbtup.hpp>
-#include <KeyDescriptor.hpp>
-#include <signaldata/DumpStateOrd.hpp>
-=======
 #include <signaldata/RestoreImpl.hpp>
->>>>>>> MySQL 8.0.36
 
 #include <NdbTick.h>
 #include <EventLogger.hpp>

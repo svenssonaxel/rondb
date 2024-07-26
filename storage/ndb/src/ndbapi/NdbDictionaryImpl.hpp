@@ -807,24 +807,13 @@ class NdbDictInterface {
   int forceGCPWait(int type);
   int getRestartGCI(Uint32 *);
 
-<<<<<<< RonDB // RONDB-624 todo
   static int parseTableInfo(NdbTableImpl ** dst, 
 			    const Uint32 * data, Uint32 len,
 			    bool fullyQualifiedNames,
                             class NdbImpl*,
                             Uint32 version= 0xFFFFFFFF);
-||||||| Common ancestor
-  static int parseTableInfo(NdbTableImpl ** dst, 
-			    const Uint32 * data, Uint32 len,
-			    bool fullyQualifiedNames,
-                            Uint32 version= 0xFFFFFFFF);
-=======
-  static int parseTableInfo(NdbTableImpl **dst, const Uint32 *data, Uint32 len,
-                            bool fullyQualifiedNames,
-                            Uint32 version = 0xFFFFFFFF);
 
   static int parseFileInfo(NdbFileImpl &dst, const Uint32 *data, Uint32 len);
->>>>>>> MySQL 8.0.36
 
   static int parseFilegroupInfo(NdbFilegroupImpl &dst, const Uint32 *data,
                                 Uint32 len);

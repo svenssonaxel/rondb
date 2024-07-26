@@ -171,23 +171,13 @@ void Dbtup::execCREATE_TAB_REQ(Signal *signal) {
   regTabPtr.p->m_createTable.defValSectionI = RNIL;
   regTabPtr.p->tableStatus = DEFINING;
   regTabPtr.p->m_bits = 0;
-<<<<<<< RonDB // RONDB-624 todo
   regTabPtr.p->m_bits |=
     (req->checksumIndicator ? Tablerec::TR_Checksum : 0);
   regTabPtr.p->m_bits |=
     (req->GCPIndicator ? Tablerec::TR_RowGCI : 0);
   regTabPtr.p->m_bits |=
     (req->forceVarPartFlag? Tablerec::TR_ForceVarPart : 0);
-||||||| Common ancestor
-  regTabPtr.p->m_bits |= (req->checksumIndicator ? Tablerec::TR_Checksum : 0);
-  regTabPtr.p->m_bits |= (req->GCPIndicator ? Tablerec::TR_RowGCI : 0);
-  regTabPtr.p->m_bits |= (req->forceVarPartFlag? Tablerec::TR_ForceVarPart : 0);
-=======
-  regTabPtr.p->m_bits |= (req->checksumIndicator ? Tablerec::TR_Checksum : 0);
-  regTabPtr.p->m_bits |= (req->GCPIndicator ? Tablerec::TR_RowGCI : 0);
->>>>>>> MySQL 8.0.36
   regTabPtr.p->m_bits |=
-<<<<<<< RonDB // RONDB-624 todo
     (req->GCPIndicator > 1 ? Tablerec::TR_ExtraRowGCIBits : 0);
   regTabPtr.p->m_bits |=
     (req->extraRowAuthorBits ? Tablerec::TR_ExtraRowAuthorBits : 0);
@@ -227,66 +217,6 @@ void Dbtup::execCREATE_TAB_REQ(Signal *signal) {
   regTabPtr.p->m_attributes[DD].m_no_of_dynamic= 0;
   regTabPtr.p->m_attributes[DD].m_no_of_dyn_fix= 0;
   regTabPtr.p->m_attributes[DD].m_no_of_dyn_var= 0;
-||||||| Common ancestor
-    (req->GCPIndicator > 1 ? Tablerec::TR_ExtraRowGCIBits : 0);
-  regTabPtr.p->m_bits |= (req->extraRowAuthorBits ? Tablerec::TR_ExtraRowAuthorBits : 0);
-
-  regTabPtr.p->m_offsets[MM].m_disk_ref_offset= 0;
-  regTabPtr.p->m_offsets[MM].m_null_words= 0;
-  regTabPtr.p->m_offsets[MM].m_fix_header_size= 0;
-  regTabPtr.p->m_offsets[MM].m_max_var_offset= 0;
-  regTabPtr.p->m_offsets[MM].m_max_dyn_offset= 0;
-  regTabPtr.p->m_offsets[MM].m_dyn_null_words= 0;
-
-  regTabPtr.p->m_offsets[DD].m_disk_ref_offset= 0;
-  regTabPtr.p->m_offsets[DD].m_null_words= 0;
-  regTabPtr.p->m_offsets[DD].m_fix_header_size= 0;
-  regTabPtr.p->m_offsets[DD].m_max_var_offset= 0;
-  regTabPtr.p->m_offsets[DD].m_max_dyn_offset= 0;
-  regTabPtr.p->m_offsets[DD].m_dyn_null_words= 0;
-
-  regTabPtr.p->m_attributes[MM].m_no_of_fixsize= 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_varsize= 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dynamic= 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dyn_fix= 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dyn_var= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_fixsize= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_varsize= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dynamic= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dyn_fix= 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dyn_var= 0;
-=======
-      (req->forceVarPartFlag ? Tablerec::TR_ForceVarPart : 0);
-  regTabPtr.p->m_bits |=
-      (req->GCPIndicator > 1 ? Tablerec::TR_ExtraRowGCIBits : 0);
-  regTabPtr.p->m_bits |=
-      (req->extraRowAuthorBits ? Tablerec::TR_ExtraRowAuthorBits : 0);
-
-  regTabPtr.p->m_offsets[MM].m_disk_ref_offset = 0;
-  regTabPtr.p->m_offsets[MM].m_null_words = 0;
-  regTabPtr.p->m_offsets[MM].m_fix_header_size = 0;
-  regTabPtr.p->m_offsets[MM].m_max_var_offset = 0;
-  regTabPtr.p->m_offsets[MM].m_max_dyn_offset = 0;
-  regTabPtr.p->m_offsets[MM].m_dyn_null_words = 0;
-
-  regTabPtr.p->m_offsets[DD].m_disk_ref_offset = 0;
-  regTabPtr.p->m_offsets[DD].m_null_words = 0;
-  regTabPtr.p->m_offsets[DD].m_fix_header_size = 0;
-  regTabPtr.p->m_offsets[DD].m_max_var_offset = 0;
-  regTabPtr.p->m_offsets[DD].m_max_dyn_offset = 0;
-  regTabPtr.p->m_offsets[DD].m_dyn_null_words = 0;
-
-  regTabPtr.p->m_attributes[MM].m_no_of_fixsize = 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_varsize = 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dynamic = 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dyn_fix = 0;
-  regTabPtr.p->m_attributes[MM].m_no_of_dyn_var = 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_fixsize = 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_varsize = 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dynamic = 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dyn_fix = 0;
-  regTabPtr.p->m_attributes[DD].m_no_of_dyn_var = 0;
->>>>>>> MySQL 8.0.36
 
   // Reserve space for bitmap length
   regTabPtr.p->m_dyn_null_bits[MM]= DYN_BM_LEN_BITS;
@@ -1194,71 +1124,8 @@ void Dbtup::execALTER_TAB_REQ(Signal *signal) {
       handleAlterTableCommit(signal, req, regTabPtr);
       return;
     }
-<<<<<<< RonDB // RONDB-624 todo
-    handleAlterTablePrepare(signal, req, regTabPtr);
-    return;
-  }
-  case AlterTabReq::AlterTableCommit:
-  {
-    jam();
-    handleAlterTableCommit(signal, req, regTabPtr);
-    return;
-  }
-  case AlterTabReq::AlterTableRevert:
-  {
-    jam();
-    handleAlterTableAbort(signal, req, regTabPtr.p);
-    return;
-  }
-  case AlterTabReq::AlterTableComplete:
-  {
-    jam();
-    handleAlterTableComplete(signal, req, regTabPtr.i);
-    return;
-  }
-  case AlterTabReq::AlterTableSumaEnable:
-  {
-    FragrecordPtr regFragPtr;
-    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
-    {
-||||||| Common ancestor
-    handleAlterTablePrepare(signal, req, regTabPtr.p);
-    return;
-  }
-  case AlterTabReq::AlterTableCommit:
-  {
-    jam();
-    handleAlterTableCommit(signal, req, regTabPtr);
-    return;
-  }
-  case AlterTabReq::AlterTableRevert:
-  {
-    jam();
-    handleAlterTableAbort(signal, req, regTabPtr.p);
-    return;
-  }
-  case AlterTabReq::AlterTableComplete:
-  {
-    jam();
-    handleAlterTableComplete(signal, req, regTabPtr.p);
-    return;
-  }
-  case AlterTabReq::AlterTableSumaEnable:
-  {
-    FragrecordPtr regFragPtr;
-    for (Uint32 i = 0; i < NDB_ARRAY_SIZE(regTabPtr.p->fragrec); i++)
-    {
-=======
     case AlterTabReq::AlterTableRevert: {
->>>>>>> MySQL 8.0.36
       jam();
-<<<<<<< RonDB // RONDB-624 todo
-      if ((regFragPtr.i = c_lqh->getNextTupFragrec(regTabPtr.i, i)) != RNIL64)
-      {
-||||||| Common ancestor
-      if ((regFragPtr.i = regTabPtr.p->fragrec[i]) != RNIL)
-      {
-=======
       handleAlterTableAbort(signal, req, regTabPtr.p);
       return;
     }
@@ -1267,26 +1134,18 @@ void Dbtup::execALTER_TAB_REQ(Signal *signal) {
       handleAlterTableComplete(signal, req, regTabPtr.p);
       return;
     }
-    case AlterTabReq::AlterTableSumaEnable: {
-      FragrecordPtr regFragPtr;
-      for (Uint32 i = 0; i < NDB_ARRAY_SIZE(regTabPtr.p->fragrec); i++) {
->>>>>>> MySQL 8.0.36
+  case AlterTabReq::AlterTableSumaEnable:
+  {
+    FragrecordPtr regFragPtr;
+    for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
+    {
+      jam();
+      if ((regFragPtr.i = c_lqh->getNextTupFragrec(regTabPtr.i, i)) != RNIL64)
+      {
         jam();
-<<<<<<< RonDB // RONDB-624 todo
         ndbrequire(c_fragment_pool.getPtr(regFragPtr));
         switch(regFragPtr.p->fragStatus){
         case Fragrecord::FS_REORG_COMMIT_NEW:
-||||||| Common ancestor
-        ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
-        switch(regFragPtr.p->fragStatus){
-        case Fragrecord::FS_REORG_COMMIT_NEW:
-=======
-        if ((regFragPtr.i = regTabPtr.p->fragrec[i]) != RNIL) {
->>>>>>> MySQL 8.0.36
-          jam();
-          ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
-          switch (regFragPtr.p->fragStatus) {
-            case Fragrecord::FS_REORG_COMMIT_NEW:
               jam();
               if (0)
                 g_eventLogger->info(
@@ -1300,10 +1159,6 @@ void Dbtup::execALTER_TAB_REQ(Signal *signal) {
           }
         }
       }
-      sendAlterTabConf(signal, RNIL);
-      return;
-    }
-<<<<<<< RonDB // RONDB-624 todo
     sendAlterTabConf(signal, RNIL);
     return;
   }
@@ -1317,43 +1172,10 @@ void Dbtup::execALTER_TAB_REQ(Signal *signal) {
       jam();
       if ((regFragPtr.i = c_lqh->getNextTupFragrec(regTabPtr.i, i)) != RNIL64)
       {
-||||||| Common ancestor
-    sendAlterTabConf(signal, RNIL);
-    return;
-  }
-  case AlterTabReq::AlterTableSumaFilter:
-  {
-    Uint32 gci = signal->theData[signal->getLength() - 1];
-    regTabPtr.p->m_reorg_suma_filter.m_gci_hi = gci;
-    FragrecordPtr regFragPtr;
-    for (Uint32 i = 0; i < NDB_ARRAY_SIZE(regTabPtr.p->fragrec); i++)
-    {
-      jam();
-      if ((regFragPtr.i = regTabPtr.p->fragrec[i]) != RNIL)
-      {
-=======
-    case AlterTabReq::AlterTableSumaFilter: {
-      Uint32 gci = signal->theData[signal->getLength() - 1];
-      regTabPtr.p->m_reorg_suma_filter.m_gci_hi = gci;
-      FragrecordPtr regFragPtr;
-      for (Uint32 i = 0; i < NDB_ARRAY_SIZE(regTabPtr.p->fragrec); i++) {
->>>>>>> MySQL 8.0.36
         jam();
-<<<<<<< RonDB // RONDB-624 todo
         ndbrequire(c_fragment_pool.getPtr(regFragPtr));
         switch(regFragPtr.p->fragStatus){
         case Fragrecord::FS_REORG_COMMIT:
-||||||| Common ancestor
-        ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
-        switch(regFragPtr.p->fragStatus){
-        case Fragrecord::FS_REORG_COMMIT:
-=======
-        if ((regFragPtr.i = regTabPtr.p->fragrec[i]) != RNIL) {
->>>>>>> MySQL 8.0.36
-          jam();
-          ptrCheckGuard(regFragPtr, cnoOfFragrec, fragrecord);
-          switch (regFragPtr.p->fragStatus) {
-            case Fragrecord::FS_REORG_COMMIT:
               jam();
               if (0)
                 g_eventLogger->info(
@@ -1364,12 +1186,12 @@ void Dbtup::execALTER_TAB_REQ(Signal *signal) {
               break;
             default:
               break;
-          }
         }
       }
-      signal->theData[0] = ~Uint32(0);
-      return;
     }
+    signal->theData[0] = ~Uint32(0);
+    return;
+  }
     case AlterTabReq::AlterTableReadOnly:
     case AlterTabReq::AlterTableReadWrite:
       jam();
