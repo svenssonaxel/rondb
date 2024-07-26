@@ -39,8 +39,6 @@
 #define DEB_AUTOMATIC_MEMORY(arglist) do { } while (0)
 #endif
 
-
-
 #define DEBUG(x) \
   { ndbout << "DIH::" << x << endl; }
 

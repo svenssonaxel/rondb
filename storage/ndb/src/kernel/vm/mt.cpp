@@ -186,8 +186,8 @@ alignas(NDB_CL) static Uint32 glob_unused[NDB_CL / 4];
 #define MAX_SIGNAL_SIZE 34
 static_assert(((sizeof(SignalHeader) / 4) + 25) == MAX_SIGNAL_SIZE);
 
-#define MIN_SIGNALS_PER_PAGE \
-  ((thr_job_buffer::SIZE / MAX_SIGNAL_SIZE) - MAX_SIGNALS_BEFORE_FLUSH_OTHER)
+#define MIN_SIGNALS_PER_PAGE ((thr_job_buffer::SIZE / MAX_SIGNAL_SIZE) - \
+                               MAX_SIGNALS_BEFORE_FLUSH_OTHER)
 
 #if defined(HAVE_LINUX_FUTEX) && defined(NDB_HAVE_XCNG)
 #define USE_FUTEX

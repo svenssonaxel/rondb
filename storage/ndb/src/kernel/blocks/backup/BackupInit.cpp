@@ -38,16 +38,13 @@
 
 #define JAM_FILE_ID 472
 
-//extern const unsigned Ndbcntr::g_sysTableCount;
+// extern const unsigned Ndbcntr::g_sysTableCount;
 
-Backup::Backup(Block_context& ctx,
-               Uint32 instanceNumber,
-               Uint32 blockNo) :
-  SimulatedBlock(blockNo, ctx, instanceNumber),
-  m_delete_lcp_file_list(c_deleteLcpFilePool),
-  c_nodes(c_nodePool),
-  c_backups(c_backupPool)
-{
+Backup::Backup(Block_context &ctx, Uint32 instanceNumber, Uint32 blockNo)
+    : SimulatedBlock(blockNo, ctx, instanceNumber),
+      m_delete_lcp_file_list(c_deleteLcpFilePool),
+      c_nodes(c_nodePool),
+      c_backups(c_backupPool) {
   BLOCK_CONSTRUCTOR(Backup);
 
   c_masterNodeId = getOwnNodeId();

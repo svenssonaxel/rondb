@@ -362,24 +362,19 @@ class Dbacc : public SimulatedBlock {
     explicit Page8_pool(Page32_pool &pool) : m_page_pool(pool) {}
     void getPtr(Ptr<Page8> &page) const;
     void getPtrForce(Ptr<Page8> &page) const;
-
    private:
-    Page32_pool &m_page_pool;
+    Page32_pool& m_page_pool;
   };
 
-  typedef SLCFifoList<Page8_pool, IA_Page8> Page8List;
-  typedef LocalSLCFifoList<Page8_pool, IA_Page8> LocalPage8List;
-  typedef DLCFifoList<Page8_pool, IA_Page8> ContainerPageList;
-  typedef LocalDLCFifoList<Page8_pool, IA_Page8> LocalContainerPageList;
+typedef SLCFifoList<Page8_pool, IA_Page8> Page8List;
+typedef LocalSLCFifoList<Page8_pool, IA_Page8> LocalPage8List;
+typedef DLCFifoList<Page8_pool, IA_Page8> ContainerPageList;
+typedef LocalDLCFifoList<Page8_pool, IA_Page8> LocalContainerPageList;
 
-/* ---------------------------------------------------------------------------------
- */
-/* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN
- * FRAGMENT    */
-/*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC
- * FRAGMENT    */
-/* ---------------------------------------------------------------------------------
- */
+/* --------------------------------------------------------------------------------- */
+/* FRAGMENTREC. ALL INFORMATION ABOUT FRAMENT AND HASH TABLE IS SAVED IN FRAGMENT    */
+/*         REC  A POINTER TO FRAGMENT RECORD IS SAVED IN ROOTFRAGMENTREC FRAGMENT    */
+/* --------------------------------------------------------------------------------- */
 #define NUM_ACC_FRAGMENT_MUTEXES 4
 struct Fragmentrec {
   Fragmentrec() {}
