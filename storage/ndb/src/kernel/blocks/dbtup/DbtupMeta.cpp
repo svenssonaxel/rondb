@@ -183,7 +183,6 @@ void Dbtup::execCREATE_TAB_REQ(Signal *signal) {
       (req->extraRowAuthorBits ? Tablerec::TR_ExtraRowAuthorBits : 0);
   regTabPtr.p->m_bits |=
     (req->useVarSizedDiskData ? Tablerec::TR_UseVarSizedDiskData : 0);
-  regTabPtr.p->m_bits |= (req->extraRowAuthorBits ? Tablerec::TR_ExtraRowAuthorBits : 0);
   regTabPtr.p->m_bits |=
     (req->hashFunctionFlag ? Tablerec::TR_HashFunction : 0);
 
@@ -1115,7 +1114,7 @@ void Dbtup::execALTER_TAB_REQ(Signal *signal) {
       ::copy(signal->theData + 25, handle.m_ptr[0]);
       releaseSections(handle);
     }
-    handleAlterTablePrepare(signal, req, regTabPtr.p);
+    handleAlterTablePrepare(signal, req, regTabPtr);
     return;
   }
   case AlterTabReq::AlterTableCommit:
@@ -1133,7 +1132,7 @@ void Dbtup::execALTER_TAB_REQ(Signal *signal) {
   case AlterTabReq::AlterTableComplete:
   {
     jam();
-    handleAlterTableComplete(signal, req, regTabPtr.p);
+    handleAlterTableComplete(signal, req, regTabPtr.i);
     return;
   }
   case AlterTabReq::AlterTableSumaEnable:

@@ -280,7 +280,6 @@ Dbtup::alloc_fix_rowid(Uint32 * err,
     case ZTH_MM_FREE:
       acquire_frag_mutex(regFragPtr, page_no, jamBuffer());
       if (((Fix_page *)pagePtr.p)->alloc_record(idx) != idx) {
-        jam();
         DEB_899_ERROR(("(%u)899 error FREE: tab(%u,%u) row(%u,%u)", instance(),
                        regFragPtr->fragTableId, regFragPtr->fragmentId, page_no,
                        idx));

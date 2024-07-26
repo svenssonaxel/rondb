@@ -895,7 +895,6 @@ exec $NDB_IMPORT --state-dir=$MYSQLTEST_VARDIR/tmp --keep-state --log-level=1
 drop table tauto_inc1;
 drop table tauto_inc2;
 drop table tauto_inc3;
-
 # Check that it is not possible to import negative values into an unsigned int column.
 
 --write_file $MYSQLTEST_VARDIR/tmp/t15.csv

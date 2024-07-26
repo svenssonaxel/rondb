@@ -182,7 +182,7 @@ alignas(NDB_CL) static Uint32 glob_unused[NDB_CL / 4];
 
 #define NO_SEND_THREAD (MAX_BLOCK_THREADS + MAX_NDBMT_SEND_THREADS + 1)
 
-/* max signal is 32 words, 9 for signal header and 25 datawords */
+/* max signal is 34 words, 9 for signal header and 25 datawords */
 #define MAX_SIGNAL_SIZE 34
 static_assert(((sizeof(SignalHeader) / 4) + 25) == MAX_SIGNAL_SIZE);
 

@@ -125,7 +125,9 @@ static constexpr size_t ALLOC_PAGES_PER_SYSTEM_PAGE =
    Bug #32575486 NDBMTD CONSUMES ALL AVAILABLE MEMORY IN DEBUG ON SOLARIS
 */
 #if defined(VM_TRACE) && !defined(__sun) && !defined(__aarch64__)
-#if defined(_WIN32) || (defined(MADV_DONTDUMP) && defined(MAP_NORESERVE)) || \
+#if defined(_WIN32) || \
+    (defined(MADV_DONTDUMP) && \
+     defined(MAP_NORESERVE)) || \
     defined(MAP_GUARD)
 /*
  * Only activate use of do_virtual_alloc() if build platform allows reserving

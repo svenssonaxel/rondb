@@ -2275,8 +2275,6 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal) {
       }
       break;
     }
-    break;
-  }
 
     case Ndbinfo::NODES_TABLEID: {
       jam();

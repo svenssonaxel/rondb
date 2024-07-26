@@ -3774,9 +3774,9 @@ void BackupRestore::cback(int result, restore_callback_t *cb)
     }
   } else if (get_fatal_error())  // fatal error in other restore-thread
   {
-    restoreLogger.log_error("Restore: Failed to restore data due to an "
-                            "unrecoverable error in another restore thread. "
-                            "Exiting...");
+    restoreLogger.log_error(
+        "Restore: Failed to restore data due to a unrecoverable error. "
+        "Exiting...");
     cb->next = m_free_callback;
     m_free_callback = cb;
     return;

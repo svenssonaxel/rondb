@@ -157,7 +157,7 @@ DECLARE_NDBINFO_TABLE(LOGBUFFERS, 7) = {
 
 DECLARE_NDBINFO_TABLE(RESOURCES, 7) = {
     {"resources", 7, 0,
-     [](const Ndbinfo::Counts &c) { return c.data_nodes * 13 /*MM_RG_COUNT + 1*/; },
+     [](const Ndbinfo::Counts &c) { return c.data_nodes * 9 /*MM_RG_COUNT*/; },
      "resources usage (a.k.a superpool)"},
     {{"node_id", Ndbinfo::Number, ""},
      {"resource_id", Ndbinfo::Number, ""},
@@ -814,7 +814,7 @@ DECLARE_NDBINFO_TABLE(TABLE_FRAGMENTS, 15) = {
 DECLARE_NDBINFO_TABLE(TABLE_REPLICAS, 16) = {
     {"table_replicas", 16, 0,
      [](const Ndbinfo::Counts &c) {
-       return c.data_nodes * 4 * c.est_tables;
+       return c.data_nodes * 2 * c.est_tables;
      },
      "Fragment replicas of the tables"},
     {{"node_id", Ndbinfo::Number, "node_id"},
@@ -860,7 +860,7 @@ DECLARE_NDBINFO_TABLE(TABLE_DIST_STATUS_ALL, 13) = {
 DECLARE_NDBINFO_TABLE(TABLE_FRAGMENTS_ALL, 15) = {
     {"table_fragments_all", 15, 0,
      [](const Ndbinfo::Counts &c) {
-       return c.data_nodes * c.est_tables * 2;
+       return c.data_nodes * 2 * c.est_tables;
      },
      "Partitions of the tables"},
     {{"node_id", Ndbinfo::Number, "node_id"},
@@ -885,7 +885,7 @@ DECLARE_NDBINFO_TABLE(TABLE_FRAGMENTS_ALL, 15) = {
 DECLARE_NDBINFO_TABLE(TABLE_REPLICAS_ALL, 16) = {
     {"table_replicas_all", 16, 0,
      [](const Ndbinfo::Counts &c) {
-       return 2 * c.est_tables * c.data_nodes;
+       return c.instances.lqh * 2 * c.est_tables;
      },
      "Fragment replicas of the tables"},
     {{"node_id", Ndbinfo::Number, "node_id"},

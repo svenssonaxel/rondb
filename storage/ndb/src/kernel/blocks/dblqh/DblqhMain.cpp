@@ -1559,15 +1559,14 @@ void Dblqh::execSTTOR(Signal *signal) {
       set_use_mutex_for_log_parts();
       sendsttorryLab(signal);
       return;
-  case 2:
-    jam();
-    set_up_qt_our_rr_group();
-    startphase2Lab(signal, /* dummy */ ~0);
-    return;
-  case 3:
-    jam();
-#if (defined(VM_TRACE) || \
-     defined(ERROR_INSERT)) && \
+    case 2:
+      jam();
+      set_up_qt_our_rr_group();
+      startphase2Lab(signal, /* dummy */ ~0);
+      return;
+    case 3:
+      jam();
+#if (defined(VM_TRACE) || defined(ERROR_INSERT)) && \
     defined(DO_TRANSIENT_POOL_STAT)
 
       /* Start reporting statistics for transient pools */
@@ -14356,7 +14355,7 @@ void Dblqh::abortStateHandlerLab(Signal* signal,
        */
   }  // switch
   abortCommonLab(signal, tcConnectptr);
-}
+}  // Dblqh::abortStateHandlerLab()
 
 void Dblqh::abortErrorLab(Signal *signal, TcConnectionrecPtr tcConnectptr) {
   ndbrequire(m_curr_lqh->tcConnect_pool.getValidPtr(tcConnectptr));
@@ -15208,9 +15207,9 @@ void Dblqh::lqhTransNextLab(Signal *signal, TcNodeFailRecordPtr tcNodeFailPtr) {
           switch (scanptr.p->scanType) {
             case ScanRecord::COPY: {
               jam();
-              unlock_alloc_operation();
               if (scanptr.p->scanNodeId == tcNodeFailPtr.p->oldNodeId) {
                 jam();
+                unlock_alloc_operation();
                 /* ------------------------------------------------------------
                  * THE RECEIVER OF THE COPY HAVE FAILED.
                  * WE HAVE TO CLOSE THE COPY PROCESS.
@@ -16510,7 +16509,6 @@ void Dblqh::closeScanRequestLab(Signal *signal,
               scanReleaseLocksLab(signal, tcConnectptr.p);
               return;
             }  // if
-            jam();
           }    // if
           closeScanLab(signal, tcConnectptr.p);
           return;
@@ -16529,7 +16527,6 @@ void Dblqh::closeScanRequestLab(Signal *signal,
        * ---------------------------------------------------------------------
        */
       scanPtr->scanCompletedStatus = ZTRUE;
-      ndbabort();
       break;
     default:
       ndbabort();

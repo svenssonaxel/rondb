@@ -4521,30 +4521,25 @@ void Thrman::execDBINFO_SCANREQ(Signal *signal) {
                                          spin_percentage;
             Uint64 sleep_percentage = 0;
             if (buffer_full_percentage > Uint64(100)) {
-              jam();
               buffer_full_percentage = Uint64(100);
               exec_percentage = 0;
               send_percentage = 0;
               spin_percentage = 0;
             } else if (exec_full_percentage > Uint64(100)) {
-              jam();
               exec_percentage = Uint64(100) - buffer_full_percentage;
               send_percentage = 0;
               spin_percentage = 0;
             } else if (exec_full_send_percentage > Uint64(100)) {
-              jam();
               send_percentage = Uint64(100) - exec_full_percentage;
               spin_percentage = 0;
             } else if (all_exec_percentage > Uint64(100)) {
-              jam();
               spin_percentage = Uint64(100) - exec_full_send_percentage;
             } else {
-              jam();
               sleep_percentage = Uint64(100) - all_exec_percentage;
             }
-            ndbrequire((exec_percentage + buffer_full_percentage +
-                        send_percentage + spin_percentage +
-                        sleep_percentage) ==
+            ndbrequire(exec_percentage + buffer_full_percentage +
+                           send_percentage + spin_percentage +
+                           sleep_percentage ==
                        Uint64(100));
 
             row.write_uint32(Uint32(exec_percentage));

@@ -491,7 +491,7 @@ bool ConfigManager::prepareConfigChange(const Config *config) {
     }
     else
     {
-      g_eventLogger->error("Can't prepare configuration change "
+      g_eventLogger->error("Can't prepare configuration change " \
                            "when already prepared");
       return false;
     }

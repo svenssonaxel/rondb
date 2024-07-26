@@ -148,7 +148,7 @@ SocketServer::Session *TransporterService::newSession(
      If m_auth is a SocketAuthTls, it might get upgraded to a TLS socket.
   */
   DBUG_ENTER("SocketServer::Session * TransporterService::newSession");
-  DEBUG_FPRINTF_DETAIL((stderr, "New session created\n"));
+  DEBUG_FPRINTF((stderr, "New session created\n"));
   if (m_auth) {
     int r = m_auth->server_authenticate(secureSocket);
     if (r < SocketAuthenticator::AuthOk) {
@@ -263,7 +263,7 @@ bool TransporterReceiveData::epoll_add(Transporter *t [[maybe_unused]]) {
        */
       g_eventLogger->info(
           "Failed to %s epollfd: %u fd: %d "
-          " transporter id:%u -> Node %u to epoll-set,"
+          " transporter id:%u -> node %u to epoll-set,"
           " errno: %u %s",
           add ? "ADD" : "DEL", m_epoll_fd, ndb_socket_get_native(sock_fd),
           t->getTransporterIndex(), node_id, error, strerror(error));
@@ -271,7 +271,7 @@ bool TransporterReceiveData::epoll_add(Transporter *t [[maybe_unused]]) {
     }
     g_eventLogger->info(
         "We lacked memory to add the socket for "
-        "transporter id:%u -> Node %u",
+        "transporter id:%u -> node id %u",
         t->getTransporterIndex(), node_id);
     return false;
   }
@@ -2123,7 +2123,7 @@ TransporterRegistry::performReceive(TransporterReceiveHandle& recvdata,
             BitmaskImpl::NotFound)
   {
     assert(recvdata.m_transporters.get(trp_id));
-    Transporter *t = allTransporters[trp_id];
+    Transporter * t = (Transporter*)allTransporters[trp_id];
     if (unlikely(t == nullptr))
     {
       recvdata.m_read_transporters.clear(trp_id);
@@ -2143,7 +2143,7 @@ TransporterRegistry::performReceive(TransporterReceiveHandle& recvdata,
      * synchronication between ::update_connections() and 
      * performReceive()
      *
-     * Transporter::isConnected() state may change asynch.
+     * Transporter::isConnected() state my change asynch.
      * A mismatch between the TransporterRegistry::is_connected(),
      * and Transporter::isConnected() state is possible, and indicate 
      * that a change is underway. (Completed by update_connections())
@@ -2636,13 +2636,14 @@ void TransporterRegistry::do_connect(NodeId node_id) {
                            localNodeId, node_id));
     t->resetBuffers();
   }
+ 
+  DEBUG_FPRINTF((stderr,
+    "(Node %u)performStates[Node %u] = CONNECTING\n",
+                 localNodeId, node_id));
 
   m_error_states[node_id].m_code = TE_NO_ERROR;
   m_error_states[node_id].m_info = (const char *)~(UintPtr)0;
 
-  DEBUG_FPRINTF((stderr,
-    "(Node %u)performStates[Node %u] = CONNECTING\n",
-                 localNodeId, node_id));
   curr_state= CONNECTING;
   DBUG_VOID_RETURN;
 }
@@ -2734,7 +2735,7 @@ void TransporterRegistry::report_connect(TransporterReceiveHandle &recvdata,
   require(!t->isPartOfMultiTransporter());
   const TrpId trp_id = t->getTransporterIndex();
   DEBUG_FPRINTF((stderr, "(Node %u)REG:report_connect(Node %u) on trp: %u\n",
-                         localNodeId, node_id, id));
+                         localNodeId, node_id, trp_id));
   assert((receiveHandle == &recvdata) || (receiveHandle == nullptr));
   assert(recvdata.m_transporters.get(trp_id));
 
@@ -3406,16 +3407,16 @@ void TransporterRegistry::start_clients_thread() {
       switch (performStates[nodeId]) {
         case CONNECTING: {
           if (t->isPartOfMultiTransporter()) {
-          DEBUG_FPRINTF((stderr, "Node %u part of MultiTrp\n",
-                         t->getRemoteNodeId()));
+            DEBUG_FPRINTF((stderr, "Node %u part of MultiTrp\n",
+                           t->getRemoteNodeId()));
             break;
           }
-        if (!get_active_node(nodeId))
-        {
-          DEBUG_FPRINTF((stderr, "Node %u not active\n",
-                         t->getRemoteNodeId()));
-          break;
-        }
+          if (!get_active_node(nodeId))
+          {
+            DEBUG_FPRINTF((stderr, "Node %u not active\n",
+                           t->getRemoteNodeId()));
+            break;
+          }
           if (!t->isConnected() && !t->isServer) {
             if (get_and_clear_node_up_indicator(nodeId)) {
               // Other node have indicated that node nodeId is up, try connect
@@ -3433,7 +3434,7 @@ void TransporterRegistry::start_clients_thread() {
              */
 
             if (t->get_s_port()) {
-              DBUG_PRINT("info", ("connecting to Node %d using port %d", nodeId,
+              DBUG_PRINT("info", ("connecting to node %d using port %d", nodeId,
                                   t->get_s_port()));
               unlockMultiTransporters();
               connected = t->connect_client(false);
@@ -3452,7 +3453,7 @@ void TransporterRegistry::start_clients_thread() {
               int server_port = 0;
               unlockMultiTransporters();
 
-              DBUG_PRINT("info", ("connection to Node %d should use "
+              DBUG_PRINT("info", ("connection to node %d should use "
                                   "dynamic port",
                                   nodeId));
 
@@ -3460,7 +3461,7 @@ void TransporterRegistry::start_clients_thread() {
                 ndb_mgm_connect(m_mgm_handle, 0, 0, 0);
 
               if (ndb_mgm_is_connected(m_mgm_handle)) {
-                DBUG_PRINT("info", ("asking mgmd which port to use for Node %d",
+                DBUG_PRINT("info", ("asking mgmd which port to use for node %d",
                                     nodeId));
 
                 const int res = ndb_mgm_get_connection_int_parameter(
@@ -3516,69 +3517,51 @@ void TransporterRegistry::start_clients_thread() {
           }
           break;
         }
-      case DISCONNECTING:
-      {
-        if (t->isConnected())
-        {
-          DEBUG_FPRINTF((stderr, "(Node %u)doDisconnect(Node %u), line: %u\n",
-                         localNodeId, t->getRemoteNodeId(), __LINE__));
-          t->doDisconnect();
+        case DISCONNECTING:
+          if (t->isConnected()) {
+            DEBUG_FPRINTF((stderr, "(%u)doDisconnect(%u), line: %u\n",
+                           localNodeId, t->getRemoteNodeId(), __LINE__));
+            t->doDisconnect();
+          } else {
+            DEBUG_FPRINTF((stderr, "Node %u DISCONNECTING\n",
+                           t->getRemoteNodeId()));
+          }
+          break;
+        case DISCONNECTED: {
+          if (t->isConnected()) {
+            g_eventLogger->warning(
+                "Found connection to %u in state DISCONNECTED "
+                " while being connected, disconnecting!",
+                t->getRemoteNodeId());
+            DEBUG_FPRINTF((stderr, "(%u)doDisconnect(%u), line: %u\n",
+                           localNodeId, t->getRemoteNodeId(), __LINE__));
+            t->doDisconnect();
+          } else {
+            DEBUG_FPRINTF((stderr, "Node %u DISCONNECTED\n",
+                           t->getRemoteNodeId()));
+          }
+          break;
         }
-        else
-        {
-          DEBUG_FPRINTF((stderr, "Node %u DISCONNECTING\n",
-                         t->getRemoteNodeId()));
+        case CONNECTED: {
+          if (t->isPartOfMultiTransporter() && !t->isConnected() &&
+              !t->isServer) {
+            require(t->get_s_port());
+            DBUG_PRINT("info", ("connecting multi-transporter to node %d"
+                                " using port %d",
+                                nodeId, t->get_s_port()));
+            unlockMultiTransporters();
+            t->connect_client(true);
+            DEBUG_FPRINTF((stderr, "Connect client of trp id %u, res: %u\n",
+                           t->getTransporterIndex(), t->isConnected()));
+            lockMultiTransporters();
+          } else {
+            DEBUG_FPRINTF_DETAIL((stderr, "Node %u CONNECTED\n",
+                                  t->getRemoteNodeId()));
+          }
+          break;
         }
-        break;
-      }
-      case DISCONNECTED:
-      {
-        if (t->isConnected())
-        {
-          g_eventLogger->warning("Found connection to %u in state DISCONNECTED "
-                                 " while being connected, disconnecting!",
-                                 t->getRemoteNodeId());
-          DEBUG_FPRINTF((stderr, "(Node %u)doDisconnect(Node %u), line: %u\n",
-                         localNodeId, t->getRemoteNodeId(), __LINE__));
-          t->doDisconnect();
-        }
-        else
-        {
-          DEBUG_FPRINTF((stderr, "Node %u DISCONNECTED\n",
-                         t->getRemoteNodeId()));
-        }
-        break;
-      }
-      case CONNECTED:
-      {
-        if (t->isPartOfMultiTransporter() &&
-            !t->isConnected() &&
-            !t->isServer)
-        {
-          require(t->get_s_port());
-          DBUG_PRINT("info", ("connecting multi-transporter to Node %d"
-                     " using port %d",
-                     nodeId,
-                     t->get_s_port()));
-          unlockMultiTransporters();
-          t->connect_client(true);
-          DEBUG_FPRINTF((stderr,
-            "Connect client of Node %u, trp id %u, res: %u\n",
-                        t->getRemoteNodeId(),
-                        t->getTransporterIndex(),
-                        t->isConnected()));
-          lockMultiTransporters();
-        }
-        else
-        {
-          DEBUG_FPRINTF_DETAIL((stderr, "Node %u CONNECTED\n",
-                                t->getRemoteNodeId()));
-        }
-        break;
-      }
         default:
           break;
-      }
       }
     }
     unlockMultiTransporters();

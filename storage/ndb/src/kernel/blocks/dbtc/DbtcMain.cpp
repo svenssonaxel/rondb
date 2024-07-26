@@ -707,16 +707,6 @@ void Dbtc::execCONTINUEB(Signal *signal) {
       abort015Lab(signal, apiConnectptr);
       return;
     }
-    case TcContinueB::ZABORT_TIMEOUT_BREAK: {
-      jam();
-      tcConnectptr.i = Tdata0;
-      ApiConnectRecordPtr apiConnectptr;
-      apiConnectptr.i = Tdata1;
-      c_apiConnectRecordPool.getPtr(apiConnectptr);
-      apiConnectptr.p->counter--;
-      sendAbortedAfterTimeout(signal, 1, apiConnectptr);
-      return;
-    }
     case TcContinueB::ZHANDLE_FAILED_API_NODE_REMOVE_MARKERS:
       jam();
       removeMarkerForFailedAPI(signal, Tdata0, Tdata1);
@@ -10848,7 +10838,6 @@ void Dbtc::timeOutFoundLab(Signal *signal, Uint32 TapiConPtr, Uint32 errCode) {
       /*------------------------------------------------------------------*/
     ndbabort();
     break;
-  }
   }
 }
 

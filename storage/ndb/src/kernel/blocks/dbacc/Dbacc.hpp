@@ -418,109 +418,100 @@ struct Fragmentrec {
 
   Uint32 lockCount[NUM_ACC_FRAGMENT_MUTEXES];
 
-    //-----------------------------------------------------------------------------
-    // References to Directory Ranges (which in turn references directories,
-    // which in its turn references the pages) for the bucket pages and the
-    // overflow bucket pages.
-    //-----------------------------------------------------------------------------
-    DynArr256::Head directory;
+//-----------------------------------------------------------------------------
+// References to Directory Ranges (which in turn references directories, which
+// in its turn references the pages) for the bucket pages and the overflow
+// bucket pages.
+//-----------------------------------------------------------------------------
+  DynArr256::Head directory;
 
-    //-----------------------------------------------------------------------------
-    // We have a list of overflow pages with free areas. We have a special
-    // record, the overflow record representing these pages. The reason is that
-    // the same record is also used to represent pages in the directory array
-    // that have been released since they were empty (there were however higher
-    // indexes with data in them). These are put in the
-    // firstFreeDirIndexRec-list. An overflow record representing a page can
-    // only be in one of these lists.
-    //-----------------------------------------------------------------------------
-    ContainerPageList::Head
-        fullpages;  // For pages where only containers on page are allowed to
-                    // overflow (word32[ZPOS_ALLOC_CONTAINERS] > ZFREE_LIMIT)
-    ContainerPageList::Head
-        sparsepages;  // For pages that other pages are still allowed to
-                      // overflow into (0 < word32[ZPOS_ALLOC_CONTAINERS] <=
-                      // ZFREE_LIMIT)
+//-----------------------------------------------------------------------------
+// We have a list of overflow pages with free areas. We have a special record,
+// the overflow record representing these pages. The reason is that the
+// same record is also used to represent pages in the directory array that have
+// been released since they were empty (there were however higher indexes with
+// data in them). These are put in the firstFreeDirIndexRec-list.
+// An overflow record representing a page can only be in one of these lists.
+//-----------------------------------------------------------------------------
+  // For pages where only containers on page are allowed to overflow
+  // (word32[ZPOS_ALLOC_CONTAINERS] > ZFREE_LIMIT)
+  ContainerPageList::Head fullpages;
+  // For pages that other pages are still allowed to overflow into
+  // (0 < word32[ZPOS_ALLOC_CONTAINERS] <= ZFREE_LIMIT)
+  ContainerPageList::Head sparsepages;
 
-    //-----------------------------------------------------------------------------
-    // Counter keeping track of how many times we have expanded. We need to
-    // ensure that we do not shrink so many times that this variable becomes
-    // negative.
-    //-----------------------------------------------------------------------------
-    Uint32 expandCounter;
+//-----------------------------------------------------------------------------
+// Counter keeping track of how many times we have expanded. We need to ensure
+// that we do not shrink so many times that this variable becomes negative.
+//-----------------------------------------------------------------------------
+  Uint32 expandCounter;
 
-    //-----------------------------------------------------------------------------
-    // These variables are important for the linear hashing algorithm.
-    // localkeylen is the size of the local key (1 and 2 is currently supported)
-    // maxloadfactor is the factor specifying when to expand
-    // minloadfactor is the factor specifying when to shrink (hysteresis model)
-    // maxp and p
-    // maxp and p is the variables most central to linear hashing. p + maxp + 1
-    // is the current number of buckets. maxp is the largest value of the type
-    // 2**n - 1 which is smaller than the number of buckets. These values are
-    // used to find correct bucket with the aid of the hash value.
-    //
-    // slack is the variable keeping track of whether we have inserted more than
-    // the current size is suitable for or less. Slack together with the
-    // boundaries set by maxloadfactor and minloadfactor decides when to
-    // expand/shrink slackCheck When slack goes over this value it is time to
-    // expand. slackCheck = (maxp + p + 1)*(maxloadfactor - minloadfactor) or
-    // bucketSize * hysteresis
-    // Since at most RNIL 8KiB-pages can be used for a fragment, the extreme
-    // values for slack will be within -2^43 and +2^43 words.
-    //-----------------------------------------------------------------------------
-    LHLevelRH level;
-    Uint32 localkeylen;  // Currently only 1 is supported
-    Uint32 maxloadfactor;
-    Uint32 minloadfactor;
-    Int64 slack;
-    Int64 slackCheck;
+//-----------------------------------------------------------------------------
+// These variables are important for the linear hashing algorithm.
+// localkeylen is the size of the local key (1 and 2 is currently supported)
+// maxloadfactor is the factor specifying when to expand
+// minloadfactor is the factor specifying when to shrink (hysteresis model)
+// maxp and p
+// maxp and p is the variables most central to linear hashing. p + maxp + 1 is the
+// current number of buckets. maxp is the largest value of the type 2**n - 1
+// which is smaller than the number of buckets. These values are used to find
+// correct bucket with the aid of the hash value.
+//
+// slack is the variable keeping track of whether we have inserted more than
+// the current size is suitable for or less. Slack together with the boundaries
+// set by maxloadfactor and minloadfactor decides when to expand/shrink
+// slackCheck When slack goes over this value it is time to expand.
+// slackCheck = (maxp + p + 1)*(maxloadfactor - minloadfactor) or 
+// bucketSize * hysteresis
+// Since at most RNIL 8KiB-pages can be used for a fragment, the extreme values
+// for slack will be within -2^43 and +2^43 words.
+//-----------------------------------------------------------------------------
+  LHLevelRH level;
+  Uint32 localkeylen; // Currently only 1 is supported
+  Uint32 maxloadfactor;
+  Uint32 minloadfactor;
+  Int64 slack;
+  Int64 slackCheck;
 
-    //-----------------------------------------------------------------------------
-    // nextfreefrag is the next free fragment if linked into a free list
-    //-----------------------------------------------------------------------------
-    Uint32 nextfreefrag;
+//-----------------------------------------------------------------------------
+// Fragment State, mostly applicable during LCP and restore
+//-----------------------------------------------------------------------------
+  State fragState;
 
-    //-----------------------------------------------------------------------------
-    // Fragment State, mostly applicable during LCP and restore
-    //-----------------------------------------------------------------------------
-    State fragState;
+//-----------------------------------------------------------------------------
+// elementLength: Length of element in bucket and overflow pages
+// keyLength: Length of key
+//-----------------------------------------------------------------------------
+  static constexpr Uint32 elementLength = 2;
+  Uint16 keyLength;
 
-    //-----------------------------------------------------------------------------
-    // elementLength: Length of element in bucket and overflow pages
-    // keyLength: Length of key
-    //-----------------------------------------------------------------------------
-    static constexpr Uint32 elementLength = 2;
-    Uint16 keyLength;
+//-----------------------------------------------------------------------------
+// Only allow one expand or shrink signal in queue at the time.
+//-----------------------------------------------------------------------------
+  bool expandOrShrinkQueued;
 
-    //-----------------------------------------------------------------------------
-    // Only allow one expand or shrink signal in queue at the time.
-    //-----------------------------------------------------------------------------
-    bool expandOrShrinkQueued;
+//-----------------------------------------------------------------------------
+// hashcheckbit is the bit to check whether to send element to split bucket or not
+// k (== 6) is the number of buckets per page
+//-----------------------------------------------------------------------------
+  static constexpr Uint32 k = 6;
+  static constexpr Uint32 MIN_HASH_COMPARE_BITS = 7;
+  static constexpr Uint32 MAX_HASH_VALUE_BITS = 31;
 
-    //-----------------------------------------------------------------------------
-    // hashcheckbit is the bit to check whether to send element to split bucket
-    // or not k (== 6) is the number of buckets per page
-    //-----------------------------------------------------------------------------
-    static constexpr Uint32 k = 6;
-    static constexpr Uint32 MIN_HASH_COMPARE_BITS = 7;
-    static constexpr Uint32 MAX_HASH_VALUE_BITS = 31;
+//-----------------------------------------------------------------------------
+// nodetype can only be STORED in this release. Is currently only set, never read
+//-----------------------------------------------------------------------------
+  Uint8 nodetype;
 
-    //-----------------------------------------------------------------------------
-    // nodetype can only be STORED in this release. Is currently only set, never
-    // read
-    //-----------------------------------------------------------------------------
-    Uint8 nodetype;
+//-----------------------------------------------------------------------------
+// flag to avoid accessing table record if no char attributes
+//-----------------------------------------------------------------------------
+  Uint8 hasCharAttr;
 
-    //-----------------------------------------------------------------------------
-    // flag to avoid accessing table record if no char attributes
-    //-----------------------------------------------------------------------------
-    Uint8 hasCharAttr;
-
-    //-----------------------------------------------------------------------------
-    // flag to mark that execEXPANDCHECK2 has failed due to DirRange full
-    //-----------------------------------------------------------------------------
-    Uint8 dirRangeFull;
+//-----------------------------------------------------------------------------
+// flag to mark that execEXPANDCHECK2 has failed due to DirRange full
+//-----------------------------------------------------------------------------
+  Uint8 dirRangeFull;
 
   //Use new hash function or not
   Uint8 m_use_new_hash_function;

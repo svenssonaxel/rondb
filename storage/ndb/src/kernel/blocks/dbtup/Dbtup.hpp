@@ -780,6 +780,7 @@ struct Fragrecord {
     Uint32 fragTableId;
     Uint32 fragmentId;
     Uint32 partitionId;
+    Uint32 nextfreefrag;
     // +1 is as "full" pages are stored last
     Page_list::Head free_var_page_array[MAX_FREE_LIST + 1];
 
@@ -990,10 +991,6 @@ struct Operationrec {
 
   Uint32 m_any_value;
   Uint32 nextPool;
-    /*
-     * From fragment i-value we can find fragment and table record
-     */
-    Uint32 fragmentPtr;
   
   /*
    * We need references to both the original tuple and the copy tuple.
@@ -2616,11 +2613,12 @@ Uint32 cnoOfMaxAllocatedTriggerRec;
                         Uint32& attrDataOffset,
                         Uint32& tuxFixHeaderSize);
   Uint32 get_current_frag_page_id();
-
 private:
   void disk_page_load_extra_callback(Signal*, Uint32 op, Uint32 page);
   void disk_page_load_callback(Signal*, Uint32 op, Uint32 page);
   void disk_page_load_scan_callback(Signal*, Uint32 op, Uint32 page);
+
+ private:
 
  private:
   // Trigger signals
@@ -3250,6 +3248,8 @@ private:
 
   Uint32 setAttrIds(const AttributeMask &attributeMask, Uint32 noOfAttributes,
                     Uint32 *inBuffer);
+
+  bool primaryKey(Tablerec* const, Uint32);
 
   // these set terrorCode and return non-zero on error
 

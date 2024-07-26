@@ -6847,35 +6847,8 @@ void Dbacc::execDEBUG_SIG(Signal *signal) {
 LHBits32 Dbacc::getElementHash(OperationrecPtr& oprec)
 {
   ndbassert(!oprec.isNull());
-
-  // Only calculate hash value if operation does not already have a complete
-  // hash value
-  ndbrequire(oprec.p->hashValue.valid_bits() >= fragrecptr.p->MAX_HASH_VALUE_BITS)
+  ndbrequire(oprec.p->hashValue.valid_bits() >= fragrecptr.p->MAX_HASH_VALUE_BITS);
   return oprec.p->hashValue;
-  {
-    jam();
-    Uint32 keys[2048 * MAX_XFRM_MULTIPLY];
-    Local_key localkey;
-    localkey = oprec.p->localdata;
-    const bool xfrm = fragrecptr.p->hasCharAttr;
-    Uint32 len =
-        readTablePk(localkey.m_page_no, localkey.m_page_idx,
-                    ElementHeader::setLocked(oprec.i), oprec, &keys[0], xfrm);
-    if (len > 0) {
-      /**
-       * Return of len == 0 can only happen when the element is ready to be
-       * deleted and no new operations is linked to the element, thus the
-       * element will be removed soon since it will always return 0 for
-       * all operations and as soon as the operations in the lock queue
-       * have completed the element will be gone. Thus no issue if the
-       * element is in the wrong place in the hash since it won't be found
-       * by anyone even if in the right place.
-       */
-      oprec.p->hashValue = LHBits32(rondb_calc_hash_val((const char*)&keys[0],
-                                    len,
-                                    fragrecptr.p->m_use_new_hash_function));
-    }
-  }
 }
 
 LHBits32 Dbacc::getElementHash(Uint32 const *elemptr) {
@@ -9914,55 +9887,51 @@ void Dbacc::execDBINFO_SCANREQ(Signal *signal) {
       }
       break;
     }
-  case Ndbinfo::FRAG_LOCKS_TABLEID:
-  {
-    Uint32 tableid = cursor->data[0];
-    
-    for (;tableid < ctablesize; tableid++)
-    {
-      TabrecPtr tabPtr;
-      tabPtr.i = tableid;
-      ptrAss(tabPtr, tabrec);
-      Uint32 f = 0;
-      Uint32 fragId = c_lqh->getNextAccFragid(tabPtr.i, f);
-      if (fragId != RNIL)
-      {
-        jam();
-        // Loop over all fragments for this table.
-        for (; f < MAX_FRAG_PER_LQH; f++)
+    case Ndbinfo::FRAG_LOCKS_TABLEID: {
+      Uint32 tableid = cursor->data[0];
+
+      for (; tableid < ctablesize; tableid++) {
+        TabrecPtr tabPtr;
+        tabPtr.i = tableid;
+        ptrAss(tabPtr, tabrec);
+        Uint32 f = 0;
+        Uint32 fragId = c_lqh->getNextAccFragid(tabPtr.i, f);
+        if (fragId != RNIL)
         {
-          FragmentrecPtr frp;
-          frp.i = c_lqh->getNextAccFragrec(tabPtr.i, f);
-          if (frp.i != RNIL64)
+          jam();
+          // Loop over all fragments for this table.
+          for (; f < MAX_FRAG_PER_LQH; f++)
           {
-            jam();
-            ndbrequire(c_fragment_pool.getPtr(frp));
+            FragmentrecPtr frp;
+            frp.i = c_lqh->getNextAccFragrec(tabPtr.i, f);
+            if (frp.i != RNIL64)
+            {
+              jam();
+              ndbrequire(c_fragment_pool.getPtr(frp));
             
-            const Fragmentrec::LockStats& ls = frp.p->m_lockStats;
-            Uint32 f_save = f;
-            Uint32 fragId = c_lqh->getNextAccFragid(tabPtr.i, f);
-            ndbrequire(f == f_save);
-            
-            Ndbinfo::Row row(signal, req);
-            row.write_uint32(getOwnNodeId());
-            row.write_uint32(instance());
-            row.write_uint32(tableid);
-            row.write_uint32(fragId);
+              const Fragmentrec::LockStats &ls = frp.p->m_lockStats;
 
-            row.write_uint64(ls.m_ex_req_count);
-            row.write_uint64(ls.m_ex_imm_ok_count);
-            row.write_uint64(ls.m_ex_wait_ok_count);
-            row.write_uint64(ls.m_ex_wait_fail_count);
-            
-            row.write_uint64(ls.m_sh_req_count);
-            row.write_uint64(ls.m_sh_imm_ok_count);
-            row.write_uint64(ls.m_sh_wait_ok_count);
-            row.write_uint64(ls.m_sh_wait_fail_count);
+              Ndbinfo::Row row(signal, req);
+              row.write_uint32(getOwnNodeId());
+              row.write_uint32(instance());
+              row.write_uint32(tableid);
+              row.write_uint32(fragId);
 
-            row.write_uint64(ls.m_wait_ok_millis);
-            row.write_uint64(ls.m_wait_fail_millis);
+              row.write_uint64(ls.m_ex_req_count);
+              row.write_uint64(ls.m_ex_imm_ok_count);
+              row.write_uint64(ls.m_ex_wait_ok_count);
+              row.write_uint64(ls.m_ex_wait_fail_count);
 
-            ndbinfo_send_row(signal, req, row, rl);
+              row.write_uint64(ls.m_sh_req_count);
+              row.write_uint64(ls.m_sh_imm_ok_count);
+              row.write_uint64(ls.m_sh_wait_ok_count);
+              row.write_uint64(ls.m_sh_wait_fail_count);
+
+              row.write_uint64(ls.m_wait_ok_millis);
+              row.write_uint64(ls.m_wait_fail_millis);
+
+              ndbinfo_send_row(signal, req, row, rl);
+            }
           }
         }
 
@@ -9978,8 +9947,6 @@ void Dbacc::execDBINFO_SCANREQ(Signal *signal) {
       }
       break;
     }
-    break;
-  }
     case Ndbinfo::ACC_OPERATIONS_TABLEID: {
       jam();
       /* Take a break periodically when scanning records */

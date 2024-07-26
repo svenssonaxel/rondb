@@ -42,6 +42,7 @@ TransientSlotPool::TransientSlotPool()
 
 void TransientSlotPool::init(Uint32 type_id, Uint32 slot_size, Uint32 *min_recs,
                              const Pool_context &pool_ctx) {
+  //  const Uint32 slots_per_page = Page::DATA_WORDS_PER_PAGE / slot_size;
 
   m_page_pool = new TransientPagePool(type_id, pool_ctx.get_mem_manager());
   m_type_id = type_id;

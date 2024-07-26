@@ -1095,7 +1095,7 @@ static const NDBT_Table D2("D2", sizeof(D2Attribs) / sizeof(NDBT_Attribute),
 // Define array with pointer to all tables
 static const NDBT_Table *test_tables[] = {&T1,  &T2,  &T3,  &T4,  &T6,
                                           &T13, &T14, &T15, &T16, &T17,
-                                          &I1,  &I2,  &I3,  &D1,  &D2};
+                                          &T18, &I1,  &I2,  &I3,  &D1,  &D2};
 
 static const int numTestTables = sizeof(test_tables) / sizeof(NDBT_Table *);
 

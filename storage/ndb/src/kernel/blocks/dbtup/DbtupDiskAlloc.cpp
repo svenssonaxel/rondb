@@ -2397,115 +2397,106 @@ void Dbtup::disk_restart_undo(Signal *signal, Uint64 lsn, Uint32 type,
                     localLcpId, tableId, fragId));
       return;
     }
-  case File_formats::Undofile::UNDO_TUP_ALLOC:
-  {
-    jam();
-    Disk_undo::Alloc* rec= (Disk_undo::Alloc*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
-    f_undo.m_tot_len = 0;
-    break;
-  }
-  case File_formats::Undofile::UNDO_TUP_UPDATE:
-  {
-    jam();
-    Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
-    f_undo.m_tot_len = 0;
-    break;
-  }
-  case File_formats::Undofile::UNDO_TUP_UPDATE_PART:
-  case File_formats::Undofile::UNDO_TUP_UPDATE_VAR_PART:
-  {
-    jam();
-    Disk_undo::UpdatePart* rec= (Disk_undo::UpdatePart*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = rec->m_offset;
-    f_undo.m_tot_len = 0;
-    break;
-  }
-  case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_VAR_PART:
-  case File_formats::Undofile::UNDO_TUP_FREE_VAR_PART:
-  {
-    jam();
-    Disk_undo::Update_Free_FirstVarPart* rec=
-      (Disk_undo::Update_Free_FirstVarPart*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
-    f_undo.m_tot_len = rec->m_tot_len;
-    break;
-  }
-  case File_formats::Undofile::UNDO_TUP_FREE:
-  {
-    jam();
-    Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
-    f_undo.m_tot_len = 0;
-    break;
-  }
-  case File_formats::Undofile::UNDO_TUP_FREE_PART:
-  case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_PART:
-  {
-    jam();
-    Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
-    preq.m_page.m_page_no = rec->m_page_no;
-    preq.m_page.m_file_no  = rec->m_file_no_page_idx >> 16;
-    preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
-    f_undo.m_offset = 0;
-    f_undo.m_tot_len = 0;
-    break;
-  }
-  case File_formats::Undofile::UNDO_TUP_DROP:
-  {
-    jam();
-    Disk_undo::Drop* rec = (Disk_undo::Drop*)ptr;
-    /**
-     * We could come here in a number of situations:
-     * 1) It could be a record that belongs to a table that we are not
-     *    restoring, in this case we won't find the table in the search
-     *    below.
-     * 2) It could belong to a table we are restoring, but this is a
-     *    drop of a previous incarnation of this table. Definitely no
-     *    more log records should be executed for this table.
-     * 
-     * Coming here after we reached the end of the fragment LCP should not
-     * happen, so we insert an ndbrequire to ensure this doesn't happen.
-     */
-    Uint32 tableId = rec->m_table;
-    if (tableId < cnoOfTablerec)
-    {
+    case File_formats::Undofile::UNDO_TUP_ALLOC: {
       jam();
-      DEB_UNDO_LCP(("(%u)UNDO_TUP_DROP: lsn: %llu, tab: %u",
-                    instance(),
-                    lsn,
-                    tableId));
-      for(Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++)
-      {
+      Disk_undo::Alloc *rec = (Disk_undo::Alloc *)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
+      f_undo.m_tot_len = 0;
+      break;
+    }
+    case File_formats::Undofile::UNDO_TUP_UPDATE: {
+      jam();
+      Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
+      f_undo.m_tot_len = 0;
+      break;
+    }
+    case File_formats::Undofile::UNDO_TUP_UPDATE_PART:
+    case File_formats::Undofile::UNDO_TUP_UPDATE_VAR_PART: {
+      jam();
+      Disk_undo::UpdatePart *rec = (Disk_undo::UpdatePart *)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = rec->m_offset;
+      f_undo.m_tot_len = 0;
+      break;
+    }
+    case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_VAR_PART:
+    case File_formats::Undofile::UNDO_TUP_FREE_VAR_PART: {
+      jam();
+      Disk_undo::Update_Free_FirstVarPart* rec =
+        (Disk_undo::Update_Free_FirstVarPart*)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
+      f_undo.m_tot_len = rec->m_tot_len;
+      break;
+    }
+    case File_formats::Undofile::UNDO_TUP_FREE: {
+      jam();
+      Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
+      f_undo.m_tot_len = 0;
+      break;
+    }
+    case File_formats::Undofile::UNDO_TUP_FREE_PART:
+    case File_formats::Undofile::UNDO_TUP_FIRST_UPDATE_PART: {
+      jam();
+      Disk_undo::Update_Free* rec= (Disk_undo::Update_Free*)ptr;
+      preq.m_page.m_page_no = rec->m_page_no;
+      preq.m_page.m_file_no = rec->m_file_no_page_idx >> 16;
+      preq.m_page.m_page_idx = rec->m_file_no_page_idx & 0xFFFF;
+      f_undo.m_offset = 0;
+      f_undo.m_tot_len = 0;
+      break;
+    }
+    case File_formats::Undofile::UNDO_TUP_DROP: {
+      jam();
+      Disk_undo::Drop *rec = (Disk_undo::Drop *)ptr;
+      Ptr<Tablerec> tabPtr;
+      /**
+       * We could come here in a number of situations:
+       * 1) It could be a record that belongs to a table that we are not
+       *    restoring, in this case we won't find the table in the search
+       *    below.
+       * 2) It could belong to a table we are restoring, but this is a
+       *    drop of a previous incarnation of this table. Definitely no
+       *    more log records should be executed for this table.
+       *
+       * Coming here after we reached the end of the fragment LCP should not
+       * happen, so we insert an ndbrequire to ensure this doesn't happen.
+       */
+      Uint32 tableId = rec->m_table;
+      if (tableId < cnoOfTablerec) {
         jam();
-        Uint32 fragId = c_lqh->getNextTupFragid(tableId, i);
-        if (fragId != RNIL)
-        {
+        DEB_UNDO_LCP(("(%u)UNDO_TUP_DROP: lsn: %llu, tab: %u",
+                      instance(),
+                      lsn,
+                      tableId));
+        for (Uint32 i = 0; i < MAX_FRAG_PER_LQH; i++) {
           jam();
-          jamLine(Uint16(fragId));
-          disk_restart_undo_lcp(tableId, fragId,
-                                Fragrecord::UC_DROP, 0, 0, lsn);
+          Uint32 fragId = c_lqh->getNextTupFragid(tableId, i);
+          if (fragId != RNIL) {
+            jamLine(Uint16(fragId));
+            disk_restart_undo_lcp(tableId, fragId,
+                                  Fragrecord::UC_DROP, 0, 0, lsn);
+          }
         }
       }
+      return;
     }
-    return;
-  }
+
     case File_formats::Undofile::UNDO_END:
       jam();
       f_undo_done = true;

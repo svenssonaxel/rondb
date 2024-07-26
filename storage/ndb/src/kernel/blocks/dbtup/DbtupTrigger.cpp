@@ -1895,9 +1895,11 @@ bool Dbtup::readTriggerInfo(TupTriggerData *const trigPtr,
 
       // Read BEFORE-PK, use beforeBuffer as temp storage, not kept
       Uint32 *beforeKey = beforeBuffer;
-      const Uint32 keyWords = readAttributes(
-          req_struct, &tableDescriptor[regTabPtr->readKeyArray].tabDescr,
-          regTabPtr->noOfKeyAttr, beforeKey, ZATTR_BUFFER_SIZE);
+      const Uint32 keyWords = readAttributes(req_struct,
+                                 regTabPtr->readKeyArray,
+                                 regTabPtr->noOfKeyAttr,
+                                 beforeKey,
+                                 ZATTR_BUFFER_SIZE);
 
       // If 'beforeKey != afterKey' we need it in the update trigger as well
       if (keyWords != noPrimKey ||

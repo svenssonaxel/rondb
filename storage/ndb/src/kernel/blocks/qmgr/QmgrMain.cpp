@@ -10095,6 +10095,8 @@ void Qmgr::execFREEZE_ACTION_REQ(Signal *signal) {
     startChangeNeighbourNode();
     flush_send_buffers();
     insert_activate_trp(current_trp_id);
+    /* Either perform send or insert_trp below TODO */
+    multi_trp->get_callback_obj()->unlock_send_transporter(current_trp_id);
 
     if (ERROR_INSERTED(982)) {
       NdbSleep_MilliSleep(2500);

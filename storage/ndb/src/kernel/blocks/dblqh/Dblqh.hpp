@@ -3026,6 +3026,8 @@ private:
     return LqhKeyReq::getNrCopyFlag(m_tc_connect_ptr.p->reqinfo) |
            c_executing_redo_log;
   }
+private:
+
  private:
   BLOCK_DEFINES(Dblqh);
 
@@ -3876,7 +3878,6 @@ private:
  public:
   Uint32 readPrimaryKeys(Uint32 opPtrI, Uint32 *dst, bool xfrm);
 
- private:
   void acckeyconf_tupkeyreq(Signal*, TcConnectionrec*, Fragrecord*,
                             Uint32, Uint32);
   void acckeyconf_load_diskpage(Signal*,TcConnectionrecPtr,Fragrecord*,
@@ -4216,8 +4217,8 @@ public:
    */
   UintR ccurrentGcprec;
 /* ------------------------------------------------------------------------- */
-/* These variable is used to keep track of what time we have reported so far */
-/* in the TIME_SIGNAL handling.                                              */
+/* These variables are used to keep track of what time we have reported so   */
+/* far in the TIME_SIGNAL handling.                                          */
 /* ------------------------------------------------------------------------- */
   NDB_TICKS c_latestTIME_SIGNAL;
   Uint64 c_elapsed_time_millis;

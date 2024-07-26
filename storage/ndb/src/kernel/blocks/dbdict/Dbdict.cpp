@@ -588,7 +588,7 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
             TableRecordPtr tabPtr;
             bool ok = find_object(tabPtr, ltd.getTableId());
             ndbrequire(ok);
-            ndbrequire(req.tableId == Ndbinfo::STORED_TABLES_TABLEID) jam();
+            ndbrequire(req.tableId == Ndbinfo::STORED_TABLES_TABLEID)
             Ndbinfo::Row row(signal, req);
             row.write_uint32(getOwnNodeId());
             row.write_uint32(ltd.getTableId());
@@ -29222,7 +29222,7 @@ void Dbdict::trans_recover(Signal *signal, SchemaTransPtr trans_ptr) {
           No parsed operations found
          */
         jam();
-#ifdef VM_TRACE
+#if defined VM_TRACE || defined MARTIN
         g_eventLogger->info(
             "Dbdict::trans_recover: ENDING START, trans %u(0x%8x), state %u",
             trans_ptr.i, (uint)trans_ptr.p->trans_key, trans_ptr.p->m_state);

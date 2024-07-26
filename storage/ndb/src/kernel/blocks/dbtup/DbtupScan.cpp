@@ -1841,7 +1841,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
               // no more pages, scan ends
               pos.m_get = ScanPos::Get_undef;
               scan.m_state = ScanOp::Last;
-            scan.m_last_seen = __LINE__;
+              scan.m_last_seen = __LINE__;
               return true;
             } else if (bits & ScanOp::SCAN_LCP &&
                        key.m_page_no < scan.m_endPage) {
@@ -2494,8 +2494,8 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
               pos.m_realpid_mm = getRealpid(fragPtr.p, key_mm.m_page_no);
             }
             // TUPKEYREQ handles savepoint stuff
-          scan.m_last_seen = __LINE__;
             scan.m_state = ScanOp::Current;
+            scan.m_last_seen = __LINE__;
             return true;
           } else {
             jam();
