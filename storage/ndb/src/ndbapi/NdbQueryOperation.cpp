@@ -2392,7 +2392,7 @@ NdbQueryOperationImpl *NdbQueryImpl::getQueryOperation(
 /**
  * NdbQueryImpl::nextResult() - The 'global' cursor on the query results
  *
- * Will itterate and fetch results for all combinations of results from the
+ * Will iterate and fetch results for all combinations of results from the
  * NdbOperations which this query consists of. Except for the root operations
  * which will follow any optional ScanOrdering, we have no control of the
  * ordering which the results from the QueryOperations appear in.
