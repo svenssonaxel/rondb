@@ -27,7 +27,6 @@
 #include "my_config.h"
 #include "ndbd_malloc.hpp"
 #include "util/require.h"
-#include "ndbd_malloc.hpp"
 
 #include <time.h>
 

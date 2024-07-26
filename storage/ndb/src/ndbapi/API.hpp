@@ -39,7 +39,7 @@
 
 #include <Ndb.hpp>
 #include <NdbBlob.hpp>
-#include "NdbBlobImpl.hpp"
+#include <NdbBlobImpl.hpp>
 #include <NdbIndexOperation.hpp>
 #include <NdbIndexScanOperation.hpp>
 #include <NdbIndexStat.hpp>
@@ -49,7 +49,7 @@
 #include <NdbReceiver.hpp>
 #include <NdbScanOperation.hpp>
 #include <NdbTransaction.hpp>
-#include "NdbWaitGroup.hpp"
+#include <NdbWaitGroup.hpp>
 #include "NdbIndexStatImpl.hpp"
 
 #include <NdbEventOperation.hpp>

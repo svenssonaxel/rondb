@@ -27,7 +27,6 @@
 
 #include <my_compiler.h>  // likely
 #include <my_config.h>    // big/little endian
-#include <string.h>       // memcpy()
 
 void
 rondb_calc_hash(Uint32 hash_val[4],

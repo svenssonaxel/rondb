@@ -32,7 +32,6 @@
 #include <RefConvert.hpp>
 #include <cstring>
 #include "Dbtc.hpp"
-#include "md5_hash.hpp"
 
 #include <signaldata/Abort.hpp>
 #include <signaldata/AbortAll.hpp>
