@@ -51,8 +51,8 @@ class NdbMgmd {
   bool m_verbose;
   unsigned int m_timeout;
   unsigned int m_version;
-  ndb_socket_t m_event_socket;
-  
+  NdbSocket m_event_socket;
+
   void error(const char* msg, ...) ATTRIBUTE_FORMAT(printf, 2, 3)
   {
     if (!m_verbose)
@@ -99,13 +99,18 @@ public:
       ndb_mgm_destroy_handle(&m_handle);
       m_handle = NULL;
     }
+    m_event_socket.close();
   }
 
   NdbMgmHandle handle(void) const {
     return m_handle;
   }
 
-  ndb_socket_t socket(void) const {
+  NdbSocket convert_to_transporter() {
+    return ndb_mgm_convert_to_transporter(& m_handle);
+  }
+
+  const NdbSocket& socket(void) const {
     return _ndb_mgm_get_socket(m_handle);
   }
 
@@ -438,11 +443,10 @@ public:
       0
     };
 
-    ndb_socket_create_from_native(
-      m_event_socket,
-      ndb_mgm_listen_event(m_handle, filter));
-    
-    return ndb_socket_valid(m_event_socket);
+    ndb_socket_create_from_native(m_event_socket,
+                                  ndb_mgm_listen_event(m_handle, filter));
+
+    return m_event_socket.is_valid();
   }
 
   bool get_next_event_line(char* buff, int bufflen,
@@ -453,8 +457,8 @@ public:
       error("get_next_event_line: not connected");
       return false;
     }
-    
-    if (!ndb_socket_valid(m_event_socket))
+
+    if (!m_event_socket.is_valid())
     {
       error("get_next_event_line: not subscribed");
       return false;
