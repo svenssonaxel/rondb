@@ -588,3 +588,5 @@ order by
 EOF
 --exec $PARSE_TEST_QUERY_FILE
 --remove_file $QUERY_FILE
+
+# todo add complex expression inside agg fun, including % and DIV

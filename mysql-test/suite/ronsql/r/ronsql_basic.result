@@ -89,5 +89,63 @@ Number of output lines, including header: 5
 
 
 
+Division:
+== Query ==
+SELECT cchar as char_gr
+, max(14 / 3 + 18 / 5 * sint16)
+, sum(14 / 3 + 18 / 5 * cfloat + uint8)
+, max(sint8 + 3)
+, max((sint8 + 3) / sint8)
+FROM api_scan
+WHERE sint8 > 1
+GROUP BY cchar;
+
+Number of output lines, including header: 5
+
+== Diff ==
+================================================================================
+
+
+
+Integer Division:
+== Query ==
+SELECT cchar as char_gr
+, max(14 DIV 3 + 18 DIV 5 * sint16)
+, sum(14 DIV 3 + 18 DIV 5 * cfloat + uint8)
+, max((sint8 + 3) DIV sint8)
+FROM api_scan
+WHERE sint8 <= 1
+GROUP BY cchar;
+
+Number of output lines, including header: 5
+
+== Diff ==
+================================================================================
+
+
+
+Wrong result with DIV
+CREATE TABLE tbl (
+sint8 TINYINT NOT NULL,
+sint16 SMALLINT NOT NULL,
+sint24 MEDIUMINT NOT NULL) ENGINE=NDB;|
+INSERT INTO tbl VALUES (-13, 22106, -1);|
+== Query ==
+SELECT min(sint8 DIV (sint24 / sint16)) FROM tbl;
+
+Number of output lines, including header: 2
+
+== Diff ==
+--- mysql.out
++++ ronsql.out
+@@ -1,2 +1,2 @@
+ min(sint8 DIV (sint24 / sint16))
+-287381
++287378
+================================================================================
+
+
+
+DROP TABLE tbl;|
 Cleanup
 DROP TABLE api_scan;

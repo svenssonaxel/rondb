@@ -113,11 +113,12 @@ AggregationAPICompiler::new_expr(ExprOp op,
       e.eval_left_first = false;
     }
   }
-  // Constant folding
+  // Int constant folding
   if (left != NULL &&
       left->op == ExprOp::LoadConstantInt &&
       right != NULL &&
-      right->op == ExprOp::LoadConstantInt)
+      right->op == ExprOp::LoadConstantInt &&
+      op != ExprOp::Div)
   {
     long int arg1 = m_constants[left->idx].long_int;
     long int arg2 = m_constants[right->idx].long_int;
@@ -133,7 +134,7 @@ AggregationAPICompiler::new_expr(ExprOp op,
     case ExprOp::Mul:
       result = arg1 * arg2;
       break;
-    case ExprOp::Div:
+    case ExprOp::DivInt:
       result = arg1 / arg2;
       break;
     case ExprOp::Rem:
@@ -925,6 +926,7 @@ AggregationAPICompiler::print(Expr* expr)
   case ExprOp::Minus: m_out << " - "; break;
   case ExprOp::Mul: m_out << " * "; break;
   case ExprOp::Div: m_out << " / "; break;
+  case ExprOp::DivInt: m_out << " DIV "; break;
   case ExprOp::Rem: m_out << " % "; break;
   default:
     // Unknown operation
@@ -934,9 +936,9 @@ AggregationAPICompiler::print(Expr* expr)
   m_out << ')';
 }
 
-DEFINE_FORMATTER(s5, char*, {
+DEFINE_FORMATTER(s6, char*, {
   os << value;
-  for (int i = strlen(value); i < 5; i++) os << ' ';
+  for (int i = strlen(value); i < 6; i++) os << ' ';
 })
 DEFINE_FORMATTER(d2, uint, {
   if (value < 10) os << '0';
@@ -946,7 +948,7 @@ DEFINE_FORMATTER(d2, uint, {
 #define OPERATOR_CASE(Name) \
   case SVMInstrType::Name: \
     assert_reg(dest); assert_reg(src); \
-    m_out << s5(#Name) << "  r" << d2(dest) << "  r" << d2(src) << " r" << \
+    m_out << s6(#Name) << " r" << d2(dest) << "  r" << d2(src) << " r" << \
       d2(dest) << ":"; \
     print(r[dest]); \
     m_out << ' ' << relstr_##Name << "= r" << d2(src) << ':'; \
@@ -956,7 +958,7 @@ DEFINE_FORMATTER(d2, uint, {
   case SVMInstrType::Name: \
     assert(dest < m_aggs.size()); \
     assert_reg(src); \
-    m_out << s5(#Name) << "  A" << d2(dest) << "  r" << d2(src) << " A" << \
+    m_out << s6(#Name) << " A" << d2(dest) << "  r" << d2(src) << " A" << \
       d2(dest) << ":" << ucasestr_##Name << " <- r" << d2(src) << ':'; \
     print(r[src]); \
     break;
@@ -969,6 +971,7 @@ AggregationAPICompiler::print(Instr* instr)
   static const char* relstr_Minus = "-";
   static const char* relstr_Mul = "*";
   static const char* relstr_Div = "/";
+  static const char* relstr_DivInt = "DIV";
   static const char* relstr_Rem = "%";
   static const char* ucasestr_Sum = "SUM";
   static const char* ucasestr_Min = "MIN";

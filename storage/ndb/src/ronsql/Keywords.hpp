@@ -45,6 +45,7 @@ static const struct { const char* text; const int value; } keywords_implemented_
   kwdef(DAY_MINUTE),
   kwdef(DAY_SECOND),
   kwdef(DESC),
+  kwdef(DIV),
   kwdef(EXPLAIN),
   kwdef(EXTRACT),
   kwdef(FROM),

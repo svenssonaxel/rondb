@@ -67,19 +67,66 @@ GROUP BY cchar;|
 
 
 
-# --echo Division:
-# todo fix in NdbAggregator.
-# let $QUERY=
-# SELECT cchar as char_gr
-#      , max(14 / 3 + 18 / 5 * sint16)
-#      , sum(14 / 3 + 18 / 5 * cfloat + uint8)
-#      , max(sint8 + 3)
-#      , max((sint8 + 3) / sint8)
-# FROM api_scan
-# WHERE sint8 > 1
-# GROUP BY cchar;|
-# --source suite/ronsql/include/ronsql_compare.inc
+--echo Division:
+let $QUERY=
+SELECT cchar as char_gr
+     , max(14 / 3 + 18 / 5 * sint16)
+     , sum(14 / 3 + 18 / 5 * cfloat + uint8)
+     , max(sint8 + 3)
+     , max((sint8 + 3) / sint8)
+FROM api_scan
+WHERE sint8 > 1
+GROUP BY cchar;|
+#todo Remove this canonicalization when formatting is fixed
+--let $canonicalization_script=s/(\.[460])666666666[78]\t/\1667\t/;s/(\t2\.5)\$/\1000/;s/(\t ?-(1590109|4141919|153646|1975621)\.[0-9]{4})[0-9]{5,7}\t/\1\t/;
+--source suite/ronsql/include/ronsql_compare.inc
 
+--echo Integer Division:
+let $QUERY=
+SELECT cchar as char_gr
+     , max(14 DIV 3 + 18 DIV 5 * sint16)
+     , sum(14 DIV 3 + 18 DIV 5 * cfloat + uint8)
+     , max((sint8 + 3) DIV sint8)
+FROM api_scan
+WHERE sint8 <= 1
+GROUP BY cchar;|
+--source suite/ronsql/include/ronsql_compare.inc
+
+#todo remove this test, it's in regression test
+--echo Wrong result with DIV
+CREATE TABLE tbl (
+  sint8 TINYINT NOT NULL,
+  sint16 SMALLINT NOT NULL,
+  sint24 MEDIUMINT NOT NULL) ENGINE=NDB;|
+INSERT INTO tbl VALUES (-13, 22106, -1);|
+let $QUERY=SELECT min(sint8 DIV (sint24 / sint16)) FROM tbl;|
+--source suite/ronsql/include/ronsql_compare.inc
+DROP TABLE tbl;|
+
+# todo Add this test when formatting is correct
+# --echo Mixed Division:
+# let $QUERY=
+# SELECT sint8
+#      , min( sint8 DIV  sint24  /   sint16 ) as a1
+#      , min((sint8 DIV  sint24) /   sint16 ) as a2
+#      , min( sint8 DIV (sint24  /   sint16)) as a3
+#      , sum( sint8 /    sint24  DIV sint16 ) as b1
+#      , sum((sint8 /    sint24) DIV sint16 ) as b2
+#      , sum( sint8 /   (sint24  DIV sint16)) as b3
+#      , max( uint16 + sint24 / (uint24 % sint32 DIV uint32)) as c
+# FROM api_scan
+# WHERE sint8 >= -20 and sint8 < 5
+#    or sint8 > 97 and sint8 <= 113
+# GROUP BY sint8;|
+# --source suite/ronsql/include/ronsql_compare.inc
+# #todo try this filter:
+# #WHERE (sint8 >= -20 and sint8 < 5
+# #       or sint8 > 97 and sint8 <= 113)
+# #      and sint16 != 0
+# #      and sint24 != 0
+# #      and (sint24 DIV sint16) != 0
+
+# todo Add tests for NULL
 
 
 --echo Cleanup

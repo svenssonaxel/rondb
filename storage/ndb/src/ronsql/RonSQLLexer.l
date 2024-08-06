@@ -263,7 +263,7 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
 "+"       keyword(PLUS);
 ","       keyword(COMMA);
 "-"       keyword(MINUS);
-"/"       keyword(DIVIDE);
+"/"       keyword(SLASH);
 ";"       keyword(SEMICOLON);
 "<"       keyword(LT);
 "<<"      keyword(BITSHIFT_LEFT);

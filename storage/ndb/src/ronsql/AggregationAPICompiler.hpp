@@ -42,6 +42,7 @@ using std::string;
   X(Minus) \
   X(Mul) \
   X(Div) \
+  X(DivInt) \
   X(Rem)
 #define FORALL_AGGS(X) \
   X(Sum) \

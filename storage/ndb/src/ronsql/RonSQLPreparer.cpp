@@ -970,7 +970,9 @@ RonSQLPreparer::apply_filter(NdbScanFilter* filter,
     not_implemented();
   case T_MULTIPLY:
     not_implemented();
-  case T_DIVIDE:
+  case T_SLASH:
+    not_implemented();
+  case T_DIV:
     not_implemented();
   case T_MODULO:
     not_implemented();
@@ -1095,7 +1097,9 @@ RonSQLPreparer::eval_const_expr(ConditionalExpression* ce)
     not_implemented();
   case T_MULTIPLY:
     not_implemented();
-  case T_DIVIDE:
+  case T_SLASH:
+    not_implemented();
+  case T_DIV:
     not_implemented();
   case T_MODULO:
     not_implemented();
@@ -1257,6 +1261,9 @@ RonSQLPreparer::programAggregator(NdbAggregator* aggregator)
       break;
     case AggregationAPICompiler::SVMInstrType::Div:
       programAggregator_do_or_fail(aggregator->Div(dest, src));
+      break;
+    case AggregationAPICompiler::SVMInstrType::DivInt:
+      programAggregator_do_or_fail(aggregator->DivInt(dest, src));
       break;
     case AggregationAPICompiler::SVMInstrType::Rem:
       programAggregator_do_or_fail(aggregator->Mod(dest, src));
@@ -1593,8 +1600,11 @@ RonSQLPreparer::print(struct ConditionalExpression* ce,
   case T_MULTIPLY:
     opstr = "*";
     break;
-  case T_DIVIDE:
+  case T_SLASH:
     opstr = "/";
+    break;
+  case T_DIV:
+    opstr = "DIV";
     break;
   case T_MODULO:
     opstr = "%";

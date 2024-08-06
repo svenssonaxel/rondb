@@ -142,7 +142,7 @@ extern void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t yyscanner, const char* s);
 %token T_COUNT T_MAX T_MIN T_SUM T_AVG T_LEFT T_RIGHT
 %token T_EXPLAIN T_SELECT T_FROM T_GROUP T_BY T_ORDER T_ASC T_DESC T_AS T_WHERE
 %token T_SEMICOLON
-%token T_OR T_XOR T_AND T_NOT T_EQUALS T_GE T_GT T_LE T_LT T_NOT_EQUALS T_IS T_NULL T_BITWISE_OR T_BITWISE_AND T_BITSHIFT_LEFT T_BITSHIFT_RIGHT T_PLUS T_MINUS T_MULTIPLY T_DIVIDE T_MODULO T_BITWISE_XOR T_EXCLAMATION
+%token T_OR T_XOR T_AND T_NOT T_EQUALS T_GE T_GT T_LE T_LT T_NOT_EQUALS T_IS T_NULL T_BITWISE_OR T_BITWISE_AND T_BITSHIFT_LEFT T_BITSHIFT_RIGHT T_PLUS T_MINUS T_MULTIPLY T_SLASH T_DIV T_MODULO T_BITWISE_XOR T_EXCLAMATION
 %token T_INTERVAL T_DATE_ADD T_DATE_SUB T_EXTRACT T_MICROSECOND T_SECOND T_MINUTE T_HOUR T_DAY T_WEEK T_MONTH T_QUARTER T_YEAR T_SECOND_MICROSECOND T_MINUTE_MICROSECOND T_MINUTE_SECOND T_HOUR_MICROSECOND T_HOUR_SECOND T_HOUR_MINUTE T_DAY_MICROSECOND T_DAY_SECOND T_DAY_MINUTE T_DAY_HOUR T_YEAR_MONTH
 
 /*
@@ -177,7 +177,7 @@ extern void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t yyscanner, const char* s);
 %left T_BITWISE_AND
 %left T_BITSHIFT_LEFT T_BITSHIFT_RIGHT
 %left T_PLUS T_MINUS
-%left T_MULTIPLY T_DIVIDE T_MODULO
+%left T_MULTIPLY T_SLASH T_DIV T_MODULO
 %left T_BITWISE_XOR
 %precedence T_EXCLAMATION
  // %left T_INTERVAL per spec, but bison claims it's useless.
@@ -285,7 +285,8 @@ arith_expr:
 | arith_expr T_PLUS arith_expr          { $$ = context->get_agg()->Add($1, $3); }
 | arith_expr T_MINUS arith_expr         { $$ = context->get_agg()->Minus($1, $3); }
 | arith_expr T_MULTIPLY arith_expr      { $$ = context->get_agg()->Mul($1, $3); }
-| arith_expr T_DIVIDE arith_expr        { $$ = context->get_agg()->Div($1, $3); }
+| arith_expr T_SLASH arith_expr         { $$ = context->get_agg()->Div($1, $3); }
+| arith_expr T_DIV arith_expr           { $$ = context->get_agg()->DivInt($1, $3); }
 | arith_expr T_MODULO arith_expr        { $$ = context->get_agg()->Rem($1, $3); }
 
 identifier:
@@ -323,7 +324,8 @@ cond_expr:
 | cond_expr T_PLUS cond_expr            { init_cond($$, $1, T_PLUS, $3); }
 | cond_expr T_MINUS cond_expr           { init_cond($$, $1, T_MINUS, $3); }
 | cond_expr T_MULTIPLY cond_expr        { init_cond($$, $1, T_MULTIPLY, $3); }
-| cond_expr T_DIVIDE cond_expr          { init_cond($$, $1, T_DIVIDE, $3); }
+| cond_expr T_SLASH cond_expr           { init_cond($$, $1, T_SLASH, $3); }
+| cond_expr T_DIV cond_expr             { init_cond($$, $1, T_DIV, $3); }
 | cond_expr T_MODULO cond_expr          { init_cond($$, $1, T_MODULO, $3); }
 | cond_expr T_BITWISE_XOR cond_expr     { init_cond($$, $1, T_BITWISE_XOR, $3); }
 | T_EXCLAMATION cond_expr               { init_cond($$, $2, T_EXCLAMATION, NULL); }
