@@ -432,10 +432,14 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         case NdbDictionary::Column::Type::Undefined:     ///< Undefined. Since this is a result, it means SQL NULL.
           not_implemented();
         case NdbDictionary::Column::Type::Tinyint:       ///< 8 bit. 1 byte signed integer
-          out << column.data_int8();
+          // int8_t is defined in terms a char, so we need to type case in order
+          // to print as an integer.
+          out << int32_t(column.data_int8());
           break;
         case NdbDictionary::Column::Type::Tinyunsigned:  ///< 8 bit. 1 byte unsigned integer
-          out << column.data_uint8();
+          // uint8_t is defined in terms a char, so we need to type case in
+          // order to print as an integer.
+          out << uint32_t(column.data_uint8());
           break;
         case NdbDictionary::Column::Type::Smallint:      ///< 16 bit. 2 byte signed integer
           out << column.data_int16();
@@ -562,6 +566,11 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
     case Cmd::Type::PRINT_AGGREGATE:
       {
         NdbAggregator::Result result = m_regs_a[cmd.print_aggregate.reg_a];
+        if(result.is_null())
+        {
+          out << "NULL";
+          break;
+        }
         // todo conform format for sum(int) to mysql CLI
         switch (result.type())
         {
@@ -579,7 +588,6 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
                                 m_tsv_output);
           break;
         case NdbDictionary::Column::Undefined:
-          // Already handled above
           abort();
           break;
         default:

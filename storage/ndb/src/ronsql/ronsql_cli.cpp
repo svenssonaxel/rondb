@@ -176,7 +176,7 @@ print_help(const char* argv0)
     "                                  defaults to formatted table output.\n"
     "                                - JSON_ASCII\n"
     "                                - TSV, default if stdin or stdout is not a tty.\n"
-    "                                  This mimics mysql behavior."
+    "                                  This mimics mysql behavior.\n"
     "                                - TSV_DATA\n"
     // See RonSQLCommon.hpp for comment about explain output format
     "  --explain-output-format <FMT> Set explain output format. <FMT> can be one of:\n"

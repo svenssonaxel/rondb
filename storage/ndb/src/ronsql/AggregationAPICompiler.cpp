@@ -925,7 +925,7 @@ AggregationAPICompiler::print(Expr* expr)
   case ExprOp::Minus: m_out << " - "; break;
   case ExprOp::Mul: m_out << " * "; break;
   case ExprOp::Div: m_out << " / "; break;
-  case ExprOp::Rem: m_out << " %% "; break;
+  case ExprOp::Rem: m_out << " % "; break;
   default:
     // Unknown operation
     abort();
