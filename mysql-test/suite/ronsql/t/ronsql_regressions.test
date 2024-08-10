@@ -40,7 +40,7 @@
 #--source suite/ronsql/include/ronsql_compare.inc
 #DROP TABLE tbl;
 
-#todo: Fix and uncomment
+#todo: Fix and uncomment after implementing DECIMAL-based aggregation
 #--echo Wrong result with DIV
 #CREATE TABLE tbl (
 #  sint8 TINYINT NOT NULL,
