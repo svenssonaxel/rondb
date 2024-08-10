@@ -92,17 +92,6 @@ WHERE sint8 <= 1
 GROUP BY cchar;|
 --source suite/ronsql/include/ronsql_compare.inc
 
-#todo remove this test, it's in regression test
---echo Wrong result with DIV
-CREATE TABLE tbl (
-  sint8 TINYINT NOT NULL,
-  sint16 SMALLINT NOT NULL,
-  sint24 MEDIUMINT NOT NULL) ENGINE=NDB;|
-INSERT INTO tbl VALUES (-13, 22106, -1);|
-let $QUERY=SELECT min(sint8 DIV (sint24 / sint16)) FROM tbl;|
---source suite/ronsql/include/ronsql_compare.inc
-DROP TABLE tbl;|
-
 # todo Add this test when formatting is correct
 # --echo Mixed Division:
 # let $QUERY=
