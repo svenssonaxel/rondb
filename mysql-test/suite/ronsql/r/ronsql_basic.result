@@ -89,6 +89,33 @@ Number of output lines, including header: 5
 
 
 
+Simple mul and modulu integer operations:
+== Query ==
+SELECT sint8
+, count(sint16  *  sint8 ) as t1_count
+, count(sint32  *  sint16) as t2_count
+, count(sint32  %  sint24) as t3_count
+, count(uint32  %  uint24) as t4_count
+, min(  sint16  *  sint8 ) as t1_min
+, min(  sint32  *  sint16) as t2_min
+, min(  sint32  %  sint24) as t3_min
+, min(  uint32  %  uint24) as t4_min
+, max(  sint16  *  sint8 ) as t1_max
+, max(  sint32  *  sint16) as t2_max
+, max(  sint32  %  sint24) as t3_max
+, max(  uint32  %  uint24) as t4_max
+FROM api_scan
+WHERE (sint8 >= -20 and sint8 < 5
+or sint8 > 97 and sint8 <= 113)
+GROUP BY sint8;
+
+Number of output lines, including header: 42
+
+== Diff ==
+================================================================================
+
+
+
 Division:
 == Query ==
 SELECT cchar as char_gr
@@ -118,6 +145,100 @@ WHERE sint8 <= 1
 GROUP BY cchar;
 
 Number of output lines, including header: 5
+
+== Diff ==
+================================================================================
+
+
+
+More integer division:
+== Query ==
+SELECT sint8
+, count(sint32 DIV sint16) as t1_count
+, count(sint16 DIV sint8 ) as t2_count
+, count(sint24 DIV sint16) as t3_count
+, count(uint24 DIV uint16) as t4_count
+, min(  sint32 DIV sint16) as t1_min
+, min(  sint16 DIV sint8 ) as t2_min
+, min(  sint24 DIV sint16) as t3_min
+, min(  uint24 DIV uint16) as t4_min
+, max(  sint32 DIV sint16) as t1_max
+, max(  sint16 DIV sint8 ) as t2_max
+, max(  sint24 DIV sint16) as t3_max
+, max(  uint24 DIV uint16) as t4_max
+FROM api_scan
+WHERE (sint8 >= -20 and sint8 < 5
+or sint8 > 97 and sint8 <= 113)
+GROUP BY sint8;
+
+Number of output lines, including header: 42
+
+== Diff ==
+================================================================================
+
+
+
+Mixed Division:
+== Query ==
+SELECT sint8
+, min( sint32 DIV  sint16  /   sint8 ) as a1t
+, min((sint32 DIV  sint16) /   sint8 ) as a2t
+, min( sint32 DIV (sint16  /   sint8)) as a3t
+, sum( sint32 /    sint16  DIV sint8 ) as b1t
+, sum((sint32 /    sint16) DIV sint8 ) as b2t
+, sum( sint32 /   (sint16  DIV sint8)) as b3t
+, max( uint24 + sint32 / (uint32 % sint32 DIV uint16)) as c
+FROM api_scan
+WHERE (sint8 >= -20 and sint8 < 5
+or sint8 > 97 and sint8 <= 109)
+and (sint32 < -100000 or sint32 > 100000)
+GROUP BY sint8;
+
+Number of output lines, including header: 38
+
+== Diff ==
+================================================================================
+
+
+
+Mixed integer operations:
+== Query ==
+SELECT sint8
+, min( sint32 DIV  sint16  *   sint8 ) as a1
+, min((sint32 DIV  sint16) *   sint8 ) as a2
+, min( sint32 DIV (sint16  *   sint8)) as a3
+, sum( sint32 *    sint16  DIV sint8 ) as b1
+, sum((sint32 *    sint16) DIV sint8 ) as b2
+, sum( sint32 *   (sint16  DIV sint8)) as b3
+, max( sint24 - sint8 * (sint32 % sint24 DIV sint16)) as c1
+, max( uint24 + uint8 * (uint32 % uint24 DIV uint16)) as c2
+FROM api_scan
+WHERE (sint8 >= -20 and sint8 < 5
+or sint8 > 97 and sint8 <= 113)
+GROUP BY sint8;
+
+Number of output lines, including header: 42
+
+== Diff ==
+================================================================================
+
+
+
+Simple DIV operations with NULL:
+== Query ==
+SELECT sint8
+, count(sint16 DIV ( sint8      % 2)) as odd_count
+, count(sint16 DIV ((sint8 + 1) % 2)) as evn_count
+, min(  sint16 DIV ( sint8      % 2)) as odd_min
+, min(  sint16 DIV ((sint8 + 1) % 2)) as evn_min
+, max(  sint16 DIV ( sint8      % 2)) as odd_max
+, max(  sint16 DIV ((sint8 + 1) % 2)) as evn_max
+FROM api_scan
+WHERE (sint8 >= -20 and sint8 < 5
+or sint8 > 97 and sint8 <= 113)
+GROUP BY sint8;
+
+Number of output lines, including header: 42
 
 == Diff ==
 ================================================================================
