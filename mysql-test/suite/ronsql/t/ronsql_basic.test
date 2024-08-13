@@ -131,6 +131,10 @@ SELECT sint8
      , max(  sint16 DIV sint8 ) as t2_max
      , max(  sint24 DIV sint16) as t3_max
      , max(  uint24 DIV uint16) as t4_max
+     , sum(  sint32 DIV sint16) as t1_sum
+     , sum(  sint16 DIV sint8 ) as t2_sum
+     , sum(  sint24 DIV sint16) as t3_sum
+     , sum(  uint24 DIV uint16) as t4_sum
 FROM api_scan
 WHERE (sint8 >= -20 and sint8 < 5
        or sint8 > 97 and sint8 <= 113)
@@ -182,6 +186,8 @@ SELECT sint8
      , min(  sint16 DIV ((sint8 + 1) % 2)) as evn_min
      , max(  sint16 DIV ( sint8      % 2)) as odd_max
      , max(  sint16 DIV ((sint8 + 1) % 2)) as evn_max
+     , sum(  sint16 DIV ( sint8      % 2)) as odd_sum
+     , sum(  sint16 DIV ((sint8 + 1) % 2)) as evn_sum
 FROM api_scan
 WHERE (sint8 >= -20 and sint8 < 5
        or sint8 > 97 and sint8 <= 113)
