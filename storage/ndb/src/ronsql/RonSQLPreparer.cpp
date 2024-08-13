@@ -1441,7 +1441,10 @@ RonSQLPreparer::print()
     assert(!m_do_index_scan &&
            m_index_scan_config == NULL &&
            m_index_scan_index == NULL);
-    out << "Execute as table scan.\n";
+    out << "Execute as table scan "
+        << (m_table_scan_filter == NULL
+            ? "without any filter.\n"
+            : "with a filter.\n");
     if (m_index_scan_config_candidates.size() == 0)
     {
       out << "(No candidate plans for index scan.)\n";
