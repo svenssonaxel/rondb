@@ -427,6 +427,11 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
     case Cmd::Type::PRINT_GROUP_BY_COLUMN:
       {
         NdbAggregator::Column column = m_regs_g[cmd.print_group_by_column.reg_g];
+        if(column.is_null())
+        {
+          out << "NULL"; // todo Fix for JSON output format
+          break;
+        }
         switch (column.type())
         {
         case NdbDictionary::Column::Type::Undefined:     ///< Undefined. Since this is a result, it means SQL NULL.
