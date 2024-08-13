@@ -105,12 +105,21 @@ GROUP BY cchar;|
 --let $canonicalization_script=s/(\.[0-9])666666666[78]\t/\1667\t/;s/(\t2\.5)\$/\1000/;s/(\.[0-9]{6})[0-9]{3,6}\t/\1\t/g;
 --source suite/ronsql/include/ronsql_compare.inc
 
---echo Integer Division:
+
+
+--echo DIV and integer operations:
 let $QUERY=
 SELECT cchar as char_gr
-     , max(14 DIV 3 + 18 DIV 5 * sint16)
-     , sum(14 DIV 3 + 18 DIV 5 * cfloat + uint8)
+     , max(14 DIV 3)
      , max((sint8 + 3) DIV sint8)
+     , min((sint8 + 3) DIV sint8)
+     , min(14 DIV 3 + 18 DIV 5 * sint16)
+     , max(14 DIV 3 + 18 DIV 5 * sint16)
+     , sum(14 DIV 3 + 18 DIV 5 * sint16)
+     , sum(14 DIV 3)
+     , sum(18 DIV 5)
+     , sum(sint16)
+     , sum(18 DIV 5 * sint16)
 FROM api_scan
 WHERE sint8 <= 1
 GROUP BY cchar;|

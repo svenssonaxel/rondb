@@ -1004,17 +1004,26 @@ RonSQLPreparer::apply_filter_cmp(NdbScanFilter* filter,
            right->op == T_IDENTIFIER)
   {
     assert(m_column_attrId_map != NULL);
-    return (filter->cmp(cond,
+    // todo This only works in simple expressions. For full correctness, the
+    // condition needs to be translated from 3-valued logic to 2-valued logic.
+    return (filter->begin(NdbScanFilter::AND) >= 0 &&
+            filter->isnotnull(m_column_attrId_map[left->col_idx]) >=0 &&
+            filter->isnotnull(m_column_attrId_map[right->col_idx]) >=0 &&
+            filter->cmp(cond,
                         m_column_attrId_map[left->col_idx],
-                        m_column_attrId_map[right->col_idx]) >= 0);
+                        m_column_attrId_map[right->col_idx]) >= 0 &&
+            filter->end() >= 0);
   }
   if (left->op == T_IDENTIFIER)
   {
     assert(m_column_attrId_map != NULL);
     raw_value rv = eval_const_expr(right);
-    return (filter->cmp(cond,
+    return (filter->begin(NdbScanFilter::AND) >= 0 &&
+            filter->isnotnull(m_column_attrId_map[left->col_idx]) >=0 &&
+            filter->cmp(cond,
                         m_column_attrId_map[left->col_idx],
-                        rv.val, rv.len) >= 0);
+                        rv.val, rv.len) >= 0 &&
+            filter->end() >= 0);
   }
   throw runtime_error("Failed to apply filter.");
 }

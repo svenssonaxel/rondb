@@ -30,6 +30,11 @@ if ($canonicalization_script) {
 --exec sed -ri '$canonicalization_script' $MYSQL_TMP_DIR/ronsql.out
 }
 --exec (head -n 1 $MYSQL_TMP_DIR/ronsql.out && tail -n +2 $MYSQL_TMP_DIR/ronsql.out | sort) > $MYSQL_TMP_DIR/ronsql.out.sorted
+if ($explain_ronsql) {
+--echo
+--echo == RonSQL EXPLAIN ==
+--exec $RONSQL_CLI_EXE --connect-string $NDB_CONNECTSTRING --execution-mode EXPLAIN_OVERRIDE $QUERY_PARAMS
+}
 if ($show_all_results) {
 --echo
 --echo == RonSQL result ==
@@ -59,3 +64,4 @@ if ($QUERY=='')
 --let $QUERY=
 --let $show_all_results=0
 --let $canonicalization_script=
+--let $explain_ronsql=0
