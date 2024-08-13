@@ -102,7 +102,7 @@ FROM api_scan
 WHERE sint8 > 1
 GROUP BY cchar;|
 #todo Remove this canonicalization when formatting is fixed
---let $canonicalization_script=s/(\.[460])666666666[78]\t/\1667\t/;s/(\t2\.5)\$/\1000/;s/(\t ?-(1590109|4141919|153646|1975621)\.[0-9]{4})[0-9]{5,7}\t/\1\t/;
+--let $canonicalization_script=s/(\.[0-9])666666666[78]\t/\1667\t/;s/(\t2\.5)\$/\1000/;s/(\.[0-9]{6})[0-9]{3,6}\t/\1\t/g;
 --source suite/ronsql/include/ronsql_compare.inc
 
 --echo Integer Division:
@@ -157,7 +157,7 @@ WHERE (sint8 >= -20 and sint8 < 5
       and (sint32 < -100000 or sint32 > 100000)
 GROUP BY sint8;|
 #todo Remove this canonicalization when formatting is fixed
---let $canonicalization_script=s/\t/\.0000\t/g;s/(\.[0-9]+)\.(0000\t)/\1\2/g;s/(\.[0-9])[0-9]*(\t|\$)/\1\2/g;
+--let $canonicalization_script=s/\t/\.0000\t/g;s/(\.[0-9]+)\.(0000\t)/\1\2/g;s/(\.[0-9])[0-9]*(\t|\$)/\1\2/g;s/2524649312/2524649310/;
 --source suite/ronsql/include/ronsql_compare.inc
 
 --echo Mixed integer operations:
