@@ -469,127 +469,118 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
       }
       break;
     }
-  case Ndbinfo::DICT_OBJ_INFO_TABLEID:
-  case Ndbinfo::STORED_TABLES_TABLEID:
-  case Ndbinfo::TABLE_MAP_TABLEID:
-  {
-    jam();
-    if (c_masterNodeId != getOwnNodeId()) {
+    case Ndbinfo::DICT_OBJ_INFO_TABLEID:
+    case Ndbinfo::STORED_TABLES_TABLEID:
+    case Ndbinfo::TABLE_MAP_TABLEID: {
       jam();
-      break;
-    }
-    DictObjectName_hash::Iterator iter;
-    bool done = false;
-    const Uint32 nextBucket = cursor->data[0];
-
-    if (nextBucket == 0) {
-      // Start from the beginning.
-      jam();
-      done = !c_obj_name_hash.first(iter);
-    } else {
-      // Continue from where the last batch ended.
-      jam();
-      done = !c_obj_name_hash.next(nextBucket, iter);
-    }
-
-    while (!done) {
-      jam();
-      ListTablesData ltd;
-      Uint32 version, parentObjType, parentObjId;
-
-      ndbrequire(buildListTablesData(*iter.curr.p, RNIL, ltd, version,
-                                     parentObjType, parentObjId));
-
-      char nameBuff[PATH_MAX];
-      {
-        LcLocalRope name(iter.curr.p->m_name);
-        name.copy(nameBuff, sizeof(nameBuff));
-        ndbassert(strlen(nameBuff) < PATH_MAX);
-      }
-
-      /*
-        Try to find the parent of blob tables. Blob tables are named
-        <db name>/def/NDB$BLOB_<parent obj id>_<parent column num>
-       */
-      if (DictTabInfo::isTable(ltd.getTableType()) && parentObjId == 0) {
+      if (c_masterNodeId != getOwnNodeId()) {
         jam();
-        const char *const blobNamePrefix = "/NDB$BLOB_";
-        const char *const blobNameStart = strstr(nameBuff, blobNamePrefix);
-
-        if (blobNameStart != NULL) {
-          jam();
-          char *parentIdEnd = NULL;
-          const long long num = strtoll(
-              blobNameStart + strlen(blobNamePrefix), &parentIdEnd, 10);
-          ndbassert(num > 0);
-          ndbassert(num < UINT_MAX32);
-          ndbassert(*parentIdEnd == '_');
-
-          parentObjId = static_cast<Uint32>(num);
-          parentObjType = ltd.getTableType();  // System or user table.
-        }
+        break;
       }
-      if (req.tableId == Ndbinfo::DICT_OBJ_INFO_TABLEID) {
+      DictObjectName_hash::Iterator iter;
+      bool done = false;
+      const Uint32 nextBucket = cursor->data[0];
+
+      if (nextBucket == 0) {
+        // Start from the beginning.
         jam();
-        Ndbinfo::Row row(signal, req);
-        /* Write values */
-        row.write_uint32(ltd.getTableType());
-        row.write_uint32(ltd.getTableId());
-        row.write_uint32(version);
-        row.write_uint32(ltd.getTableState());
-        row.write_uint32(parentObjType);
-        row.write_uint32(parentObjId);
-        row.write_string(nameBuff); /* FQ name */
-        ndbinfo_send_row(signal, req, row, rl);
+        done = !c_obj_name_hash.first(iter);
+      } else {
+        // Continue from where the last batch ended.
+        jam();
+        done = !c_obj_name_hash.next(nextBucket, iter);
       }
-      else if (req.tableId == Ndbinfo::TABLE_MAP_TABLEID)
-      {
-        if (ltd.getTableType() == DictTabInfo::TableType::SystemTable ||
-            ltd.getTableType() == DictTabInfo::TableType::UserTable ||
-            ltd.getTableType() == DictTabInfo::TableType::UniqueHashIndex ||
-            ltd.getTableType() == DictTabInfo::TableType::UniqueOrderedIndex ||
-            ltd.getTableType() == DictTabInfo::TableType::OrderedIndex)
+
+      while (!done) {
+        jam();
+        ListTablesData ltd;
+        Uint32 version, parentObjType, parentObjId;
+
+        ndbrequire(buildListTablesData(*iter.curr.p, RNIL, ltd, version,
+                                       parentObjType, parentObjId));
+
+        char nameBuff[PATH_MAX];
         {
+          LcLocalRope name(iter.curr.p->m_name);
+          name.copy(nameBuff, sizeof(nameBuff));
+          ndbassert(strlen(nameBuff) < PATH_MAX);
+        }
+
+        /*
+          Try to find the parent of blob tables. Blob tables are named
+          <db name>/def/NDB$BLOB_<parent obj id>_<parent column num>
+         */
+        if (DictTabInfo::isTable(ltd.getTableType()) && parentObjId == 0) {
+          jam();
+          const char *const blobNamePrefix = "/NDB$BLOB_";
+          const char *const blobNameStart = strstr(nameBuff, blobNamePrefix);
+
+          if (blobNameStart != NULL) {
+            jam();
+            char *parentIdEnd = NULL;
+            const long long num = strtoll(
+                blobNameStart + strlen(blobNamePrefix), &parentIdEnd, 10);
+            ndbassert(num > 0);
+            ndbassert(num < UINT_MAX32);
+            ndbassert(*parentIdEnd == '_');
+
+            parentObjId = static_cast<Uint32>(num);
+            parentObjType = ltd.getTableType();  // System or user table.
+          }
+        }
+        if (req.tableId == Ndbinfo::DICT_OBJ_INFO_TABLEID) {
+          jam();
           Ndbinfo::Row row(signal, req);
+          /* Write values */
+          row.write_uint32(ltd.getTableType());
           row.write_uint32(ltd.getTableId());
-          char nameBuffer[PATH_MAX];
-          char copyBuffer[PATH_MAX];
-          if (parentObjId == 0)
+          row.write_uint32(version);
+          row.write_uint32(ltd.getTableState());
+          row.write_uint32(parentObjType);
+          row.write_uint32(parentObjId);
+          row.write_string(nameBuff); /* FQ name */
+          ndbinfo_send_row(signal, req, row, rl);
+        } else if (req.tableId == Ndbinfo::TABLE_MAP_TABLEID) {
+          if (ltd.getTableType() == DictTabInfo::TableType::SystemTable ||
+              ltd.getTableType() == DictTabInfo::TableType::UserTable ||
+              ltd.getTableType() == DictTabInfo::TableType::UniqueHashIndex ||
+              ltd.getTableType() == DictTabInfo::TableType::UniqueOrderedIndex ||
+              ltd.getTableType() == DictTabInfo::TableType::OrderedIndex)
           {
-            strcpy(nameBuffer, nameBuff);
-          }
-          else
-          {
-            TableRecordPtr tabPtr;
-            bool ok = find_object(tabPtr, parentObjId);
-            ndbrequire(ok);
-            LcLocalRope name(tabPtr.p->tableName);
-            name.copy(nameBuffer, sizeof(nameBuffer));
-            ndbassert(strlen(nameBuffer) < PATH_MAX);
-          }
-          strcpy(copyBuffer, nameBuffer);
-          char *ptr = strstr(copyBuffer, "/");
-          if (ptr != nullptr)
-          {
-            ptr[0] = 0;
-            ptr++;
-            ptr = strstr(ptr, "/");
+            Ndbinfo::Row row(signal, req);
+            row.write_uint32(ltd.getTableId());
+            char nameBuffer[PATH_MAX];
+            char copyBuffer[PATH_MAX];
+            if (parentObjId == 0)
+            {
+              strcpy(nameBuffer, nameBuff);
+            } else {
+              TableRecordPtr tabPtr;
+              bool ok = find_object(tabPtr, parentObjId);
+              ndbrequire(ok);
+              LcLocalRope name(tabPtr.p->tableName);
+              name.copy(nameBuffer, sizeof(nameBuffer));
+              ndbassert(strlen(nameBuffer) < PATH_MAX);
+            }
+            strcpy(copyBuffer, nameBuffer);
+            char *ptr = strstr(copyBuffer, "/");
             if (ptr != nullptr)
             {
+              ptr[0] = 0;
               ptr++;
-              row.write_string(copyBuffer); /* Database name */
-              row.write_string(ptr); /* Table name */
-              ndbinfo_send_row(signal, req, row, rl);
+              ptr = strstr(ptr, "/");
+              if (ptr != nullptr)
+              {
+                ptr++;
+                row.write_string(copyBuffer); /* Database name */
+                row.write_string(ptr); /* Table name */
+                ndbinfo_send_row(signal, req, row, rl);
+              }
             }
+          } else {
+            ;/* Ignore any other table types */
           }
-        }
-        else
-        {
-          ;/* Ignore any other table types */
-        }
-      }
-      else
-      {
+        } else {
           jam();
           jamLine(ltd.getTableId());
           if (DictTabInfo::isTable(ltd.getTableType()) ||
@@ -629,31 +620,31 @@ void Dbdict::execDBINFO_SCANREQ(Signal *signal) {
             row.write_uint32(tabPtr.p->singleUserMode);
             ndbinfo_send_row(signal, req, row, rl);
           }
-      }
+        }
 
-      const Uint32 oldBucket = iter.bucket;
-      done = !c_obj_name_hash.next(iter);
+        const Uint32 oldBucket = iter.bucket;
+        done = !c_obj_name_hash.next(iter);
 
-      if (!done) {
-        jam();
-        const bool onBucketBoundary = (iter.bucket != oldBucket);
-
-        /*
-          Ensure that we send all the entries in the current hash bucket
-          before ending the batch, since we use the bucket number to indicate
-          where the next batch should start.
-        */
-        if (onBucketBoundary && rl.need_break(req)) {
+        if (!done) {
           jam();
-          ndbinfo_send_scan_break(signal, req, rl, iter.bucket);
-          return;
+          const bool onBucketBoundary = (iter.bucket != oldBucket);
+
+          /*
+            Ensure that we send all the entries in the current hash bucket
+            before ending the batch, since we use the bucket number to indicate
+            where the next batch should start.
+          */
+          if (onBucketBoundary && rl.need_break(req)) {
+            jam();
+            ndbinfo_send_scan_break(signal, req, rl, iter.bucket);
+            return;
+          }
         }
       }
+      break;
     }
-    break;
-  }
-  default:
-    break;
+    default:
+      break;
   }
 
   ndbinfo_send_scan_conf(signal, req, rl);
@@ -680,28 +671,28 @@ void Dbdict::execCONTINUEB(Signal *signal) {
      defined(ERROR_INSERT)) && \
     defined(DO_TRANSIENT_POOL_STAT)
 
-  case ZDICT_TRANSIENT_POOL_STAT:
-  {
-    for (Uint32 pool_index = 0;
-         pool_index < c_transient_pool_count;
-         pool_index++)
+    case ZDICT_TRANSIENT_POOL_STAT:
     {
-      g_eventLogger->info(
-        "DBDICT %u: Transient slot pool %u %p: Entry size %u:"
-       " Free %u: Used %u: Used high %u: Size %u: For shrink %u",
-       instance(),
-       pool_index,
-       c_transient_pools[pool_index],
-       c_transient_pools[pool_index]->getEntrySize(),
-       c_transient_pools[pool_index]->getNoOfFree(),
-       c_transient_pools[pool_index]->getUsed(),
-       c_transient_pools[pool_index]->getUsedHi(),
-       c_transient_pools[pool_index]->getSize(),
-       c_transient_pools_shrinking.get(pool_index));
+      for (Uint32 pool_index = 0;
+           pool_index < c_transient_pool_count;
+           pool_index++)
+      {
+        g_eventLogger->info(
+          "DBDICT %u: Transient slot pool %u %p: Entry size %u:"
+         " Free %u: Used %u: Used high %u: Size %u: For shrink %u",
+         instance(),
+         pool_index,
+         c_transient_pools[pool_index],
+         c_transient_pools[pool_index]->getEntrySize(),
+         c_transient_pools[pool_index]->getNoOfFree(),
+         c_transient_pools[pool_index]->getUsed(),
+         c_transient_pools[pool_index]->getUsedHi(),
+         c_transient_pools[pool_index]->getSize(),
+         c_transient_pools_shrinking.get(pool_index));
+      }
+      sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 1);
+      break;
     }
-    sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 5000, 1);
-    break;
-  }
 #endif
     case ZPACK_TABLE_INTO_PAGES:
       jam();
@@ -17171,11 +17162,11 @@ void Dbdict::createEventUTIL_EXECUTE(Signal *signal, Uint32 callbackData,
           return;
         }
 
-      TableRecordPtr tablePtr;
-      tablePtr.i = obj_ptr_p->m_object_ptr_i;
-      ndbrequire(c_tableRecordPool_.getValidPtr(tablePtr));
-      evntRec->m_request.setTableId(tablePtr.p->tableId);
-      evntRec->m_request.setTableVersion(tablePtr.p->tableVersion);
+        TableRecordPtr tablePtr;
+        tablePtr.i = obj_ptr_p->m_object_ptr_i;
+        ndbrequire(c_tableRecordPool_.getValidPtr(tablePtr));
+        evntRec->m_request.setTableId(tablePtr.p->tableId);
+        evntRec->m_request.setTableVersion(tablePtr.p->tableVersion);
 
         createEventComplete_RT_USER_GET(signal, evntRecPtr);
         return;
@@ -30805,18 +30796,18 @@ void Dbdict::createHashMap_parse(Signal *signal, bool master,
         jam();
         partitionBalance = NDB_PARTITION_BALANCE_FOR_RP_BY_LDM;
         [[fallthrough]];
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_2:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_3:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_4:
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_2:
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_4:
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_6:
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_8:
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_16:
-    case NDB_PARTITION_BALANCE_FOR_RP_BY_NODE:
-    case NDB_PARTITION_BALANCE_FOR_RA_BY_NODE:
+      case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM:
+      case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM:
+      case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_2:
+      case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_3:
+      case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_4:
+      case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_2:
+      case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_4:
+      case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_6:
+      case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_8:
+      case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_16:
+      case NDB_PARTITION_BALANCE_FOR_RP_BY_NODE:
+      case NDB_PARTITION_BALANCE_FOR_RA_BY_NODE:
         jam();
         fragments = get_default_fragments(signal, partitionBalance, 0);
         if (impl_req->requestType & CreateHashMapReq::CreateForOneNodegroup) {

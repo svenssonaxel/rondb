@@ -74,7 +74,7 @@ inline Uint64 NdbTimer::elapsedTime(void) const {
 inline void NdbTimer::printTransactionStatistics(const char* text, 
 						 int numTransactions, 
 						 int numOperations,
-                                                 int numThreads = 1){
+                                                 int numThreads = 1) {
 
   // Convert to Uint32 in order to be able to print it to screen
   Uint32 lapTime = (Uint32)elapsedTime();

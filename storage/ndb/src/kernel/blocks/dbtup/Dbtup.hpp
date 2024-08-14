@@ -335,30 +335,30 @@ class Dbtup : public SimulatedBlock {
     DROPPING = 68
   };
 
-  struct Fragoperrec {
-    Uint64 minRows;
-    Uint64 maxRows;
+struct Fragoperrec {
+  Uint64 minRows;
+  Uint64 maxRows;
   Uint64 fragPointer;
-    Uint32 nextFragoprec;
-    Uint32 lqhPtrFrag;
-    Uint32 fragidFrag;
-    Uint32 tableidFrag;
-    Uint32 attributeCount;
-    Uint32 charsetIndex;
-    Uint32 m_null_bits[2];
-    Uint32 m_extra_row_gci_bits;
-    Uint32 m_extra_row_author_bits;
-    union {
-      BlockReference lqhBlockrefFrag;
-      Uint32 m_senderRef;
-    };
-    Uint32 m_senderData;
-    Uint32 m_restoredLcpId;
-    Uint32 m_restoredLocalLcpId;
-    Uint32 m_maxGciCompleted;
-    bool inUse;
-    bool definingFragment;
+  Uint32 nextFragoprec;
+  Uint32 lqhPtrFrag;
+  Uint32 fragidFrag;
+  Uint32 tableidFrag;
+  Uint32 attributeCount;
+  Uint32 charsetIndex;
+  Uint32 m_null_bits[2];
+  Uint32 m_extra_row_gci_bits;
+  Uint32 m_extra_row_author_bits;
+  union {
+    BlockReference lqhBlockrefFrag;
+    Uint32 m_senderRef;
   };
+  Uint32 m_senderData;
+  Uint32 m_restoredLcpId;
+  Uint32 m_restoredLocalLcpId;
+  Uint32 m_maxGciCompleted;
+  bool inUse;
+  bool definingFragment;
+};
   typedef Ptr<Fragoperrec> FragoperrecPtr;
 
   /* Operation record used during alter table. */
@@ -932,73 +932,76 @@ struct Fragrecord {
     }
   }
 
-  struct Operationrec {
-    static constexpr Uint32 TYPE_ID = RT_DBTUP_OPERATION;
-    Uint32 m_magic;
+struct Operationrec {
+  static constexpr Uint32 TYPE_ID = RT_DBTUP_OPERATION;
+  Uint32 m_magic;
 
-    Operationrec()
-        : m_magic(Magic::make(TYPE_ID)),
+  Operationrec() :
+    m_magic(Magic::make(TYPE_ID)),
     fragmentPtr(RNIL64),
-          prevActiveOp(RNIL),
-          nextActiveOp(RNIL),
-          fragPageId(RNIL),
-          m_commit_state(CommitNotStarted),
-          m_any_value(0),
-          op_type(ZREAD),
-          trans_state(Uint32(TRANS_DISCONNECTED)) {
-      op_struct.bit_field.in_active_list = false;
-      op_struct.bit_field.tupVersion = ZNIL;
-      op_struct.bit_field.delete_insert_flag = false;
-    }
+    prevActiveOp(RNIL),
+    nextActiveOp(RNIL),
+    fragPageId(RNIL),
+    m_commit_state(CommitNotStarted),
+    m_any_value(0),
+    op_type(ZREAD),
+    trans_state(Uint32(TRANS_DISCONNECTED))
+  {
+    op_struct.bit_field.in_active_list = false;
+    op_struct.bit_field.tupVersion = ZNIL;
+    op_struct.bit_field.delete_insert_flag = false;
+  }
 
-    ~Operationrec() {}
+  ~Operationrec()
+  {
+  }
 
-    enum CommitState {
-      CommitNotStarted = 0,
-      CommitStartedNotReceived = 1,
-      CommitStartedReceived = 2,
-      CommitPerformedNotReceived = 3,
-      CommitPerformedReceived = 4,
-      CommitDoneReceived = 5,
-      CommitDoneNotReceived = 6
-    };
+  enum CommitState
+  {
+    CommitNotStarted = 0,
+    CommitStartedNotReceived = 1,
+    CommitStartedReceived = 2,
+    CommitPerformedNotReceived = 3,
+    CommitPerformedReceived = 4,
+    CommitDoneReceived = 5,
+    CommitDoneNotReceived = 6
+  };
   /*
    * From fragment i-value we can find fragment and table record
    */
   Uint64 fragmentPtr;
 
-    /*
-     * Doubly linked list with anchor on tuple.
-     * This is to handle multiple updates on the same tuple
-     * by the same transaction.
-     */
-    Uint32 prevActiveOp;
-    Uint32 nextActiveOp;
+  /*
+   * Doubly linked list with anchor on tuple.
+   * This is to handle multiple updates on the same tuple
+   * by the same transaction.
+   */
+  Uint32 prevActiveOp;
+  Uint32 nextActiveOp;
 
-    Uint32 fragPageId;
+  Uint32 fragPageId;
 
-    CommitState m_commit_state;
+  CommitState m_commit_state;
 
-    bool is_first_operation() const { return prevActiveOp == RNIL; }
-    bool is_last_operation() const { return nextActiveOp == RNIL; }
+  bool is_first_operation() const { return prevActiveOp == RNIL; }
+  bool is_last_operation() const { return nextActiveOp == RNIL; }
 
-    Uint32 m_undo_buffer_space;  // In words
+  Uint32 m_undo_buffer_space; // In words
 
-    Uint32 m_any_value;
-    Uint32 nextPool;
-
+  Uint32 m_any_value;
+  Uint32 nextPool;
     /*
      * From fragment i-value we can find fragment and table record
      */
     Uint32 fragmentPtr;
-
-    /*
-     * We need references to both the original tuple and the copy tuple.
-     * We keep the page's real i-value and its index and from there we
-     * can find out about the fragment page id and the page offset.
-     */
-    Local_key m_tuple_location;
-    Local_key m_copy_tuple_location;
+  
+  /*
+   * We need references to both the original tuple and the copy tuple.
+   * We keep the page's real i-value and its index and from there we
+   * can find out about the fragment page id and the page offset.
+   */
+  Local_key m_tuple_location;
+  Local_key m_copy_tuple_location;
 
   /**
    * In case we need to allocate a new disk row part we store the new
@@ -1008,20 +1011,20 @@ struct Fragrecord {
    */
   Uint32 m_uncommitted_used_space;
 
-    /*
-     * We keep the record linked to the operation record in LQH.
-     * This is needed due to writing of REDO log must be performed
-     * in correct order, which is the same order as the writes
-     * occurred. LQH can receive the records in different order.
-     */
-    Uint32 userpointer;
+  /*
+   * We keep the record linked to the operation record in LQH.
+   * This is needed due to writing of REDO log must be performed
+   * in correct order, which is the same order as the writes
+   * occurred. LQH can receive the records in different order.
+   */
+  Uint32 userpointer;
 
-    /*
-     * When responding to queries in the same transaction they will see
-     * a result from the save point id the query was started. Again
-     * functionality for multi-updates of the same record in one
-     * transaction.
-     */
+  /*
+   * When responding to queries in the same transaction they will see
+   * a result from the save point id the query was started. Again
+   * functionality for multi-updates of the same record in one
+   * transaction.
+   */
   Uint32 savepointId;
 
   /**
@@ -1031,37 +1034,36 @@ struct Fragrecord {
   Uint32 m_disk_callback_page;
   Uint32 m_disk_extra_callback_page;
 
-    Uint32 op_type;
-    Uint32 trans_state;
-    Uint32 tuple_state;
+  Uint32 op_type;
+  Uint32 trans_state;
+  Uint32 tuple_state;
+ /*
+   * State variables on connection.
+   * State variable on tuple after multi-updates
+   * Is operation undo logged or not
+   * Is operation in fragment list
+   * Is operation in multi-update list
+   * Operation type (READ, UPDATE, etc)
+   * Is record primary replica
+   * Is delete or insert performed
+   */
+  struct OpBitFields {
+  /*
+   * TUX needs to know the tuple version of the tuple since it
+   * keeps an entry for both the committed and all versions in
+   * a transaction currently. So each update will create a new
+   * version even if in the same transaction.
+   */
+    unsigned int tupVersion : 16;
 
-    /*
-     * State variables on connection.
-     * State variable on tuple after multi-updates
-     * Is operation undo logged or not
-     * Is operation in fragment list
-     * Is operation in multi-update list
-     * Operation type (READ, UPDATE, etc)
-     * Is record primary replica
-     * Is delete or insert performed
-     */
-    struct OpBitFields {
-      /*
-       * TUX needs to know the tuple version of the tuple since it
-       * keeps an entry for both the committed and all versions in
-       * a transaction currently. So each update will create a new
-       * version even if in the same transaction.
-       */
-      unsigned int tupVersion : 16;
-
-      unsigned int m_reorg : 2;
-      unsigned int in_active_list : 1;
-      unsigned int delete_insert_flag : 1;
-      unsigned int m_disk_preallocated : 1;
-      unsigned int m_load_diskpage_on_commit : 1;
+    unsigned int m_reorg : 2;
+    unsigned int in_active_list : 1;
+    unsigned int delete_insert_flag : 1;
+    unsigned int m_disk_preallocated : 1;
+    unsigned int m_load_diskpage_on_commit : 1;
     unsigned int m_load_extra_diskpage_on_commit : 1;
-      unsigned int m_wait_log_buffer : 1;
-      unsigned int m_gci_written : 1;
+    unsigned int m_wait_log_buffer : 1;
+    unsigned int m_gci_written : 1;
 
       /**
        * @see TupKeyReq
@@ -1152,18 +1154,18 @@ struct Fragrecord {
   /* WHEN A TRIGGER IS ACTIVATED AND RELEASED */
   /* WHEN THE TRIGGER IS DEACTIVATED.         */
   /* **************************************** */
-  struct TupTriggerData {
-    TupTriggerData() {}
+struct TupTriggerData {
+  TupTriggerData() {}
 
   Uint32 m_magic;
-    /**
-     * Trigger id, used by DICT/TRIX to identify the trigger
-     *
-     * trigger Ids are unique per block for SUBSCRIPTION triggers.
-     * This is so that BACKUP can use TUP triggers directly and delete them
-     * properly.
-     */
-    Uint32 triggerId;
+  /**
+   * Trigger id, used by DICT/TRIX to identify the trigger
+   *
+   * trigger Ids are unique per block for SUBSCRIPTION triggers.
+   * This is so that BACKUP can use TUP triggers directly and delete them
+   * properly.
+   */
+  Uint32 triggerId;
 
     /**
      * In 6.3 there is one trigger per operation
@@ -1303,7 +1305,7 @@ Uint32 cnoOfMaxAllocatedTriggerRec;
     ReadFunction *readFunctionArray;
     UpdateFunction *updateFunctionArray;
     CHARSET_INFO **charsetArray;
-
+    
     Uint32* readKeyArray;
     /*
       Offset into Dbtup::tableDescriptor of the start of the descriptor
@@ -1983,13 +1985,13 @@ Uint32 cnoOfMaxAllocatedTriggerRec;
     EmulatedJamBuffer *jamBuffer;
     Tuple_header *m_tuple_ptr;
 
-  /**
-   * Variables often used in read of columns
-   */
-  Uint32 *attr_descr;
-  Uint32 check_offset[2];
-  Uint32          max_read;
-  Uint32          out_buf_index;
+    /**
+     * Variables often used in read of columns
+     */
+    Uint32 *attr_descr;
+    Uint32 check_offset[2];
+    Uint32 max_read;
+    Uint32 out_buf_index;
 
     Uint32 out_buf_bits;
     Uint32 in_buf_index;
@@ -2007,17 +2009,17 @@ Uint32 cnoOfMaxAllocatedTriggerRec;
     enum When m_when;
 
 #ifdef ERROR_INSERT
-  Uint32 instance_num;
-  bool is_query_block;
+    Uint32 instance_num;
+    bool is_query_block;
 #endif
     Tuple_header *m_disk_ptr;
     PagePtr m_page_ptr;
-  PagePtr m_varpart_page_ptr[2];    // could be same as m_page_ptr_p
+    PagePtr m_varpart_page_ptr[2]; // could be same as m_page_ptr_p
     PagePtr m_disk_page_ptr;     //
     Local_key m_row_id;
     Uint32 optimize_options;
-  Uint32 m_prio_a_flag;
-  Uint32 m_reorg;
+    Uint32 m_prio_a_flag;
+    Uint32 m_reorg;
 
     bool dirty_op;
     bool interpreted_exec;
@@ -2084,9 +2086,9 @@ Uint32 cnoOfMaxAllocatedTriggerRec;
      * supplied a value for this column
      */
     AttributeMask changeMask;
-  Uint16 var_pos_array[2][2*MAX_ATTRIBUTES_IN_TABLE + 1];
-  OperationrecPtr prevOpPtr;
-  Dblqh *m_lqh;
+    Uint16 var_pos_array[2][2 * MAX_ATTRIBUTES_IN_TABLE + 1];
+    OperationrecPtr prevOpPtr;
+    Dblqh *m_lqh;
   };
 
   friend struct Undo_buffer;
@@ -2615,10 +2617,10 @@ Uint32 cnoOfMaxAllocatedTriggerRec;
                         Uint32& tuxFixHeaderSize);
   Uint32 get_current_frag_page_id();
 
- private:
+private:
   void disk_page_load_extra_callback(Signal*, Uint32 op, Uint32 page);
-  void disk_page_load_callback(Signal *, Uint32 op, Uint32 page);
-  void disk_page_load_scan_callback(Signal *, Uint32 op, Uint32 page);
+  void disk_page_load_callback(Signal*, Uint32 op, Uint32 page);
+  void disk_page_load_scan_callback(Signal*, Uint32 op, Uint32 page);
 
  private:
   // Trigger signals

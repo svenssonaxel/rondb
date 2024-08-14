@@ -3749,9 +3749,8 @@ void BackupRestore::cback(int result, restore_callback_t *cb)
      * Error. temporary or permanent?
      */
     if (errorHandler(cb))
-      tuple_a(cb); // retry
-    else
-    {
+      tuple_a(cb);  // retry
+    else {
       cb->next = m_free_callback;
       m_free_callback = cb;
       set_data_error(true);

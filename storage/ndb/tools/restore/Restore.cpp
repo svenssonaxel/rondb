@@ -798,10 +798,10 @@ TableS::~TableS() {
 // Parse dictTabInfo buffer and pushback to to vector storage
 bool RestoreMetaData::parseTableDescriptor(const Uint32 *data, Uint32 len) {
   NdbTableImpl *tableImpl = 0;
-  int ret = NdbDictInterface::parseTableInfo
-    (&tableImpl, data, len, false, nullptr,
-     ndbd_drop6(m_fileHeader.NdbVersion) ? MAKE_VERSION(5,1,2) :
-     m_fileHeader.NdbVersion);
+  int ret = NdbDictInterface::parseTableInfo(&tableImpl, data, len, false, nullptr,
+                                             ndbd_drop6(m_fileHeader.NdbVersion)
+                                                 ? MAKE_VERSION(5, 1, 2)
+                                                 : m_fileHeader.NdbVersion);
 
   if (ret != 0) {
     ndberror_struct err_struct;

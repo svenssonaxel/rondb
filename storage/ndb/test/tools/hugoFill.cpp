@@ -49,8 +49,8 @@ int main(int argc, const char **argv) {
   int optind = 0;
   char desc[] =
       "tabname\n"
-      "This program will load one table in Ndb with calculated data\n"
-      "until the database is full.\n";
+      "This program will load one table in Ndb with calculated data \n"
+      "until the database is full. \n";
 
   if (getarg(args, num_args, argc, argv, &optind) || argv[optind] == NULL ||
       _help) {

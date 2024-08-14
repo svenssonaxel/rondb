@@ -1428,17 +1428,17 @@ void Ndbfs::report(Request *request, Signal *signal) {
         if (theOpenFiles.size() > m_maxOpenedFiles)
           m_maxOpenedFiles = theOpenFiles.size();
 
-      Uint32 fileInfo = 0;
-      if (request->par.open.use_o_direct)
-      {
-        fileInfo = FsConf::USE_O_DIRECT;
-      }
-      fsConf->filePointer = request->theFilePointer;
-      fsConf->fileInfo = fileInfo;
-      fsConf->file_size_hi = request->m_file_size_hi;
-      fsConf->file_size_lo = request->m_file_size_lo;
-      sendSignal(ref, GSN_FSOPENCONF, signal, 5, JBA);
-      break;
+        Uint32 fileInfo = 0;
+        if (request->par.open.use_o_direct)
+        {
+          fileInfo = FsConf::USE_O_DIRECT;
+        }
+        fsConf->filePointer = request->theFilePointer;
+        fsConf->fileInfo = fileInfo;
+        fsConf->file_size_hi = request->m_file_size_hi;
+        fsConf->file_size_lo = request->m_file_size_lo;
+        sendSignal(ref, GSN_FSOPENCONF, signal, 5, JBA);
+        break;
       }
       case Request::closeRemove:
       case Request::close: {

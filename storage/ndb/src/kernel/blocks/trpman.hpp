@@ -47,9 +47,9 @@ class Trpman : public SimulatedBlock {
   void execENABLE_COMREQ(Signal *signal);
   void execDISCONNECT_REP(Signal *signal);
   void execCONNECT_REP(Signal *signal);
-  void execROUTE_ORD(Signal *signal);
-  void execACTIVATE_TRP_REQ(Signal *);
-  void execUPD_QUERY_DIST_ORD(Signal *);
+  void execROUTE_ORD(Signal* signal);
+  void execACTIVATE_TRP_REQ(Signal*);
+  void execUPD_QUERY_DIST_ORD(Signal*);
   void execSEND_PUSH_ABORTREQ(Signal*);
 
   void sendSYNC_THREAD_VIA_CONF(Signal *, Uint32, Uint32);
@@ -59,10 +59,10 @@ class Trpman : public SimulatedBlock {
 
   void execNDB_TAMPER(Signal *);
   void execDUMP_STATE_ORD(Signal *);
+
   void startCONTINUEB(Signal*);
   void execCONTINUEB(Signal*);
-
- public:
+public:
   Uint32 distribute_signal(SignalHeader * const header,
                            const Uint32 instance,
                            Uint32 **out_data,

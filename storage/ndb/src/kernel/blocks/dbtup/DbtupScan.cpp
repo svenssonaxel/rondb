@@ -1834,7 +1834,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
             if ((bits & ScanOp::SCAN_NR) && (scan.m_endPage != RNIL)) {
               if (key.m_page_no < scan.m_endPage) {
                 jam();
-              DEB_NR_SCAN(("(%u)scanning page %u", instance(), key.m_page_no));
+                DEB_NR_SCAN(("(%u)scanning page %u", instance(), key.m_page_no));
                 goto cont;
               }
               jam();
@@ -1949,9 +1949,9 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
                * the query thread, no need for this protection from LDM
                * thread.
                */
-            acquire_frag_page_map_mutex_read(fragPtr.p, jamBuffer());
+              acquire_frag_page_map_mutex_read(fragPtr.p, jamBuffer());
               pos.m_realpid_mm = getRealpidCheck(fragPtr.p, key.m_page_no);
-            release_frag_page_map_mutex_read(fragPtr.p, jamBuffer());
+              release_frag_page_map_mutex_read(fragPtr.p, jamBuffer());
               if (unlikely(pos.m_realpid_mm == RNIL)) {
                 jam();
                 pos.m_get = ScanPos::Get_next_page_mm;
@@ -2052,7 +2052,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
               jam();
               pos.m_get = ScanPos::Get_undef;
               scan.m_state = ScanOp::Last;
-            scan.m_last_seen = __LINE__;
+              scan.m_last_seen = __LINE__;
               return true;
             } else {
               // move to next extent
@@ -2164,7 +2164,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
             jam();
             // request queued
             pos.m_get = ScanPos::Get_tuple;
-          scan.m_last_seen = __LINE__;
+            scan.m_last_seen = __LINE__;
             return false;
           } else if (res < 0) {
             jam();
@@ -2178,7 +2178,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
             }
             /* Flag to reply code that we have an error */
             scan.m_state = ScanOp::Invalid;
-          scan.m_last_seen = __LINE__;
+            scan.m_last_seen = __LINE__;
             return true;
           }
           ndbrequire(res > 0);
@@ -2190,7 +2190,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
         // move to next tuple
       case ScanPos::Get_next_tuple:
         // move to next fixed size tuple
-      jamDebug();
+        jamDebug();
         {
           key.m_page_idx += size;
           pos.m_get = ScanPos::Get_tuple;
@@ -2198,7 +2198,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
         [[fallthrough]];
       case ScanPos::Get_tuple:
         // get fixed size tuple
-      jamDebug();
+        jamDebug();
         if ((bits & ScanOp::SCAN_VS) == 0) {
           Fix_page *page = (Fix_page *)pos.m_page;
           if (key.m_page_idx + size <= Fix_page::DATA_WORDS) {
@@ -2216,13 +2216,13 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
               goto found_deleted_rowid;
             }
 #ifdef VM_TRACE
-          if (! (bits & ScanOp::SCAN_DD))
-          {
-            acquire_frag_page_map_mutex_read(fragPtr.p, jamBuffer());
-            Uint32 realpid = getRealpidCheck(fragPtr.p, key.m_page_no);
-            release_frag_page_map_mutex_read(fragPtr.p, jamBuffer());
-            ndbrequire(pos.m_realpid_mm == realpid);
-          }
+            if (! (bits & ScanOp::SCAN_DD))
+            {
+              acquire_frag_page_map_mutex_read(fragPtr.p, jamBuffer());
+              Uint32 realpid = getRealpidCheck(fragPtr.p, key.m_page_no);
+              release_frag_page_map_mutex_read(fragPtr.p, jamBuffer());
+              ndbrequire(pos.m_realpid_mm == realpid);
+            }
 #endif
             tuple_header_ptr = (Tuple_header *)&page->m_data[key.m_page_idx];
 
@@ -2241,7 +2241,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
                           (bits & ScanOp::SCAN_LCP))) ||
                        ((bits & ScanOp::SCAN_LCP) &&
                         !pos.m_lcp_scan_changed_rows_page))) {
-            jamDebug();
+              jamDebug();
               /**
                * We come here for normal full table scans and also for LCP
                * scans where we scan ALL ROWS pages.
@@ -2274,9 +2274,9 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
                * threads ensure that they don't read a row in the middle of
                * its insertion process.
                */
-            acquire_frag_mutex_read(fragPtr.p, key.m_page_no, jamBuffer());
+              acquire_frag_mutex_read(fragPtr.p, key.m_page_no, jamBuffer());
               thbits = tuple_header_ptr->m_header_bits;
-            release_frag_mutex_read(fragPtr.p, key.m_page_no, jamBuffer());
+              release_frag_mutex_read(fragPtr.p, key.m_page_no, jamBuffer());
               if ((bits & ScanOp::SCAN_LCP) &&
                   (thbits & Tuple_header::LCP_DELETE)) {
                 g_eventLogger->info(
@@ -2303,7 +2303,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
               if ((bits & ScanOp::SCAN_LCP) &&
                   (thbits & Tuple_header::LCP_SKIP)) {
                 jam();
-              acquire_frag_mutex(fragPtr.p, key.m_page_no, jamBuffer());
+                acquire_frag_mutex(fragPtr.p, key.m_page_no, jamBuffer());
                 tuple_header_ptr->m_header_bits =
                     thbits & (~Tuple_header::LCP_SKIP);
                 DEB_LCP_SKIP(
@@ -2316,7 +2316,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
                      tuple_header_ptr->m_header_bits, tuple_header_ptr));
                 updateChecksum(tuple_header_ptr, tablePtr.p, thbits,
                                tuple_header_ptr->m_header_bits);
-              release_frag_mutex(fragPtr.p, key.m_page_no, jamBuffer());
+                release_frag_mutex(fragPtr.p, key.m_page_no, jamBuffer());
               }
               scan.m_last_seen = __LINE__;
             } else if (bits & ScanOp::SCAN_NR) {
@@ -2504,7 +2504,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
              * We need to use a mutex since otherwise readers could calculate
              * the wrong checksum.
              */
-          acquire_frag_mutex(fragPtr.p, key.m_page_no, jamBuffer());
+            acquire_frag_mutex(fragPtr.p, key.m_page_no, jamBuffer());
             tuple_header_ptr->m_header_bits =
                 thbits & ~(Uint32)Tuple_header::LCP_SKIP;
 
@@ -2516,7 +2516,7 @@ bool Dbtup::scanNext(Signal *signal, ScanOpPtr scanPtr) {
 
             updateChecksum(tuple_header_ptr, tablePtr.p, thbits,
                            tuple_header_ptr->m_header_bits);
-          release_frag_mutex(fragPtr.p, key.m_page_no, jamBuffer());
+            release_frag_mutex(fragPtr.p, key.m_page_no, jamBuffer());
             scan.m_last_seen = __LINE__;
           }
         }

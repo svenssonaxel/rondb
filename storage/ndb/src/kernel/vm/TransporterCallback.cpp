@@ -707,18 +707,14 @@ Uint32 TransporterCallbackKernelNonMT::bytes_sent(TrpId trp_id, Uint32 bytes) {
   return used_bytes;
 }
 
-void
-TransporterCallbackKernelNonMT::enable_send_buffer(TrpId trp_id)
-{
+void TransporterCallbackKernelNonMT::enable_send_buffer(TrpId trp_id) {
   SendBuffer *b = m_send_buffers + trp_id;
   assert(b->m_enabled == false);
   assert(b->m_first_page == NULL);  // Disabled buffer is empty
   b->m_enabled = true;
 }
 
-void
-TransporterCallbackKernelNonMT::disable_send_buffer(TrpId trp_id)
-{
+void TransporterCallbackKernelNonMT::disable_send_buffer(TrpId trp_id) {
   SendBuffer *b = m_send_buffers + trp_id;
   b->m_enabled = false;
   discard_send_buffer(trp_id);

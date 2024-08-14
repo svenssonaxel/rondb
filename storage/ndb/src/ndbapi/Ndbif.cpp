@@ -1191,16 +1191,17 @@ void NdbImpl::trp_deliver_signal(const NdbApiSignal *aSignal,
       myNdb->connected(numberToRef(myNdb->theNdbBlockNumber, nodeId));
       break;
     }
-  case GSN_TC_HBREP:
-  {
-    /**
-     * This signal only has one application which is to ensure that the
-     * NDB API continues waiting since there is progress in the data
-     * nodes.
-     */
-    m_start_time = NdbTick_getCurrentTicks();
-    break;
-  }
+    case GSN_TC_HBREP:
+    {
+      /**
+       * This signal only has one application which is to ensure that the
+       * NDB API continues waiting since there is progress in the data
+       * nodes.
+       */
+      m_start_time = NdbTick_getCurrentTicks();
+      break;
+    }
+
     default: {
       tFirstDataPtr = nullptr;
       goto InvalidSignal;

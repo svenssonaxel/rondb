@@ -61,7 +61,7 @@ int main(int argc, const char **argv) {
       "tabname\n"
       "This program will lock p% of the records in the table for x "
       "milliseconds\n"
-      "then it will lock the next 1% and continue to do so until it has locked"
+      "then it will lock the next 1% and continue to do so until it has locked "
       "\n"
       "all records in the table\n";
 

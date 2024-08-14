@@ -3469,9 +3469,7 @@ Uint32 TransporterFacade::bytes_sent(TrpId trp_id, Uint32 bytes) {
  *
  * Also see comments for these methods in TransporterCallback.hpp,
  * and how ::open_clnt() synchronize its set of enabled nodes. */
-void
-TransporterFacade::enable_send_buffer(TrpId trp_id)
-{
+void TransporterFacade::enable_send_buffer(TrpId trp_id) {
   assert(is_poll_owner_thread());
 
   // Always set the 'outcome' first
@@ -3508,9 +3506,7 @@ TransporterFacade::enable_send_buffer(TrpId trp_id)
   }
 }
 
-void
-TransporterFacade::disable_send_buffer(TrpId trp_id)
-{
+void TransporterFacade::disable_send_buffer(TrpId trp_id) {
   assert(is_poll_owner_thread());
 
   // Always set the 'outcome' first.

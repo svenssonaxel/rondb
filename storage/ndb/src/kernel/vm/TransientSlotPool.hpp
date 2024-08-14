@@ -103,10 +103,10 @@ class TransientSlotPool {
 
   TransientPagePool *m_page_pool;
   Slot_list::Head m_free_list;
-  // Needed for page type when allocating new pages (in seize/expand)
-  Uint32 m_type_id;
-  // Needed to release into right end of free list (approx).
-  Uint32 m_use_count;
+  Uint32 m_type_id;  // Needed for page type when allocating new pages (in
+                     // seize/expand)
+  Uint32
+      m_use_count;  // Needed to release into right end of free list (approx).
   /**
    * m_may_shrink - set when top page is unused.
    * Cleared by seize() when first slot on top page is seized.

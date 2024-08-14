@@ -149,8 +149,7 @@ SocketServer::Session *TransporterService::newSession(
   */
   DBUG_ENTER("SocketServer::Session * TransporterService::newSession");
   DEBUG_FPRINTF_DETAIL((stderr, "New session created\n"));
-  if(m_auth)
-  {
+  if (m_auth) {
     int r = m_auth->server_authenticate(secureSocket);
     if (r < SocketAuthenticator::AuthOk) {
       DEBUG_FPRINTF((stderr, "Failed to authenticate new session\n"));
@@ -262,18 +261,18 @@ bool TransporterReceiveData::epoll_add(Transporter *t [[maybe_unused]]) {
        * have permission problems or the socket doesn't support
        * epoll!!
        */
-      g_eventLogger->info("Failed to %s epollfd: %u fd: %d "
-                          " transporter id:%u -> Node %u to epoll-set,"
-                          " errno: %u %s",
-                          add ? "ADD" : "DEL", m_epoll_fd,
-                          ndb_socket_get_native(sock_fd),
-                          t->getTransporterIndex(), node_id, error,
-                          strerror(error));
+      g_eventLogger->info(
+          "Failed to %s epollfd: %u fd: %d "
+          " transporter id:%u -> Node %u to epoll-set,"
+          " errno: %u %s",
+          add ? "ADD" : "DEL", m_epoll_fd, ndb_socket_get_native(sock_fd),
+          t->getTransporterIndex(), node_id, error, strerror(error));
       abort();
     }
-    g_eventLogger->info("We lacked memory to add the socket for "
-			"transporter id:%u -> Node %u",
-                        t->getTransporterIndex(), node_id);
+    g_eventLogger->info(
+        "We lacked memory to add the socket for "
+        "transporter id:%u -> Node %u",
+        t->getTransporterIndex(), node_id);
     return false;
   }
 
@@ -2742,8 +2741,7 @@ void TransporterRegistry::report_connect(TransporterReceiveHandle &recvdata,
   DBUG_ENTER("TransporterRegistry::report_connect");
   DBUG_PRINT("info", ("performStates[%d]=CONNECTED", node_id));
 
-  if (recvdata.epoll_add(t))
-  {
+  if (recvdata.epoll_add(t)) {
     callbackObj->enable_send_buffer(trp_id);
     DEBUG_FPRINTF((stderr, "(Node %u)performStates[Node %u] = CONNECTED\n",
                    localNodeId, node_id));
@@ -2891,8 +2889,7 @@ TransporterRegistry::report_disconnect(TransporterReceiveHandle& recvdata,
           for (Uint32 i = 0; i < num_multi_trps; i++) {
             Transporter *remove_trp = multi_trp->get_inactive_transporter(i);
             const TrpId remove_trp_id = remove_trp->getTransporterIndex();
-            if (remove_trp_id != 0)
-            {
+            if (remove_trp_id != 0) {
               callbackObj->disable_send_buffer(remove_trp_id);
               remove_trp->forceUnsafeDisconnect();
               remove_allTransporters(remove_trp);
@@ -3441,8 +3438,9 @@ void TransporterRegistry::start_clients_thread() {
               unlockMultiTransporters();
               connected = t->connect_client(false);
               lockMultiTransporters();
-            DEBUG_FPRINTF((stderr, "connect_client to Node %u res: %u\n",
-                           t->getRemoteNodeId(), connected));
+              DEBUG_FPRINTF((stderr, "connect_client to Node %u res: %u\n",
+                             t->getRemoteNodeId(), connected));
+
             }
 
             /**

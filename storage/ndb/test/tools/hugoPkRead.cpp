@@ -81,7 +81,7 @@ int main(int argc, const char **argv) {
   int optind = 0;
   char desc[] =
       "tabname\n"
-      "This program will read 'r' records from one table in Ndb.\n"
+      "This program will read 'r' records from one table in Ndb. \n"
       "It will verify every column read by calculating the expected value.\n";
 
   if (getarg(args, num_args, argc, argv, &optind) || argv[optind] == NULL ||

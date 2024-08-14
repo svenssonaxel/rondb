@@ -313,49 +313,49 @@ retry:
     case 0:
       return false;
     case 'S':
-  case 's': {
-    ptr = 0;
-    while (ptr == 0) {
-      if (watchCounter) *watchCounter = 9;
+    case 's': {
+      ptr = 0;
+      while (ptr == 0) {
+        if (watchCounter) *watchCounter = 9;
 
-      ptr = mmap(nullptr,
-                 sizeof(Alloc_page) * sz,
-                 PROT_WRITE,
-                 MAP_ANON | MAP_PRIVATE,
-                 -1,
-                 0);
+        ptr = mmap(nullptr,
+                   sizeof(Alloc_page) * sz,
+                   PROT_WRITE,
+                   MAP_ANON | MAP_PRIVATE,
+                   -1,
+                   0);
       
-      if (ptr == MAP_FAILED)
-      {
-	if (method == 'S')
-	{
-	  f_method_idx++;
-	  goto retry;
-	}
+        if (ptr == MAP_FAILED)
+        {
+	  if (method == 'S')
+	  {
+	    f_method_idx++;
+	    goto retry;
+	  }
 	
-	ptr = 0;
-	sz = 1 + (9 * sz) / 10;
-	if (pages >= 32 && sz < 32)
-	{
-	  sz = pages;
-	  f_method_idx++;
-	  goto retry;
-	}
-      }
-      else if (UintPtr(ptr) < UintPtr(baseaddress))
-      {
-        /**
-         * Unusable memory :(
-         */
-        g_eventLogger->info(
+	  ptr = 0;
+	  sz = 1 + (9 * sz) / 10;
+	  if (pages >= 32 && sz < 32)
+	  {
+	    sz = pages;
+	    f_method_idx++;
+	    goto retry;
+	  }
+        }
+        else if (UintPtr(ptr) < UintPtr(baseaddress))
+        {
+          /**
+           * Unusable memory :(
+           */
+          g_eventLogger->info(
             "sbrk(%lluMb) => %p which is less than baseaddress!!",
             Uint64((sizeof(Alloc_page) * sz) >> 20), ptr);
-        f_method_idx++;
-        goto retry;
+          f_method_idx++;
+          goto retry;
+        }
       }
+      break;
     }
-    break;
-  }
     case 'M':
     case 'm': {
       ptr = 0;

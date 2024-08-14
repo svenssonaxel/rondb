@@ -72,7 +72,7 @@ int ndb_socketpair(ndb_socket_t s[2]) {
   return 0;
 
 err : {
-  const int save_errno = WSAGetLastError();
+    const int save_errno = WSAGetLastError();
 
   if (ndb_socket_valid(listener)) ndb_socket_close(listener);
 
@@ -80,7 +80,7 @@ err : {
 
   if (ndb_socket_valid(s[1])) ndb_socket_close(s[1]);
 
-  WSASetLastError(save_errno);
+    WSASetLastError(save_errno);
 }
   return -1;
 }
@@ -90,9 +90,8 @@ err : {
 int ndb_socketpair(ndb_socket_t s[2]) {
   int ret;
   int sock[2];
-  ret= socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
-  if (ret == 0)
-  {
+  ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
+  if (ret == 0) {
     s[0] = ndb_socket_create_from_native(sock[0]);
     s[1] = ndb_socket_create_from_native(sock[1]);
   }

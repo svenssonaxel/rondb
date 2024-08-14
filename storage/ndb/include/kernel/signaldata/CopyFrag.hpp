@@ -44,7 +44,6 @@ class CopyFragReq {
 
   friend bool printCOPY_FRAGREQ(FILE *, const Uint32 *, Uint32, Uint16);
 
-
  public:
   static constexpr Uint32 SignalLength = 11;
 

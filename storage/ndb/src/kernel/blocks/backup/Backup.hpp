@@ -621,7 +621,7 @@ class Backup : public SimulatedBlock {
       masterData.gsn = 0;
       m_informDropTabTableId = Uint32(~0);
       m_informDropTabReference = Uint32(~0);
-        currentDeleteLcpFile = RNIL64;
+      currentDeleteLcpFile = RNIL64;
       noOfRecords = 0;
       noOfBytes = 0;
       for (Uint32 i = 0; i < BackupFormat::NDB_MAX_FILES_PER_LCP; i++) {

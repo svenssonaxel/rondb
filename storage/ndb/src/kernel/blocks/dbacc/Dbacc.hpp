@@ -576,94 +576,116 @@ struct Fragmentrec {
      */
     std::atomic<Uint64> m_wait_fail_millis;
     
-      void init() {
-        m_ex_req_count = 0;
-        m_ex_imm_ok_count = 0;
-        m_ex_wait_ok_count = 0;
-        m_ex_wait_fail_count = 0;
+    void init()
+    {
+      m_ex_req_count       = 0;
+      m_ex_imm_ok_count    = 0;
+      m_ex_wait_ok_count   = 0;
+      m_ex_wait_fail_count = 0;
+    
+      m_sh_req_count       = 0;
+      m_sh_imm_ok_count    = 0;
+      m_sh_wait_ok_count   = 0;
+      m_sh_wait_fail_count = 0;
 
-        m_sh_req_count = 0;
-        m_sh_imm_ok_count = 0;
-        m_sh_wait_ok_count = 0;
-        m_sh_wait_fail_count = 0;
+      m_wait_ok_millis     = 0;
+      m_wait_fail_millis   = 0;
+    }
 
-        m_wait_ok_millis = 0;
-        m_wait_fail_millis = 0;
+    // req_start_imm_ok
+    // A request was immediately granted (No contention)
+    void req_start_imm_ok(bool ex,
+                          NDB_TICKS& op_timestamp,
+                          const NDB_TICKS now)
+    {
+      if (ex)
+      {
+        m_ex_req_count++;
+        m_ex_imm_ok_count++;
+      }
+      else
+      {
+        m_sh_req_count++;
+        m_sh_imm_ok_count++;
       }
 
-      // req_start_imm_ok
-      // A request was immediately granted (No contention)
-      void req_start_imm_ok(bool ex, NDB_TICKS &op_timestamp,
-                            const NDB_TICKS now) {
-        if (ex) {
-          m_ex_req_count++;
-          m_ex_imm_ok_count++;
-        } else {
-          m_sh_req_count++;
-          m_sh_imm_ok_count++;
-        }
+      /* Hold-time starts */
+      op_timestamp = now;
+    }
 
-        /* Hold-time starts */
-        op_timestamp = now;
+    // req_start
+    // A request was not granted immediately
+    void req_start(bool ex, 
+                   NDB_TICKS& op_timestamp, 
+                   const NDB_TICKS now)
+    {
+      if (ex)
+      {
+        m_ex_req_count++;
+      }
+      else
+      {
+        m_sh_req_count++;
       }
 
-      // req_start
-      // A request was not granted immediately
-      void req_start(bool ex, NDB_TICKS &op_timestamp, const NDB_TICKS now) {
-        if (ex) {
-          m_ex_req_count++;
-        } else {
-          m_sh_req_count++;
-        }
+      /* Wait-time starts */
+      op_timestamp = now;
+    }
 
-        /* Wait-time starts */
-        op_timestamp = now;
+    // wait_ok
+    // A request that had to wait is now granted
+    void wait_ok(bool ex, NDB_TICKS& op_timestamp, const NDB_TICKS now)
+    {
+      assert(NdbTick_IsValid(op_timestamp)); /* Set when starting to wait */
+      if (ex)
+      {
+        m_ex_wait_ok_count++;
+      }
+      else
+      {
+        m_sh_wait_ok_count++;
       }
 
-      // wait_ok
-      // A request that had to wait is now granted
-      void wait_ok(bool ex, NDB_TICKS &op_timestamp, const NDB_TICKS now) {
-        assert(NdbTick_IsValid(op_timestamp)); /* Set when starting to wait */
-        if (ex) {
-          m_ex_wait_ok_count++;
-        } else {
-          m_sh_wait_ok_count++;
-        }
-
-        const Uint64 wait_millis =
-            NdbTick_Elapsed(op_timestamp, now).milliSec();
-        m_wait_ok_millis += wait_millis;
-
-        /* Hold-time starts */
-        op_timestamp = now;
+      const Uint64 wait_millis = NdbTick_Elapsed(op_timestamp,
+                                                 now).milliSec();
+      m_wait_ok_millis += wait_millis;
+      
+      /* Hold-time starts */
+      op_timestamp = now;
+    }
+    
+    
+    // wait_fail
+    // A request that had to wait has now been
+    // aborted.  May or may not be due to TC
+    // timeout
+    void wait_fail(bool ex, NDB_TICKS& wait_start, const NDB_TICKS now)
+    {
+      assert(NdbTick_IsValid(wait_start));
+      if (ex)
+      {
+        m_ex_wait_fail_count++;
       }
-
-      // wait_fail
-      // A request that had to wait has now been
-      // aborted.  May or may not be due to TC
-      // timeout
-      void wait_fail(bool ex, NDB_TICKS &wait_start, const NDB_TICKS now) {
-        assert(NdbTick_IsValid(wait_start));
-        if (ex) {
-          m_ex_wait_fail_count++;
-        } else {
-          m_sh_wait_fail_count++;
-        }
-
-        const Uint64 wait_millis = NdbTick_Elapsed(wait_start, now).milliSec();
-        m_wait_fail_millis += wait_millis;
-        /* Debugging */
-        NdbTick_Invalidate(&wait_start);
+      else
+      {
+        m_sh_wait_fail_count++;
       }
-    };
-
-    LockStats m_lockStats;
-
-   public:
-    Uint32 getPageNumber(Uint32 bucket_number) const;
-    Uint32 getPageIndex(Uint32 bucket_number) const;
-    bool enough_valid_bits(LHBits16 const &reduced_hash_value) const;
+      
+      const Uint64 wait_millis = NdbTick_Elapsed(wait_start,
+                                                 now).milliSec();
+      m_wait_fail_millis += wait_millis;
+      /* Debugging */
+      NdbTick_Invalidate(&wait_start);
+    }
   };
+
+  LockStats m_lockStats;
+
+public:
+  Uint32 getPageNumber(Uint32 bucket_number) const;
+  Uint32 getPageIndex(Uint32 bucket_number) const;
+  bool enough_valid_bits(LHBits16 const& reduced_hash_value) const;
+};
 
   typedef Ptr64<Fragmentrec> FragmentrecPtr;
   FragmentrecPtr fragrecptr;
@@ -675,42 +697,35 @@ struct Fragmentrec {
   RSS_OP_COUNTER(cnoOfAllocatedFragrec);
   RSS_OP_SNAPSHOT(cnoOfAllocatedFragrec);
 
-  struct Operationrec {
-    static constexpr Uint32 TYPE_ID = RT_DBACC_OPERATION;
-    Uint32 m_magic;
+struct Operationrec {
+  static constexpr Uint32 TYPE_ID = RT_DBACC_OPERATION;
+  Uint32 m_magic;
 
-    enum OpBits {
-      OP_MASK = 0x0000F  // 4 bits for operation type
-      ,
-      OP_LOCK_MODE = 0x00010  // 0 - shared lock, 1 = exclusive lock
-      ,
-      OP_ACC_LOCK_MODE = 0x00020  // Or:de lock mode of all operation
-                                  // before me
-      ,
-      OP_LOCK_OWNER = 0x00040,
-      OP_RUN_QUEUE = 0x00080  // In parallel queue of lock owner
-      ,
-      OP_DIRTY_READ = 0x00100,
-      OP_LOCK_REQ = 0x00200  // isAccLockReq
-      ,
-      OP_COMMIT_DELETE_CHECK = 0x00400,
-      OP_INSERT_IS_DONE = 0x00800,
-      OP_ELEMENT_DISAPPEARED = 0x01000,
-      OP_PENDING_ABORT = 0x02000,
-      OP_NOWAIT = 0x04000
-
-      ,
-      OP_STATE_MASK = 0xF0000,
-      OP_STATE_IDLE = 0xF0000,
-      OP_STATE_WAITING = 0x00000,
-      OP_STATE_RUNNING = 0x10000,
-      OP_STATE_EXECUTED = 0x30000
-
-      ,
-      OP_EXECUTED_DIRTY_READ = 0x3050F,
-      OP_INITIAL = ~(Uint32)0
-    };
-
+  enum OpBits {
+    OP_MASK                 = 0x0000F // 4 bits for operation type
+    ,OP_LOCK_MODE           = 0x00010 // 0 - shared lock, 1 = exclusive lock
+    ,OP_ACC_LOCK_MODE       = 0x00020 // Or:de lock mode of all operation
+                                      // before me
+    ,OP_LOCK_OWNER          = 0x00040
+    ,OP_RUN_QUEUE           = 0x00080 // In parallel queue of lock owner
+    ,OP_DIRTY_READ          = 0x00100
+    ,OP_LOCK_REQ            = 0x00200 // isAccLockReq
+    ,OP_COMMIT_DELETE_CHECK = 0x00400
+    ,OP_INSERT_IS_DONE      = 0x00800
+    ,OP_ELEMENT_DISAPPEARED = 0x01000
+    ,OP_PENDING_ABORT       = 0x02000
+    ,OP_NOWAIT              = 0x04000
+    
+    ,OP_STATE_MASK          = 0xF0000
+    ,OP_STATE_IDLE          = 0xF0000
+    ,OP_STATE_WAITING       = 0x00000
+    ,OP_STATE_RUNNING       = 0x10000
+    ,OP_STATE_EXECUTED      = 0x30000
+    
+    ,OP_EXECUTED_DIRTY_READ = 0x3050F
+    ,OP_INITIAL             = ~(Uint32)0
+  };
+  
   Operationrec() :
     m_magic(Magic::make(TYPE_ID)),
     m_op_bits(OP_INITIAL),
@@ -719,7 +734,9 @@ struct Fragmentrec {
   {
   }
 
-    ~Operationrec() {}
+  ~Operationrec()
+  {
+  }
 
   Uint64 fragptr;
   /**
@@ -787,12 +804,19 @@ struct Fragmentrec {
   OperationrecPtr queOperPtr;
   Uint32 cfreeopRec;
 
-  struct ScanRec {
-    static constexpr Uint32 TYPE_ID = RT_DBACC_SCAN;
-    Uint32 m_magic;
+struct ScanRec {
+  static constexpr Uint32 TYPE_ID = RT_DBACC_SCAN;
+  Uint32 m_magic;
 
-    enum ScanState { WAIT_NEXT = 0, SCAN_DISCONNECT = 1 };
-    enum ScanBucketState { FIRST_LAP = 0, SECOND_LAP = 1, SCAN_COMPLETED = 2 };
+  enum ScanState {
+    WAIT_NEXT = 0,
+    SCAN_DISCONNECT = 1
+  };
+  enum ScanBucketState {
+    FIRST_LAP = 0,
+    SECOND_LAP = 1,
+    SCAN_COMPLETED = 2
+  };
 
   ScanRec() :
     m_magic(Magic::make(TYPE_ID)),
@@ -814,55 +838,52 @@ struct Fragmentrec {
 
   Uint64 activeLocalFrag;
   Uint32 nextBucketIndex;
-    /**
-     * Next ptr (used in list)
-     */
-    Uint32 nextList;
+  /**
+   * Next ptr (used in list)
+   */
+  Uint32 nextList;
 
-    Uint32 scanFirstActiveOp;
-    Uint32 scanFirstLockedOp;
-    Uint32 scanLastLockedOp;
-    Uint32 scanFirstQueuedOp;
-    Uint32 scanLastQueuedOp;
-    Uint32 scanUserptr;
-    Uint32 scanTrid1;
-    Uint32 scanTrid2;
-    Uint32 startNoOfBuckets;
-    Uint32 minBucketIndexToRescan;
-    Uint32 maxBucketIndexToRescan;
-    Uint32 scanOpsAllocated;
-    Uint32 scanLockCount;
-    ScanBucketState scanBucketState;
-    ScanState scanState;
-    Uint16 scanLockHeld;
-    Uint16 scan_lastSeen;
-    Uint32 scanUserblockref;
-    Uint32 scanMask;
-    Uint8 scanLockMode;
-    Uint8 scanReadCommittedFlag;
-
-   private:
-    Uint32 inPageI;
-    Uint32 inConptr;
-    Uint32 elemScanned;
-    enum { ELEM_SCANNED_BITS = sizeof(Uint32) * 8 };
-
-   public:
-    bool isInContainer() const;
-    bool getContainer(Uint32 &pagei, Uint32 &conptr) const;
-    void enterContainer(Uint32 pagei, Uint32 conptr);
-    void leaveContainer(Uint32 pagei, Uint32 conptr);
-    bool isScanned(Uint32 elemptr) const;
-    void setScanned(Uint32 elemptr);
-    void clearScanned(Uint32 elemptr);
-    void moveScanBit(Uint32 toptr, Uint32 fromptr);
-  };
+  Uint32 scanFirstActiveOp;
+  Uint32 scanFirstLockedOp;
+  Uint32 scanLastLockedOp;
+  Uint32 scanFirstQueuedOp;
+  Uint32 scanLastQueuedOp;
+  Uint32 scanUserptr;
+  Uint32 scanTrid1;
+  Uint32 scanTrid2;
+  Uint32 startNoOfBuckets;
+  Uint32 minBucketIndexToRescan;
+  Uint32 maxBucketIndexToRescan;
+  Uint32 scanOpsAllocated;
+  Uint32 scanLockCount;
+  ScanBucketState scanBucketState;
+  ScanState scanState;
+  Uint16 scanLockHeld;
+  Uint16 scan_lastSeen;
+  Uint32 scanUserblockref;
+  Uint32 scanMask;
+  Uint8 scanLockMode;
+  Uint8 scanReadCommittedFlag;
+private:
+  Uint32 inPageI;
+  Uint32 inConptr;
+  Uint32 elemScanned;
+  enum { ELEM_SCANNED_BITS = sizeof(Uint32) * 8 };
+public:
+  bool isInContainer() const;
+  bool getContainer(Uint32& pagei, Uint32& conptr) const;
+  void enterContainer(Uint32 pagei, Uint32 conptr);
+  void leaveContainer(Uint32 pagei, Uint32 conptr);
+  bool isScanned(Uint32 elemptr) const;
+  void setScanned(Uint32 elemptr);
+  void clearScanned(Uint32 elemptr);
+  void moveScanBit(Uint32 toptr, Uint32 fromptr);
+};
   typedef Ptr<ScanRec> ScanRecPtr;
   typedef TransientPool<ScanRec> ScanRec_pool;
   static constexpr Uint32 DBACC_SCAN_RECORD_TRANSIENT_POOL_INDEX = 0;
   ScanRec_pool scanRec_pool;
   ScanRecPtr scanPtr;
-
 
 struct Tabrec {
   Uint32 tabUserPtr;
@@ -1184,26 +1205,17 @@ private:
   Page8_pool c_page8_pool;
   bool c_allow_use_of_emergency_pages;
   bool c_restart_allow_use_spare;
-  /* ---------------------------------------------------------------------------------
-   */
-  /* ROOTFRAGMENTREC */
-  /*          DURING EXPAND FRAGMENT PROCESS, EACH FRAGMEND WILL BE EXPAND INTO
-   * TWO    */
-  /*          NEW FRAGMENTS.TO MAKE THIS PROCESS EASIER, DURING ADD FRAGMENT
-   * PROCESS   */
-  /*          NEXT FRAGMENT IDENTIIES WILL BE CALCULATED, AND TWO FRAGMENTS WILL
-   * BE    */
-  /*          ADDED IN (NDBACC). THEREBY EXPAND OF FRAGMENT CAN BE PERFORMED
-   * QUICK AND */
-  /*          EASY.THE NEW FRAGMENT ID SENDS TO TUP MANAGER FOR ALL OPERATION
-   * PROCESS. */
-  /* ---------------------------------------------------------------------------------
-   */
-  /* ---------------------------------------------------------------------------------
-   */
-  /* TABREC */
-  /* ---------------------------------------------------------------------------------
-   */
+/* --------------------------------------------------------------------------------- */
+/* ROOTFRAGMENTREC                                                                   */
+/*          DURING EXPAND FRAGMENT PROCESS, EACH FRAGMEND WILL BE EXPAND INTO TWO    */
+/*          NEW FRAGMENTS.TO MAKE THIS PROCESS EASIER, DURING ADD FRAGMENT PROCESS   */
+/*          NEXT FRAGMENT IDENTIIES WILL BE CALCULATED, AND TWO FRAGMENTS WILL BE    */
+/*          ADDED IN (NDBACC). THEREBY EXPAND OF FRAGMENT CAN BE PERFORMED QUICK AND */
+/*          EASY.THE NEW FRAGMENT ID SENDS TO TUP MANAGER FOR ALL OPERATION PROCESS. */
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+/* TABREC                                                                            */
+/* --------------------------------------------------------------------------------- */
   Tabrec *tabrec;
   TabrecPtr tabptr;
   Uint32 ctablesize;

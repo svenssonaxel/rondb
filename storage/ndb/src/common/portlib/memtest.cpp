@@ -125,7 +125,7 @@ void malloctest(int loopcount, int memsize, int touch) {
 
   mean = (float)((float)total / (float)loopcount);
   printf(
-      "Total time malloc %d bytes: %2.3f microsecs  loopcount %d touch %d\n",
+      "Total time malloc %d bytes: %2.3f microsecs  loopcount %d touch %d \n",
       size, mean, loopcount, touch);
 }
 

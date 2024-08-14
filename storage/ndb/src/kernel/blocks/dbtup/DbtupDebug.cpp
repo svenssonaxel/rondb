@@ -108,13 +108,13 @@ void Dbtup::execDBINFO_SCANREQ(Signal *signal) {
            c_scanOpPool.getUsedHi(),
            {CFG_DB_NO_LOCAL_SCANS, 0, 0, 0},
            0},
-      { "Trigger",
-        cnoOfAllocatedTriggerRec,
-        0,
-        sizeof(TupTriggerData)/4,
-        cnoOfMaxAllocatedTriggerRec,
-        { CFG_DB_NO_TRIGGERS,0,0,0 },
-        0},
+          { "Trigger",
+           cnoOfAllocatedTriggerRec,
+           0,
+           sizeof(TupTriggerData)/4,
+           cnoOfMaxAllocatedTriggerRec,
+           { CFG_DB_NO_TRIGGERS,0,0,0 },
+             0},
           {"Stored Proc",
            c_storedProcPool.getUsed(),
            c_storedProcPool.getSize(),
@@ -411,13 +411,13 @@ Dbtup::execDUMP_STATE_ORD(Signal* signal)
           sum_req += alloc;
         doalloc:
           Chunk chunk;
-        Tablerec tab(c_triggerPool);
-        tab.m_allow_use_spare = false;
-	allocConsPages(jamBuffer(),
-                       &tab,
-                       alloc,
-                       chunk.pageCount,
-                       chunk.pageId);
+          Tablerec tab(c_triggerPool);
+          tab.m_allow_use_spare = false;
+	  allocConsPages(jamBuffer(),
+                         &tab,
+                         alloc,
+                         chunk.pageCount,
+                         chunk.pageId);
           ndbrequire(chunk.pageCount <= alloc);
           if (chunk.pageCount != 0) {
             chunks.push_back(chunk);

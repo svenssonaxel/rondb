@@ -2241,18 +2241,16 @@ int errorInjectStalling(NDBT_Context *ctx, NDBT_Step *step) {
       res = ndb->pollEvents(5000, &curr_gci) > 0;
     }
 
-    if (ndb->getNdbError().code != 0)
-    {
+    if (ndb->getNdbError().code != 0) {
       g_err << method << " failed:\n";
-      g_err << ndb->getNdbError().code << " "
-            << ndb->getNdbError().message << endl;
+      g_err << ndb->getNdbError().code << " " << ndb->getNdbError().message
+            << endl;
       result = NDBT_FAILED;
       goto cleanup;
     }
   }
 
-  if (curr_gci != NDB_FAILURE_GCI)
-  {
+  if (curr_gci != NDB_FAILURE_GCI) {
     g_err << method << " failed to detect cluster failure:\n";
     result = NDBT_FAILED;
     goto cleanup;
@@ -2330,11 +2328,10 @@ int errorInjectStalling(NDBT_Context *ctx, NDBT_Step *step) {
       res = ndb->pollEvents(5000, &curr_gci) > 0;
     }
 
-    if (ndb->getNdbError().code != 0)
-    {
+    if (ndb->getNdbError().code != 0) {
       g_err << method << " failed:\n";
-      g_err << ndb->getNdbError().code << " "
-            << ndb->getNdbError().message << endl;
+      g_err << ndb->getNdbError().code << " " << ndb->getNdbError().message
+            << endl;
       result = NDBT_FAILED;
       goto cleanup;
     }
@@ -3683,7 +3680,7 @@ int checkAnyValueInEvent(Ndb *pNdb, NdbRecAttr *preKey, NdbRecAttr *postKey,
     while ((event = pNdb->nextEvent()) != NULL) {
       //       printf("Event is %p of type %u\n",
       //              event, event->getEventType());
-      //       printf("Got event, prekey is %u predata is %u\n",
+      //       printf("Got event, prekey is %u predata is %u \n",
       //              preKey->u_32_value(),
       //              preAttr->u_32_value());
       //       printf("           postkey is %u postdata is %u anyvalue is

@@ -97,7 +97,6 @@
 #include <signaldata/TransIdAI.hpp>
 #include <signaldata/UndoLogLevel.hpp>
 #include <signaldata/CommitReq.hpp>
-
 #include "../suma/Suma.hpp"
 #include "DblqhCommon.hpp"
 #include "portlib/mt-asm.h"
@@ -723,17 +722,17 @@ void Dblqh::handle_queued_log_write(Signal *signal, LogPartRecord *logPartPtrP,
          * log record have been written.
          */
         unlock_log_part(logPartPtrP);
-      DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) ABORT",
-                     instance(),
-                     logPartPtrP->logPartNo,
-                     tcConnectptr.i));
+        DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) ABORT",
+                       instance(),
+                       logPartPtrP->logPartNo,
+                       tcConnectptr.i));
         abortCommonLab(signal, tcConnectptr);
       } else {
         jam();
-      DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) PREPARE",
-                     instance(),
-                     logPartPtrP->logPartNo,
-                     tcConnectptr.i));
+        DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) PREPARE",
+                       instance(),
+                       logPartPtrP->logPartNo,
+                       tcConnectptr.i));
         doWritePrepareLog(signal, tcConnectptr);
       }
       return;
@@ -744,10 +743,10 @@ void Dblqh::handle_queued_log_write(Signal *signal, LogPartRecord *logPartPtrP,
                     logPartPtrP);
       removeLogTcrec(tcConnectptr.p, logPartPtrP);
       unlock_log_part(logPartPtrP);
-    DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) ABORT Queued",
-                   instance(),
-                   logPartPtrP->logPartNo,
-                   tcConnectptr.i));
+      DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) ABORT Queued",
+                     instance(),
+                     logPartPtrP->logPartNo,
+                     tcConnectptr.i));
       continueAfterLogAbortWriteLab(signal, tcConnectptr);
       break;
     }
@@ -759,10 +758,10 @@ void Dblqh::handle_queued_log_write(Signal *signal, LogPartRecord *logPartPtrP,
       unlock_log_part(logPartPtrP);
       if (tcConnectptr.p->transactionState ==
           TcConnectionrec::LOG_COMMIT_QUEUED) {
-      DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) Commit Queued",
-                     instance(),
-                     logPartPtrP->logPartNo,
-                     tcConnectptr.i));
+        DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) Commit Queued",
+                       instance(),
+                       logPartPtrP->logPartNo,
+                       tcConnectptr.i));
         if (tcConnectptr.p->seqNoReplica == 0 ||
             tcConnectptr.p->activeCreat == Fragrecord::AC_NR_COPY) {
           jam();
@@ -773,10 +772,10 @@ void Dblqh::handle_queued_log_write(Signal *signal, LogPartRecord *logPartPtrP,
         }
       } else {
         jam();
-      DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) Commit Queued Wait",
-                     instance(),
-                     logPartPtrP->logPartNo,
-                     tcConnectptr.i));
+        DEB_LOG_QUEUE(("(%u) LogPart(%u) TcConPtr(%u) Commit Queued Wait",
+                       instance(),
+                       logPartPtrP->logPartNo,
+                       tcConnectptr.i));
         tcConnectptr.p->transactionState =
             TcConnectionrec::LOG_COMMIT_WRITTEN_WAIT_SIGNAL;
       }
@@ -1108,11 +1107,11 @@ void Dblqh::execCONTINUEB(Signal *signal) {
       queued_log_write(signal, logPartPtr.p);
       return;
     }
-  case ZSR_GCI_LIMITS:
-    jam();
-    srGciLimits(signal, data0, data1);
-    return;
-    break;
+    case ZSR_GCI_LIMITS:
+      jam();
+      srGciLimits(signal, data0, data1);
+      return;
+      break;
     case ZSR_LOG_LIMITS:
       jam();
       signal->theData[0] = data0;
@@ -1121,11 +1120,11 @@ void Dblqh::execCONTINUEB(Signal *signal) {
       srLogLimits(signal);
       return;
       break;
-  case ZSEND_EXEC_CONF:
-    jam();
-    sendExecConf(signal, data0, data1);
-    return;
-    break;
+    case ZSEND_EXEC_CONF:
+      jam();
+      sendExecConf(signal, data0, data1);
+      return;
+      break;
     case ZEXEC_SR:
       jam();
       signal->theData[0] = data0;
@@ -1195,7 +1194,6 @@ void Dblqh::execCONTINUEB(Signal *signal) {
       scanMarkers(signal, data0, data1);
       return;
       break;
-
     case ZOPERATION_EVENT_REP:
       jam();
       /* Send counter event report */
@@ -1218,6 +1216,7 @@ void Dblqh::execCONTINUEB(Signal *signal) {
       dropTab_wait_usage(signal);
       return;
       break;
+
   case ZENABLE_EXPAND_CHECK:
   {
     jam();
@@ -1254,7 +1253,6 @@ void Dblqh::execCONTINUEB(Signal *signal) {
     {
       cstartRecReq = SRR_REDO_COMPLETE;
       ndbrequire(c_lcp_complete_fragments.isEmpty());
-
       rebuildOrderedIndexes(signal, 0);
       return;
     }
@@ -1576,31 +1574,27 @@ void Dblqh::execSTTOR(Signal *signal) {
       signal->theData[0] = ZLQH_TRANSIENT_POOL_STAT;
       sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
 #endif
-    if (m_is_query_block)
-    {
-      /**
-       * These variables are the same in all LDM instances and they are
-       * not changed while the data node is running. Thus we set them
-       * here instead of when calling setup_query_thread* methods.
-       */
-      ndbrequire(isNdbMtLqh());
-      Dblqh *lqh_block = (Dblqh*)globalData.getBlock(DBLQH, 1);
-      this->ctabrecFileSize = lqh_block->ctabrecFileSize;
-      Dbtup *tup_block = (Dbtup*)globalData.getBlock(DBTUP, 1);
-      c_tup->cnoOfTablerec = tup_block->cnoOfTablerec;
-      Dbtux *tux_block = (Dbtux*)globalData.getBlock(DBTUX, 1);
-      c_tux->c_indexPool.setNewSize(
-        tux_block->c_indexPool.getSize());
-      signal->theData[0] = cownref;
-      sendSignal(NDBCNTR_REF, GSN_READ_NODESREQ, signal, 1, JBB);
+      if (m_is_query_block) {
+        /**
+         * These variables are the same in all LDM instances and they are
+         * not changed while the data node is running. Thus we set them
+         * here instead of when calling setup_query_thread* methods.
+         */
+        ndbrequire(isNdbMtLqh());
+        Dblqh *lqh_block = (Dblqh *)globalData.getBlock(DBLQH, 1);
+        this->ctabrecFileSize = lqh_block->ctabrecFileSize;
+        Dbtup *tup_block = (Dbtup *)globalData.getBlock(DBTUP, 1);
+        c_tup->cnoOfTablerec = tup_block->cnoOfTablerec;
+        Dbtux *tux_block = (Dbtux *)globalData.getBlock(DBTUX, 1);
+        c_tux->c_indexPool.setNewSize(tux_block->c_indexPool.getSize());
+        signal->theData[0] = cownref;
+        sendSignal(NDBCNTR_REF, GSN_READ_NODESREQ, signal, 1, JBB);
+        return;
+      } else {
+        send_read_local_sysfile(signal);
+        update_cpu_usage(signal);
+      }
       return;
-    }
-    else
-    {
-      send_read_local_sysfile(signal);
-      update_cpu_usage(signal);
-    }
-    return;
     case 4:
       jam();
       if (!m_is_query_block) {
@@ -1649,10 +1643,10 @@ void Dblqh::execSTTOR(Signal *signal) {
         DEB_START_PHASE9(("(%u)Start phase 9 wait completed", instance()));
       }
 #ifdef DEBUG_MUTEX_STATS
-    send_print_mutex_stats(signal);
+      send_print_mutex_stats(signal);
 #endif
 #ifdef CONNECT_DEBUG
-    send_connect_debug(signal);
+      send_connect_debug(signal);
 #endif
       return;
     default:
@@ -5607,7 +5601,7 @@ void Dblqh::execPACKED_SIGNAL(Signal* signal)
   while (length > step);
   ndbrequire(length == step);
   return;
-}//Dblqh::execPACKED_SIGNAL()
+}  // Dblqh::execPACKED_SIGNAL()
 
 void Dblqh::execREMOVE_MARKER_ORD(Signal *signal) {
   CommitAckMarker key;
@@ -5737,7 +5731,6 @@ void Dblqh::execREAD_PSEUDO_REQ(Uint32 opPtrI, Uint32 attrId, Uint32 *out,
   jamEntryDebug();
   TcConnectionrecPtr regTcPtr = m_tc_connect_ptr;
   ndbassert(m_tc_connect_ptr.i == opPtrI);
-
   switch (attrId) {
     case AttributeHeader::RANGE_NO:
       ndbassert(1 <= out_words);
@@ -5936,7 +5929,7 @@ void Dblqh::execTUPKEYREF(Signal *signal) {
     }
     case TcConnectionrec::WAIT_ACC_ABORT: {
       jam();
-    ndbassert(false);
+      ndbassert(false);
       /* -------------------------------------------------------------------------
        */
       /*       IGNORE SINCE ABORT OF THIS OPERATION IS ONGOING ALREADY. */
@@ -6760,10 +6753,10 @@ void Dblqh::execSIGNAL_DROPPED_REP(Signal *signal) {
       ref->errorCode = ZGET_ATTRINBUF_ERROR;
       ref->senderRef = reference();
 
-    if (refToNode(signal->senderBlockRef()) != getOwnNodeId())
-    {
-      signal->m_send_wakeups++;
-    }
+      if (refToNode(signal->senderBlockRef()) != getOwnNodeId())
+      {
+        signal->m_send_wakeups++;
+      }
       sendSignal(signal->senderBlockRef(), GSN_SCAN_FRAGREF, signal,
                  ScanFragRef::SignalLength, JBB);
       break;
@@ -14224,9 +14217,9 @@ void Dblqh::abortStateHandlerLab(Signal* signal,
       // We know that at least one of those has received the COMMIT signal, thus
       // we declare us only prepared since we then receive the expected COMMIT
       // signal.
-//
-// We cannot arrive here for calls from execABORTREQ or execABORT since the
-// dirty writes are not REDO logged.
+      //
+      // We cannot arrive here for calls from execABORTREQ or execABORT since
+      // the dirty writes are not REDO logged.
       /* -------------------------------------------------------------------------
        */
       ndbrequire(regTcPtr->abortState == TcConnectionrec::NEW_FROM_TC);
@@ -14252,7 +14245,7 @@ void Dblqh::abortStateHandlerLab(Signal* signal,
       {
         ndbassert(!m_is_in_query_thread);
         fragptr.i = regTcPtr->fragmentptr;
-      ndbrequire(c_fragment_pool.getPtr(fragptr));
+        ndbrequire(c_fragment_pool.getPtr(fragptr));
         acquire_frag_abort_access(fragptr.p, regTcPtr);
         abortContinueAfterBlockedLab(signal, tcConnectptr);
         release_frag_access(fragptr.p);
@@ -14274,13 +14267,14 @@ void Dblqh::abortStateHandlerLab(Signal* signal,
          * necessarily colocated with the REDO log parts. This only happens
          * if there are more LDM instances than there are REDO log parts.
          */
-      ndbrequire(m_use_mutex_for_log_parts);
+        ndbrequire(m_use_mutex_for_log_parts);
         return;
       }
       break;
     case TcConnectionrec::WAIT_TUP_TO_ABORT:
     case TcConnectionrec::LOG_ABORT_QUEUED:
     case TcConnectionrec::WAIT_ACC_ABORT:
+
       jam();
       /* -------------------------------------------------------------------------
        */
@@ -14288,7 +14282,7 @@ void Dblqh::abortStateHandlerLab(Signal* signal,
        * STATE  */
       /*OF THE ABORT SO THAT WE KNOW THAT TC EXPECTS A REPORT. WE CAN THUS
        * SIMPLY  */
-/*EXIT AND WAIT FOR THE ABORT TO COMPLETE.                                   */
+      /*EXIT AND WAIT FOR THE ABORT TO COMPLETE. */
       /* -------------------------------------------------------------------------
        */
       return;
@@ -15185,16 +15179,16 @@ void Dblqh::lqhTransNextLab(Signal *signal, TcNodeFailRecordPtr tcNodeFailPtr) {
                 jam();
                 tcConnectptr.p->tcNodeFailrec = tcNodeFailPtr.i;
                 tcConnectptr.p->abortState = TcConnectionrec::NEW_FROM_TC;
-              DEB_ABORT_TRANS(("(%u)LQH_TRANSREQ found tcAccPtrI: %u"
-                               " trans(H'%.8x,H'%.8x), tcRef(%u,%x), "
-                               "state: %u",
-                               instance(),
-                               tcConnectptr.p->accConnectrec,
-                               tcConnectptr.p->transid[0],
-                               tcConnectptr.p->transid[1],
-                               tcConnectptr.p->tcOprec,
-                               tcConnectptr.p->tcBlockref,
-                               tcConnectptr.p->transactionState));
+                DEB_ABORT_TRANS(("(%u)LQH_TRANSREQ found tcAccPtrI: %u"
+                                 " trans(H'%.8x,H'%.8x), tcRef(%u,%x), "
+                                 "state: %u",
+                                 instance(),
+                                 tcConnectptr.p->accConnectrec,
+                                 tcConnectptr.p->transid[0],
+                                 tcConnectptr.p->transid[1],
+                                 tcConnectptr.p->tcOprec,
+                                 tcConnectptr.p->tcBlockref,
+                                 tcConnectptr.p->transactionState));
 
                 abortStateHandlerLab(signal, tcConnectptr);
                 return;
@@ -15238,7 +15232,7 @@ void Dblqh::lqhTransNextLab(Signal *signal, TcNodeFailRecordPtr tcNodeFailPtr) {
               if (refToNode(tcConnectptr.p->tcBlockref) ==
                   tcNodeFailPtr.p->oldNodeId) {
                 jam();
-              unlock_alloc_operation();
+                unlock_alloc_operation();
                 tcConnectptr.p->tcNodeFailrec = tcNodeFailPtr.i;
                 tcConnectptr.p->abortState = TcConnectionrec::NEW_FROM_TC;
                 ndbassert(m_fragment_lock_status == FRAGMENT_UNLOCKED);
@@ -15255,7 +15249,7 @@ void Dblqh::lqhTransNextLab(Signal *signal, TcNodeFailRecordPtr tcNodeFailPtr) {
                                   scanptr.p->scanType);
               g_eventLogger->info("tcConnectptr.p->transactionState: %u",
                                   tcConnectptr.p->transactionState);
-            unlock_alloc_operation();
+              unlock_alloc_operation();
               ndbabort();
           }
         }
@@ -16416,125 +16410,129 @@ void Dblqh::closeScanRequestLab(Signal *signal,
   ScanRecord *const scanPtr = scanptr.p;
   LQH_DEBUG("transactionState = " << tcConnectptr.p->transactionState);
   switch (tcConnectptr.p->transactionState) {
-  case TcConnectionrec::SCAN_STATE_USED:
-    LQH_DEBUG("scanState = " << scanPtr->scanState);
-    switch (scanPtr->scanState) {
-    case ScanRecord::IN_QUEUE:
-      jam();
-      tupScanCloseConfLab(signal, tcConnectptr);
-      return;
-    case ScanRecord::WAIT_NEXT_SCAN:
-      jam();
-      /* -------------------------------------------------------------------
-       *  SET COMPLETION STATUS AND WAIT FOR OPPORTUNITY TO STOP THE SCAN.
-       * -------------------------------------------------------------------
-       */
-      scanPtr->scanCompletedStatus = ZTRUE;
+    case TcConnectionrec::SCAN_STATE_USED:
+      LQH_DEBUG("scanState = " << scanPtr->scanState);
+      switch (scanPtr->scanState) {
+        case ScanRecord::IN_QUEUE:
+          jam();
+          tupScanCloseConfLab(signal, tcConnectptr);
+          return;
+        case ScanRecord::WAIT_NEXT_SCAN:
+          jam();
+          /* -------------------------------------------------------------------
+           *  SET COMPLETION STATUS AND WAIT FOR OPPORTUNITY TO STOP THE SCAN.
+           * -------------------------------------------------------------------
+           */
+          scanPtr->scanCompletedStatus = ZTRUE;
+          break;
+        case ScanRecord::WAIT_START_QUEUED_SCAN:
+          jam();
+          /**
+           * We are currently starting up a queued scan, need to retain
+           * scan record until this signal arrives back.
+           */
+          tupScanCloseConfLab(signal, tcConnectptr);
+          return;
+        case ScanRecord::QUIT_START_QUEUE_SCAN:
+          jam();
+          /**
+           * Scan is already closed, but waiting for a CONTINUEB signal, let
+           * that be handled and do no more. Response back to TC about
+           * closed state has already been sent, so no need to send it again.
+           */
+          break;
+        case ScanRecord::WAIT_ACC_SCAN:
+          jam();
+          /* -------------------------------------------------------------------
+           *  WE ARE CURRENTLY STARTING UP THE SCAN. SET COMPLETED STATUS
+           *  AND WAIT FOR COMPLETION OF STARTUP.
+           *
+           * We should never arrive here, there is no real-time break in this
+           * state.
+           * -------------------------------------------------------------------
+           */
+          scanPtr->scanCompletedStatus = ZTRUE;
+          ndbabort();
+          break;
+        case ScanRecord::WAIT_CLOSE_SCAN:
+          jam();
+          scanPtr->scanCompletedStatus = ZTRUE;
+          /* -------------------------------------------------------------------
+           *       CLOSE IS ALREADY ONGOING. WE NEED NOT DO ANYTHING.
+           *
+           * It is even important to not call relinkScan below since we already
+           * set scanAccPtr = RNIL which means that we haven't setup the scan
+           * context and we should avoid calling relinkScan without scan
+           * context.
+           * -------------------------------------------------------------------
+           */
+          return;
+        case ScanRecord::WAIT_SCAN_NEXTREQ:
+          jam();
+          /* -------------------------------------------------------------------
+           * WE ARE WAITING FOR A SCAN_NEXTREQ FROM SCAN COORDINATOR(TC)
+           * WHICH HAVE CRASHED. CLOSE THE SCAN
+           * -------------------------------------------------------------------
+           */
+          scanPtr->scanCompletedStatus = ZTRUE;
+          if (scanPtr->scanLockHold == ZTRUE)
+          {
+            /**
+             * Ensure that we change scanState under mutex protection.
+             * After changing the state we should be safe that no more
+             * LQHKEYREQ with take over action is executed for this
+             * scan operation.
+             *
+             * After changing the state we will still need to wait for the
+             * m_takeOverRefCount to go down to 0 to ensure that we don't
+             * release any locks before the take over operation is
+             * completed. Should be extremely rare that this happens.
+             */
+            jam();
+            Uint32 takeOverRefCount;
+            lock_take_over_hash();
+            scanPtr->scanState = ScanRecord::WAIT_SCAN_NEXTREQ_ending;
+            takeOverRefCount = scanPtr->m_takeOverRefCount;
+            unlock_take_over_hash();
+            Uint32 loopCount = 0;
+            while (takeOverRefCount > 0)
+            {
+              NdbSpin();
+              loopCount++;
+              ndbrequire(loopCount < 3000000);
+              mb();
+              takeOverRefCount = scanPtr->m_takeOverRefCount;
+            }
+	    if (scanPtr->m_curr_batch_size_rows > 0)
+            {
+              jam();
+              scanPtr->scanReleaseCounter = 1;
+              scanReleaseLocksLab(signal, tcConnectptr.p);
+              return;
+            }  // if
+            jam();
+          }    // if
+          closeScanLab(signal, tcConnectptr.p);
+          return;
+        case ScanRecord::WAIT_SCAN_NEXTREQ_ending:
+          //Already being closed
+          jam();
+          return;
+        default:
+          ndbabort();
+      }  // switch
       break;
-    case ScanRecord::WAIT_START_QUEUED_SCAN:
+    case TcConnectionrec::SCAN_TUPKEY:
       jam();
-      /**
-       * We are currently starting up a queued scan, need to retain
-       * scan record until this signal arrives back.
+      /* ---------------------------------------------------------------------
+       *       SET COMPLETION STATUS AND WAIT FOR OPPORTUNITY TO STOP THE SCAN.
+       * ---------------------------------------------------------------------
        */
-      tupScanCloseConfLab(signal, tcConnectptr);
-      return;
-    case ScanRecord::QUIT_START_QUEUE_SCAN:
-      jam();
-      /**
-       * Scan is already closed, but waiting for a CONTINUEB signal, let
-       * that be handled and do no more. Response back to TC about
-       * closed state has already been sent, so no need to send it again.
-       */
-      break;
-    case ScanRecord::WAIT_ACC_SCAN:
-      jam();
-      /* -------------------------------------------------------------------
-       *  WE ARE CURRENTLY STARTING UP THE SCAN. SET COMPLETED STATUS 
-       *  AND WAIT FOR COMPLETION OF STARTUP.
-       *
-       * We should never arrive here, there is no real-time break in this
-       * state.
-       * ------------------------------------------------------------------- */
       scanPtr->scanCompletedStatus = ZTRUE;
       ndbabort();
       break;
-    case ScanRecord::WAIT_CLOSE_SCAN:
-      jam();
-      scanPtr->scanCompletedStatus = ZTRUE;
-      /* -------------------------------------------------------------------
-       *       CLOSE IS ALREADY ONGOING. WE NEED NOT DO ANYTHING.
-       *
-       * It is even important to not call relinkScan below since we already
-       * set scanAccPtr = RNIL which means that we haven't setup the scan
-       * context and we should avoid calling relinkScan without scan context.
-       * ------------------------------------------------------------------- */
-      return;
-    case ScanRecord::WAIT_SCAN_NEXTREQ:
-      jam();
-      /* -------------------------------------------------------------------
-       * WE ARE WAITING FOR A SCAN_NEXTREQ FROM SCAN COORDINATOR(TC)
-       * WHICH HAVE CRASHED. CLOSE THE SCAN
-       * ------------------------------------------------------------------- */
-      scanPtr->scanCompletedStatus = ZTRUE;
-      if (scanPtr->scanLockHold == ZTRUE)
-      {
-        /**
-         * Ensure that we change scanState under mutex protection.
-         * After changing the state we should be safe that no more
-         * LQHKEYREQ with take over action is executed for this
-         * scan operation.
-         *
-         * After changing the state we will still need to wait for the
-         * m_takeOverRefCount to go down to 0 to ensure that we don't
-         * release any locks before the take over operation is
-         * completed. Should be extremely rare that this happens.
-         */
-        jam();
-        Uint32 takeOverRefCount;
-        lock_take_over_hash();
-        scanPtr->scanState = ScanRecord::WAIT_SCAN_NEXTREQ_ending;
-        takeOverRefCount = scanPtr->m_takeOverRefCount;
-        unlock_take_over_hash();
-        Uint32 loopCount = 0;
-        while (takeOverRefCount > 0)
-        {
-          NdbSpin();
-          loopCount++;
-          ndbrequire(loopCount < 3000000);
-          mb();
-          takeOverRefCount = scanPtr->m_takeOverRefCount;
-        }
-	if (scanPtr->m_curr_batch_size_rows > 0)
-        {
-	  jam();
-	  scanPtr->scanReleaseCounter = 1;
-	  scanReleaseLocksLab(signal, tcConnectptr.p);
-	  return;
-	}//if
-        jam();
-      }//if
-      closeScanLab(signal, tcConnectptr.p);
-      return;
-    case ScanRecord::WAIT_SCAN_NEXTREQ_ending:
-      //Already being closed
-      jam();
-      return;
     default:
       ndbabort();
-    }  // switch
-    break;
-  case TcConnectionrec::SCAN_TUPKEY:
-    jam();
-    /* ---------------------------------------------------------------------
-     *       SET COMPLETION STATUS AND WAIT FOR OPPORTUNITY TO STOP THE SCAN.
-     * ---------------------------------------------------------------------
-     */
-    scanPtr->scanCompletedStatus = ZTRUE;
-    ndbabort();
-    break;
-  default:
-    ndbabort();
   }  // switch
   if (scanPtr->scanBlock == c_tux) {
     jamDebug();
@@ -35372,8 +35370,8 @@ void Dblqh::execDBINFO_SCANREQ(Signal *signal) {
         Ndbinfo::Row row(signal, req);
         row.write_uint32(getOwnNodeId());
         row.write_uint32(Ndbinfo::REDO);  // log type = REDO
-      row.write_uint32(0);              // log id, always 0 in LQH
-      row.write_uint32(logPartPtr.p->logPartNo); // log part
+        row.write_uint32(0);              // log id, always 0 in LQH
+        row.write_uint32(logPartPtr.p->logPartNo); // log part
 
         row.write_uint64(total * entry_size);           // total allocated
         row.write_uint64((total - free) * entry_size);  // currently in use
@@ -35415,143 +35413,141 @@ void Dblqh::execDBINFO_SCANREQ(Signal *signal) {
       }
       break;
     }
-  case Ndbinfo::OPERATIONS_TABLEID: {
-    static constexpr Uint32 max_buckets_to_check = 4096;
-    Uint32 buckets_checked = 0;
-    Uint32 bucket = cursor->data[0];
+    case Ndbinfo::OPERATIONS_TABLEID: {
+      static constexpr Uint32 max_buckets_to_check = 4096;
+      Uint32 buckets_checked = 0;
+      Uint32 bucket = cursor->data[0];
 
-    while (true) {
-      if (rl.need_break(req)) {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, bucket);
-        return;
-      }
-      Uint32 mutexIndex = 0;
-      for (; bucket < ctransidHashSize; bucket++)
-      {
-        buckets_checked++;
-        if (buckets_checked > max_buckets_to_check)
-        {
+      while (true) {
+        if (rl.need_break(req)) {
           jam();
           ndbinfo_send_scan_break(signal, req, rl, bucket);
           return;
         }
-        mutexIndex = bucket & (NUM_TRANSACTION_HASH_MUTEXES - 1);
-        NdbMutex_Lock(&transaction_hash_mutex[mutexIndex]);
-        if (ctransidHash[bucket] != RNIL)
-          break;
-        NdbMutex_Unlock(&transaction_hash_mutex[mutexIndex]);
-      }
 
-      if (bucket == ctransidHashSize)
-      {
-        break;
-      }
-      TcConnectionrecPtr tcPtr;
-      tcPtr.i = ctransidHash[bucket];
-      while (tcPtr.i != RNIL)
-      {
-        jam();
-        ndbrequire(tcConnect_pool.getValidPtr(tcPtr));
-        Ndbinfo::Row row(signal, req);
-        ndbinfo_write_op(row, tcPtr);
-        ndbinfo_send_row(signal, req, row, rl);
-        tcPtr.i = tcPtr.p->nextHashRec;
-      }
-      NdbMutex_Unlock(&transaction_hash_mutex[mutexIndex]);
-      bucket++;
-    }
-    break;
-  }
-  case Ndbinfo::FRAG_OPERATIONS_TABLEID:
-  {
-    Uint32 tableid = cursor->data[0];
-    if (m_is_query_block)
-    {
-      jam();
-      /* Skip stats output for query threads, not gathered */
-      tableid = ctabrecFileSize;
-    }
-    for (; tableid < ctabrecFileSize; tableid++) {
-      TablerecPtr tabPtr;
-      tabPtr.i = tableid;
-      ptrAss(tabPtr, tablerec);
-      if (tabPtr.p->tableStatus != Tablerec::NOT_DEFINED) {
-        jam();
-        // Loop over all fragments for this table.
-        Uint32 num_fragments_in_array = tabPtr.p->num_fragments_in_array;
-        for (Uint32 f = 0; f < num_fragments_in_array; f++)
-        {
-          if (tabPtr.p->fragrec[f] != RNIL64)
-          {
+        Uint32 mutexIndex = 0;
+        for (; bucket < ctransidHashSize; bucket++) {
+          buckets_checked++;
+          if (buckets_checked > max_buckets_to_check) {
             jam();
-            Fragrecord* const frag =
-              c_fragment_pool.getPtr(tabPtr.p->fragrec[f]);
-
-            /* Get fragment's stats from TUP */
-            const Dbtup::FragStats fs
-                = c_tup->get_frag_stats(frag->tupFragptr);
-
-            const Uint64 commitCount = fs.committedChanges;
-
-            Fragrecord::UsageStat& useStat = frag->m_useStat;
-
-            Ndbinfo::Row row(signal, req);
-            row.write_uint32(getOwnNodeId());
-            row.write_uint32(instance());
-            row.write_uint32(tableid);
-            row.write_uint32(frag->fragId);
-            row.write_uint64(useStat.m_readKeyReqCount);
-            row.write_uint64(useStat.m_insKeyReqCount);
-            row.write_uint64(useStat.m_updKeyReqCount);
-            row.write_uint64(useStat.m_writeKeyReqCount);
-            row.write_uint64(useStat.m_delKeyReqCount);
-            row.write_uint64(useStat.m_keyRefCount);
-            row.write_uint64(useStat.m_keyReqAttrWords * sizeof(Uint32));
-            row.write_uint64(useStat.m_keyReqKeyWords * sizeof(Uint32));
-            row.write_uint64(useStat.m_keyProgramWords * sizeof(Uint32));
-            row.write_uint64(useStat.m_keyInstructionCount);
-            row.write_uint64(useStat.m_keyReqWordsReturned * sizeof(Uint32));
-            row.write_uint64(useStat.m_scanFragReqCount);
-            row.write_uint64(useStat.m_scanRowsExamined);
-            row.write_uint64(useStat.m_scanRowsReturned);
-            row.write_uint64(useStat.m_scanWordsReturned * sizeof(Uint32));
-            row.write_uint64(useStat.m_scanProgramWords * sizeof(Uint32));
-            row.write_uint64(useStat.m_scanBoundWords * sizeof(Uint32));
-            row.write_uint64(useStat.m_scanInstructionCount);
-            row.write_uint64(useStat.m_queuedScanCount);
-
-            row.write_uint32(frag->m_activeScans);
-
-            row.write_uint32(Local_ScanRecord_fifo
-                             (c_scanRecordPool, frag->m_queuedScans).getCount());
-
-            row.write_uint32(Local_ScanRecord_fifo
-                             (c_scanRecordPool, frag->m_queuedTupScans).getCount());
-
-            row.write_uint32(Local_ScanRecord_fifo
-                             (c_scanRecordPool, 
-                              frag->m_queuedAccScans).getCount());
-            
-            row.write_uint64(commitCount);
-            ndbinfo_send_row(signal, req, row, rl);
+            ndbinfo_send_scan_break(signal, req, rl, bucket);
+            return;
           }
+
+          mutexIndex = bucket & (NUM_TRANSACTION_HASH_MUTEXES - 1);
+          NdbMutex_Lock(&transaction_hash_mutex[mutexIndex]);
+          if (ctransidHash[bucket] != RNIL) break;
+          NdbMutex_Unlock(&transaction_hash_mutex[mutexIndex]);
+        }
+
+        if (bucket == ctransidHashSize) {
+          break;
+        }
+
+        TcConnectionrecPtr tcPtr;
+        tcPtr.i = ctransidHash[bucket];
+        while (tcPtr.i != RNIL) {
+          jam();
+          ndbrequire(tcConnect_pool.getValidPtr(tcPtr));
+          Ndbinfo::Row row(signal, req);
+          ndbinfo_write_op(row, tcPtr);
+          ndbinfo_send_row(signal, req, row, rl);
+          tcPtr.i = tcPtr.p->nextHashRec;
+        }
+        NdbMutex_Unlock(&transaction_hash_mutex[mutexIndex]);
+        bucket++;
+      }
+      break;
+    }
+    case Ndbinfo::FRAG_OPERATIONS_TABLEID: {
+      Uint32 tableid = cursor->data[0];
+      if (m_is_query_block) {
+        jam();
+        /* Skip stats output for query threads, not gathered */
+        tableid = ctabrecFileSize;
+      }
+
+      for (; tableid < ctabrecFileSize; tableid++) {
+        TablerecPtr tabPtr;
+        tabPtr.i = tableid;
+        ptrAss(tabPtr, tablerec);
+        if (tabPtr.p->tableStatus != Tablerec::NOT_DEFINED) {
+          jam();
+          // Loop over all fragments for this table.
+          Uint32 num_fragments_in_array = tabPtr.p->num_fragments_in_array;
+          for (Uint32 f = 0; f < num_fragments_in_array; f++)
+          {
+            if (tabPtr.p->fragrec[f] != RNIL64) {
+              jam();
+              Fragrecord *const frag =
+                  c_fragment_pool.getPtr(tabPtr.p->fragrec[f]);
+
+              /* Get fragment's stats from TUP */
+              const Dbtup::FragStats fs =
+                  c_tup->get_frag_stats(frag->tupFragptr);
+
+              const Uint64 commitCount = fs.committedChanges;
+
+              Fragrecord::UsageStat &useStat = frag->m_useStat;
+
+              Ndbinfo::Row row(signal, req);
+              row.write_uint32(getOwnNodeId());
+              row.write_uint32(instance());
+              row.write_uint32(tableid);
+              row.write_uint32(frag->fragId);
+              row.write_uint64(useStat.m_readKeyReqCount);
+              row.write_uint64(useStat.m_insKeyReqCount);
+              row.write_uint64(useStat.m_updKeyReqCount);
+              row.write_uint64(useStat.m_writeKeyReqCount);
+              row.write_uint64(useStat.m_delKeyReqCount);
+              row.write_uint64(useStat.m_keyRefCount);
+              row.write_uint64(useStat.m_keyReqAttrWords * sizeof(Uint32));
+              row.write_uint64(useStat.m_keyReqKeyWords * sizeof(Uint32));
+              row.write_uint64(useStat.m_keyProgramWords * sizeof(Uint32));
+              row.write_uint64(useStat.m_keyInstructionCount);
+              row.write_uint64(useStat.m_keyReqWordsReturned * sizeof(Uint32));
+              row.write_uint64(useStat.m_scanFragReqCount);
+              row.write_uint64(useStat.m_scanRowsExamined);
+              row.write_uint64(useStat.m_scanRowsReturned);
+              row.write_uint64(useStat.m_scanWordsReturned * sizeof(Uint32));
+              row.write_uint64(useStat.m_scanProgramWords * sizeof(Uint32));
+              row.write_uint64(useStat.m_scanBoundWords * sizeof(Uint32));
+              row.write_uint64(useStat.m_scanInstructionCount);
+              row.write_uint64(useStat.m_queuedScanCount);
+
+              row.write_uint32(frag->m_activeScans);
+
+              row.write_uint32(
+                  Local_ScanRecord_fifo(c_scanRecordPool, frag->m_queuedScans)
+                      .getCount());
+
+              row.write_uint32(Local_ScanRecord_fifo(c_scanRecordPool,
+                                                     frag->m_queuedTupScans)
+                                   .getCount());
+
+              row.write_uint32(Local_ScanRecord_fifo(c_scanRecordPool,
+                                                     frag->m_queuedAccScans)
+                                   .getCount());
+
+              row.write_uint64(commitCount);
+              ndbinfo_send_row(signal, req, row, rl);
+            }
+          }
+        }
+
+        /*
+          If a break is needed, break on a table boundary, as we use the table
+          id as a cursor.
+        */
+        if (rl.need_break(req)) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, tableid + 1);
+          return;
         }
       }
 
-      /*
-        If a break is needed, break on a table boundary, as we use the table
-        id as a cursor.
-      */
-      if (rl.need_break(req)) {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, tableid + 1);
-        return;
-      }
+      break;
     }
-
-    break;
-  }
   case Ndbinfo::TABLE_MEM_USE_TABLEID:
   {
     /*
@@ -35653,164 +35649,156 @@ void Dblqh::execDBINFO_SCANREQ(Signal *signal) {
     }
     break;
   }
-  case Ndbinfo::FRAG_MEM_USE_TABLEID:
-  {
-    /*
-      Loop over all tables. cursor->data[0] shows where this batch should start.
-     */
-    for (Uint32 tableid = cursor->data[0]; tableid < ctabrecFileSize; tableid++)
-    {
-      TablerecPtr tabPtr;
-      tabPtr.i = tableid;
-      ptrAss(tabPtr, tablerec);
-      if (tabPtr.p->tableStatus != Tablerec::NOT_DEFINED)
-      {
-        jam();
-        // Loop over the fragments of this table.
-        Uint32 num_fragments_in_array = tabPtr.p->num_fragments_in_array;
-        for (Uint32 fragNo = 0;
-             fragNo < num_fragments_in_array;
-             fragNo++)
-        {
-          FragrecordPtr myFragPtr;
-          myFragPtr.i = tabPtr.p->fragrec[fragNo];
-          if (myFragPtr.i != RNIL64)
+    case Ndbinfo::FRAG_MEM_USE_TABLEID: {
+      /*
+        Loop over all tables. cursor->data[0] shows where this batch should
+        start.
+       */
+      for (Uint32 tableid = cursor->data[0]; tableid < ctabrecFileSize;
+           tableid++) {
+        TablerecPtr tabPtr;
+        tabPtr.i = tableid;
+        ptrAss(tabPtr, tablerec);
+        if (tabPtr.p->tableStatus != Tablerec::NOT_DEFINED) {
+          jam();
+          // Loop over the fragments of this table.
+          Uint32 num_fragments_in_array = tabPtr.p->num_fragments_in_array;
+          for (Uint32 fragNo = 0;
+               fragNo < num_fragments_in_array;
+               fragNo++)
           {
-            jam();
-            ndbrequire(c_fragment_pool.getPtr(myFragPtr));
-            
-            /* Get fragment's stats from TUP */
-            const Dbtup::FragStats fs
-              = c_tup->get_frag_stats(myFragPtr.p->tupFragptr);
-
-            Ndbinfo::Row row(signal, req);
-            row.write_uint32(getOwnNodeId());
-            row.write_uint32(instance());
-            row.write_uint32(tableid);
-            row.write_uint32(myFragPtr.p->fragId);
-
-            Uint64 hashMapBytes = 0;
-            Uint32 accL2PMapBytes = 0;
-
-            if (myFragPtr.p->accFragptr == RNIL64)
+            FragrecordPtr myFragPtr;
+            myFragPtr.i = tabPtr.p->fragrec[fragNo];
+            if (myFragPtr.i != RNIL64)
             {
               jam();
-              ndbassert(DictTabInfo::isOrderedIndex(tabPtr.p->tableType));
+              ndbrequire(c_fragment_pool.getPtr(myFragPtr));
+
+              /* Get fragment's stats from TUP */
+              const Dbtup::FragStats fs =
+                  c_tup->get_frag_stats(myFragPtr.p->tupFragptr);
+
+              Ndbinfo::Row row(signal, req);
+              row.write_uint32(getOwnNodeId());
+              row.write_uint32(instance());
+              row.write_uint32(tableid);
+              row.write_uint32(myFragPtr.p->fragId);
+
+              Uint64 hashMapBytes = 0;
+              Uint32 accL2PMapBytes = 0;
+
+              if (myFragPtr.p->accFragptr == RNIL64) {
+                jam();
+                ndbassert(DictTabInfo::isOrderedIndex(tabPtr.p->tableType));
+              } else {
+                jam();
+                accL2PMapBytes =
+                    c_acc->getL2PMapAllocBytes(myFragPtr.p->accFragptr);
+                hashMapBytes =
+                    c_acc->getLinHashByteSize(myFragPtr.p->accFragptr);
+              }
+
+              const Uint64 fixedSlotsAvailable =
+                  fs.fixedMemoryAllocPages * fs.fixedSlotsPerPage;
+              ndbassert(fs.fixedElemCount <= fixedSlotsAvailable);
+
+              const Uint64 fixedFreeSlots =
+                  fixedSlotsAvailable - fs.fixedElemCount;
+
+              const Uint64 fixedFreeBytes =
+                  fixedFreeSlots * fs.fixedRecordBytes;
+
+              row.write_uint64(fs.committedRowCount);
+              row.write_uint64(fs.fixedMemoryAllocPages * fs.pageSizeBytes);
+              row.write_uint64(fixedFreeBytes);
+              row.write_uint64(fs.fixedElemCount);
+              row.write_uint32(fs.fixedRecordBytes);
+              row.write_uint64(fs.varMemoryAllocPages * fs.pageSizeBytes);
+              row.write_uint64(fs.varMemoryFreeBytes);
+              row.write_uint64(fs.varElemCount);
+              row.write_uint64(fs.logToPhysMapAllocBytes);
+              row.write_uint64(accL2PMapBytes);
+              row.write_uint64(hashMapBytes);
+
+              ndbinfo_send_row(signal, req, row, rl);
             }
-            else
-            {
-              jam();
-              accL2PMapBytes =
-                c_acc->getL2PMapAllocBytes(myFragPtr.p->accFragptr);
-              hashMapBytes =
-                c_acc->getLinHashByteSize(myFragPtr.p->accFragptr);
-            }
-            const Uint64 fixedSlotsAvailable =
-                fs.fixedMemoryAllocPages * fs.fixedSlotsPerPage;
-            ndbassert(fs.fixedElemCount <= fixedSlotsAvailable);
-
-            const Uint64 fixedFreeSlots =
-                fixedSlotsAvailable - fs.fixedElemCount;
-
-            const Uint64 fixedFreeBytes =
-                fixedFreeSlots * fs.fixedRecordBytes;
-
-            row.write_uint64(fs.committedRowCount);
-            row.write_uint64(fs.fixedMemoryAllocPages * fs.pageSizeBytes);
-            row.write_uint64(fixedFreeBytes);
-            row.write_uint64(fs.fixedElemCount);
-            row.write_uint32(fs.fixedRecordBytes);
-            row.write_uint64(fs.varMemoryAllocPages * fs.pageSizeBytes);
-            row.write_uint64(fs.varMemoryFreeBytes);
-            row.write_uint64(fs.varElemCount);
-            row.write_uint64(fs.logToPhysMapAllocBytes);
-            row.write_uint64(accL2PMapBytes);
-            row.write_uint64(hashMapBytes);
-
-            ndbinfo_send_row(signal, req, row, rl);
           }
+        }
+
+        /*
+          If necessary, make a break before starting on the next table. Since
+          we use table ids to tell where to start the next batch, we cannot
+          make a break before all fragments of the current table have been sent.
+         */
+        if (rl.need_break(req)) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, tableid + 1);
+          return;
         }
       }
 
-      /*
-        If necessary, make a break before starting on the next table. Since
-        we use table ids to tell where to start the next batch, we cannot
-        make a break before all fragments of the current table have been sent.
-       */
-      if (rl.need_break(req)) {
+      break;
+    }
+    case Ndbinfo::POOLS_TABLEID: {
+      Ndbinfo::pool_entry pools[] = {
+          {"LQH Operation Record",
+           tcConnect_pool.getUsed(),
+           tcConnect_pool.getSize(),
+           tcConnect_pool.getEntrySize(),
+           tcConnect_pool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBLQH_TC_CONNECT},
+          {"LQH scan Record",
+           c_scanRecordPool.getUsed(),
+           c_scanRecordPool.getSize(),
+           c_scanRecordPool.getEntrySize(),
+           c_scanRecordPool.getUsedHi(),
+           {0, 0, 0, 0},
+           RT_DBLQH_SCAN_RECORD},
+          {"Commit ACK Marker",
+           m_commitAckMarkerPool.getUsed(),
+           m_commitAckMarkerPool.getSize(),
+           m_commitAckMarkerPool.getEntrySize(),
+           m_commitAckMarkerPool.getUsedHi(),
+           {CFG_DB_NO_LOCAL_OPS, CFG_DB_NO_OPS, 0, 0},
+           RT_DBLQH_COMMIT_ACK_MARKER},
+          {NULL, 0, 0, 0, 0, {0, 0, 0, 0}, 0}};
+
+      const size_t num_config_params =
+          sizeof(pools[0].config_params) / sizeof(pools[0].config_params[0]);
+      const Uint32 numPools = NDB_ARRAY_SIZE(pools);
+      Uint32 pool = cursor->data[0];
+      ndbrequire(pool < numPools);
+      BlockNumber bn = blockToMain(number());
+      while (pools[pool].poolname) {
         jam();
-        ndbinfo_send_scan_break(signal, req, rl, tableid + 1);
-        return;
+        Ndbinfo::Row row(signal, req);
+        row.write_uint32(getOwnNodeId());
+        row.write_uint32(bn);          // block number
+        row.write_uint32(instance());  // block instance
+        row.write_string(pools[pool].poolname);
+
+        row.write_uint64(pools[pool].used);
+        row.write_uint64(pools[pool].total);
+        row.write_uint64(pools[pool].used_hi);
+        row.write_uint64(pools[pool].entry_size);
+        for (size_t i = 0; i < num_config_params; i++)
+          row.write_uint32(pools[pool].config_params[i]);
+        row.write_uint32(GET_RG(pools[pool].record_type));
+        row.write_uint32(GET_TID(pools[pool].record_type));
+        ndbinfo_send_row(signal, req, row, rl);
+        pool++;
+        if (rl.need_break(req)) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, pool);
+          return;
+        }
       }
+      break;
     }
 
-    break;
-  }
-  case Ndbinfo::POOLS_TABLEID:
-  {
-    Ndbinfo::pool_entry pools[] =
-    {
-      { "LQH Operation Record",
-        tcConnect_pool.getUsed(),
-        tcConnect_pool.getSize(),
-        tcConnect_pool.getEntrySize(),
-        tcConnect_pool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBLQH_TC_CONNECT},
-      { "LQH scan Record",
-        c_scanRecordPool.getUsed(),
-        c_scanRecordPool.getSize(),
-        c_scanRecordPool.getEntrySize(),
-        c_scanRecordPool.getUsedHi(),
-        { 0, 0, 0, 0},
-        RT_DBLQH_SCAN_RECORD},
-      { "Commit ACK Marker",
-        m_commitAckMarkerPool.getUsed(),
-        m_commitAckMarkerPool.getSize(),
-        m_commitAckMarkerPool.getEntrySize(),
-        m_commitAckMarkerPool.getUsedHi(),
-        { CFG_DB_NO_LOCAL_OPS, CFG_DB_NO_OPS,0,0 },
-        RT_DBLQH_COMMIT_ACK_MARKER},
-      { NULL, 0,0,0,0,{0,0,0,0},0 }
-    };
-
-    const size_t num_config_params =
-      sizeof(pools[0].config_params) / sizeof(pools[0].config_params[0]);
-    const Uint32 numPools = NDB_ARRAY_SIZE(pools);
-    Uint32 pool = cursor->data[0];
-    ndbrequire(pool < numPools);
-    BlockNumber bn = blockToMain(number());
-    while(pools[pool].poolname)
-    {
-      jam();
-      Ndbinfo::Row row(signal, req);
-      row.write_uint32(getOwnNodeId());
-      row.write_uint32(bn);           // block number
-      row.write_uint32(instance());   // block instance
-      row.write_string(pools[pool].poolname);
-
-      row.write_uint64(pools[pool].used);
-      row.write_uint64(pools[pool].total);
-      row.write_uint64(pools[pool].used_hi);
-      row.write_uint64(pools[pool].entry_size);
-      for (size_t i = 0; i < num_config_params; i++)
-        row.write_uint32(pools[pool].config_params[i]);
-      row.write_uint32(GET_RG(pools[pool].record_type));
-      row.write_uint32(GET_TID(pools[pool].record_type));
-      ndbinfo_send_row(signal, req, row, rl);
-      pool++;
-      if (rl.need_break(req))
-      {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, pool);
-        return;
-      }
-    }
-    break;
-  }
-
-  default:
-    break;
+    default:
+      break;
   }
 
   ndbinfo_send_scan_conf(signal, req, rl);

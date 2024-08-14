@@ -2008,9 +2008,9 @@ void Dbdih::execNDB_STTOR(Signal *signal) {
            */
           ndbassert(c_lcpState.lcpStatus == LCP_STATUS_IDLE);
           c_lcpState.setLcpStatus(LCP_STATUS_IDLE, __LINE__);
-      g_eventLogger->info("Request copying of distribution and dictionary"
-                          " information from master(%u) Starting",
-                          refToNode(cmasterdihref));
+          g_eventLogger->info("Request copying of distribution and dictionary"
+                              " information from master(%u) Starting",
+                              refToNode(cmasterdihref));
 
           StartMeReq *req = (StartMeReq *)&signal->theData[0];
           req->startingRef = reference();
@@ -7066,90 +7066,88 @@ void Dbdih::execDBINFO_SCANREQ(Signal *signal) {
       break;
     }
     case Ndbinfo::TABLE_REPLICAS_TABLEID:
-  case Ndbinfo::TABLE_REPLICAS_ALL_TABLEID: {
-    jam();
-    TabRecordPtr tabPtr;
-    FragmentstorePtr fragPtr;
-    ReplicaRecordPtr replicaPtr;
-    tabPtr.i = cursor->data[0] & 0xFFFF;
-    Uint32 fragId = cursor->data[0] >> 16;
-    if (!isMaster() && req.tableId == Ndbinfo::TABLE_REPLICAS_TABLEID) {
+    case Ndbinfo::TABLE_REPLICAS_ALL_TABLEID: {
       jam();
-      break;
-    }
-    for (; tabPtr.i < ctabFileSize; tabPtr.i++) {
-      jamLine(tabPtr.i);
-      ptrAss(tabPtr, tabRecord);
-      if (tabPtr.p->tabStatus != TabRecord::TS_IDLE &&
-          (DictTabInfo::isTable(tabPtr.p->tableType) ||
-           DictTabInfo::isUniqueIndex(tabPtr.p->tableType))) {
-        jamLine(fragId);
-        jamLine(tabPtr.p->totalfragments);
-        jamLine(tabPtr.p->partitionCount);
-        for (; fragId < tabPtr.p->totalfragments; fragId++) {
+      TabRecordPtr tabPtr;
+      FragmentstorePtr fragPtr;
+      ReplicaRecordPtr replicaPtr;
+      tabPtr.i = cursor->data[0] & 0xFFFF;
+      Uint32 fragId = cursor->data[0] >> 16;
+      if (!isMaster() && req.tableId == Ndbinfo::TABLE_REPLICAS_TABLEID) {
+        jam();
+        break;
+      }
+      for (; tabPtr.i < ctabFileSize; tabPtr.i++) {
+        jamLine(tabPtr.i);
+        ptrAss(tabPtr, tabRecord);
+        if (tabPtr.p->tabStatus != TabRecord::TS_IDLE &&
+            (DictTabInfo::isTable(tabPtr.p->tableType) ||
+             DictTabInfo::isUniqueIndex(tabPtr.p->tableType))) {
           jamLine(fragId);
-          getFragstore(tabPtr.p, fragId, fragPtr);
-          for (Uint32 i = 0; i < 2; i++) {
-            if (i == 0) {
-              jam();
-              replicaPtr.i = fragPtr.p->storedReplicas;
-            } else {
-              jam();
-              replicaPtr.i = fragPtr.p->oldStoredReplicas;
-            }
-            while (replicaPtr.i != RNIL64)
-            {
-              jam();
-              Ndbinfo::Row row(signal, req);
-              ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
-              row.write_uint32(cownNodeId);
-              row.write_uint32(tabPtr.i);
-              row.write_uint32(fragPtr.p->fragId);
-              row.write_uint32(replicaPtr.p->initialGci);
-              row.write_uint32(replicaPtr.p->procNode);
-              row.write_uint32(replicaPtr.p->lcpOngoingFlag);
-              row.write_uint32(replicaPtr.p->noCrashedReplicas);
-              Uint32 lastId = 0;
-              Uint32 maxLcpId = 0;
-              for (Uint32 j = 0; j < MAX_LCP_USED; j++)
-              {
+          jamLine(tabPtr.p->totalfragments);
+          jamLine(tabPtr.p->partitionCount);
+          for (; fragId < tabPtr.p->totalfragments; fragId++) {
+            jamLine(fragId);
+            getFragstore(tabPtr.p, fragId, fragPtr);
+            for (Uint32 i = 0; i < 2; i++) {
+              if (i == 0) {
                 jam();
-                if (replicaPtr.p->lcpStatus[j] == ZVALID) {
+                replicaPtr.i = fragPtr.p->storedReplicas;
+              } else {
+                jam();
+                replicaPtr.i = fragPtr.p->oldStoredReplicas;
+              }
+              while (replicaPtr.i != RNIL64) {
+                jam();
+                Ndbinfo::Row row(signal, req);
+                ndbrequire(c_replicaRecordPool.getPtr(replicaPtr));
+                row.write_uint32(cownNodeId);
+                row.write_uint32(tabPtr.i);
+                row.write_uint32(fragPtr.p->fragId);
+                row.write_uint32(replicaPtr.p->initialGci);
+                row.write_uint32(replicaPtr.p->procNode);
+                row.write_uint32(replicaPtr.p->lcpOngoingFlag);
+                row.write_uint32(replicaPtr.p->noCrashedReplicas);
+                Uint32 lastId = 0;
+                Uint32 maxLcpId = 0;
+                for (Uint32 j = 0; j < MAX_LCP_USED; j++) {
                   jam();
-                  if (replicaPtr.p->lcpId[j] > maxLcpId) {
+                  if (replicaPtr.p->lcpStatus[j] == ZVALID) {
                     jam();
-                    lastId = j;
-                    maxLcpId = replicaPtr.p->lcpId[j];
+                    if (replicaPtr.p->lcpId[j] > maxLcpId) {
+                      jam();
+                      lastId = j;
+                      maxLcpId = replicaPtr.p->lcpId[j];
+                    }
                   }
                 }
+                Uint32 prevId = prevLcpNo(lastId);
+                row.write_uint32(replicaPtr.p->maxGciStarted[lastId]);
+                row.write_uint32(replicaPtr.p->maxGciCompleted[lastId]);
+                row.write_uint32(replicaPtr.p->lcpId[lastId]);
+                row.write_uint32(replicaPtr.p->maxGciStarted[prevId]);
+                row.write_uint32(replicaPtr.p->maxGciCompleted[prevId]);
+                row.write_uint32(replicaPtr.p->lcpId[prevId]);
+                Uint32 last_replica_id = replicaPtr.p->noCrashedReplicas;
+                row.write_uint32(replicaPtr.p->createGci[last_replica_id]);
+                row.write_uint32(replicaPtr.p->replicaLastGci[last_replica_id]);
+                row.write_uint32(i == 0 ? 1 : 0);
+                ndbinfo_send_row(signal, req, row, rl);
+                replicaPtr.i = replicaPtr.p->nextPool;
               }
-              Uint32 prevId = prevLcpNo(lastId);
-              row.write_uint32(replicaPtr.p->maxGciStarted[lastId]);
-              row.write_uint32(replicaPtr.p->maxGciCompleted[lastId]);
-              row.write_uint32(replicaPtr.p->lcpId[lastId]);
-              row.write_uint32(replicaPtr.p->maxGciStarted[prevId]);
-              row.write_uint32(replicaPtr.p->maxGciCompleted[prevId]);
-              row.write_uint32(replicaPtr.p->lcpId[prevId]);
-              Uint32 last_replica_id = replicaPtr.p->noCrashedReplicas;
-              row.write_uint32(replicaPtr.p->createGci[last_replica_id]);
-              row.write_uint32(replicaPtr.p->replicaLastGci[last_replica_id]);
-              row.write_uint32(i == 0 ? 1 : 0);
-              ndbinfo_send_row(signal, req, row, rl);
-              replicaPtr.i = replicaPtr.p->nextPool;
+            }
+            if (rl.need_break(req)) {
+              jam();
+              Uint32 new_cursor = tabPtr.i + ((fragId + 1) << 16);
+              ndbinfo_send_scan_break(signal, req, rl, new_cursor);
+              return;
             }
           }
-          if (rl.need_break(req)) {
-            jam();
-            Uint32 new_cursor = tabPtr.i + ((fragId + 1) << 16);
-            ndbinfo_send_scan_break(signal, req, rl, new_cursor);
-            return;
-          }
+          fragId = 0;
         }
-        fragId = 0;
       }
+      break;
     }
-    break;
-  }
     default:
       break;
   }
@@ -12529,29 +12527,28 @@ void Dbdih::execCREATE_FRAGMENTATION_REQ(Signal *signal) {
           }
           set_default_node_groups(signal, noOfFragments);
           switch (partitionBalance) {
-          case NDB_PARTITION_BALANCE_FOR_RP_BY_NODE:
-          case NDB_PARTITION_BALANCE_FOR_RA_BY_NODE:
-          case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM:
-          case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM:
-          case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_2:
-          case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_3:
-          case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_4:
-          case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_2:
-          case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_4:
-          case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_6:
-          case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_8:
-          case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_16:
-          {
-            use_specific_fragment_count = false;
-            break;
-          }
-          case NDB_PARTITION_BALANCE_SPECIFIC: {
-            use_specific_fragment_count = true;
-            break;
-          }
-          default: {
-            ndbabort();
-          }
+            case NDB_PARTITION_BALANCE_FOR_RP_BY_NODE:
+            case NDB_PARTITION_BALANCE_FOR_RA_BY_NODE:
+            case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM:
+            case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM:
+            case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_2:
+            case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_3:
+            case NDB_PARTITION_BALANCE_FOR_RA_BY_LDM_X_4:
+            case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_2:
+            case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_4:
+            case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_6:
+            case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_8:
+            case NDB_PARTITION_BALANCE_FOR_RP_BY_LDM_X_16: {
+              use_specific_fragment_count = false;
+              break;
+            }
+            case NDB_PARTITION_BALANCE_SPECIFIC: {
+              use_specific_fragment_count = true;
+              break;
+            }
+            default: {
+              ndbabort();
+            }
           }
           break;
         }
@@ -14378,8 +14375,8 @@ void Dbdih::execALTER_TAB_REQ(Signal *signal) {
       break;
     case AlterTabReq::AlterTableRevert:
       jam();
-    D("AlterTabReq::AlterTableRevert: tableId: " << tabPtr.i
-      << " schemaVersion: 0x" << hex << tableVersion);
+      D("AlterTabReq::AlterTableRevert: tableId: " << tabPtr.i
+        << " schemaVersion: 0x" << hex << tableVersion);
       tabPtr.p->schemaVersion = tableVersion;
 
       connectPtr.i = req->connectPtr;
@@ -14413,8 +14410,8 @@ void Dbdih::execALTER_TAB_REQ(Signal *signal) {
       break;
     case AlterTabReq::AlterTableCommit: {
       jam();
-    D("AlterTabReq::AlterTableCommit: tableId: " << tabPtr.i
-      << " schemaVersion: 0x" << hex << newTableVersion);
+      D("AlterTabReq::AlterTableCommit: tableId: " << tabPtr.i
+        << " schemaVersion: 0x" << hex << newTableVersion);
       tabPtr.p->schemaVersion = newTableVersion;
 
       connectPtr.i = req->connectPtr;
@@ -14625,6 +14622,7 @@ void Dbdih::wait_old_scan(Signal *signal) {
   if (elapsed >= wait) {
     infoEvent("Waiting %us for %u scans to complete on table %u", elapsed,
               tabPtr.p->m_scan_count[1], tabPtr.i);
+
     /* Report after 3 seconds, 10 seconds and every 10 seconds after this */
     if (wait == 3)
     {
@@ -16144,58 +16142,60 @@ Dbdih::make_table_use_new_replica(Signal *signal,
 
   DIH_TAB_WRITE_LOCK(tabPtr.p);
   switch (replicaType) {
-  case UpdateFragStateReq::STORED:
-    jam();
-    CRASH_INSERTION(7138);
-    /* ----------------------------------------------------------------------*/
-    /*  HERE WE ARE INSERTING THE NEW BACKUP NODE IN THE EXECUTION OF ALL    */
-    /*  OPERATIONS. FROM HERE ON ALL OPERATIONS ON THIS FRAGMENT WILL INCLUDE*/
-    /*  USE OF THE NEW REPLICA.                                              */
-    /* --------------------------------------------------------------------- */
-    insertBackup(fragPtr, destNodeId);
-    
-    fragPtr.p->distributionKey++;
-    fragPtr.p->distributionKey &= 255;
-    fragPtr.p->onlineSynchOngoing = 1;
-    fragPtr.p->changeNumber++;
-    DEB_ACTIVE_NODES(("insertBackup: tab(%u,%u),"
-                      " distKey: %u, senderSignalId: %u, signalId: %u"
-                      ", activeNodes[] = [%u,%u,%u] changeNumber: %u",
-                      fragPtr.p->tableId,
-                      fragPtr.p->fragId,
-                      fragPtr.p->distributionKey,
-                      signal->header.theSendersSignalId,
-                      signal->header.theSignalId,
-                      fragPtr.p->activeNodes[0],
-                      fragPtr.p->activeNodes[1],
-                      fragPtr.p->activeNodes[2],
-                      fragPtr.p->changeNumber));
-    break;
-  case UpdateFragStateReq::COMMIT_STORED:
-    jam();
-    CRASH_INSERTION(7139);
-    /**
-     * The node restart of a fragment is completed, now change to use
-     * the preferred new distribution of primary replicas. The primary
-     * replica isn't required to be durable at this change.
-     * 
-     * We also update the order of the replicas here so that we use the
-     * specified primary node as primary.
-     * If any node is using preferredPrimary as primary node this is
-     * preferred if the node is alive.
-     */
-    removeOldStoredReplica(fragPtr, replicaPtr);
-    linkStoredReplica(fragPtr, replicaPtr);
-    fragPtr.p->primaryNode = primaryNode;
-    fragPtr.p->onlineSynchOngoing = 0;
-    updateNodeInfo(signal, fragPtr);
-    break;
-  case UpdateFragStateReq::START_LOGGING:
-    jam();
-    break;
-  default:
-    ndbabort();
-  }//switch
+    case UpdateFragStateReq::STORED:
+      jam();
+      CRASH_INSERTION(7138);
+      /* ----------------------------------------------------------------------*/
+      /*  HERE WE ARE INSERTING THE NEW BACKUP NODE IN THE EXECUTION OF ALL */
+      /*  OPERATIONS. FROM HERE ON ALL OPERATIONS ON THIS FRAGMENT WILL
+       * INCLUDE*/
+      /*  USE OF THE NEW REPLICA. */
+      /* ---------------------------------------------------------------------
+       */
+      insertBackup(fragPtr, destNodeId);
+
+      fragPtr.p->distributionKey++;
+      fragPtr.p->distributionKey &= 255;
+      fragPtr.p->onlineSynchOngoing = 1;
+      fragPtr.p->changeNumber++;
+      DEB_ACTIVE_NODES(("insertBackup: tab(%u,%u),"
+                        " distKey: %u, senderSignalId: %u, signalId: %u"
+                        ", activeNodes[] = [%u,%u,%u] changeNumber: %u",
+                        fragPtr.p->tableId,
+                        fragPtr.p->fragId,
+                        fragPtr.p->distributionKey,
+                        signal->header.theSendersSignalId,
+                        signal->header.theSignalId,
+                        fragPtr.p->activeNodes[0],
+                        fragPtr.p->activeNodes[1],
+                        fragPtr.p->activeNodes[2],
+                        fragPtr.p->changeNumber));
+      break;
+    case UpdateFragStateReq::COMMIT_STORED:
+      jam();
+      CRASH_INSERTION(7139);
+      /**
+       * The node restart of a fragment is completed, now change to use
+       * the preferred new distribution of primary replicas. The primary
+       * replica isn't required to be durable at this change.
+       * 
+       * We also update the order of the replicas here so that we use the
+       * specified primary node as primary.
+       * If any node is using preferredPrimary as primary node this is
+       * preferred if the node is alive.
+       */
+      removeOldStoredReplica(fragPtr, replicaPtr);
+      linkStoredReplica(fragPtr, replicaPtr);
+      fragPtr.p->primaryNode = primaryNode;
+      fragPtr.p->onlineSynchOngoing = 0;
+      updateNodeInfo(signal, fragPtr);
+      break;
+    case UpdateFragStateReq::START_LOGGING:
+      jam();
+      break;
+    default:
+      ndbabort();
+  }  // switch
   DIH_TAB_WRITE_UNLOCK(tabPtr.p);
 }
 
@@ -25245,15 +25245,15 @@ void Dbdih::searchStoredReplicas(FragmentstorePtr fragPtr)
               setup_create_replica(fragPtr, createReplicaPtr.p, replicaPtr));
           break;
         }
-      default:
-        jam();
-        /**
-         * The list of stored replicas was set up in resetReplicaSr, nothing
-         * should have changed since then.
-         */
-        ndbabort();
-        /*empty*/;
-        break;
+        default:
+          jam();
+          /**
+           * The list of stored replicas was set up in resetReplicaSr, nothing
+           * should have changed since then.
+           */
+          ndbabort();
+          /*empty*/;
+          break;
       }  // switch
     }
     replicaPtr.i = nextReplicaPtrI;
@@ -28162,9 +28162,9 @@ void Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal *signal) {
         }
         if (getNodeActiveStatus(req->nodes[i]) != Sysfile::NS_Configured) {
           jam();
-        jamData(i);
-        jamData(req->nodes[i]);
-        jamData(getNodeActiveStatus(req->nodes[i]));
+          jamData(i);
+          jamData(req->nodes[i]);
+          jamData(getNodeActiveStatus(req->nodes[i]));
           err = CreateNodegroupRef::NodeAlreadyInNodegroup;
           goto error;
         }
@@ -28264,23 +28264,21 @@ void Dbdih::execCREATE_NODEGROUP_IMPL_REQ(Signal *signal) {
         setNodeActiveStatus();
         setNodeGroups();
       }
-    if (our_node_in_new_nodegroup) {
-      jam();
-      /**
-       * We are part of a newly created node group. Thus it is now time to
-       * setup multi socket transporter to communicate with other nodes in
-       * the new node group.
-       */
-      g_eventLogger->info("Set up multi transporter after Create nodegroup");
-      m_set_up_multi_trp_in_node_restart = false;
-      signal->theData[0] = reference();
-      sendSignal(QMGR_REF, GSN_SET_UP_MULTI_TRP_REQ, signal, 1, JBB);
-    }
-    else
-    {
-      jam();
-      g_eventLogger->info("Our node not part of new node group");
-    }
+      if (our_node_in_new_nodegroup) {
+        jam();
+        /**
+         * We are part of a newly created node group. Thus it is now time to
+         * setup multi socket transporter to communicate with other nodes in
+         * the new node group.
+         */
+        g_eventLogger->info("Set up multi transporter after Create nodegroup");
+        m_set_up_multi_trp_in_node_restart = false;
+        signal->theData[0] = reference();
+        sendSignal(QMGR_REF, GSN_SET_UP_MULTI_TRP_REQ, signal, 1, JBB);
+      } else {
+        jam();
+        g_eventLogger->info("Our node not part of new node group");
+      }
       break;
     }
     case CreateNodegroupImplReq::RT_COMPLETE:

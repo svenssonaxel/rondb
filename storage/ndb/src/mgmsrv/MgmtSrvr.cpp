@@ -3600,8 +3600,8 @@ void MgmtSrvr::trp_deliver_signal(const NdbApiSignal *signal,
            i = BitmaskImpl::find_next(len, nbm, i + 1)) {
         theData[1] = i;
         eventReport(theData, 1, theData);
-      g_eventLogger->debug("NODE_FAILREP for node: %u", i);
-      m_config_manager->set_node_failed(i);
+        g_eventLogger->debug("NODE_FAILREP for node: %u", i);
+        m_config_manager->set_node_failed(i);
 
         /* Clear local nodeid reservation(if any) */
         release_local_nodeid_reservation(i);

@@ -8084,29 +8084,31 @@ void Dbacc::execNEXT_SCANREQ(Signal *signal) {
   ndbrequire(Magic::check_ptr(scanPtr.p));
 
   switch (tscanNextFlag) {
-  case NextScanReq::ZSCAN_NEXT:
-    jam();
-    /*empty*/;
-    break;
-  case NextScanReq::ZSCAN_NEXT_COMMIT:
-  case NextScanReq::ZSCAN_COMMIT:
-    jam();
-    /* --------------------------------------------------------------------- */
-    /* COMMIT ACTIVE OPERATION. 
-     * SEND NEXT SCAN ELEMENT IF IT IS ZCOPY_NEXT_COMMIT.
-     * --------------------------------------------------------------------- */
-    ndbrequire(m_curr_acc->oprec_pool.getUncheckedPtrRW(operationRecPtr));
-    fragrecptr.i = operationRecPtr.p->fragptr;
-    ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-    ndbrequire(Magic::check_ptr(operationRecPtr.p));
-    if (!scanPtr.p->scanReadCommittedFlag) {
-      commitOperation(signal);
-    }//if
-    operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
-    takeOutActiveScanOp();
-    releaseOpRec();
-    scanPtr.p->scanOpsAllocated--;
-    if (tscanNextFlag == NextScanReq::ZSCAN_COMMIT) {
+    case NextScanReq::ZSCAN_NEXT:
+      jam();
+      /*empty*/;
+      break;
+    case NextScanReq::ZSCAN_NEXT_COMMIT:
+    case NextScanReq::ZSCAN_COMMIT:
+      jam();
+      /* ---------------------------------------------------------------------
+       */
+      /* COMMIT ACTIVE OPERATION.
+       * SEND NEXT SCAN ELEMENT IF IT IS ZCOPY_NEXT_COMMIT.
+       * ---------------------------------------------------------------------
+       */
+      ndbrequire(m_curr_acc->oprec_pool.getUncheckedPtrRW(operationRecPtr));
+      fragrecptr.i = operationRecPtr.p->fragptr;
+      ndbrequire(c_fragment_pool.getPtr(fragrecptr));
+      ndbrequire(Magic::check_ptr(operationRecPtr.p));
+      if (!scanPtr.p->scanReadCommittedFlag) {
+        commitOperation(signal);
+      }  // if
+      operationRecPtr.p->m_op_bits = Operationrec::OP_INITIAL;
+      takeOutActiveScanOp();
+      releaseOpRec();
+      scanPtr.p->scanOpsAllocated--;
+      if (tscanNextFlag == NextScanReq::ZSCAN_COMMIT) {
         jam();
         signal->theData[0] = 0; /* Success */
         /**
@@ -8116,20 +8118,20 @@ void Dbacc::execNEXT_SCANREQ(Signal *signal) {
         return;
       }  // if
       break;
-  case NextScanReq::ZSCAN_CLOSE:
-    jam();
-    fragrecptr.i = scanPtr.p->activeLocalFrag;
-    ndbrequire(c_fragment_pool.getPtr(fragrecptr));
-    ndbassert(fragrecptr.p->activeScanMask & scanPtr.p->scanMask);
-    /* ---------------------------------------------------------------------
-     * THE SCAN PROCESS IS FINISHED. RELOCK ALL LOCKED EL. 
-     * RELEASE ALL INVOLVED REC.
-     * ------------------------------------------------------------------- */
-    releaseScanLab(signal);
-    return;
-  default:
-    ndbabort();
-  }//switch
+    case NextScanReq::ZSCAN_CLOSE:
+      jam();
+      fragrecptr.i = scanPtr.p->activeLocalFrag;
+      ndbrequire(c_fragment_pool.getPtr(fragrecptr));
+      ndbassert(fragrecptr.p->activeScanMask & scanPtr.p->scanMask);
+      /* ---------------------------------------------------------------------
+       * THE SCAN PROCESS IS FINISHED. RELOCK ALL LOCKED EL.
+       * RELEASE ALL INVOLVED REC.
+       * ------------------------------------------------------------------- */
+      releaseScanLab(signal);
+      return;
+    default:
+      ndbabort();
+  }  // switch
   scanPtr.p->scan_lastSeen = __LINE__;
   signal->theData[0] = scanPtr.i;
   signal->theData[1] = AccCheckScan::ZNOT_CHECK_LCP_STOP;
@@ -9412,8 +9414,9 @@ void Dbacc::getFragPtr(FragmentrecPtr &rootPtr,
 /*         DESCRIPTION: CONTAINERS AND FREE LISTS OF THE PAGE, GET INITIALE VALUE    */
 /*         ACCORDING TO LH3 AND PAGE STRUCTOR DESCRIPTION OF NDBACC BLOCK            */
 /* --------------------------------------------------------------------------------- */
-void Dbacc::initOverpage(Page8Ptr iopPageptr) {
-  Page32 *p32 = reinterpret_cast<Page32 *>(iopPageptr.p - (iopPageptr.i % 4));
+void Dbacc::initOverpage(Page8Ptr iopPageptr)
+{
+  Page32* p32 = reinterpret_cast<Page32*>(iopPageptr.p - (iopPageptr.i % 4));
   ndbrequire(p32->magic == Page32::MAGIC);
   Uint32 tiopPrevFree;
   Uint32 tiopNextFree;
@@ -9977,114 +9980,106 @@ void Dbacc::execDBINFO_SCANREQ(Signal *signal) {
     }
     break;
   }
-  case Ndbinfo::ACC_OPERATIONS_TABLEID:
-  {
-    jam();
-    /* Take a break periodically when scanning records */
-    Uint32 maxToCheck = 100;
-    NDB_TICKS now = getHighResTimer();
-    OperationrecPtr opRecPtr;
-    Uint32 i = cursor->data[0];
-    do
-    {
-      if (rl.need_break(req) || maxToCheck == 0)
-      {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, i);
-        return;
-      }
-      NdbMutex_Lock(&c_lqh->alloc_operation_mutex);
-      bool found = getNextOpRec(i, opRecPtr, 10);
-      /**
-       * ACC holds lock requests/operations in a 2D queue 
-       * structure.
-       * The lock owning operation is directly linked from the
-       * PK hash element.  Only one operation is the 'owner'
-       * at any one time.
-       * 
-       * The lock owning operation may have other operations
-       * concurrently holding the lock, for example other
-       * operations in the same transaction, or, for shared
-       * reads, in other transactions.
-       * These operations are in the 'parallel' queue of the
-       * lock owning operation, linked from its 
-       * nextParallelQue member.
-       *
-       * Non-compatible lock requests must wait until some/
-       * all of the current lock holder(s) have released the
-       * lock before they can run.  They are held in the
-       * 'serial' queue, lined from the lockOwner's 
-       * nextSerialQue member.
-       * 
-       * Note also : Only one operation per row can 'run' 
-       * in LDM at any one time, but this serialisation 
-       * is not considered as locking overhead.
-       *
-       * Note also : These queue members are part of overlays
-       * and are not always guaranteed to be valid, m_op_bits
-       * often must be consulted too.
-       */
-      if (found &&
-          opRecPtr.p->m_op_bits != Operationrec::OP_INITIAL)
-      {
-        jam();
+    case Ndbinfo::ACC_OPERATIONS_TABLEID: {
+      jam();
+      /* Take a break periodically when scanning records */
+      Uint32 maxToCheck = 100;
+      NDB_TICKS now = getHighResTimer();
+      OperationrecPtr opRecPtr;
+      Uint32 i = cursor->data[0];
+      do {
+        if (rl.need_break(req) || maxToCheck == 0) {
+          jam();
+          ndbinfo_send_scan_break(signal, req, rl, i);
+          return;
+        }
+        NdbMutex_Lock(&c_lqh->alloc_operation_mutex);
+        bool found = getNextOpRec(i, opRecPtr, 10);
+        /**
+         * ACC holds lock requests/operations in a 2D queue
+         * structure.
+         * The lock owning operation is directly linked from the
+         * PK hash element.  Only one operation is the 'owner'
+         * at any one time.
+         *
+         * The lock owning operation may have other operations
+         * concurrently holding the lock, for example other
+         * operations in the same transaction, or, for shared
+         * reads, in other transactions.
+         * These operations are in the 'parallel' queue of the
+         * lock owning operation, linked from its
+         * nextParallelQue member.
+         *
+         * Non-compatible lock requests must wait until some/
+         * all of the current lock holder(s) have released the
+         * lock before they can run.  They are held in the
+         * 'serial' queue, lined from the lockOwner's
+         * nextSerialQue member.
+         *
+         * Note also : Only one operation per row can 'run'
+         * in LDM at any one time, but this serialisation
+         * is not considered as locking overhead.
+         *
+         * Note also : These queue members are part of overlays
+         * and are not always guaranteed to be valid, m_op_bits
+         * often must be consulted too.
+         */
+        if (found && opRecPtr.p->m_op_bits != Operationrec::OP_INITIAL) {
+          jam();
 
-        FragmentrecPtr fp;
-        fp.i = opRecPtr.p->fragptr;
-        ndbrequire(c_fragment_pool.getPtr(fp));
+          FragmentrecPtr fp;
+          fp.i = opRecPtr.p->fragptr;
+          ndbrequire(c_fragment_pool.getPtr(fp));
 
-        const Uint32 tableId = fp.p->myTableId;
-        const Uint32 fragId = fp.p->myfid;
-        const Uint64 rowId = 
-          Uint64(opRecPtr.p->localdata.m_page_no) << 32 |
-          Uint64(opRecPtr.p->localdata.m_page_idx);
-        /* Send as separate attrs, as in cluster_operations */
-        const Uint32 transId0 = opRecPtr.p->transId1;
-        const Uint32 transId1 = opRecPtr.p->transId2;
-        const Uint32 prevSerialQue = opRecPtr.p->prevSerialQue;
-        const Uint32 nextSerialQue = opRecPtr.p->nextSerialQue;
-        const Uint32 prevParallelQue = opRecPtr.p->prevParallelQue;
-        const Uint32 nextParallelQue = opRecPtr.p->nextParallelQue;
-        const Uint32 flags = opRecPtr.p->m_op_bits;
-        /* Ignore Uint32 overflow at ~ 50 days */
-        const Uint32 durationMillis = 
-          (Uint32) NdbTick_Elapsed(opRecPtr.p->m_lockTime,
-                                   now).milliSec();
-        const Uint32 userPtr = opRecPtr.p->userptr;
+          const Uint32 tableId = fp.p->myTableId;
+          const Uint32 fragId = fp.p->myfid;
+          const Uint64 rowId = Uint64(opRecPtr.p->localdata.m_page_no) << 32 |
+                               Uint64(opRecPtr.p->localdata.m_page_idx);
+          /* Send as separate attrs, as in cluster_operations */
+          const Uint32 transId0 = opRecPtr.p->transId1;
+          const Uint32 transId1 = opRecPtr.p->transId2;
+          const Uint32 prevSerialQue = opRecPtr.p->prevSerialQue;
+          const Uint32 nextSerialQue = opRecPtr.p->nextSerialQue;
+          const Uint32 prevParallelQue = opRecPtr.p->prevParallelQue;
+          const Uint32 nextParallelQue = opRecPtr.p->nextParallelQue;
+          const Uint32 flags = opRecPtr.p->m_op_bits;
+          /* Ignore Uint32 overflow at ~ 50 days */
+          const Uint32 durationMillis =
+              (Uint32)NdbTick_Elapsed(opRecPtr.p->m_lockTime, now).milliSec();
+          const Uint32 userPtr = opRecPtr.p->userptr;
 
-        /* Live operation */
-        Ndbinfo::Row row(signal, req);
-        row.write_uint32(getOwnNodeId());
-        row.write_uint32(instance());
-        row.write_uint32(tableId);
-        row.write_uint32(fragId);
-        row.write_uint64(rowId);
-        row.write_uint32(transId0);
-        row.write_uint32(transId1);
-        row.write_uint32(opRecPtr.i);
-        row.write_uint32(flags);
-        row.write_uint32(prevSerialQue);
-        row.write_uint32(nextSerialQue);
-        row.write_uint32(prevParallelQue);
-        row.write_uint32(nextParallelQue);
-        row.write_uint32(durationMillis);
-        row.write_uint32(userPtr);
-        NdbMutex_Unlock(&c_lqh->alloc_operation_mutex);
+          /* Live operation */
+          Ndbinfo::Row row(signal, req);
+          row.write_uint32(getOwnNodeId());
+          row.write_uint32(instance());
+          row.write_uint32(tableId);
+          row.write_uint32(fragId);
+          row.write_uint64(rowId);
+          row.write_uint32(transId0);
+          row.write_uint32(transId1);
+          row.write_uint32(opRecPtr.i);
+          row.write_uint32(flags);
+          row.write_uint32(prevSerialQue);
+          row.write_uint32(nextSerialQue);
+          row.write_uint32(prevParallelQue);
+          row.write_uint32(nextParallelQue);
+          row.write_uint32(durationMillis);
+          row.write_uint32(userPtr);
+          NdbMutex_Unlock(&c_lqh->alloc_operation_mutex);
 
-        ndbinfo_send_row(signal, req, row, rl);
-      }
-      else
-      {
-        NdbMutex_Unlock(&c_lqh->alloc_operation_mutex);
-      }
-      maxToCheck--;
-      if (i == RNIL)
-      {
-        /* No more rows left to scan */
-        ndbinfo_send_scan_conf(signal, req, rl);
-        return;
-      }
-    } while (true);
+          ndbinfo_send_row(signal, req, row, rl);
+        }
+        else
+        {
+          NdbMutex_Unlock(&c_lqh->alloc_operation_mutex);
+        }
+        maxToCheck--;
+        if (i == RNIL) {
+          /* No more rows left to scan */
+          ndbinfo_send_scan_conf(signal, req, rl);
+          return;
+        }
+      } while (true);
 
       break;
     }

@@ -75,7 +75,7 @@ int main(int argc, const char **argv) {
   int optind = 0;
   char desc[] =
       "tabname\n"
-      "This program will delete all records in a table using PK\n";
+      "This program will delete all records in a table using PK \n";
 
   if (getarg(args, num_args, argc, argv, &optind) || argv[optind] == NULL ||
       _records == 0 || _help) {

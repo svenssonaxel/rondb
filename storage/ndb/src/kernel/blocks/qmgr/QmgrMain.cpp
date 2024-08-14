@@ -5215,92 +5215,98 @@ void Qmgr::failReportLab(Signal *signal, Uint16 aFailedNode,
     static const Uint32 bitmaskTextLen = NdbNodeBitmask::TextLength + 1;
     char extra[2 * bitmaskTextLen + 30];
 
-    switch (aFailCause) {
-      case FailRep::ZOWN_FAILURE:
+    switch(aFailCause){
+    case FailRep::ZOWN_FAILURE: 
       jam();
-        msg = "Own failure";
-        break;
-      case FailRep::ZOTHER_NODE_WHEN_WE_START:
-      case FailRep::ZOTHERNODE_FAILED_DURING_START:
+      msg = "Own failure"; 
+      break;
+    case FailRep::ZOTHER_NODE_WHEN_WE_START: 
+    case FailRep::ZOTHERNODE_FAILED_DURING_START:
       jam();
-        msg = "Other node died during start";
-        break;
-      case FailRep::ZIN_PREP_FAIL_REQ:
+      msg = "Other node died during start"; 
+      break;
+    case FailRep::ZIN_PREP_FAIL_REQ:
       jam();
-        msg = "Prep fail";
-        break;
-      case FailRep::ZSTART_IN_REGREQ:
+      msg = "Prep fail";
+      break;
+    case FailRep::ZSTART_IN_REGREQ:
       jam();
-        msg = "Start timeout";
-        break;
-      case FailRep::ZHEARTBEAT_FAILURE:
+      msg = "Start timeout";
+      break;
+    case FailRep::ZHEARTBEAT_FAILURE:
       jam();
-        msg = "Heartbeat failure";
-        break;
-      case FailRep::ZLINK_FAILURE:
+      msg = "Heartbeat failure";
+      break;
+    case FailRep::ZLINK_FAILURE:
       jam();
-        msg = "Connection failure";
-        break;
-      case FailRep::ZPARTITIONED_CLUSTER: {
+      msg = "Connection failure";
+      break;
+    case FailRep::ZPARTITIONED_CLUSTER:
+    {
       jam();
-        code = NDBD_EXIT_PARTITIONED_SHUTDOWN;
-        char buf1[bitmaskTextLen], buf2[bitmaskTextLen];
-        c_clusterNodes.getText(buf1);
-        if (((signal->getLength() ==
-              FailRep::OrigSignalLength + FailRep::PartitionedExtraLength_v1) ||
-             (signal->getLength() ==
-              FailRep::SignalLength + FailRep::PartitionedExtraLength_v1)) &&
-            signal->header.theVerId_signalNumber == GSN_FAIL_REP) {
-          jam();
-          NdbNodeBitmask part;
-          Uint32 senderRef = signal->getSendersBlockRef();
-          Uint32 senderVersion = getNodeInfo(refToNode(senderRef)).m_version;
-          if (signal->getNoOfSections() >= 1) {
-            ndbrequire(ndbd_send_node_bitmask_in_section(senderVersion));
-            SectionHandle handle(this, signal);
-            SegmentedSectionPtr ptr;
-            ndbrequire(handle.getSection(ptr, 0));
+      code = NDBD_EXIT_PARTITIONED_SHUTDOWN;
+      char buf1[bitmaskTextLen], buf2[bitmaskTextLen];
+      c_clusterNodes.getText(buf1);
+      if (((signal->getLength()== FailRep::OrigSignalLength + FailRep::PartitionedExtraLength_v1) ||
+           (signal->getLength()== FailRep::SignalLength + FailRep::PartitionedExtraLength_v1)) &&
+          signal->header.theVerId_signalNumber == GSN_FAIL_REP)
+      {
+	jam();
+	NdbNodeBitmask part;
+	Uint32 senderRef = signal->getSendersBlockRef();
+	Uint32 senderVersion = getNodeInfo(refToNode(senderRef)).m_version;
+	if (signal->getNoOfSections() >= 1)
+	{
+	  ndbrequire(ndbd_send_node_bitmask_in_section(senderVersion));
+	  SectionHandle handle(this, signal);
+	  SegmentedSectionPtr ptr;
+          ndbrequire(handle.getSection(ptr, 0));
 
-            ndbrequire(ptr.sz <= NdbNodeBitmask::Size);
-            copy(part.rep.data, ptr);
+	  ndbrequire(ptr.sz <= NdbNodeBitmask::Size);
+          copy(part.rep.data, ptr);
 
-            releaseSections(handle);
-          } else {
-            part.assign(NdbNodeBitmask48::Size, rep->partitioned.partition_v1);
-          }
-          part.getText(buf2);
-          BaseString::snprintf(extra, sizeof(extra),
-                               "Our cluster: %s other cluster: %s", buf1, buf2);
-        } else {
-          jam();
-          BaseString::snprintf(extra, sizeof(extra), "Our cluster: %s", buf1);
-        }
-        msg = extra;
-        break;
+	  releaseSections(handle);
+	}
+	else
+	{
+	  part.assign(NdbNodeBitmask48::Size, rep->partitioned.partition_v1);
+	}
+	part.getText(buf2);
+	BaseString::snprintf(extra, sizeof(extra),
+			     "Our cluster: %s other cluster: %s",
+			     buf1, buf2);
       }
-      case FailRep::ZMULTI_NODE_SHUTDOWN:
+      else
+      {
+	jam();
+	BaseString::snprintf(extra, sizeof(extra),
+			     "Our cluster: %s", buf1);
+      }
+      msg = extra;
+      break;
+    }
+    case FailRep::ZMULTI_NODE_SHUTDOWN:
       jam();
-        msg = "Multi node shutdown";
-        break;
-      case FailRep::ZCONNECT_CHECK_FAILURE:
+      msg = "Multi node shutdown";
+      break;
+    case FailRep::ZCONNECT_CHECK_FAILURE:
       jam();
-        msg = "Connectivity check failure";
-        break;
-      case FailRep::ZFORCED_ISOLATION:
+      msg = "Connectivity check failure";
+      break;
+    case FailRep::ZFORCED_ISOLATION:
       jam();
-        msg = "Forced isolation";
-        if (ERROR_INSERTED(942)) {
-          g_eventLogger->info(
-              "FAIL_REP FORCED_ISOLATION received from data node %u - "
-              "ignoring.",
-              sourceNode);
-          /* Let's wait for remote disconnection */
-          return;
-        }
-        break;
-      default:
+      msg = "Forced isolation";
+      if (ERROR_INSERTED(942))
+      {
+        g_eventLogger->info("FAIL_REP FORCED_ISOLATION received from data node %u - ignoring.",
+                            sourceNode);
+        /* Let's wait for remote disconnection */
+        return;
+      }
+      break;
+    default:
       jam();
-        msg = "<UNKNOWN>";
+      msg = "<UNKNOWN>";
     }
 
     CRASH_INSERTION(932);

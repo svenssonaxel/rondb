@@ -2166,8 +2166,8 @@ void Backup::execCONTINUEB(Signal *signal) {
   const Uint32 Tdata1 = signal->theData[1];
   const Uint32 Tdata2 = signal->theData[2];
   const Uint32 Tdata3 = signal->theData[3];
-
-  switch (Tdata0) {
+  
+  switch(Tdata0) {
 
   case BackupContinueB::ZSHRINK_TRANSIENT_POOLS:
   {
@@ -2261,73 +2261,72 @@ void Backup::execCONTINUEB(Signal *signal) {
       send_next_reset_disk_speed_counter(signal);
       break;
     }
-  case BackupContinueB::BACKUP_FRAGMENT_INFO:
-  {
-    jam();
-    const Uint32 ptr_I = Tdata1;
-    Uint32 tabPtr_I = Tdata2;
-    Uint32 fragId = signal->theData[3];
+    case BackupContinueB::BACKUP_FRAGMENT_INFO: {
+      jam();
+      const Uint32 ptr_I = Tdata1;
+      Uint32 tabPtr_I = Tdata2;
+      Uint32 fragId = signal->theData[3];
 
       BackupRecordPtr ptr;
       ndbrequire(c_backupPool.getPtr(ptr, ptr_I));
       TablePtr tabPtr;
       ptr.p->tables.getPtr(tabPtr, tabPtr_I);
 
-    if (fragId != tabPtr.p->num_backup_fragments)
-    {
-      jam();
-      Fragment* fragPtrP;
-      get_backup_fragment(&fragPtrP, tabPtr, fragId);
-      
-      BackupFilePtr filePtr;
-      ptr.p->files.getPtr(filePtr, ptr.p->ctlFilePtr);
-      
-      const Uint32 sz = sizeof(BackupFormat::CtlFile::FragmentInfo) >> 2;
-      Uint32 * dst;
-      if (!filePtr.p->operation.dataBuffer.getWritePtr(&dst, sz))
+      if (fragId != tabPtr.p->num_backup_fragments)
       {
-	sendSignalWithDelay(reference(), GSN_CONTINUEB, signal, 
-                            WaitDiskBufferCapacityMillis, 4);
-	return;
+        jam();
+        Fragment* fragPtrP;
+        get_backup_fragment(&fragPtrP, tabPtr, fragId);
+
+        BackupFilePtr filePtr;
+        ptr.p->files.getPtr(filePtr, ptr.p->ctlFilePtr);
+
+        const Uint32 sz = sizeof(BackupFormat::CtlFile::FragmentInfo) >> 2;
+        Uint32 *dst;
+        if (!filePtr.p->operation.dataBuffer.getWritePtr(&dst, sz)) {
+          sendSignalWithDelay(reference(), GSN_CONTINUEB, signal,
+                              WaitDiskBufferCapacityMillis, 4);
+          return;
+        }
+
+        BackupFormat::CtlFile::FragmentInfo *fragInfo =
+            (BackupFormat::CtlFile::FragmentInfo *)dst;
+        fragInfo->SectionType = htonl(BackupFormat::FRAGMENT_INFO);
+        fragInfo->SectionLength = htonl(sz);
+        fragInfo->TableId = htonl(fragPtrP->tableId);
+        fragInfo->FragmentNo = htonl(fragId);
+        fragInfo->NoOfRecordsLow =
+          htonl((Uint32)(fragPtrP->noOfRecords & 0xFFFFFFFF));
+        fragInfo->NoOfRecordsHigh =
+          htonl((Uint32)(fragPtrP->noOfRecords >> 32));
+        fragInfo->FilePosLow = htonl(0);
+        fragInfo->FilePosHigh = htonl(0);
+
+        filePtr.p->operation.dataBuffer.updateWritePtr(sz);
+
+        fragId++;
       }
-      
-      BackupFormat::CtlFile::FragmentInfo * fragInfo = 
-	(BackupFormat::CtlFile::FragmentInfo*)dst;
-      fragInfo->SectionType = htonl(BackupFormat::FRAGMENT_INFO);
-      fragInfo->SectionLength = htonl(sz);
-      fragInfo->TableId = htonl(fragPtrP->tableId);
-      fragInfo->FragmentNo = htonl(fragId);
-      fragInfo->NoOfRecordsLow = htonl((Uint32)(fragPtrP->noOfRecords & 0xFFFFFFFF));
-      fragInfo->NoOfRecordsHigh = htonl((Uint32)(fragPtrP->noOfRecords >> 32));
-      fragInfo->FilePosLow = htonl(0);
-      fragInfo->FilePosHigh = htonl(0);
-      
-      filePtr.p->operation.dataBuffer.updateWritePtr(sz);
-      
-      fragId++;
-    }
-    
-    if (fragId == tabPtr.p->num_backup_fragments)
-    {
-      BackupLockTab *req = (BackupLockTab *)signal->getDataPtrSend();
-      req->m_senderRef = reference();
-      req->m_tableId = tabPtr.p->tableId;
-      req->m_lock_unlock = BackupLockTab::UNLOCK_TABLE;
-      req->m_backup_state = BackupLockTab::BACKUP_FRAGMENT_INFO;
-      req->m_backupRecordPtr_I = ptr_I;
-      req->m_tablePtr_I = tabPtr_I;
-      sendSignal(DBDICT_REF, GSN_BACKUP_LOCK_TAB_REQ, signal,
-                 BackupLockTab::SignalLength, JBB);
+      if (fragId == tabPtr.p->num_backup_fragments)
+      {
+        BackupLockTab *req = (BackupLockTab *)signal->getDataPtrSend();
+        req->m_senderRef = reference();
+        req->m_tableId = tabPtr.p->tableId;
+        req->m_lock_unlock = BackupLockTab::UNLOCK_TABLE;
+        req->m_backup_state = BackupLockTab::BACKUP_FRAGMENT_INFO;
+        req->m_backupRecordPtr_I = ptr_I;
+        req->m_tablePtr_I = tabPtr_I;
+        sendSignal(DBDICT_REF, GSN_BACKUP_LOCK_TAB_REQ, signal,
+                   BackupLockTab::SignalLength, JBB);
+        return;
+      }
+
+      signal->theData[0] = BackupContinueB::BACKUP_FRAGMENT_INFO;
+      signal->theData[1] = ptr_I;
+      signal->theData[2] = tabPtr_I;
+      signal->theData[3] = fragId;
+      sendSignal(reference(), GSN_CONTINUEB, signal, 4, JBB);
       return;
     }
-    
-    signal->theData[0] = BackupContinueB::BACKUP_FRAGMENT_INFO;
-    signal->theData[1] = ptr_I;
-    signal->theData[2] = tabPtr_I;
-    signal->theData[3] = fragId;
-    sendSignal(reference(), GSN_CONTINUEB, signal, 4, JBB);
-    return;
-  }
     case BackupContinueB::START_FILE_THREAD:
     case BackupContinueB::BUFFER_UNDERFLOW: {
       jam();
@@ -3129,12 +3128,11 @@ void Backup::execDBINFO_SCANREQ(Signal *signal) {
            {CFG_DB_PARALLEL_BACKUPS, CFG_DB_NO_TABLES,
             CFG_DB_NO_ORDERED_INDEXES, CFG_DB_NO_UNIQUE_HASH_INDEXES},
            0},
-      { "Fragment",
-        0, 0, 0, 0,
-        { CFG_DB_NO_TABLES,
-          CFG_DB_NO_ORDERED_INDEXES,
-          CFG_DB_NO_UNIQUE_HASH_INDEXES,0 },
-        0},
+          {"Fragment",
+           0, 0, 0, 0,
+           {CFG_DB_NO_TABLES, CFG_DB_NO_ORDERED_INDEXES,
+            CFG_DB_NO_UNIQUE_HASH_INDEXES, 0},
+           0},
           {"Page",
            c_pagePool.getUsed(),
            c_pagePool.getSize(),

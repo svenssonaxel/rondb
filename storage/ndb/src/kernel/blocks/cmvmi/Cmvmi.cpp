@@ -2230,32 +2230,30 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal) {
   jamEntry();
 
   switch (req.tableId) {
-  case Ndbinfo::RESOURCES_TABLEID:
-  {
-    jam();
-    Uint32 resource_id = cursor->data[0];
-    Resource_limit resource_limit;
-
-    if (resource_id == 0)
-    {
+    case Ndbinfo::RESOURCES_TABLEID: {
       jam();
-      Ndbinfo::Row row(signal, req);
-      row.write_uint32(getOwnNodeId()); // Node id
-      row.write_uint32(resource_id);
+      Uint32 resource_id = cursor->data[0];
+      Resource_limit resource_limit;
 
-      Uint32 curr_used = m_ctx.m_mm.get_in_use();
-      Uint32 max = m_ctx.m_mm.get_allocated();
-      row.write_uint32(max); // reserved
-      row.write_uint32(curr_used); // current in use
-      row.write_uint32(max); // max
-      row.write_uint32(0); // high water mark, TODO
-      row.write_uint32(0); // spare
-      ndbinfo_send_row(signal, req, row, rl);
+      if (resource_id == 0)
+      {
+        jam();
+        Ndbinfo::Row row(signal, req);
+        row.write_uint32(getOwnNodeId()); // Node id
+        row.write_uint32(resource_id);
 
-      resource_id++;
-    }
-    while(m_ctx.m_mm.get_resource_limit(resource_id, resource_limit))
-    {
+        Uint32 curr_used = m_ctx.m_mm.get_in_use();
+        Uint32 max = m_ctx.m_mm.get_allocated();
+        row.write_uint32(max); // reserved
+        row.write_uint32(curr_used); // current in use
+        row.write_uint32(max); // max
+        row.write_uint32(0); // high water mark, TODO
+        row.write_uint32(0); // spare
+        ndbinfo_send_row(signal, req, row, rl);
+
+        resource_id++;
+      }
+      while (m_ctx.m_mm.get_resource_limit(resource_id, resource_limit)) {
         jam();
         Ndbinfo::Row row(signal, req);
         row.write_uint32(getOwnNodeId());  // Node id
@@ -2308,7 +2306,7 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal) {
       m_ctx.m_mm.get_resource_limit(RG_DATAMEM, res_limit);
 
       const Uint32 dm_pages_used = res_limit.m_curr;
-    const Uint32 dm_pages_total = m_ctx.m_mm.get_reserved(RG_DATAMEM);
+      const Uint32 dm_pages_total = m_ctx.m_mm.get_reserved(RG_DATAMEM);
 
       Ndbinfo::pool_entry pools[] = {{"Data memory",
                                       dm_pages_used,
@@ -2428,7 +2426,7 @@ void Cmvmi::execDBINFO_SCANREQ(Signal *signal) {
            row_num++, ndb_mgm_next(iter)) {
         if (row_num > sent_row_num) {
           Uint32 row_node_id, row_node_type;
-        const char * hostname = nullptr;
+          const char *hostname = nullptr;
           Ndbinfo::Row row(signal, req);
           row.write_uint32(getOwnNodeId());
           ndb_mgm_get_int_parameter(iter, CFG_NODE_ID, &row_node_id);
@@ -3183,7 +3181,7 @@ void Cmvmi::execCONTINUEB(Signal *signal) {
       m_ctx.m_mm.get_resource_limit(RG_DATAMEM, rl);
       {
         const Uint32 dm_pages_used = rl.m_curr;
-      const Uint32 dm_pages_total = m_ctx.m_mm.get_reserved(RG_DATAMEM);
+        const Uint32 dm_pages_total = m_ctx.m_mm.get_reserved(RG_DATAMEM);
         const Uint32 dm_percent_now =
             calc_percent(dm_pages_used, dm_pages_total);
 

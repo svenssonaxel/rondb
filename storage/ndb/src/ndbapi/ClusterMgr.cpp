@@ -506,17 +506,17 @@ void ClusterMgr::trp_deliver_signal(const NdbApiSignal *sig,
   const Uint32 *theData = sig->getDataPtr();
 
   switch (gsn) {
-  case GSN_ACTIVATE_REQ:
-    execACTIVATE_REQ(theData);
-    break;
+    case GSN_ACTIVATE_REQ:
+      execACTIVATE_REQ(theData);
+      break;
 
-  case GSN_DEACTIVATE_REQ:
-    execDEACTIVATE_REQ(theData);
-    break;
+    case GSN_DEACTIVATE_REQ:
+      execDEACTIVATE_REQ(theData);
+      break;
 
-  case GSN_SET_HOSTNAME_REQ:
-    execSET_HOSTNAME_REQ(sig, ptr);
-    break;
+    case GSN_SET_HOSTNAME_REQ:
+      execSET_HOSTNAME_REQ(sig, ptr);
+      break;
 
     case GSN_API_REGREQ:
       execAPI_REGREQ(theData);

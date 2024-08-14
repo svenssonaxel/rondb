@@ -478,13 +478,9 @@ bool ConfigManager::init(void) {
   DBUG_RETURN(true);
 }
 
-
-bool
-ConfigManager::prepareConfigChange(const Config* config)
-{
+bool ConfigManager::prepareConfigChange(const Config *config) {
   unsigned exclude[] = {CFG_SECTION_SYSTEM, 0};
-  if (m_prepared_config)
-  {
+  if (m_prepared_config) {
     if (m_prepared_config->equal(config, exclude))
     {
       m_prepared_already = true;
@@ -500,11 +496,12 @@ ConfigManager::prepareConfigChange(const Config* config)
       return false;
     }
   }
-  Uint32 generation= config->getGeneration();
-  if (generation == 0)
-  {
-    g_eventLogger->error("Can't prepare configuration change for "
-                         "configuration with generation 0");
+
+  Uint32 generation = config->getGeneration();
+  if (generation == 0) {
+    g_eventLogger->error(
+        "Can't prepare configuration change for "
+        "configuration with generation 0");
     return false;
   }
 
@@ -1932,7 +1929,7 @@ ConfigManager::run()
         Uint32 nodeId = 0;
         for (nodeId = nodeMap.find_first(); nodeId != NodeBitmask::NotFound;
              nodeId = nodeMap.find_next(nodeId + 1)) {
-        g_eventLogger->info("Node %d failed", nodeId);
+          g_eventLogger->info("Node %d failed", nodeId);
           m_started.clear(nodeId);
           m_checked.clear(nodeId);
           m_defragger.node_failed(nodeId);
@@ -1958,7 +1955,7 @@ ConfigManager::run()
             !m_started.get(nodeId))   // Not already marked as started
         {
           g_eventLogger->info("Node %d connected", nodeId);
-        g_eventLogger->info("Node %d set m_started", nodeId);
+          g_eventLogger->info("Node %d set m_started", nodeId);
           m_started.set(nodeId);
         }
         break;

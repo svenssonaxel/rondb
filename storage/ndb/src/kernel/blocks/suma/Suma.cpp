@@ -2556,8 +2556,9 @@ void Suma::execSUB_CREATE_REQ(Signal *signal) {
       conf->senderData = senderData;
       sendSignal(senderRef, GSN_SUB_CREATE_CONF, signal,
                  SubCreateConf::SignalLength, JBB);
-    checkPoolShrinkNeed(SUMA_SUB_OP_RECORD_TRANSIENT_POOL_INDEX,
-                        c_subOpPool);
+      checkPoolShrinkNeed(SUMA_SUB_OP_RECORD_TRANSIENT_POOL_INDEX,
+                          c_subOpPool);
+
       return;
     }
     case Table::UNDEFINED: {
@@ -2609,10 +2610,10 @@ void Suma::execSUB_CREATE_REQ(Signal *signal) {
 
       sendSubCreateRef(signal, senderRef, senderData,
                        SubCreateRef::TableDropped);
-    checkPoolShrinkNeed(SUMA_SUBSCRIPTION_RECORD_TRANSIENT_POOL_INDEX,
-                        c_subscriptionPool);
-    checkPoolShrinkNeed(SUMA_SUB_OP_RECORD_TRANSIENT_POOL_INDEX,
-                        c_subOpPool);
+      checkPoolShrinkNeed(SUMA_SUBSCRIPTION_RECORD_TRANSIENT_POOL_INDEX,
+                          c_subscriptionPool);
+      checkPoolShrinkNeed(SUMA_SUB_OP_RECORD_TRANSIENT_POOL_INDEX,
+                          c_subOpPool);
       return;
     }
   }
@@ -8188,5 +8189,5 @@ Suma::shrinkTransientPools(Uint32 pool_index)
   }
 }
 
-//template void append(DataBuffer<11>&,SegmentedSectionPtr,SectionSegmentPool&);
-
+// template void
+// append(DataBuffer<11>&,SegmentedSectionPtr,SectionSegmentPool&);

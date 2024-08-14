@@ -807,11 +807,9 @@ class NdbDictInterface {
   int forceGCPWait(int type);
   int getRestartGCI(Uint32 *);
 
-  static int parseTableInfo(NdbTableImpl ** dst, 
-			    const Uint32 * data, Uint32 len,
-			    bool fullyQualifiedNames,
-                            class NdbImpl*,
-                            Uint32 version= 0xFFFFFFFF);
+  static int parseTableInfo(NdbTableImpl **dst, const Uint32 *data, Uint32 len,
+                            bool fullyQualifiedNames, class NdbImpl*,
+                            Uint32 version = 0xFFFFFFFF);
 
   static int parseFileInfo(NdbFileImpl &dst, const Uint32 *data, Uint32 len);
 

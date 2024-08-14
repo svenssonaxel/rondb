@@ -435,12 +435,13 @@ void Dbtup::execCONTINUEB(Signal *signal) {
     drop_fragment_free_pages(signal, tabPtr, fragPtr);
     return;
   }
-    case ZREBUILD_FREE_PAGE_LIST: {
-      jam();
-      rebuild_page_free_list(signal);
-      return;
-    }
-    case ZDISK_RESTART_UNDO: {
+  case ZREBUILD_FREE_PAGE_LIST:
+  {
+    jam();
+    rebuild_page_free_list(signal);
+    return;
+  }
+     case ZDISK_RESTART_UNDO: {
       jam();
       if (!assembleFragments(signal)) {
         jam();
@@ -499,7 +500,7 @@ void Dbtup::execSTTOR(Signal *signal) {
         ndbrequire((c_backup = (Backup *)globalData.getBlock(BACKUP,
                                                              instance())) != 0);
       }
-    ndbrequire((c_suma = (Suma*)globalData.getBlock(SUMA)) != 0);
+      ndbrequire((c_suma = (Suma*)globalData.getBlock(SUMA)) != 0);
       ndbrequire((c_tsman = (Tsman *)globalData.getBlock(TSMAN)) != 0);
       ndbrequire((c_lgman = (Lgman *)globalData.getBlock(LGMAN)) != 0);
       ndbrequire((c_pgman = (Pgman *)globalData.getBlock(PGMAN, instance())) !=

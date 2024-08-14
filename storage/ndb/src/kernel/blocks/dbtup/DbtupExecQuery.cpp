@@ -1707,10 +1707,8 @@ bool Dbtup::execTUPKEYREQ(Signal* signal,
         jamDebug();
         Uint32 old_header = tuple_ptr->m_header_bits;
         tuple_ptr->m_header_bits = m_base_header_bits;
-        updateChecksum(tuple_ptr,
-            regTabPtr,
-            old_header,
-            tuple_ptr->m_header_bits);
+        updateChecksum(tuple_ptr, regTabPtr, old_header,
+                       tuple_ptr->m_header_bits);
       }
       insertActiveOpList(operPtr, &req_struct, tuple_ptr);
 #if defined(VM_TRACE) || defined(ERROR_INSERT)

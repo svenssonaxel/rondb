@@ -3021,7 +3021,6 @@ private:
   void exec_next_scan_ref(Signal *signal);
   void continue_next_scan_conf(Signal *signal, ScanRecord::ScanState scanState,
                                ScanRecord *const scanPtr);
-
   Uint32 get_pgman_flags()
   {
     return LqhKeyReq::getNrCopyFlag(m_tc_connect_ptr.p->reqinfo) |
@@ -3880,7 +3879,7 @@ private:
  private:
   void acckeyconf_tupkeyreq(Signal*, TcConnectionrec*, Fragrecord*,
                             Uint32, Uint32);
-  void acckeyconf_load_diskpage(Signal *, TcConnectionrecPtr, Fragrecord *,
+  void acckeyconf_load_diskpage(Signal*,TcConnectionrecPtr,Fragrecord*,
                                 Uint32, Uint32);
 
   void handle_nr_copy(Signal*, Ptr<TcConnectionrec>);
@@ -3931,10 +3930,9 @@ public:
                                    Ptr<TcConnectionrec> regTcPtr,
                                    Fragrecord *fragPtrP);
 
-  void next_scanconf_tupkeyreq(Signal* signal,
-                               ScanRecord * const scanPtr,
-			       TcConnectionrec * regTcPtr,
-			       Fragrecord* fragPtrP);
+  void next_scanconf_tupkeyreq(Signal *signal, ScanRecord *const scanPtr,
+                               TcConnectionrec *regTcPtr,
+                               Fragrecord *fragPtrP);
 
  public:
   void next_scanconf_load_diskpage_callback(Signal *signal, Uint32, Uint32);

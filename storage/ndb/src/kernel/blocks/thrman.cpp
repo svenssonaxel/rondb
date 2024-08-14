@@ -561,176 +561,166 @@ void Thrman::execSTTOR(Signal *signal) {
 
   const Uint32 startPhase = signal->theData[1];
 
-  switch (startPhase)
-  {
-  case 1:
-    jam();
-    memset(&m_last_50ms_base_measure, 0, sizeof(m_last_50ms_base_measure));
-    memset(&m_last_1sec_base_measure, 0, sizeof(m_last_1sec_base_measure));
-    memset(&m_last_20sec_base_measure, 0, sizeof(m_last_20sec_base_measure));
-    memset(&m_last_50ms_base_measure, 0, sizeof(m_last_50ms_rusage));
-    memset(&m_last_1sec_base_measure, 0, sizeof(m_last_1sec_rusage));
-    memset(&m_last_20sec_base_measure, 0, sizeof(m_last_20sec_rusage));
-    prev_50ms_tick = NdbTick_getCurrentTicks();
-    prev_20sec_tick = prev_50ms_tick;
-    prev_1sec_tick = prev_50ms_tick;
-    if (!m_enable_adaptive_spinning)
-    {
-      m_configured_spintime_us = getConfiguredSpintime();
-      g_eventLogger->info("Using StaticSpinning with spintime %u us",
-                          m_configured_spintime_us);
-    }
-    m_current_spintime_us = 0;
-    m_gain_spintime_in_us = 25;
-
-    /* Initialise overload control variables */
-    m_shared_environment = false;
-    m_overload_handling_activated = false;
-    m_current_overload_status = (OverloadStatus)LIGHT_LOAD_CONST;
-    m_warning_level = 0;
-    m_max_warning_level = 20;
-    m_burstiness = 0;
-    m_current_decision_stats = &c_1sec_stats;
-    m_send_thread_percentage = 0;
-    m_send_thread_assistance_level = 0;
-    m_node_overload_level = 0;
-
-    for (Uint32 i = 0; i < MAX_BLOCK_THREADS + 1; i++)
-    {
-      m_thread_overload_status[i].overload_status =
-        (OverloadStatus)LIGHT_LOAD_CONST;
-      m_thread_overload_status[i].wakeup_instance = 0;
-    }
-
-    /* Initialise measurements */
-    res = Ndb_GetRUsage(&m_last_50ms_rusage, false);
-    if (res == 0)
-    {
+  switch (startPhase) {
+    case 1:
       jam();
-      m_last_1sec_rusage = m_last_50ms_rusage;
-      m_last_20sec_rusage = m_last_50ms_rusage;
-    }
-    getPerformanceTimers(m_last_50ms_base_measure.m_sleep_time_thread,
-                         m_last_50ms_base_measure.m_spin_time_thread,
-                         m_last_50ms_base_measure.m_buffer_full_time_thread,
-                         m_last_50ms_base_measure.m_send_time_thread);
-    m_last_1sec_base_measure = m_last_50ms_base_measure;
-    m_last_20sec_base_measure = m_last_50ms_base_measure;
-
-    if (instance() == m_main_thrman_instance) {
-      jam();
-      for (Uint32 send_instance = 0; send_instance < m_num_send_threads;
-           send_instance++) {
-        jam();
-        SendThreadPtr sendThreadPtr;
-        ndbrequire(
-            c_sendThreadRecordPool.getPtr(sendThreadPtr, send_instance));
-        Uint64 send_exec_time;
-        Uint64 send_sleep_time;
-        Uint64 send_spin_time;
-        Uint64 send_user_time_os;
-        Uint64 send_kernel_time_os;
-        Uint64 send_elapsed_time_os;
-        getSendPerformanceTimers(
-            send_instance, send_exec_time, send_sleep_time, send_spin_time,
-            send_user_time_os, send_kernel_time_os, send_elapsed_time_os);
-
-        sendThreadPtr.p->m_last_50ms_send_thread_measure.m_exec_time =
-            send_exec_time;
-        sendThreadPtr.p->m_last_50ms_send_thread_measure.m_sleep_time =
-            send_sleep_time;
-        sendThreadPtr.p->m_last_50ms_send_thread_measure.m_spin_time =
-            send_spin_time;
-        sendThreadPtr.p->m_last_50ms_send_thread_measure.m_user_time_os =
-            send_user_time_os;
-        sendThreadPtr.p->m_last_50ms_send_thread_measure.m_kernel_time_os =
-            send_kernel_time_os;
-        sendThreadPtr.p->m_last_50ms_send_thread_measure.m_elapsed_time_os =
-            send_elapsed_time_os;
-
-        sendThreadPtr.p->m_last_1sec_send_thread_measure.m_exec_time =
-            send_exec_time;
-        sendThreadPtr.p->m_last_1sec_send_thread_measure.m_sleep_time =
-            send_sleep_time;
-        sendThreadPtr.p->m_last_1sec_send_thread_measure.m_spin_time =
-            send_spin_time;
-        sendThreadPtr.p->m_last_1sec_send_thread_measure.m_user_time_os =
-            send_user_time_os;
-        sendThreadPtr.p->m_last_1sec_send_thread_measure.m_kernel_time_os =
-            send_kernel_time_os;
-        sendThreadPtr.p->m_last_1sec_send_thread_measure.m_elapsed_time_os =
-            send_elapsed_time_os;
-
-        sendThreadPtr.p->m_last_20sec_send_thread_measure.m_exec_time =
-            send_exec_time;
-        sendThreadPtr.p->m_last_20sec_send_thread_measure.m_sleep_time =
-            send_sleep_time;
-        sendThreadPtr.p->m_last_20sec_send_thread_measure.m_spin_time =
-            send_spin_time;
-        sendThreadPtr.p->m_last_20sec_send_thread_measure.m_user_time_os =
-            send_user_time_os;
-        sendThreadPtr.p->m_last_20sec_send_thread_measure.m_kernel_time_os =
-            send_kernel_time_os;
-        sendThreadPtr.p->m_last_20sec_send_thread_measure.m_elapsed_time_os =
-            send_elapsed_time_os;
+      memset(&m_last_50ms_base_measure, 0, sizeof(m_last_50ms_base_measure));
+      memset(&m_last_1sec_base_measure, 0, sizeof(m_last_1sec_base_measure));
+      memset(&m_last_20sec_base_measure, 0, sizeof(m_last_20sec_base_measure));
+      memset(&m_last_50ms_base_measure, 0, sizeof(m_last_50ms_rusage));
+      memset(&m_last_1sec_base_measure, 0, sizeof(m_last_1sec_rusage));
+      memset(&m_last_20sec_base_measure, 0, sizeof(m_last_20sec_rusage));
+      prev_50ms_tick = NdbTick_getCurrentTicks();
+      prev_20sec_tick = prev_50ms_tick;
+      prev_1sec_tick = prev_50ms_tick;
+      if (!m_enable_adaptive_spinning)
+      {
+        m_configured_spintime_us = getConfiguredSpintime();
+        g_eventLogger->info("Using StaticSpinning with spintime %u us",
+                            m_configured_spintime_us);
       }
-    }
-    if (instance() == m_main_thrman_instance) {
-      if (getNumThreads() > 1 && NdbSpin_is_supported()) {
+      m_current_spintime_us = 0;
+      m_gain_spintime_in_us = 25;
+
+      /* Initialise overload control variables */
+      m_shared_environment = false;
+      m_overload_handling_activated = false;
+      m_current_overload_status = (OverloadStatus)LIGHT_LOAD_CONST;
+      m_warning_level = 0;
+      m_max_warning_level = 20;
+      m_burstiness = 0;
+      m_current_decision_stats = &c_1sec_stats;
+      m_send_thread_percentage = 0;
+      m_send_thread_assistance_level = 0;
+      m_node_overload_level = 0;
+
+      for (Uint32 i = 0; i < MAX_BLOCK_THREADS + 1; i++) {
+        m_thread_overload_status[i].overload_status =
+            (OverloadStatus)LIGHT_LOAD_CONST;
+        m_thread_overload_status[i].wakeup_instance = 0;
+      }
+
+      /* Initialise measurements */
+      res = Ndb_GetRUsage(&m_last_50ms_rusage, false);
+      if (res == 0) {
         jam();
-        measure_wakeup_time(signal, 0);
-      } else {
+        m_last_1sec_rusage = m_last_50ms_rusage;
+        m_last_20sec_rusage = m_last_50ms_rusage;
+      }
+      getPerformanceTimers(m_last_50ms_base_measure.m_sleep_time_thread,
+                           m_last_50ms_base_measure.m_spin_time_thread,
+                           m_last_50ms_base_measure.m_buffer_full_time_thread,
+                           m_last_50ms_base_measure.m_send_time_thread);
+      m_last_1sec_base_measure = m_last_50ms_base_measure;
+      m_last_20sec_base_measure = m_last_50ms_base_measure;
+
+      if (instance() == m_main_thrman_instance) {
         jam();
-        if (NdbSpin_is_supported()) {
-          g_eventLogger->info(
-              "Set wakeup latency to 25 microseconds in"
-              " single thread environment");
+        for (Uint32 send_instance = 0; send_instance < m_num_send_threads;
+             send_instance++) {
+          jam();
+          SendThreadPtr sendThreadPtr;
+          ndbrequire(
+              c_sendThreadRecordPool.getPtr(sendThreadPtr, send_instance));
+          Uint64 send_exec_time;
+          Uint64 send_sleep_time;
+          Uint64 send_spin_time;
+          Uint64 send_user_time_os;
+          Uint64 send_kernel_time_os;
+          Uint64 send_elapsed_time_os;
+          getSendPerformanceTimers(
+              send_instance, send_exec_time, send_sleep_time, send_spin_time,
+              send_user_time_os, send_kernel_time_os, send_elapsed_time_os);
+
+          sendThreadPtr.p->m_last_50ms_send_thread_measure.m_exec_time =
+              send_exec_time;
+          sendThreadPtr.p->m_last_50ms_send_thread_measure.m_sleep_time =
+              send_sleep_time;
+          sendThreadPtr.p->m_last_50ms_send_thread_measure.m_spin_time =
+              send_spin_time;
+          sendThreadPtr.p->m_last_50ms_send_thread_measure.m_user_time_os =
+              send_user_time_os;
+          sendThreadPtr.p->m_last_50ms_send_thread_measure.m_kernel_time_os =
+              send_kernel_time_os;
+          sendThreadPtr.p->m_last_50ms_send_thread_measure.m_elapsed_time_os =
+              send_elapsed_time_os;
+
+          sendThreadPtr.p->m_last_1sec_send_thread_measure.m_exec_time =
+              send_exec_time;
+          sendThreadPtr.p->m_last_1sec_send_thread_measure.m_sleep_time =
+              send_sleep_time;
+          sendThreadPtr.p->m_last_1sec_send_thread_measure.m_spin_time =
+              send_spin_time;
+          sendThreadPtr.p->m_last_1sec_send_thread_measure.m_user_time_os =
+              send_user_time_os;
+          sendThreadPtr.p->m_last_1sec_send_thread_measure.m_kernel_time_os =
+              send_kernel_time_os;
+          sendThreadPtr.p->m_last_1sec_send_thread_measure.m_elapsed_time_os =
+              send_elapsed_time_os;
+
+          sendThreadPtr.p->m_last_20sec_send_thread_measure.m_exec_time =
+              send_exec_time;
+          sendThreadPtr.p->m_last_20sec_send_thread_measure.m_sleep_time =
+              send_sleep_time;
+          sendThreadPtr.p->m_last_20sec_send_thread_measure.m_spin_time =
+              send_spin_time;
+          sendThreadPtr.p->m_last_20sec_send_thread_measure.m_user_time_os =
+              send_user_time_os;
+          sendThreadPtr.p->m_last_20sec_send_thread_measure.m_kernel_time_os =
+              send_kernel_time_os;
+          sendThreadPtr.p->m_last_20sec_send_thread_measure.m_elapsed_time_os =
+              send_elapsed_time_os;
         }
-        setWakeupLatency(m_gain_spintime_in_us);
+      }
+      if (instance() == m_main_thrman_instance) {
+        if (getNumThreads() > 1 && NdbSpin_is_supported()) {
+          jam();
+          measure_wakeup_time(signal, 0);
+        } else {
+          jam();
+          if (NdbSpin_is_supported()) {
+            g_eventLogger->info(
+                "Set wakeup latency to 25 microseconds in"
+                " single thread environment");
+          }
+          setWakeupLatency(m_gain_spintime_in_us);
+          sendSTTORRY(signal, false);
+        }
+        sendNextCONTINUEB(signal, 50, ZCONTINUEB_MEASURE_CPU_USAGE);
+        sendNextCONTINUEB(signal, 10, ZCONTINUEB_CHECK_SPINTIME);
+      } else {
+        sendNextCONTINUEB(signal, 50, ZCONTINUEB_MEASURE_CPU_USAGE);
+        sendNextCONTINUEB(signal, 10, ZCONTINUEB_CHECK_SPINTIME);
         sendSTTORRY(signal, false);
       }
-      sendNextCONTINUEB(signal, 50, ZCONTINUEB_MEASURE_CPU_USAGE);
-      sendNextCONTINUEB(signal, 10, ZCONTINUEB_CHECK_SPINTIME);
+      if (instance() == m_rep_thrman_instance &&
+          globalData.ndbMtQueryWorkers > 0) {
+        jam();
+        initial_query_distribution(signal);
+      }
+      return;
+    case 2: {
+      m_gain_spintime_in_us = getWakeupLatency();
+      if (instance() == m_main_thrman_instance) {
+        g_eventLogger->info("Set wakeup latency to %u microseconds",
+                            m_gain_spintime_in_us);
+      }
+      set_spin_stat(0, true);
+      sendSTTORRY(signal, true);
+      return;
     }
-    else
-    {
-      sendNextCONTINUEB(signal, 50, ZCONTINUEB_MEASURE_CPU_USAGE);
-      sendNextCONTINUEB(signal, 10, ZCONTINUEB_CHECK_SPINTIME);
-      sendSTTORRY(signal, false);
+    case 9: {
+      if (instance() == m_rep_thrman_instance &&
+          globalData.ndbMtQueryWorkers > 0) {
+        jam();
+        signal->theData[0] = ZUPDATE_QUERY_DISTRIBUTION;
+        sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
+      }
+      sendSTTORRY(signal, true);
+      return;
     }
-    if (instance() == m_rep_thrman_instance &&
-        globalData.ndbMtQueryWorkers > 0)
-    {
-      jam();
-      initial_query_distribution(signal);
-    }
-    return;
-  case 2:
-  {
-    m_gain_spintime_in_us = getWakeupLatency();
-    if (instance() == m_main_thrman_instance)
-    {
-      g_eventLogger->info("Set wakeup latency to %u microseconds",
-                          m_gain_spintime_in_us);
-    }
-    set_spin_stat(0, true);
-    sendSTTORRY(signal, true);
-    return;
-  }
-  case 9:
-  {
-    if (instance() == m_rep_thrman_instance &&
-        globalData.ndbMtQueryWorkers > 0)
-    {
-      jam();
-      signal->theData[0] = ZUPDATE_QUERY_DISTRIBUTION;
-      sendSignal(reference(), GSN_CONTINUEB, signal, 1, JBB);
-    }
-    sendSTTORRY(signal, true);
-    return;
-  }
-  default:
-    ndbabort();
+    default:
+      ndbabort();
   }
 }
 
@@ -4457,257 +4447,235 @@ void Thrman::execDBINFO_SCANREQ(Signal *signal) {
       }
       break;
     }
-  case Ndbinfo::CPUSTAT_TABLEID: {
-    Uint32 pos = cursor->data[0];
+    case Ndbinfo::CPUSTAT_TABLEID: {
+      Uint32 pos = cursor->data[0];
 
-    SendThreadMeasurementPtr sendThreadMeasurementPtr;
-    MeasurementRecordPtr measurePtr;
+      SendThreadMeasurementPtr sendThreadMeasurementPtr;
+      MeasurementRecordPtr measurePtr;
 
-    for (;;) {
-      if (pos == 0) {
-        jam();
-        MeasurementRecord measure;
-        bool success = calculate_cpu_load_last_second(&measure);
-        ndbrequire(success);
-        Ndbinfo::Row row(signal, req);
-        row.write_uint32(getOwnNodeId());
-        row.write_uint32(getThreadId());
-
-        if (measure.m_elapsed_time) {
+      for (;;) {
+        if (pos == 0) {
           jam();
-          Uint64 user_os_percentage =
-              ((Uint64(100) * measure.m_user_time_os) + Uint64(500 * 1000)) /
-              measure.m_elapsed_time;
+          MeasurementRecord measure;
+          bool success = calculate_cpu_load_last_second(&measure);
+          ndbrequire(success);
+          Ndbinfo::Row row(signal, req);
+          row.write_uint32(getOwnNodeId());
+          row.write_uint32(getThreadId());
 
-          Uint64 kernel_percentage =
-              ((Uint64(100) * measure.m_kernel_time_os) +
-               Uint64(500 * 1000)) /
-              measure.m_elapsed_time;
+          if (measure.m_elapsed_time) {
+            jam();
+            Uint64 user_os_percentage =
+                ((Uint64(100) * measure.m_user_time_os) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
 
-          /* Ensure that total percentage reported is always 100% */
-          if (user_os_percentage + kernel_percentage > Uint64(100)) {
-            kernel_percentage = Uint64(100) - user_os_percentage;
-          }
-          Uint64 idle_os_percentage =
-              Uint64(100) - (user_os_percentage + kernel_percentage);
-          row.write_uint32(Uint32(user_os_percentage));
-          row.write_uint32(Uint32(kernel_percentage));
-          row.write_uint32(Uint32(idle_os_percentage));
+            Uint64 kernel_percentage =
+                ((Uint64(100) * measure.m_kernel_time_os) +
+                 Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
 
-          Uint64 exec_time = measure.m_exec_time_thread;
-          Uint64 spin_time = measure.m_spin_time_thread;
-          Uint64 buffer_full_time = measure.m_buffer_full_time_thread;
-          Uint64 send_time = measure.m_send_time_thread;
+            /* Ensure that total percentage reported is always 100% */
+            if (user_os_percentage + kernel_percentage > Uint64(100)) {
+              kernel_percentage = Uint64(100) - user_os_percentage;
+            }
+            Uint64 idle_os_percentage =
+                Uint64(100) - (user_os_percentage + kernel_percentage);
+            row.write_uint32(Uint32(user_os_percentage));
+            row.write_uint32(Uint32(kernel_percentage));
+            row.write_uint32(Uint32(idle_os_percentage));
 
-          Uint64 non_exec_time = spin_time + send_time + buffer_full_time;
-          if (unlikely(non_exec_time > exec_time)) {
-            exec_time = 0;
+            Uint64 exec_time = measure.m_exec_time_thread;
+            Uint64 spin_time = measure.m_spin_time_thread;
+            Uint64 buffer_full_time = measure.m_buffer_full_time_thread;
+            Uint64 send_time = measure.m_send_time_thread;
+
+            Uint64 non_exec_time = spin_time + send_time + buffer_full_time;
+            if (unlikely(non_exec_time > exec_time)) {
+              exec_time = 0;
+            } else {
+              exec_time -= non_exec_time;
+            }
+
+            Uint64 exec_percentage =
+                ((Uint64(100) * exec_time) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
+
+            Uint64 spin_percentage =
+                ((Uint64(100) * spin_time) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
+
+            Uint64 send_percentage =
+                ((Uint64(100) * send_time) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
+
+            Uint64 buffer_full_percentage =
+                ((Uint64(100) * buffer_full_time) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
+
+            /* Ensure that total percentage reported is always 100% */
+            Uint64 exec_full_percentage =
+                exec_percentage + buffer_full_percentage;
+            Uint64 exec_full_send_percentage =
+                exec_full_percentage + send_percentage;
+            Uint64 all_exec_percentage = exec_full_send_percentage +
+                                         spin_percentage;
+            Uint64 sleep_percentage = 0;
+            if (buffer_full_percentage > Uint64(100)) {
+              jam();
+              buffer_full_percentage = Uint64(100);
+              exec_percentage = 0;
+              send_percentage = 0;
+              spin_percentage = 0;
+            } else if (exec_full_percentage > Uint64(100)) {
+              jam();
+              exec_percentage = Uint64(100) - buffer_full_percentage;
+              send_percentage = 0;
+              spin_percentage = 0;
+            } else if (exec_full_send_percentage > Uint64(100)) {
+              jam();
+              send_percentage = Uint64(100) - exec_full_percentage;
+              spin_percentage = 0;
+            } else if (all_exec_percentage > Uint64(100)) {
+              jam();
+              spin_percentage = Uint64(100) - exec_full_send_percentage;
+            } else {
+              jam();
+              sleep_percentage = Uint64(100) - all_exec_percentage;
+            }
+            ndbrequire((exec_percentage + buffer_full_percentage +
+                        send_percentage + spin_percentage +
+                        sleep_percentage) ==
+                       Uint64(100));
+
+            row.write_uint32(Uint32(exec_percentage));
+            row.write_uint32(Uint32(sleep_percentage));
+            row.write_uint32(Uint32(spin_percentage));
+            row.write_uint32(Uint32(send_percentage));
+            row.write_uint32(Uint32(buffer_full_percentage));
+
+            row.write_uint32(Uint32(measure.m_elapsed_time));
           } else {
-            exec_time -= non_exec_time;
-          }
-
-          Uint64 exec_percentage =
-                        ((Uint64(100) * exec_time) +
-                        Uint64(500 * 1000)) /
-                        measure.m_elapsed_time;
-
-          Uint64 spin_percentage =
-                        ((Uint64(100) * spin_time) +
-                        Uint64(500 * 1000)) /
-                        measure.m_elapsed_time;
-
-          Uint64 send_percentage =
-                        ((Uint64(100) * send_time) +
-                        Uint64(500 * 1000)) /
-                        measure.m_elapsed_time;
-
-          Uint64 buffer_full_percentage =
-                        ((Uint64(100) * buffer_full_time) +
-                        Uint64(500 * 1000)) /
-                        measure.m_elapsed_time;
-
-          /* Ensure that total percentage reported is always 100% */
-          Uint64 exec_full_percentage = exec_percentage +
-                                        buffer_full_percentage;
-          Uint64 exec_full_send_percentage = exec_full_percentage +
-                                             send_percentage;
-          Uint64 all_exec_percentage = exec_full_send_percentage +
-                                       spin_percentage;
-          Uint64 sleep_percentage = 0;
-          if (buffer_full_percentage > Uint64(100))
-          {
             jam();
-            buffer_full_percentage = Uint64(100);
-            exec_percentage = 0;
-            send_percentage = 0;
-            spin_percentage = 0;
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
           }
-          else if (exec_full_percentage > Uint64(100))
-          {
-            jam();
-            exec_percentage = Uint64(100) - buffer_full_percentage;
-            send_percentage = 0;
-            spin_percentage = 0;
-          }
-          else if (exec_full_send_percentage > Uint64(100))
-          {
-            jam();
-            send_percentage = Uint64(100) - exec_full_percentage;
-            spin_percentage = 0;
-          }
-          else if (all_exec_percentage > Uint64(100))
-          {
-            jam();
-            spin_percentage = Uint64(100) - exec_full_send_percentage;
-          }
-          else
-          {
-            jam();
-            sleep_percentage = Uint64(100) - all_exec_percentage;
-          }
-          ndbrequire((exec_percentage +
-                      buffer_full_percentage +
-                      send_percentage +
-                      spin_percentage +
-                      sleep_percentage) == Uint64(100));
-                 
-          row.write_uint32(Uint32(exec_percentage));
-          row.write_uint32(Uint32(sleep_percentage));
-          row.write_uint32(Uint32(spin_percentage));
-          row.write_uint32(Uint32(send_percentage));
-          row.write_uint32(Uint32(buffer_full_percentage));
 
-          row.write_uint32(Uint32(measure.m_elapsed_time));
-        }
-        else
-        {
+          ndbinfo_send_row(signal, req, row, rl);
+          if (instance() != m_main_thrman_instance || m_num_send_threads == 0) {
+            jam();
+            break;
+          }
+          pos++;
+        } else {
+          /* Send thread CPU load */
           jam();
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-        }
+          if ((pos - 1) >= m_num_send_threads) {
+            jam();
+            g_eventLogger->info("send instance out of range");
+            ndbassert(false);
+            ndbinfo_send_scan_conf(signal, req, rl);
+            return;
+          }
+          SendThreadMeasurement measure;
+          bool success =
+              calculate_send_thread_load_last_ms(pos - 1, &measure, 1000);
+          if (!success) {
+            g_eventLogger->info(
+                "Failed calculate_send_thread_load_last_ms");
+            ndbassert(false);
+            ndbinfo_send_scan_conf(signal, req, rl);
+            return;
+          }
+          Ndbinfo::Row row(signal, req);
+          row.write_uint32(getOwnNodeId());
+          row.write_uint32(m_num_threads + (pos - 1));
 
-        ndbinfo_send_row(signal, req, row, rl);
-        if (instance() != m_main_thrman_instance ||
-            m_num_send_threads == 0)
-        {
-          jam();
-          break;
+          if (measure.m_elapsed_time_os == 0) {
+            jam();
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+          } else {
+            Uint64 user_time_os_percentage =
+                ((Uint64(100) * measure.m_user_time_os) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time_os;
+
+            row.write_uint32(Uint32(user_time_os_percentage));
+
+            Uint64 kernel_time_os_percentage =
+                ((Uint64(100) * measure.m_kernel_time_os) +
+                 Uint64(500 * 1000)) /
+                measure.m_elapsed_time_os;
+
+            row.write_uint32(Uint32(kernel_time_os_percentage));
+
+            Uint64 idle_time_os_percentage =
+                ((Uint64(100) * measure.m_idle_time_os) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time_os;
+
+            row.write_uint32(Uint32(idle_time_os_percentage));
+          }
+
+          if (measure.m_elapsed_time > 0) {
+            Uint64 exec_time = measure.m_exec_time;
+            Uint64 spin_time = measure.m_spin_time;
+            Uint64 sleep_time = measure.m_sleep_time;
+
+            exec_time -= spin_time;
+
+            Uint64 exec_percentage =
+                ((Uint64(100) * exec_time) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
+
+            Uint64 sleep_percentage =
+                ((Uint64(100) * sleep_time) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
+
+            Uint64 spin_percentage =
+                ((Uint64(100) * spin_time) + Uint64(500 * 1000)) /
+                measure.m_elapsed_time;
+
+            row.write_uint32(Uint32(exec_percentage));
+            row.write_uint32(Uint32(sleep_percentage));
+            row.write_uint32(Uint32(spin_percentage));
+            row.write_uint32(Uint32(exec_percentage));
+            row.write_uint32(Uint32(0));
+            row.write_uint32(Uint32(measure.m_elapsed_time));
+          } else {
+            jam();
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+            row.write_uint32(0);
+          }
+          ndbinfo_send_row(signal, req, row, rl);
+
+          if (pos == m_num_send_threads) {
+            jam();
+            break;
+          }
+          pos++;
         }
-        pos++;
-      }
-      else
-      {
-        /* Send thread CPU load */
-        jam();
-        if ((pos - 1) >= m_num_send_threads)
-        {
+        if (rl.need_break(req)) {
           jam();
-          g_eventLogger->info("send instance out of range");
-          ndbassert(false);
-          ndbinfo_send_scan_conf(signal, req, rl);
+          ndbinfo_send_scan_break(signal, req, rl, pos);
           return;
         }
-        SendThreadMeasurement measure;
-        bool success = calculate_send_thread_load_last_ms(pos - 1,
-                                                          &measure,
-                                                          1000);
-        if (!success)
-        {
-          g_eventLogger->info("Failed calculate_send_thread_load_last_ms");
-          ndbassert(false);
-          ndbinfo_send_scan_conf(signal, req, rl);
-          return;
-        }
-        Ndbinfo::Row row(signal, req);
-        row.write_uint32(getOwnNodeId());
-        row.write_uint32 (m_num_threads + (pos - 1));
-
-        if (measure.m_elapsed_time_os == 0) {
-          jam();
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-        } else {
-          Uint64 user_time_os_percentage =
-              ((Uint64(100) * measure.m_user_time_os) + Uint64(500 * 1000)) /
-              measure.m_elapsed_time_os;
-
-          row.write_uint32(Uint32(user_time_os_percentage));
-
-          Uint64 kernel_time_os_percentage =
-              ((Uint64(100) * measure.m_kernel_time_os) +
-               Uint64(500 * 1000)) /
-              measure.m_elapsed_time_os;
-
-          row.write_uint32(Uint32(kernel_time_os_percentage));
-
-          Uint64 idle_time_os_percentage =
-              ((Uint64(100) * measure.m_idle_time_os) + Uint64(500 * 1000)) /
-              measure.m_elapsed_time_os;
-
-          row.write_uint32(Uint32(idle_time_os_percentage));
-        }
-
-        if (measure.m_elapsed_time > 0) {
-          Uint64 exec_time = measure.m_exec_time;
-          Uint64 spin_time = measure.m_spin_time;
-          Uint64 sleep_time = measure.m_sleep_time;
-
-          exec_time -= spin_time;
-
-          Uint64 exec_percentage =
-              ((Uint64(100) * exec_time) + Uint64(500 * 1000)) /
-              measure.m_elapsed_time;
-
-          Uint64 sleep_percentage =
-              ((Uint64(100) * sleep_time) + Uint64(500 * 1000)) /
-              measure.m_elapsed_time;
-
-          Uint64 spin_percentage =
-              ((Uint64(100) * spin_time) + Uint64(500 * 1000)) /
-              measure.m_elapsed_time;
-
-          row.write_uint32(Uint32(exec_percentage));
-          row.write_uint32(Uint32(sleep_percentage));
-          row.write_uint32(Uint32(spin_percentage));
-          row.write_uint32(Uint32(exec_percentage));
-          row.write_uint32(Uint32(0));
-          row.write_uint32(Uint32(measure.m_elapsed_time));
-        } else {
-          jam();
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-          row.write_uint32(0);
-        }
-        ndbinfo_send_row(signal, req, row, rl);
-
-        if (pos == m_num_send_threads) {
-          jam();
-          break;
-        }
-        pos++;
       }
-      if (rl.need_break(req)) {
-        jam();
-        ndbinfo_send_scan_break(signal, req, rl, pos);
-        return;
-      }
+      break;
     }
-    break;
-  }
-  default:
-    break;
+    default:
+      break;
   }
 
   ndbinfo_send_scan_conf(signal, req, rl);

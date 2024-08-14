@@ -62,6 +62,7 @@
                   obj->getNdbError().message); \
     return -1; }
 
+
 static const char *ApiFailTestRun = "ApiFailTestRun";
 static const char *ApiFailTestComplete = "ApiFailTestComplete";
 static const char *ApiFailTestsRunning = "ApiFailTestsRunning";

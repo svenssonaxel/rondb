@@ -5457,10 +5457,8 @@ Uint32 trp_callback::bytes_sent(TrpId trp_id, Uint32 bytes) {
   }
 }
 
-void
-trp_callback::enable_send_buffer(TrpId trp_id)
-{
-  thr_repository::send_buffer *sb = g_thr_repository->m_send_buffers+trp_id;
+void trp_callback::enable_send_buffer(TrpId trp_id) {
+  thr_repository::send_buffer *sb = g_thr_repository->m_send_buffers + trp_id;
   lock(&sb->m_send_lock);
   assert(sb->m_sending_size == 0);
   {
@@ -5489,10 +5487,8 @@ trp_callback::enable_send_buffer(TrpId trp_id)
   unlock(&sb->m_send_lock);
 }
 
-void
-trp_callback::disable_send_buffer(TrpId trp_id)
-{
-  thr_repository::send_buffer *sb = g_thr_repository->m_send_buffers+trp_id;
+void trp_callback::disable_send_buffer(TrpId trp_id) {
+  thr_repository::send_buffer *sb = g_thr_repository->m_send_buffers + trp_id;
   lock(&sb->m_send_lock);
   sb->m_enabled = false;
 
@@ -7282,13 +7278,13 @@ void mt_add_thr_map(Uint32 block, Uint32 instance) {
     require(num_lqh_threads == globalData.ndbMtLqhWorkers);
   }
   require(instance != 0);
-  switch (block) {
-    case DBLQH:
-    case DBACC:
-    case DBTUP:
-    case DBTUX:
-    case BACKUP:
-    case RESTORE:
+  switch(block){
+  case DBLQH:
+  case DBACC:
+  case DBTUP:
+  case DBTUX:
+  case BACKUP:
+  case RESTORE:
     if (receive_threads_only)
     {
       thr_no += (instance - 1);
@@ -7298,12 +7294,12 @@ void mt_add_thr_map(Uint32 block, Uint32 instance) {
       thr_no += (instance - 1);
     }
     break;
-    case DBQLQH:
-    case DBQACC:
-    case DBQTUP:
-    case DBQTUX:
-    case QBACKUP:
-    case QRESTORE:
+  case DBQLQH:
+  case DBQACC:
+  case DBQTUP:
+  case DBQTUX:
+  case QBACKUP:
+  case QRESTORE:
     if (receive_threads_only)
     {
       thr_no += (instance - 1);
@@ -7313,15 +7309,18 @@ void mt_add_thr_map(Uint32 block, Uint32 instance) {
       thr_no += (instance - 1);
     }
     break;
-    case PGMAN:
-      if (instance == num_lqh_threads + 1) {
-        // Put extra PGMAN together with it's Proxy
-        thr_no = block2ThreadId(block, 0);
-      } else {
-        thr_no += (instance - 1) % num_lqh_threads;
-      }
-      break;
-    case DBTC:
+  case PGMAN:
+    if (instance == num_lqh_threads + 1)
+    {
+      // Put extra PGMAN together with it's Proxy
+      thr_no = block2ThreadId(block, 0);
+    }
+    else
+    {
+      thr_no += (instance - 1) % num_lqh_threads;
+    }
+    break;
+  case DBTC:
   case DBSPJ:
   {
     /**
@@ -7341,9 +7340,9 @@ void mt_add_thr_map(Uint32 block, Uint32 instance) {
     }
     break;
   }
-    case THRMAN:
-      thr_no = instance - 1;
-      break;
+  case THRMAN:
+    thr_no = instance - 1;
+    break;
   case TRPMAN:
     if (receive_threads_only)
     {
@@ -7357,8 +7356,8 @@ void mt_add_thr_map(Uint32 block, Uint32 instance) {
                 (instance - 1);
     }
     break;
-    default:
-      require(false);
+  default:
+    require(false);
   }
   add_thr_map(block, instance, thr_no);
 }

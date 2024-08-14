@@ -152,7 +152,7 @@ void test() {
 
   // test store
   const char *kv4 =
-      ("\\ a\\ key\\ =\\ a value\n"
+      ("\\ a\\ key\\ =\\ a value \n"
        "key\\!=value\\!\n"
        "key\\#=value\\#\n"
        "key0=value0\n"
