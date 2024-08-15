@@ -327,6 +327,11 @@ Caught exception: Not an aggregate query.
 This query has no aggregate expression, so it is not an aggregate query.
 Currently, RonSQL only supports aggregate queries.
 Caught exception: Not an aggregate query.
+===== Too big integer constant =====
+Syntax error in SQL statement: Literal integer too big.
+> select sum(a) from tbl where a < 9223372036854775808;
+!                                  ^^^^^^^^^^^^^^^^^^^
+Caught exception: Syntax error.
 ===== Simple =====
 Query parse tree:
 SELECT

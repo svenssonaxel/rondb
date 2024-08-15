@@ -120,9 +120,9 @@ AggregationAPICompiler::new_expr(ExprOp op,
       right->op == ExprOp::LoadConstantInt &&
       op != ExprOp::Div)
   {
-    long int arg1 = m_constants[left->idx].long_int;
-    long int arg2 = m_constants[right->idx].long_int;
-    long int result = 0;
+    Int64 arg1 = m_constants[left->idx].int_64;
+    Int64 arg2 = m_constants[right->idx].int_64;
+    Int64 result = 0;
     switch (op)
     {
     case ExprOp::Add:
@@ -219,16 +219,16 @@ AggregationAPICompiler::Load(uint col_idx)
 }
 
 AggregationAPICompiler::Expr*
-AggregationAPICompiler::ConstantInteger(long int long_int)
+AggregationAPICompiler::ConstantInteger(Int64 int_64)
 {
   for (uint idx = 0; idx < m_constants.size(); idx++)
   {
-    if (m_constants[idx].long_int == long_int)
+    if (m_constants[idx].int_64 == int_64)
     {
       return new_expr(ExprOp::LoadConstantInt, 0, 0, idx);
     }
   }
-  m_constants.push({long_int});
+  m_constants.push({int_64});
   return new_expr(ExprOp::LoadConstantInt, 0, 0, m_constants.size() - 1);
 }
 
@@ -915,7 +915,7 @@ AggregationAPICompiler::print(Expr* expr)
   }
   if (expr->op == AggregationAPICompiler::ExprOp::LoadConstantInt)
   {
-    m_out << m_constants[expr->idx].long_int;
+    m_out << m_constants[expr->idx].int_64;
     return;
   }
   m_out << '(';
@@ -987,7 +987,7 @@ AggregationAPICompiler::print(Instr* instr)
   case SVMInstrType::LoadConstantInteger:
     assert_reg(dest);
     m_out << "LoadI  r" << d2(dest) << "  I" << d2(src) << " r" << d2(dest) <<
-      " = I" << d2(src) << ':' << m_constants[src].long_int;
+      " = I" << d2(src) << ':' << m_constants[src].int_64;
     break;
   case SVMInstrType::Mov:
     assert_reg(dest); assert_reg(src);

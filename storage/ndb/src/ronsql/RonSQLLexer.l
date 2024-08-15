@@ -241,13 +241,30 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
 [ \t\r\n] ; // ignore whitespace
 
 [0-9]+\.[0-9]+ {
+  char hold_char = yytext[yyleng];
+  yytext[yyleng] = char(0);
   yylval->fval = atof(yytext);
+  yytext[yyleng] = hold_char;
   lloc_this_rule();
   return T_FLOAT;
 }
 
 [0-9]+ {
-  yylval->ival = atoi(yytext);
+  if (yyleng > 19) {
+    return_err_for_this_rule(LITERAL_INTEGER_TOO_BIG);
+  }
+  if (yyleng == 19) {
+    constexpr char* maxInt64Str = "9223372036854775807";
+    for (int i = 0; i < 19; i++) {
+      if (yytext[i] > maxInt64Str[i]) {
+        return_err_for_this_rule(LITERAL_INTEGER_TOO_BIG);
+      }
+    }
+  }
+  char hold_char = yytext[yyleng];
+  yytext[yyleng] = char(0);
+  yylval->bival = atoll(yytext); // todo Is this portable?
+  yytext[yyleng] = hold_char;
   lloc_this_rule();
   return T_INT;
 }

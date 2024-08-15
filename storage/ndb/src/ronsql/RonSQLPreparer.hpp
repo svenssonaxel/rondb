@@ -74,6 +74,7 @@ public:
     LEX_UNEXPECTED_EOI_IN_SINGLE_QUOTED_STRING,
     LEX_ILLEGAL_TOKEN,
     LEX_UNEXPECTED_EOI_IN_QUOTED_IDENTIFIER,
+    LEX_LITERAL_INTEGER_TOO_BIG,
     TOO_LONG_UNALIASED_OUTPUT,
     PARSER_ERROR,
   };
@@ -131,9 +132,9 @@ private:
     {
       enum class Type { NONE, INCLUSIVE, EXCLUSIVE };
       Type ltype;
-      long lvalue;
+      Int64 lvalue;
       Type htype;
-      long hvalue;
+      Int64 hvalue;
     };
     Range* ranges;
     uint range_count;

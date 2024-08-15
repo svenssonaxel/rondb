@@ -122,7 +122,7 @@ struct ConditionalExpression
       struct ConditionalExpression* right;
     } args;
     uint col_idx;
-    long int constant_integer;
+    Int64 constant_integer;
     struct
     {
       struct ConditionalExpression* arg;

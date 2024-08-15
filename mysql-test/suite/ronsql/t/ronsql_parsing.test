@@ -389,6 +389,10 @@ EOF
 --error 1
 --exec $PARSE_TEST 'select a from tbl group by a;'
 
+--echo ===== Too big integer constant =====
+--error 1
+--exec $PARSE_TEST 'select sum(a) from tbl where a < 9223372036854775808;'
+
 # Test successes
 
 --echo ===== Simple =====

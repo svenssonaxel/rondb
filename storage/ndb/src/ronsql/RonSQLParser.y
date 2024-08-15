@@ -121,6 +121,7 @@ extern void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t yyscanner, const char* s);
 %union
 {
   int ival;
+  Int64 bival;
   float fval;
   bool bval;
   LexString str;
@@ -137,7 +138,7 @@ extern void rsqlp_error(RSQLP_LTYPE* yylloc, yyscan_t yyscanner, const char* s);
   AggregationAPICompiler::Expr* arith_expr;
 }
 
-%token<ival> T_INT
+%token<bival> T_INT
 %token<fval> T_FLOAT
 %token T_COUNT T_MAX T_MIN T_SUM T_AVG T_LEFT T_RIGHT
 %token T_EXPLAIN T_SELECT T_FROM T_GROUP T_BY T_ORDER T_ASC T_DESC T_AS T_WHERE

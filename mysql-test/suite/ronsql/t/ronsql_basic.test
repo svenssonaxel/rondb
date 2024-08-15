@@ -125,6 +125,32 @@ WHERE sint8 <= 1
 GROUP BY cchar;|
 --source suite/ronsql/include/ronsql_compare.inc
 
+--echo DIV and float operations:
+let $QUERY=
+SELECT cchar as char_gr
+     , count(cfloat DIV 5)                 as t1_count
+     , count(13517565273271354 DIV cfloat) as t2_count
+     , count(cfloat  DIV  1234 * cfloat)   as t3_count
+     , count(cdouble DIV (1234 * cfloat))  as t4_count
+     , min(  cfloat DIV 5)                 as t1_min
+     , min(  13517565273271354 DIV cfloat) as t2_min
+     , min(  cfloat  DIV  1234 * cfloat)   as t3_min
+     , min(  cdouble DIV (1234 * cfloat))  as t4_min
+     , max(  cfloat DIV 5)                 as t1_max
+     , max(  13517565273271354 DIV cfloat) as t2_max
+     , max(  cfloat  DIV  1234 * cfloat)   as t3_max
+     , max(  cdouble DIV (1234 * cfloat))  as t4_max
+     , sum(  cfloat DIV 5)                 as t1_sum
+     , sum(  13517565273271354 DIV cfloat) as t2_sum
+     , sum(  cfloat  DIV  1234 * cfloat)   as t3_sum
+     , sum(  cdouble DIV (1234 * cfloat))  as t4_sum
+FROM api_scan
+WHERE sint8 <= 1
+GROUP BY cchar;|
+#todo Remove this canonicalization when DECIMAL is fixed
+--let $canonicalization_script=s/\t-0\t/\t0\t/;
+--source suite/ronsql/include/ronsql_compare.inc
+
 --echo More integer division:
 let $QUERY=
 SELECT sint8

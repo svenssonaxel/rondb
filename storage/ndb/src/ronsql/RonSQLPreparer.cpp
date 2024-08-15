@@ -261,6 +261,9 @@ RonSQLPreparer::parse()
   case ErrState::LEX_U_ENC_ERR:
     msg = "Invalid UTF-8 encoding.";
     break;
+  case ErrState::LEX_LITERAL_INTEGER_TOO_BIG:
+    msg = "Literal integer too big.";
+    break;
   case ErrState::TOO_LONG_UNALIASED_OUTPUT:
     msg = "Unaliased select expression too long. Use `AS` to add an alias no more than 64 bytes long.";
     break;
@@ -548,8 +551,8 @@ RonSQLPreparer::generate_index_scan_config_candidates()
       ce->args.left->args.right->args.left->col_idx)
   {
     uint col_idx = ce->args.left->args.left->args.left->col_idx;
-    long low_bound = ce->args.left->args.left->args.right->constant_integer;
-    long high_bound = ce->args.left->args.right->args.right->constant_integer;
+    Int64 low_bound = ce->args.left->args.left->args.right->constant_integer;
+    Int64 high_bound = ce->args.left->args.right->args.right->constant_integer;
     IndexScanConfig isc;
     isc.col_idx = col_idx;
     isc.ranges = m_aalloc->alloc<IndexScanConfig::Range>(1);
@@ -1058,7 +1061,7 @@ RonSQLPreparer::eval_const_expr(ConditionalExpression* ce)
     not_implemented();
   case T_INT:
     {
-      long int* val = m_aalloc->alloc<long int>(1);
+      Int64* val = m_aalloc->alloc<Int64>(1);
       *val = ce->constant_integer;
       ret.val = val;
       ret.len = sizeof(*val);
@@ -1137,7 +1140,7 @@ RonSQLPreparer::eval_const_expr(ConditionalExpression* ce)
       {
         throw runtime_error("DATE_SUB only supports DAY intervals");
       }
-      long int days;
+      Int64 days;
       ConditionalExpression* days_ce = interval_ce->interval.arg;
       if (days_ce->op == T_INT)
       {
@@ -1161,7 +1164,7 @@ RonSQLPreparer::eval_const_expr(ConditionalExpression* ce)
             throw runtime_error("Non-digit character in interval string");
           }
         }
-        days = atol(buf);
+        days = atol(buf); // todo or atoll?
       }
       else
       {
@@ -1254,7 +1257,7 @@ RonSQLPreparer::programAggregator(NdbAggregator* aggregator)
     }
     case AggregationAPICompiler::SVMInstrType::LoadConstantInteger:
       programAggregator_do_or_fail
-        (aggregator->LoadInt64(m_agg->m_constants[src].long_int, dest));
+        (aggregator->LoadInt64(m_agg->m_constants[src].int_64, dest));
       break;
     case AggregationAPICompiler::SVMInstrType::Mov:
       programAggregator_do_or_fail(aggregator->Mov(dest, src));

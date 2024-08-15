@@ -31,6 +31,7 @@
 #include "LexString.hpp"
 #include "ArenaAllocator.hpp"
 #include "DynamicArray.hpp"
+#include "RonSQLCommon.hpp"
 // todo order and remove superfluous includes
 using std::string;
 
@@ -118,7 +119,7 @@ public:
   using ExprOp = AggregationAPICompiler_Expr::ExprOp;
   union Constant
   {
-    long int long_int;
+    Int64 int_64;
   };
 private:
   std::function<const char*(uint)> m_column_idx_to_name;
@@ -141,7 +142,7 @@ public:
   DynamicArray<Constant> m_constants;
   // Load operations
   Expr* Load(uint col_idx);
-  Expr* ConstantInteger(long int long_int);
+  Expr* ConstantInteger(Int64 int_64);
   // Arithmetic and aggregation operations could easily have been defined using
   // templates, but we prefer doing it without templates and with better
   // argument names.
