@@ -67,14 +67,22 @@ main()
               b, b+1, b+2,  // Numbers around INT64_MIN
     z-2, z-1, z, z+1, z+2,  // Numbers around 0
     t-2, t-1, t,            // Numbers around INT64_MAX
-    // divisors for t+2 and b-1
+    // divisors for INT64_MAX + 2 and INT64_MIN - 1
     129LL, -129LL, 71499008037633921LL, -71499008037633921LL,
-    // divisors for t+1 and b
+    // divisors for INT64_MAX + 1 and INT64_MIN
     128LL, -128LL, 72057594037927936LL, -72057594037927936LL,
-    // divisors for t   and b+1
+    // divisors for INT64_MAX     and INT64_MIN + 1
     337LL, -337LL, 27369056489183311LL, -27369056489183311LL,
-    // divisors for t-1 and b+2
+    // divisors for INT64_MAX - 1 and INT64_MIN + 2
     6LL, -6LL, 1537228672809129301LL, -1537228672809129301LL,
+    // divisors for UINT64_MAX + 2 and UINT64_MIN - 1
+    274177LL, -274177LL, 67280421310721LL, -67280421310721LL,
+    // divisors for UINT64_MAX + 1 and UINT64_MIN
+    256LL, -256LL, 72057594037927936LL, -72057594037927936LL,
+    // divisors for UINT64_MAX     and UINT64_MIN + 1
+    255LL, -255LL, 72340172838076673LL, -72340172838076673LL,
+    // divisors for UINT64_MAX - 1 and UINT64_MIN + 2
+    337LL, -337LL, 54738112978366622LL, -54738112978366622LL,
     // Numbers around ±sqrt(INT64_MAX)
     3037000498LL, -3037000498LL,
     3037000499LL, -3037000499LL,
