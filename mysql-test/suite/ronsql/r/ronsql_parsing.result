@@ -165,6 +165,12 @@ Syntax error in SQL statement: Unexpected end of input
 > select a from tbl
 !                  ^
 Caught exception: Syntax error.
+===== Unexpected end of input at newline =====
+Syntax error in SQL statement: Unexpected end of input
+> select a from tbl
+> 
+! ^
+Caught exception: Syntax error.
 ===== Unexpected at this point =====
 Syntax error in SQL statement: Unexpected at this point
 > select a `bcde` from tbl;

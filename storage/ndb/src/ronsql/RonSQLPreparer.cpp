@@ -308,6 +308,11 @@ RonSQLPreparer::parse()
           err << '\n';
           is_eol = true;
         }
+        if (m_sql.str[pos-1] == '\n' && pos < err_stop)
+        {
+          err << "> \n";
+          is_eol = true;
+        }
       }
       else if ( c != '\r')
       {
