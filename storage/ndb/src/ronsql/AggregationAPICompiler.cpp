@@ -30,6 +30,7 @@
 #define UINT_MAX ((uint)0xffffffff)
 using std::endl;
 using std::max;
+using std::runtime_error;
 
 AggregationAPICompiler::AggregationAPICompiler
     (std::function<const char*(uint)> column_idx_to_name,
@@ -60,6 +61,51 @@ AggregationAPICompiler::getStatus()
  * This is the high-level API used to construct a pushdown aggregation
  * program.
  */
+
+// Detecting signed integer overlow for the biggest datatype is not trivial.
+bool
+int64_add_overflow(Int64 x, Int64 y)
+{
+  bool x_neg = x < 0;
+  bool y_neg = y < 0;
+  if (x_neg != y_neg)
+    return false;
+  // Signed addition overflow is undefined behaviour, so we must detect it
+  // before performing a calculation that could trigger it. We use unsigned
+  // addition to calculate a result under modular arithmetic with no undefined
+  // behaviour, then use this result to detect overflow.
+  Int64 result = Int64(Uint64(x) + Uint64(y));
+  bool result_neg = result < 0;
+  return x_neg != result_neg;
+}
+bool
+int64_sub_overflow(Int64 x, Int64 y)
+{
+  if (y == INT64_MIN)
+  {
+    // y cannot be negated
+    if (x == INT64_MAX)
+    {
+      // x cannot be incremented, but at this code path we know the values for
+      // both x and y.
+      return true;
+    }
+    // Both x and y can be incremented. Doing so will preserve the difference
+    // and guarantee that y can be negated.
+    x++; y++;
+  }
+  // y can be negated.
+  return int64_add_overflow(x, -y);
+}
+bool
+int64_mul_overflow(Int64 x, Int64 y)
+{
+    if (x > 0 && y > 0 && x > INT64_MAX / y) return true;
+    if (x < 0 && y > 0 && x < INT64_MIN / y) return true;
+    if (x > 0 && y < 0 && y < INT64_MIN / x) return true;
+    if (x < 0 && y < 0 && x < INT64_MAX / y) return true;
+    return false;
+}
 
 AggregationAPICompiler::Expr*
 AggregationAPICompiler::new_expr(ExprOp op,
@@ -126,18 +172,38 @@ AggregationAPICompiler::new_expr(ExprOp op,
     switch (op)
     {
     case ExprOp::Add:
+      if (int64_add_overflow(arg1, arg2)) {
+        m_err << "Overflow when attempting to fold constant expression (" << arg1 << " + " << arg2 << ").\n";
+        throw runtime_error("Overflow in integer constant folding.");
+      }
       result = arg1 + arg2;
       break;
     case ExprOp::Minus:
+      if (int64_sub_overflow(arg1, arg2)) {
+        m_err << "Overflow when attempting to fold constant expression (" << arg1 << " - " << arg2 << ").\n";
+        throw runtime_error("Overflow in integer constant folding.");
+      }
       result = arg1 - arg2;
       break;
     case ExprOp::Mul:
+      if (int64_mul_overflow(arg1, arg2)) {
+        m_err << "Overflow when attempting to fold constant expression (" << arg1 << " * " << arg2 << ").\n";
+        throw runtime_error("Overflow in integer constant folding.");
+      }
       result = arg1 * arg2;
       break;
     case ExprOp::DivInt:
+      if (arg2 == 0) {
+        m_err << "Divide by zero when attempting to fold constant expression (" << arg1 << " DIV " << arg2 << ").\n";
+        throw runtime_error("Divide by zero in integer constant folding.");
+      }
       result = arg1 / arg2;
       break;
     case ExprOp::Rem:
+      if (arg2 == 0) {
+        m_err << "Divide by zero when attempting to fold constant expression (" << arg1 << " % " << arg2 << ").\n";
+        throw runtime_error("Divide by zero in integer constant folding.");
+      }
       result = arg1 % arg2;
       break;
     default:
