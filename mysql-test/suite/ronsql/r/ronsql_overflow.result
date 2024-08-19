@@ -1,58 +1,96 @@
-Create test table api_scan with 10 rows
-First 10 lines of the generated data:
-44	117	20842	\N	1	\N	1212819344	2994457046	72068863815755	5531280557914	-32402.9895011378	73719170553448.4	GROUPxxx_1
-\N	32	2237	64516	-7	\N	605998074	3900219314	\N	48247275792816	\N	80932038325707.1	GROUPxxx_2
-101	184	23791	25275	-4	250428	172027665	3454465838	-20556695092047	106100165860702	-4336.87321067644	71526076242167.8	\N
--70	90	-24032	55683	-3	\N	-2092442241	\N	38373237088645	53851290865691	-23222.6549613809	-22274185250976.4	GROUPxxx_4
--71	35	22848	8646	-4	16684062	-1123568402	2052617364	89749290509649	126839223895489	24929.2311643016	5150997326065.78	GROUPxxx_1
-104	174	-29647	\N	-4	14597312	1193205496	\N	59244720512484	\N	-21757.9573852876	63165524085480.6	GROUPxxx_2
--108	251	-15456	40996	0	1864055	790264658	1756990764	-48750610825724	\N	-19536.4213825606	59667035835513.7	GROUPxxx_3
-39	89	\N	31538	10	3567908	460055866	3395015689	-36981034299573	17910377630937	24622.0817152943	21146664984891.7	GROUPxxx_4
--110	66	14804	51958	3	10442422	-259735521	3206475712	24586952612843	\N	-13917.5970217365	-88547017657850.8	GROUPxxx_1
--98	38	20688	20606	4	2871265	-1661585520	1947835855	\N	131234984327923	5351.98369566234	-80024826189862	GROUPxxx_2
-Number of rows in the table:
-select count(*) from api_scan;
-count(*)
-10
+CREATE TABLE tbl (sint8 TINYINT NULL) ENGINE=NDB;
+INSERT INTO tbl (sint8) VALUES (7);
+Overflow using multiplication:
+NDB Permanent error 1860: arithmetic operation results overflow, check error log on data node for more details
+ronsql_cli caught exception: Failed to execute aggregation.
 
 
 
-Table scan:
+Zero through many divisions:
 == Query ==
-SELECT cchar as char_gr
-, sint24 as int_gr
-, sum(uint64+uint8)
-, min(cdouble) AS mindbl
-, max(uint24) as max24
-FROM api_scan
-WHERE sint8 = 66
-GROUP BY cchar
-, sint24;
+SELECT sint8
+     , sum((sint8 / sint8)
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024 / 1024
+           / 1024 / 1024 / 8
+           / 1024 / 1024 / 1024 / 1024 / 1024 / 4
+     ) as div_overflow
+FROM tbl
+GROUP BY sint8;
 
-Number of output lines, including header: 0
+Number of output lines, including header: 2
+
+== Diff ==
+--- mysql.out
++++ ronsql.out
+@@ -1,2 +1,2 @@
+ sint8	div_overflow
+-7	0.000000000000000000000000000000
++7	0
+================================================================================
+
+
+
+Zero through many integer divisions:
+== Query ==
+SELECT sint8
+     , sum(sint8
+           DIV 1024 DIV 1024 DIV 1024 DIV 1024 DIV 1024 DIV 1024 DIV 1024 DIV 1024 DIV 1024 DIV 1024
+     ) as intdiv_overflow
+FROM tbl
+GROUP BY sint8;
+
+Number of output lines, including header: 2
 
 == Diff ==
 ================================================================================
 
 
 
-Simple DIV operations with NULL:
+Division by zero:
 == Query ==
 SELECT sint8
-, count(sint16 DIV ( sint8      % 2)) as odd_count
-, count(sint16 DIV ((sint8 + 1) % 2)) as evn_count
-, min(  sint16 DIV ( sint8      % 2)) as odd_min
-, min(  sint16 DIV ((sint8 + 1) % 2)) as evn_min
-, max(  sint16 DIV ( sint8      % 2)) as odd_max
-, max(  sint16 DIV ((sint8 + 1) % 2)) as evn_max
-, sum(  sint16 DIV ( sint8      % 2)) as odd_sum
-, sum(  sint16 DIV ((sint8 + 1) % 2)) as evn_sum
-FROM api_scan
-WHERE (sint8 >= -20 and sint8 < 5
-or sint8 > 97 and sint8 <= 113)
+     , sum(1 / (sint8 - sint8)) as div_zero
+FROM tbl
 GROUP BY sint8;
 
-Number of output lines, including header: 3
+Number of output lines, including header: 2
+
+== Diff ==
+================================================================================
+
+
+
+Integer division by zero:
+== Query ==
+SELECT sint8
+     , sum(1 DIV (sint8 - sint8)) as intdiv_zero
+FROM tbl
+GROUP BY sint8;
+
+Number of output lines, including header: 2
+
+== Diff ==
+================================================================================
+
+
+
+Modulo zero:
+== Query ==
+SELECT sint8
+     , sum(1 % (sint8 - sint8)) as mod_zero
+FROM tbl
+GROUP BY sint8;
+
+Number of output lines, including header: 2
 
 == Diff ==
 ================================================================================
@@ -60,4 +98,4 @@ Number of output lines, including header: 3
 
 
 Cleanup
-DROP TABLE api_scan;
+DROP TABLE tbl;

@@ -849,35 +849,41 @@ RonSQLPreparer::execute()
     m_resultprinter->print_result(&aggregator, m_conf.query_output_stream);
 
     ndb->closeTransaction(myTrans);
+    std::basic_ostream<char>& err = *m_conf.err_output_stream;
   }
   catch (const std::exception& e)
   {
-    NdbError ndb_err = ndb->getNdbError();
-    std::basic_ostream<char>& err = *m_conf.err_output_stream;
-    if (myTrans != NULL)
+    NdbError ndb_err;
+    if (myTrans == NULL)
     {
+      ndb_err = ndb->getNdbError();
       ndb->closeTransaction(myTrans);
     }
+    else
+    {
+      ndb_err = myTrans->getNdbError();
+    }
+    std::basic_ostream<char>& err = *m_conf.err_output_stream;
     switch (ndb_err.status)
     {
     case NdbError::Status::Success:
-      assert(ndb_err.code == 0); // todo improve error handling if this fails
+      assert(ndb_err.code == 0);
       // Rethrow since error not from ndb
       throw;
     case NdbError::Status::TemporaryError:
-      err << "NDB temporary error: " << ndb_err.code << " " << ndb_err.message
-          << endl;
-      err << "Caught exception, probably caused by the temporary error above: "
+      err << "NDB Temporary error: " << ndb_err.code << " " << ndb_err.message
+          << endl
+          << "Caught exception, probably caused by the temporary error above: "
           << e.what() << endl;
       throw TemporaryError();
     case NdbError::Status::PermanentError:
-      err << "NDB permanent error: " << ndb_err.code << " " << ndb_err.message
+      err << "NDB Permanent error " << ndb_err.code << ": " << ndb_err.message
           << endl;
       // Now that the ndb error is described on err stream, we'll rethrow the
       // original exception.
       throw;
     case NdbError::Status::UnknownResult:
-      err << "NDB unknown result: " << ndb_err.code << " " << ndb_err.message
+      err << "NDB Unknown result: " << ndb_err.code << ": " << ndb_err.message
           << endl;
       // Now that the ndb error is described on err stream, we'll rethrow the
       // original exception.

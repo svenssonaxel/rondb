@@ -1,7 +1,9 @@
 # This include-file, or subroutine, executes a query with both mysql client and
 # ronsql_cli, then compares the results.
+--echo == Query ==
 if ($QUERY!='')
 {
+  --echo $QUERY
   --let $QUERY_PARAMS = -e '$QUERY'
 }
 if ($QUERY=='')
@@ -10,11 +12,10 @@ if ($QUERY=='')
   {
     --die Must define either QUERY or QUERY_FILE variable
   }
+  --exec cat $QUERY_FILE
   --let $QUERY_PARAMS = < '$QUERY_FILE'
 }
 --let $QUERY_PARAMS = -D test $QUERY_PARAMS
---echo == Query ==
---echo $QUERY
 --exec $MYSQL $QUERY_PARAMS > $MYSQL_TMP_DIR/mysql.out
 if ($canonicalization_script) {
 --exec sed -ri '$canonicalization_script' $MYSQL_TMP_DIR/mysql.out

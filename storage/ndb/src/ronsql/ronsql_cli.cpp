@@ -400,7 +400,7 @@ run_ronsql(ExecutionParameters& params)
   }
   catch (std::runtime_error& e)
   {
-    cerr << "Caught exception: " << e.what() << endl;
+    cerr << "ronsql_cli caught exception: " << e.what() << endl;
     return 1;
   }
   // Unreachable
