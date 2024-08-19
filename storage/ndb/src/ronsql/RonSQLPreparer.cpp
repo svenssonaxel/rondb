@@ -1138,6 +1138,7 @@ RonSQLPreparer::eval_const_expr(ConditionalExpression* ce)
       LexString datestr = date_ce->string;
       if (interval_ce->interval.interval_type != T_DAY)
       {
+        // todo support all kinds of intervals.
         throw runtime_error("DATE_SUB only supports DAY intervals");
       }
       Int64 days;
@@ -1172,6 +1173,7 @@ RonSQLPreparer::eval_const_expr(ConditionalExpression* ce)
       }
       if (days < 0)
       {
+        // todo support negative intervals.
         throw runtime_error("DATE_SUB only supports positive days in interval");
       }
       unsigned long int udays = days;

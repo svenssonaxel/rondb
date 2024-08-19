@@ -1516,3 +1516,52 @@ Execute as table scan.
 Output in UTF-8 encoded JSON format.
 The program for post-processing and output has 54 instructions.
 
+===== Complex aggregation with % and DIV =====
+Query parse tree:
+SELECT
+  Out_0:`col1`
+   = C0:`col1`
+  Out_1:`min(a+b-c%d*e/f-543*g DIV h)`
+   = A0:Min((((`a` + `b`) - (((`c` % `d`) * `e`) / `f`)) - ((543 * `g`) DIV `h`)))
+  Out_2:`sum(a%b DIV c%d DIV e%f)`
+   = A1:Sum((((((`a` % `b`) DIV `c`) % `d`) DIV `e`) % `f`))
+FROM tbl
+GROUP BY
+  C0:`col1`
+
+Aggregation program (27 instructions):
+Instr. DEST SRC DESCRIPTION
+Load   r00  C01 r00 = C01:`a`
+Load   r01  C02 r01 = C02:`b`
+Mov    r02  r00 r02 = r00:`a`
+Add    r00  r01 r00:`a` += r01:`b`
+Load   r03  C03 r03 = C03:`c`
+Load   r04  C04 r04 = C04:`d`
+Mov    r05  r03 r05 = r03:`c`
+Rem    r03  r04 r03:`c` %= r04:`d`
+Load   r06  C05 r06 = C05:`e`
+Mul    r03  r06 r03:(`c` % `d`) *= r06:`e`
+Load   r07  C06 r07 = C06:`f`
+Div    r03  r07 r03:((`c` % `d`) * `e`) /= r07:`f`
+Minus  r00  r03 r00:(`a` + `b`) -= r03:(((`c` % `d`) * `e`) / `f`)
+LoadI  r03  I00 r03 = I00:543
+Load   r01  C07 r01 = C07:`g`
+Mul    r03  r01 r03:543 *= r01:`g`
+Load   r01  C08 r01 = C08:`h`
+DivInt r03  r01 r03:(543 * `g`) DIV= r01:`h`
+Minus  r00  r03 r00:((`a` + `b`) - (((`c` % `d`) * `e`) / `f`)) -= r03:((543 * `g`) DIV `h`)
+Min    A00  r00 A00:MIN <- r00:(((`a` + `b`) - (((`c` % `d`) * `e`) / `f`)) - ((543 * `g`) DIV `h`))
+Load   r00  C02 r00 = C02:`b`
+Rem    r02  r00 r02:`a` %= r00:`b`
+DivInt r02  r05 r02:(`a` % `b`) DIV= r05:`c`
+Rem    r02  r04 r02:((`a` % `b`) DIV `c`) %= r04:`d`
+DivInt r02  r06 r02:(((`a` % `b`) DIV `c`) % `d`) DIV= r06:`e`
+Rem    r02  r07 r02:((((`a` % `b`) DIV `c`) % `d`) DIV `e`) %= r07:`f`
+Sum    A01  r02 A01:SUM <- r02:(((((`a` % `b`) DIV `c`) % `d`) DIV `e`) % `f`)
+
+Execute as table scan.
+(There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
+
+Output in UTF-8 encoded JSON format.
+The program for post-processing and output has 18 instructions.
+

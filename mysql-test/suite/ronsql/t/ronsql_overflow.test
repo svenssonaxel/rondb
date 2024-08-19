@@ -1,0 +1,48 @@
+--source include/have_ndb.inc
+
+--let RAND_SEED=89
+--let NUM_ROWS=10
+--source suite/ronsql/include/ronsql_create_table_api_scan.inc
+
+DELIMITER |;
+--echo
+--echo
+--echo
+
+
+
+--echo Table scan:
+let $QUERY=
+SELECT cchar as char_gr
+     , sint24 as int_gr
+     , sum(uint64+uint8)
+     , min(cdouble) AS mindbl
+     , max(uint24) as max24
+FROM api_scan
+WHERE sint8 = 66
+GROUP BY cchar
+       , sint24;|
+--source suite/ronsql/include/ronsql_compare.inc
+
+--echo Simple DIV operations with NULL:
+let $QUERY=
+SELECT sint8
+     , count(sint16 DIV ( sint8      % 2)) as odd_count
+     , count(sint16 DIV ((sint8 + 1) % 2)) as evn_count
+     , min(  sint16 DIV ( sint8      % 2)) as odd_min
+     , min(  sint16 DIV ((sint8 + 1) % 2)) as evn_min
+     , max(  sint16 DIV ( sint8      % 2)) as odd_max
+     , max(  sint16 DIV ((sint8 + 1) % 2)) as evn_max
+     , sum(  sint16 DIV ( sint8      % 2)) as odd_sum
+     , sum(  sint16 DIV ((sint8 + 1) % 2)) as evn_sum
+FROM api_scan
+WHERE (sint8 >= -20 and sint8 < 5
+       or sint8 > 97 and sint8 <= 113)
+GROUP BY sint8;|
+--source suite/ronsql/include/ronsql_compare.inc
+
+
+
+--echo Cleanup
+DELIMITER ;|
+DROP TABLE api_scan;

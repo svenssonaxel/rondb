@@ -593,4 +593,13 @@ EOF
 --exec $PARSE_TEST_QUERY_FILE
 --remove_file $QUERY_FILE
 
-# todo add complex expression inside agg fun, including % and DIV
+--echo ===== Complex aggregation with % and DIV =====
+--write_file $QUERY_FILE
+select col1
+      ,min(a+b-c%d*e/f-543*g DIV h)
+      ,sum(a%b DIV c%d DIV e%f)
+from tbl
+group by col1;
+EOF
+--exec $PARSE_TEST_QUERY_FILE
+--remove_file $QUERY_FILE
