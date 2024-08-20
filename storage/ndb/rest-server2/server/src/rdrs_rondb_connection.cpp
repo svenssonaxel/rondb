@@ -179,8 +179,8 @@ void RDRSRonDBConnection::ReturnNDBObjectToPool(Ndb *ndb_object, RS_Status *stat
   }
 
   // Note there are no unit test for this
-  // Inorder to test this run the  TestReconnection1 for longer duration
-  // and then drop the ndbconnection  using iptables or by disconnection the network
+  // In order to test this run the TestReconnection1 for longer duration
+  // and then drop the ndbconnection using iptables or by disconnection the network
   if (status != nullptr && status->http_code != SUCCESS) {  // check for errors
     // Classification.UnknownResultError is the classification
     // for loss of connectivity to the cluster
