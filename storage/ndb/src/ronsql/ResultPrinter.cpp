@@ -27,7 +27,8 @@
 #include "ResultPrinter.hpp"
 #include "define_formatter.hpp"
 #include "RonSQLPreparer.hpp"
-#include "my_time.h"
+#include "my_time.h" // todo is this necessary in 24.10?
+#include "mysql/strings/dtoa.h"
 
 using std::endl;
 using std::max;

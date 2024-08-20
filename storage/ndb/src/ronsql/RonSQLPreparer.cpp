@@ -849,7 +849,6 @@ RonSQLPreparer::execute()
     m_resultprinter->print_result(&aggregator, m_conf.query_output_stream);
 
     ndb->closeTransaction(myTrans);
-    std::basic_ostream<char>& err = *m_conf.err_output_stream;
   }
   catch (const std::exception& e)
   {
