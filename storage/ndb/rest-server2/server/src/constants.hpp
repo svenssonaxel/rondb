@@ -26,6 +26,7 @@
 #define PING        "ping"
 #define PKREAD      "pk-read"
 #define BATCH       "batch"
+#define RONSQL      "ronsql"
 
 #define MAKE_PATH(version, endpoint) "/" version "/" endpoint
 
@@ -33,6 +34,7 @@
 #define BATCH_PATH MAKE_PATH(API_VERSION, BATCH)
 
 #define PKREAD_PATH "/" API_VERSION "/{db}/{table}/" PKREAD
+#define RONSQL_PATH "/" API_VERSION "/" RONSQL
 
 constexpr const char *CONFIG_FILE_PATH               = "RDRS_CONFIG_FILE";
 constexpr const char *LOCALHOST                      = "localhost";
@@ -74,6 +76,11 @@ constexpr const char *ROOT_STR                       = "root";
 constexpr const char *PASSWORD                       = "Password";
 constexpr const char *API_KEY_NAME_LOWER_CASE =
     "x-api-key";  // Drogon always receives the header as lowercase
+constexpr const char *QUERY                          = "query";
+constexpr const char *DATABASE                       = "database";
+constexpr const char *EXPLAIN_MODE                   = "explainMode";
+constexpr const char *QUERY_OUTPUT_FORMAT            = "queryOutputFormat";
+constexpr const char *EXPLAIN_OUTPUT_FORMAT          = "explainOutputFormat";
 
 const int RESP_BUFFER_SIZE                 = 5 * 1024 * 1024;
 const int REQ_BUFFER_SIZE                  = 1024 * 1024;

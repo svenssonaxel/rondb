@@ -811,6 +811,128 @@ RS_Status JSONParser::config_parse(const std::string &configsBody, AllConfigs &c
   return CRS_Status::SUCCESS.status;
 }
 
+RS_Status JSONParser::ronsql_parse(size_t threadId, simdjson::padded_string_view reqBody,
+                                   RonSQLParams &reqStruct) {
+  const char *currentLocation = nullptr;
+
+  simdjson::error_code error = parser[threadId].iterate(reqBody).get(doc[threadId]);
+  if (error != simdjson::SUCCESS) {
+    return handle_simdjson_error(error, doc[threadId], currentLocation);
+  }
+
+  simdjson::ondemand::object reqObject;
+  error = doc[threadId].get_object().get(reqObject);
+  if (error != simdjson::SUCCESS) {
+    return handle_simdjson_error(error, doc[threadId], currentLocation);
+  }
+
+  std::string_view query;
+  auto queryVal = reqObject[QUERY];
+  if (queryVal.error() != simdjson::SUCCESS) {
+    return handle_simdjson_error(queryVal.error(), doc[threadId], currentLocation);
+  } else {
+    if (queryVal.is_null()) {
+      query = "";
+    } else {
+      error = queryVal.get(query);
+      if (error != simdjson::SUCCESS) {
+        return handle_simdjson_error(error, doc[threadId], currentLocation);
+      }
+    }
+  }
+  reqStruct.query = query;
+
+  std::string_view database;
+  auto databaseVal = reqObject[DATABASE];
+  if (databaseVal.error() != simdjson::SUCCESS) {
+    return handle_simdjson_error(databaseVal.error(), doc[threadId], currentLocation);
+  } else {
+    if (databaseVal.is_null()) {
+      database = "";
+    } else {
+      error = databaseVal.get(database);
+      if (error != simdjson::SUCCESS) {
+        return handle_simdjson_error(error, doc[threadId], currentLocation);
+      }
+    }
+  }
+  reqStruct.database = database;
+
+  std::string_view explainMode;
+  auto explainModeVal = reqObject[EXPLAIN_MODE];
+  if (explainModeVal.error() == simdjson::error_code::NO_SUCH_FIELD) {
+    explainMode = "ALLOW";
+  } else if (explainModeVal.error() != simdjson::SUCCESS) {
+    return handle_simdjson_error(explainModeVal.error(), doc[threadId], currentLocation);
+  } else {
+    if (explainModeVal.is_null()) {
+      explainMode = "";
+    } else {
+      error = explainModeVal.get(explainMode);
+      if (error != simdjson::SUCCESS) {
+        return handle_simdjson_error(error, doc[threadId], currentLocation);
+      }
+    }
+  }
+  reqStruct.explainMode = explainMode;
+
+  std::string_view queryOutputFormat;
+  auto queryOutputFormatVal = reqObject[QUERY_OUTPUT_FORMAT];
+  if (queryOutputFormatVal.error() == simdjson::error_code::NO_SUCH_FIELD) {
+    queryOutputFormat = "JSON_UTF8";
+  } else if (queryOutputFormatVal.error() != simdjson::SUCCESS) {
+    return handle_simdjson_error(queryOutputFormatVal.error(), doc[threadId], currentLocation);
+  } else {
+    if (queryOutputFormatVal.is_null()) {
+      queryOutputFormat = "";
+    } else {
+      error = queryOutputFormatVal.get(queryOutputFormat);
+      if (error != simdjson::SUCCESS) {
+        return handle_simdjson_error(error, doc[threadId], currentLocation);
+      }
+    }
+  }
+  reqStruct.queryOutputFormat = queryOutputFormat;
+
+  std::string_view explainOutputFormat;
+  auto explainOutputFormatVal = reqObject[EXPLAIN_OUTPUT_FORMAT];
+  if (explainOutputFormatVal.error() == simdjson::error_code::NO_SUCH_FIELD) {
+    explainOutputFormat = "JSON_UTF8";
+  } else if (explainOutputFormatVal.error() != simdjson::SUCCESS) {
+    return handle_simdjson_error(explainOutputFormatVal.error(), doc[threadId], currentLocation);
+  } else {
+    if (explainOutputFormatVal.is_null()) {
+      explainOutputFormat = "";
+    } else {
+      error = explainOutputFormatVal.get(explainOutputFormat);
+      if (error != simdjson::SUCCESS) {
+        return handle_simdjson_error(error, doc[threadId], currentLocation);
+      }
+    }
+  }
+  reqStruct.explainOutputFormat = explainOutputFormat;
+
+  std::string_view operationId;
+  auto operationIdVal = reqObject[OPERATION_ID];
+  if (operationIdVal.error() == simdjson::error_code::NO_SUCH_FIELD) {
+    operationId = "";
+  } else if (operationIdVal.error() != simdjson::SUCCESS) {
+    return handle_simdjson_error(operationIdVal.error(), doc[threadId], currentLocation);
+  } else {
+    if (operationIdVal.is_null()) {
+      operationId = "";
+    } else {
+      error = operationIdVal.get(operationId);
+      if (error != simdjson::SUCCESS) {
+        return handle_simdjson_error(error, doc[threadId], currentLocation);
+      }
+    }
+  }
+  reqStruct.operationId = operationId;
+
+  return CRS_Status().status;
+}
+
 RS_Status extract_db_and_table(const std::string &relativeUrl, std::string &db,
                                std::string &table) {
   // Find the positions of the last three slashes
