@@ -75,7 +75,7 @@ RS_Status validate_db_identifier(const std::string &identifier) {
   for (size_t i = 0; i < identifier.length(); ++i) {
     uint32_t code = decode_utf8_to_unicode(identifier, i);
 
-    if ((code < 0x01 || code > 0x7F) && (code < 0x80 || code > 0xFFFF)) {
+    if (code < 0x01 || code > 0xFFFF) {
       return CRS_Status(static_cast<HTTP_CODE>(drogon::HttpStatusCode::k400BadRequest),
                         ERROR_CODE_INVALID_IDENTIFIER,
                         (std::string(ERROR_040) + ": " + std::to_string(code)).c_str())
