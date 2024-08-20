@@ -37,20 +37,16 @@ struct ExecutionParameters
   size_t sql_len = 0;
   ArenaAllocator* aalloc;
   Ndb* ndb = NULL;
-  enum class ExecutionMode
+  enum class ExplainMode
   {
-    ALLOW_BOTH_QUERY_AND_EXPLAIN, // Explain if EXPLAIN keyword is present in
-                                  // SQL code, otherwise query.
-    ALLOW_QUERY_ONLY,             // Throw an exception if EXPLAIN keyword is
-                                  // present in SQL code, otherwise query.
-    ALLOW_EXPLAIN_ONLY,           // Explain if EXPLAIN keyword is present in
-                                  // SQL code, otherwise throw an exception.
-    QUERY_OVERRIDE,               // Query regardless of whether EXPLAIN keyword
-                                  // is present in SQL code.
-    EXPLAIN_OVERRIDE,             // Explain regardless of whether EXPLAIN
-                                  // keyword is present in SQL code.
+             // SELECT causes: | EXPLAIN SELECT causes: | Ndb connection required:
+    ALLOW,   // SELECT         | EXPLAIN SELECT         | Yes
+    FORBID,  // SELECT         | Exception              | Yes
+    REQUIRE, // Exception      | EXPLAIN SELECT         | No
+    REMOVE,  // SELECT         | SELECT                 | Yes
+    FORCE,   // EXPLAIN SELECT | EXPLAIN SELECT         | No
   };
-  ExecutionMode mode = ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN;
+  ExplainMode explain_mode = ExplainMode::ALLOW;
   std::basic_ostream<char>* query_output_stream = NULL;
   enum class QueryOutputFormat
   {

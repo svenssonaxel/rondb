@@ -159,16 +159,15 @@ print_help(const char* argv0)
     "  --connect-string <STRING>     Ndb connection string (If not given, then no\n"
     "                                connection is made. Without a connection,\n"
     "                                queries are not supported and explain output\n"
-    "                                will be somewhat limited. Execution mode must be\n"
-    "                                set to either ALLOW_EXPLAIN_ONLY or\n"
-    "                                EXPLAIN_OVERRIDE.)\n"
-    // See RonSQLCommon.hpp for comment about execution mode
-    "  --execution-mode <MODE>       Set execution mode. <MODE> can be one of:\n"
-    "                                - ALLOW_BOTH_QUERY_AND_EXPLAIN (default)\n"
-    "                                - ALLOW_QUERY_ONLY\n"
-    "                                - ALLOW_EXPLAIN_ONLY\n"
-    "                                - QUERY_OVERRIDE\n"
-    "                                - EXPLAIN_OVERRIDE\n"
+    "                                will be somewhat limited. Explain mode must be\n"
+    "                                set to either REQUIRE or FORCE.\n"
+    // See RonSQLCommon.hpp for comment about explain mode
+    "  --explain-mode <MODE>         Set explain mode. <MODE> can be one of:\n"
+    "                                - ALLOW (default)\n"
+    "                                - FORBID\n"
+    "                                - REQUIRE\n"
+    "                                - REMOVE\n"
+    "                                - FORCE\n"
     // See RonSQLCommon.hpp for comment about query output format
     "  --query-output-format <FMT>   Set query output format. <FMT> can be one of:\n"
     "                                - JSON_UTF8, default if stdin and stdout are\n"
@@ -202,7 +201,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
   enum {
     OPT_EXECUTE_FILE = 256,
     OPT_CONNECT_STRING,
-    OPT_EXECUTION_MODE,
+    OPT_EXPLAIN_MODE,
     OPT_QUERY_OUTPUT_FORMAT,
     OPT_EXPLAIN_OUTPUT_FORMAT,
   };
@@ -215,7 +214,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
     {"silent", required_argument, 0, 's'},
     {"execute-file", required_argument, 0, OPT_EXECUTE_FILE},
     {"connect-string", required_argument, 0, OPT_CONNECT_STRING},
-    {"execution-mode", required_argument, 0, OPT_EXECUTION_MODE},
+    {"explain-mode", required_argument, 0, OPT_EXPLAIN_MODE},
     {"query-output-format", required_argument, 0, OPT_QUERY_OUTPUT_FORMAT},
     {"explain-output-format", required_argument, 0, OPT_EXPLAIN_OUTPUT_FORMAT},
     {0, 0, 0, 0}
@@ -292,19 +291,19 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
       }
       break;
     case OPT_CONNECT_STRING: config.connectstring = optarg; break;
-    case OPT_EXECUTION_MODE:
-      if (strcmp(optarg, "ALLOW_BOTH_QUERY_AND_EXPLAIN") == 0)
-        params.mode = ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN;
-      else if (strcmp(optarg, "ALLOW_QUERY_ONLY") == 0)
-        params.mode = ExecutionParameters::ExecutionMode::ALLOW_QUERY_ONLY;
-      else if (strcmp(optarg, "ALLOW_EXPLAIN_ONLY") == 0)
-        params.mode = ExecutionParameters::ExecutionMode::ALLOW_EXPLAIN_ONLY;
-      else if (strcmp(optarg, "QUERY_OVERRIDE") == 0)
-        params.mode = ExecutionParameters::ExecutionMode::QUERY_OVERRIDE;
-      else if (strcmp(optarg, "EXPLAIN_OVERRIDE") == 0)
-        params.mode = ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE;
+    case OPT_EXPLAIN_MODE:
+      if (strcmp(optarg, "ALLOW") == 0)
+        params.explain_mode = ExecutionParameters::ExplainMode::ALLOW;
+      else if (strcmp(optarg, "FORBID") == 0)
+        params.explain_mode = ExecutionParameters::ExplainMode::FORBID;
+      else if (strcmp(optarg, "REQUIRE") == 0)
+        params.explain_mode = ExecutionParameters::ExplainMode::REQUIRE;
+      else if (strcmp(optarg, "REMOVE") == 0)
+        params.explain_mode = ExecutionParameters::ExplainMode::REMOVE;
+      else if (strcmp(optarg, "FORCE") == 0)
+        params.explain_mode = ExecutionParameters::ExplainMode::FORCE;
       else
-        ARG_FAIL("Invalid execution mode.");
+        ARG_FAIL("Invalid explain mode.");
       break;
     case OPT_QUERY_OUTPUT_FORMAT:
       if (strcmp(optarg, "JSON_UTF8") == 0)

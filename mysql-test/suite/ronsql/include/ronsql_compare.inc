@@ -34,7 +34,7 @@ if ($canonicalization_script) {
 if ($explain_ronsql) {
 --echo
 --echo == RonSQL EXPLAIN ==
---exec $RONSQL_CLI_EXE --connect-string $NDB_CONNECTSTRING --execution-mode EXPLAIN_OVERRIDE $QUERY_PARAMS
+--exec $RONSQL_CLI_EXE --connect-string $NDB_CONNECTSTRING --explain-mode FORCE $QUERY_PARAMS
 }
 if ($show_all_results) {
 --echo

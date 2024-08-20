@@ -112,15 +112,15 @@ RonSQLPreparer::configure()
   assert(m_conf.sql_buffer != NULL);
   assert(m_conf.sql_len > 0);
   assert(m_conf.aalloc != NULL);
-  ExecutionParameters::ExecutionMode mode = m_conf.mode;
+  ExecutionParameters::ExplainMode mode = m_conf.explain_mode;
   bool may_query =
-    (mode == ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN ||
-     mode == ExecutionParameters::ExecutionMode::ALLOW_QUERY_ONLY ||
-     mode == ExecutionParameters::ExecutionMode::QUERY_OVERRIDE);
+    (mode == ExecutionParameters::ExplainMode::ALLOW ||
+     mode == ExecutionParameters::ExplainMode::FORBID ||
+     mode == ExecutionParameters::ExplainMode::REMOVE);
   bool may_explain =
-    (mode == ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN ||
-     mode == ExecutionParameters::ExecutionMode::ALLOW_EXPLAIN_ONLY ||
-     mode == ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE);
+    (mode == ExecutionParameters::ExplainMode::ALLOW ||
+     mode == ExecutionParameters::ExplainMode::REQUIRE ||
+     mode == ExecutionParameters::ExplainMode::FORCE);
   assert(may_query || may_explain);
   if (may_query)
   {
@@ -678,24 +678,24 @@ RonSQLPreparer::execute()
   try
   {
     bool do_explain = m_context.ast_root.do_explain;
-    switch (m_conf.mode)
+    switch (m_conf.explain_mode)
     {
-    case ExecutionParameters::ExecutionMode::ALLOW_BOTH_QUERY_AND_EXPLAIN:
+    case ExecutionParameters::ExplainMode::ALLOW:
       break;
-    case ExecutionParameters::ExecutionMode::ALLOW_QUERY_ONLY:
-      soft_assert(!do_explain, "Execution mode does not allow EXPLAIN.");
+    case ExecutionParameters::ExplainMode::FORBID:
+      soft_assert(!do_explain, "Explain mode does not allow EXPLAIN.");
       break;
-    case ExecutionParameters::ExecutionMode::ALLOW_EXPLAIN_ONLY:
-      soft_assert(do_explain, "Execution mode does not allow query, only EXPLAIN.");
+    case ExecutionParameters::ExplainMode::REQUIRE:
+      soft_assert(do_explain, "Explain mode does not allow query, only EXPLAIN.");
       break;
-    case ExecutionParameters::ExecutionMode::QUERY_OVERRIDE:
+    case ExecutionParameters::ExplainMode::REMOVE:
       do_explain = false;
       break;
-    case ExecutionParameters::ExecutionMode::EXPLAIN_OVERRIDE:
+    case ExecutionParameters::ExplainMode::FORCE:
       do_explain = true;
       break;
     default:
-      throw runtime_error("Invalid execution mode.");
+      throw runtime_error("Invalid explain mode.");
     }
     if (do_explain)
     {

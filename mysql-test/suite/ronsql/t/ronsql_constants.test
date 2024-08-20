@@ -1,6 +1,6 @@
 --source include/have_ndb.inc
 
---let PARSE_TEST=$RONSQL_CLI_EXE --query-output-format JSON_UTF8 --execution-mode=EXPLAIN_OVERRIDE 2>&1 -e
+--let PARSE_TEST=$RONSQL_CLI_EXE --query-output-format JSON_UTF8 --explain-mode=FORCE 2>&1 -e
 
 --echo ===== Max Int64 integer constant =====
 --exec $PARSE_TEST 'select sum(9223372036854775807) from tbl;'
