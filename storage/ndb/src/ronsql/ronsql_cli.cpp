@@ -392,7 +392,7 @@ run_ronsql(ExecutionParameters& params)
   }
   catch (RonSQLPreparer::TemporaryError& e)
   {
-    cerr << "Caught temporary error: " << e.what() << endl;
+    cerr << "ronsql_cli caught temporary error: " << e.what() << endl;
     // Use exit code 3 to distinguish temporary errors.
     // Avoid exit code 2 as it is used by e.g. bash.
       return 3;
