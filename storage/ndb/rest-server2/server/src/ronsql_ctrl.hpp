@@ -28,17 +28,7 @@
 #include <drogon/HttpSimpleController.h>
 
 #include "storage/ndb/src/ronsql/RonSQLCommon.hpp"
-
-class RonSQLParams {
- public:
-  RonSQLParams();
-  std::string query;
-  std::string database;
-  std::string explainMode;
-  std::string queryOutputFormat;
-  std::string explainOutputFormat;
-  std::string operationId;
-};
+#include "ronsql_data_structs.hpp"
 
 class RonSQLCtrl : public drogon::HttpController<RonSQLCtrl> {
  public:
@@ -50,11 +40,13 @@ class RonSQLCtrl : public drogon::HttpController<RonSQLCtrl> {
                      std::function<void(const drogon::HttpResponsePtr &)> &&callback);
 };
 
+RS_Status ronsql_validate_database_name(std::string& database);
+
 RS_Status ronsql_validate_and_init_params(RonSQLParams& input,
                                           ExecutionParameters& ep,
-                                          ArenaAllocator* aalloc,
-                                          Ndb* myNdb);
-
-bool ronsql_run(ExecutionParameters params);
+                                          std::ostringstream* query_output,
+                                          std::ostringstream* explain_output,
+                                          std::ostringstream* err_output,
+                                          ArenaAllocator* aalloc);
 
 #endif  // STORAGE_NDB_REST_SERVER2_SERVER_SRC_RONSQL_CTRL_HPP_

@@ -17,6 +17,12 @@
  * USA.
  */
 
+struct ExecutionParameters; /*
+                             * struct ExecutionParameters is defined in
+                             * "storage/ndb/src/ronsql/RonSQLCommon.hpp" but we
+                             * can't include an .hpp file here.
+                             */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -139,6 +145,11 @@ RS_Status pk_read(RS_Buffer *reqBuff, RS_Buffer *respBuff);
  * Batched primary key read operation
  */
 RS_Status pk_batch_read(unsigned int no_req, RS_Buffer *req_buffs, RS_Buffer *resp_buffs);
+
+/**
+ * RonSQL query
+ */
+RS_Status ronsql_dal(const char* database, ExecutionParameters& ep);
 
 /**
  * Returns statistis about RonDB connection
