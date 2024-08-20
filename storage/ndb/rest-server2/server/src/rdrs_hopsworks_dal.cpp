@@ -179,6 +179,7 @@ RS_Status find_api_key_int(Ndb *ndb_object, const char *prefix, HopsworksAPIKey 
   return RS_OK;
 }
 
+// todo how to use find_api_key for ronsql?
 RS_Status find_api_key(const char *prefix, HopsworksAPIKey *api_key) {
   Ndb *ndb_object  = nullptr;
   RS_Status status = rdrsRonDBConnectionPool->GetMetadataNdbObject(&ndb_object);

@@ -217,6 +217,7 @@ RS_Status PKReadParams::validate() {
     if (status.code == ERROR_CODE_INVALID_IDENTIFIER)
       return CRS_Status(static_cast<HTTP_CODE>(drogon::HttpStatusCode::k400BadRequest),
                         ERROR_CODE_INVALID_IDENTIFIER,
+                        // todo perhaps putting invalid characters in an error message isn't the best idea
                         ("db name: " + path.db + " contains invalid characters").c_str())
           .status;
     return CRS_Status(static_cast<HTTP_CODE>(drogon::HttpStatusCode::k400BadRequest),
