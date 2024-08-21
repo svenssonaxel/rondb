@@ -20,15 +20,11 @@
 #ifndef STORAGE_NDB_REST_SERVER2_SERVER_SRC_RONSQL_CTRL_HPP_
 #define STORAGE_NDB_REST_SERVER2_SERVER_SRC_RONSQL_CTRL_HPP_
 
-#include "rdrs_dal.h"
-#include "constants.hpp"
-#include "base_ctrl.hpp"
-
 #include <drogon/drogon.h>
-#include <drogon/HttpSimpleController.h>
-
-#include "storage/ndb/src/ronsql/RonSQLCommon.hpp"
+#include "constants.hpp"
+#include "status.hpp"
 #include "ronsql_data_structs.hpp"
+#include "storage/ndb/src/ronsql/RonSQLCommon.hpp"
 
 class RonSQLCtrl : public drogon::HttpController<RonSQLCtrl> {
  public:

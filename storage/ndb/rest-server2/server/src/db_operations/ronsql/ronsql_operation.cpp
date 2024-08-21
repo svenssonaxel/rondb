@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Hopsworks AB
+ * Copyright (c) 2024, 2024, Hopsworks and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,28 +18,8 @@
  */
 
 #include "ronsql_operation.hpp"
-#include "NdbBlob.hpp"
-#include "NdbOperation.hpp"
-#include "NdbRecAttr.hpp"
-#include "NdbTransaction.hpp"
 #include "src/error_strings.h"
-#include "src/logger.hpp"
-#include "src/rdrs_const.h"
-#include "src/status.hpp"
-#include "src/mystring.hpp"
-
-#include <memory>
-#include <mysql_time.h>
-#include <algorithm>
-#include <utility>
-#include <my_base.h>
-#include <storage/ndb/include/ndbapi/NdbDictionary.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/beast/core/detail/base64.hpp>
-
-#include "storage/ndb/src/ronsql/RonSQLCommon.hpp"
 #include "storage/ndb/src/ronsql/RonSQLPreparer.hpp"
-
 
 RS_Status ronsql_op(ExecutionParameters& params) {
   std::basic_ostream<char>& err = *params.err_output_stream;

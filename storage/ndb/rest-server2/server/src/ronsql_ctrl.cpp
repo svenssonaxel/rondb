@@ -18,25 +18,11 @@
  */
 
 #include "ronsql_ctrl.hpp"
-#include "ronsql_data_structs.hpp"
 #include "error_strings.h"
 #include "rdrs_dal.hpp"
-
-#include "src/status.hpp"
-
 #include "json_parser.hpp"
-#include "encoding.hpp"
-#include "buffer_manager.hpp"
-#include "config_structs.hpp"
-#include "constants.hpp"
-
-#include <cstring>
 #include <drogon/HttpTypes.h>
-#include <memory>
-#include <simdjson.h>
-
 #include "storage/ndb/src/ronsql/RonSQLPreparer.hpp"
-#include "storage/ndb/src/ronsql/RonSQLCommon.hpp"
 
 using std::endl;
 

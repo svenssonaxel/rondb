@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Hopsworks AB
+ * Copyright (c) 2024, 2024, Hopsworks and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,19 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
- 
+
 #ifndef STORAGE_NDB_REST_SERVER2_SERVER_SRC_DB_OPERATIONS_RONSQL_OPERATION_HPP_
 #define STORAGE_NDB_REST_SERVER2_SERVER_SRC_DB_OPERATIONS_RONSQL_OPERATION_HPP_
 
-#include "src/rdrs_dal.h"
-
-#include <memory>
-#include <stdint.h>
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include <NdbApi.hpp>
-
+#include "src/status.hpp"
 #include "storage/ndb/src/ronsql/RonSQLCommon.hpp"
 
 RS_Status ronsql_op(ExecutionParameters& params);
