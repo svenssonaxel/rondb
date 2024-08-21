@@ -254,7 +254,7 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
     return_err_for_this_rule(LITERAL_INTEGER_TOO_BIG);
   }
   if (yyleng == 19) {
-    constexpr char* maxInt64Str = "9223372036854775807";
+    constexpr const char* maxInt64Str = "9223372036854775807";
     for (int i = 0; i < 19; i++) {
       if (yytext[i] > maxInt64Str[i]) {
         return_err_for_this_rule(LITERAL_INTEGER_TOO_BIG);
