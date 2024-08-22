@@ -27,7 +27,6 @@
 #include <assert.h>
 #include <cstring>
 #include "AggregationAPICompiler.hpp"
-#define UINT_MAX ((uint)0xffffffff)
 using std::endl;
 using std::max;
 using std::runtime_error;
@@ -511,7 +510,7 @@ AggregationAPICompiler::compile(Expr* expr, uint* reg)
   // argument.
   if (expr->op == ExprOp::Load)
   {
-    if (!seize_register(reg, UINT_MAX))
+    if (!seize_register(reg, UINT32_MAX))
     {
       return false;
     }
@@ -521,7 +520,7 @@ AggregationAPICompiler::compile(Expr* expr, uint* reg)
   }
   if (expr->op == ExprOp::LoadConstantInt)
   {
-    if (!seize_register(reg, UINT_MAX))
+    if (!seize_register(reg, UINT32_MAX))
     {
       return false;
     }
@@ -625,7 +624,7 @@ AggregationAPICompiler::compile(Expr* expr, uint* reg)
     }
     if (!copy_already_exists)
     {
-      if (!seize_register(&new_dest, UINT_MAX))
+      if (!seize_register(&new_dest, UINT32_MAX))
       {
         return false;
       }
@@ -663,13 +662,13 @@ AggregationAPICompiler::seize_register(uint* reg, uint max_cost)
 {
   assert_status(COMPILING);
   uint cost[REGS];
-  uint min_cost = UINT_MAX;
+  uint min_cost = UINT32_MAX;
   uint ret = 0;
   for (uint i=0; i<REGS; i++)
   {
     if (m_locked[i])
     {
-      cost[i] = UINT_MAX;
+      cost[i] = UINT32_MAX;
     }
     else if (r[i] == NULL)
     {

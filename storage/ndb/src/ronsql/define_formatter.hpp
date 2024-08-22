@@ -22,8 +22,8 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#ifndef define_formatter_hpp_included
-#define define_formatter_hpp_included 1
+#ifndef STORAGE_NDB_SRC_RONSQL_DEFINE_FORMATTER_HPP
+#define STORAGE_NDB_SRC_RONSQL_DEFINE_FORMATTER_HPP 1
 
 /*
  * The DEFINE_FORMATTER macro is used to define a custom formatter for

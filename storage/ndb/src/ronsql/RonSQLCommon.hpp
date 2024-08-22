@@ -22,8 +22,8 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#ifndef RonSQLCommon_hpp_included
-#define RonSQLCommon_hpp_included 1
+#ifndef STORAGE_NDB_SRC_RONSQL_RONSQLCOMMON_HPP
+#define STORAGE_NDB_SRC_RONSQL_RONSQLCOMMON_HPP 1
 
 #include "Ndb.hpp"
 #include "NdbOperation.hpp"

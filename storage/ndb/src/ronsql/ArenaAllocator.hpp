@@ -22,8 +22,8 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#ifndef ArenaAllocator_hpp_included
-#define ArenaAllocator_hpp_included 1
+#ifndef STORAGE_NDB_SRC_RONSQL_ARENAALLOCATOR_HPP
+#define STORAGE_NDB_SRC_RONSQL_ARENAALLOCATOR_HPP 1
 
 #include <assert.h>
 #include <stdexcept>

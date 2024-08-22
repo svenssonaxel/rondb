@@ -22,8 +22,8 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#ifndef AggregationAPICompiler_hpp
-#define AggregationAPICompiler_hpp 1
+#ifndef STORAGE_NDB_SRC_RONSQL_AGGREGATIONAPICOMPILER_HPP
+#define STORAGE_NDB_SRC_RONSQL_AGGREGATIONAPICOMPILER_HPP 1
 
 #include <stdlib.h>
 #include <stdexcept>

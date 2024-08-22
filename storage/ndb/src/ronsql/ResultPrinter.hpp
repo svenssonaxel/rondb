@@ -22,8 +22,8 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#ifndef ResultPrinter_hpp_included
-#define ResultPrinter_hpp_included 1
+#ifndef STORAGE_NDB_SRC_RONSQL_RESULTPRINTER_HPP
+#define STORAGE_NDB_SRC_RONSQL_RESULTPRINTER_HPP 1
 
 #include "NdbAggregator.hpp"
 

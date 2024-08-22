@@ -22,8 +22,8 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#ifndef keywords_hpp
-#define keywords_hpp 1
+#ifndef STORAGE_NDB_SRC_RONSQL_KEYWORDS_HPP
+#define STORAGE_NDB_SRC_RONSQL_KEYWORDS_HPP 1
 
 #include "RonSQLParser.y.hpp"
 
