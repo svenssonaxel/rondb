@@ -51,7 +51,7 @@ private:
   static const size_t OVERHEAD = offsetof(struct Page, data);
   static_assert(OVERHEAD < DEFAULT_PAGE_SIZE, "default page size too small");
   struct Page* m_current_page = NULL;
-  uintptr_t m_point = 0;
+  uintptr_t m_point = 0; // todo change to UintPtr, and use other RonDB datatypes
   uintptr_t m_stop = 0;
 # ifdef ARENA_ALLOCATOR_DEBUG
   unsigned long int m_allocated_by_us = sizeof(ArenaAllocator);

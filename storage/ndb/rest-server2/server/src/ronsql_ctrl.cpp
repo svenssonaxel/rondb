@@ -177,7 +177,6 @@ void RonSQLCtrl::ronsql(const drogon::HttpRequestPtr &req,
     //
     //todo perhaps explain and output stream should be the same, since only one is ever used? At least return a flag for which was used.
     resp->setStatusCode(drogon::HttpStatusCode::k200OK);
-    resp->setBody(explain_output_str);
   }
   else {
     resp->setStatusCode(drogon::HttpStatusCode::k500InternalServerError);
@@ -190,19 +189,22 @@ void RonSQLCtrl::ronsql(const drogon::HttpRequestPtr &req,
 RS_Status ronsql_validate_database_name(std::string& database) {
   RS_Status status = validate_db_identifier(database);
   if (status.http_code != static_cast<HTTP_CODE>(drogon::HttpStatusCode::k200OK)) {
-    if (status.code == ERROR_CODE_EMPTY_IDENTIFIER)
+    if (status.code == ERROR_CODE_EMPTY_IDENTIFIER) {
       return CRS_Status(static_cast<HTTP_CODE>(drogon::HttpStatusCode::k400BadRequest),
                         ERROR_CODE_EMPTY_IDENTIFIER,
                         ERROR_049)
           .status;
-    if (status.code == ERROR_CODE_IDENTIFIER_TOO_LONG)
+    }
+    if (status.code == ERROR_CODE_IDENTIFIER_TOO_LONG) {
       return CRS_Status(static_cast<HTTP_CODE>(drogon::HttpStatusCode::k400BadRequest),
                         ERROR_CODE_MAX_DB, ERROR_050)
           .status;
-    if (status.code == ERROR_CODE_INVALID_IDENTIFIER)
+    }
+    if (status.code == ERROR_CODE_INVALID_IDENTIFIER) {
       return CRS_Status(static_cast<HTTP_CODE>(drogon::HttpStatusCode::k400BadRequest),
                         ERROR_CODE_INVALID_IDENTIFIER, ERROR_051)
           .status;
+    }
     return CRS_Status(static_cast<HTTP_CODE>(drogon::HttpStatusCode::k400BadRequest),
                       ERROR_CODE_INVALID_DB_NAME,
                       (std::string(ERROR_051) + "; error: " + status.message).c_str())
@@ -225,6 +227,9 @@ RS_Status ronsql_validate_and_init_params(RonSQLParams& req,
   memcpy(ep.sql_buffer, req.query.c_str(), req.query.length());
   ep.sql_buffer[ep.sql_len++] = '\0';
   ep.sql_buffer[ep.sql_len++] = '\0';
+  // aalloc -> ep.aalloc
+  assert(ep.aalloc == NULL);
+  ep.aalloc = aalloc;
   // req.explainMode -> ep.explain_mode
   if (req.explainMode == "ALLOW") {
     ep.explain_mode = ExecutionParameters::ExplainMode::ALLOW;
@@ -282,12 +287,16 @@ RS_Status ronsql_validate_and_init_params(RonSQLParams& req,
   assert(ep.err_output_stream == NULL);
   assert(err_output != NULL);
   ep.err_output_stream = err_output;
-  // Validate operationId
+  // req.operationId -> ep.operation_id
   RS_Status status = validate_operation_id(req.operationId);
   if (status.http_code != static_cast<HTTP_CODE>(drogon::HttpStatusCode::k200OK))
     return CRS_Status(static_cast<HTTP_CODE>(drogon::HttpStatusCode::k400BadRequest),
                       ERROR_CODE_INVALID_OPERATION_ID,
                       (std::string(ERROR_055) + "; error: " + status.message).c_str())
         .status;
+  if (!req.operationId.empty()) {
+    ep.operation_id = req.operationId.c_str();
+  }
+  // Everything ok
   return RS_OK;
 }

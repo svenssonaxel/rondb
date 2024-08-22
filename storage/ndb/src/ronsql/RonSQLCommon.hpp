@@ -35,7 +35,7 @@ struct ExecutionParameters
 {
   char* sql_buffer = NULL;
   size_t sql_len = 0;
-  ArenaAllocator* aalloc;
+  ArenaAllocator* aalloc = NULL;
   Ndb* ndb = NULL;
   enum class ExplainMode
   {
@@ -68,6 +68,7 @@ struct ExecutionParameters
   };
   ExplainOutputFormat explain_output_format = ExplainOutputFormat::TEXT;
   std::basic_ostream<char>* err_output_stream = NULL;
+  const char* operation_id = NULL; // Only used with RDRS
 };
 
 // Forward declaration used in struct Outputs below
