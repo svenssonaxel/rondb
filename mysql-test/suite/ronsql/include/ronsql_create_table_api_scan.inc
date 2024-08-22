@@ -24,7 +24,7 @@ perl;
   use strict;
   use warnings;
   # Setup
-  my $file_path = $ENV{TEST_DATA_TSV} // die "SQL_DATA_FILE environment variable is not set";
+  my $file_path = $ENV{TEST_DATA_TSV} // die "TEST_DATA_TSV environment variable is not set";
   my $files_cnt = 1; # This should be set according to your specific needs
   open(my $fh, '>', $file_path) or die "Could not open file '$file_path' $!";
   # Random seed

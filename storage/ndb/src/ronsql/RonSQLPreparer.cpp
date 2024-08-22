@@ -122,22 +122,16 @@ RonSQLPreparer::configure()
      mode == ExecutionParameters::ExplainMode::REQUIRE ||
      mode == ExecutionParameters::ExplainMode::FORCE);
   assert(may_query || may_explain);
+  assert(m_conf.out_stream != NULL);
+  assert(m_conf.output_format == ExecutionParameters::OutputFormat::JSON ||
+         m_conf.output_format == ExecutionParameters::OutputFormat::JSON_ASCII ||
+         m_conf.output_format == ExecutionParameters::OutputFormat::TEXT ||
+         m_conf.output_format == ExecutionParameters::OutputFormat::TEXT_NOHEADER);
   if (may_query)
   {
     assert(m_conf.ndb != NULL);
-    assert(m_conf.query_output_stream != NULL);
-    assert(m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_UTF8 ||
-           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::JSON_ASCII ||
-           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::TSV ||
-           m_conf.query_output_format == ExecutionParameters::QueryOutputFormat::TSV_DATA);
   }
-  if (may_explain)
-  {
-    assert(m_conf.explain_output_stream != NULL);
-    assert(m_conf.explain_output_format == ExecutionParameters::ExplainOutputFormat::TEXT ||
-           m_conf.explain_output_format == ExecutionParameters::ExplainOutputFormat::JSON_UTF8);
-  }
-  assert(m_conf.err_output_stream != NULL);
+  assert(m_conf.err_stream != NULL);
 
   /*
    * Both `yy_scan_string' and `yy_scan_bytes' create and scan a copy of the
@@ -167,7 +161,7 @@ RonSQLPreparer::configure()
 void
 RonSQLPreparer::parse()
 {
-  std::basic_ostream<char>& err = *m_conf.err_output_stream;
+  std::basic_ostream<char>& err = *m_conf.err_stream;
   int parse_result = rsqlp_parse(m_scanner);
   if (parse_result == 0)
   {
@@ -455,14 +449,14 @@ RonSQLPreparer::load()
   }
   if (!has_aggregate_outputs)
   {
-    assert(m_conf.err_output_stream != NULL);
-    std::basic_ostream<char>& err = *m_conf.err_output_stream;
+    assert(m_conf.err_stream != NULL);
+    std::basic_ostream<char>& err = *m_conf.err_stream;
     err << "This query has no aggregate expression, so it is not an aggregate query.\n"
            "Currently, RonSQL only supports aggregate queries.\n";
     throw runtime_error("Not an aggregate query.");
   }
 
-  std::basic_ostream<char>& err = *m_conf.err_output_stream;
+  std::basic_ostream<char>& err = *m_conf.err_stream;
   /*
    * During parsing, strings that were claimed to be column names were inserted
    * into m_columns. The element indexes in m_columns, usually called col_idx,
@@ -663,8 +657,8 @@ RonSQLPreparer::compile()
     ResultPrinter(m_aalloc,
                   &m_context.ast_root,
                   &m_columns,
-                  m_conf.query_output_format,
-                  m_conf.err_output_stream);
+                  m_conf.output_format,
+                  m_conf.err_stream);
 }
 
 void
@@ -683,10 +677,10 @@ RonSQLPreparer::execute()
     case ExecutionParameters::ExplainMode::ALLOW:
       break;
     case ExecutionParameters::ExplainMode::FORBID:
-      soft_assert(!do_explain, "Explain mode does not allow EXPLAIN.");
+      soft_assert(!do_explain, "Tried to EXPLAIN with explain mode set to FORBID.");
       break;
     case ExecutionParameters::ExplainMode::REQUIRE:
-      soft_assert(do_explain, "Explain mode does not allow query, only EXPLAIN.");
+      soft_assert(do_explain, "Tried to query with explain mode set to REQUIRE.");
       break;
     case ExecutionParameters::ExplainMode::REMOVE:
       do_explain = false;
@@ -699,13 +693,19 @@ RonSQLPreparer::execute()
     }
     if (do_explain)
     {
-      switch (m_conf.explain_output_format)
+      switch (m_conf.output_format)
       {
-      case ExecutionParameters::ExplainOutputFormat::TEXT:
+      case ExecutionParameters::OutputFormat::TEXT:
+        [[fallthrough]];
+      case ExecutionParameters::OutputFormat::TEXT_NOHEADER:
         print();
         break;
-      case ExecutionParameters::ExplainOutputFormat::JSON_UTF8:
+      case ExecutionParameters::OutputFormat::JSON:
         not_implemented();
+        break;
+      case ExecutionParameters::OutputFormat::JSON_ASCII:
+        not_implemented();
+        break;
       default:
         abort();
       }
@@ -846,7 +846,7 @@ RonSQLPreparer::execute()
     }
 
     // Print results
-    m_resultprinter->print_result(&aggregator, m_conf.query_output_stream);
+    m_resultprinter->print_result(&aggregator, m_conf.out_stream);
 
     ndb->closeTransaction(myTrans);
   }
@@ -862,7 +862,7 @@ RonSQLPreparer::execute()
     {
       ndb_err = myTrans->getNdbError();
     }
-    std::basic_ostream<char>& err = *m_conf.err_output_stream;
+    std::basic_ostream<char>& err = *m_conf.err_stream;
     switch (ndb_err.status)
     {
     case NdbError::Status::Success:
@@ -1234,7 +1234,7 @@ RonSQLPreparer::eval_const_expr(ConditionalExpression* ce)
 void
 RonSQLPreparer::programAggregator(NdbAggregator* aggregator)
 {
-  std::basic_ostream<char>& err = *m_conf.err_output_stream;
+  std::basic_ostream<char>& err = *m_conf.err_stream;
   SelectStatement& ast_root = m_context.ast_root;
   // Program groupby columns
   struct GroupbyColumns* groupby = ast_root.groupby_columns;
@@ -1315,7 +1315,7 @@ RonSQLPreparer::programAggregator(NdbAggregator* aggregator)
 void
 RonSQLPreparer::print()
 {
-  std::basic_ostream<char>& out = *m_conf.explain_output_stream;
+  std::basic_ostream<char>& out = *m_conf.out_stream;
 
   // Print query parse tree
   SelectStatement& ast_root = m_context.ast_root;
@@ -1516,8 +1516,8 @@ RonSQLPreparer::print()
 
   // Print post-processing information
   assert(m_resultprinter != NULL);
-  assert(m_conf.explain_output_stream != NULL);
-  m_resultprinter->explain(m_conf.explain_output_stream);
+  assert(m_conf.out_stream != NULL);
+  m_resultprinter->explain(m_conf.out_stream);
 
   out << '\n';
 }
@@ -1526,7 +1526,7 @@ void
 RonSQLPreparer::print(struct ConditionalExpression* ce,
                         LexString prefix)
 {
-  std::basic_ostream<char>& out = *m_conf.explain_output_stream;
+  std::basic_ostream<char>& out = *m_conf.out_stream;
   const char* opstr = NULL;
   bool prefix_op = false;
   switch (ce->op)
@@ -1722,7 +1722,7 @@ static const char* interval_type_name(int interval_type)
 void
 RonSQLPreparer::print(struct IndexScanConfig::Range& range, const char* col_name)
 {
-  std::basic_ostream<char>& out = *m_conf.explain_output_stream;
+  std::basic_ostream<char>& out = *m_conf.out_stream;
   if (range.ltype == IndexScanConfig::Range::Type::INCLUSIVE &&
       range.htype == IndexScanConfig::Range::Type::INCLUSIVE &&
       range.lvalue == range.hvalue)
@@ -1854,8 +1854,8 @@ RonSQLPreparer::Context::get_agg()
    */
   m_parser.m_agg = new (get_allocator()->alloc<AggregationAPICompiler>(1))
     AggregationAPICompiler(column_idx_to_name,
-                           *m_parser.m_conf.explain_output_stream,
-                           *m_parser.m_conf.err_output_stream,
+                           *m_parser.m_conf.out_stream,
+                           *m_parser.m_conf.err_stream,
                            m_parser.m_aalloc);
   return m_parser.m_agg;
 }

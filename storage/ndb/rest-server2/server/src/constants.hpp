@@ -79,8 +79,9 @@ constexpr const char *API_KEY_NAME_LOWER_CASE =
 constexpr const char *QUERY                          = "query";
 constexpr const char *DATABASE                       = "database";
 constexpr const char *EXPLAIN_MODE                   = "explainMode";
-constexpr const char *QUERY_OUTPUT_FORMAT            = "queryOutputFormat";
-constexpr const char *EXPLAIN_OUTPUT_FORMAT          = "explainOutputFormat";
+constexpr const char *DEFAULT_EXPLAIN_MODE           = "ALLOW";
+constexpr const char *OUTPUT_FORMAT                  = "outputFormat";
+constexpr const char *DEFAULT_OUTPUT_FORMAT          = "JSON";
 
 const int RESP_BUFFER_SIZE                 = 5 * 1024 * 1024;
 const int REQ_BUFFER_SIZE                  = 1024 * 1024;

@@ -76,15 +76,13 @@ void RonSQLCtrl::ronsql(const drogon::HttpRequestPtr &req,
     return;
   }
 
-  std::ostringstream query_output;
-  std::ostringstream explain_output;
-  std::ostringstream err_output;
+  std::ostringstream out_stream;
+  std::ostringstream err_stream;
 
   status = ronsql_validate_and_init_params(reqStruct,
                                            params,
-                                           &query_output,
-                                           &explain_output,
-                                           &err_output,
+                                           &out_stream,
+                                           &err_stream,
                                            &aalloc);
   if (static_cast<drogon::HttpStatusCode>(status.http_code) != drogon::HttpStatusCode::k200OK) {
     resp->setBody(std::string(status.message));
@@ -94,43 +92,53 @@ void RonSQLCtrl::ronsql(const drogon::HttpRequestPtr &req,
   }
 
   status = ronsql_dal(database.c_str(), params);
-  std::string query_output_str = query_output.str();
-  std::string explain_output_str = explain_output.str();
-  std::string err_output_str = err_output.str();
-  bool hasQueryOutput = !query_output_str.empty();
-  bool hasExplainOutput = !explain_output_str.empty();
-  bool hasErrOutput = !err_output_str.empty();
+  std::string out_str = out_stream.str();
+  std::string err_str = err_stream.str();
+  bool hasOut = !out_str.empty();
+  bool hasErr = !err_str.empty();
   if (static_cast<drogon::HttpStatusCode>(status.http_code) == drogon::HttpStatusCode::k200OK) {
-    assert(!hasErrOutput);
-    if (hasQueryOutput) {
-      assert(!hasExplainOutput);
-      switch (params.query_output_format) {
-      case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
-        resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
-        break;
-      case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
+    assert(!hasErr);
+    assert(hasOut);
+    switch (params.output_format) {
+    case ExecutionParameters::OutputFormat::JSON:
+      resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
+      break;
+    case ExecutionParameters::OutputFormat::JSON_ASCII:
+      /*
+       * Although JSON is described as a text-based format, it requires the
+       * UTF-8 encoding [1]. Since one cannot choose a text encoding, it may
+       * be considered a binary format. Indeed, the application/json media
+       * type is registerd as a binary format [2], and therefore has no
+       * charset parameter. Despite this, many servers supply a
+       * `charset=utf-8` parameter, including drogon [3]. The intention behind
+       * ExecutionParameters::OutputFormat::JSON_ASCII is to provide a format
+       * that only uses ASCII characters, so we communicate this using a
+       * `charset=US-ASCII` parameter. This may help a RonSQL aware client to
+       * confirm ASCII-only content. It is not expected to cause any trouble for
+       * unaware clients, as a compliant client should ignore the charset
+       * parameter altogether and use utf-8 to decode the JSON object, which
+       * will work since UTF-8 is backwards compatible with ASCII.
+       *
+       * [1] https://www.rfc-editor.org/rfc/rfc8259#section-8.1
+       * [2] https://www.iana.org/assignments/media-types/application/json
+       * [3] ../../extra/drogon/drogon-1.8.7/lib/src/HttpUtils.cc:565
+       */
+      resp->setContentTypeCodeAndCustomString(drogon::CT_APPLICATION_JSON, "content-type: application/json; charset=US-ASCII\r\n");
+      break;
+    case ExecutionParameters::OutputFormat::TEXT:
+      [[fallthrough]];
+    case ExecutionParameters::OutputFormat::TEXT_NOHEADER:
+      if (do_explain) {
         /*
-         * Although JSON is described as a text-based format, it requires the
-         * UTF-8 encoding [1]. Since one cannot choose a text encoding, it may
-         * be considered a binary format. Indeed, the application/json media
-         * type is registerd as a binary format [2], and therefore has no
-         * charset parameter. Despite this, many servers supply a
-         * `charset=utf-8` parameter, including drogon [3]. The intention behind
-         * ExecutionParameters::QueryOutputFormat::JSON_ASCII is to provide a
-         * format that only uses ASCII characters, so we communicate this using
-         * a `charset=US-ASCII` parameter. This may help a RonSQL aware client
-         * to confirm ASCII-only content. It is not expected to cause any
-         * trouble for unaware clients, as a compliant client should ignore the
-         * charset parameter altogether and use utf-8 to decode the JSON object,
-         * which will work since UTF-8 is backwards compatible with ASCII.
-         *
-         * [1] https://www.rfc-editor.org/rfc/rfc8259#section-8.1
-         * [2] https://www.iana.org/assignments/media-types/application/json
-         * [3] ../../extra/drogon/drogon-1.8.7/lib/src/HttpUtils.cc:565
+         * The text/plain media type technically requires CRLF line endings.
+         * This output instead uses Unix line endings (LF). There seems to be
+         * no way to specify this in the content type.
          */
-        resp->setContentTypeCodeAndCustomString(drogon::CT_APPLICATION_JSON, "content-type: application/json; charset=US-ASCII\r\n");
-        break;
-      case ExecutionParameters::QueryOutputFormat::TSV:
+        resp->setContentTypeCodeAndCustomString
+          (drogon::CT_TEXT_PLAIN,
+           "content-type: text/plain; charset=utf-8\r\n");
+      }
+      else {
         /*
          * The text/tab-separated-values media type [1] is unfortunately a
          * little lack-luster. It has no mechanism to specify whether a header
@@ -142,46 +150,25 @@ void RonSQLCtrl::ronsql(const drogon::HttpRequestPtr &req,
          * [1] https://www.iana.org/assignments/media-types/text/tab-separated-values
          * [2] https://www.iana.org/assignments/media-types/text/csv
          */
-        resp->setContentTypeCodeAndCustomString(drogon::CT_CUSTOM, "content-type: text/tab-separated-values; charset=utf-8; header=present\r\n");
-        break;
-      case ExecutionParameters::QueryOutputFormat::TSV_DATA:
-        // See comment above.
-        resp->setContentTypeCodeAndCustomString(drogon::CT_CUSTOM, "content-type: text/tab-separated-values; charset=utf-8; header=absent\r\n");
-        break;
-      default:
-        // Should be unreachable
-        abort();
+        resp->setContentTypeCodeAndCustomString
+          (drogon::CT_CUSTOM,
+           params.output_format == ExecutionParameters::OutputFormat::TEXT
+           ? "content-type: text/tab-separated-values; charset=utf-8; header=present\r\n"
+           : "content-type: text/tab-separated-values; charset=utf-8; header=absent\r\n"
+           );
       }
-      resp->setBody(query_output_str);
+      break;
+    default:
+      // Should be unreachable
+      abort();
     }
-    else {
-      assert(hasExplainOutput);
-      switch (params.explain_output_format) {
-      case ExecutionParameters::ExplainOutputFormat::JSON_UTF8:
-        resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
-        break;
-      case ExecutionParameters::ExplainOutputFormat::TEXT:
-        /*
-         * The text/plain media type technically requires CRLF line endings.
-         * This output instead uses Unix line endings (LF). There seems to be no
-         * way to specify this in the content type.
-         */
-        resp->setContentTypeCodeAndCustomString(drogon::CT_TEXT_PLAIN, "content-type: text/plain; charset=utf-8; \r\n");
-        break;
-      default:
-        // Should be unreachable
-        abort();
-      }
-      resp->setBody(explain_output_str);
-    }
-    //
-    //todo perhaps explain and output stream should be the same, since only one is ever used? At least return a flag for which was used.
+    resp->setBody(out_str);
     resp->setStatusCode(drogon::HttpStatusCode::k200OK);
   }
   else {
     resp->setStatusCode(drogon::HttpStatusCode::k500InternalServerError);
     resp->setContentTypeCodeAndCustomString(drogon::CT_TEXT_PLAIN, "content-type: text/plain; charset=utf-8; \r\n");
-    resp->setBody(err_output_str);
+    resp->setBody(err_str);
   }
   callback(resp);
 }
@@ -215,9 +202,8 @@ RS_Status ronsql_validate_database_name(std::string& database) {
 
 RS_Status ronsql_validate_and_init_params(RonSQLParams& req,
                                           ExecutionParameters& ep,
-                                          std::ostringstream* query_output,
-                                          std::ostringstream* explain_output,
-                                          std::ostringstream* err_output,
+                                          std::ostringstream* out_stream,
+                                          std::ostringstream* err_stream,
                                           ArenaAllocator* aalloc) {
   // req.query -> ep.sql_buffer and ep.sql_len
   assert(aalloc != NULL);
@@ -249,44 +235,30 @@ RS_Status ronsql_validate_and_init_params(RonSQLParams& req,
   else {
     return RS_CLIENT_ERROR("Invalid explainMode");
   }
-  // query_output -> ep.query_output_stream
-  assert(ep.query_output_stream == NULL);
-  assert(query_output != NULL);
-  ep.query_output_stream = query_output;
-  // req.queryOutputFormat -> ep.query_output_format
-  if (req.queryOutputFormat == "JSON_UTF8") {
-    ep.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_UTF8;
+  // out_stream -> ep.out_stream
+  assert(ep.out_stream == NULL);
+  assert(out_stream != NULL);
+  ep.out_stream = out_stream;
+  // req.outputFormat -> ep.output_format
+  if (req.outputFormat == "JSON") {
+    ep.output_format = ExecutionParameters::OutputFormat::JSON;
   }
-  else if (req.queryOutputFormat == "JSON_ASCII") {
-    ep.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII;
+  else if (req.outputFormat == "JSON_ASCII") {
+    ep.output_format = ExecutionParameters::OutputFormat::JSON_ASCII;
   }
-  else if (req.queryOutputFormat == "TSV") {
-    ep.query_output_format = ExecutionParameters::QueryOutputFormat::TSV;
+  else if (req.outputFormat == "TEXT") {
+    ep.output_format = ExecutionParameters::OutputFormat::TEXT;
   }
-  else if (req.queryOutputFormat == "TSV_DATA") {
-    ep.query_output_format = ExecutionParameters::QueryOutputFormat::TSV_DATA;
-  }
-  else {
-    return RS_CLIENT_ERROR("Invalid queryOutputFormat");
-  }
-  // explain_output -> ep.explain_output_stream
-  assert(ep.explain_output_stream == NULL);
-  assert(explain_output != NULL);
-  ep.explain_output_stream = explain_output;
-  // req.explainOutputFormat -> ep.explain_output_format
-  if (req.explainOutputFormat == "TEXT") {
-    ep.explain_output_format = ExecutionParameters::ExplainOutputFormat::TEXT;
-  }
-  else if (req.explainOutputFormat == "JSON_UTF8") {
-    ep.explain_output_format = ExecutionParameters::ExplainOutputFormat::JSON_UTF8;
+  else if (req.outputFormat == "TEXT_NOHEADER") {
+    ep.output_format = ExecutionParameters::OutputFormat::TEXT_NOHEADER;
   }
   else {
-    return RS_CLIENT_ERROR("Invalid explainOutputFormat");
+    return RS_CLIENT_ERROR("Invalid outputFormat");
   }
-  // err_output -> ep.err_output_stream
-  assert(ep.err_output_stream == NULL);
-  assert(err_output != NULL);
-  ep.err_output_stream = err_output;
+  // err_stream -> ep.err_stream
+  assert(ep.err_stream == NULL);
+  assert(err_stream != NULL);
+  ep.err_stream = err_stream;
   // req.operationId -> ep.operation_id
   RS_Status status = validate_operation_id(req.operationId);
   if (status.http_code != static_cast<HTTP_CODE>(drogon::HttpStatusCode::k200OK))

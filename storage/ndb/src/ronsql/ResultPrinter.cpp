@@ -59,7 +59,7 @@ static float convert_result_to_float(NdbAggregator::Result result);
 ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
                              struct SelectStatement* query,
                              DynamicArray<LexCString>* column_names,
-                             ExecutionParameters::QueryOutputFormat output_format,
+                             ExecutionParameters::OutputFormat output_format,
                              std::basic_ostream<char>* err):
   m_aalloc(aalloc),
   m_query(query),
@@ -75,13 +75,13 @@ ResultPrinter::ResultPrinter(ArenaAllocator* aalloc,
   assert(aalloc != NULL);
   switch (output_format)
   {
-  case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
+  case ExecutionParameters::OutputFormat::JSON:
     break;
-  case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
+  case ExecutionParameters::OutputFormat::JSON_ASCII:
     break;
-  case ExecutionParameters::QueryOutputFormat::TSV:
+  case ExecutionParameters::OutputFormat::TEXT:
     break;
-  case ExecutionParameters::QueryOutputFormat::TSV_DATA:
+  case ExecutionParameters::OutputFormat::TEXT_NOHEADER:
     break;
   default:
     abort();
@@ -194,25 +194,25 @@ ResultPrinter::compile()
   }
   switch (m_output_format)
   {
-  case ExecutionParameters::QueryOutputFormat::TSV:
+  case ExecutionParameters::OutputFormat::TEXT:
     m_json_output = false;
     m_utf8_output = true;
     m_tsv_output = true;
     m_tsv_headers = true;
     break;
-  case ExecutionParameters::QueryOutputFormat::TSV_DATA:
+  case ExecutionParameters::OutputFormat::TEXT_NOHEADER:
     m_json_output = false;
     m_utf8_output = true;
     m_tsv_output = true;
     m_tsv_headers = false;
     break;
-  case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
+  case ExecutionParameters::OutputFormat::JSON:
     m_json_output = true;
     m_utf8_output = true;
     m_tsv_output = false;
     m_tsv_headers = false;
     break;
-  case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
+  case ExecutionParameters::OutputFormat::JSON_ASCII:
     m_json_output = true;
     m_utf8_output = false;
     m_tsv_output = false;
@@ -320,10 +320,10 @@ ResultPrinter::optimize()
 
 void
 ResultPrinter::print_result(NdbAggregator* aggregator,
-                            std::basic_ostream<char>* query_output_stream)
+                            std::basic_ostream<char>* out_stream)
 {
-  assert(query_output_stream != NULL);
-  std::ostream& out = *query_output_stream;
+  assert(out_stream != NULL);
+  std::ostream& out = *out_stream;
   if (m_json_output)
   {
     out << '[';
@@ -807,22 +807,22 @@ convert_result_to_float(NdbAggregator::Result result)
 }
 
 void
-ResultPrinter::explain(std::basic_ostream<char>* explain_output_stream)
+ResultPrinter::explain(std::basic_ostream<char>* out_stream)
 {
-  std::ostream& out = *explain_output_stream;
+  std::ostream& out = *out_stream;
   const char* format_description = "";
   switch(m_output_format)
   {
-  case ExecutionParameters::QueryOutputFormat::JSON_UTF8:
+  case ExecutionParameters::OutputFormat::JSON:
     format_description = "UTF-8 encoded JSON";
     break;
-  case ExecutionParameters::QueryOutputFormat::JSON_ASCII:
+  case ExecutionParameters::OutputFormat::JSON_ASCII:
     format_description = "ASCII encoded JSON";
     break;
-  case ExecutionParameters::QueryOutputFormat::TSV:
+  case ExecutionParameters::OutputFormat::TEXT:
     format_description = "mysql-style tab separated";
     break;
-  case ExecutionParameters::QueryOutputFormat::TSV_DATA:
+  case ExecutionParameters::OutputFormat::TEXT_NOHEADER:
     format_description = "mysql-style tab separated, header-less";
     break;
   default:

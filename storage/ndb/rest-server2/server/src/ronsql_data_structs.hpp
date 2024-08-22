@@ -25,8 +25,7 @@ class RonSQLParams {
   std::string query;
   std::string database;
   std::string explainMode;
-  std::string queryOutputFormat;
-  std::string explainOutputFormat;
+  std::string outputFormat;
   std::string operationId;
 };
 

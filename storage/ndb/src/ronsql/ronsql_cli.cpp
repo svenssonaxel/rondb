@@ -52,12 +52,11 @@ main(int argc, char** argv)
   ExecutionParameters& params = config.params;
   ArenaAllocator aalloc;
   params.aalloc = &aalloc;
-  params.query_output_stream = &cout;
-  params.explain_output_stream = &cout;
-  params.err_output_stream = &cerr;
-  params.query_output_format = isatty(fileno(stdin)) && isatty(fileno(stdout))
-    ? ExecutionParameters::QueryOutputFormat::JSON_UTF8
-    : ExecutionParameters::QueryOutputFormat::TSV;
+  params.out_stream = &cout;
+  params.err_stream = &cerr;
+  params.output_format = isatty(fileno(stdin)) && isatty(fileno(stdout))
+    ? ExecutionParameters::OutputFormat::JSON
+    : ExecutionParameters::OutputFormat::TEXT;
   int exit_code = 0;
 
   // Parse command-line arguments
@@ -152,8 +151,9 @@ print_help(const char* argv0)
     "  -D, --database name           Database name. Required if --connect-string is\n"
     "                                given.\n"
     "  -e, --execute query           Execute query and output results.\n"
-    "  -s, --silent                  Set query output format to TSV if stdin and\n"
-    "                                stdout are both ttys, otherwise to TSV_DATA.\n"
+    "  -s, --silent                  Set query output format to TEXT if stdin and\n"
+    "                                stdout are both ttys, otherwise to\n"
+    "                                TEXT_NOHEADER.\n"
     "Options specific to RonSQL:\n"
     "  --execute-file <FILE>         Execute query from file.\n"
     "  --connect-string <STRING>     Ndb connection string (If not given, then no\n"
@@ -168,19 +168,15 @@ print_help(const char* argv0)
     "                                - REQUIRE\n"
     "                                - REMOVE\n"
     "                                - FORCE\n"
-    // See RonSQLCommon.hpp for comment about query output format
-    "  --query-output-format <FMT>   Set query output format. <FMT> can be one of:\n"
-    "                                - JSON_UTF8, default if stdin and stdout are\n"
-    "                                  both ttys, i.e. the same case where mysql\n"
-    "                                  defaults to formatted table output.\n"
+    // See RonSQLCommon.hpp for comment about output format
+    "  --output-format <FMT>         Set query output format. <FMT> can be one of:\n"
+    "                                - JSON, default if stdin and stdout are both\n"
+    "                                  ttys, i.e. the same case where mysql defaults\n"
+    "                                  to formatted table output.\n"
     "                                - JSON_ASCII\n"
-    "                                - TSV, default if stdin or stdout is not a tty.\n"
+    "                                - TEXT, default if stdin or stdout is not a tty.\n"
     "                                  This mimics mysql behavior.\n"
-    "                                - TSV_DATA\n"
-    // See RonSQLCommon.hpp for comment about explain output format
-    "  --explain-output-format <FMT> Set explain output format. <FMT> can be one of:\n"
-    "                                - TEXT (default)\n"
-    "                                - JSON_UTF8\n"
+    "                                - TEXT_NOHEADER\n"
     ;
 }
 
@@ -202,8 +198,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
     OPT_EXECUTE_FILE = 256,
     OPT_CONNECT_STRING,
     OPT_EXPLAIN_MODE,
-    OPT_QUERY_OUTPUT_FORMAT,
-    OPT_EXPLAIN_OUTPUT_FORMAT,
+    OPT_OUTPUT_FORMAT,
   };
 
   static struct option long_options[] = {
@@ -215,8 +210,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
     {"execute-file", required_argument, 0, OPT_EXECUTE_FILE},
     {"connect-string", required_argument, 0, OPT_CONNECT_STRING},
     {"explain-mode", required_argument, 0, OPT_EXPLAIN_MODE},
-    {"query-output-format", required_argument, 0, OPT_QUERY_OUTPUT_FORMAT},
-    {"explain-output-format", required_argument, 0, OPT_EXPLAIN_OUTPUT_FORMAT},
+    {"output-format", required_argument, 0, OPT_OUTPUT_FORMAT},
     {0, 0, 0, 0}
   };
 
@@ -252,9 +246,9 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
       }
       break;
     case 's':
-      params.query_output_format = isatty(fileno(stdin)) && isatty(fileno(stdout))
-        ? ExecutionParameters::QueryOutputFormat::TSV
-        : ExecutionParameters::QueryOutputFormat::TSV_DATA;
+      params.output_format = isatty(fileno(stdin)) && isatty(fileno(stdout))
+        ? ExecutionParameters::OutputFormat::TEXT
+        : ExecutionParameters::OutputFormat::TEXT_NOHEADER;
       break;
     case OPT_EXECUTE_FILE:
       if (params.sql_buffer != NULL)
@@ -305,25 +299,17 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
       else
         ARG_FAIL("Invalid explain mode.");
       break;
-    case OPT_QUERY_OUTPUT_FORMAT:
-      if (strcmp(optarg, "JSON_UTF8") == 0)
-        params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_UTF8;
+    case OPT_OUTPUT_FORMAT:
+      if (strcmp(optarg, "JSON") == 0)
+        params.output_format = ExecutionParameters::OutputFormat::JSON;
       else if (strcmp(optarg, "JSON_ASCII") == 0)
-        params.query_output_format = ExecutionParameters::QueryOutputFormat::JSON_ASCII;
-      else if (strcmp(optarg, "TSV") == 0)
-        params.query_output_format = ExecutionParameters::QueryOutputFormat::TSV;
-      else if (strcmp(optarg, "TSV_DATA") == 0)
-        params.query_output_format = ExecutionParameters::QueryOutputFormat::TSV_DATA;
+        params.output_format = ExecutionParameters::OutputFormat::JSON_ASCII;
+      else if (strcmp(optarg, "TEXT") == 0)
+        params.output_format = ExecutionParameters::OutputFormat::TEXT;
+      else if (strcmp(optarg, "TEXT_NOHEADER") == 0)
+        params.output_format = ExecutionParameters::OutputFormat::TEXT_NOHEADER;
       else
         ARG_FAIL("Invalid query output format.");
-      break;
-    case OPT_EXPLAIN_OUTPUT_FORMAT:
-      if (strcmp(optarg, "TEXT") == 0)
-        params.explain_output_format = ExecutionParameters::ExplainOutputFormat::TEXT;
-      else if (strcmp(optarg, "JSON_UTF8") == 0)
-        params.explain_output_format = ExecutionParameters::ExplainOutputFormat::JSON_UTF8;
-      else
-        ARG_FAIL("Invalid explain output format.");
       break;
     default:
       ARG_FAIL("Invalid option.");

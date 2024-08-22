@@ -40,7 +40,7 @@ private:
   ArenaAllocator* m_aalloc;
   struct SelectStatement* m_query;
   DynamicArray<LexCString>* m_column_names;
-  ExecutionParameters::QueryOutputFormat m_output_format;
+  ExecutionParameters::OutputFormat m_output_format;
   std::basic_ostream<char>* m_err;
 
   // Program
@@ -112,11 +112,11 @@ public:
   ResultPrinter(ArenaAllocator* aalloc,
                 struct SelectStatement* query,
                 DynamicArray<LexCString>* column_names,
-                ExecutionParameters::QueryOutputFormat output_format,
+                ExecutionParameters::OutputFormat output_format,
                 std::basic_ostream<char>* err);
   void print_result(NdbAggregator* aggregator,
-                    std::basic_ostream<char>* query_output_stream);
-  void explain(std::basic_ostream<char>* explain_output_stream);
+                    std::basic_ostream<char>* out_stream);
+  void explain(std::basic_ostream<char>* out_stream);
 };
 
 #endif

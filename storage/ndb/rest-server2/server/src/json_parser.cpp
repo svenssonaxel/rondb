@@ -861,7 +861,7 @@ RS_Status JSONParser::ronsql_parse(size_t threadId, simdjson::padded_string_view
   std::string_view explainMode;
   auto explainModeVal = reqObject[EXPLAIN_MODE];
   if (explainModeVal.error() == simdjson::error_code::NO_SUCH_FIELD) {
-    explainMode = "ALLOW";
+    explainMode = DEFAULT_EXPLAIN_MODE;
   } else if (explainModeVal.error() != simdjson::SUCCESS) {
     return handle_simdjson_error(explainModeVal.error(), doc[threadId], currentLocation);
   } else {
@@ -876,41 +876,23 @@ RS_Status JSONParser::ronsql_parse(size_t threadId, simdjson::padded_string_view
   }
   reqStruct.explainMode = explainMode;
 
-  std::string_view queryOutputFormat;
-  auto queryOutputFormatVal = reqObject[QUERY_OUTPUT_FORMAT];
-  if (queryOutputFormatVal.error() == simdjson::error_code::NO_SUCH_FIELD) {
-    queryOutputFormat = "JSON_UTF8";
-  } else if (queryOutputFormatVal.error() != simdjson::SUCCESS) {
-    return handle_simdjson_error(queryOutputFormatVal.error(), doc[threadId], currentLocation);
+  std::string_view outputFormat;
+  auto outputFormatVal = reqObject[OUTPUT_FORMAT];
+  if (outputFormatVal.error() == simdjson::error_code::NO_SUCH_FIELD) {
+    outputFormat = DEFAULT_OUTPUT_FORMAT;
+  } else if (outputFormatVal.error() != simdjson::SUCCESS) {
+    return handle_simdjson_error(outputFormatVal.error(), doc[threadId], currentLocation);
   } else {
-    if (queryOutputFormatVal.is_null()) {
-      queryOutputFormat = "";
+    if (outputFormatVal.is_null()) {
+      outputFormat = "";
     } else {
-      error = queryOutputFormatVal.get(queryOutputFormat);
+      error = outputFormatVal.get(outputFormat);
       if (error != simdjson::SUCCESS) {
         return handle_simdjson_error(error, doc[threadId], currentLocation);
       }
     }
   }
-  reqStruct.queryOutputFormat = queryOutputFormat;
-
-  std::string_view explainOutputFormat;
-  auto explainOutputFormatVal = reqObject[EXPLAIN_OUTPUT_FORMAT];
-  if (explainOutputFormatVal.error() == simdjson::error_code::NO_SUCH_FIELD) {
-    explainOutputFormat = "JSON_UTF8";
-  } else if (explainOutputFormatVal.error() != simdjson::SUCCESS) {
-    return handle_simdjson_error(explainOutputFormatVal.error(), doc[threadId], currentLocation);
-  } else {
-    if (explainOutputFormatVal.is_null()) {
-      explainOutputFormat = "";
-    } else {
-      error = explainOutputFormatVal.get(explainOutputFormat);
-      if (error != simdjson::SUCCESS) {
-        return handle_simdjson_error(error, doc[threadId], currentLocation);
-      }
-    }
-  }
-  reqStruct.explainOutputFormat = explainOutputFormat;
+  reqStruct.outputFormat = outputFormat;
 
   std::string_view operationId;
   auto operationIdVal = reqObject[OPERATION_ID];

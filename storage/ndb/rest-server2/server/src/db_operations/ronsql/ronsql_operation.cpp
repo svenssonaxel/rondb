@@ -22,7 +22,7 @@
 #include "storage/ndb/src/ronsql/RonSQLPreparer.hpp"
 
 RS_Status ronsql_op(ExecutionParameters& params) {
-  std::basic_ostream<char>& err = *params.err_output_stream;
+  std::basic_ostream<char>& err = *params.err_stream;
   try
   {
     RonSQLPreparer executor(params);

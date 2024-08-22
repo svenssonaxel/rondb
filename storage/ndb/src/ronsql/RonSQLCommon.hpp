@@ -47,27 +47,23 @@ struct ExecutionParameters
     FORCE,   // EXPLAIN SELECT | EXPLAIN SELECT         | No
   };
   ExplainMode explain_mode = ExplainMode::ALLOW;
-  std::basic_ostream<char>* query_output_stream = NULL;
-  enum class QueryOutputFormat
+  std::basic_ostream<char>* out_stream = NULL;
+  enum class OutputFormat
   {
-    JSON_UTF8,  // Output a JSON representation of the result set. Characters
-                // with code point U+0080 and above are encoded as UTF-8.
-    JSON_ASCII, // Output a JSON representation of the result set. Characters
-                // with code point U+0080 and above are encoded using \u escape
-                // sequences, meaning the output stream will only contain ASCII
-                // characters 0x00 to 0x7f.
-    TSV,        // Mimic mysql tab-separated output with headers
-    TSV_DATA,   // Mimic mysql tab-separated output without headers
+    JSON,          // Output a JSON representation of the result set or EXPLAIN
+                   // output. Characters with code point U+0080 and above are
+                   // encoded as UTF-8.
+    JSON_ASCII,    // Output a JSON representation of the result set or EXPLAIN
+                   // output. Characters with code point U+007f and above are
+                   // encoded using \u escape sequences, meaning the output stream
+                   // will only contain ASCII characters 0x0a, 0x20 -- 0x7e.
+    TEXT,          // For query output, mimic mysql tab-separated output with
+                   // headers. For EXPLAIN output, use a plain text format.
+    TEXT_NOHEADER, // Same as TEXT, except suppress the header line for query
+                   // output.
   };
-  QueryOutputFormat query_output_format = QueryOutputFormat::JSON_UTF8;
-  std::basic_ostream<char>* explain_output_stream = NULL;
-  enum class ExplainOutputFormat
-  {
-    TEXT,
-    JSON_UTF8, // See comment above
-  };
-  ExplainOutputFormat explain_output_format = ExplainOutputFormat::TEXT;
-  std::basic_ostream<char>* err_output_stream = NULL;
+  OutputFormat output_format = OutputFormat::JSON;
+  std::basic_ostream<char>* err_stream = NULL;
   const char* operation_id = NULL; // Only used with RDRS
 };
 

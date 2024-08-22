@@ -40,9 +40,8 @@ RS_Status ronsql_validate_database_name(std::string& database);
 
 RS_Status ronsql_validate_and_init_params(RonSQLParams& input,
                                           ExecutionParameters& ep,
-                                          std::ostringstream* query_output,
-                                          std::ostringstream* explain_output,
-                                          std::ostringstream* err_output,
+                                          std::ostringstream* out_stream,
+                                          std::ostringstream* err_stream,
                                           ArenaAllocator* aalloc);
 
 #endif  // STORAGE_NDB_REST_SERVER2_SERVER_SRC_RONSQL_CTRL_HPP_
