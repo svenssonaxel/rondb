@@ -121,6 +121,7 @@ private:
   const NdbDictionary::Table* m_table = NULL;
   yyscan_t m_scanner;
   YY_BUFFER_STATE m_buf;
+  bool m_do_explain = false;
 
   // Index scan
   bool m_do_index_scan = false;
@@ -164,6 +165,7 @@ private:
   void generate_index_scan_config_candidates();
   void choose_index_scan_config();
   void compile();
+  void determine_explain();
 
   // Functions used in execution phase
 public:

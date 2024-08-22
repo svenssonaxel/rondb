@@ -65,6 +65,9 @@ struct ExecutionParameters
   OutputFormat output_format = OutputFormat::JSON;
   std::basic_ostream<char>* err_stream = NULL;
   const char* operation_id = NULL; // Only used with RDRS
+  bool* do_explain = NULL; // If not NULL, use this to inform the caller whether
+                           // we EXPLAIN. This is needed by RDRS to determine
+                           // content type.
 };
 
 // Forward declaration used in struct Outputs below

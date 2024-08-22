@@ -79,11 +79,13 @@ void RonSQLCtrl::ronsql(const drogon::HttpRequestPtr &req,
   std::ostringstream out_stream;
   std::ostringstream err_stream;
 
+  bool do_explain = false;
   status = ronsql_validate_and_init_params(reqStruct,
                                            params,
                                            &out_stream,
                                            &err_stream,
-                                           &aalloc);
+                                           &aalloc,
+                                           &do_explain);
   if (static_cast<drogon::HttpStatusCode>(status.http_code) != drogon::HttpStatusCode::k200OK) {
     resp->setBody(std::string(status.message));
     resp->setStatusCode(drogon::HttpStatusCode::k400BadRequest);
@@ -204,7 +206,8 @@ RS_Status ronsql_validate_and_init_params(RonSQLParams& req,
                                           ExecutionParameters& ep,
                                           std::ostringstream* out_stream,
                                           std::ostringstream* err_stream,
-                                          ArenaAllocator* aalloc) {
+                                          ArenaAllocator* aalloc,
+                                          bool* do_explain) {
   // req.query -> ep.sql_buffer and ep.sql_len
   assert(aalloc != NULL);
   ep.sql_len = req.query.length(); // todo what if length is not in bytes?
@@ -269,6 +272,9 @@ RS_Status ronsql_validate_and_init_params(RonSQLParams& req,
   if (!req.operationId.empty()) {
     ep.operation_id = req.operationId.c_str();
   }
+  // do_explain -> ep.do_explain
+  assert(do_explain != NULL);
+  ep.do_explain = do_explain;
   // Everything ok
   return RS_OK;
 }

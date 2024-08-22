@@ -87,6 +87,7 @@ RonSQLPreparer::RonSQLPreparer(ExecutionParameters conf):
     parse();
     load();
     compile();
+    determine_explain();
     m_status = Status::PREPARED;
   }
   catch (...)
@@ -662,6 +663,41 @@ RonSQLPreparer::compile()
 }
 
 void
+RonSQLPreparer::determine_explain()
+{
+  // Read whether the parsed query is EXPLAIN SELECT
+  bool do_explain = m_context.ast_root.do_explain;
+  switch (m_conf.explain_mode)
+  {
+  case ExecutionParameters::ExplainMode::ALLOW:
+    break;
+  case ExecutionParameters::ExplainMode::FORBID:
+    soft_assert(!do_explain, "Tried to EXPLAIN with explain mode set to FORBID.");
+    break;
+  case ExecutionParameters::ExplainMode::REQUIRE:
+    soft_assert(do_explain, "Tried to query with explain mode set to REQUIRE.");
+    break;
+  case ExecutionParameters::ExplainMode::REMOVE:
+    // Execute as if EXPLAIN was not specified in the query, even if it was.
+    do_explain = false;
+    break;
+  case ExecutionParameters::ExplainMode::FORCE:
+    // Execute as if EXPLAIN was specified in the query, even if it wasn't.
+    do_explain = true;
+    break;
+  default:
+    abort();
+  }
+  // Write to m_do_explain which will be picked up by RonSQLPreparer::execute()
+  m_do_explain = do_explain;
+  if (m_conf.do_explain != NULL) {
+    // Write to the caller-provided pointer. This is used by RDRS to determine
+    // content type.
+    *m_conf.do_explain = do_explain;
+  }
+}
+
+void
 RonSQLPreparer::execute()
 {
   soft_assert(m_status != Status::FAILED,
@@ -671,27 +707,7 @@ RonSQLPreparer::execute()
   NdbTransaction* myTrans = NULL;
   try
   {
-    bool do_explain = m_context.ast_root.do_explain;
-    switch (m_conf.explain_mode)
-    {
-    case ExecutionParameters::ExplainMode::ALLOW:
-      break;
-    case ExecutionParameters::ExplainMode::FORBID:
-      soft_assert(!do_explain, "Tried to EXPLAIN with explain mode set to FORBID.");
-      break;
-    case ExecutionParameters::ExplainMode::REQUIRE:
-      soft_assert(do_explain, "Tried to query with explain mode set to REQUIRE.");
-      break;
-    case ExecutionParameters::ExplainMode::REMOVE:
-      do_explain = false;
-      break;
-    case ExecutionParameters::ExplainMode::FORCE:
-      do_explain = true;
-      break;
-    default:
-      throw runtime_error("Invalid explain mode.");
-    }
-    if (do_explain)
+    if (m_do_explain)
     {
       switch (m_conf.output_format)
       {
