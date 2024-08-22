@@ -210,9 +210,9 @@ RS_Status ronsql_validate_and_init_params(RonSQLParams& req,
                                           bool* do_explain) {
   // req.query -> ep.sql_buffer and ep.sql_len
   assert(aalloc != NULL);
-  ep.sql_len = req.query.length(); // todo what if length is not in bytes?
+  ep.sql_len = req.query.length(); // todo-ronsql what if length is not in bytes?
   assert(ep.sql_buffer == NULL);
-  ep.sql_buffer = aalloc->alloc<char>(ep.sql_len + 2); // todo catch OOM exception
+  ep.sql_buffer = aalloc->alloc<char>(ep.sql_len + 2); // todo-ronsql catch OOM exception
   memcpy(ep.sql_buffer, req.query.c_str(), req.query.length());
   ep.sql_buffer[ep.sql_len++] = '\0';
   ep.sql_buffer[ep.sql_len++] = '\0';
