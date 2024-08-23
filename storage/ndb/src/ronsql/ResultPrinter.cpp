@@ -40,7 +40,7 @@ using std::runtime_error;
 
 DEFINE_FORMATTER(quoted_identifier, LexCString, {
   os.put('`');
-  for (uint i = 0; i < value.len; i++)
+  for (Uint32 i = 0; i < value.len; i++)
   {
     char ch = value.str[i];
     if (ch == '`')
@@ -108,7 +108,7 @@ ResultPrinter::compile()
   // Populate and validate m_outputs, an array of the SELECT expressions.
   // Calculate number_of_aggregates.
   // Populate m_col_idx_groupby_map.
-  uint number_of_aggregates = 0;
+  Uint32 number_of_aggregates = 0;
   {
     struct Outputs* o = m_query->outputs;
     while(o != NULL)
@@ -117,10 +117,10 @@ ResultPrinter::compile()
       switch (o->type)
       {
       case Outputs::Type::COLUMN:
-        for (uint i = 0; ; i++)
+        for (Uint32 i = 0; ; i++)
         {
           // Validate that the column appears in the GROUP BY clause
-          uint col_idx = o->column.col_idx;
+          Uint32 col_idx = o->column.col_idx;
           if (i >= m_groupby_cols.size())
           {
             assert(m_column_names->size() > col_idx);
@@ -166,7 +166,7 @@ ResultPrinter::compile()
   m_regs_g = m_aalloc->alloc<NdbAggregator::Column>(m_groupby_cols.size());
   m_regs_a = m_aalloc->alloc<NdbAggregator::Result>(number_of_aggregates);
   // Create a correct but non-optimized program
-  for (uint i = 0; i < m_groupby_cols.size(); i++)
+  for (Uint32 i = 0; i < m_groupby_cols.size(); i++)
   {
     Cmd cmd;
     cmd.type = Cmd::Type::STORE_GROUP_BY_COLUMN;
@@ -179,7 +179,7 @@ ResultPrinter::compile()
     cmd.type = Cmd::Type::END_OF_GROUP_BY_COLUMNS;
     m_program.push(cmd);
   }
-  for (uint i = 0; i < number_of_aggregates; i++)
+  for (Uint32 i = 0; i < number_of_aggregates; i++)
   {
     Cmd cmd;
     cmd.type = Cmd::Type::STORE_AGGREGATE;
@@ -221,7 +221,7 @@ ResultPrinter::compile()
   default:
     abort();
   }
-  for (uint i = 0; i < m_outputs.size(); i++)
+  for (Uint32 i = 0; i < m_outputs.size(); i++)
   {
     {
       Cmd cmd;
@@ -355,7 +355,7 @@ ResultPrinter::print_result(NdbAggregator* aggregator,
       {
         // Print the column names.
         bool first_column = true;
-        for (uint i = 0; i < m_outputs.size(); i++)
+        for (Uint32 i = 0; i < m_outputs.size(); i++)
         {
           Outputs* o = m_outputs[i];
           if (first_column) first_column = false; else out << '\t';
@@ -382,7 +382,7 @@ DEFINE_FORMATTER(d2, uint, {
 inline void
 ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& out)
 {
-  for (uint cmd_index = 0; cmd_index < m_program.size(); cmd_index++)
+  for (Uint32 cmd_index = 0; cmd_index < m_program.size(); cmd_index++)
   {
     Cmd& cmd = m_program[cmd_index];
     switch (cmd.type)
@@ -438,14 +438,14 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         case NdbDictionary::Column::Type::Undefined:     ///< Undefined. Since this is a result, it means SQL NULL.
           not_implemented();
         case NdbDictionary::Column::Type::Tinyint:       ///< 8 bit. 1 byte signed integer
-          // int8_t is defined in terms a char, so we need to type case in order
-          // to print as an integer.
-          out << int32_t(column.data_int8());
+          // Int8 is ultimately defined in terms a char, so we need to type case
+          // in order to print as an integer.
+          out << Int32(column.data_int8());
           break;
         case NdbDictionary::Column::Type::Tinyunsigned:  ///< 8 bit. 1 byte unsigned integer
-          // uint8_t is defined in terms a char, so we need to type case in
-          // order to print as an integer.
-          out << uint32_t(column.data_uint8());
+          // Uint8 is ultimately defined in terms a char, so we need to type case
+          // in order to print as an integer.
+          out << Uint32(column.data_uint8());
           break;
         case NdbDictionary::Column::Type::Smallint:      ///< 16 bit. 2 byte signed integer
           out << column.data_int16();
@@ -531,10 +531,10 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
           not_implemented();
         case NdbDictionary::Column::Type::Date:          ///< Precision down to 1 day(sizeof(Date) == 4 bytes )
           {
-            uint date = column.data_uint32();
-            uint year = date >> 9;
-            uint month = (date >> 5) & 0xf;
-            uint day = date & 0x1f;
+            Uint32 date = column.data_uint32();
+            Uint32 year = date >> 9;
+            Uint32 month = (date >> 5) & 0xf;
+            Uint32 day = date & 0x1f;
             out << year << "-" << d2(month) << "-" << d2(day);
             // todo There must be a function somewhere that does this, but I can't find it. Maybe in my_time.cc.
             break;

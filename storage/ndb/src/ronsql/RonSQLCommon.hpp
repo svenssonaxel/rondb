@@ -31,6 +31,12 @@
 #include "ArenaAllocator.hpp"
 #include "LexString.hpp"
 
+#define ARRAY_LEN(x) (sizeof(x) / sizeof(x[0]))
+
+typedef Int32 TokenKind; /* The type of the T_* values used to indicate token
+                          * type. These values are also used in the parse tree.
+                          */
+
 struct ExecutionParameters
 {
   char* sql_buffer = NULL;
@@ -89,19 +95,19 @@ struct Outputs
   {
     struct
     {
-      uint col_idx;
+      Uint32 col_idx;
     } column;
     struct
     {
-      int fun;
+      TokenKind fun;
       AggregationAPICompiler_Expr* arg;
-      uint agg_index;
+      Uint32 agg_index;
     } aggregate;
     struct
     {
       AggregationAPICompiler_Expr* arg;
-      uint agg_index_sum;
-      uint agg_index_count;
+      Uint32 agg_index_sum;
+      Uint32 agg_index_count;
     } avg;
   };
   struct Outputs* next;
@@ -109,7 +115,7 @@ struct Outputs
 
 struct ConditionalExpression
 {
-  int op;
+  TokenKind op;
   union
   {
     struct
@@ -117,7 +123,7 @@ struct ConditionalExpression
       struct ConditionalExpression* left;
       struct ConditionalExpression* right;
     } args;
-    uint col_idx;
+    Uint32 col_idx;
     Int64 constant_integer;
     struct
     {
@@ -127,11 +133,11 @@ struct ConditionalExpression
     struct
     {
       struct ConditionalExpression* arg;
-      int interval_type;
+      TokenKind interval_type;
     } interval;
     struct
     {
-      int interval_type;
+      TokenKind interval_type;
       struct ConditionalExpression* arg;
     } extract;
     LexString string;
@@ -140,13 +146,13 @@ struct ConditionalExpression
 
 struct GroupbyColumns
 {
-  uint col_idx;
+  Uint32 col_idx;
   struct GroupbyColumns* next;
 };
 
 struct OrderbyColumns
 {
-  uint col_idx;
+  Uint32 col_idx;
   bool ascending;
   struct OrderbyColumns* next;
 };

@@ -76,19 +76,19 @@ private:
   ExprOp op; // Binary operation or Load
   Expr* left = NULL; // Left argument to binary operation
   Expr* right = NULL; // Right argument to binary operation
-  uint idx = 0; // Column number for load operation, or index in constant list
-                // for loadconstant operations
-  int usage = 0; // Reference count from Expr and AggExpr.
-                 // Only used for asserts.
-  uint est_regs = 0; // Estimated number of registers necessary to calculate
-                     // the expression.
+  Uint32 idx = 0; // Column number for load operation, or index in constant list
+                  // for loadconstant operations
+  Int32 usage = 0; // Reference count from Expr and AggExpr.
+                   // Only used for asserts.
+  Uint32 est_regs = 0; // Estimated number of registers necessary to calculate
+                       // the expression.
   bool eval_left_first = false; // True if we should evaluate left before
                                 // right.
   // The following values belong to compiler (below). They are placed in this
   // struct for convenience.
-  int program_usage = 0; // Reference count in program, including uses so far
-                         // in calculation but excluding uses in
-                         // re-calculation. Only used for asserts.
+  Int32 program_usage = 0; // Reference count in program, including uses so far
+                           // in calculation but excluding uses in
+                           // re-calculation. Only used for asserts.
   bool has_been_compiled = false; // Only used to determine program_usage.
 };
 
@@ -124,7 +124,7 @@ public:
 private:
   std::function<const char*(uint)> m_column_idx_to_name;
   DynamicArray<Expr> m_exprs;
-  Expr* new_expr(ExprOp op, Expr* left, Expr* right, uint idx);
+  Expr* new_expr(ExprOp op, Expr* left, Expr* right, Uint32 idx);
 #define AGG_ENUM(Name) Name,
   enum class AggType
   {
@@ -137,11 +137,11 @@ private:
     Expr* expr = NULL;
   };
   DynamicArray<AggExpr> m_aggs;
-  int new_agg(AggType agg_type, Expr* expr);
+  Uint32 new_agg(AggType agg_type, Expr* expr);
 public:
   DynamicArray<Constant> m_constants;
   // Load operations
-  Expr* Load(uint col_idx);
+  Expr* Load(Uint32 col_idx);
   Expr* ConstantInteger(Int64 int_64);
   // Arithmetic and aggregation operations could easily have been defined using
   // templates, but we prefer doing it without templates and with better
@@ -158,7 +158,7 @@ public:
 #undef DEFINE_ARITH_FUNC
   // Aggregation operations
 #define DEFINE_AGG_FUNC(OP) \
-  int OP(Expr* expr) \
+  Uint32 OP(Expr* expr) \
   { \
     return public_aggregate_function_helper(AggType::OP, expr); \
   }
@@ -166,7 +166,7 @@ public:
 #undef DEFINE_AGG_FUNC
 private:
   Expr* public_arithmetic_expression_helper(ExprOp op, Expr* x, Expr* y);
-  int public_aggregate_function_helper(AggType agg_type, Expr* x);
+  Uint32 public_aggregate_function_helper(AggType agg_type, Expr* x);
 
   // Symbolic Virtual Machine:
 private:
@@ -182,37 +182,37 @@ public:
   struct Instr
   {
     SVMInstrType type;
-    uint dest;
-    uint src;
+    Uint32 dest;
+    Uint32 src;
   };
 private:
   void svm_execute(Instr* instr, bool is_first_compilation);
-  void svm_use(uint reg, bool is_first_compilation);
+  void svm_use(Uint32 reg, bool is_first_compilation);
 
   // Aggregation Compiler:
 public:
   DynamicArray<Instr> m_program;
 private:
-  int m_locked[REGS];
+  Uint32 m_locked[REGS];
 public:
   bool compile();
 private:
-  bool compile(AggExpr* agg, int idx);
-  bool compile(Expr* expr, uint* reg);
-  bool seize_register(uint* reg, uint max_cost);
-  uint estimated_cost_of_recalculating(Expr* expr, uint without_using_reg);
+  bool compile(AggExpr* agg, Uint32 idx);
+  bool compile(Expr* expr, Uint32* reg);
+  bool seize_register(Uint32* reg, Uint32 max_cost);
+  Uint32 estimated_cost_of_recalculating(Expr* expr, Uint32 without_using_reg);
   void pushInstr(SVMInstrType type,
-                 uint dest,
-                 uint src,
+                 Uint32 dest,
+                 Uint32 src,
                  bool is_first_compilation);
-  void pushInstr(AggType type, uint dest, uint src, bool is_first_compilation);
-  void pushInstr(ExprOp op, uint dest, uint src, bool is_first_compilation);
+  void pushInstr(AggType type, Uint32 dest, Uint32 src, bool is_first_compilation);
+  void pushInstr(ExprOp op, Uint32 dest, Uint32 src, bool is_first_compilation);
   void dead_code_elimination();
 
   // Aggregation Program Printer
 public:
   void print_aggregates();
-  void print_aggregate(int idx);
+  void print_aggregate(Uint32 idx);
   void print(Expr* expr);
   void print_program();
   void print(Instr* instr);

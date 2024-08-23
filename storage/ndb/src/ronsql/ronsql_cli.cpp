@@ -30,6 +30,7 @@
 using std::cerr;
 using std::cout;
 using std::endl;
+typedef int ExitCode;
 
 struct Config
 {
@@ -41,11 +42,11 @@ struct Config
 };
 
 static void print_help(const char* argv0);
-static int parse_cmdline_arguments(int argc, char** argv, Config& config);
+static ExitCode parse_cmdline_arguments(int argc, char** argv, Config& config);
 static void read_stdin(ArenaAllocator* aalloc, char** buffer, size_t* buffer_len);
-static int run_ronsql(ExecutionParameters& params);
+static ExitCode run_ronsql(ExecutionParameters& params);
 
-int
+ExitCode
 main(int argc, char** argv)
 {
   Config config;
@@ -57,7 +58,7 @@ main(int argc, char** argv)
   params.output_format = isatty(fileno(stdin)) && isatty(fileno(stdout))
     ? ExecutionParameters::OutputFormat::JSON
     : ExecutionParameters::OutputFormat::TEXT;
-  int exit_code = 0;
+  ExitCode exit_code = 0;
 
   // Parse command-line arguments
   exit_code = parse_cmdline_arguments(argc, argv, config);
@@ -187,11 +188,11 @@ print_help(const char* argv0)
     return 1; \
   } while (0);
 
-static int
+static ExitCode
 parse_cmdline_arguments(int argc, char** argv, Config& config)
 {
   ExecutionParameters& params = config.params;
-  int opt;
+  int opt; // datatype to matches getopt_long
 
   // Unique values for long-only options
   enum {
@@ -235,7 +236,7 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
       {
         static_assert(sizeof(char) == 1);
         char* sql_query = optarg;
-        uint sql_query_len = strlen(sql_query);
+        size_t sql_query_len = strlen(sql_query);
         size_t parse_len = sql_query_len + 2;
         char* parse_str = params.aalloc->alloc<char>(parse_len);
         memcpy(parse_str, sql_query, sql_query_len);
@@ -331,9 +332,9 @@ parse_cmdline_arguments(int argc, char** argv, Config& config)
 static void
 read_stdin(ArenaAllocator* aalloc, char** buffer, size_t* buffer_len)
 {
-  uint alloclen = 1024;
+  size_t alloclen = 1024;
   char* buf = aalloc->alloc<char>(alloclen);
-  uint contentlen = 0;
+  size_t contentlen = 0;
   while (true)
   {
     assert(contentlen < alloclen);
@@ -345,7 +346,7 @@ read_stdin(ArenaAllocator* aalloc, char** buffer, size_t* buffer_len)
     {
       break;
     }
-    int error = ferror(stdin);
+    int error = ferror(stdin); // datatype matches ferror
     if (error)
     {
       throw std::runtime_error("Error reading from stdin.");
@@ -367,7 +368,7 @@ read_stdin(ArenaAllocator* aalloc, char** buffer, size_t* buffer_len)
   *buffer_len = contentlen + 2;
 }
 
-static int
+static ExitCode
 run_ronsql(ExecutionParameters& params)
 {
   try

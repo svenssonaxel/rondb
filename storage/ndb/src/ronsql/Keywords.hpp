@@ -29,7 +29,7 @@
 
 #define kwdef(KEYWORD) { # KEYWORD, T_ ## KEYWORD }
 
-static const struct { const char* text; const int value; } keywords_implemented_in_ronsql[] =
+static const struct { const char* text; const TokenKind value; } keywords_implemented_in_ronsql[] =
 {
   kwdef(AND),
   kwdef(AS),
@@ -82,10 +82,10 @@ static const struct { const char* text; const int value; } keywords_implemented_
 #undef kwdef
 
 // Keep this in sync with the line `[a-z_]{1,18} {` in RonSQLLexer.l
-static const int max_strlen_for_keyword_implemented_in_ronsql = 18;
+static const Uint32 max_strlen_for_keyword_implemented_in_ronsql = 18;
 
-static const int number_of_keywords_implemented_in_ronsql =
-  sizeof(keywords_implemented_in_ronsql) / sizeof(keywords_implemented_in_ronsql[0]);
+static const Uint32 number_of_keywords_implemented_in_ronsql =
+  ARRAY_LEN(keywords_implemented_in_ronsql);
 
 static const char* keywords_defined_in_mysql[] =
 {
@@ -924,7 +924,7 @@ static const char* keywords_defined_in_mysql[] =
   "ZONE",
 };
 
-static const int number_of_keywords_defined_in_mysql =
-  sizeof(keywords_defined_in_mysql) / sizeof(keywords_defined_in_mysql[0]);
+static const Uint32 number_of_keywords_defined_in_mysql =
+  ARRAY_LEN(keywords_defined_in_mysql);
 
 #endif

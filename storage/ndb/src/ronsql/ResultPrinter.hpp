@@ -63,26 +63,26 @@ private:
     {
       struct
       {
-        uint reg_g;
-        uint group_by_idx; // Only used for assertions
+        Uint32 reg_g;
+        Uint32 group_by_idx; // Only used for assertions
       } store_group_by_column;
       struct
       {
-        uint reg_a;
-        uint agg_index; // Only used for assertions
+        Uint32 reg_a;
+        Uint32 agg_index; // Only used for assertions
       } store_aggregate;
       struct
       {
-        uint reg_g;
+        Uint32 reg_g;
       } print_group_by_column;
       struct
       {
-        uint reg_a;
+        Uint32 reg_a;
       } print_aggregate;
       struct
       {
-        uint reg_a_sum;
-        uint reg_a_count;
+        Uint32 reg_a_sum;
+        Uint32 reg_a_count;
       } print_avg;
       struct
       {

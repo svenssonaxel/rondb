@@ -96,11 +96,11 @@ main()
     4294967297LL, -4294967297LL,
     4294967298LL, -4294967298LL,
   };
-  int ns_count = sizeof(ns) / sizeof(ns[0]);
-  for(int y_idx = 0; y_idx < ns_count; y_idx++)
+  Uint32 ns_count = ARRAY_LEN(ns);
+  for(Uint32 y_idx = 0; y_idx < ns_count; y_idx++)
   {
     Int64 y = ns[y_idx];
-    for(int x_idx = 0; x_idx < ns_count; x_idx++)
+    for(Uint32 x_idx = 0; x_idx < ns_count; x_idx++)
     {
       Int64 x = ns[x_idx];
       // Use 128-bit SIMD to test overflow detection

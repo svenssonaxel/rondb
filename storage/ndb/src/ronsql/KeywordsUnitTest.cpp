@@ -43,7 +43,7 @@ static const char* mysql_deprecated[] =
   "REMOTE",
   "SQL_CACHE",
 };
-static const int mysql_deprecated_len = sizeof(mysql_deprecated) / sizeof(mysql_deprecated[0]);
+static const Uint32 mysql_deprecated_len = ARRAY_LEN(mysql_deprecated);
 
 // A list of operators found in lex.h
 static const char* mysql_operators[] =
@@ -61,11 +61,11 @@ static const char* mysql_operators[] =
   ">>",
   "||",
 };
-static const int mysql_operators_len = sizeof(mysql_operators) / sizeof(mysql_operators[0]);
+static const Uint32 mysql_operators_len = ARRAY_LEN(mysql_operators);
 
-void assert_list_sorted(const char* list_name, const char** list, int list_len)
+void assert_list_sorted(const char* list_name, const char** list, Uint32 list_len)
 {
-  for (int i=0; i < list_len-1; i++)
+  for (Uint32 i=0; i < list_len-1; i++)
   {
     if (strcmp(list[i], list[i+1]) >= 0)
     {
@@ -75,9 +75,9 @@ void assert_list_sorted(const char* list_name, const char** list, int list_len)
   }
 }
 
-bool string_exists_in_list(const char* word, const char** list, int list_len)
+bool string_exists_in_list(const char* word, const char** list, Uint32 list_len)
 {
-  for (int i=0; i < list_len; i++)
+  for (Uint32 i=0; i < list_len; i++)
   {
     if (strcmp(word, list[i]) == 0)
     {
@@ -92,22 +92,22 @@ main()
 {
   bool ok = true;
   // From Keywords.hpp, a list of keywords implemented in RonSQL
-  const int ronsql_imple_len = number_of_keywords_implemented_in_ronsql;
+  const Uint32 ronsql_imple_len = number_of_keywords_implemented_in_ronsql;
   const char* ronsql_impl[ronsql_imple_len];
-  for (int i=0; i < ronsql_imple_len; i++)
+  for (Uint32 i=0; i < ronsql_imple_len; i++)
   {
     ronsql_impl[i] = keywords_implemented_in_ronsql[i].text;
   }
   // From Keywords.hpp, a list of reserved keywords in RonSQL. This includes all
   // keywords, both reserved and not, implemented in the current or some past
   // versions of MySQL. These are forbidden as unquoted identifiers in RonSQL.
-  const int mysql_reserved_len = number_of_keywords_defined_in_mysql;
+  const Uint32 mysql_reserved_len = number_of_keywords_defined_in_mysql;
   const char** mysql_reserved = keywords_defined_in_mysql;
   // From ../../../../sql/lex.h, a list of keywords implemented in the current
   // version of MySQL.
-  const int mysql_current_len = sizeof(symbols) / sizeof(symbols[0]);
+  const Uint32 mysql_current_len = ARRAY_LEN(symbols);
   const char* mysql_current[mysql_current_len];
-  for (int i=0; i < mysql_current_len; i++)
+  for (Uint32 i=0; i < mysql_current_len; i++)
   {
     mysql_current[i] = symbols[i].name;
   }
@@ -118,7 +118,7 @@ main()
   assert_list_sorted("mysql_deprecated", mysql_deprecated, mysql_deprecated_len);
   assert_list_sorted("mysql_operators", mysql_operators, mysql_operators_len);
   // Concatenate all five lists mentioned. There will be duplicates, that's ok.
-  const int all_keywords_len =
+  const Uint32 all_keywords_len =
     ronsql_imple_len +
     mysql_reserved_len +
     mysql_current_len +
@@ -126,31 +126,31 @@ main()
     mysql_operators_len;
   const char* all_keywords[all_keywords_len];
   {
-    int aidx = 0;
-    for (int i=0; i < ronsql_imple_len; i++)
+    Uint32 aidx = 0;
+    for (Uint32 i=0; i < ronsql_imple_len; i++)
       all_keywords[aidx++] = ronsql_impl[i];
-    for (int i=0; i < mysql_reserved_len; i++)
+    for (Uint32 i=0; i < mysql_reserved_len; i++)
       all_keywords[aidx++] = mysql_reserved[i];
-    for (int i=0; i < mysql_current_len; i++)
+    for (Uint32 i=0; i < mysql_current_len; i++)
       all_keywords[aidx++] = mysql_current[i];
-    for (int i=0; i < mysql_deprecated_len; i++)
+    for (Uint32 i=0; i < mysql_deprecated_len; i++)
       all_keywords[aidx++] = mysql_deprecated[i];
-    for (int i=0; i < mysql_operators_len; i++)
+    for (Uint32 i=0; i < mysql_operators_len; i++)
       all_keywords[aidx++] = mysql_operators[i];
   }
   // Assertions about all keywords
-  for (int i=0; i < all_keywords_len; i++)
+  for (Uint32 i=0; i < all_keywords_len; i++)
   {
     const char* this_word = all_keywords[i];
-    static const int p_ronsql_impl = 0x01;
-    static const int p_mysql_resv = 0x02;
-    static const int p_mysql_curr = 0x04;
-    static const int p_mysql_depr = 0x08;
-    static const int p_mysql_oper = 0x10;
-    static const int p_AZ09_ = 0x20;
-    static const int p_opchars = 0x40;
-    static const int p_other = 0x80;
-    int flags = 0;
+    static const Uint32 p_ronsql_impl = 0x01;
+    static const Uint32 p_mysql_resv = 0x02;
+    static const Uint32 p_mysql_curr = 0x04;
+    static const Uint32 p_mysql_depr = 0x08;
+    static const Uint32 p_mysql_oper = 0x10;
+    static const Uint32 p_AZ09_ = 0x20;
+    static const Uint32 p_opchars = 0x40;
+    static const Uint32 p_other = 0x80;
+    Uint32 flags = 0;
     if (string_exists_in_list(this_word, ronsql_impl, ronsql_imple_len))
       flags |= p_ronsql_impl;
     if (string_exists_in_list(this_word, mysql_reserved, mysql_reserved_len))
@@ -161,8 +161,8 @@ main()
       flags |= p_mysql_depr;
     if (string_exists_in_list(this_word, mysql_operators, mysql_operators_len))
       flags |= p_mysql_oper;
-    unsigned int word_len = strlen(this_word);
-    for (unsigned int j=0; j < word_len; j++)
+    Uint32 word_len = strlen(this_word);
+    for (Uint32 j=0; j < word_len; j++)
     {
       char c = this_word[j];
       if (('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '_')
