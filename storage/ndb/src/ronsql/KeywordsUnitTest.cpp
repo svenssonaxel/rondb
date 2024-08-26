@@ -37,7 +37,34 @@ static const char* mysql_deprecated[] =
 {
   "ANALYSE",
   "DES_KEY_FILE",
-  "MASTER_SERVER_ID",
+  "GET_MASTER_PUBLIC_KEY", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_AUTO_POSITION", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_BIND", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_COMPRESSION_ALGORITHMS", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords. Note the S on the end, which is not present in the _SYM
+  "MASTER_CONNECT_RETRY", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_DELAY", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_HEARTBEAT_PERIOD", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_HOST", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_LOG_FILE", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_LOG_POS", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_PASSWORD", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_PORT", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_PUBLIC_KEY_PATH", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_RETRY_COUNT", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SERVER_ID", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL_CA", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL_CAPATH", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL_CERT", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL_CIPHER", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL_CRL", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL_CRLPATH", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL_KEY", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_SSL_VERIFY_SERVER_CERT", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_TLS_CIPHERSUITES", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_TLS_VERSION", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_USER", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
+  "MASTER_ZSTD_COMPRESSION_LEVEL", // Removed in 7cabca9bfb8 WL#15831: Step 1/4: Removing parser keywords
   "PARSE_GCOL_EXPR",
   "REDOFILE",
   "REMOTE",
@@ -101,8 +128,8 @@ main()
   // From Keywords.hpp, a list of reserved keywords in RonSQL. This includes all
   // keywords, both reserved and not, implemented in the current or some past
   // versions of MySQL. These are forbidden as unquoted identifiers in RonSQL.
-  const Uint32 mysql_reserved_len = number_of_keywords_defined_in_mysql;
-  const char** mysql_reserved = keywords_defined_in_mysql;
+  const Uint32 ronsql_reserved_len = number_of_keywords_defined_in_mysql;
+  const char** ronsql_reserved = keywords_defined_in_mysql;
   // From ../../../../sql/lex.h, a list of keywords implemented in the current
   // version of MySQL.
   const Uint32 mysql_current_len = ARRAY_LEN(symbols);
@@ -113,14 +140,14 @@ main()
   }
   // Both lists in Keywords.hpp should be sorted.
   assert_list_sorted("ronsql_impl", ronsql_impl, ronsql_imple_len);
-  assert_list_sorted("mysql_reserved", mysql_reserved, mysql_reserved_len);
+  assert_list_sorted("ronsql_reserved", ronsql_reserved, ronsql_reserved_len);
   // Exception lists above should be sorted.
   assert_list_sorted("mysql_deprecated", mysql_deprecated, mysql_deprecated_len);
   assert_list_sorted("mysql_operators", mysql_operators, mysql_operators_len);
   // Concatenate all five lists mentioned. There will be duplicates, that's ok.
   const Uint32 all_keywords_len =
     ronsql_imple_len +
-    mysql_reserved_len +
+    ronsql_reserved_len +
     mysql_current_len +
     mysql_deprecated_len +
     mysql_operators_len;
@@ -129,8 +156,8 @@ main()
     Uint32 aidx = 0;
     for (Uint32 i=0; i < ronsql_imple_len; i++)
       all_keywords[aidx++] = ronsql_impl[i];
-    for (Uint32 i=0; i < mysql_reserved_len; i++)
-      all_keywords[aidx++] = mysql_reserved[i];
+    for (Uint32 i=0; i < ronsql_reserved_len; i++)
+      all_keywords[aidx++] = ronsql_reserved[i];
     for (Uint32 i=0; i < mysql_current_len; i++)
       all_keywords[aidx++] = mysql_current[i];
     for (Uint32 i=0; i < mysql_deprecated_len; i++)
@@ -138,23 +165,25 @@ main()
     for (Uint32 i=0; i < mysql_operators_len; i++)
       all_keywords[aidx++] = mysql_operators[i];
   }
+  Uint32 actual_max_strlen_for_keyword_implemented_in_ronsql = 0;
   // Assertions about all keywords
   for (Uint32 i=0; i < all_keywords_len; i++)
   {
     const char* this_word = all_keywords[i];
-    static const Uint32 p_ronsql_impl = 0x01;
-    static const Uint32 p_mysql_resv = 0x02;
-    static const Uint32 p_mysql_curr = 0x04;
-    static const Uint32 p_mysql_depr = 0x08;
-    static const Uint32 p_mysql_oper = 0x10;
-    static const Uint32 p_AZ09_ = 0x20;
-    static const Uint32 p_opchars = 0x40;
-    static const Uint32 p_other = 0x80;
+    static const Uint32 p_ronsql_impl = 0x01; // Implemented in RonSQL
+    static const Uint32 p_ronsql_resv = 0x02; // Reserved in RonSQL
+    static const Uint32 p_mysql_curr = 0x04;  // Keywords implemented in current MySQL
+    static const Uint32 p_mysql_depr = 0x08;  // Keywords in past but not current MySQL
+    static const Uint32 p_mysql_oper = 0x10;  // Operators in current MySQL
+    static const Uint32 p_AZ_ = 0x20;         // Contains at least one character A-Z or underscore
+    static const Uint32 p_09 = 0x40;          // Contains at least one digit
+    static const Uint32 p_opchars = 0x80;     // Contains at least one character !&<=>|
+    static const Uint32 p_other = 0x100;      // Contains at least one other character
     Uint32 flags = 0;
     if (string_exists_in_list(this_word, ronsql_impl, ronsql_imple_len))
       flags |= p_ronsql_impl;
-    if (string_exists_in_list(this_word, mysql_reserved, mysql_reserved_len))
-      flags |= p_mysql_resv;
+    if (string_exists_in_list(this_word, ronsql_reserved, ronsql_reserved_len))
+      flags |= p_ronsql_resv;
     if (string_exists_in_list(this_word, mysql_current, mysql_current_len))
       flags |= p_mysql_curr;
     if (string_exists_in_list(this_word, mysql_deprecated, mysql_deprecated_len))
@@ -165,8 +194,10 @@ main()
     for (Uint32 j=0; j < word_len; j++)
     {
       char c = this_word[j];
-      if (('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '_')
-        flags |= p_AZ09_;
+      if (('A' <= c && c <= 'Z') || c == '_')
+        flags |= p_AZ_;
+      else if ('0' <= c && c <= '9')
+        flags |= p_09;
       else if (
                c == '!' ||
                c == '&' ||
@@ -179,10 +210,13 @@ main()
         flags |= p_other;
     }
     switch (flags)    {
-    case p_ronsql_impl | p_mysql_resv | p_mysql_curr | p_AZ09_:
-      // Implemented keywords should appear in reserved list, be supported in
-      // current MySQL, consist of capital A-Z, digits 0-9 and underscore.
-      // They should also have an acceptable length:
+    case p_ronsql_impl | p_ronsql_resv | p_mysql_curr | p_AZ_:
+      /*
+       * Implemented keywords should appear in reserved list, be supported in
+       * current MySQL, consist of capital A-Z and underscore (WARNING: The
+       * lexer does not currently support digits.). They should also have an
+       * acceptable length:
+       */
       if (!(1 <= word_len && word_len <= max_strlen_for_keyword_implemented_in_ronsql))
       {
         ok = false;
@@ -190,10 +224,14 @@ main()
         cout << "  Length of keyword is " << word_len << " which is not in the range 1.."
              << max_strlen_for_keyword_implemented_in_ronsql << endl;
       }
+      actual_max_strlen_for_keyword_implemented_in_ronsql =
+        std::max(actual_max_strlen_for_keyword_implemented_in_ronsql,
+                 word_len);
       break;
-    case p_mysql_resv | p_mysql_curr | p_AZ09_:
+    case p_ronsql_resv | p_mysql_curr | p_AZ_:
+    case p_ronsql_resv | p_mysql_curr | p_AZ_ | p_09:
       break; // Reserved by RonSQL due to implemented in MySQL
-    case p_mysql_resv | p_mysql_depr | p_AZ09_:
+    case p_ronsql_resv | p_mysql_depr | p_AZ_:
       break; // Reserved by RonSQL due to deprecated in MySQL
     case p_mysql_curr | p_mysql_oper | p_opchars:
       break; // Operators in MySQL happen to appear in the symbol list
@@ -202,16 +240,24 @@ main()
       cout << "Problem with keyword: " << this_word << endl;
       cout << "  flags:"
            << (flags & p_ronsql_impl ? " | p_ronsql_impl" : "")
-           << (flags & p_mysql_resv ? " | p_mysql_resv" : "")
+           << (flags & p_ronsql_resv ? " | p_ronsql_resv" : "")
            << (flags & p_mysql_curr ? " | p_mysql_curr" : "")
            << (flags & p_mysql_depr ? " | p_mysql_depr" : "")
            << (flags & p_mysql_oper ? " | p_mysql_oper" : "")
-           << (flags & p_AZ09_ ? " | p_AZ09_" : "")
+           << (flags & p_AZ_ ? " | p_AZ_" : "")
+           << (flags & p_09 ? " | p_09" : "")
            << (flags & p_opchars ? " | p_opchars" : "")
            << (flags & p_other ? " | p_other" : "")
            << endl;
       break;
     }
+  }
+  if (actual_max_strlen_for_keyword_implemented_in_ronsql
+      != max_strlen_for_keyword_implemented_in_ronsql)
+  {
+    ok = false;
+    cout << "Actual maximum implemented word length is "
+         << actual_max_strlen_for_keyword_implemented_in_ronsql << endl;
   }
   if (!ok)
   {

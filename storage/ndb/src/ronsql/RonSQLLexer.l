@@ -296,12 +296,14 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
 "||"      keyword(OR);
 
 [a-z_]{1,18} {
+  // The max keyword length needs to be hard-coded in the rule regexp above.
+  static_assert(18 == max_strlen_for_keyword_implemented_in_ronsql);
   assert(rsqlp_leng <= max_strlen_for_keyword_implemented_in_ronsql);
   lloc_this_rule();
   // This rule matches all keywords that use [a-z_] characters and some unquoted identifiers.
   //
   // Create an upper-case c-string
-  char cword[19];
+  char cword[max_strlen_for_keyword_implemented_in_ronsql + 1];
   memcpy(cword, yytext, rsqlp_leng);
   cword[rsqlp_leng] = char(0); // The difference between char(0) and '\0' is that
                            // the former escapes post-editing, see
@@ -393,6 +395,7 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
   * rules matching with equal length, flex selects the one mentioned first. So,
   * since the keywords are defined first, they take precedence.
   */
+  // todo Do we need to check that it is not a reserved keyword?
   yylval->str = LexString{yytext, rsqlp_leng};
   lloc_this_rule();
   if (rsqlp_leng > 64)

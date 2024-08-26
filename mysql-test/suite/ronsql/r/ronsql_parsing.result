@@ -357,8 +357,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== Arithmetics =====
 Query parse tree:
@@ -406,8 +406,8 @@ Count  A03  r02 A03:COUNT <- r02:(((`b` / `c`) / `f`) + (((`d` * `e`) / `f`) * (
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 28 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 17 instructions.
 
 ===== Quoted ID =====
 Query parse tree:
@@ -444,8 +444,8 @@ Min    A01  r00 A01:MIN <- r00:((`e``e` + `f`) / (`g` - `h`))
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 28 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 17 instructions.
 
 ===== UTF-8 2-byte character in unquoted identifier =====
 Query parse tree:
@@ -466,8 +466,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== UTF-8 2-byte character in quoted identifier =====
 Query parse tree:
@@ -488,8 +488,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== UTF-8 3-byte character in unquoted identifier =====
 Query parse tree:
@@ -510,8 +510,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== UTF-8 3-byte character in quoted identifier =====
 Query parse tree:
@@ -532,8 +532,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== Control character in quoted identifier =====
 Query parse tree:
@@ -554,8 +554,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== Select and group by with different quotation =====
 Query parse tree:
@@ -585,8 +585,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 28 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 17 instructions.
 
 ===== has_item regression =====
 Query parse tree:
@@ -642,8 +642,8 @@ Min    A02  r00 A02:MIN <- r00:((`ee` + `f`) / (`g` - `h`))
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 18 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 11 instructions.
 
 ===== Alias =====
 Query parse tree:
@@ -678,8 +678,8 @@ Count  A00  r01 A00:COUNT <- r01:(`h` + (`i` / `j``j`))
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 29 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 18 instructions.
 
 ===== Integer constants =====
 Query parse tree:
@@ -708,8 +708,8 @@ Max    A01  r00 A01:MAX <- r00:(`col3` - 792)
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 18 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 11 instructions.
 
 ===== Avg =====
 Query parse tree:
@@ -744,8 +744,8 @@ Min    A03  r00 A03:MIN <- r00:`col2`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 37 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 22 instructions.
 
 ===== Count all =====
 Query parse tree:
@@ -784,8 +784,8 @@ Min    A04  r00 A04:MIN <- r00:`col2`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 42 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 25 instructions.
 
 ===== Condition =====
 Query parse tree:
@@ -828,8 +828,8 @@ Max    A01  r00 A01:MAX <- r00:`col3`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 23 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 14 instructions.
 
 ===== Complex operator precedence =====
 Query parse tree:
@@ -950,8 +950,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== Single quoted strings =====
 Query parse tree:
@@ -976,8 +976,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== Compound strings =====
 Query parse tree:
@@ -1000,8 +1000,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== date_add =====
 Query parse tree:
@@ -1030,8 +1030,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== date_sub =====
 Query parse tree:
@@ -1060,8 +1060,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== extract =====
 Query parse tree:
@@ -1088,8 +1088,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== order by =====
 Query parse tree:
@@ -1112,8 +1112,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== group and order by 2 columns =====
 Query parse tree:
@@ -1140,8 +1140,8 @@ Max    A00  r00 A00:MAX <- r00:`col3`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 18 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 11 instructions.
 
 ===== order by ASC/DESC =====
 Query parse tree:
@@ -1167,8 +1167,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== Unimplemented keyword used as quoted identifier =====
 Query parse tree:
@@ -1189,8 +1189,8 @@ Max    A00  r00 A00:MAX <- r00:`b`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 13 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 8 instructions.
 
 ===== Negation =====
 Query parse tree:
@@ -1255,8 +1255,8 @@ Count  A04  r00 A04:COUNT <- r00:(`a` - (0 - (0 - (`b` - 1))))
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 33 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 20 instructions.
 
 ===== Almost too long unaliased select expression =====
 Query parse tree:
@@ -1273,8 +1273,8 @@ Max    A00  r00 A00:MAX <- r00:`a`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 8 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 5 instructions.
 
 ===== Aliased expression that would be too long without alias =====
 Query parse tree:
@@ -1291,8 +1291,8 @@ Max    A00  r00 A00:MAX <- r00:`a`
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 8 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 5 instructions.
 
 ===== Compiler test 1 =====
 Query parse tree:
@@ -1378,8 +1378,8 @@ Count  A08  r01 A08:COUNT <- r01:(`apples` + (`apples` + `apples`))
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 56 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 33 instructions.
 
 ===== Compiler test 2 =====
 Query parse tree:
@@ -1450,8 +1450,8 @@ Sum    A06  r00 A06:SUM <- r00:((((((((((`c` + `c`) + `c`) + `c`) + `c`) + `c`) 
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 38 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 23 instructions.
 
 ===== dbt3-1.10/queries/mysql/1_2.sql =====
 Query parse tree:
@@ -1519,8 +1519,8 @@ Count  A08  r06 A08:COUNT <- r06:1
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 54 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 33 instructions.
 
 ===== Complex aggregation with % and DIV =====
 Query parse tree:
@@ -1568,6 +1568,6 @@ Sum    A01  r02 A01:SUM <- r02:(((((`a` % `b`) DIV `c`) % `d`) DIV `e`) % `f`)
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 18 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 11 instructions.
 
