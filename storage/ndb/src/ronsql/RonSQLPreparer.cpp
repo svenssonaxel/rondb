@@ -172,6 +172,72 @@ RonSQLPreparer::parse()
   if (parse_result == 0)
   {
     assert(m_context.m_err_state == ErrState::NONE);
+    /* We have already provided columns and expressions to the
+     * AggregationAPICompiler. E.g. in `SELECT Max(col1 + col2)`, m_agg already
+     * knows about `col1`, `col2` and `col1 + col2`. Here, we let m_agg know about
+     * the aggregate expressions themselves, e.g. `Max(col1 + col2)`, making sure
+     * they are provided in the correct order.
+     */
+    Outputs* outputs = m_context.ast_root.outputs;
+    bool has_aggregate_outputs = false;
+    while (outputs != NULL)
+    {
+      switch (outputs->type)
+      {
+      case Outputs::Type::COLUMN:
+        break;
+      case Outputs::Type::AGGREGATE:
+      {
+        has_aggregate_outputs = true;
+        assert(m_agg != NULL);
+        TokenKind fun = outputs->aggregate.fun;
+        AggregationAPICompiler::Expr* expr = outputs->aggregate.arg;
+        switch (fun)
+        {
+        case T_COUNT:
+          outputs->aggregate.agg_index = m_agg->Count(expr);
+          break;
+        case T_MAX:
+          outputs->aggregate.agg_index = m_agg->Max(expr);
+          break;
+        case T_MIN:
+          outputs->aggregate.agg_index = m_agg->Min(expr);
+          break;
+        case T_SUM:
+          outputs->aggregate.agg_index = m_agg->Sum(expr);
+          break;
+        default:
+          abort();
+        }
+        break;
+      }
+      case Outputs::Type::AVG:
+        has_aggregate_outputs = true;
+        outputs->avg.agg_index_sum = m_agg->Sum(outputs->avg.arg);
+        outputs->avg.agg_index_count = m_agg->Count(outputs->avg.arg);
+        break;
+      default:
+        abort();
+      }
+      outputs = outputs->next;
+    }
+    if (m_agg == NULL)
+    {
+      assert(!has_aggregate_outputs);
+    }
+    else
+    {
+      assert(has_aggregate_outputs);
+      assert(m_agg->getStatus() == AggregationAPICompiler::Status::PROGRAMMING);
+    }
+    if (!has_aggregate_outputs)
+    {
+      assert(m_conf.err_stream != NULL);
+      std::basic_ostream<char>& err = *m_conf.err_stream;
+      err << "This query has no aggregate expression, so it is not an aggregate query.\n"
+             "Currently, RonSQL only supports aggregate queries.\n";
+      throw runtime_error("Not an aggregate query.");
+    }
     return;
   }
   // The rest is error handling.
@@ -394,74 +460,6 @@ RonSQLPreparer::has_width(size_t pos)
 void
 RonSQLPreparer::load()
 {
-  /* The parser has already provided columns and expressions to the
-   * AggregationAPICompiler. E.g. in `SELECT Max(col1 + col2)`, m_agg already
-   * knows about `col1`, `col2` and `col1 + col2`. Here, we let m_agg know about
-   * the aggregate expressions themselves, e.g. `Max(col1 + col2)`, making sure
-   * they are provided in the correct order.
-   * todo maybe this part is better placed in parse()
-   */
-  Outputs* outputs = m_context.ast_root.outputs;
-  bool has_aggregate_outputs = false;
-  while (outputs != NULL)
-  {
-    switch (outputs->type)
-    {
-    case Outputs::Type::COLUMN:
-      break;
-    case Outputs::Type::AGGREGATE:
-    {
-      has_aggregate_outputs = true;
-      assert(m_agg != NULL);
-      TokenKind fun = outputs->aggregate.fun;
-      AggregationAPICompiler::Expr* expr = outputs->aggregate.arg;
-      switch (fun)
-      {
-      case T_COUNT:
-        outputs->aggregate.agg_index = m_agg->Count(expr);
-        break;
-      case T_MAX:
-        outputs->aggregate.agg_index = m_agg->Max(expr);
-        break;
-      case T_MIN:
-        outputs->aggregate.agg_index = m_agg->Min(expr);
-        break;
-      case T_SUM:
-        outputs->aggregate.agg_index = m_agg->Sum(expr);
-        break;
-      default:
-        abort();
-      }
-      break;
-    }
-    case Outputs::Type::AVG:
-      has_aggregate_outputs = true;
-      outputs->avg.agg_index_sum = m_agg->Sum(outputs->avg.arg);
-      outputs->avg.agg_index_count = m_agg->Count(outputs->avg.arg);
-      break;
-    default:
-      abort();
-    }
-    outputs = outputs->next;
-  }
-  if (m_agg == NULL)
-  {
-    assert(!has_aggregate_outputs);
-  }
-  else
-  {
-    assert(has_aggregate_outputs);
-    assert(m_agg->getStatus() == AggregationAPICompiler::Status::PROGRAMMING);
-  }
-  if (!has_aggregate_outputs)
-  {
-    assert(m_conf.err_stream != NULL);
-    std::basic_ostream<char>& err = *m_conf.err_stream;
-    err << "This query has no aggregate expression, so it is not an aggregate query.\n"
-           "Currently, RonSQL only supports aggregate queries.\n";
-    throw runtime_error("Not an aggregate query.");
-  }
-
   std::basic_ostream<char>& err = *m_conf.err_stream;
   /*
    * During parsing, strings that were claimed to be column names were inserted
