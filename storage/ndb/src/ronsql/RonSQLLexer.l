@@ -313,11 +313,12 @@ SINGLE_QUOTED_STRING_CHARACTER_EXCEPT_APOSTROPHE_AND_BACKSLASH         [^\0\047\
   }
   // Binary search for cword in keywords_implemented_in_ronsql list, returning
   // value if found
-  Uint32 low = 0;
-  Uint32 high = number_of_keywords_implemented_in_ronsql - 1;
+  // Variables low, high and mid need to be signed since `high = mid - 1` below can result in a negative value.
+  Int32 low = 0;
+  Int32 high = (Int32)number_of_keywords_implemented_in_ronsql - 1;
   while (low <= high)
   {
-    Uint32 mid = (low + high) / 2;
+    Int32 mid = (low + high) / 2;
     int cmp = strcmp(cword, keywords_implemented_in_ronsql[mid].text);
     if (cmp < 0)
     {

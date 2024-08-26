@@ -13,8 +13,8 @@ Sum    A00  r00 A00:SUM <- r00:9223372036854775807
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 8 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 5 instructions.
 
 Query parse tree:
 SELECT
@@ -30,8 +30,8 @@ Sum    A00  r00 A00:SUM <- r00:-9223372036854775807
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 8 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 5 instructions.
 
 Query parse tree:
 SELECT
@@ -47,8 +47,8 @@ Sum    A00  r00 A00:SUM <- r00:-9223372036854775808
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 8 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 5 instructions.
 
 ===== Integer folding =====
 Query parse tree:
@@ -67,8 +67,8 @@ Sum    A00  r00 A00:SUM <- r00:(64 / 5)
 Execute as table scan.
 (There is no NDB connection, but this can be determined based on the absense of a WHERE clause.)
 
-Output in UTF-8 encoded JSON format.
-The program for post-processing and output has 8 instructions.
+Output in mysql-style tab separated format.
+The program for post-processing and output has 5 instructions.
 
 ===== Too big integer constant =====
 Syntax error in SQL statement: Literal integer too big.

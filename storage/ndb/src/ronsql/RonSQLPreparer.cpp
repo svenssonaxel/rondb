@@ -871,14 +871,18 @@ RonSQLPreparer::execute()
   catch (const std::exception& e)
   {
     NdbError ndb_err;
-    if (myTrans == NULL)
+    if (myTrans != NULL)
+    {
+      ndb_err = myTrans->getNdbError();
+      ndb->closeTransaction(myTrans);
+    }
+    else if (ndb != NULL)
     {
       ndb_err = ndb->getNdbError();
-      ndb->closeTransaction(myTrans);
     }
     else
     {
-      ndb_err = myTrans->getNdbError();
+      throw;
     }
     std::basic_ostream<char>& err = *m_conf.err_stream;
     switch (ndb_err.status)
@@ -918,7 +922,7 @@ RonSQLPreparer::execute()
 
 void
 RonSQLPreparer::apply_filter_top_level(NdbScanFilter* filter,
-                                         struct ConditionalExpression* ce)
+                                       struct ConditionalExpression* ce)
 {
   assert(ce != NULL);
   /* ndbapi filter has unary AND and OR operators, i.e. they take an arbitrary
@@ -946,7 +950,7 @@ RonSQLPreparer::apply_filter_top_level(NdbScanFilter* filter,
 
 bool
 RonSQLPreparer::apply_filter(NdbScanFilter* filter,
-                              struct ConditionalExpression* ce)
+                             struct ConditionalExpression* ce)
 {
   assert (ce != NULL);
   switch (ce->op)
