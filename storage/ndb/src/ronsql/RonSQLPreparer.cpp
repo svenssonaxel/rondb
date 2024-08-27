@@ -39,6 +39,8 @@ using std::runtime_error;
 #define not_implemented() not_implemented_helper(__FILE__, __LINE__)
 #define not_implemented_helper(file, line) \
   throw runtime_error(file ":" #line ": Not implemented")
+#define feature_not_implemented(description) \
+  throw runtime_error("RonSQL feature not implemented: " description)
 
 static const char* interval_type_name(TokenKind interval_type);
 
@@ -719,10 +721,10 @@ RonSQLPreparer::execute()
         print();
         break;
       case ExecutionParameters::OutputFormat::JSON:
-        not_implemented();
+        feature_not_implemented("JSON format for EXPLAIN output");
         break;
       case ExecutionParameters::OutputFormat::JSON_ASCII:
-        not_implemented();
+        feature_not_implemented("JSON_ASCII format for EXPLAIN output");
         break;
       default:
         abort();
@@ -956,18 +958,18 @@ RonSQLPreparer::apply_filter(NdbScanFilter* filter,
   switch (ce->op)
   {
   case T_IDENTIFIER:
-    not_implemented();
+    feature_not_implemented("Column name in WHERE clause outside of comparison");
   case T_STRING:
-    not_implemented();
+    feature_not_implemented("String constant in WHERE clause");
   case T_INT:
-    not_implemented();
+    feature_not_implemented("Integer constant in WHERE clause outside of comparison");
   case T_OR:
     return (filter->begin(NdbScanFilter::OR) >= 0 &&
             apply_filter(filter, ce->args.left) &&
             apply_filter(filter, ce->args.right) &&
             filter->end() >= 0);
   case T_XOR:
-    not_implemented();
+    feature_not_implemented("XOR in WHERE clause");
   case T_AND:
     return (filter->begin(NdbScanFilter::AND) >= 0 &&
             apply_filter(filter, ce->args.left) &&
@@ -990,39 +992,39 @@ RonSQLPreparer::apply_filter(NdbScanFilter* filter,
   case T_NOT_EQUALS:
     return apply_filter_cmp(filter, NdbScanFilter::COND_NE, ce->args.left, ce->args.right);
   case T_IS:
-    not_implemented();
+    feature_not_implemented("IS in WHERE clause");
   case T_BITWISE_OR:
-    not_implemented();
+    feature_not_implemented("| in WHERE clause");
   case T_BITWISE_AND:
-    not_implemented();
+    feature_not_implemented("&& in WHERE clause");
   case T_BITSHIFT_LEFT:
-    not_implemented();
+    feature_not_implemented("<< in WHERE clause");
   case T_BITSHIFT_RIGHT:
-    not_implemented();
+    feature_not_implemented(">> in WHERE clause");
   case T_PLUS:
-    not_implemented();
+    feature_not_implemented("+ (addition) in WHERE clause");
   case T_MINUS:
-    not_implemented();
+    feature_not_implemented("- (subtraction) in WHERE clause");
   case T_MULTIPLY:
-    not_implemented();
+    feature_not_implemented("* in WHERE clause");
   case T_SLASH:
-    not_implemented();
+    feature_not_implemented("/ in WHERE clause");
   case T_DIV:
-    not_implemented();
+    feature_not_implemented("DIV in WHERE clause");
   case T_MODULO:
-    not_implemented();
+    feature_not_implemented("% in WHERE clause");
   case T_BITWISE_XOR:
-    not_implemented();
+    feature_not_implemented("^ in WHERE clause");
   case T_EXCLAMATION:
-    not_implemented();
+    feature_not_implemented("! in WHERE clause");
   case T_INTERVAL:
-    not_implemented();
+    feature_not_implemented("INTERVAL in WHERE clause");
   case T_DATE_ADD:
-    not_implemented();
+    feature_not_implemented("DATE_ADD in WHERE clause");
   case T_DATE_SUB:
-    not_implemented();
+    feature_not_implemented("DATE_SUB in WHERE clause");
   case T_EXTRACT:
-    not_implemented();
+    feature_not_implemented("EXTRACT in WHERE clause");
   default:
     // Unknown operator
     abort();
@@ -1238,7 +1240,7 @@ RonSQLPreparer::eval_const_expr(ConditionalExpression* ce)
       return raw_value{ date, sizeof(*date)};
     }
   case T_EXTRACT:
-    not_implemented();
+    feature_not_implemented("Constant evaluation of EXTRACT expression");
   default:
     // Unknown operator
     abort();

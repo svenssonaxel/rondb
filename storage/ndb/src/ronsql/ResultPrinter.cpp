@@ -36,6 +36,8 @@ using std::runtime_error;
 #define not_implemented() not_implemented_helper(__FILE__, __LINE__)
 #define not_implemented_helper(file, line) \
   throw runtime_error(file ":" #line ": Not implemented")
+#define feature_not_implemented(description) \
+  throw runtime_error("RonSQL feature not implemented: " description)
 
 DEFINE_FORMATTER(quoted_identifier, LexCString, {
   os.put('`');
@@ -435,7 +437,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         switch (column.type())
         {
         case NdbDictionary::Column::Type::Undefined:     ///< Undefined. Since this is a result, it means SQL NULL.
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Undefined (NULL)");
         case NdbDictionary::Column::Type::Tinyint:       ///< 8 bit. 1 byte signed integer
           // Int8 is ultimately defined in terms a char, so we need to type case
           // in order to print as an integer.
@@ -471,17 +473,17 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
           out << column.data_uint64();
           break;
         case NdbDictionary::Column::Type::Float:         ///< 32-bit float. 4 bytes float
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Float");
         case NdbDictionary::Column::Type::Double:        ///< 64-bit float. 8 byte float
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Double");
         case NdbDictionary::Column::Type::Olddecimal:    ///< MySQL < 5.0 signed decimal,  Precision, Scale
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Olddecimal");
         case NdbDictionary::Column::Type::Olddecimalunsigned:
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Olddecimalunsigned");
         case NdbDictionary::Column::Type::Decimal:       ///< MySQL >= 5.0 signed decimal,  Precision, Scale
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Decimal");
         case NdbDictionary::Column::Type::Decimalunsigned:
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Decimalunsigned");
         case NdbDictionary::Column::Type::Char:          ///< Len. A fixed array of 1-byte chars
           {
             LexString content = LexString{ column.data(), column.byte_size() };
@@ -523,11 +525,11 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
             break;
           }
         case NdbDictionary::Column::Type::Binary:        ///< Len
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Binary");
         case NdbDictionary::Column::Type::Varbinary:     ///< Length bytes: 1, Max: 255
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Varbinary");
         case NdbDictionary::Column::Type::Datetime:      ///< Precision down to 1 sec (sizeof(Datetime) == 8 bytes )
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Datetime");
         case NdbDictionary::Column::Type::Date:          ///< Precision down to 1 day(sizeof(Date) == 4 bytes )
           {
             Uint32 date = column.data_uint32();
@@ -539,27 +541,27 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
             break;
           }
         case NdbDictionary::Column::Type::Blob:          ///< Binary large object (see NdbBlob)
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Blob");
         case NdbDictionary::Column::Type::Text:          ///< Text blob
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Text");
         case NdbDictionary::Column::Type::Bit:           ///< Bit, length specifies no of bits
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Bit");
         case NdbDictionary::Column::Type::Longvarchar:   ///< Length bytes: 2, little-endian
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Longvarchar");
         case NdbDictionary::Column::Type::Longvarbinary: ///< Length bytes: 2, little-endian
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Longvarbinary");
         case NdbDictionary::Column::Type::Time:          ///< Time without date
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Time");
         case NdbDictionary::Column::Type::Year:          ///< Year 1901-2155 (1 byte)
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Year");
         case NdbDictionary::Column::Type::Timestamp:     ///< Unix time
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Timestamp");
         case NdbDictionary::Column::Type::Time2:         ///< 3 bytes + 0-3 fraction
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Time2");
         case NdbDictionary::Column::Type::Datetime2:     ///< 5 bytes plus 0-3 fraction
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Datetime2");
         case NdbDictionary::Column::Type::Timestamp2:    ///< 4 bytes + 0-3 fraction
-          not_implemented();
+          feature_not_implemented("Print GROUP BY column of type Timestamp2");
         default:
           abort(); // Unknown type
         }
