@@ -976,9 +976,12 @@ RonSQLPreparer::apply_filter(NdbScanFilter* filter,
             apply_filter(filter, ce->args.right) &&
             filter->end() >= 0);
   case T_NOT:
+    feature_not_implemented("NOT in WHERE clause");
+    /*
     return (apply_filter(filter, ce->args.left) &&
             // todo no idea if this is correct
             filter->isfalse() >= 0);
+    */
   case T_EQUALS:
     return apply_filter_cmp(filter, NdbScanFilter::COND_EQ, ce->args.left, ce->args.right);
   case T_GE:
