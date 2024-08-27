@@ -2591,7 +2591,7 @@ sub set_build_thread_ports($) {
       # ports_per_thread value should be 50.
       # - First set of 20 ports are reserved for mysqld servers (10 each for
       #   standard and admin connections)
-      # - Second set of 10 ports are reserver for Group replication
+      # - Second set of 10 ports are reserved for Group replication
       # - Third set of 10 ports are reserved for secondary engine plugin
       # - Fourth and last set of 10 ports are reserved for X plugin
       $::secondary_engine_port = $baseport + 30;
