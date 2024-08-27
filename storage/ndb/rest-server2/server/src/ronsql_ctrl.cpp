@@ -93,7 +93,23 @@ void RonSQLCtrl::ronsql(const drogon::HttpRequestPtr &req,
     return;
   }
 
+  bool json_output = params.output_format == ExecutionParameters::OutputFormat::JSON ||
+                     params.output_format == ExecutionParameters::OutputFormat::JSON_ASCII;
+  if (json_output) {
+    if (reqStruct.operationId.empty()) {
+      out_stream << "{\"data\":\n";
+    }
+    else {
+      out_stream << "{\"operationId\": \"" << reqStruct.operationId << "\",\n\"data\":\n";
+    }
+  }
+
   status = ronsql_dal(database.c_str(), params);
+
+  if (json_output) {
+    out_stream << "}\n";
+  }
+
   std::string out_str = out_stream.str();
   std::string err_str = err_stream.str();
   bool hasOut = !out_str.empty();
@@ -271,6 +287,10 @@ RS_Status ronsql_validate_and_init_params(RonSQLParams& req,
         .status;
   if (!req.operationId.empty()) {
     ep.operation_id = req.operationId.c_str();
+    if (ep.output_format == ExecutionParameters::OutputFormat::TEXT)
+      return RS_CLIENT_ERROR("operationId not supported with output format TEXT");
+    if (ep.output_format == ExecutionParameters::OutputFormat::TEXT_NOHEADER)
+      return RS_CLIENT_ERROR("operationId not supported with output format TEXT_NOHEADER");
   }
   // do_explain -> ep.do_explain
   assert(do_explain != NULL);
