@@ -3261,7 +3261,6 @@ sub environment_setup {
       ndb_waiter
       ndbxfrm
       ndb_secretsfile_reader
-      ronsql_cli
     );
 
     foreach my $tool ( @ndb_tools)
@@ -3277,6 +3276,7 @@ sub environment_setup {
     @ndb_tools = qw(
       ndb_print_file
       ndb_print_sys_file
+      ronsql_cli
     );
 
     foreach my $tool ( @ndb_tools)
