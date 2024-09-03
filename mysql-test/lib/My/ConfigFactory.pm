@@ -214,10 +214,22 @@ sub fix_log_error {
   }
 }
 
+sub fix_log_error_rdrs {
+  my ($self, $config, $group_name, $group) = @_;
+  my $dir = $self->{ARGS}->{vardir};
+  return "$dir/log/$group_name.err";
+}
+
 sub fix_log {
   my ($self, $config, $group_name, $group) = @_;
   my $dir = dirname($group->value('datadir'));
   return "$dir/mysqld.log";
+}
+
+sub fix_log_rdrs {
+  my ($self, $config, $group_name, $group) = @_;
+  my $dir = $self->{ARGS}->{vardir};
+    return "$dir/log/$group_name.log";
 }
 
 sub fix_group_setting {
@@ -354,6 +366,18 @@ my @mysqld_rules = (
   { 'secure-file-priv' => sub { return shift->{ARGS}->{vardir}; }
   },);
 
+my @rdrs_rules = (
+  { '#log-output'                                  => \&fix_log },
+  { '#log-error'                                   => \&fix_log_error },
+  { 'port'                                         => \&fix_port },
+  { 'bind-address'                                 => \&fix_bind_address },
+  { 'pid-file'                                     => \&fix_pidfile },
+  { 'server-id'                                    => \&fix_server_id, },
+  # todo-ronsql do we need these?
+  { 'ssl-ca'                                       => \&fix_ssl_ca },
+  { 'ssl-cert'                                     => \&fix_ssl_server_cert },
+  { 'ssl-key'                                      => \&fix_ssl_server_key },);
+
 if (IS_WINDOWS) {
   # For simplicity, we use the same names for shared memory and
   # named pipes.
@@ -397,6 +421,7 @@ my @ndbd_rules = ({ 'BackupDataDir' => \&fix_cluster_backup_dir },
 # Rules to run for each cluster_config section
 #  - will be run in order listed here
 my @cluster_config_rules = ({ 'mysqld'   => \&fix_host },
+                            { 'rdrs'     => \&fix_host },
                             { 'ndb_mgmd' => \&fix_host },
                             { 'ndbapi'   => \&fix_host },
                             { 'ndbd'     => \&fix_host },);
@@ -640,7 +665,7 @@ sub run_generate_sections_from_cluster_config {
 
     foreach my $option ($group->options()) {
       my $option_name = $option->name();
-      if ($option_name =~ /^(ndbd|ndb_mgmd|mysqld|ndbapi)$/)
+      if ($option_name =~ /^(ndbd|ndb_mgmd|mysqld|rdrs|ndbapi)$/)
       {
         push @options, $option_name;
       }
@@ -714,6 +739,10 @@ sub run_generate_sections_from_cluster_config {
                                    $group);
           $config->insert("mysqld.$idx$suffix", 'datadir', "$datadir/data");
         }
+
+        if ($option_name eq 'rdrs') {
+          $config->insert("rdrs.$idx$suffix", 'config-file', "$vardir/rdrs_config.$idx$suffix.json");
+        }
       }
     }
   }
@@ -774,6 +803,8 @@ sub new_config {
   $self->run_section_rules($config, 'cluster_config.ndbd', @ndbd_rules);
 
   $self->run_section_rules($config, 'mysqld.', @mysqld_rules);
+
+  $self->run_section_rules($config, 'rdrs.', @rdrs_rules);
 
   # [mysqlbinlog] need additional settings
   $self->run_rules_for_group($config, $config->insert('mysqlbinlog'),

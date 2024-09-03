@@ -43,6 +43,7 @@ int main() {
     1. Read from ENV
         if no ENV:
     2. Set to defaults
+    todo-ronsql Are 3 & 4 wrong? I can't fine the code for it.
     3. Read CLI arguments
         if no CLI:
     4. Set to defaults
