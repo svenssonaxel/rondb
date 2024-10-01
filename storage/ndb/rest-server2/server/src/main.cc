@@ -174,6 +174,7 @@ constexpr const char* const configHelp =
 #include "json_printer.hpp"
 #include "pk_read_ctrl.hpp"
 #include "src/api_key.hpp"
+#include "src/fs_cache.hpp"
 #include "tls_util.hpp"
 #include <ndb_opts.h>
 
@@ -227,6 +228,7 @@ int main(int argc, char *argv[]) {
 
   ndb_init();
   (void)start_api_key_cache();
+  start_fs_cache();
 
   /*
     Config is fetched from:
@@ -379,6 +381,7 @@ int main(int argc, char *argv[]) {
     });
     drogon::app().run();
     stop_api_key_cache();
+    stop_fs_cache();
   }
   ndb_end(0);
   do_exit(0);
