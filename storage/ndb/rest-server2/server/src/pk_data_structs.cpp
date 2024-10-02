@@ -180,6 +180,7 @@ PKReadParams::PKReadParams(const std::string &method, const std::string &db,
 }
 
 std::string PKReadParams::to_string() {
+  // This does not produce valid JSON, but it seems it's only used in debugging?
   std::stringstream ss;
   ss << "PKReadParams: { path: { db: " << path.db << ", table: " << path.table
      << " }, filters: [";
@@ -197,7 +198,7 @@ std::string PKReadParams::to_string() {
        << readColumn.returnType << " }, ";
   }
   ss << "], operationId: " << operationId;
-  ss << "], method: " << method << " }";
+  ss << ", method: " << method << " }";
   return ss.str();
 }
 

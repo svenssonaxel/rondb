@@ -655,6 +655,7 @@ void FeatureStoreCtrl::featureStore(
     // Validate
     DEB_FS_CTRL(("Validate Batch PK Read Params for Feature Store request"));
     for (auto readParam : readParams) {
+      // Why is check_filter == false?
       status = readParam.validate(false, false);
       if (unlikely(static_cast<drogon::HttpStatusCode>(status.http_code) !=
                      drogon::HttpStatusCode::k200OK)) {

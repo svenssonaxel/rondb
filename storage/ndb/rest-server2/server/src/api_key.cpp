@@ -538,7 +538,7 @@ RS_Status APIKeyCache::authenticate_user(const std::string &apiKey,
     return status;
   }
   if (hashed != key.secret) {
-    return CRS_Status(HTTP_CODE::CLIENT_ERROR, "bad API key").status;
+    return CRS_Status(HTTP_CODE::AUTH_ERROR, "bad API key").status;
   }
   return CRS_Status::SUCCESS.status;
 }
