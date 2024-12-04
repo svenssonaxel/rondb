@@ -1,0 +1,52 @@
+USE test;
+CREATE TABLE coll_test (
+txt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+num INT NOT NULL DEFAULT 1) ENGINE=NDB;
+INSERT INTO coll_test (txt) values ('gross'), ('groß');
+SELECT txt, SUM(num) FROM coll_test GROUP BY txt ORDER BY txt;
+txt	SUM(num)
+gross	1
+groß	1
+{"data":
+[{"txt":"gross","SUM(num)":1}
+,{"txt":"groß","SUM(num)":1}
+]
+}
+SELECT a.txt, b.txt FROM coll_test a JOIN coll_test b on a.txt < b.txt;
+txt	txt
+gross	groß
+SELECT a.txt, b.txt FROM coll_test a JOIN coll_test b on a.txt > b.txt;
+txt	txt
+groß	gross
+SELECT a.txt, b.txt FROM coll_test a JOIN coll_test b on a.txt = b.txt;
+txt	txt
+gross	gross
+groß	groß
+DROP TABLE coll_test;
+CREATE TABLE coll_test2 (
+txt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_german2_ci NOT NULL,
+num INT NOT NULL DEFAULT 1) ENGINE=NDB;
+INSERT INTO coll_test2 (txt) values ('gross'), ('groß');
+SELECT txt, SUM(num) FROM coll_test2 GROUP BY txt ORDER BY txt;
+txt	SUM(num)
+groß	2
+{"data":
+[{"txt":"gross","SUM(num)":1}
+,{"txt":"groß","SUM(num)":1}
+]
+}
+SELECT txt FROM coll_test2;
+txt
+gross
+groß
+SELECT a.txt, b.txt FROM coll_test2 a JOIN coll_test2 b on a.txt < b.txt;
+txt	txt
+SELECT a.txt, b.txt FROM coll_test2 a JOIN coll_test2 b on a.txt > b.txt;
+txt	txt
+SELECT a.txt, b.txt FROM coll_test2 a JOIN coll_test2 b on a.txt = b.txt;
+txt	txt
+gross	gross
+gross	groß
+groß	gross
+groß	groß
+DROP TABLE coll_test2;

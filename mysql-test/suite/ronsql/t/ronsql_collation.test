@@ -1,0 +1,72 @@
+--source include/have_ndb.inc
+--source include/have_util_curl.inc
+
+
+let $rdrs_ronsql = curl --no-progress-meter --fail-with-body -X POST
+  -H "Content-Type: application/json"
+  http://$RDRS_NOKEY_HOST:$RDRS_NOKEY_PORT/0.1.0/ronsql -d;
+
+USE test;
+
+CREATE TABLE coll_test (
+  txt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  num INT NOT NULL DEFAULT 1) ENGINE=NDB;
+INSERT INTO coll_test (txt) values ('gross'), ('groß');
+
+SELECT txt, SUM(num) FROM coll_test GROUP BY txt ORDER BY txt;
+--exec $rdrs_ronsql '{"query":"SELECT txt, SUM(num) FROM coll_test GROUP BY txt;","database":"test"}'
+--sorted_result
+SELECT a.txt, b.txt FROM coll_test a JOIN coll_test b on a.txt < b.txt;
+--sorted_result
+SELECT a.txt, b.txt FROM coll_test a JOIN coll_test b on a.txt > b.txt;
+--sorted_result
+SELECT a.txt, b.txt FROM coll_test a JOIN coll_test b on a.txt = b.txt;
+
+DROP TABLE coll_test;
+
+# todo use the same table name "coll_test" when rdrs2 handles schema versions correctly.
+CREATE TABLE coll_test2 (
+  txt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_german2_ci NOT NULL,
+  num INT NOT NULL DEFAULT 1) ENGINE=NDB;
+INSERT INTO coll_test2 (txt) values ('gross'), ('groß');
+
+SELECT txt, SUM(num) FROM coll_test2 GROUP BY txt ORDER BY txt;
+--exec $rdrs_ronsql '{"query":"SELECT txt, SUM(num) FROM coll_test2 GROUP BY txt;","database":"test"}'
+--sorted_result
+SELECT txt FROM coll_test2;
+--sorted_result
+SELECT a.txt, b.txt FROM coll_test2 a JOIN coll_test2 b on a.txt < b.txt;
+--sorted_result
+SELECT a.txt, b.txt FROM coll_test2 a JOIN coll_test2 b on a.txt > b.txt;
+--sorted_result
+SELECT a.txt, b.txt FROM coll_test2 a JOIN coll_test2 b on a.txt = b.txt;
+
+DROP TABLE coll_test2;
+
+# todo more extensive tests, using several collations with more characters:
+#  ('@'),
+#  ('A'),
+#  ('Ä'), # U+0041 U+0308 (testing collation vs U+00c4)
+#  ('Å'), # U+0041 U+030a
+#  ('Ö'), # U+004f U+0308
+#  ('Z'),
+#  ('a'),
+#  ('ä'), # U+0061 U+0308
+#  ('å'), # U+0061 U+030a
+#  ('ö'), # U+006f U+0308
+#  ('r'),
+#  ('s'),
+#  ('sr'),
+#  ('ss'),
+#  ('st'),
+#  ('t'),
+#  ('z'),
+#  ('~'),
+#  ('Ä'), # U+00c4
+#  ('Å'), # U+00c5
+#  ('Ö'), # U+00d6
+#  ('ß'), # U+00df (testing collation vs 'ss')
+#  ('ä'), # U+00e4
+#  ('å'), # U+00e5
+#  ('ö'), # U+00f6
+#  ('Ω');
