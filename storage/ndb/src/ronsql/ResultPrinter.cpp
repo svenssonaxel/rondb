@@ -126,6 +126,7 @@ ResultPrinter::compile()
     struct GroupbyColumns* g = m_query->groupby_columns;
     while(g != NULL)
     {
+      // todo deduplicate m_groupby_cols
       m_groupby_cols.push(g->col_idx);
       g = g->next;
     }

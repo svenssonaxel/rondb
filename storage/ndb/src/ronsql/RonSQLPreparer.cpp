@@ -493,6 +493,7 @@ RonSQLPreparer::load()
   if (ndb != NULL)
   {
     m_dict = ndb->getDictionary();
+    // todo is this used for scan as well, i.e. do we know we will have no schema update in between?
     m_table = m_dict->getTable(m_context.ast_root.table.c_str());
     soft_assert(m_table != NULL,
                 "Failed to get table. Note that RonSQL only supports tables with"
