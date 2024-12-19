@@ -30,6 +30,7 @@ CREATE TABLE coll_test2 (
   num INT NOT NULL DEFAULT 1) ENGINE=NDB;
 INSERT INTO coll_test2 (txt) values ('gross'), ('groß');
 
+# todo canonicalize all queries
 SELECT txt, SUM(num) FROM coll_test2 GROUP BY txt ORDER BY txt;
 --exec $rdrs_ronsql '{"query":"SELECT txt, SUM(num) FROM coll_test2 GROUP BY txt;","database":"test"}'
 --sorted_result

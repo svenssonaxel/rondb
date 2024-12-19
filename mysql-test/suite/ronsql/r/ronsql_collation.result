@@ -29,7 +29,7 @@ num INT NOT NULL DEFAULT 1) ENGINE=NDB;
 INSERT INTO coll_test2 (txt) values ('gross'), ('groß');
 SELECT txt, SUM(num) FROM coll_test2 GROUP BY txt ORDER BY txt;
 txt	SUM(num)
-groß	2
+gross	2
 {"data":
 [{"txt":"gross","SUM(num)":1}
 ,{"txt":"groß","SUM(num)":1}
