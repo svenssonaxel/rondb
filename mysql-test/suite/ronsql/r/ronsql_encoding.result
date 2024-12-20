@@ -118,3 +118,136 @@ Number of output lines, including header: 7
 
 Cleanup
 DROP TABLE encoding_test;
+CREATE TABLE utfwrong_ (
+title CHAR(50) CHARACTER SET latin1 NOT NULL,
+str VARBINARY(50) NOT NULL,
+PRIMARY KEY USING HASH (title)) ENGINE=NDB;
+CREATE TABLE utfwrong (
+title CHAR(50) CHARACTER SET latin1 NOT NULL,
+str VARCHAR(50) CHARACTER SET utf8mb4 NOT NULL,
+PRIMARY KEY USING HASH (title)) ENGINE=NDB;
+INSERT INTO utfwrong_ VALUES
+('01. Letter a, correct',
+0x5e615f),
+('02. Illegal byte 0xfa',
+0x5efa5f),
+('03. Illegal byte 0xc0',
+0x5ec05f),
+('04. Illegal byte 0xc1',
+0x5ec15f),
+('05. Overlong 2-byte sequence',
+0x5ec1a15f),
+('06. Overlong 3-byte sequence',
+0x5ee083b65f),
+('07. Overlong 4-byte sequence',
+0x5ef0819ab15f),
+('08. Too high code point',
+0x5ef4a391965f),
+('09. Surrogate',
+0x5eedbaad5f),
+('10. Correct 2-byte sequence',
+0x5ec3a55f),
+('11. 2-byte sequence with illegal 2nd byte',
+0x5ec3615f),
+('12. 2-byte sequence with no 2nd byte',
+0x5ec3),
+('13. 3-byte sequence with illegal 2nd byte',
+0x5ee161625f),
+('14. 3-byte sequence with no 2nd byte',
+0x5ee1),
+('15. Correct 3-byte sequence',
+0x5ee19ab15f),
+('16. 3-byte sequence with illegal 3rd byte',
+0x5ee19a615f),
+('17. 3-byte sequence with no 3rd byte',
+0x5ee19a),
+('18. Correct 4-byte sequence',
+0x5ef0a093975f),
+('19. 4-byte sequence with illegal 2nd byte',
+0x5ef06162635f),
+('20. 4-byte sequence with no 2nd byte',
+0x5ef0),
+('21. 4-byte sequence with illegal 3rd byte',
+0x5ef0a061625f),
+('22. 4-byte sequence with no 3rd byte',
+0x5ef0a0),
+('23. 4-byte sequence with illegal 4th byte',
+0x5ef0a093615f),
+('24. 4-byte sequence with no 4th byte',
+0x5ef0a093),
+('25. Rogue continuation byte',
+0x5e895f);
+
+===== Test UTF-8 encoding errors in JSON mode =====
+{"data":
+[{"title":"01. Letter a, correct","str":"^a_","count(*)":1}
+,{"title":"02. Illegal byte 0xfa","str":"^�_","count(*)":1}
+,{"title":"03. Illegal byte 0xc0","str":"^�_","count(*)":1}
+,{"title":"04. Illegal byte 0xc1","str":"^�_","count(*)":1}
+,{"title":"05. Overlong 2-byte sequence","str":"^��_","count(*)":1}
+,{"title":"06. Overlong 3-byte sequence","str":"^���_","count(*)":1}
+,{"title":"07. Overlong 4-byte sequence","str":"^����_","count(*)":1}
+,{"title":"08. Too high code point","str":"^����_","count(*)":1}
+,{"title":"09. Surrogate","str":"^���_","count(*)":1}
+,{"title":"10. Correct 2-byte sequence","str":"^å_","count(*)":1}
+,{"title":"11. 2-byte sequence with illegal 2nd byte","str":"^�a_","count(*)":1}
+,{"title":"12. 2-byte sequence with no 2nd byte","str":"^�","count(*)":1}
+,{"title":"13. 3-byte sequence with illegal 2nd byte","str":"^�ab_","count(*)":1}
+,{"title":"14. 3-byte sequence with no 2nd byte","str":"^�","count(*)":1}
+,{"title":"15. Correct 3-byte sequence","str":"^ᚱ_","count(*)":1}
+,{"title":"16. 3-byte sequence with illegal 3rd byte","str":"^��a_","count(*)":1}
+,{"title":"17. 3-byte sequence with no 3rd byte","str":"^�","count(*)":1}
+,{"title":"18. Correct 4-byte sequence","str":"^𠓗_","count(*)":1}
+,{"title":"19. 4-byte sequence with illegal 2nd byte","str":"^�abc_","count(*)":1}
+,{"title":"20. 4-byte sequence with no 2nd byte","str":"^�","count(*)":1}
+,{"title":"21. 4-byte sequence with illegal 3rd byte","str":"^��ab_","count(*)":1}
+,{"title":"22. 4-byte sequence with no 3rd byte","str":"^�","count(*)":1}
+,{"title":"23. 4-byte sequence with illegal 4th byte","str":"^���a_","count(*)":1}
+,{"title":"24. 4-byte sequence with no 4th byte","str":"^�","count(*)":1}
+,{"title":"25. Rogue continuation byte","str":"^�_","count(*)":1}
+]
+}
+
+===== Test UTF-8 encoding errors in JSON ASCII mode =====
+{"data":
+[{"title":"01. Letter a, correct","str":"^a_","count(*)":1}
+,{"title":"02. Illegal byte 0xfa","str":"^\ufffd","count(*)":1}
+,{"title":"03. Illegal byte 0xc0","str":"^\ufffd_","count(*)":1}
+,{"title":"04. Illegal byte 0xc1","str":"^\ufffd_","count(*)":1}
+,{"title":"05. Overlong 2-byte sequence","str":"^\ufffd\ufffd_","count(*)":1}
+,{"title":"06. Overlong 3-byte sequence","str":"^\ufffd\ufffd\ufffd_","count(*)":1}
+,{"title":"07. Overlong 4-byte sequence","str":"^\ufffd\ufffd\ufffd\ufffd_","count(*)":1}
+,{"title":"08. Too high code point","str":"^\ufffd\ufffd\ufffd\ufffd_","count(*)":1}
+,{"title":"09. Surrogate","str":"^\ufffd\ufffd\ufffd_","count(*)":1}
+,{"title":"10. Correct 2-byte sequence","str":"^\u00e5_","count(*)":1}
+,{"title":"11. 2-byte sequence with illegal 2nd byte","str":"^\ufffda_","count(*)":1}
+,{"title":"12. 2-byte sequence with no 2nd byte","str":"^\ufffd","count(*)":1}
+,{"title":"13. 3-byte sequence with illegal 2nd byte","str":"^\ufffdab_","count(*)":1}
+,{"title":"14. 3-byte sequence with no 2nd byte","str":"^\ufffd","count(*)":1}
+,{"title":"15. Correct 3-byte sequence","str":"^\u16b1_","count(*)":1}
+,{"title":"16. 3-byte sequence with illegal 3rd byte","str":"^\ufffd\ufffda_","count(*)":1}
+,{"title":"17. 3-byte sequence with no 3rd byte","str":"^\ufffd","count(*)":1}
+,{"title":"18. Correct 4-byte sequence","str":"^\ud841\udcd7_","count(*)":1}
+,{"title":"19. 4-byte sequence with illegal 2nd byte","str":"^\ufffdabc_","count(*)":1}
+,{"title":"20. 4-byte sequence with no 2nd byte","str":"^\ufffd","count(*)":1}
+,{"title":"21. 4-byte sequence with illegal 3rd byte","str":"^\ufffd\ufffdab_","count(*)":1}
+,{"title":"22. 4-byte sequence with no 3rd byte","str":"^\ufffd","count(*)":1}
+,{"title":"23. 4-byte sequence with illegal 4th byte","str":"^\ufffd\ufffd\ufffda_","count(*)":1}
+,{"title":"24. 4-byte sequence with no 4th byte","str":"^\ufffd","count(*)":1}
+,{"title":"25. Rogue continuation byte","str":"^\ufffd_","count(*)":1}
+]
+}
+
+===== Test UTF-8 encoding errors in TSV mode =====
+== Query ==
+SELECT title, str, count(*) FROM utfwrong GROUP BY title, str;
+
+Number of output lines, including header: 26
+
+== Diff ==
+================================================================================
+
+
+
+DROP TABLE utfwrong_;
+DROP TABLE utfwrong;

@@ -32,6 +32,11 @@ Syntax error in SQL statement: Overlong UTF-8 encoding.
 > select aàƒ¶ from tbl;
 !         ^
 ronsql_cli caught exception: Syntax error.
+===== UTF-8 overlong 4-byte sequence =====
+Syntax error in SQL statement: Overlong UTF-8 encoding.
+> select `aðš±` from tbl;
+!          ^
+ronsql_cli caught exception: Syntax error.
 ===== Too high code point (U+123456) =====
 Syntax error in SQL statement: Unicode code points above U+10FFFF are invalid.
 > select `aô£‘–` from tbl;

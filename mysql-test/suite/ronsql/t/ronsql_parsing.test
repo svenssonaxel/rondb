@@ -5,6 +5,7 @@
 --let X05=`SELECT char(0x05)`
 --let X1B=`SELECT char(0x1b)`
 --let X7F=`SELECT char(0x7f)`
+--let X81=`SELECT char(0x81)`
 --let X83=`SELECT char(0x83)`
 --let X89=`SELECT char(0x89)`
 --let X91=`SELECT char(0x91)`
@@ -90,6 +91,12 @@ EOF
 --echo ===== UTF-8 overlong 3-byte sequence =====
 --error 1
 --exec $PARSE_TEST 'select a$XE0$X83$XB6 from tbl;'
+
+# ᚱ = U+16b1 = 11100001 10011010 10110001
+#   ≈ 11110000 10000001 10011010 10110001 = f0 81 9a b1
+--echo ===== UTF-8 overlong 4-byte sequence =====
+--error 1
+--exec $PARSE_TEST 'select `a$XF0$X81$X9a$XB1` from tbl;'
 
 # U+123456 = 11110100 10100011 10010001 10010110 = f4 a3 91 96
 --echo ===== Too high code point (U+123456) =====

@@ -68,7 +68,8 @@ static void print_string(std::ostream& output_stream,
                          CHARSET_INFO* charset,
                          bool json_escape,
                          bool utf8_output,
-                         bool trim_space_suffix);
+                         bool trim_space_suffix,
+                         bool halt_on_err);
 static double convert_result_to_double(NdbAggregator::Result result);
 
 static inline void
@@ -537,11 +538,11 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
             // todo it's nowadays ok to put brace on same line. (This todo from review 2024-08-22 with MR)
             if (m_json_output) {
               out << '"';
-              print_string(out, content, charset, true, m_utf8_output, true);
+              print_string(out, content, charset, true, m_utf8_output, true, false);
               out << '"';
             }
             else if (m_tsv_output) {
-              print_string(out, content, charset, false, true, true);
+              print_string(out, content, charset, false, true, true, true);
             }
             else {
               abort();
@@ -557,12 +558,12 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
             if (m_json_output)
             {
               out << '"';
-              print_string(out, content, charset, true, m_utf8_output, false);
+              print_string(out, content, charset, true, m_utf8_output, false, false);
               out << '"';
             }
             else if (m_tsv_output)
             {
-              print_string(out, content, charset, false, true, false);
+              print_string(out, content, charset, false, true, false, true);
             }
             else
             {
@@ -663,6 +664,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
                      &my_charset_utf8mb4_bin,
                      true,
                      m_utf8_output,
+                     false,
                      false);
         out << '"';
       } else {
@@ -671,7 +673,8 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
                      &my_charset_utf8mb4_bin,
                      false,
                      true,
-                     false);
+                     false,
+                     true);
       }
       break;
     default:
@@ -690,6 +693,10 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
 //                             json_escape == true.
 // trim_space_suffix == true:  Ignore trailing spaces
 // trim_space_suffix == false: Print trailing spaces
+// halt_on_err == false:       When encountering a decoding error, output a
+//                             replacement character (U+fffd) and continue.
+// halt_on_err == true:        When encountering a decoding error, emulate mysql
+//                             CLI by skipping the rest of the input.
 // Inspired by `well_formed_copy_nchars` in ../../../../sql-common/sql_string.cc
 static void
 print_string(std::ostream& out,
@@ -697,7 +704,8 @@ print_string(std::ostream& out,
              CHARSET_INFO* charset,
              bool json_escape,
              bool utf8_output,
-             bool trim_space_suffix)
+             bool trim_space_suffix,
+             bool halt_on_err)
 {
   const uchar* str = pointer_cast<const uchar *>(ls.str);
   const uchar* end = pointer_cast<const uchar *>(&ls.str[ls.len]);
@@ -713,15 +721,18 @@ print_string(std::ostream& out,
     } else if (cnvres == MY_CS_ILSEQ) {
       // Not well-formed according to source charset
       str++;
+      if (unlikely(halt_on_err)) return;
       wc = 0xfffd;
     } else if (cnvres > MY_CS_TOOSMALL) {
       // A correct multibyte sequence detected, but without Unicode mapping.
       str += (-cnvres);
+      if (unlikely(halt_on_err)) return;
       wc = 0xfffd;
     } else {
       // Not enough characters.
       assert(str + charset->mbmaxlen >= end);
       str = end;
+      if (unlikely(halt_on_err)) return;
       wc = 0xfffd;
     }
     // Encode the character in JSON
@@ -905,7 +916,12 @@ print_string(std::ostream& out,
       }
     } else if (unlikely((wc & (~my_wc_t(0x07ff))) == 0xd800)) {
       // Illegal surrogate
-      out << "�"; // U+fffd
+      if (unlikely(halt_on_err)) return;
+      if (likely(utf8_output)) {
+        out << "�"; // U+fffd
+      } else {
+        out << "\\ufffd";
+      }
     } else if (likely(wc <= 0xffff)) {
       if (likely(utf8_output)) {
         out << char(0xe0 | (wc >> 12))
@@ -937,7 +953,12 @@ print_string(std::ostream& out,
       }
     } else {
       // Illegal code point
-      out << "�"; // U+fffd
+      if (unlikely(halt_on_err)) return;
+      if (likely(utf8_output)) {
+        out << "�"; // U+fffd
+      } else {
+        out << "\\ufffd";
+      }
     }
   }
 }
