@@ -42,6 +42,7 @@ operator<<( std::ostream& dest, __int128_t value )
 
 // Return true if ls contains only bytes in ranges 0x20-0x21, 0x23-5b and
 // 0x5d-0x7e.
+
 bool unescaped_ascii_correct(const char* str, const char* end) {
   while (str < end) {
     uchar c = *((const uchar*)str);
@@ -53,7 +54,21 @@ bool unescaped_ascii_correct(const char* str, const char* end) {
   }
   return true;
 }
-bool unescaped_ascii_fast(const char* str, const char* end) {
+
+//__attribute__((always_inline)) static inline
+bool unescaped_ascii_fast1(const char* str, const char* end) {
+  while (str < end) {
+    uchar c = *((const uchar*)str);
+    DBG("c:" << c);
+    if (c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c) {
+      return false;
+    }
+    str++;
+  }
+  return true;
+}
+
+bool unescaped_ascii_fast2(const char* str, const char* end) {
   if (likely((end - str) < 32)) {
     while (str < end) {
       uchar c = *str;
@@ -134,9 +149,7 @@ void test(const char* alphabet,
           char midch,
           int size,
           int chunk,
-          bool correctness,
-          bool perf_correct,
-          bool perf_fast) {
+          int testid) {
   assert((size % chunk) == 0);
   char* data = (char*)malloc(size);
   assert(data);
@@ -148,17 +161,22 @@ void test(const char* alphabet,
   }
   data[size / 2] = midch;
   char* data_end = data + size;
-  if (correctness) {
+  if (testid == -1) {
     for(char* start = data; start < data_end; start += chunk) {
-      bool res_fast = unescaped_ascii_fast(start, start + chunk);
+      bool res_fast1 = unescaped_ascii_fast1(start, start + chunk);
+      bool res_fast2 = unescaped_ascii_fast2(start, start + chunk);
       bool res_correct = unescaped_ascii_correct(start, start + chunk);
-      if (res_fast != res_correct) {
-        cout << "res_fast:" << res_fast << ", res_correct:" << res_correct << endl;
+      if (res_fast1 != res_correct) {
+        cout << "res_fast1:" << res_fast1 << ", res_correct:" << res_correct << endl;
+        assert(false);
+      }
+      if (res_fast2 != res_correct) {
+        cout << "res_fast2:" << res_fast2 << ", res_correct:" << res_correct << endl;
         assert(false);
       }
     }
   }
-  if (perf_correct) {
+  if (testid == 0) {
     auto start = std::chrono::high_resolution_clock::now();
     bool res = false;
     for(char* start = data; start < data_end; start += chunk) {
@@ -169,15 +187,26 @@ void test(const char* alphabet,
     std::cout << "unescaped_ascii_correct took "
               << elapsed.count() << " seconds" << (res ? " " : "") << endl;
   }
-  if (perf_fast) {
+  if (testid == 1) {
     auto start = std::chrono::high_resolution_clock::now();
     bool res = false;
     for(char* start = data; start < data_end; start += chunk) {
-      res = res != unescaped_ascii_fast(start, start + chunk);
+      res = res != unescaped_ascii_fast1(start, start + chunk);
     }
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    std::cout << "unescaped_ascii_fast took    "
+    std::cout << "unescaped_ascii_fast1 took   "
+              << elapsed.count() << " seconds" << (res ? " " : "") << endl;
+  }
+  if (testid == 2) {
+    auto start = std::chrono::high_resolution_clock::now();
+    bool res = false;
+    for(char* start = data; start < data_end; start += chunk) {
+      res = res != unescaped_ascii_fast2(start, start + chunk);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "unescaped_ascii_fast2 took   "
               << elapsed.count() << " seconds" << (res ? " " : "") << endl;
   }
   // Leak memory in `char* data` on purpose so the cache doesn't taint the
@@ -190,8 +219,8 @@ main() {
     for (int m = 0; m < 18; m++) {
       char alphabet[2] = {char(ch), 0};
       char midch = (m == 0) ? ch : (" \x00\x05\x1f\x20\x21\x22\x23\x41\x5b\x5c\x5d\x7e\x7f\x80\x85\xa0\xff")[m];
-      test(alphabet, midch, 1, 1, true, false, false);
-      test(alphabet, midch, 100, 100, true, false, false);
+      test(alphabet, midch, 1, 1, -1);
+      test(alphabet, midch, 100, 100, -1);
     }
   }
   const char* alphabet = "ABCDEF !# GHIJKLMNO jklmnopqrstuvwxyz.";
@@ -199,15 +228,19 @@ main() {
   test(alphabet, midch,
        13 * 1024 * 1024,
        4 * 13,
-       true, false, false);
+       -1);
   test(alphabet, midch,
        10 * 13 * 1024 * 1024,
        4 * 13 * 1024,
-       false, true, false);
+       0);
   test(alphabet, midch,
        10 * 13 * 1024 * 1024,
        4 * 13 * 1024,
-       false, false, true);
+       1);
+  test(alphabet, midch,
+       10 * 13 * 1024 * 1024,
+       4 * 13 * 1024,
+       2);
   DBG();
   return 0;
 }
