@@ -161,7 +161,8 @@ void test(const char* alphabet,
   }
   data[size / 2] = midch;
   char* data_end = data + size;
-  if (testid == -1) {
+  switch (testid) {
+  case -1: {
     for(char* start = data; start < data_end; start += chunk) {
       bool res_fast1 = unescaped_ascii_fast1(start, start + chunk);
       bool res_fast2 = unescaped_ascii_fast2(start, start + chunk);
@@ -175,8 +176,9 @@ void test(const char* alphabet,
         assert(false);
       }
     }
+    break;
   }
-  if (testid == 0) {
+  case 0: {
     auto start = std::chrono::high_resolution_clock::now();
     bool res = false;
     for(char* start = data; start < data_end; start += chunk) {
@@ -186,8 +188,9 @@ void test(const char* alphabet,
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "unescaped_ascii_correct took "
               << elapsed.count() << " seconds" << (res ? " " : "") << endl;
+    break;
   }
-  if (testid == 1) {
+  case 1: {
     auto start = std::chrono::high_resolution_clock::now();
     bool res = false;
     for(char* start = data; start < data_end; start += chunk) {
@@ -197,8 +200,9 @@ void test(const char* alphabet,
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "unescaped_ascii_fast1 took   "
               << elapsed.count() << " seconds" << (res ? " " : "") << endl;
+    break;
   }
-  if (testid == 2) {
+  case 2: {
     auto start = std::chrono::high_resolution_clock::now();
     bool res = false;
     for(char* start = data; start < data_end; start += chunk) {
@@ -208,6 +212,9 @@ void test(const char* alphabet,
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "unescaped_ascii_fast2 took   "
               << elapsed.count() << " seconds" << (res ? " " : "") << endl;
+    break;
+  }
+  default: abort(); break;
   }
   // Leak memory in `char* data` on purpose so the cache doesn't taint the
   // results.
