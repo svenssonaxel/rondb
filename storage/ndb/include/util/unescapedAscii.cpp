@@ -43,178 +43,151 @@ operator<<( std::ostream& dest, __int128_t value )
 // Return true if ls contains only bytes in ranges 0x20-0x21, 0x23-5b and
 // 0x5d-0x7e.
 
+__attribute__((always_inline)) static inline
+bool unescaped_ascii_fallback(const char* str, const char* end) {
+  while (str < end) {
+    uchar c = *((const uchar*)str);
+    DBG("c:" << c);
+    if (c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c) {
+      return false;
+    }
+    str++;
+  }
+  return true;
+}
+
 bool unescaped_ascii_correct(const char* str, const char* end) {
-  while (str < end) {
-    uchar c = *((const uchar*)str);
-    DBG("c:" << c);
-    if (c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c) {
-      return false;
-    }
-    str++;
-  }
-  return true;
+  return unescaped_ascii_fallback(str, end);
 }
 
-//__attribute__((always_inline)) static inline
-bool unescaped_ascii_fast1(const char* str, const char* end) {
-  while (str < end) {
-    uchar c = *((const uchar*)str);
-    DBG("c:" << c);
-    if (c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c) {
-      return false;
-    }
-    str++;
-  }
-  return true;
-}
-
-bool unescaped_ascii_fast2(const char* str, const char* end) {
-  if (likely((end - str) < 32)) {
-    while (str < end) {
-      uchar c = *str;
-      DBG("c:" << c);
-      if (c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c) {
-        return false;
-      }
-      str++;
-    }
-    return true;
+#include <immintrin.h>
+//__attribute__((__target__ ("avx2")))
+[[gnu::target("avx2")]]
+bool unescaped_ascii_avx2(const char *str, const char *end) {
+  if (likely((end - str) <= 32)) {
+    // Require at least 32 bytes of readable memory
+    const __m256i input = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str));
+    const int lt_20 = _mm256_movemask_epi8(_mm256_cmpgt_epi8(_mm256_set1_epi8(0x20), input));
+    const int gt_7e = _mm256_movemask_epi8(_mm256_cmpgt_epi8(input, _mm256_set1_epi8(0x7e)));
+    const int eq_22 = _mm256_movemask_epi8(_mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x22)));
+    const int eq_5c = _mm256_movemask_epi8(_mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x5c)));
+    const int nonascii = lt_20 | gt_7e | eq_22 | eq_5c;
+    const int mask = (1 << (end - str)) - 1;
+    return ((nonascii & mask) == 0);
   }
   const char* section1 = reinterpret_cast<const char*>
-    ((reinterpret_cast<UintPtr>(str) + 15) & -16UL);
+    ((reinterpret_cast<UintPtr>(str) + 32) & -32UL);
   const char* section2 = reinterpret_cast<const char*>
-    (reinterpret_cast<UintPtr>(end) & -16UL);
+    ((reinterpret_cast<UintPtr>(end) - 1) & -32UL);
   assert((reinterpret_cast<UintPtr>(section1) & 0xf) == 0);
   assert((reinterpret_cast<UintPtr>(section2) & 0xf) == 0);
   assert(str <= section1);
-  assert(section1 < (str + 16));
-  assert(section1 <= section2);
-  assert(section2 <= end);
-  assert((end - 16) < section2);
-  DBG("str:" << ((void*)str) << ", section1:" << ((void*)section1) << ", section2:" << ((void*)section2) << ", end:" << ((void*)end));
-  for (const char* chptr = str; chptr < section1; chptr++) {
-    uchar c = *str;
-    DBG("c:" << c);
-    if (unlikely(c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c)) {
+  assert(section1 <= (str + 32));
+  assert(section2 < end);
+  assert((end - 32) <= section2);
+  {
+    const __m256i input = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str));
+    const int lt_20 = _mm256_movemask_epi8(_mm256_cmpgt_epi8(_mm256_set1_epi8(0x20), input));
+    const int gt_7e = _mm256_movemask_epi8(_mm256_cmpgt_epi8(input, _mm256_set1_epi8(0x7e)));
+    const int eq_22 = _mm256_movemask_epi8(_mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x22)));
+    const int eq_5c = _mm256_movemask_epi8(_mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x5c)));
+    if (unlikely(lt_20 | gt_7e | eq_22 | eq_5c)) {
       return false;
     }
   }
-  typedef __int128_t B16;
-  for (const B16* aptr = reinterpret_cast<const B16*>(section1);
-       aptr < reinterpret_cast<const B16*>(section2); aptr++) {
-    B16 ch = *aptr;
-    DBG("aptr:" << aptr << ", ch:" << ch);
-    constexpr B16 b01 = (B16(0x0101010101010101) << 64) | 0x0101010101010101;
-    constexpr B16 b20 = (B16(0x2020202020202020) << 64) | 0x2020202020202020;
-    constexpr B16 b80 = (B16(0x8080808080808080) << 64) | 0x8080808080808080;
-    constexpr B16 ba3 = (B16(0xa3a3a3a3a3a3a3a3) << 64) | 0xa3a3a3a3a3a3a3a3;
-    constexpr B16 bdd = (B16(0xdddddddddddddddd) << 64) | 0xdddddddddddddddd;
-    B16 p22 = ch ^ bdd; // (bits[0..7] == 0xff) == (char == 0x22)
-    B16 p5c = ch ^ ba3; // (bits[0..7] == 0xff) == (char == 0x5c)
-    B16 p7f = ch ^ b80; // (bits[0..7] == 0xff) == (char == 0x7f)
-    p22 &= p22 >> 4; // (bits[0..3] != 0) == (char == 0x22)
-    p5c &= p5c >> 4; // (bits[0..3] != 0) == (char == 0x5c)
-    p7f &= p7f >> 4; // (bits[0..3] != 0) == (char == 0x7f)
-    p22 &= p22 >> 2; // (bits[0..1] != 0) == (char == 0x22)
-    p5c &= p5c >> 2; // (bits[0..1] != 0) == (char == 0x5c)
-    p7f &= p7f >> 2; // (bits[0..1] != 0) == (char == 0x7f)
-    p22 &= p22 >> 1; // (bits[0] == 1) == (char == 0x22)
-    p5c &= p5c >> 1; // (bits[0] == 1) == (char == 0x5c)
-    p7f &= p7f >> 1; // (bits[0] == 1) == (char == 0x7f)
-    B16 special = p22 | p5c | p7f; // (bits[0] == 1) == (char in [0x22, 0x5c, 0x7f])
-    special &= b01; // (special == 0) == forall chars (char not in [0x22, 0x5c, 0x7f])
-    B16 high = ch & b80; // (high == 0) == forall chars (char < 0x80)
-
-    B16 noctrl = ch | (ch >> 1); // (bits[5] == 1) == ((0x20 <= char && char < 0x80) || 0xa0 <= char)
-    B16 ctrl = noctrl ^ b20; // (bits[5] == 0) == ((0x20 <= char && char < 0x80) || 0xa0 <= char)
-    ctrl &= b20; // (ctrl == 0) == forall chars (0x20 <= char && char < 0x80)
-    B16 nonascii = high | ctrl | special;
-    if (unlikely(nonascii)) {
-      DBG();
+  for (const __m256* aptr = reinterpret_cast<const __m256*>(section1);
+       aptr < reinterpret_cast<const __m256*>(section2); aptr++) {
+    const __m256i input = _mm256_load_si256(reinterpret_cast<const __m256i*>(aptr));
+    const int lt_20 = _mm256_movemask_epi8(_mm256_cmpgt_epi8(_mm256_set1_epi8(0x20), input));
+    const int gt_7e = _mm256_movemask_epi8(_mm256_cmpgt_epi8(input, _mm256_set1_epi8(0x7e)));
+    const int eq_22 = _mm256_movemask_epi8(_mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x22)));
+    const int eq_5c = _mm256_movemask_epi8(_mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x5c)));
+    if (unlikely(lt_20 | gt_7e | eq_22 | eq_5c)) {
       return false;
     }
   }
-  for (const char* chptr = section2; chptr < end; chptr++) {
-    uchar c = *chptr;
-    DBG("c:" << c);
-    if (unlikely(c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c)) {
+  {
+    const __m256i input = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32));
+    const int lt_20 = _mm256_movemask_epi8(_mm256_cmpgt_epi8(_mm256_set1_epi8(0x20), input));
+    const int gt_7e = _mm256_movemask_epi8(_mm256_cmpgt_epi8(input, _mm256_set1_epi8(0x7e)));
+    const int eq_22 = _mm256_movemask_epi8(_mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x22)));
+    const int eq_5c = _mm256_movemask_epi8(_mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x5c)));
+    if (unlikely(lt_20 | gt_7e | eq_22 | eq_5c)) {
       return false;
     }
   }
-  DBG();
   return true;
 }
+
+bool unescaped_ascii_simd(const char *str, const char *end)
+{
+  using T = decltype(unescaped_ascii_simd);
+  static T* pointer = nullptr;
+  if (unlikely(pointer == nullptr))
+  {
+    if (__builtin_cpu_supports("avx2"))
+        pointer = &unescaped_ascii_avx2;
+    else
+        pointer = &unescaped_ascii_fallback;
+  }
+  return pointer(str, end);
+}
+
+// array of implementations ane their names
+struct {
+  bool (*fun)(const char*, const char*);
+  const char* name;
+} funs[] = {
+  {&unescaped_ascii_fallback, "fallback"},
+  {&unescaped_ascii_simd, "simd"},
+};
 
 void test(const char* alphabet,
           char midch,
           int size,
           int chunk,
-          int testid) {
-  assert((size % chunk) == 0);
+          bool (*testfun)(const char*, const char*),
+          std::string testname,
+          bool test_perf) {
   char* data = (char*)malloc(size);
   assert(data);
   int ablen = strlen((const char*)alphabet);
   if (ablen == 0) ablen = 1;
-  for(int i = 0; i < size; i++) {
-    int idx = i % ablen;
-    data[i] = alphabet[idx];
+  {
+    int i = 0;
+    while((i + ablen) < size) {
+      memcpy(data + i, alphabet, ablen);
+      i += ablen;
+    }
+    while(i < size) {
+      int idx = i % ablen;
+      data[i] = alphabet[idx];
+      i++;
+    }
   }
   data[size / 2] = midch;
   char* data_end = data + size;
-  switch (testid) {
-  case -1: {
-    for(char* start = data; start < data_end; start += chunk) {
-      bool res_fast1 = unescaped_ascii_fast1(start, start + chunk);
-      bool res_fast2 = unescaped_ascii_fast2(start, start + chunk);
-      bool res_correct = unescaped_ascii_correct(start, start + chunk);
-      if (res_fast1 != res_correct) {
-        cout << "res_fast1:" << res_fast1 << ", res_correct:" << res_correct << endl;
-        assert(false);
+  if (test_perf) {
+    const char* e = data_end - chunk;
+    auto start = std::chrono::high_resolution_clock::now();
+    for(char* start = data; start <= e; start += chunk) {
+      testfun(start, start + chunk);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double proc_speed_GiB = double(size) / elapsed.count() / 1024 / 1024 / 1024;
+    std::cout << "Test " << testname << " took "
+              << elapsed.count() << " seconds, "
+              << proc_speed_GiB << " GiB/s" << endl;
+  } else {
+    const char* e = data_end - chunk;
+    for(char* start = data; start < e; start += chunk) {
+      bool result = testfun(start, start + chunk);
+      bool correct_result = unescaped_ascii_correct(start, start + chunk);
+      if (result != correct_result) {
+        std::cerr << "Test failed: " << testname << " " << result << " " << correct_result << endl;
       }
-      if (res_fast2 != res_correct) {
-        cout << "res_fast2:" << res_fast2 << ", res_correct:" << res_correct << endl;
-        assert(false);
-      }
     }
-    break;
-  }
-  case 0: {
-    auto start = std::chrono::high_resolution_clock::now();
-    bool res = false;
-    for(char* start = data; start < data_end; start += chunk) {
-      res = res != unescaped_ascii_correct(start, start + chunk);
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "unescaped_ascii_correct took "
-              << elapsed.count() << " seconds" << (res ? " " : "") << endl;
-    break;
-  }
-  case 1: {
-    auto start = std::chrono::high_resolution_clock::now();
-    bool res = false;
-    for(char* start = data; start < data_end; start += chunk) {
-      res = res != unescaped_ascii_fast1(start, start + chunk);
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "unescaped_ascii_fast1 took   "
-              << elapsed.count() << " seconds" << (res ? " " : "") << endl;
-    break;
-  }
-  case 2: {
-    auto start = std::chrono::high_resolution_clock::now();
-    bool res = false;
-    for(char* start = data; start < data_end; start += chunk) {
-      res = res != unescaped_ascii_fast2(start, start + chunk);
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "unescaped_ascii_fast2 took   "
-              << elapsed.count() << " seconds" << (res ? " " : "") << endl;
-    break;
-  }
-  default: abort(); break;
   }
   // Leak memory in `char* data` on purpose so the cache doesn't taint the
   // results.
@@ -222,32 +195,30 @@ void test(const char* alphabet,
 
 int
 main() {
-  for (int ch = 0; ch < 256; ch++) {
-    for (int m = 0; m < 18; m++) {
-      char alphabet[2] = {char(ch), 0};
-      char midch = (m == 0) ? ch : (" \x00\x05\x1f\x20\x21\x22\x23\x41\x5b\x5c\x5d\x7e\x7f\x80\x85\xa0\xff")[m];
-      test(alphabet, midch, 1, 1, -1);
-      test(alphabet, midch, 100, 100, -1);
+  for (unsigned int f = 0; f < sizeof(funs) / sizeof(funs[0]); f++) {
+    auto fun = funs[f].fun;
+    const char* fun_name = funs[f].name;
+    // Correctness test
+    for (int ch = 0; ch < 256; ch++) {
+      for (int midch = 0; midch < 256; midch++) {
+        char alphabet[2] = {char(ch), 0};
+        test(alphabet, midch, 1, 1, fun, fun_name, false);
+        test(alphabet, midch, 100, 100, fun, fun_name, false);
+      }
     }
+    // Performance test
+    const char* alphabet = "ABCDEF !# GHIJKLMNO jklmnopqrstuvwxyz.";
+    char midch = 0x41;
+    test(alphabet, midch, 104857600,    13, fun, (std::string(fun_name) + " 13B"), true);
+    test(alphabet, midch, 104857600,    31, fun, (std::string(fun_name) + " 31B"), true);
+    test(alphabet, midch, 104857600,    32, fun, (std::string(fun_name) + " 32B"), true);
+    test(alphabet, midch, 104857600,    33, fun, (std::string(fun_name) + " 33B"), true);
+    test(alphabet, midch, 104857600,    63, fun, (std::string(fun_name) + " 63B"), true);
+    test(alphabet, midch, 104857600,    64, fun, (std::string(fun_name) + " 64B"), true);
+    test(alphabet, midch, 104857600,    65, fun, (std::string(fun_name) + " 65B"), true);
+    test(alphabet, midch, 104857600,    95, fun, (std::string(fun_name) + " 95B"), true);
+    test(alphabet, midch, 104857600, 53248, fun, (std::string(fun_name) + " 52K"), true);
   }
-  const char* alphabet = "ABCDEF !# GHIJKLMNO jklmnopqrstuvwxyz.";
-  char midch = 0x41;
-  test(alphabet, midch,
-       13 * 1024 * 1024,
-       4 * 13,
-       -1);
-  test(alphabet, midch,
-       10 * 13 * 1024 * 1024,
-       4 * 13 * 1024,
-       0);
-  test(alphabet, midch,
-       10 * 13 * 1024 * 1024,
-       4 * 13 * 1024,
-       1);
-  test(alphabet, midch,
-       10 * 13 * 1024 * 1024,
-       4 * 13 * 1024,
-       2);
   DBG();
   return 0;
 }
