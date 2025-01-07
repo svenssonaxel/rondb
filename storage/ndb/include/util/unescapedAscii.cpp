@@ -589,7 +589,7 @@ bool unescaped_ascii_asimd(const char* str, const char* end) {
    * making the effort to load mostly from aligned pointers, at least when input
    * alignment varies.
    */
-  for (const char* aptr = str; str < last; str += 16) {
+  for (const char* aptr = str; aptr < last; aptr += 16) {
     if (unlikely(unescaped_ascii_asimd_helper_16(aptr))) {
       return false;
     }
@@ -610,7 +610,7 @@ bool unescaped_ascii_simd(const char *str, const char *end)
   static T* pointer = nullptr;
   if (unlikely(pointer == nullptr))
   {
-#ifdef ua_sse2
+#ifdef ua_x86_64
     if (__builtin_cpu_supports("sse2") &&
         __builtin_cpu_supports("avx2"))
       pointer = &unescaped_ascii_avx2;
@@ -625,90 +625,67 @@ bool unescaped_ascii_simd(const char *str, const char *end)
   return pointer(str, end);
 }
 
-// Array of implementations and their names
-struct {
-  bool (*fun)(const char*, const char*);
-  const char* name;
-} funs[] = {
-  {&unescaped_ascii_fallback, "fallback"},
-  {&unescaped_ascii_simd, "simd"},
-};
-
-void test(const char* alphabet,
-          char midch,
-          int size,
-          bool (*testfun)(const char*, const char*),
-          std::string testname,
-          bool test_perf) {
-  char* data = (char*)malloc(size);
-  assert(data);
-  int ablen = strlen((const char*)alphabet);
-  if (ablen == 0) ablen = 1;
-  {
-    int i = 0;
-    while((i + ablen) < size) {
-      memcpy(data + i, alphabet, ablen);
-      i += ablen;
-    }
-    while(i < size) {
-      int idx = i % ablen;
-      data[i] = alphabet[idx];
-      i++;
-    }
-  }
-  data[size / 2] = midch;
-  char* data_end = data + size;
-  if (test_perf) {
-    const int iterations = 100000000 / size;
-    auto start = std::chrono::high_resolution_clock::now();
-    for(int i = 0; i < iterations; i++) {
-      testfun(data, data_end);
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    double proc_speed_GiB = double(size) * iterations / elapsed.count() / 1024 / 1024 / 1024;
-    std::cout << "Test " << testname << " took "
-              << elapsed.count() << " seconds, "
-              << iterations / elapsed.count() << " calls/s, "
-              << proc_speed_GiB << " GiB/s" << endl;
-  } else {
-    bool result = testfun(data, data_end);
-    bool correct_result = unescaped_ascii_correct(data, data_end);
-    if (result != correct_result) {
-      std::cerr << "Test failed: test " << testname
-                << ", actual " << result
-                << ", expected " << correct_result
-                << ", size " << size
-                << ", data:";
-      for (int i = 0; i < size; i++) {
-        std::cerr << " "
-                  << ("0123456789abcdef"[data[i] >> 4])
-                  << ("0123456789abcdef"[data[i] & 0xf]);
+void test_correctness(bool (*testfun)(const char*, const char*), std::string fun_name) {
+  uchar chars_to_test[] = { 0x00, 0x01, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x5b,
+                            0x5c, 0x5d, 0x7e, 0x7f, 0x80, 0xff};
+  std::cerr << "Starting correctness test for function " << fun_name << std::endl;
+  for (int len = 0; len < 300; len++) {
+    int buflen = len + 15 + 2;
+    uchar* buf = (uchar*)malloc(buflen);
+    for (int ch1_idx = 0; ch1_idx < sizeof(chars_to_test); ch1_idx++) {
+      uchar ch1 = chars_to_test[ch1_idx];
+      for (int i = 0; i < buflen; i++) {
+        buf[i] = ch1;
       }
-      std::cerr << std::endl;
-      abort();
+      for (int ch2_idx = 0; ch2_idx < sizeof(chars_to_test); ch2_idx++) {
+        uchar ch2 = chars_to_test[ch2_idx];
+        for (int ch2_pos = 0; ch2_pos < buflen; ch2_pos++) {
+          buf[ch2_pos] = ch2;
+          for (int align = 0; align < 16; align++) {
+            uchar* start = buf + 1 + align;
+            uchar* end = start + len;
+            bool result = testfun((char*)start, (char*)end);
+            bool correct_result = unescaped_ascii_correct((char*)start, (char*)end);
+            if (result != correct_result) {
+              std::cerr << "Test failed: test " << fun_name
+                        << ", actual " << result
+                        << ", expected " << correct_result
+                        << ", size " << len
+                        << ", data:";
+              for (int i = 0; i < len; i++) {
+                std::cerr << " "
+                          << ("0123456789abcdef"[start[i] >> 4])
+                          << ("0123456789abcdef"[start[i] & 0xf]);
+              }
+              std::cerr << std::endl;
+              abort();
+            }
+          }
+          buf[ch2_pos] = ch1;
+        }
+      }
     }
   }
-  free(data);
+  std::cerr << "Function " << fun_name << " passed correctness test" << std::endl;
 }
 
 #include <algorithm>
 #include <random>
-void test_varied(bool (*testfun)(const char*, const char*),
-                 std::string testname,
-                 bool test_perf) {
+void test_performance(bool (*testfun)(const char*, const char*),
+                      std::string fun_name,
+                      bool fixlen = false,
+                      int len = 0) {
   const int max_size = 300;
-  const int nof_nonascii = 0;
   constexpr int data_size = max_size + 32;
   char data[data_size];
   for (int i=0; i < data_size; i++) {
-    data[i] = i < nof_nonascii ? '\x80' : 'A';
+    data[i] = 'A';
   }
   constexpr int nof_configs = 1000;
   int lengths[nof_configs];
   int alignments[nof_configs];
   for (int i=0; i < nof_configs; i++) {
-    lengths[i] = i % max_size;
+    lengths[i] = fixlen ? len : i % max_size;
     alignments[i] = i % 32;
   }
   // Shuffle
@@ -721,82 +698,39 @@ void test_varied(bool (*testfun)(const char*, const char*),
   for(int i = 0; i < nof_configs; i++) {
     total_size += lengths[i];
   }
-  if (test_perf) {
-    auto start = std::chrono::high_resolution_clock::now();
-    for(int i = 0; i < iterations; i++) {
-      for(int config = 0; config < nof_configs; config++) {
-        char* dstart = data + alignments[config];
-        char* dend = dstart + lengths[config];
-        testfun(dstart, dend);
-      }
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    double proc_speed_GiB = double(total_size) * iterations / elapsed.count() / 1024 / 1024 / 1024;
-    std::cout << "Test_varied " << testname << " took "
-              << elapsed.count() << " seconds, "
-              << iterations * nof_configs / elapsed.count() << " calls/s, "
-              << proc_speed_GiB << " GiB/s" << endl;
-  } else {
+  auto start = std::chrono::high_resolution_clock::now();
+  for(int i = 0; i < iterations; i++) {
     for(int config = 0; config < nof_configs; config++) {
       char* dstart = data + alignments[config];
       char* dend = dstart + lengths[config];
-      bool result = testfun(dstart, dend);
-      bool correct_result = unescaped_ascii_correct(dstart, dend);
-      if (result != correct_result) {
-        std::cerr << "Test failed: test_varied " << testname
-                  << ", actual " << result
-                  << ", expected " << correct_result
-                  << ", size " << lengths[config]
-                  << ", data:";
-        for (int i = 0; i < lengths[config]; i++) {
-          std::cerr << " "
-                    << ("0123456789abcdef"[dstart[i] >> 4])
-                    << ("0123456789abcdef"[dstart[i] & 0xf]);
-        }
-        std::cerr << std::endl;
-        abort();
-      }
+      testfun(dstart, dend);
     }
   }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed = end - start;
+  double proc_speed_GiB = double(total_size) * iterations / elapsed.count() / 1024 / 1024 / 1024;
+  std::cout << "Performance test for " << fun_name << " with ";
+  if (fixlen) std::cout << "length " << len;
+  else std::cout << "varying lengths";
+  std::cout << ": " << (iterations * nof_configs / elapsed.count()) << " calls/s, "
+            << proc_speed_GiB << " GiB/s" << endl;
 }
 
 int
 main() {
-  // Correctness test
-  for (int ch = 0; ch < 256; ch++) {
-    for (int midch = 0; midch < 256; midch++) {
-      char alphabet[2] = {char(ch), 0};
-      for (unsigned int f = 0; f < sizeof(funs) / sizeof(funs[0]); f++) {
-        auto fun = funs[f].fun;
-        const char* fun_name = funs[f].name;
-        for (int len = 0; len <= 100; len++) {
-          //if (len == 8) std::cerr << "Testing " << fun_name << " ch " << ch << " midch " << midch << " len " << len << std::endl;
-          test(alphabet, midch, len, fun, fun_name, false);
-        }
-      }
-    }
-  }
   // Performance test
-  const char* alphabet = "ABCDEF !# GHIJKLMNO jklmnopqrstuvwxyz.";
-  char midch = 0x41;
-  for(int l = -1; l < 270; l++) {
-    int len = l;
-    if (l==-1) len = 53248;
-    if (l==0) len = 1048576;
-    for (unsigned int f = 0; f < sizeof(funs) / sizeof(funs[0]); f++) {
-      auto fun = funs[f].fun;
-      const char* fun_name = funs[f].name;
-      test(alphabet, midch, len, fun, (std::string(fun_name) + " " + std::to_string(len)), true);
-    }
-    std::cout << "========================================" << std::endl;
-  }
-  // Varied test
-  for (unsigned int f = 0; f < sizeof(funs) / sizeof(funs[0]); f++) {
-    auto fun = funs[f].fun;
-    const char* fun_name = funs[f].name;
-    test_varied(fun, std::string(fun_name), false);
-    test_varied(fun, std::string(fun_name), true);
-  }
+  test_performance(&unescaped_ascii_fallback, "unescaped_ascii_fallback");
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd");
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 7);
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 15);
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 31);
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 70);
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 128);
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 255);
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 256);
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 16384);
+  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 1048576);
+  // Correctness test
+  test_correctness(&unescaped_ascii_simd, "unescaped_ascii_simd");
   return 0;
 }
