@@ -305,7 +305,7 @@ std::ostream& operator<<(std::ostream& os, const uint8x16_t& vec) {
 
 __attribute__((always_inline)) static inline
 uint64_t unescaped_ascii_asimd_helper_16(uint8x16_t input) {
-  uint64x2_t res = vreinterpretq_u64_u8(
+  uint16x8_t res = vreinterpretq_u16_u8(
     vorrq_u8(
       vorrq_u8(
         vcgtq_u8(vdupq_n_u8(0x20), input),
@@ -313,7 +313,9 @@ uint64_t unescaped_ascii_asimd_helper_16(uint8x16_t input) {
       vorrq_u8(
         vceqq_u8(input, vdupq_n_u8(0x22)),
         vceqq_u8(input, vdupq_n_u8(0x5c)))));
-  return vgetq_lane_u64(res, 0) | vgetq_lane_u64(res, 1);
+  return vget_lane_u64(
+    vreinterpret_u64_u8(vshrn_n_u16(res, 4)),
+    0);
 };
 
 __attribute__((always_inline)) static inline
@@ -675,7 +677,7 @@ void test_performance(bool (*testfun)(const char*, const char*),
                       std::string fun_name,
                       bool fixlen = false,
                       int len = 0) {
-  const int max_size = 300;
+  const int max_size = 1048576 * 2;
   constexpr int data_size = max_size + 32;
   char data[data_size];
   for (int i=0; i < data_size; i++) {
@@ -693,13 +695,13 @@ void test_performance(bool (*testfun)(const char*, const char*),
   std::shuffle(data, data + data_size, g);
   std::shuffle(lengths, lengths + nof_configs, g);
   std::shuffle(alignments, alignments + nof_configs, g);
-  const int iterations = 1000;
   int total_size = 0;
   for(int i = 0; i < nof_configs; i++) {
     total_size += lengths[i];
   }
+  const long iterations = std::max(1000000000 / total_size, 5);
   auto start = std::chrono::high_resolution_clock::now();
-  for(int i = 0; i < iterations; i++) {
+  for(long i = 0; i < iterations; i++) {
     for(int config = 0; config < nof_configs; config++) {
       char* dstart = data + alignments[config];
       char* dend = dstart + lengths[config];
