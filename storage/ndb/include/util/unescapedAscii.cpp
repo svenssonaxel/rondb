@@ -50,6 +50,7 @@ inline bool char_is_not_unescaped_ascii(char c) {
   return c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c;
 }
 
+// Slow, scalar implementation
 __attribute__((always_inline)) static inline
 bool unescaped_ascii_fallback(const char* str, const char* end) {
   while (str < end) {
@@ -70,6 +71,9 @@ bool unescaped_ascii_correct(const char* str, const char* end) {
 
 #ifdef ua_x86_64
 
+/* A straight-forward but not optimal implementation:
+// 8 operations per 32 bytes. Return value will have sign bit set for a
+// nonprintable character.
 __attribute__((always_inline)) static inline
 __attribute__((__target__("avx2")))
 int unescaped_ascii_avx2_helper_32(__m256i input) {
@@ -82,6 +86,297 @@ int unescaped_ascii_avx2_helper_32(__m256i input) {
                _mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x22)),
                _mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x5c)))));
 }
+*/
+
+// 5 operations per 32 bytes. Return value will have at least one bit set to 0
+// for a nonprintable character.
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+__m256i unescaped_ascii_avx2_helper_32_np0(__m256i input) {
+   /* lo_lookup values:
+    * input:      lo_lookup:
+    * 0xxx0010 -> 11111101
+    * 0xxx1100 -> 11111011
+    * 0xxx1111 -> 11110111
+    * 1xxxxxxx -> 00000000 due to how _mm256_shuffle_epi8 works
+    * others   -> 11111110
+    */
+  static const __attribute__((aligned(32))) unsigned char lotbl_bytes[32] =
+    {0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7,
+     0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7};
+  const __m256i lotbl = _mm256_load_si256((const __m256i*)lotbl_bytes);
+  __m256i lo_lookup = _mm256_shuffle_epi8(lotbl, input);
+  /* Unfortunately _mm256_srli_epi8 does not exist in AVX8, so extracting the
+   * high nibble takes 2 instructions. The mask is required to prevent the high
+   * bit to be set to the value of bit 3 of the next byte. If 1, it would cause
+   * the lookup to return 0.
+   */
+  __m256i hi_nibble = _mm256_and_si256(
+    _mm256_srli_epi16(input, 4),
+    _mm256_set1_epi8(0xf));
+  /* input:      hi_lookup:
+   * 000xxxxx -> 00000000
+   * 0010xxxx -> 11101101
+   * 0011xxxx -> 11101111
+   * 0100xxxx -> 11101111
+   * 0101xxxx -> 11101011
+   * 0110xxxx -> 11101111
+   * 0111xxxx -> 11100111
+   * 1xxxxxxx -> 00000000
+   */
+  static const __attribute__((aligned(32))) unsigned char hitbl_bytes[32] =
+    {0,0,0xed,0xef,0xef,0xeb,0xef,0xe7, 0,0,0,0,0,0,0,0,
+     0,0,0xed,0xef,0xef,0xeb,0xef,0xe7, 0,0,0,0,0,0,0,0};
+  const __m256i hitbl = _mm256_load_si256((const __m256i*)hitbl_bytes);
+  __m256i hi_lookup = _mm256_shuffle_epi8(hitbl, hi_nibble);
+  /* input:      result:
+   * 000x000x -> 11111110
+   * 000x0010 -> 11111101
+   * 000x0011 -> 11111110
+   * 000x1100 -> 11111011
+   * 000x1101 -> 11111110
+   * 000x1110 -> 11111110
+   * 000x1111 -> 11110111
+   * 00100010 -> 11111101
+   * 01011100 -> 11111011
+   * 01111111 -> 11110111
+   * 1xxxxxxx -> 00000000
+   * others   -> 11111111
+   */
+  __m256i result = _mm256_or_si256(lo_lookup, hi_lookup);
+  return result;
+}
+
+// 3 operations.
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_finish(__m256i result) {
+  __m256i ones = _mm256_set1_epi32(-1);
+  return _mm256_movemask_epi8(
+           _mm256_xor_si256(
+             _mm256_cmpeq_epi8(
+               result,
+               ones),
+             ones));
+}
+
+// 8 operations per 32 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_32(__m256i i0) {
+  return unescaped_ascii_avx2_helper_finish(
+    unescaped_ascii_avx2_helper_32_np0(i0));
+}
+
+// 14 operations per 64 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_32_x2(__m256i i0, __m256i i1) {
+  return unescaped_ascii_avx2_helper_finish(
+    _mm256_and_si256(
+      unescaped_ascii_avx2_helper_32_np0(i0),
+      unescaped_ascii_avx2_helper_32_np0(i1)));
+}
+
+// 20 operations per 96 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_32_x3(__m256i i0, __m256i i1, __m256i i2) {
+  return unescaped_ascii_avx2_helper_finish(
+    _mm256_and_si256(
+      _mm256_and_si256(
+        unescaped_ascii_avx2_helper_32_np0(i0),
+        unescaped_ascii_avx2_helper_32_np0(i1)),
+      unescaped_ascii_avx2_helper_32_np0(i2)));
+}
+
+// 26 operations per 128 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_32_x4(__m256i i0, __m256i i1, __m256i i2, __m256i i3) {
+  return unescaped_ascii_avx2_helper_finish(
+    _mm256_and_si256(
+      _mm256_and_si256(
+        unescaped_ascii_avx2_helper_32_np0(i0),
+        unescaped_ascii_avx2_helper_32_np0(i1)),
+      _mm256_and_si256(
+        unescaped_ascii_avx2_helper_32_np0(i2),
+        unescaped_ascii_avx2_helper_32_np0(i3))));
+}
+
+// 32 operations per 160 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_32_x5(__m256i i0, __m256i i1, __m256i i2, __m256i i3, __m256i i4) {
+  return unescaped_ascii_avx2_helper_finish(
+    _mm256_and_si256(
+      _mm256_and_si256(
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i0),
+          unescaped_ascii_avx2_helper_32_np0(i1)),
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i2),
+          unescaped_ascii_avx2_helper_32_np0(i3))),
+      unescaped_ascii_avx2_helper_32_np0(i4)));
+}
+
+// 38 operations per 192 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_32_x6(__m256i i0, __m256i i1, __m256i i2, __m256i i3, __m256i i4, __m256i i5) {
+  return unescaped_ascii_avx2_helper_finish(
+    _mm256_and_si256(
+      _mm256_and_si256(
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i0),
+          unescaped_ascii_avx2_helper_32_np0(i1)),
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i2),
+          unescaped_ascii_avx2_helper_32_np0(i3))),
+      _mm256_and_si256(
+        unescaped_ascii_avx2_helper_32_np0(i4),
+        unescaped_ascii_avx2_helper_32_np0(i5))));
+}
+
+// 44 operations per 224 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_32_x7(__m256i i0, __m256i i1, __m256i i2, __m256i i3, __m256i i4, __m256i i5, __m256i i6) {
+  return unescaped_ascii_avx2_helper_finish(
+    _mm256_and_si256(
+      _mm256_and_si256(
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i0),
+          unescaped_ascii_avx2_helper_32_np0(i1)),
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i2),
+          unescaped_ascii_avx2_helper_32_np0(i3))),
+      _mm256_and_si256(
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i4),
+          unescaped_ascii_avx2_helper_32_np0(i5)),
+        unescaped_ascii_avx2_helper_32_np0(i6))));
+}
+
+// 50 operations per 256 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_32_x8(__m256i i0, __m256i i1, __m256i i2, __m256i i3, __m256i i4, __m256i i5, __m256i i6, __m256i i7) {
+  return unescaped_ascii_avx2_helper_finish(
+    _mm256_and_si256(
+      _mm256_and_si256(
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i0),
+          unescaped_ascii_avx2_helper_32_np0(i1)),
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i2),
+          unescaped_ascii_avx2_helper_32_np0(i3))),
+      _mm256_and_si256(
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i4),
+          unescaped_ascii_avx2_helper_32_np0(i5)),
+        _mm256_and_si256(
+          unescaped_ascii_avx2_helper_32_np0(i6),
+          unescaped_ascii_avx2_helper_32_np0(i7)))));
+}
+
+// 50 operations per 256 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_256(const __m256i* aptr) {
+  return unescaped_ascii_avx2_helper_32_x8(
+    _mm256_load_si256(aptr),
+    _mm256_load_si256(aptr + 1),
+    _mm256_load_si256(aptr + 2),
+    _mm256_load_si256(aptr + 3),
+    _mm256_load_si256(aptr + 4),
+    _mm256_load_si256(aptr + 5),
+    _mm256_load_si256(aptr + 6),
+    _mm256_load_si256(aptr + 7));
+}
+
+/* A complex implementation with transposing and bit-blasting, ultimately
+   nonoptimal. Could perhaps work on AVX-512 with ternary logic.
+// 133 operations + loads per 256 bytes
+__attribute__((always_inline)) static inline
+__attribute__((__target__("avx2")))
+int unescaped_ascii_avx2_helper_256_c(const __m256i* aptr) {
+  // aptr points to a 32-byte aligned 256-byte region.
+  // Load 32 bytes each into 8 registers.
+  __m256i el0 = _mm256_load_si256(aptr);
+  __m256i el1 = _mm256_load_si256(aptr + 1);
+  __m256i el2 = _mm256_load_si256(aptr + 2);
+  __m256i el3 = _mm256_load_si256(aptr + 3);
+  __m256i el4 = _mm256_load_si256(aptr + 4);
+  __m256i el5 = _mm256_load_si256(aptr + 5);
+  __m256i el6 = _mm256_load_si256(aptr + 6);
+  __m256i el7 = _mm256_load_si256(aptr + 7);
+  // Permute the 2048 bits such that we get bit 0 from all 256 bytes into a
+  // 256-bit register b0 etc. up to b7.
+  __m256i mask_bits_0123 = _mm256_set1_epi8(0x0f);
+  __m256i mask_bits_4567 = _mm256_set1_epi8(0xf0);
+  __m256i bits_0123_from_el01 = _mm256_or_si256(_mm256_and_si256(el0, mask_bits_0123), _mm256_slli_epi16(_mm256_and_si256(el1, mask_bits_0123), 4));
+  __m256i bits_4567_from_el01 = _mm256_or_si256(_mm256_and_si256(el1, mask_bits_4567), _mm256_srli_epi16(_mm256_and_si256(el0, mask_bits_4567), 4));
+  __m256i bits_0123_from_el23 = _mm256_or_si256(_mm256_and_si256(el2, mask_bits_0123), _mm256_slli_epi16(_mm256_and_si256(el3, mask_bits_0123), 4));
+  __m256i bits_4567_from_el23 = _mm256_or_si256(_mm256_and_si256(el3, mask_bits_4567), _mm256_srli_epi16(_mm256_and_si256(el2, mask_bits_4567), 4));
+  __m256i bits_0123_from_el45 = _mm256_or_si256(_mm256_and_si256(el4, mask_bits_0123), _mm256_slli_epi16(_mm256_and_si256(el5, mask_bits_0123), 4));
+  __m256i bits_4567_from_el45 = _mm256_or_si256(_mm256_and_si256(el5, mask_bits_4567), _mm256_srli_epi16(_mm256_and_si256(el4, mask_bits_4567), 4));
+  __m256i bits_0123_from_el67 = _mm256_or_si256(_mm256_and_si256(el6, mask_bits_0123), _mm256_slli_epi16(_mm256_and_si256(el7, mask_bits_0123), 4));
+  __m256i bits_4567_from_el67 = _mm256_or_si256(_mm256_and_si256(el7, mask_bits_4567), _mm256_srli_epi16(_mm256_and_si256(el6, mask_bits_4567), 4));
+  __m256i mask_bits_01 = _mm256_set1_epi8(0x33);
+  __m256i mask_bits_23 = _mm256_set1_epi8(0xcc);
+  __m256i bits_01_from_el0123 = _mm256_or_si256(_mm256_and_si256(bits_0123_from_el01, mask_bits_01), _mm256_slli_epi16(_mm256_and_si256(bits_0123_from_el23, mask_bits_01), 2));
+  __m256i bits_23_from_el0123 = _mm256_or_si256(_mm256_and_si256(bits_0123_from_el23, mask_bits_23), _mm256_srli_epi16(_mm256_and_si256(bits_0123_from_el01, mask_bits_23), 2));
+  __m256i bits_45_from_el0123 = _mm256_or_si256(_mm256_and_si256(bits_4567_from_el01, mask_bits_01), _mm256_slli_epi16(_mm256_and_si256(bits_4567_from_el23, mask_bits_01), 2));
+  __m256i bits_67_from_el0123 = _mm256_or_si256(_mm256_and_si256(bits_4567_from_el23, mask_bits_23), _mm256_srli_epi16(_mm256_and_si256(bits_4567_from_el01, mask_bits_23), 2));
+  __m256i bits_01_from_el4567 = _mm256_or_si256(_mm256_and_si256(bits_0123_from_el45, mask_bits_01), _mm256_slli_epi16(_mm256_and_si256(bits_0123_from_el67, mask_bits_01), 2));
+  __m256i bits_23_from_el4567 = _mm256_or_si256(_mm256_and_si256(bits_0123_from_el67, mask_bits_23), _mm256_srli_epi16(_mm256_and_si256(bits_0123_from_el45, mask_bits_23), 2));
+  __m256i bits_45_from_el4567 = _mm256_or_si256(_mm256_and_si256(bits_4567_from_el45, mask_bits_01), _mm256_slli_epi16(_mm256_and_si256(bits_4567_from_el67, mask_bits_01), 2));
+  __m256i bits_67_from_el4567 = _mm256_or_si256(_mm256_and_si256(bits_4567_from_el67, mask_bits_23), _mm256_srli_epi16(_mm256_and_si256(bits_4567_from_el45, mask_bits_23), 2));
+  __m256i mask_bit_0 = _mm256_set1_epi8(0x55);
+  __m256i mask_bit_1 = _mm256_set1_epi8(0xaa);
+  __m256i b0 = _mm256_or_si256(_mm256_and_si256(bits_01_from_el0123, mask_bit_0), _mm256_slli_epi16(_mm256_and_si256(bits_01_from_el4567, mask_bit_0), 1));
+  __m256i b1 = _mm256_or_si256(_mm256_and_si256(bits_01_from_el4567, mask_bit_1), _mm256_srli_epi16(_mm256_and_si256(bits_01_from_el0123, mask_bit_1), 1));
+  __m256i b2 = _mm256_or_si256(_mm256_and_si256(bits_23_from_el0123, mask_bit_0), _mm256_slli_epi16(_mm256_and_si256(bits_23_from_el4567, mask_bit_0), 1));
+  __m256i b3 = _mm256_or_si256(_mm256_and_si256(bits_23_from_el4567, mask_bit_1), _mm256_srli_epi16(_mm256_and_si256(bits_23_from_el0123, mask_bit_1), 1));
+  __m256i b4 = _mm256_or_si256(_mm256_and_si256(bits_45_from_el0123, mask_bit_0), _mm256_slli_epi16(_mm256_and_si256(bits_45_from_el4567, mask_bit_0), 1));
+  __m256i b5 = _mm256_or_si256(_mm256_and_si256(bits_45_from_el4567, mask_bit_1), _mm256_srli_epi16(_mm256_and_si256(bits_45_from_el0123, mask_bit_1), 1));
+  __m256i b6 = _mm256_or_si256(_mm256_and_si256(bits_67_from_el0123, mask_bit_0), _mm256_slli_epi16(_mm256_and_si256(bits_67_from_el4567, mask_bit_0), 1));
+  __m256i b7 = _mm256_or_si256(_mm256_and_si256(bits_67_from_el4567, mask_bit_1), _mm256_srli_epi16(_mm256_and_si256(bits_67_from_el0123, mask_bit_1), 1));
+  // Use b0..b7 to calculate a 256-bit register, each bit representing (c < 0x20
+  // || c == 0x22 || c == 0x5c || 0x7e < c) for one input byte. Counting 3 of
+  // the 4 initial assignments, the algorithm is optimized to 23 operations.
+  // Good luck following along.
+  __m256i c1 = b0; // b0 = xxxxxxx1
+  __m256i c2 = b0; // b0 = xxxxxxx1
+  __m256i c3 = b0; // b0 = xxxxxxx1
+  __m256i ones = _mm256_set1_epi32(-1);
+  c2 |= b1; // b0|b1 = xxxxxxx1, xxxxxx1x
+  c3 &= b1; // b0&b1 = xxxxxx11
+  c2 |= b5; // b0|b1|b5 = xxxxxxx1, xxxxxx1x, xx1xxxxx
+  c3 &= b5; // b0&b1&b5 = xx1xxx11
+  c1 |= _mm256_xor_si256(b1, ones); // b0|!b1 = xxxxxxx1, xxxxxx0x
+  c2 = _mm256_xor_si256(c2, ones); // !(b0|b1|b5) = xx0xxx00
+  c1 |= b2; // b0|!b1|b2 = xxxxxxx1, xxxxxx0x, xxxxx1xx
+  c2 |= c3; // !(b0|b1|b5)|(b0&b1&b5) = xx0xxx00, xx1xxx11
+  c1 |= b3; // b0|!b1|b2|b3 = xxxxxxx1, xxxxxx0x, xxxxx1xx, xxxx1xxx
+  c2 &= b2; // (!(b0|b1|b5)|(b0&b1&b5))&b2 = xx0xx100, xx1xx111
+  c1 |= b4; // b0|!b1|b2|b3|b4 = xxxxxxx1, xxxxxx0x, xxxxx1xx, xxxx1xxx, xxx1xxxx
+  c2 &= b3; // (!(b0|b1|b5)|(b0&b1&b5))&b2&b3 = xx0x1100, xx1x1111
+  c1 &= b5; // (b0|!b1|b2|b3|b4)&b5 = xx1xxxx1, xx1xxx0x, xx1xx1xx, xx1x1xxx, xx11xxxx
+  c2 &= b4; // (!(b0|b1|b5)|(b0&b1&b5))&b2&b3&b4 = xx011100, xx111111
+  c1 |= b6; // ((b0|!b1|b2|b3|b4)&b5)|b6 = xx1xxxx1, xx1xxx0x, xx1xx1xx, xx1x1xxx, xx11xxxx, x1xxxxxx
+  c2 &= b6; // (!(b0|b1|b5)|(b0&b1&b5))&b2&b3&b4&b6 = x1011100, x1111111
+  c1 = _mm256_xor_si256(c1, ones); // !(((b0|!b1|b2|b3|b4)&b5)|b6) = x00xxxxx, x0100010
+  c2 |= b7; // ((!(b0|b1|b5)|(b0&b1&b5))&b2&b3&b4&b6)|b7 = 01011100, 01111111, 1xxxxxxx
+  c1 |= c2; // (!(((b0|!b1|b2|b3|b4)&b5)|b6))|(((!(b0|b1|b5)|(b0&b1&b5))&b2&b3&b4&b6)|b7) = 000xxxxx, 00100010, 01011100, 01111111, 1xxxxxxx
+  // Reduce c1 to 32 bits
+  __m128i reduced128 = _mm_or_si128(_mm256_extracti128_si256(c1, 0), _mm256_extracti128_si256(c1, 1));
+  __m128i reduced64 = reduced128 | _mm_shuffle_epi32(reduced128, 0b01001110);
+  __m128i reduced32 = reduced64 | _mm_shuffle_epi32(reduced64, 0b11100001);
+  return _mm_cvtsi128_si32(reduced32);
+}
+*/
 
 __attribute__((always_inline)) static inline
 __attribute__((__target__("sse2,avx2")))
@@ -109,104 +404,76 @@ bool unescaped_ascii_avx2(const char *str, const char *end) {
     case 241: case 240: case 239: case 238: case 237: case 236: case 235:
     case 234: case 233: case 232: case 231: case 230: case 229: case 228:
     case 227: case 226: case 225:
-      return (unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(end - 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 192))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 160))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 128))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 96))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 64))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str)))) == 0;
+      return unescaped_ascii_avx2_helper_32_x8(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 192)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 160)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 128)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 96)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 64)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
     case 224: case 223: case 222: case 221: case 220: case 219: case 218:
     case 217: case 216: case 215: case 214: case 213: case 212: case 211:
     case 210: case 209: case 208: case 207: case 206: case 205: case 204:
     case 203: case 202: case 201: case 200: case 199: case 198: case 197:
     case 196: case 195: case 194: case 193:
-      return (unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(end - 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 160))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 128))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 96))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 64))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str)))) == 0;
+      return unescaped_ascii_avx2_helper_32_x7(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 160)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 128)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 96)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 64)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
     case 192: case 191: case 190: case 189: case 188: case 187: case 186:
     case 185: case 184: case 183: case 182: case 181: case 180: case 179:
     case 178: case 177: case 176: case 175: case 174: case 173: case 172:
     case 171: case 170: case 169: case 168: case 167: case 166: case 165:
     case 164: case 163: case 162: case 161:
-      return (unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(end - 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 128))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 96))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 64))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str)))) == 0;
+      return unescaped_ascii_avx2_helper_32_x6(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 128)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 96)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 64)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
     case 160: case 159: case 158: case 157: case 156: case 155: case 154:
     case 153: case 152: case 151: case 150: case 149: case 148: case 147:
     case 146: case 145: case 144: case 143: case 142: case 141: case 140:
     case 139: case 138: case 137: case 136: case 135: case 134: case 133:
     case 132: case 131: case 130: case 129:
-      return (unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(end - 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 96))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 64))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str)))) == 0;
+      return unescaped_ascii_avx2_helper_32_x5(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 96)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 64)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
     case 128: case 127: case 126: case 125: case 124: case 123: case 122:
     case 121: case 120: case 119: case 118: case 117: case 116: case 115:
     case 114: case 113: case 112: case 111: case 110: case 109: case 108:
     case 107: case 106: case 105: case 104: case 103: case 102: case 101:
     case 100: case 99: case 98: case 97:
-      return (unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(end - 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 64))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str)))) == 0;
+      return unescaped_ascii_avx2_helper_32_x4(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 64)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
     case 96: case 95: case 94: case 93: case 92: case 91: case 90: case 89:
     case 88: case 87: case 86: case 85: case 84: case 83: case 82: case 81:
     case 80: case 79: case 78: case 77: case 76: case 75: case 74: case 73:
     case 72: case 71: case 70: case 69: case 68: case 67: case 66: case 65:
-      return (unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(end - 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str + 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str)))) == 0;
+      return unescaped_ascii_avx2_helper_32_x3(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str + 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
     case 64: case 63: case 62: case 61: case 60: case 59: case 58: case 57:
     case 56: case 55: case 54: case 53: case 52: case 51: case 50: case 49:
     case 48: case 47: case 46: case 45: case 44: case 43: case 42: case 41:
     case 40: case 39: case 38: case 37: case 36: case 35: case 34: case 33:
-      return (unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(end - 32))) |
-              unescaped_ascii_avx2_helper_32(_mm256_loadu_si256(
-                reinterpret_cast<const __m256i*>(str)))) == 0;
+      return unescaped_ascii_avx2_helper_32_x2(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
     case 32:
       return unescaped_ascii_avx2_helper_32(
               _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
@@ -255,16 +522,25 @@ bool unescaped_ascii_avx2(const char *str, const char *end) {
   // Less specialized code for len >= 256
   const __m256i* section1 = reinterpret_cast<const __m256i*>
     ((reinterpret_cast<UintPtr>(str) + 32) & -32UL);
-  const __m256i* section2 = reinterpret_cast<const __m256i*>
+  const __m256i* section3 = reinterpret_cast<const __m256i*>
     ((reinterpret_cast<UintPtr>(end) - 1) & -32UL);
+  const __m256i *section2 = reinterpret_cast<const __m256i *>
+    (reinterpret_cast<UintPtr>(section1) +
+     ((reinterpret_cast<UintPtr>(section3) -
+       reinterpret_cast<UintPtr>(section1)) & -256UL));
   UintPtr b = reinterpret_cast<UintPtr>(str);
   UintPtr e = reinterpret_cast<UintPtr>(end);
   UintPtr s1 = reinterpret_cast<UintPtr>(section1);
   UintPtr s2 = reinterpret_cast<UintPtr>(section2);
-  assert((s1 & 0x1f) == 0 && (s2 & 0x1f) == 0);
-  assert(s1 < s2);
+  UintPtr s3 = reinterpret_cast<UintPtr>(section3);
+  assert((s1 & 0x1f) == 0 &&
+         ((s2 - s1) & 0xff) == 0 &&
+         (s2 & 0x1f) == 0 &&
+         (s3 & 0x1f) == 0);
+  assert(s1 <= s2);
+  assert(s2 <= s3);
   assert((b + 1) <= s1 && s1 <= (b + 32));
-  assert((e - 32) <= s2 && s2 <= (e - 1));
+  assert((e - 32) <= s3 && s3 <= (e - 1));
   {
     if (unlikely(unescaped_ascii_avx2_helper_32(
                    _mm256_loadu_si256(
@@ -272,7 +548,12 @@ bool unescaped_ascii_avx2(const char *str, const char *end) {
       return false;
     }
   }
-  for (const __m256i* aptr = section1; aptr < section2; aptr++) {
+  for (const __m256i* aptr = section1; aptr < section2; aptr+=8) {
+    if (unlikely(unescaped_ascii_avx2_helper_256(aptr))) {
+      return false;
+    }
+  }
+  for (const __m256i* aptr = section2; aptr < section3; aptr++) {
     if (unlikely(unescaped_ascii_avx2_helper_32(
                    _mm256_load_si256(aptr)))) {
       return false;
