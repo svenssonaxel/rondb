@@ -106,7 +106,7 @@ __m256i unescaped_ascii_avx2_helper_32_np0(__m256i input) {
      0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7};
   const __m256i lotbl = _mm256_load_si256((const __m256i*)lotbl_bytes);
   __m256i lo_lookup = _mm256_shuffle_epi8(lotbl, input);
-  /* Unfortunately _mm256_srli_epi8 does not exist in AVX8, so extracting the
+  /* Unfortunately _mm256_srli_epi8 does not exist in AVX2, so extracting the
    * high nibble takes 2 instructions. The mask is required to prevent the high
    * bit to be set to the value of bit 3 of the next byte. If 1, it would cause
    * the lookup to return 0.
@@ -133,6 +133,8 @@ __m256i unescaped_ascii_avx2_helper_32_np0(__m256i input) {
    * 000x000x -> 11111110
    * 000x0010 -> 11111101
    * 000x0011 -> 11111110
+   * 000x01xx -> 11111110
+   * 000x10xx -> 11111110
    * 000x1100 -> 11111011
    * 000x1101 -> 11111110
    * 000x1110 -> 11111110
@@ -280,7 +282,7 @@ int unescaped_ascii_avx2_helper_32_x8(__m256i i0, __m256i i1, __m256i i2, __m256
           unescaped_ascii_avx2_helper_32_np0(i7)))));
 }
 
-// 50 operations per 256 bytes
+// 50 operations per 256 bytes. Requires aptr aligned to 32 bytes
 __attribute__((always_inline)) static inline
 __attribute__((__target__("avx2")))
 int unescaped_ascii_avx2_helper_256(const __m256i* aptr) {
