@@ -3,31 +3,7 @@
 #include <cassert>
 #include <chrono>
 
-// Check whether we're on x86 or ARM
-#if defined(__x86_64__)
-#define ua_x86_64
-#endif
-#if defined(__aarch64__)
-#define ua_arm
-#endif
-// Assert ua_x86_64 xor ua_arm
-#if defined(ua_x86_64) && defined(ua_arm)
-#error "This is weird"
-#endif
-#if !defined(ua_x86_64) && !defined(ua_arm)
-#error "Only x86_64 and ARM are supported"
-#endif
-
-#ifdef ua_x86_64
-#include <emmintrin.h> // SSE2 intrinsics
-#include <immintrin.h> // AVX2 intrinsics
-#endif
-#ifdef ua_arm
-#include <arm_neon.h>
-#include <sys/auxv.h>
-#include <linux/auxvec.h>
-#include <asm/hwcap.h>
-#endif
+#include "rondb_simd.h"
 
 using std::cout;
 using std::endl;
@@ -50,9 +26,9 @@ inline bool char_is_not_unescaped_ascii(char c) {
   return c < 0x20 || c == 0x22 || c == 0x5c || 0x7e < c;
 }
 
-// Slow, scalar implementation
+// Slow, scalar implementation for correctness comparison
 __attribute__((always_inline)) static inline
-bool unescaped_ascii_fallback(const char* str, const char* end) {
+bool unescaped_ascii_correct(const char* str, const char* end) {
   while (str < end) {
     uchar c = *((const uchar*)str);
     DBG("c:" << c);
@@ -64,18 +40,15 @@ bool unescaped_ascii_fallback(const char* str, const char* end) {
   return true;
 }
 
-__attribute__((always_inline)) static inline
-bool unescaped_ascii_correct(const char* str, const char* end) {
-  return unescaped_ascii_fallback(str, end);
-}
-
-#ifdef ua_x86_64
+RONDB_SIMD_FUN_SCALAR(
+bool unescaped_ascii_scalar(const char* str, const char* end) {
+  return unescaped_ascii_correct(str, end);
+})
 
 /* A straight-forward but not optimal implementation:
 // 8 operations per 32 bytes. Return value will have sign bit set for a
 // nonprintable character.
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32(__m256i input) {
   return _mm256_movemask_epi8(
            _mm256_or_si256(
@@ -85,22 +58,21 @@ int unescaped_ascii_avx2_helper_32(__m256i input) {
              _mm256_or_si256(
                _mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x22)),
                _mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x5c)))));
-}
+})
 */
 
 // 5 operations per 32 bytes. Return value will have at least one bit set to 0
 // for a nonprintable character.
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 __m256i unescaped_ascii_avx2_helper_32_np0(__m256i input) {
-   /* lo_lookup values:
-    * input:      lo_lookup:
-    * 0xxx0010 -> 11111101
-    * 0xxx1100 -> 11111011
-    * 0xxx1111 -> 11110111
-    * 1xxxxxxx -> 00000000 due to how _mm256_shuffle_epi8 works
-    * others   -> 11111110
-    */
+  /* lo_lookup values:
+   * input:      lo_lookup:
+   * 0xxx0010 -> 11111101
+   * 0xxx1100 -> 11111011
+   * 0xxx1111 -> 11110111
+   * 1xxxxxxx -> 00000000 due to how _mm256_shuffle_epi8 works
+   * others   -> 11111110
+   */
   static const __attribute__((aligned(32))) unsigned char lotbl_bytes[32] =
     {0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7,
      0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7};
@@ -147,11 +119,10 @@ __m256i unescaped_ascii_avx2_helper_32_np0(__m256i input) {
    */
   __m256i result = _mm256_or_si256(lo_lookup, hi_lookup);
   return result;
-}
+})
 
 // 3 operations.
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_finish(__m256i result) {
   __m256i ones = _mm256_set1_epi32(-1);
   return _mm256_movemask_epi8(
@@ -160,29 +131,26 @@ int unescaped_ascii_avx2_helper_finish(__m256i result) {
                result,
                ones),
              ones));
-}
+})
 
 // 8 operations per 32 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32(__m256i i0) {
   return unescaped_ascii_avx2_helper_finish(
     unescaped_ascii_avx2_helper_32_np0(i0));
-}
+})
 
 // 14 operations per 64 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32_x2(__m256i i0, __m256i i1) {
   return unescaped_ascii_avx2_helper_finish(
     _mm256_and_si256(
       unescaped_ascii_avx2_helper_32_np0(i0),
       unescaped_ascii_avx2_helper_32_np0(i1)));
-}
+})
 
 // 20 operations per 96 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32_x3(__m256i i0, __m256i i1, __m256i i2) {
   return unescaped_ascii_avx2_helper_finish(
     _mm256_and_si256(
@@ -190,11 +158,10 @@ int unescaped_ascii_avx2_helper_32_x3(__m256i i0, __m256i i1, __m256i i2) {
         unescaped_ascii_avx2_helper_32_np0(i0),
         unescaped_ascii_avx2_helper_32_np0(i1)),
       unescaped_ascii_avx2_helper_32_np0(i2)));
-}
+})
 
 // 26 operations per 128 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32_x4(__m256i i0, __m256i i1, __m256i i2, __m256i i3) {
   return unescaped_ascii_avx2_helper_finish(
     _mm256_and_si256(
@@ -204,11 +171,10 @@ int unescaped_ascii_avx2_helper_32_x4(__m256i i0, __m256i i1, __m256i i2, __m256
       _mm256_and_si256(
         unescaped_ascii_avx2_helper_32_np0(i2),
         unescaped_ascii_avx2_helper_32_np0(i3))));
-}
+})
 
 // 32 operations per 160 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32_x5(__m256i i0, __m256i i1, __m256i i2, __m256i i3, __m256i i4) {
   return unescaped_ascii_avx2_helper_finish(
     _mm256_and_si256(
@@ -220,11 +186,10 @@ int unescaped_ascii_avx2_helper_32_x5(__m256i i0, __m256i i1, __m256i i2, __m256
           unescaped_ascii_avx2_helper_32_np0(i2),
           unescaped_ascii_avx2_helper_32_np0(i3))),
       unescaped_ascii_avx2_helper_32_np0(i4)));
-}
+})
 
 // 38 operations per 192 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32_x6(__m256i i0, __m256i i1, __m256i i2, __m256i i3, __m256i i4, __m256i i5) {
   return unescaped_ascii_avx2_helper_finish(
     _mm256_and_si256(
@@ -238,11 +203,10 @@ int unescaped_ascii_avx2_helper_32_x6(__m256i i0, __m256i i1, __m256i i2, __m256
       _mm256_and_si256(
         unescaped_ascii_avx2_helper_32_np0(i4),
         unescaped_ascii_avx2_helper_32_np0(i5))));
-}
+})
 
 // 44 operations per 224 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32_x7(__m256i i0, __m256i i1, __m256i i2, __m256i i3, __m256i i4, __m256i i5, __m256i i6) {
   return unescaped_ascii_avx2_helper_finish(
     _mm256_and_si256(
@@ -258,11 +222,10 @@ int unescaped_ascii_avx2_helper_32_x7(__m256i i0, __m256i i1, __m256i i2, __m256
           unescaped_ascii_avx2_helper_32_np0(i4),
           unescaped_ascii_avx2_helper_32_np0(i5)),
         unescaped_ascii_avx2_helper_32_np0(i6))));
-}
+})
 
 // 50 operations per 256 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_32_x8(__m256i i0, __m256i i1, __m256i i2, __m256i i3, __m256i i4, __m256i i5, __m256i i6, __m256i i7) {
   return unescaped_ascii_avx2_helper_finish(
     _mm256_and_si256(
@@ -280,11 +243,10 @@ int unescaped_ascii_avx2_helper_32_x8(__m256i i0, __m256i i1, __m256i i2, __m256
         _mm256_and_si256(
           unescaped_ascii_avx2_helper_32_np0(i6),
           unescaped_ascii_avx2_helper_32_np0(i7)))));
-}
+})
 
 // 50 operations per 256 bytes. Requires aptr aligned to 32 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_256(const __m256i* aptr) {
   return unescaped_ascii_avx2_helper_32_x8(
     _mm256_load_si256(aptr),
@@ -295,13 +257,12 @@ int unescaped_ascii_avx2_helper_256(const __m256i* aptr) {
     _mm256_load_si256(aptr + 5),
     _mm256_load_si256(aptr + 6),
     _mm256_load_si256(aptr + 7));
-}
+})
 
 /* A complex implementation with transposing and bit-blasting, ultimately
    nonoptimal. Could perhaps work on AVX-512 with ternary logic.
 // 133 operations + loads per 256 bytes
-__attribute__((always_inline)) static inline
-__attribute__((__target__("avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_avx2_helper_256_c(const __m256i* aptr) {
   // aptr points to a 32-byte aligned 256-byte region.
   // Load 32 bytes each into 8 registers.
@@ -377,11 +338,10 @@ int unescaped_ascii_avx2_helper_256_c(const __m256i* aptr) {
   __m128i reduced64 = reduced128 | _mm_shuffle_epi32(reduced128, 0b01001110);
   __m128i reduced32 = reduced64 | _mm_shuffle_epi32(reduced64, 0b11100001);
   return _mm_cvtsi128_si32(reduced32);
-}
+})
 */
 
-__attribute__((always_inline)) static inline
-__attribute__((__target__("sse2,avx2")))
+RONDB_SIMD_FUN_AVX2(
 int unescaped_ascii_sse2_helper_16(__m128i input) {
   return _mm_movemask_epi8(
            _mm_or_si128(
@@ -391,10 +351,9 @@ int unescaped_ascii_sse2_helper_16(__m128i input) {
              _mm_or_si128(
                _mm_cmpeq_epi8(input, _mm_set1_epi8(0x22)),
                _mm_cmpeq_epi8(input, _mm_set1_epi8(0x5c)))));
-}
+})
 
-__attribute__((always_inline)) static inline
-__attribute__((__target__ ("sse2,avx2")))
+RONDB_SIMD_FUN_AVX2(
 bool unescaped_ascii_avx2(const char *str, const char *end) {
   unsigned int len = end - str;
   const __m256i *const mstr = reinterpret_cast<const __m256i*>(str);
@@ -571,25 +530,10 @@ bool unescaped_ascii_avx2(const char *str, const char *end) {
     }
   }
   return true;
-}
+})
 
-#endif
-
-#ifdef ua_arm
-
-std::ostream& operator<<(std::ostream& os, const uint8x16_t& vec) {
-    uint8_t data[16];
-    vst1q_u8(data, vec); // Store the vector into an array
-    for (size_t i = 0; i < 16; ++i) {
-        os << ("0123456789abcdef"[data[i] >> 4])
-           << ("0123456789abcdef"[data[i] & 0xf]);
-        if (i < 15) os << " "; // Separate elements with spaces
-    }
-    return os;
-}
-
-__attribute__((always_inline)) static inline
-uint64_t unescaped_ascii_asimd_helper_16(uint8x16_t input) {
+RONDB_SIMD_FUN_NEON(
+uint64_t unescaped_ascii_neon_helper_16(uint8x16_t input) {
   uint16x8_t res = vreinterpretq_u16_u8(
     vorrq_u8(
       vorrq_u8(
@@ -601,16 +545,16 @@ uint64_t unescaped_ascii_asimd_helper_16(uint8x16_t input) {
   return vget_lane_u64(
     vreinterpret_u64_u8(vshrn_n_u16(res, 4)),
     0);
-};
+})
 
-__attribute__((always_inline)) static inline
-uint64_t unescaped_ascii_asimd_helper_16(const char* ptr) {
-  return unescaped_ascii_asimd_helper_16(
+RONDB_SIMD_FUN_NEON(
+uint64_t unescaped_ascii_neon_helper_16(const char* ptr) {
+  return unescaped_ascii_neon_helper_16(
            vld1q_u8(reinterpret_cast<const uint8_t*>(ptr)));
-}
+})
 
-__attribute__((always_inline)) static inline
-bool unescaped_ascii_asimd(const char* str, const char* end) {
+RONDB_SIMD_FUN_NEON(
+bool unescaped_ascii_neon(const char* str, const char* end) {
   unsigned int len = end - str;
   const char *last = end - 0x10; // Computing this before switch() is slightly
                                  // faster.
@@ -621,203 +565,203 @@ bool unescaped_ascii_asimd(const char* str, const char* end) {
     case 0xff: case 0xfe: case 0xfd: case 0xfc: case 0xfb: case 0xfa: case 0xf9:
     case 0xf8: case 0xf7: case 0xf6: case 0xf5: case 0xf4: case 0xf3: case 0xf2:
     case 0xf1:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0xe0) |
-              unescaped_ascii_asimd_helper_16(str + 0xd0) |
-              unescaped_ascii_asimd_helper_16(str + 0xc0) |
-              unescaped_ascii_asimd_helper_16(str + 0xb0) |
-              unescaped_ascii_asimd_helper_16(str + 0xa0) |
-              unescaped_ascii_asimd_helper_16(str + 0x90) |
-              unescaped_ascii_asimd_helper_16(str + 0x80) |
-              unescaped_ascii_asimd_helper_16(str + 0x70) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0xe0) |
+              unescaped_ascii_neon_helper_16(str + 0xd0) |
+              unescaped_ascii_neon_helper_16(str + 0xc0) |
+              unescaped_ascii_neon_helper_16(str + 0xb0) |
+              unescaped_ascii_neon_helper_16(str + 0xa0) |
+              unescaped_ascii_neon_helper_16(str + 0x90) |
+              unescaped_ascii_neon_helper_16(str + 0x80) |
+              unescaped_ascii_neon_helper_16(str + 0x70) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0xf0: case 0xef: case 0xee: case 0xed: case 0xec: case 0xeb: case 0xea:
     case 0xe9: case 0xe8: case 0xe7: case 0xe6: case 0xe5: case 0xe4: case 0xe3:
     case 0xe2: case 0xe1:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0xd0) |
-              unescaped_ascii_asimd_helper_16(str + 0xc0) |
-              unescaped_ascii_asimd_helper_16(str + 0xb0) |
-              unescaped_ascii_asimd_helper_16(str + 0xa0) |
-              unescaped_ascii_asimd_helper_16(str + 0x90) |
-              unescaped_ascii_asimd_helper_16(str + 0x80) |
-              unescaped_ascii_asimd_helper_16(str + 0x70) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0xd0) |
+              unescaped_ascii_neon_helper_16(str + 0xc0) |
+              unescaped_ascii_neon_helper_16(str + 0xb0) |
+              unescaped_ascii_neon_helper_16(str + 0xa0) |
+              unescaped_ascii_neon_helper_16(str + 0x90) |
+              unescaped_ascii_neon_helper_16(str + 0x80) |
+              unescaped_ascii_neon_helper_16(str + 0x70) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0xe0: case 0xdf: case 0xde: case 0xdd: case 0xdc: case 0xdb: case 0xda:
     case 0xd9: case 0xd8: case 0xd7: case 0xd6: case 0xd5: case 0xd4: case 0xd3:
     case 0xd2: case 0xd1:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0xc0) |
-              unescaped_ascii_asimd_helper_16(str + 0xb0) |
-              unescaped_ascii_asimd_helper_16(str + 0xa0) |
-              unescaped_ascii_asimd_helper_16(str + 0x90) |
-              unescaped_ascii_asimd_helper_16(str + 0x80) |
-              unescaped_ascii_asimd_helper_16(str + 0x70) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0xc0) |
+              unescaped_ascii_neon_helper_16(str + 0xb0) |
+              unescaped_ascii_neon_helper_16(str + 0xa0) |
+              unescaped_ascii_neon_helper_16(str + 0x90) |
+              unescaped_ascii_neon_helper_16(str + 0x80) |
+              unescaped_ascii_neon_helper_16(str + 0x70) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0xd0: case 0xcf: case 0xce: case 0xcd: case 0xcc: case 0xcb: case 0xca:
     case 0xc9: case 0xc8: case 0xc7: case 0xc6: case 0xc5: case 0xc4: case 0xc3:
     case 0xc2: case 0xc1:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0xb0) |
-              unescaped_ascii_asimd_helper_16(str + 0xa0) |
-              unescaped_ascii_asimd_helper_16(str + 0x90) |
-              unescaped_ascii_asimd_helper_16(str + 0x80) |
-              unescaped_ascii_asimd_helper_16(str + 0x70) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0xb0) |
+              unescaped_ascii_neon_helper_16(str + 0xa0) |
+              unescaped_ascii_neon_helper_16(str + 0x90) |
+              unescaped_ascii_neon_helper_16(str + 0x80) |
+              unescaped_ascii_neon_helper_16(str + 0x70) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0xc0: case 0xbf: case 0xbe: case 0xbd: case 0xbc: case 0xbb: case 0xba:
     case 0xb9: case 0xb8: case 0xb7: case 0xb6: case 0xb5: case 0xb4: case 0xb3:
     case 0xb2: case 0xb1:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0xa0) |
-              unescaped_ascii_asimd_helper_16(str + 0x90) |
-              unescaped_ascii_asimd_helper_16(str + 0x80) |
-              unescaped_ascii_asimd_helper_16(str + 0x70) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0xa0) |
+              unescaped_ascii_neon_helper_16(str + 0x90) |
+              unescaped_ascii_neon_helper_16(str + 0x80) |
+              unescaped_ascii_neon_helper_16(str + 0x70) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0xb0: case 0xaf: case 0xae: case 0xad: case 0xac: case 0xab: case 0xaa:
     case 0xa9: case 0xa8: case 0xa7: case 0xa6: case 0xa5: case 0xa4: case 0xa3:
     case 0xa2: case 0xa1:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x90) |
-              unescaped_ascii_asimd_helper_16(str + 0x80) |
-              unescaped_ascii_asimd_helper_16(str + 0x70) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x90) |
+              unescaped_ascii_neon_helper_16(str + 0x80) |
+              unescaped_ascii_neon_helper_16(str + 0x70) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0xa0: case 0x9f: case 0x9e: case 0x9d: case 0x9c: case 0x9b: case 0x9a:
     case 0x99: case 0x98: case 0x97: case 0x96: case 0x95: case 0x94: case 0x93:
     case 0x92: case 0x91:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x80) |
-              unescaped_ascii_asimd_helper_16(str + 0x70) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x80) |
+              unescaped_ascii_neon_helper_16(str + 0x70) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x90: case 0x8f: case 0x8e: case 0x8d: case 0x8c: case 0x8b: case 0x8a:
     case 0x89: case 0x88: case 0x87: case 0x86: case 0x85: case 0x84: case 0x83:
     case 0x82: case 0x81:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x70) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x70) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x80: case 0x7f: case 0x7e: case 0x7d: case 0x7c: case 0x7b: case 0x7a:
     case 0x79: case 0x78: case 0x77: case 0x76: case 0x75: case 0x74: case 0x73:
     case 0x72: case 0x71:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x60) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x60) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x70: case 0x6f: case 0x6e: case 0x6d: case 0x6c: case 0x6b: case 0x6a:
     case 0x69: case 0x68: case 0x67: case 0x66: case 0x65: case 0x64: case 0x63:
     case 0x62: case 0x61:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x50) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x50) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x60: case 0x5f: case 0x5e: case 0x5d: case 0x5c: case 0x5b: case 0x5a:
     case 0x59: case 0x58: case 0x57: case 0x56: case 0x55: case 0x54: case 0x53:
     case 0x52: case 0x51:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x40) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x40) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x50: case 0x4f: case 0x4e: case 0x4d: case 0x4c: case 0x4b: case 0x4a:
     case 0x49: case 0x48: case 0x47: case 0x46: case 0x45: case 0x44: case 0x43:
     case 0x42: case 0x41:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x30) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x30) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x40: case 0x3f: case 0x3e: case 0x3d: case 0x3c: case 0x3b: case 0x3a:
     case 0x39: case 0x38: case 0x37: case 0x36: case 0x35: case 0x34: case 0x33:
     case 0x32: case 0x31:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x20) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x20) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x30: case 0x2f: case 0x2e: case 0x2d: case 0x2c: case 0x2b: case 0x2a:
     case 0x29: case 0x28: case 0x27: case 0x26: case 0x25: case 0x24: case 0x23:
     case 0x22: case 0x21:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str + 0x10) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str + 0x10) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x20: case 0x1f: case 0x1e: case 0x1d: case 0x1c: case 0x1b: case 0x1a:
     case 0x19: case 0x18: case 0x17: case 0x16: case 0x15: case 0x14: case 0x13:
     case 0x12: case 0x11:
-      return (unescaped_ascii_asimd_helper_16(last) |
-              unescaped_ascii_asimd_helper_16(str)) == 0;
+      return (unescaped_ascii_neon_helper_16(last) |
+              unescaped_ascii_neon_helper_16(str)) == 0;
     case 0x10:
-      return unescaped_ascii_asimd_helper_16(str) == 0;
+      return unescaped_ascii_neon_helper_16(str) == 0;
     case 0xf: case 0xe: case 0xd: case 0xc: case 0xb: case 0xa: case 9:
-      return unescaped_ascii_asimd_helper_16(
+      return unescaped_ascii_neon_helper_16(
                vcombine_u8(
                  *reinterpret_cast<const uint8x8_t*>(end - 8),
                  *reinterpret_cast<const uint8x8_t*>(str))) == 0;
     case 8:
-      return unescaped_ascii_asimd_helper_16(
+      return unescaped_ascii_neon_helper_16(
                vcombine_u8(
                  vcreate_u8(uint64_t(0x2020202020202020L)),
                  vld1_u8(reinterpret_cast<const uint8_t*>(str)))) == 0;
     case 7: case 6: case 5:
-      return unescaped_ascii_asimd_helper_16(
+      return unescaped_ascii_neon_helper_16(
                vcombine_u8(
                  vcreate_u8(uint64_t(0x2020202020202020L)),
                  vcreate_u8((uint64_t(*reinterpret_cast<const uint32_t*>(end - 4)) << 32) |
                             *reinterpret_cast<const uint32_t*>(str)))) == 0;
     case 4:
-      return unescaped_ascii_asimd_helper_16(
+      return unescaped_ascii_neon_helper_16(
                vcombine_u8(
                  vcreate_u8(uint64_t(0x2020202020202020L)),
                  vcreate_u8(uint64_t(0x2020202000000000L) |
@@ -856,18 +800,18 @@ bool unescaped_ascii_asimd(const char* str, const char* end) {
   assert((b + 1) <= s1 && s1 <= (b + 16));
   assert((e - 16) <= s2 && s2 <= (e - 1));
   // Check initial unaligned segment, possibly overlapping an aligned segment.
-  if (unlikely(unescaped_ascii_asimd_helper_16(str))) {
+  if (unlikely(unescaped_ascii_neon_helper_16(str))) {
     return false;
   }
   // Check aligned segments
   for (const uint8x16_t* aptr = section1; likely(aptr < section2); aptr++) {
     // todo alignment specifier
-    if (unlikely(unescaped_ascii_asimd_helper_16(*aptr))) {
+    if (unlikely(unescaped_ascii_neon_helper_16(*aptr))) {
       return false;
     }
   }
   // Check final unaligned segment, possibly overlapping an aligned segment.
-  if (unlikely(unescaped_ascii_asimd_helper_16(last))) {
+  if (unlikely(unescaped_ascii_neon_helper_16(last))) {
     return false;
   }
   */
@@ -877,40 +821,18 @@ bool unescaped_ascii_asimd(const char* str, const char* end) {
    * alignment varies.
    */
   for (const char* aptr = str; aptr < last; aptr += 16) {
-    if (unlikely(unescaped_ascii_asimd_helper_16(aptr))) {
+    if (unlikely(unescaped_ascii_neon_helper_16(aptr))) {
       return false;
     }
   }
-  if (unlikely(unescaped_ascii_asimd_helper_16(last))) {
+  if (unlikely(unescaped_ascii_neon_helper_16(last))) {
     return false;
   }
 
   return true;
-}
+})
 
-#endif
-
-__attribute__((always_inline)) static inline
-bool unescaped_ascii_simd(const char *str, const char *end)
-{
-  using T = decltype(unescaped_ascii_simd);
-  static T* pointer = nullptr;
-  if (unlikely(pointer == nullptr))
-  {
-#ifdef ua_x86_64
-    if (__builtin_cpu_supports("sse2") &&
-        __builtin_cpu_supports("avx2"))
-      pointer = &unescaped_ascii_avx2;
-#endif
-#ifdef ua_arm
-    if (getauxval(AT_HWCAP) & HWCAP_ASIMD)
-      pointer = &unescaped_ascii_asimd;
-#endif
-    else
-      pointer = &unescaped_ascii_fallback;
-  }
-  return pointer(str, end);
-}
+RONDB_SIMD_DISPATCH_AVX2_NEON_SCALAR(bool, unescaped_ascii, (const char *str, const char *end))
 
 void test_correctness(bool (*testfun)(const char*, const char*), std::string fun_name) {
   uchar chars_to_test[] = { 0x00, 0x01, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x5b,
@@ -1005,19 +927,25 @@ void test_performance(bool (*testfun)(const char*, const char*),
 
 int
 main() {
+  const char* cpu_err = rondb_simd_check_processor();
+  if(cpu_err) {
+    fprintf(stderr, "%s\n", cpu_err);
+    abort();
+  }
   // Performance test
-  test_performance(&unescaped_ascii_fallback, "unescaped_ascii_fallback");
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd");
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 7);
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 15);
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 31);
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 70);
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 128);
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 255);
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 256);
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 16384);
-  test_performance(&unescaped_ascii_simd, "unescaped_ascii_simd", true, 1048576);
+  printf("%s\n", "Compiled for " RONDB_SIMD_COMPILATION_CONFIG);
+  test_performance(unescaped_ascii_correct, "unescaped_ascii_correct");
+  test_performance(unescaped_ascii, "unescaped_ascii");
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 7);
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 15);
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 31);
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 70);
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 128);
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 255);
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 256);
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 16384);
+  test_performance(unescaped_ascii, "unescaped_ascii", true, 1048576);
   // Correctness test
-  test_correctness(&unescaped_ascii_simd, "unescaped_ascii_simd");
+  test_correctness(unescaped_ascii, "unescaped_ascii");
   return 0;
 }
