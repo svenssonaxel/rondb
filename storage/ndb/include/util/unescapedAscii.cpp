@@ -342,7 +342,7 @@ int unescaped_ascii_avx2_helper_256_c(const __m256i* aptr) {
 */
 
 RONDB_SIMD_FUN_AVX2(
-int unescaped_ascii_sse2_helper_16(__m128i input) {
+int unescaped_ascii_avx2_helper_16(__m128i input) {
   return _mm_movemask_epi8(
            _mm_or_si128(
              _mm_or_si128(
@@ -447,26 +447,26 @@ bool unescaped_ascii_avx2(const char *str, const char *end) {
                 _mm_loadu_si128(reinterpret_cast<const __m128i*>(end - 16)),
                 _mm_loadu_si128(reinterpret_cast<const __m128i*>(str)))) == 0;
     case 16:
-      return unescaped_ascii_sse2_helper_16(
+      return unescaped_ascii_avx2_helper_16(
                _mm_loadu_si128(reinterpret_cast<const __m128i*>(str))) == 0;
     case 15: case 14: case 13: case 12: case 11: case 10: case 9:
-      return unescaped_ascii_sse2_helper_16(
+      return unescaped_ascii_avx2_helper_16(
               _mm_set_epi64x(
                 *reinterpret_cast<const uint64_t*>(end - 8),
                 *reinterpret_cast<const uint64_t*>(str))) == 0;
     case 8:
-      return unescaped_ascii_sse2_helper_16(
+      return unescaped_ascii_avx2_helper_16(
                _mm_set_epi64x(
                  0x2020202020202020L,
                  *reinterpret_cast<const uint64_t*>(str))) == 0;
     case 7: case 6: case 5:
-      return unescaped_ascii_sse2_helper_16(
+      return unescaped_ascii_avx2_helper_16(
                _mm_set_epi32(
                  0x20202020, 0x20202020,
                  *reinterpret_cast<const uint32_t*>(end - 4),
                  *reinterpret_cast<const uint32_t*>(str))) == 0;
     case 4:
-      return unescaped_ascii_sse2_helper_16(
+      return unescaped_ascii_avx2_helper_16(
                _mm_set_epi32(
                  0x20202020, 0x20202020, 0x20202020,
                  *reinterpret_cast<const uint32_t*>(str))) == 0;
@@ -525,6 +525,272 @@ bool unescaped_ascii_avx2(const char *str, const char *end) {
   {
     if (unlikely(unescaped_ascii_avx2_helper_32(
                    _mm256_loadu_si256(
+                     mend)))) {
+      return false;
+    }
+  }
+  return true;
+})
+
+// 5 operations per 64 bytes. Return value will have at least one bit set to 0
+// for a nonprintable character.
+RONDB_SIMD_FUN_AVX512(
+__m512i unescaped_ascii_avx512_helper_64_np0(__m512i input) {
+  static const __attribute__((aligned(64))) unsigned char lotbl_bytes[64] =
+    {0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7,
+     0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7,
+     0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7,
+     0xfe,0xfe,0xfd,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfb,0xfe,0xfe,0xf7};
+  const __m512i lotbl = _mm512_load_si512((const __m512i*)lotbl_bytes);
+  __m512i lo_lookup = _mm512_shuffle_epi8(lotbl, input);
+  __m512i hi_nibble = _mm512_and_si512(
+    _mm512_srli_epi16(input, 4),
+    _mm512_set1_epi8(0xf));
+  static const __attribute__((aligned(64))) unsigned char hitbl_bytes[64] =
+    {0,0,0xed,0xef,0xef,0xeb,0xef,0xe7, 0,0,0,0,0,0,0,0,
+     0,0,0xed,0xef,0xef,0xeb,0xef,0xe7, 0,0,0,0,0,0,0,0,
+     0,0,0xed,0xef,0xef,0xeb,0xef,0xe7, 0,0,0,0,0,0,0,0,
+     0,0,0xed,0xef,0xef,0xeb,0xef,0xe7, 0,0,0,0,0,0,0,0};
+  const __m512i hitbl = _mm512_load_si512((const __m512i*)hitbl_bytes);
+  __m512i hi_lookup = _mm512_shuffle_epi8(hitbl, hi_nibble);
+  __m512i result = _mm512_or_si512(lo_lookup, hi_lookup);
+  return result;
+})
+
+// 8 operations per 16 bytes
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_16(__m128i input) {
+  return _mm_movemask_epi8(
+           _mm_or_si128(
+             _mm_or_si128(
+               _mm_cmpgt_epi8(_mm_set1_epi8(0x20), input),
+               _mm_cmpgt_epi8(input, _mm_set1_epi8(0x7e))),
+             _mm_or_si128(
+               _mm_cmpeq_epi8(input, _mm_set1_epi8(0x22)),
+               _mm_cmpeq_epi8(input, _mm_set1_epi8(0x5c)))));
+})
+
+// 8 operations per 32 bytes
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_32(__m256i input) {
+  return _mm256_movemask_epi8(
+           _mm256_or_si256(
+             _mm256_or_si256(
+               _mm256_cmpgt_epi8(_mm256_set1_epi8(0x20), input),
+               _mm256_cmpgt_epi8(input, _mm256_set1_epi8(0x7e))),
+             _mm256_or_si256(
+               _mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x22)),
+               _mm256_cmpeq_epi8(input, _mm256_set1_epi8(0x5c)))));
+})
+
+// 3 operations.
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_finish(__m512i result) {
+  return 0xffffffff ^
+    _cvtmask32_u32(_mm512_cmpeq_epi16_mask(result, _mm512_set1_epi32(-1)));
+})
+
+// 8 operations per 64 bytes
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_64(__m512i i0) {
+  return unescaped_ascii_avx512_helper_finish(
+    unescaped_ascii_avx512_helper_64_np0(i0));
+})
+
+// 9 operations per 32x2 bytes
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_32_x2(__m256i i0, __m256i i1) {
+  return unescaped_ascii_avx512_helper_64(
+    _mm512_inserti64x4(
+      _mm512_castsi256_si512(i0),
+      i1, 1));
+})
+
+// 14 operations per 128 bytes
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_64_x2(__m512i i0, __m512i i1) {
+  return unescaped_ascii_avx512_helper_finish(
+    _mm512_and_si512(
+      unescaped_ascii_avx512_helper_64_np0(i0),
+      unescaped_ascii_avx512_helper_64_np0(i1)));
+})
+
+// 20 operations per 192 bytes
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_64_x3(__m512i i0, __m512i i1, __m512i i2) {
+  return unescaped_ascii_avx512_helper_finish(
+    _mm512_and_si512(
+      _mm512_and_si512(
+        unescaped_ascii_avx512_helper_64_np0(i0),
+        unescaped_ascii_avx512_helper_64_np0(i1)),
+      unescaped_ascii_avx512_helper_64_np0(i2)));
+})
+
+// 26 operations per 256 bytes
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_64_x4(__m512i i0, __m512i i1, __m512i i2, __m512i i3) {
+  return unescaped_ascii_avx512_helper_finish(
+    _mm512_and_si512(
+      _mm512_and_si512(
+        unescaped_ascii_avx512_helper_64_np0(i0),
+        unescaped_ascii_avx512_helper_64_np0(i1)),
+      _mm512_and_si512(
+        unescaped_ascii_avx512_helper_64_np0(i2),
+        unescaped_ascii_avx512_helper_64_np0(i3))));
+})
+
+// 26 operations per 256 bytes. Requires aptr aligned to 64 bytes
+RONDB_SIMD_FUN_AVX512(
+int unescaped_ascii_avx512_helper_256(const __m512i* aptr) {
+  return unescaped_ascii_avx512_helper_64_x4(
+    _mm512_load_si512(aptr),
+    _mm512_load_si512(aptr + 1),
+    _mm512_load_si512(aptr + 2),
+    _mm512_load_si512(aptr + 3));
+})
+
+RONDB_SIMD_FUN_AVX512(
+bool unescaped_ascii_avx512(const char *str, const char *end) {
+  unsigned int len = end - str;
+  const __m512i *const mstr = reinterpret_cast<const __m512i*>(str);
+  const __m512i *const mend = reinterpret_cast<const __m512i*>(end - 64);
+  if (likely(len <= 255)) {
+    switch((unsigned char)(len)) {
+    case 255: case 254: case 253: case 252: case 251: case 250: case 249:
+    case 248: case 247: case 246: case 245: case 244: case 243: case 242:
+    case 241: case 240: case 239: case 238: case 237: case 236: case 235:
+    case 234: case 233: case 232: case 231: case 230: case 229: case 228:
+    case 227: case 226: case 225: case 224: case 223: case 222: case 221:
+    case 220: case 219: case 218: case 217: case 216: case 215: case 214:
+    case 213: case 212: case 211: case 210: case 209: case 208: case 207:
+    case 206: case 205: case 204: case 203: case 202: case 201: case 200:
+    case 199: case 198: case 197: case 196: case 195: case 194: case 193:
+      return unescaped_ascii_avx512_helper_64_x4(
+        _mm512_loadu_si512(mend),
+        _mm512_loadu_si512(mstr + 2),
+        _mm512_loadu_si512(mstr + 1),
+        _mm512_loadu_si512(mstr)) == 0;
+    case 192: case 191: case 190: case 189: case 188: case 187: case 186:
+    case 185: case 184: case 183: case 182: case 181: case 180: case 179:
+    case 178: case 177: case 176: case 175: case 174: case 173: case 172:
+    case 171: case 170: case 169: case 168: case 167: case 166: case 165:
+    case 164: case 163: case 162: case 161: case 160: case 159: case 158:
+    case 157: case 156: case 155: case 154: case 153: case 152: case 151:
+    case 150: case 149: case 148: case 147: case 146: case 145: case 144:
+    case 143: case 142: case 141: case 140: case 139: case 138: case 137:
+    case 136: case 135: case 134: case 133: case 132: case 131: case 130:
+    case 129:
+      return unescaped_ascii_avx512_helper_64_x3(
+        _mm512_loadu_si512(mend),
+        _mm512_loadu_si512(mstr + 1),
+        _mm512_loadu_si512(mstr)) == 0;
+    case 128: case 127: case 126: case 125: case 124: case 123: case 122:
+    case 121: case 120: case 119: case 118: case 117: case 116: case 115:
+    case 114: case 113: case 112: case 111: case 110: case 109: case 108:
+    case 107: case 106: case 105: case 104: case 103: case 102: case 101:
+    case 100: case 99: case 98: case 97: case 96: case 95: case 94: case 93:
+    case 92: case 91: case 90: case 89: case 88: case 87: case 86: case 85:
+    case 84: case 83: case 82: case 81: case 80: case 79: case 78: case 77:
+    case 76: case 75: case 74: case 73: case 72: case 71: case 70: case 69:
+    case 68: case 67: case 66: case 65:
+      return unescaped_ascii_avx512_helper_64_x2(
+        _mm512_loadu_si512(mend),
+        _mm512_loadu_si512(mstr)) == 0;
+    case 64: case 63: case 62: case 61: case 60: case 59: case 58: case 57:
+    case 56: case 55: case 54: case 53: case 52: case 51: case 50: case 49:
+    case 48: case 47: case 46: case 45: case 44: case 43: case 42: case 41:
+    case 40: case 39: case 38: case 37: case 36: case 35: case 34: case 33:
+      return unescaped_ascii_avx512_helper_32_x2(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(end - 32)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
+    case 32:
+      return unescaped_ascii_avx512_helper_32(
+              _mm256_loadu_si256(reinterpret_cast<const __m256i*>(str))) == 0;
+    case 31: case 30: case 29: case 28: case 27: case 26: case 25: case 24:
+    case 23: case 22: case 21: case 20: case 19: case 18: case 17:
+      return unescaped_ascii_avx512_helper_32(
+              _mm256_set_m128i(
+                _mm_loadu_si128(reinterpret_cast<const __m128i*>(end - 16)),
+                _mm_loadu_si128(reinterpret_cast<const __m128i*>(str)))) == 0;
+    case 16:
+      return unescaped_ascii_avx512_helper_16(
+               _mm_loadu_si128(reinterpret_cast<const __m128i*>(str))) == 0;
+    case 15: case 14: case 13: case 12: case 11: case 10: case 9:
+      return unescaped_ascii_avx512_helper_16(
+              _mm_set_epi64x(
+                *reinterpret_cast<const uint64_t*>(end - 8),
+                *reinterpret_cast<const uint64_t*>(str))) == 0;
+    case 8:
+      return unescaped_ascii_avx512_helper_16(
+               _mm_set_epi64x(
+                 0x2020202020202020L,
+                 *reinterpret_cast<const uint64_t*>(str))) == 0;
+    case 7: case 6: case 5:
+      return unescaped_ascii_avx512_helper_16(
+               _mm_set_epi32(
+                 0x20202020, 0x20202020,
+                 *reinterpret_cast<const uint32_t*>(end - 4),
+                 *reinterpret_cast<const uint32_t*>(str))) == 0;
+    case 4:
+      return unescaped_ascii_avx512_helper_16(
+               _mm_set_epi32(
+                 0x20202020, 0x20202020, 0x20202020,
+                 *reinterpret_cast<const uint32_t*>(str))) == 0;
+    case 3:
+      if (unlikely(char_is_not_unescaped_ascii(str[2]))) return false;
+    case 2:
+      if (unlikely(char_is_not_unescaped_ascii(str[1]))) return false;
+    case 1:
+      if (unlikely(char_is_not_unescaped_ascii(str[0]))) return false;
+    case 0:
+      return true;
+    default:
+      abort();
+    }
+  }
+  // Less specialized code for len >= 256
+  const __m512i* section1 = reinterpret_cast<const __m512i*>
+    ((reinterpret_cast<UintPtr>(str) + 64) & -64UL);
+  const __m512i* section3 = reinterpret_cast<const __m512i*>
+    ((reinterpret_cast<UintPtr>(end) - 1) & -64UL);
+  const __m512i *section2 = reinterpret_cast<const __m512i *>
+    (reinterpret_cast<UintPtr>(section1) +
+     ((reinterpret_cast<UintPtr>(section3) -
+       reinterpret_cast<UintPtr>(section1)) & -256UL));
+  UintPtr b = reinterpret_cast<UintPtr>(str);
+  UintPtr e = reinterpret_cast<UintPtr>(end);
+  UintPtr s1 = reinterpret_cast<UintPtr>(section1);
+  UintPtr s2 = reinterpret_cast<UintPtr>(section2);
+  UintPtr s3 = reinterpret_cast<UintPtr>(section3);
+  assert((s1 & 0x2f) == 0 &&
+         ((s2 - s1) & 0xff) == 0 &&
+         (s2 & 0x2f) == 0 &&
+         (s3 & 0x2f) == 0);
+  assert(s1 <= s2);
+  assert(s2 <= s3);
+  assert((b + 1) <= s1 && s1 <= (b + 64));
+  assert((e - 64) <= s3 && s3 <= (e - 1));
+  {
+    if (unlikely(unescaped_ascii_avx512_helper_64(
+                   _mm512_loadu_si512(
+                     mstr)))) {
+      return false;
+    }
+  }
+  for (const __m512i* aptr = section1; aptr < section2; aptr+=4) {
+    if (unlikely(unescaped_ascii_avx512_helper_256(aptr))) {
+      return false;
+    }
+  }
+  for (const __m512i* aptr = section2; aptr < section3; aptr++) {
+    if (unlikely(unescaped_ascii_avx512_helper_64(
+                   _mm512_load_si512(aptr)))) {
+      return false;
+    }
+  }
+  {
+    if (unlikely(unescaped_ascii_avx512_helper_64(
+                   _mm512_loadu_si512(
                      mend)))) {
       return false;
     }
@@ -832,7 +1098,7 @@ bool unescaped_ascii_neon(const char* str, const char* end) {
   return true;
 })
 
-RONDB_SIMD_DISPATCH_AVX2_NEON_SCALAR(bool, unescaped_ascii, (const char *str, const char *end))
+RONDB_SIMD_DISPATCH_AVX2_AVX512_NEON_SCALAR(bool, unescaped_ascii, (const char *str, const char *end))
 
 void test_correctness(bool (*testfun)(const char*, const char*), std::string fun_name) {
   uchar chars_to_test[] = { 0x00, 0x01, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x5b,
