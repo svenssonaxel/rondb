@@ -57,9 +57,8 @@
  * })
  *
  * Functions defined in this way must not call functions defined using a
- * different macro (except RONDB_SIMD_FUN_AVX2_PLUS as described above). They
- * may call other code freely. However, in order to call these functions from
- * other code, a dispatch function must be defined.
+ * different macro. They may call other code freely. However, in order to call
+ * these functions from other code, a dispatch function must be defined.
  *
  * There are two macros for defining dispatch functions:
  * - RONDB_SIMD_DISPATCH_AVX2_AVX512_NEON_SCALAR defines a dispatch in terms of
@@ -71,7 +70,7 @@
  *   - RONDB_SIMD_FUN_SCALAR
  * - RONDB_SIMD_DISPATCH_AVX2_NEON_SCALAR defines a dispatch in terms of an
  *   avx2, a neon and a scalar function. Use this macro if no AVX-512
- *   implementation exists; the avx2 variant will be used instead.. It requires
+ *   implementation exists; the avx2 variant will be used instead. It requires
  *   one variant implemented using each of the following macros:
  *   - RONDB_SIMD_FUN_AVX2
  *   - RONDB_SIMD_FUN_NEON
