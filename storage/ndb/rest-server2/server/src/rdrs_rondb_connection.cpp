@@ -85,6 +85,8 @@ RS_Status RDRSRonDBConnection::Connect() {
     require(ndbConnection == nullptr);
     int retCode = 0;
     ndbConnection = new Ndb_cluster_connection(connection_string, m_node_id);
+    // Todo: Add support for mgm tls by calling ndbConnection->configure_tls
+    // before ndbConnection->connect
     retCode = ndbConnection->connect(connection_retries,
                                      connection_retry_delay_in_sec,
                                      0);

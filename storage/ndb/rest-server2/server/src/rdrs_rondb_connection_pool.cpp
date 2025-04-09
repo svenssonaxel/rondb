@@ -85,6 +85,7 @@ void RDRSRonDBConnectionPool::shutdown() {
         NdbMutex_Lock(thread_context->m_thread_context_mutex);
         thread_context->m_is_shutdown = true;
         Ndb *ndb_object = thread_context->m_ndb_object;
+        // RONDB-706 todo: What if it is in use?
         if (thread_context->m_is_ndb_object_in_use == false &&
             ndb_object != nullptr) {
           thread_context->m_ndb_object = nullptr;

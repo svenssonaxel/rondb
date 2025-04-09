@@ -133,6 +133,8 @@ Uint32 PKRRequest::ReadColumnsCount() {
     return 0;
   } else {
     Uint32 count =
+      /* RONDB-706 todo: This looks like reading the length from a length+items
+         array at a dynamic offset. Confirm that this is initialized.  */
       (reinterpret_cast<Uint32 *>(req->buffer))[offset / ADDRESS_SIZE];
     return count;
   }
