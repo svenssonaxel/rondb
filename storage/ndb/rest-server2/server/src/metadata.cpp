@@ -68,6 +68,7 @@ void AvroDecoder::unregister_with_go_layer() {
   if (schemaID != -1) {
     DEB_MD_CACHE("Removing Schemd %s. ID: %d from the golang layer",
       schemaStr, schemaID);
+    static int dummy = 0; if(schemaID) dummy++;
     unregister_schema(schemaID);
     schemaID = -1;
   }
@@ -77,6 +78,11 @@ RS_Status AvroDecoder::register_with_go_layer() {
   GoString goString;
   goString.p = schemaJson.c_str();
   goString.n = schemaJson.length();
+  static int dummy=0;
+  if(schemaID) dummy++;
+  if(goString.p) dummy++;
+  if(goString.n) dummy++;
+  if(goString.n > 0 && goString.p[0]) dummy++;
   ErrorCode err = register_schema(goString, &this->schemaID);
   if (err != NO_ERROR) {
    return CRS_Status(HTTP_CODE::SERVER_ERROR, std::string(rdrsErrorMessage(err))).status;
@@ -97,6 +103,10 @@ std::pair<RS_Status, std::optional<std::vector<char>>>
   char *out = nullptr;
   Int32 outLen = 0;
 
+  static int dummy=0;
+  if(schemaID) dummy++;
+  if(inData.data()) dummy++;
+  if(inData.size()) dummy++;
   ErrorCode err = unmarshal_avro(schemaID, goSlice, &out, &outLen);
   if ( err != NO_ERROR ){
     return {CRS_Status(HTTP_CODE::SERVER_ERROR, std::string(rdrsErrorMessage(err))).status, std::nullopt};

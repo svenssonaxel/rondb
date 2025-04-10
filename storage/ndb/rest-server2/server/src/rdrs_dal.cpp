@@ -155,6 +155,7 @@ RS_Status pk_batch_read(void *amalloc_void,
   if (unlikely(status.http_code != SUCCESS)) {
     return status;
   }
+  static int dummy=0; if(no_req) dummy++;
   DATA_OP_RETRY_HANDLER(
     BatchKeyOperations pkread;
     status = pkread.perform_operation(amalloc,

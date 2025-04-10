@@ -231,6 +231,7 @@ void BatchPKReadCtrl::batchPKRead(
     metricsUpdater.set_key_requests(noOps);
 
     // pk_batch_read
+    static int dummy=0; if(noOps) dummy++;
     status = pk_batch_read(&amalloc,
                            noOps,
                            true,

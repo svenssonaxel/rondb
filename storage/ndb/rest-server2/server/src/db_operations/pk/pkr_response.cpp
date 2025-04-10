@@ -38,6 +38,9 @@ PKRResponse::PKRResponse(const RS_Buffer *respBuff) {
 
 RS_Status PKRResponse::WriteHeaderField(Uint32 index, Uint32 value) {
   Uint32 *b = reinterpret_cast<Uint32 *>(this->resp->buffer);
+  static int dummy=0;
+  if(index) dummy++;
+  if(value) dummy++;
   b[index] = value;
   return RS_OK;
 }
@@ -72,8 +75,12 @@ RS_Status PKRResponse::WriteStringHeaderField(Uint32 index, const char *str) {
 }
 
 RS_Status PKRResponse::Append_cstring(const char *str, Uint32 len) {
+  static int dummy=0;
+  if(len) dummy++;
   Uint32 strl = len + 1;  // for null terminator
-  if (unlikely(strl > GetRemainingCapacity())) {
+  Uint32 remcap = GetRemainingCapacity();
+  if(remcap) dummy++;
+  if (unlikely(unlikely(strl > remcap))) {
     return RS_SERVER_ERROR(std::string(rdrsErrorMessage(ERROR_RESPONSE_BUFFER_OVERFLOW)));
   }
   memcpy(resp->buffer + writeHeader, str, strl);
@@ -93,10 +100,16 @@ RS_Status PKRResponse::SetNoOfColumns(Uint32 cols) {
 
   // +1 for col count
   Uint32 spaceNeeded4Pointers = 1 * ADDRESS_SIZE + (cols * ADDRESS_SIZE * 4);
-  if (unlikely(spaceNeeded4Pointers > GetRemainingCapacity())) {
+  static int dummy=0;
+  if(cols) dummy++;
+  if(spaceNeeded4Pointers) dummy++;
+  Uint32 remcap = GetRemainingCapacity();
+  if(remcap) dummy++;
+  if (unlikely(spaceNeeded4Pointers > remcap)) {
     return RS_SERVER_ERROR(std::string(rdrsErrorMessage(ERROR_RESPONSE_BUFFER_OVERFLOW)));
   }
   Uint32 colAddr = (this->writeHeader);
+  if(colAddr) dummy++;
   WriteHeaderField(PK_RESP_COLS_IDX, colAddr);
   Uint32 *b = reinterpret_cast<Uint32 *>(this->resp->buffer + colAddr);
   b[0] = cols;

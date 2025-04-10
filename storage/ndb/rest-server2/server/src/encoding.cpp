@@ -322,6 +322,9 @@ RS_Status process_pkread_response(ArenaMalloc *amalloc,
   Uint32 capacity   = buf[PK_RESP_CAPACITY_IDX];
   Uint32 dataLength = buf[PK_RESP_LENGTH_IDX];
 
+  static int dummy=0;
+  if(capacity) dummy++;
+  if(dataLength) dummy++;
   if (capacity < dataLength) {
     std::string message = "internal server error. response buffer"
       " may be corrupt. ";
@@ -355,8 +358,18 @@ RS_Status process_pkread_response(ArenaMalloc *amalloc,
       Uint32 value_add = colHeaderStart[1];
       Uint32 isNull = colHeaderStart[2];
       Uint32 dataType = colHeaderStart[3];
+      if(i) dummy++;
+      if(respBuff) dummy++;
+      if(name) dummy++;
+      if(name_len) dummy++;
+      if(value_len) dummy++;
+      if(value_add) dummy++;
+      if(isNull) dummy++;
+      if(dataType) dummy++;
       if (isNull == 0) {
         char * value = (reinterpret_cast<char*>(respBuff) + value_add);
+        if(value_len > 0)
+          if(value[0]) dummy++;
         bool quoted = dataType != RDRS_INTEGER_DATATYPE &&
                       dataType != RDRS_FLOAT_DATATYPE;
         DEB_ENC("setColumnData(%u) name: %s, name_len: %u,"
@@ -389,6 +402,7 @@ RS_Status process_pkread_response(ArenaMalloc *amalloc,
   }
   std::string message = "";
   Uint32 messageIDX = buf[PK_RESP_OP_MESSAGE_IDX];
+  if(messageIDX) dummy++;
   if (messageIDX != 0) {
     UintPtr messageIDXPtr = (UintPtr)respBuff + (UintPtr)messageIDX;
     message = std::string((char *)messageIDXPtr);

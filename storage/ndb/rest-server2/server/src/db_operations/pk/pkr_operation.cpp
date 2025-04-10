@@ -51,8 +51,8 @@
 #include <EventLogger.hpp>
 
 #if (defined(VM_TRACE) || defined(ERROR_INSERT))
-//#define DEBUG_NDB_BE 1
-//#define DEBUG_NDB_BE_ERR 1
+#define DEBUG_NDB_BE 1
+#define DEBUG_NDB_BE_ERR 1
 #endif
 
 #ifdef DEBUG_NDB_BE
@@ -90,6 +90,7 @@ BatchKeyOperations::init_batch_operations(ArenaMalloc *amalloc,
   m_isSuccess = false;
   m_isBatch = is_batch;
   m_ndb_object = ndb_object;
+  static int dummy=0; if(numOps) dummy++;
   m_numOperations = numOps;
   m_num_sent_operations = 0;
   m_single_transaction = false;
@@ -99,7 +100,7 @@ BatchKeyOperations::init_batch_operations(ArenaMalloc *amalloc,
         std::string(rdrsErrorMessage(ERROR_MEMORY_ALLOCATION_FAILURE)));
     return error;
   }
-  DEB_NDB_BE("m_key_ops: %p, sizeof(KeyOperation): %u",
+  DEB_NDB_BE("In init_batch_operations, m_key_ops: %p, sizeof(KeyOperation): %u",
              m_key_ops, (Uint32)sizeof(KeyOperation));
   for (Uint32 i = 0; i < numOps; i++) {
     KeyOperation *key_op = &m_key_ops[i];
@@ -109,6 +110,7 @@ BatchKeyOperations::init_batch_operations(ArenaMalloc *amalloc,
       RS_Status err = RS_CLIENT_404_WITH_MSG_ERROR(
         std::string(rdrsErrorMessage(ERROR_DB_TABLE_NOT_EXIST)) + std::string(" Database: ") +
         std::string(req->DB()) + " Table: " + req->Table());
+      DEB_NDB_BE_ERR("In init_batch_operations, setCatalogName failed: %s", req->DB());
       if (m_isBatch) {
         req->MarkInvalidOp(err);
         continue;
@@ -117,13 +119,14 @@ BatchKeyOperations::init_batch_operations(ArenaMalloc *amalloc,
     }
     const NdbDictionary::Dictionary *dict = ndb_object->getDictionary();
     const NdbDictionary::Table *tableDict = dict->getTable(req->Table());
-    DEB_NDB_BE("Request on DB: %s, Table: %s, op: %u, reqBuffer: %p",
+    DEB_NDB_BE("In init_batch_operations, Request on DB: %s, Table: %s, op: %u, reqBuffer: %p",
       req->DB(), req->Table(), i, reqBuffer[i].buffer);
     if (unlikely(tableDict == nullptr)) {
       RS_Status err = RS_CLIENT_404_WITH_MSG_ERROR(
         std::string(rdrsErrorMessage(ERROR_DB_TABLE_NOT_EXIST)) + 
         std::string(" Database: ") + std::string(req->DB()) + 
         std::string(" Table: ") + req->Table());
+      DEB_NDB_BE_ERR("In init_batch_operations, getTable failed: %s", req->Table());
       if (m_isBatch) {
         req->MarkInvalidOp(err);
         continue;
@@ -134,6 +137,8 @@ BatchKeyOperations::init_batch_operations(ArenaMalloc *amalloc,
     Uint32 numPrimaryKeys = (Uint32)tableDict->getNoOfPrimaryKeys();
     Uint32 numColumns = (Uint32)tableDict->getNoOfColumns();
     Uint32 numReadColumns = req->ReadColumnsCount();
+    if(numColumns)dummy++;
+    if(numReadColumns)dummy++;
     const NdbRecord *ndb_record = tableDict->getDefaultRecord();
     key_op->m_ndb_record = ndb_record;
     key_op->m_num_pk_columns = numPrimaryKeys;
@@ -141,13 +146,14 @@ BatchKeyOperations::init_batch_operations(ArenaMalloc *amalloc,
     key_op->m_num_read_columns = numReadColumns;
     key_op->m_blob_handles = nullptr;
     if (unlikely(numPrimaryKeys != req->PKColumnsCount())) {
-      DEB_NDB_BE("numPrimaryKeys: %u, reqPKKeys: %u",
+      DEB_NDB_BE_ERR("In init_batch_operations, numPrimaryKeys: %u, reqPKKeys: %u",
         numPrimaryKeys, req->PKColumnsCount());
       RS_Status err =
         RS_CLIENT_ERROR(
         std::string(rdrsErrorMessage(ERROR_WRONG_PRIMARY_KEY_COUNT)) + 
         std::string(" Expecting: ") + std::to_string(numPrimaryKeys) +
         " Got: " + std::to_string(req->PKColumnsCount()));
+      DEB_NDB_BE_ERR("In init_batch_operations, PKColumnsCount failed: %s", req->Table());
       if (m_isBatch) {
         req->MarkInvalidOp(err);
         continue;
@@ -157,6 +163,8 @@ BatchKeyOperations::init_batch_operations(ArenaMalloc *amalloc,
     if (unlikely(numColumns < req->ReadColumnsCount())) {
       status = RS_CLIENT_ERROR(
           std::string(rdrsErrorMessage(ERROR_TOO_MANY_COLUMNS)));
+      DEB_NDB_BE_ERR("In init_batch_operations, numColumns %d < req->ReadColumnsCount() %d",
+        numColumns, req->ReadColumnsCount());
       req->MarkInvalidOp(status);
       return status;
     }
@@ -490,6 +498,8 @@ RS_Status BatchKeyOperations::create_response(RS_Buffer *respBuffs) {
   Uint32 current_head = 0;
   Uint32 response_length = 0;
   RS_Buffer current_response_buffer = respBuffs[0];;
+  static int dummy=0;
+  if(respBuffs[0].size) dummy++;
   for (size_t i = 0; i < m_numOperations; i++) {
     current_head += response_length;
     respBuffs[i] = getNextRespRS_Buffer(current_head,
@@ -497,6 +507,7 @@ RS_Status BatchKeyOperations::create_response(RS_Buffer *respBuffs) {
                                         current_response_buffer,
                                         i);
     KeyOperation *key_op = &m_key_ops[i];
+    if(key_op)dummy++;
     PKRResponse *resp =
       new (&key_op->m_resp) PKRResponse(&respBuffs[i]);
     PKRRequest *req = &key_op->m_req;
@@ -507,6 +518,7 @@ RS_Status BatchKeyOperations::create_response(RS_Buffer *respBuffs) {
       resp->Close(response_length);
       continue;
     }
+    if(key_op->m_num_read_columns)dummy++;
     resp->SetNoOfColumns(key_op->m_num_read_columns);
     if (req->ReadColumnsCount() == 0) {
       DEB_NDB_BE("Build request when all columns requested");
@@ -1144,6 +1156,7 @@ RS_Status BatchKeyOperations::perform_operation(
   RS_Buffer *respBuffer,
   Ndb *ndb_object) {
 
+  static int dummy=0; if(numOperations) dummy++;
   DEB_NDB_BE("init_batch_operations");
   RS_Status status = init_batch_operations(
     amalloc,

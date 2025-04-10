@@ -206,6 +206,9 @@ Uint32 Ndb_cluster_connection_impl::get_next_node(
 
   Ndb_cluster_connection_impl::Node *nodes = m_nodes_comm_group.getBase();
   Uint32 start = iter.start_index;
+  static int dummy=0;
+  if(start) dummy++;
+  if(m_my_location_domain_id) dummy++;
   if (start == 0  && m_my_location_domain_id != 0) {
     /* First search for live nodes in the same location domain */
     for (Uint32 j = iter.cur_pos; j < no_db_nodes(); j++) {
