@@ -86,6 +86,7 @@ class UserDBs {
   ~UserDBs() {
     NdbMutex_Destroy(m_waitLock);
     NdbCondition_Destroy(m_waitCond);
+    fprintf(stderr, "<DBG> In ~UserDBs, maybe free m_db_ptrs=%p\n", m_db_ptrs);
     if (m_db_ptrs) {
       free(m_db_ptrs);
     }

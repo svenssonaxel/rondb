@@ -37,8 +37,8 @@
 #include <util/rondb_hash.hpp>
 
 #if (defined(VM_TRACE) || defined(ERROR_INSERT))
-//#define DEBUG_AUTH 1
-//#define DEBUG_AUTH_THREAD 1
+#define DEBUG_AUTH 1
+#define DEBUG_AUTH_THREAD 1
 //#define DEBUG_AUTH_TIME 1
 //#define DEBUG_AUTH_DBS 1
 #endif
@@ -391,9 +391,13 @@ RS_Status APIKeyCache::update_record(std::vector<std::string_view> dbs,
   assert(userDBs->m_state == UserDBs::IS_VALIDATING ||
          userDBs->m_state == UserDBs::IS_VALID);
   userDBs->m_state = UserDBs::IS_VALID;
+  fprintf(stderr, "<DBG> In APIKeyCache::update_record, maybe free m_db_ptrs=%p\n",
+          userDBs->m_db_ptrs);
   if (userDBs->m_db_ptrs) {
     free(userDBs->m_db_ptrs);
   }
+  fprintf(stderr, "<DBG> In APIKeyCache::update_record, set m_db_ptrs to %p\n",
+          db_ptrs);
   userDBs->m_db_ptrs = db_ptrs;
   fprintf(stderr, "In update_record, after update userDBs=%s\n", userDBs->to_string().c_str());
   return CRS_Status::SUCCESS.status;
@@ -439,6 +443,8 @@ void APIKeyCache::cache_entry_updater(const std::string &apiKey) {
     char **db_ptrs = nullptr;
     if (!fail && !m_evicted) {
       RS_Status status = get_user_databases(key, dbs, &db_ptrs);
+      fprintf(stderr, "<DBG> In APIKeyCache::cache_entry_updater, get_user_databases set db_ptrs=%p with length %lu\n",
+              db_ptrs, dbs.size());
       if (status.http_code != HTTP_CODE::SUCCESS) {
         fail = true;
       }
@@ -469,6 +475,8 @@ void APIKeyCache::cache_entry_updater(const std::string &apiKey) {
       }
       DEB_AUTH("Invalid API Key: %s", apiKey.c_str());
       userDBs->m_state = UserDBs::IS_INVALID;
+      fprintf(stderr, "<DBG> In APIKeyCache::cache_entry_updater, free db_ptrs=%p\n",
+              db_ptrs);
       free(db_ptrs);
     }
     first = false;
@@ -577,7 +585,9 @@ RS_Status APIKeyCache::get_user_databases(HopsworksAPIKey &key,
   int uid = key.user_id;
   int count = 0;
   char **projects = nullptr;
+  fprintf(stderr, "<DBG> In get_user_databases, will call find_all_projects\n");
   RS_Status status = find_all_projects(uid, &projects, &count);
+  fprintf(stderr, "<DBG> In get_user_databases, find_all_projects allocated projects=%p\n", projects);
   if (status.http_code != HTTP_CODE::SUCCESS) {
     return status;
   }

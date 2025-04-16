@@ -541,16 +541,21 @@ RS_Status find_all_projects_int(
 
 RS_Status find_all_projects(int uid, char ***projects, int *count) {
 
+  fprintf(stderr, "<DBG> In find_all_projects, uid=%d\n", uid);
   std::vector<HopsworksProject> project_vec;
 
   Ndb *ndb_object = nullptr;
   RS_Status status = rdrsRonDBConnectionPool->GetMetadataNdbObject(&ndb_object);
   if (unlikely(status.http_code != SUCCESS)) {
+    fprintf(stderr, "<DBG> In find_all_projects, return err status=%d on line %d\n",
+            status.http_code, __LINE__);
     return status;
   }
   METADATA_OP_RETRY_HANDLER(
     project_vec.clear();
+    fprintf(stderr, "<DBG> In find_all_projects, will call find_all_projects_int\n");
     status = find_all_projects_int(ndb_object, uid, &project_vec);
+    fprintf(stderr, "<DBG> In find_all_projects, after find_all_projects_int, status=%d\n", status.http_code);
     HandleSchemaErrors(ndb_object, status, {
       std::make_tuple(HOPSWORKS, USERS),
       std::make_tuple(HOPSWORKS, PROJECT_TEAM),
@@ -558,6 +563,8 @@ RS_Status find_all_projects(int uid, char ***projects, int *count) {
   )
   rdrsRonDBConnectionPool->ReturnMetadataNdbObject(ndb_object, &status);
   if (unlikely(status.http_code != SUCCESS)) {
+    fprintf(stderr, "<DBG> In find_all_projects, return err status=%d on line %d\n",
+            status.http_code, __LINE__);
     return status;
   }
   size_t malloc_size = 0;
@@ -574,6 +581,8 @@ RS_Status find_all_projects(int uid, char ***projects, int *count) {
       "Failed to allocate database names in API key").status;
   }
   *count = project_vec.size();
+  fprintf(stderr, "<DBG> find_all_projects allocated *projects=%p with size *count=%d, sizeof(char *)=%lu, malloc_size=%lu\n",
+          *projects, *count, sizeof(char*), malloc_size);
   char **ease = *projects;
   char *str_ptr = (char*)*projects;
   str_ptr += (project_vec.size() * sizeof(char*));
