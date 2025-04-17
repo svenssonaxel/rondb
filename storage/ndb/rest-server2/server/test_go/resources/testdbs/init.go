@@ -234,16 +234,16 @@ This function can be used to export the embedded schemata of different databases
 it is wished to use the databases in conjunction with Hopsworks as an authentication layer,
 this function also supplies the required Hopsworks schemata.
 */
-func GetCreationSchemaPerDB(registerAsHopsworksProjects bool, dbs ...string) (map[string]string, error) {
+func GetCreationSchemaPerDB(registerAsHopsworksProjects bool, dbsToCreate, dbsToRegister []string) (map[string]string, error) {
 	createSchemata := make(map[string]string)
-	for _, db := range dbs {
+	for _, db := range dbsToCreate {
 		schema, ok := databaseCreateSchemes[db]
 		if !ok {
 			return nil, fmt.Errorf("database %s does not exist in registered schemas", schema)
 		}
 		createSchemata[db] = schema
 	}
-	createSchemata[HOPSWORKS_DB_NAME] = createHopsworksSchema(dbs...)
+	createSchemata[HOPSWORKS_DB_NAME] = createHopsworksSchema(dbsToRegister)
 	return createSchemata, nil
 }
 
@@ -252,7 +252,7 @@ If we require a Hopsworks API key, the databases the client wants to access need
 registered as projects in the Hopsworks database. This function creates the standard Hopsworks
 scheme and inserts the databases as projects.
 */
-func createHopsworksSchema(dbsToRegister ...string) string {
+func createHopsworksSchema(dbsToRegister []string) string {
 	hopsworksScheme := HopsworksScheme
 	for idx, projectName := range dbsToRegister {
 

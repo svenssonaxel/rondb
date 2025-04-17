@@ -31,10 +31,10 @@ import (
 
 func CreateDatabases(
 	registerAsHopsworksProjects bool,
-	dbNames ...string,
+	dbsToCreate, dbsToRegister []string,
 ) (cleanupDbs func(), err error) {
 
-	createSchemata, err := testdbs.GetCreationSchemaPerDB(registerAsHopsworksProjects, dbNames...)
+	createSchemata, err := testdbs.GetCreationSchemaPerDB(registerAsHopsworksProjects, dbsToCreate, dbsToRegister)
 	if err != nil {
 		return cleanupDbs, err
 	}
@@ -83,7 +83,7 @@ func CreateDatabases(
 			return func() {}, err
 		}
 		log.Debugf("successfully ran all queries to instantiate db '%s'", db)
-		dropDatabases += fmt.Sprintf("DROP IF NOT EXISTS DATABASE %s;\n", db)
+		dropDatabases += fmt.Sprintf("DROP DATABASE IF EXISTS %s;\n", db)
 	}
 	return cleanupDbsWrapper(dropDatabases), nil
 }
