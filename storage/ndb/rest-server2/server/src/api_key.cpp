@@ -382,6 +382,7 @@ RS_Status APIKeyCache::update_record(std::vector<std::string_view> dbs,
                                      UserDBs *userDBs,
                                      char **db_ptrs) {
   NDB_TICKS lastUpdated = NdbTick_getCurrentTicks();
+  fprintf(stderr, "In update_record, before update userDBs=%s\n", userDBs->to_string().c_str());
   userDBs->userDBs.clear();
   userDBs->userDBs.insert(dbs.begin(), dbs.end());
   userDBs->m_lastUpdated = lastUpdated;
@@ -392,6 +393,7 @@ RS_Status APIKeyCache::update_record(std::vector<std::string_view> dbs,
     free(userDBs->m_db_ptrs);
   }
   userDBs->m_db_ptrs = db_ptrs;
+  fprintf(stderr, "In update_record, after update userDBs=%s\n", userDBs->to_string().c_str());
   return CRS_Status::SUCCESS.status;
 }
 
@@ -457,6 +459,7 @@ void APIKeyCache::cache_entry_updater(const std::string &apiKey) {
         DEB_AUTH("Valid API Key updated: %s", apiKey.c_str());
       }
       userDBs->m_state = UserDBs::IS_VALID;
+      fprintf(stderr, "Before update_record for apiKey=%s\n", apiKey.c_str());
       update_record(dbs, userDBs, db_ptrs);
     } else {
       if (first) {
