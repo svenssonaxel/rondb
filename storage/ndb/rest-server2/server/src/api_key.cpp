@@ -296,8 +296,11 @@ RS_Status APIKeyCache::find_and_validate(const std::string &apiKey,
         DEB_AUTH("API Key found valid, not authorized, Line: %u, refCount: %d",
                  __LINE__, ref_count);
         return CRS_Status(HTTP_CODE::AUTH_ERROR,
-          ("API key not authorized to access " +
-          std::string(db)).c_str()).status;
+          ("Attempted to access " +
+           std::string(db) +
+           " but the API key is only authorized for " +
+           userDBs->to_string()
+           ).c_str()).status;
       }
     }
   }
@@ -668,15 +671,25 @@ std::string APIKeyCache::to_string() {
     NdbMutex_Lock(m_rwLock[i]);
   for (int i = 0; i < NUM_API_KEY_CACHES; i++) {
     for (const auto &entry : m_key_cache[i]) {
-      ss << "API Key: " << entry.first << ", UserDBs: ";
-      for (const auto &db : entry.second->userDBs) {
-        ss << db << ", ";
-      }
+      ss << "API Key: " << entry.first << ", UserDBs: "
+         << entry.second->to_string();
       ss << std::endl;
     }
   }
   for (int i = 0; i < NUM_API_KEY_CACHES; i++)
     NdbMutex_Unlock(m_rwLock[i]);
+  return ss.str();
+}
+
+std::string UserDBs::to_string() {
+  std::stringstream ss;
+  ss << "[";
+  const char* delim = "";
+  for (const auto &db : userDBs) {
+    ss << delim << db;
+    delim = ", ";
+  }
+  ss << "]";
   return ss.str();
 }
 

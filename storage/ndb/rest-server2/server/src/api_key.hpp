@@ -61,6 +61,7 @@ RS_Status authenticate(const std::string &apiKey,
 
 class UserDBs {
  public:
+  std::string to_string();
   std::unordered_set<std::string_view> userDBs;
   char **m_db_ptrs; // Memory to free for database names
   NDB_TICKS m_lastUsed;
