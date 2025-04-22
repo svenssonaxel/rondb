@@ -298,6 +298,8 @@ RS_Status APIKeyCache::find_and_validate(const std::string &apiKey,
         return CRS_Status(HTTP_CODE::AUTH_ERROR,
           ("Attempted to access " +
            std::string(db) +
+           " using API key " +
+           apiKey +
            " but the API key is only authorized for " +
            userDBs->to_string()
            ).c_str()).status;

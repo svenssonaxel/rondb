@@ -70,7 +70,7 @@ func SendHttpRequestWithClient(
 
 	conf := config.GetAll()
 	if conf.Security.APIKey.UseHopsworksAPIKeys {
-		req.Header.Set(config.API_KEY_NAME, testutils.HOPSWORKS_TEST_API_KEY)
+		req.Header.Set(config.API_KEY_NAME, testutils.HOPSWORKS_TEST_API_KEY) // DBG here it is!
 	}
 
 	resp, err = client.Do(req)

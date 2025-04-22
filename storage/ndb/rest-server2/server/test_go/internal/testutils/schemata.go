@@ -23,16 +23,18 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	//"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"hopsworks.ai/rdrs2/internal/log"
 	"hopsworks.ai/rdrs2/resources/testdbs"
 )
 
-func CreateDatabases(
+func CreateDatabases( // this should create API keys correctly. Perhaps it's not used for rdrs_bench? Or perhaps it's called with only the dbNames to be recreated, messing up the schema for hopsworks in GetCreationSchemaPerDB, which might depend on dbNames.
 	registerAsHopsworksProjects bool,
 	dbsToCreate, dbsToRegister []string,
 ) (cleanupDbs func(), err error) {
+	fmt.Println("DBG In CreateDatabases(%v, %v, %v)", registerAsHopsworksProjects, dbsToCreate, dbsToUse)
 
 	createSchemata, err := testdbs.GetCreationSchemaPerDB(registerAsHopsworksProjects, dbsToCreate, dbsToRegister)
 	if err != nil {
@@ -71,6 +73,7 @@ func CreateDatabases(
 		}
 	}
 	for db, createSchema := range createSchemata {
+		//time.Sleep(500 * time.Millisecond) // Otherwise we may get Error 1062 (23000): Duplicate entry 'ndbcluster-XXX' for key 'tables.engine'
 		var err error
 		if db == testdbs.HOPSWORKS_DB_NAME {
 			err = runQueriesWithConnection(createSchema, metadataDbConn)

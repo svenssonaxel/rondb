@@ -256,6 +256,8 @@ func createHopsworksSchema(dbsToRegister []string) string {
 	hopsworksScheme := HopsworksScheme
 	for idx, projectName := range dbsToRegister {
 
+		fmt.Printf("DBG in createHopsworksSchema, projectName=%s\n", projectName)
+
 		// Featurestore databases are added manually in the sql files
 		if strings.HasPrefix(projectName, "fsdb") {
 			continue
