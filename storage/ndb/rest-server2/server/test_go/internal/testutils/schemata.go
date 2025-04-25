@@ -34,7 +34,7 @@ func CreateDatabases( // this should create API keys correctly. Perhaps it's not
 	registerAsHopsworksProjects bool,
 	dbNames ...string,
 ) (cleanupDbs func(), err error) {
-	fmt.Println("DBG In CreateDatabases(%v, %v, %v)", registerAsHopsworksProjects, dbsToCreate, dbsToRegister)
+	fmt.Println("DBG In CreateDatabases(%v, %v)", registerAsHopsworksProjects, dbNames)
 
 	createSchemata, err := testdbs.GetCreationSchemaPerDB(registerAsHopsworksProjects, dbNames...)
 	if err != nil {
