@@ -32,11 +32,11 @@ import (
 
 func CreateDatabases( // this should create API keys correctly. Perhaps it's not used for rdrs_bench? Or perhaps it's called with only the dbNames to be recreated, messing up the schema for hopsworks in GetCreationSchemaPerDB, which might depend on dbNames.
 	registerAsHopsworksProjects bool,
-	dbsToCreate, dbsToRegister []string,
+	dbNames ...string,
 ) (cleanupDbs func(), err error) {
 	fmt.Println("DBG In CreateDatabases(%v, %v, %v)", registerAsHopsworksProjects, dbsToCreate, dbsToRegister)
 
-	createSchemata, err := testdbs.GetCreationSchemaPerDB(registerAsHopsworksProjects, dbsToCreate, dbsToRegister)
+	createSchemata, err := testdbs.GetCreationSchemaPerDB(registerAsHopsworksProjects, dbNames...)
 	if err != nil {
 		return cleanupDbs, err
 	}
@@ -88,7 +88,7 @@ func CreateDatabases( // this should create API keys correctly. Perhaps it's not
 			return func() {}, err
 		}
 		log.Debugf("successfully ran all queries to instantiate db '%s'", db)
-		dropDatabases += fmt.Sprintf("DROP DATABASE IF EXISTS %s;\n", db)
+		dropDatabases += fmt.Sprintf("DROP IF NOT EXISTS DATABASE %s;\n", db)
 	}
 	return cleanupDbsWrapper(dropDatabases), nil
 }

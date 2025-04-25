@@ -68,28 +68,23 @@ func InitialiseTesting(conf config.AllConfigs, createOnlyTheseDBs ...string) (fu
 	}
 
 	//---------------------------- DATABASES ----------------------------------
-	var dbsToCreate []string // Needs (re)creating
-	var dbsToRegister []string // Already exists or needs (re)creating
+	var dbsToCreate []string
 	if len(createOnlyTheseDBs) > 0 {
 		dbsToCreate = createOnlyTheseDBs
-		dbsToRegister = createOnlyTheseDBs
-	} else if testutils.SentinelDBExists() {
-		//creating databases for each test run is very slow
-		//if sentinel DB exists then skip creating DBs other than db025.
-		//db025 always needs recreating since the schema can change during tests.
-		//drop the "sentinel" DB if you want to recreate all the databases.
-		//for MTR the cleanup is done in mysql-test/suite/rdrs2-golang/include/run_gotest.inc
-		dbsToCreate = []string{testdbs.DB025}
-		dbsToRegister = testdbs.GetAllDBs()
-	} else{
+	} else {
 		dbsToCreate = testdbs.GetAllDBs()
-		dbsToRegister = testdbs.GetAllDBs()
 	}
 
-	_, err := testutils.CreateDatabases(conf.Security.APIKey.UseHopsworksAPIKeys, dbsToCreate, dbsToRegister)
-	if err != nil {
-		cleanupWrapper(cleanupFNs)()
-		return nil, fmt.Errorf("failed creating databases; error: %v", err)
+	//creating databases for each test run is very slow
+	//if sentinel DB exists then skip creating DBs
+	//drop the "sentinel" DB if you want to recreate all the databases.
+	//for MTR the cleanup is done in mysql-test/suite/rdrs/include/rdrs_cleanup.inc
+	if !testutils.SentinelDBExists() {
+		_, err := testutils.CreateDatabases(conf.Security.APIKey.UseHopsworksAPIKeys, dbsToCreate...)
+		if err != nil {
+			cleanupWrapper(cleanupFNs)()
+			return nil, fmt.Errorf("failed creating databases; error: %v", err)
+		}
 	}
 
 	//---------------------------- Prometheus metrics -------------------------
