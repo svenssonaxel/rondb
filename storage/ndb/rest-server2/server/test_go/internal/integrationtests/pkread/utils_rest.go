@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"fmt"
 
 	"hopsworks.ai/rdrs2/internal/config"
 	"hopsworks.ai/rdrs2/internal/integrationtests"
@@ -62,6 +63,12 @@ func validateResHttp(t testing.TB, testInfo api.PKTestInfo, response []byte, isB
 
 	parsedData := testclient.ParseColumnDataFromJson(t, pkResponse, isBinaryData)
 
+	for _, key := range testInfo.RespKVs {
+		fmt.Printf("DBG: Expected key %s\n", key)
+	}
+	for key := range parsedData {
+		fmt.Printf("DBG: Actual key %s\n", key)
+	}
 	for i := 0; i < len(testInfo.RespKVs); i++ {
 		key := string(testInfo.RespKVs[i].(string))
 
