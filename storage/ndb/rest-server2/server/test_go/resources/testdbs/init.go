@@ -253,10 +253,10 @@ registered as projects in the Hopsworks database. This function creates the stan
 scheme and inserts the databases as projects.
 */
 func createHopsworksSchema(dbsToRegister []string) string {
+	fmt.Printf("DBG createHopsworksSchema(%v)\n", dbsToRegister)
+
 	hopsworksScheme := HopsworksScheme
 	for idx, projectName := range dbsToRegister {
-
-		fmt.Printf("DBG in createHopsworksSchema, projectName=%s\n", projectName)
 
 		// Featurestore databases are added manually in the sql files
 		if strings.HasPrefix(projectName, "fsdb") {

@@ -18,6 +18,7 @@
 package pkread
 
 import (
+  "fmt"
 	"net/http"
 	"testing"
 
@@ -31,10 +32,12 @@ import (
 
 func TestUnloadSchema(t *testing.T) {
 
+	fmt.Println("DBG pkread:TestUnloadSchema 1")
 	err := testutils.RunQueriesOnDataCluster(testdbs.DB025Scheme)
 	if err != nil {
 		t.Fatalf("failed to re-create database. Error: %v", err)
 	}
+	fmt.Println("DBG pkread:TestUnloadSchema 2")
 
 	testTable := "table_1"
 	testDb := testdbs.DB025
@@ -52,12 +55,15 @@ func TestUnloadSchema(t *testing.T) {
 		},
 	}
 
+	fmt.Println("DBG pkread:TestUnloadSchema 3")
 	pkTestMultiple(t, tests, false)
+	fmt.Println("DBG pkread:TestUnloadSchema 4")
 
 	err = testutils.RunQueriesOnDataCluster(testdbs.DB025UpdateScheme)
 	if err != nil {
 		t.Fatalf("failed to re-create database. Error: %v", err)
 	}
+	fmt.Println("DBG pkread:TestUnloadSchema 5")
 
 	validateColumns = []interface{}{"new_col0", "new_col1", "new_col2"}
 	tests = map[string]api.PKTestInfo{
@@ -72,5 +78,7 @@ func TestUnloadSchema(t *testing.T) {
 			RespKVs:        validateColumns,
 		},
 	}
+	fmt.Println("DBG pkread:TestUnloadSchema 6")
 	pkTestMultiple(t, tests, false)
+	fmt.Println("DBG pkread:TestUnloadSchema 7")
 }

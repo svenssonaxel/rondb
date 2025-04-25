@@ -34,7 +34,7 @@ func CreateDatabases( // this should create API keys correctly. Perhaps it's not
 	registerAsHopsworksProjects bool,
 	dbsToCreate, dbsToRegister []string,
 ) (cleanupDbs func(), err error) {
-	fmt.Println("DBG In CreateDatabases(%v, %v, %v)", registerAsHopsworksProjects, dbsToCreate, dbsToUse)
+	fmt.Println("DBG In CreateDatabases(%v, %v, %v)", registerAsHopsworksProjects, dbsToCreate, dbsToRegister)
 
 	createSchemata, err := testdbs.GetCreationSchemaPerDB(registerAsHopsworksProjects, dbsToCreate, dbsToRegister)
 	if err != nil {
@@ -56,6 +56,7 @@ func CreateDatabases( // this should create API keys correctly. Perhaps it's not
 
 	dropDatabases := ""
 	cleanupDbsWrapper := func(dropDatabases string) func() {
+		fmt.Printf("DBG Cleaning up databases:\n%s\n", dropDatabases)
 		return func() {
 			// We need a new DB connection since this might be called after the
 			// initial connection is closed.
@@ -75,6 +76,7 @@ func CreateDatabases( // this should create API keys correctly. Perhaps it's not
 	for db, createSchema := range createSchemata {
 		//time.Sleep(500 * time.Millisecond) // Otherwise we may get Error 1062 (23000): Duplicate entry 'ndbcluster-XXX' for key 'tables.engine'
 		var err error
+		fmt.Printf("DBG Creating database %s\n", db)
 		if db == testdbs.HOPSWORKS_DB_NAME {
 			err = runQueriesWithConnection(createSchema, metadataDbConn)
 		} else {
