@@ -297,6 +297,7 @@ ErrorBundle ErrorCodes[] = {
   { 899,  HA_ERR_LOCK_WAIT_TIMEOUT, TR, "Rowid already allocated" },
   { 909,  DMEC, TR, "Out of transaction memory in local data manager, ordered scan operation (increase SharedGlobalMemory)" },
   { 921,  DMEC, TR, "Out of transaction memory in local data manager, copy tuples (increase SharedGlobalMemory)" },
+  { 869,  DMEC, TR, "expand_tuple failed, possible corruption in on-disk data" },
   { 923,  DMEC, TR, "Out of UNDO buffer memory (increase UNDO_BUFFER_SIZE)" },
   { 924,  DMEC, TR, "Out of transaction memory in local data manager, stored procedure record (increase SharedGlobalMemory)" },
   { 925,  DMEC, TR, "Out of transaction memory in local data manager, tup scan operation (increase SharedGlobalMemory)" },

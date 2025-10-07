@@ -2192,7 +2192,11 @@ int Dbtup::handleUpdateReq(Signal* signal,
   if (regTabPtr->need_expand(disk))
   {
     jamDebug();
-    expand_tuple(req_struct, sizes, org, regTabPtr, disk);
+    if(unlikely(!expand_tuple(req_struct, sizes, org, regTabPtr, disk)))
+    {
+      terrorCode= ZEXPAND_TUPLE_FAILED_ERROR;
+      goto error;
+    }
     if (disk && operPtrP->m_undo_buffer_space == 0)
     {
       jam();
@@ -2781,7 +2785,7 @@ int Dbtup::handleInsertReq(Signal* signal,
     if (regTabPtr->need_expand())
     {
       jamDebug();
-      expand_tuple(req_struct, sizes, org, regTabPtr, !disk_insert);
+      ndbrequire(expand_tuple(req_struct, sizes, org, regTabPtr, !disk_insert));
       std::memset(req_struct->m_disk_ptr->m_null_bits+
           regTabPtr->m_offsets[DD].m_null_offset, 0xFF,
           4*regTabPtr->m_offsets[DD].m_null_words);
@@ -5085,7 +5089,7 @@ expand_var_part(Dbtup::KeyReqStruct::Var_data *dst,
   return ALIGN_WORD(dst_ptr);
 }
 
-void
+bool
 Dbtup::expand_tuple(KeyReqStruct* req_struct, 
                     Uint32 sizes[2],
                     Tuple_header* src, 
@@ -5106,7 +5110,7 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
    * write is protected.
    *
    * This updateChecksum seems to always be a NULL op.
-   * Verified with ndbrequire
+   * Verified with ndbrequire (may return false on failure in some cases)
    * updateChecksum(src, tabPtrP, bits, src->m_header_bits);
    */
   Uint32 fix_size= tabPtrP->m_offsets[MM].m_fix_header_size;
@@ -5149,7 +5153,7 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
       {
         jamDebug();
         ptr->m_header_bits= (bits | Tuple_header::COPY_TUPLE);
-        return;
+        return true;
       }
       jamDebug();
       Uint32 disk_fix_header_size = tabPtrP->m_offsets[DD].m_fix_header_size;
@@ -5251,8 +5255,7 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
             req_struct->m_disk_page_ptr.i,
             req_struct->m_disk_ptr->m_base_record_page_idx,
             req_struct->m_disk_ptr);
-        ndbrequire(req_struct->m_disk_ptr->m_base_record_page_idx <
-            Tup_page::DATA_WORDS);
+        return false;
       }
     }
     else
@@ -5365,6 +5368,7 @@ Dbtup::expand_tuple(KeyReqStruct* req_struct,
   ptr->m_header_bits = (bits |
                         Tuple_header::COPY_TUPLE |
                         Tuple_header::DISK_INLINE);
+  return true;
 }
 
 void
