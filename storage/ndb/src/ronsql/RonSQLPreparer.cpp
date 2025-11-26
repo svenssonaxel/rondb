@@ -1114,6 +1114,7 @@ RonSQLPreparer::apply_filter_cmp(NdbScanFilter* filter,
     assert(m_column_attrId_map != NULL);
     // todo This only works in simple expressions. For full correctness, the
     // condition needs to be translated from 3-valued logic to 2-valued logic.
+    // Or rather, use void NdbScanFilter::setSqlCmpSemantics()
     return (filter->begin(NdbScanFilter::AND) >= 0 &&
             filter->isnotnull(m_column_attrId_map[left->col_idx]) >=0 &&
             filter->isnotnull(m_column_attrId_map[right->col_idx]) >=0 &&

@@ -1564,7 +1564,8 @@ int NdbInterpretedCode::branch_col_val(Uint32 branch_type, Uint32 attrId,
        */
       if ((branch_type != Interpreter::LIKE) &&
           (branch_type != Interpreter::NOT_LIKE)) {
-        if (!col->get_var_length(val, len)) {
+        if (!col->get_var_length(val, len) // ok so that seems useful, at least for reverse-engineering.
+            ) {
           DBUG_RETURN(error(BadLength));
         }
       }
