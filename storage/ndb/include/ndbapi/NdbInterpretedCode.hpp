@@ -151,7 +151,7 @@ class NdbInterpretedCode {
    * variants. Again it is useful to compute local calculations to
    * avoid networking.
    *
-   * The most reason development makes it possible to append to a
+   * The most recent development makes it possible to append to a
    * column using the interpreter, write only parts of a column,
    * convert strings to numbers, numbers to strings, use memory
    * to spill registers and we expect to add many more application
@@ -636,6 +636,7 @@ class NdbInterpretedCode {
    *       This query will never return NULL.
    *     3 means search for nearest that is smaller or equal
    *     4 means search for nearest that is larger or equal
+   todo 2 and 4 probably isn't the same, so which is > and which is >=?
    * Output:
    *   RegResult:
    *     The position of the found element

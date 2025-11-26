@@ -183,7 +183,7 @@ NdbScanFilter::NdbScanFilter(class NdbOperation *op)
 
 NdbScanFilter::~NdbScanFilter() { delete &m_impl; }
 
-void NdbScanFilter::setSqlCmpSemantics() { m_impl.m_sql_cmp_semantics = true; }
+void NdbScanFilter::setSqlCmpSemantics() { m_impl.m_sql_cmp_semantics = true; } // I wonder if (NOT (NULL OR FALSE)) will be correctly discarded.
 
 void NdbScanFilter::reset() { m_impl.reset(); }
 

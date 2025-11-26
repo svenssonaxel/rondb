@@ -379,7 +379,7 @@ RS_Status set_operation_pk_col(const NdbDictionary::Column *col,
     }
     memcpy(primaryKeyCol + additionalLen,
            request->PKValueCStr(colIdx),
-           primaryKeySize);
+           primaryKeySize); // todo could this overflow the buffer by 1-2 bytes?
     if (col->getType() == NdbDictionary::Column::Varchar) {
       ((Uint8 *)primaryKeyCol)[0] = (Uint8)(primaryKeySize);
     } else if (col->getType() == NdbDictionary::Column::Longvarchar) {
@@ -542,6 +542,8 @@ RS_Status set_operation_pk_col(const NdbDictionary::Column *col,
       break;
     }
     if (unlikely(lTime.hour != 0 ||
+                 /* todo perhaps use lTime.time_type !=
+                    enum_mysql_timestamp_type::MYSQL_TIMESTAMP_DATE instead */
                  lTime.minute != 0 ||
                  lTime.second != 0 ||
                  lTime.second_part != 0)) {
@@ -730,6 +732,7 @@ RS_Status set_operation_pk_col(const NdbDictionary::Column *col,
     // apply time zone changes
     // TODO(salman) how to deal with time zone setting in mysql server
     int warnings = 0;
+    // todo my_datetime_adjust_frac should probably be done before using the lTime value.
     my_datetime_adjust_frac(&lTime, precision, &warnings, true);
     if (unlikely(warnings != 0)) {
       error = RS_CLIENT_ERROR(
