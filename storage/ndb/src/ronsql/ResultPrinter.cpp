@@ -437,7 +437,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         NdbAggregator::Column column = record.FetchGroupbyColumn();
         if (column.end())
         {
-          throw std::runtime_error("Got record with fewer GROUP BY columns than expected.");
+          throw runtime_error("Got record with fewer GROUP BY columns than expected.");
         }
         m_regs_g[cmd.store_group_by_column.reg_g] = column;
       }
@@ -447,7 +447,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         NdbAggregator::Column column = record.FetchGroupbyColumn();
         if (!column.end())
         {
-          throw std::runtime_error("Got record with more GROUP BY columns than expected.");
+          throw runtime_error("Got record with more GROUP BY columns than expected.");
         }
       }
       break;
@@ -456,7 +456,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         NdbAggregator::Result result = record.FetchAggregationResult();
         if (result.end())
         {
-          throw std::runtime_error("Got record with fewer aggregates than expected.");
+          throw runtime_error("Got record with fewer aggregates than expected.");
         }
         m_regs_a[cmd.store_aggregate.reg_a] = result;
       }
@@ -466,7 +466,7 @@ ResultPrinter::print_record(NdbAggregator::ResultRecord& record, std::ostream& o
         NdbAggregator::Result result = record.FetchAggregationResult();
         if (!result.end())
         {
-          throw std::runtime_error("Got record with more aggregates than expected.");
+          throw runtime_error("Got record with more aggregates than expected.");
         }
       }
       break;
