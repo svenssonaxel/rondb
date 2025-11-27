@@ -3,6 +3,7 @@
 # RonSQL doesn't support time zones yet, and works as if in UTC. MySQL uses
 # system time zone, but it seems mtr somehow sets it to +03:00 before this test
 # starts. Until RonSQL and RDRS supports time zones, we'll run this test in UTC.
+# todo Remove when time zone awareness is added to RDRS & RonSQL.
 SET time_zone = "+00:00";
 
 --echo ==============
@@ -87,6 +88,11 @@ EOF
 
 --write_file $QUERY_FILE
 SELECT COUNT(*), SUM(pk) FROM tbl WHERE dt >= DATE_ADD('2025-11-24 11:47:03', INTERVAL 1 HOUR);
+EOF
+--source suite/ronsql/include/ronsql_compare.inc
+
+--write_file $QUERY_FILE
+SELECT COUNT(*), SUM(pk) FROM tbl WHERE dt >= DATE_SUB(DATE_ADD('2025-11-24 11:47:03', INTERVAL 1 DAY), INTERVAL 22 HOUR);
 EOF
 --source suite/ronsql/include/ronsql_compare.inc
 
