@@ -866,10 +866,17 @@ RonSQLPreparer::execute()
         NdbIndexScanOperation::BoundType bt;
         switch (op) {
         case T_EQUALS: bt = NdbIndexScanOperation::BoundType::BoundEQ; break;
-        case T_GE:     bt = NdbIndexScanOperation::BoundType::BoundGE; break;
-        case T_GT:     bt = NdbIndexScanOperation::BoundType::BoundGT; break;
-        case T_LE:     bt = NdbIndexScanOperation::BoundType::BoundLE; break;
-        case T_LT:     bt = NdbIndexScanOperation::BoundType::BoundLT; break;
+        /* This mapping might seem surprising.
+         * - In RonSQL, we have normalized the conditional expressions to have
+         *   the column name on the left and the constant on the right. Thus,
+         *   T_GE means column value >= constant, or in other words, the
+         *   constant is a lower bound.
+         * - In ndbapi, BoundLE is documented to mean non-strict "lower bound".
+         */
+        case T_GE:     bt = NdbIndexScanOperation::BoundType::BoundLE; break;
+        case T_GT:     bt = NdbIndexScanOperation::BoundType::BoundLT; break;
+        case T_LE:     bt = NdbIndexScanOperation::BoundType::BoundGE; break;
+        case T_LT:     bt = NdbIndexScanOperation::BoundType::BoundGT; break;
         default: abort();
         }
         const char* colName = m_columns[condition_col_idx].c_str();
