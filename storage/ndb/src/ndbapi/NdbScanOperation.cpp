@@ -1492,7 +1492,7 @@ int NdbScanOperation::DoAggregation() {
       !m_aggregation_code->finalized())
   {
     DEB_TRACE();
-    setErrorCodeAbort(4560); //  NdbAggregatior::Finalise() not called.
+    setErrorCodeAbort(4560); //  NdbAggregator::Finalize() not called.
     return -1;
   }
 
@@ -1511,24 +1511,39 @@ int NdbScanOperation::DoAggregation() {
   }
 
   DEB_TRACE();
-  int check = -1;
-  while ((check = nextResult(true)) == 0) {
-    // TODO (Zhao) handle return value;
-    DEB_TRACE();
-    if (!m_aggregation_code->ProcessRes(myRecAttr->aRef())) {
+  while (true) {
+    int check = nextResult(true);
+    switch(check) {
+    case -1:
+      // Permanent error
       DEB_TRACE();
       return -1;
+    case 0:
+      // Progress getting data
+      if (m_aggregation_code->ProcessRes(myRecAttr->aRef())) {
+        // Done processing data fetched so far
+        DEB_TRACE();
+        continue;
+      } else {
+        // This is unexpected
+        DEB_TRACE();
+        return -1;
+      }
+    case 1:
+      // Scan complete.
+      DEB_TRACE();
+      m_aggregation_code->PrepareResults();
+      return 0;
+    case 2:
+      // No more data available immediately.
+      DEB_TRACE();
+      abort(); // todo what to do here?
+    default:
+      // This should never happen
+      DEB_TRACE();
+      abort();
     }
-    DEB_TRACE();
   }
-  DEB_TRACE();
-  if (check < 0) {
-    return check;
-  }
-  DEB_TRACE();
-  m_aggregation_code->PrepareResults();
-  DEB_TRACE();
-  return 0;
 }
 
 void NdbScanOperation::setReadLockMode(LockMode lockMode) {
