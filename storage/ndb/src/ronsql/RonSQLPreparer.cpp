@@ -586,6 +586,17 @@ RonSQLPreparer::collect_toplevel_conditions(ConditionalExpression* ce)
 void
 RonSQLPreparer::generate_scan_config_candidates()
 {
+  {
+    // Add a scan config candidate that represents table scan
+    int *condition_handling_map =
+      m_amalloc->alloc_exc<int>(m_toplevel_conditions.size());
+    for (Uint32 i = 0; i < m_toplevel_conditions.size(); i++) {
+      condition_handling_map[i] = -1;
+    }
+    m_scan_config_candidates.push(ScanConfig { NULL,
+                                               condition_handling_map,
+                                               0 });
+  }
   if (m_toplevel_conditions.size() == 0) {
     // No WHERE clause
     return;
@@ -681,17 +692,12 @@ RonSQLPreparer::generate_scan_config_candidates()
         goodness += points;
       }
     }
-    m_scan_config_candidates.push(ScanConfig { index,
-                                               condition_handling_map,
-                                               goodness });
+    if (goodness) {
+      m_scan_config_candidates.push(ScanConfig { index,
+                                                 condition_handling_map,
+                                                 goodness });
+    }
   }
-  // Add a scan config candidate that represents table scan
-  int *condition_handling_map =
-    m_amalloc->alloc_exc<int>(m_toplevel_conditions.size());
-  for (Uint32 i = 0; i < m_toplevel_conditions.size(); i++) {
-    condition_handling_map[i] = -1;
-  }
-  m_scan_config_candidates.push(ScanConfig { NULL, condition_handling_map, 0 });
 }
 
 void
@@ -801,8 +807,6 @@ RonSQLPreparer::execute()
     NdbAggregator aggregator(m_table);
     programAggregator(&aggregator);
     soft_assert(aggregator.Finalize(), "Failed to finalize aggregator.");
-    // End of general preparation
-
     ScanConfig& sc = *m_scan_config;
     const NdbDictionary::Index* index = sc.index;
     bool has_filter = false;
@@ -811,6 +815,7 @@ RonSQLPreparer::execute()
         has_filter = true;
       }
     }
+    // End of general preparation
 
     if(index == NULL) {
       DEB_TRACE();
@@ -867,10 +872,10 @@ RonSQLPreparer::execute()
         case T_LT:     bt = NdbIndexScanOperation::BoundType::BoundLT; break;
         default: abort();
         }
-        Uint32 attrId = m_column_attrId_map[condition_col_idx];
+        const char* colName = m_columns[condition_col_idx].c_str();
         raw_value rv = encode_constant(condition_constant,
                                        m_column_map[condition_col_idx]);
-        soft_assert(myIndexScanOp->setBound(attrId, bt, rv.val) == 0,
+        soft_assert(myIndexScanOp->setBound(colName, bt, rv.val) == 0,
                     "Failed to set bound for index scan.");
       }
       // todo Is this necessary after removing the multirange flag?
@@ -1141,13 +1146,17 @@ RonSQLPreparer::encode_constant(struct ConditionalExpression *ce,
   NdbDictionary::Column::Type type = col->getType();
   switch (type) {
   case NdbDictionary::Column::Type::Tinyint:
-    tk = INT; min = -127; max = 128; bytes = 1; break;
+    tk = INT; min = -128; max = 127; bytes = 1; break;
   case NdbDictionary::Column::Type::Tinyunsigned:
     tk = INT; min = 0; max = 255; bytes = 1; break;
   case NdbDictionary::Column::Type::Smallint:
-    tk = INT; min = -32767; max = 32768; bytes = 2; break;
+    tk = INT; min = -32768; max = 32767; bytes = 2; break;
   case NdbDictionary::Column::Type::Smallunsigned:
     tk = INT; min = 0; max = 65535; bytes = 2; break;
+  case NdbDictionary::Column::Type::Mediumint:
+    tk = INT; min = -8388608; max = 8388607; bytes = 3; break;
+  case NdbDictionary::Column::Type::Mediumunsigned:
+    tk = INT; min = 0; max = 16777215; bytes = 3; break;
   case NdbDictionary::Column::Type::Int:
     tk = INT; min = -2147483647LL; max = 2147483648LL; bytes = 4; break;
   case NdbDictionary::Column::Type::Unsigned:
@@ -1705,8 +1714,12 @@ RonSQLPreparer::print()
       out << "Execute as table scan.\n";
     } else {
       out << "Execute as index scan.\n"
-          << "Index name: " << quoted_identifier(sc.index->getName())
-          << "With goodness " << sc.goodness << " it's the best of "
+          << "Index: " << quoted_identifier(sc.index->getName()) << "(";
+      for (Uint32 i = 0; i < sc.index->getNoOfColumns(); i++) {
+        if (i > 0) out << ", ";
+        out << sc.index->getColumn(i)->getName();
+      }
+      out << ")\nWith goodness " << sc.goodness << " it's the best of "
           << m_scan_config_candidates.size() << " options.\n";
     }
     Uint32 cond_cnt = m_toplevel_conditions.size();
